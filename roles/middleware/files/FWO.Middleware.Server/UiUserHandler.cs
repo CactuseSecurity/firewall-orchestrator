@@ -2,9 +2,7 @@
 using FWO.ApiClient.Queries;
 using FWO.Logging;
 using FWO.Config.File;
-using System;
 using FWO.Api.Data;
-using System.Threading.Tasks;
 
 namespace FWO.Middleware.Server
 {
@@ -45,7 +43,6 @@ namespace FWO.Middleware.Server
             {
                 Log.WriteInfo("New User", $"User {user.Name} first time log in - adding to database.");
                 await AddUiUserToDb(apiConn, user);
-                user.PasswordMustBeChanged = true;
             }
             return user;
         }
@@ -65,7 +62,11 @@ namespace FWO.Middleware.Server
                     passwordMustBeChanged = false,
                     ldapConnectionId = user.LdapConnection.Id
                 };
-                user.DbId = (await apiConn.SendQueryAsync<NewReturning>(AuthQueries.addUser, Variables)).ReturnIds[0].NewId;
+                ReturnId[]? returnIds = (await apiConn.SendQueryAsync<NewReturning>(AuthQueries.addUser, Variables)).ReturnIds;
+                if(returnIds != null)
+                {
+                    user.DbId = returnIds[0].NewId;
+                }
             }
             catch (Exception exeption)
             {

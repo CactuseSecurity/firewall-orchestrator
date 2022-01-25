@@ -1,6 +1,5 @@
 #!/usr/bin/python3
-#  import-fworch-config.py: export the full config of the product itself for later import
-#  does not contain any firewall config data, just the device config plus fworch user config
+# fwo-execute-graphql.py: run a graphql query/mutation against the FWO API
 
 import sys
 import json, requests, requests.packages, argparse
@@ -11,7 +10,7 @@ import common, fwo_api
 
 parser = argparse.ArgumentParser(
     description='Export fworch configuration into encrypted json file')
-parser.add_argument('-i', '--in', metavar='input_file', required=True, help='filename to read the config to import from')
+parser.add_argument('-i', '--input_file', metavar='input_file', required=True, help='filename to read the config to import from')
 parser.add_argument('-u', '--user', metavar='user_name', default='admin', help='username for writing fworch config (default=admin')
 parser.add_argument('-p', '--password', metavar='password_file', default=base_dir + '/etc/secrets/ui_admin_pwd', help='username for writing fworch config (default=$FWORCH_HOME/etc/secrets/ui_admin_pwd')
 parser.add_argument('-d', '--debug', metavar='debug_level', default='0',
@@ -51,24 +50,12 @@ else:
     jwt = fwo_api.login(args.user, exporter_pwd, user_management_api_base_url,
                         method, ssl_verification=ssl_mode)
 
-# write device details to fworch
+with open(args.input_file, 'r') as file:
+   graphql_query = file.read()
 
-with open(args.out, 'r') as file:
-    config_json = json.loads(file.read())
+# todo: optionally decrypt graphql code
 
-# todo: decrypt config before writing to file
-
-dev_config = config_json['device_configuration']
-
-
-device_adding_mutation = """
-    mutation addManagements {
-        insert_management( objects: { """ + config_json['device_configuration']['management'] + """ } ) 
-        insert_device( objects: { """ + config_json['device_configuration']['device'] + """ } ) 
-        { returning { mgm_id dev_id } }
-    }"""
-
-fwo_api.call(fwo_api_base_url, jwt, device_adding_mutation, query_variables={}, role='admin')
+result = fwo_api.call(fwo_api_base_url, jwt, graphql_query, query_variables={}, role='admin')
 
 # todo: get more config data
     # get user related data:

@@ -24,7 +24,8 @@ namespace FWO.Report.Filter
             " $relevantImportId: bigint"
         };
         public string ReportTime { get; set; } = "";
-        public string ReportType { get; set; } = "";
+
+        public ReportType ReportType { get; set; } = ReportType.None;
 
         // $mgmId and $relevantImporId are only needed for time based filtering
         private DynGraphqlQuery(string rawInput) { RawFilter = rawInput; }
@@ -44,7 +45,7 @@ namespace FWO.Report.Filter
                 // todo: move $mdmId filter from management into query.xxxWhereStatement
                 // management(where: {{mgm_id: {{_in: $mgmId }} }} order_by: {{ mgm_name: asc }}) 
                         // management(order_by: {{ mgm_name: asc }}) 
-                case "statistics":
+                case ReportType.Statistics:
                     query.FullQuery = $@"
                     query statisticsReport ({paramString}) 
                     {{ 
@@ -72,7 +73,7 @@ namespace FWO.Report.Filter
                     }}";
                     break;                
 
-                case "rules":
+                case ReportType.Rules:
                     query.FullQuery = $@"
                     {(detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
 
@@ -99,7 +100,7 @@ namespace FWO.Report.Filter
                     }}";
                     break;
                     
-                case "changes":
+                case ReportType.Changes:
                     query.FullQuery = $@"
                     {(detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
 
@@ -139,6 +140,33 @@ namespace FWO.Report.Filter
                             }}
                         }}
                     ";
+                    break;
+
+                case ReportType.NatRules:
+                    query.FullQuery = $@"
+                    {(detailed ? RuleQueries.natRuleDetailsForReportFragments : RuleQueries.natRuleOverviewFragments)}
+
+                    query natRulesReport ({paramString}) 
+                    {{ 
+                        management( where: {{ mgm_id: {{_in: $mgmId }}, hide_in_gui: {{_eq: false }} }} order_by: {{ mgm_name: asc }} ) 
+                            {{
+                                id: mgm_id
+                                name: mgm_name
+                                devices ( where: {{ hide_in_gui: {{_eq: false }} }} order_by: {{ dev_name: asc }} ) 
+                                    {{
+                                        id: dev_id
+                                        name: dev_name
+                                        rules(
+                                            limit: $limit 
+                                            offset: $offset
+                                            where: {{  nat_rule: {{_eq: true}}, ruleByXlateRule: {{}} {query.ruleWhereStatement} }} 
+                                            order_by: {{ rule_num_numeric: asc }} )
+                                            {{
+                                                ...{(detailed ? "natRuleDetails" : "natRuleOverview")}
+                                            }} 
+                                    }}
+                            }} 
+                    }}";
                     break;
             }
 

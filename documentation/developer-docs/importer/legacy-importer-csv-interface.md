@@ -15,7 +15,6 @@ you need to add the name of the field to the respective _outlist in roles/import
 For python based importers, you need to adjust the roles/importer/files/importer/checkpointR8x/*_parser.py files, e.g. 
   csv_dump_svc_obj.py in parse_service.py
 
-
 ## General
 
 ```console

@@ -25,17 +25,17 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
     [CascadingParameter]
-    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
-    ConfigDbAccess config;
+    ConfigDbAccess? config;
     int recertificationDisplayPeriod = 30;
 
     protected override async Task OnInitializedAsync()
     {
-        AuthenticationState authState = await authenticationStateTask;
+        AuthenticationState authState = await authenticationStateTask!;
         try
         {
             config = new ConfigDbAccess(apiConnection, userConfig);
@@ -58,7 +58,7 @@
         catch (KeyNotFoundException) { }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("recert_settings"), userConfig.GetText("E5421") + recertificationDisplayPeriod.ToString(), false);
+            DisplayMessageInUi!(exception, userConfig.GetText("recert_settings"), userConfig.GetText("E5421") + recertificationDisplayPeriod.ToString(), false);
         }
     }
 
@@ -68,11 +68,11 @@
         try
         {
             await userConfig.ChangeConfigValue(GlobalConfig.kRecertificationDisplayPeriod, recertificationDisplayPeriodString, apiConnection);
-            DisplayMessageInUi(null, userConfig.GetText("recert_settings"), userConfig.GetText("U5301"), false);
+            DisplayMessageInUi!(null, userConfig.GetText("recert_settings"), userConfig.GetText("U5301"), false);
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("recert_settings"), null, true);
+            DisplayMessageInUi!(exception, userConfig.GetText("recert_settings"), "", true);
         }
     }
 }

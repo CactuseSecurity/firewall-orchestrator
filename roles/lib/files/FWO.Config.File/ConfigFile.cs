@@ -35,61 +35,61 @@ namespace FWO.Config.File
         //private readonly APIConnection apiConnection;
 
 
-        private RsaSecurityKey jwtPrivateKey = null;
+        private RsaSecurityKey? jwtPrivateKey = null;
         public RsaSecurityKey JwtPrivateKey
         {
             get
             {
-                CriticalConfigValueLoaded(jwtPrivateKey);
+                jwtPrivateKey = CriticalConfigValueLoaded(jwtPrivateKey);
                 return jwtPrivateKey;
             }
         }
 
-        private RsaSecurityKey jwtPublicKey = null;
+        private RsaSecurityKey? jwtPublicKey = null;
         public RsaSecurityKey JwtPublicKey
         {
             get
             {
-                CriticalConfigValueLoaded(jwtPublicKey);
+                jwtPublicKey = CriticalConfigValueLoaded(jwtPublicKey);
                 return jwtPublicKey;
             }
         }
 
-        private string apiServerUri = null;
+        private string? apiServerUri = null;
         public string ApiServerUri
         {
             get
             {
-                CriticalConfigValueLoaded(apiServerUri);
+                apiServerUri = CriticalConfigValueLoaded(apiServerUri);
                 return apiServerUri;
             }
         }
 
-        private string middlewareServerNativeUri = null;
+        private string? middlewareServerNativeUri = null;
         public string MiddlewareServerNativeUri
         {
             get
             {
-                CriticalConfigValueLoaded(middlewareServerNativeUri);
+                middlewareServerNativeUri = CriticalConfigValueLoaded(middlewareServerNativeUri);
                 return middlewareServerNativeUri;
             }
         }
-        private string middlewareServerUri = null;
+        private string? middlewareServerUri = null;
         public string MiddlewareServerUri
         {
             get
             {
-                CriticalConfigValueLoaded(middlewareServerUri);
+                middlewareServerUri = CriticalConfigValueLoaded(middlewareServerUri);
                 return middlewareServerUri;
             }
         }
 
-        private string productVersion = null;
+        private string? productVersion = null;
         public string ProductVersion
         {
             get
             {
-                CriticalConfigValueLoaded(productVersion);
+                productVersion = CriticalConfigValueLoaded(productVersion);
                 return productVersion;
             }
         }
@@ -102,7 +102,7 @@ namespace FWO.Config.File
                 string configFile = System.IO.File.ReadAllText(configPath).TrimEnd();
 
                 // Deserialize config to dictionary
-                Dictionary<string, string> configFileData = JsonSerializer.Deserialize<Dictionary<string,string>>(configFile);
+                Dictionary<string, string> configFileData = JsonSerializer.Deserialize<Dictionary<string,string>>(configFile) ?? throw new Exception("Config file could not be parsed.");
 
                 // Errors can be ignored. If a configuration value that could not be loaded is requested from outside this class, an excpetion is thrown. See NotNullCriticalConfigValue()
 
@@ -132,12 +132,17 @@ namespace FWO.Config.File
             }
         }
 
-        private void CriticalConfigValueLoaded(object configValue)
+        private ConfigValueType CriticalConfigValueLoaded<ConfigValueType>(ConfigValueType? configValue)
         {
             if (configValue == null)
             {
                 Log.WriteError("Config value read", $"A necessary config value could not be found.", LogStackTrace: true);
                 Environment.Exit(1); // Exit with error
+                throw new ApplicationException("unreachable");
+            }
+            else
+            {
+                return configValue;
             }
         }
         

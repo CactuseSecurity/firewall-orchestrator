@@ -5,6 +5,17 @@ INSERT INTO language ("name", "culture_info") VALUES('English', 'en-US');
 insert into uiuser (uiuser_id, uiuser_username, uuid) VALUES (0,'default', 'default');
 
 insert into config (config_key, config_value, config_user) VALUES ('DefaultLanguage', 'English', 0);
+insert into config (config_key, config_value, config_user) VALUES ('elementsPerFetch', '100', 0);
+insert into config (config_key, config_value, config_user) VALUES ('maxInitialFetchesRightSidebar', '10', 0);
+insert into config (config_key, config_value, config_user) VALUES ('autoFillRightSidebar', 'False', 0);
+insert into config (config_key, config_value, config_user) VALUES ('dataRetentionTime', '731', 0);
+insert into config (config_key, config_value, config_user) VALUES ('importSleepTime', '40', 0);
+insert into config (config_key, config_value, config_user) VALUES ('fwApiElementsPerFetch', '150', 0);
+insert into config (config_key, config_value, config_user) VALUES ('recertificationPeriod', '365', 0);
+insert into config (config_key, config_value, config_user) VALUES ('recertificationNoticePeriod', '30', 0);
+insert into config (config_key, config_value, config_user) VALUES ('recertificationDisplayPeriod', '30', 0);
+insert into config (config_key, config_value, config_user) VALUES ('ruleRemovalGracePeriod', '60', 0);
+insert into config (config_key, config_value, config_user) VALUES ('commentRequired', 'False', 0);
 
 INSERT INTO "report_format" ("report_format_name") VALUES ('json');
 INSERT INTO "report_format" ("report_format_name") VALUES ('pdf');
@@ -21,6 +32,8 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
 INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner") 
     VALUES ('type=rules and time=now and (src=any or dst=any or svc=any or src=all or dst=all or svc=all) and not(action=drop or action=reject or action=deny) ',
         'Compliance: Pass rules with ANY','T0104', 0);
+INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner") 
+    VALUES ('type=natrules and time=now ','Current NAT Rules','T0105', 0);
 
 insert into parent_rule_type (id, name) VALUES (1, 'section');          -- do not restart numbering
 insert into parent_rule_type (id, name) VALUES (2, 'guarded-layer');    -- restart numbering, rule restrictions are ANDed to all rules below it, layer is not entered if guard does not apply

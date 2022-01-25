@@ -1,0 +1,35 @@
+
+# these tasks make sure that the docker daemon can fetch images via proxy
+
+- name: make sure docker service dir exists
+  file:
+    path: /etc/systemd/system/docker.service.d
+    state: directory
+    mode: "0755"
+  become: yes
+  notify: "docker restart"
+
+- name: create docker config file for proxy settings
+  blockinfile:
+    path: /etc/systemd/system/docker.service.d/http-proxy.conf
+    backup: yes
+    create: yes
+    mode: "0644"
+    block: |
+      [Service]
+      Environment="HTTP_PROXY={{ http_proxy }}"
+      Environment="HTTPS_PROXY={{ https_proxy }}"
+      Environment="NO_PROXY={{ proxy_exceptions }}"
+  become: yes
+  notify: "docker restart"
+
+- name: setting proxy in /etc/default/docker for eg debian
+  blockinfile:
+    create: yes
+    path:  /etc/default/docker
+    block: |
+      export http_proxy="{{ http_proxy }}"
+      export https_proxy="{{ https_proxy }}"
+      export no_proxy={{ proxy_exceptions }}
+  become: yes
+  notify: "docker restart"

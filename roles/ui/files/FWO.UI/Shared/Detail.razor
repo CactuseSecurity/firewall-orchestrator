@@ -6,13 +6,13 @@
 
 @code {
     [Parameter]
-    public RenderFragment ChildContent { get; set; } // currently there is no way to check if this is empty
+    public RenderFragment? ChildContent { get; set; } // currently there is no way to check if this is empty
 
     [Parameter]
-    public string Title { get; set; }
+    public string Title { get; set; } = "";
 
     [Parameter]
-    public string Data { get; set; }
+    public string Data { get; set; } = "";
 
     [Parameter]
     public bool HideIfEmpty { get; set; } = true;

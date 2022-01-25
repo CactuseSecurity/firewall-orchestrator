@@ -16,13 +16,13 @@ else
 
 @code {
     [CascadingParameter]
-    public TabSet ContainerTabSet { get; set; }
+    public TabSet? ContainerTabSet { get; set; }
 
     [Parameter]
-    public string Title { get; set; }
+    public string Title { get; set; } = "";
 
     [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    public RenderFragment? ChildContent { get; set; }
 
     [Parameter]
     public string CssClass { get; set; } = "";

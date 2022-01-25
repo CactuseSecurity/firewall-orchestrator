@@ -46,13 +46,4 @@
       dest: "{{ fworch_conf_file }}"
     when: installation_mode == "new"
 
-  # - name: write version in config file in fresh installation
-  #   lineinfile:
-  #     path: "{{ fworch_conf_file }}"
-  #     create: yes
-  #     line: "    \"product_version\": \"{{ product_version }}\","
-  #     insertafter: "{"
-  #   when: installation_mode == "new"
-  #   # keep old version number in config file until end of upgrade
-
   become: yes

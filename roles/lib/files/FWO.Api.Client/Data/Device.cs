@@ -1,51 +1,50 @@
-﻿using System;
-using System.Linq;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization; 
+using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
     public class Device
     {
-        [JsonPropertyName("id")]
+        [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
 
-        [JsonPropertyName("name")]
-        public string Name { get; set; }
+        [JsonProperty("name"), JsonPropertyName("name")]
+        public string? Name { get; set; }
 
-        [JsonPropertyName("deviceType")]
-        public DeviceType DeviceType { get; set; }
+        [JsonProperty("deviceType"), JsonPropertyName("deviceType")]
+        public DeviceType DeviceType { get; set; } = new DeviceType();
 
-        [JsonPropertyName("management")]
-        public Management Management { get; set; }
+        [JsonProperty("management"), JsonPropertyName("management")]
+        public Management Management { get; set; } = new Management();
 
-        [JsonPropertyName("local_rulebase_name")]
-        public string LocalRulebase { get; set; }
+        [JsonProperty("local_rulebase_name"), JsonPropertyName("local_rulebase_name")]
+        public string? LocalRulebase { get; set; }
 
-        [JsonPropertyName("global_rulebase_name")]
-        public string GlobalRulebase { get; set; }
+        [JsonProperty("global_rulebase_name"), JsonPropertyName("global_rulebase_name")]
+        public string? GlobalRulebase { get; set; }
 
-        [JsonPropertyName("package_name")]
-        public string Package { get; set; }
+        [JsonProperty("package_name"), JsonPropertyName("package_name")]
+        public string? Package { get; set; }
 
-        [JsonPropertyName("importDisabled")]
+        [JsonProperty("importDisabled"), JsonPropertyName("importDisabled")]
         public bool ImportDisabled { get; set; }
 
-        [JsonPropertyName("hideInUi")]
+        [JsonProperty("hideInUi"), JsonPropertyName("hideInUi")]
         public bool HideInUi { get; set; }
 
-        [JsonPropertyName("comment")]
-        public string Comment { get; set; }
+        [JsonProperty("comment"), JsonPropertyName("comment")]
+        public string? Comment { get; set; }
 
-        [JsonPropertyName("rules")]
-        public Rule[] Rules { get; set; }
+        [JsonProperty("rules"), JsonPropertyName("rules")]
+        public Rule[]? Rules { get; set; }
 
-        [JsonPropertyName("changelog_rules")]
-        public RuleChange[] RuleChanges { get; set; }
+        [JsonProperty("changelog_rules"), JsonPropertyName("changelog_rules")]
+        public RuleChange[]? RuleChanges { get; set; }
 
-        [JsonPropertyName("rules_aggregate")]
-        public ObjectStatistics RuleStatistics { get; set; }
+        [JsonProperty("rules_aggregate"), JsonPropertyName("rules_aggregate")]
+        public ObjectStatistics RuleStatistics { get; set; } = new ObjectStatistics();
 
-        public bool selected { get; set; } = false;
+        public bool Selected { get; set; } = false;
 
         public Device()
         { }
@@ -54,20 +53,30 @@ namespace FWO.Api.Data
         {
             Id = device.Id;
             Name = device.Name;
-            if (device.DeviceType != null)
-            {
-                DeviceType = new DeviceType(device.DeviceType);
-            }
-            if (device.Management != null)
-            {
-                Management = new Management(device.Management);
-            }
+            DeviceType = new DeviceType(device.DeviceType);
+            Management = new Management(device.Management);
             LocalRulebase = device.LocalRulebase;
             GlobalRulebase = device.GlobalRulebase;
             Package = device.Package;
             ImportDisabled = device.ImportDisabled;
             HideInUi = device.HideInUi;
             Comment = device.Comment;
+        }
+
+        public void AssignRuleNumbers()
+        {
+            if (Rules != null)
+            {
+                int ruleNumber = 1;
+
+                foreach (Rule rule in Rules)
+                {
+                    if (string.IsNullOrEmpty(rule.SectionHeader)) // Not a section header
+                    {
+                        rule.DisplayOrderNumber = ruleNumber++;
+                    }
+                }
+            }
         }
     }
 
@@ -79,22 +88,29 @@ namespace FWO.Api.Data
         {
             bool newObjects = false;
 
-            for (int i = 0; i < devices.Length; i++)
+            for (int i = 0; i < devices.Length && i < devicesToMerge.Length; i++)
             {
                 if (devices[i].Id == devicesToMerge[i].Id)
                 {
-                    if (devices[i].Rules != null && devicesToMerge[i].Rules != null && devicesToMerge[i].Rules.Length > 0)
+                    try
                     {
-                        devices[i].Rules = devices[i].Rules.Concat(devicesToMerge[i].Rules).ToArray();
-                        newObjects = true;
+                        if (devices[i].Rules != null && devicesToMerge[i].Rules != null && devicesToMerge[i].Rules?.Length > 0)
+                        {
+                            devices[i].Rules = devices[i].Rules?.Concat(devicesToMerge[i].Rules!).ToArray();
+                            newObjects = true;
+                        }
+                        if (devices[i].RuleChanges != null && devicesToMerge[i].RuleChanges != null && devicesToMerge[i].RuleChanges?.Length > 0)
+                        {
+                            devices[i].RuleChanges = devices[i].RuleChanges!.Concat(devicesToMerge[i].RuleChanges!).ToArray();
+                            newObjects = true;
+                        }
+                        if (devices[i].RuleStatistics != null && devicesToMerge[i].RuleStatistics != null)
+                            devices[i].RuleStatistics.ObjectAggregate.ObjectCount += devicesToMerge[i].RuleStatistics.ObjectAggregate.ObjectCount; // correct ??
                     }
-                    if (devices[i].RuleChanges != null && devicesToMerge[i].RuleChanges != null && devicesToMerge[i].RuleChanges.Length > 0)
+                    catch (NullReferenceException)
                     {
-                        devices[i].RuleChanges = devices[i].RuleChanges.Concat(devicesToMerge[i].RuleChanges).ToArray();
-                        newObjects = true;
+                        throw new ArgumentNullException("Rules is null");
                     }
-                    if (devices[i].RuleStatistics != null && devicesToMerge[i].RuleStatistics != null)
-                        devices[i].RuleStatistics = devicesToMerge[i].RuleStatistics;
                 }
                 else
                 {

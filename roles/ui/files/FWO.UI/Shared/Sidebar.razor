@@ -32,13 +32,13 @@
 @code
 {
     [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    public RenderFragment? ChildContent { get; set; }
 
     [Parameter]
-    public string SidebarContainerCssClass { get; set; }
+    public string SidebarContainerCssClass { get; set; } = "";
 
     [Parameter]
-    public string SidebarCssClass { get; set; }
+    public string SidebarCssClass { get; set; } = "";
 
     [Parameter]
     public bool PositionLeft { get; set; } = true;
@@ -57,15 +57,12 @@
 
     private bool Collapsed = false;
 
-    [CascadingParameter]
-    private Action<string, string> ShowError { get; set; }
-
     private double resizeStartX;
 
     private int WidthBeforeMinimize;
 
     private string minMaxButtonSymbol = "collapse-right";
-    private string overflowSidebar = "scroll";
+    private string overflowSidebar = "auto";
 
     private void ResizeStart(DragEventArgs dragArgs)
     {
@@ -124,6 +121,6 @@
 
     private void AdjustSidebarOverflow()
     {
-        overflowSidebar = Width < 5 ? "hidden" : "scroll";
+        overflowSidebar = Width < 5 ? "hidden" : "auto";
     }
 }

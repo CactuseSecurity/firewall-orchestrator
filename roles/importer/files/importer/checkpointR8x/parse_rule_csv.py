@@ -195,7 +195,7 @@ def csv_dump_rules(rulebase, layer_name, import_id, rule_num, section_header_uid
                     parent_uid = rulebase['parent_rule_uid']
                 else:
                     parent_uid = ""
-                section_header = parse_rule.create_section_header(section_name, layer_name, import_id, rulebase['uid'], rule_num, section_header_uids, parent_uid)
+                section_header = create_section_header(section_name, layer_name, import_id, rulebase['uid'], rule_num, section_header_uids, parent_uid)
                 rule_num += 1
                 result += section_header
                 parent_uid = rulebase['uid']

@@ -14,6 +14,7 @@ namespace FWO.ApiClient.Queries
         public static readonly string getTextsPerLanguage;
         public static readonly string addConfigItem;
         public static readonly string updateConfigItem;
+        public static readonly string upsertConfigItem;
         public static readonly string getConfigItemsByUser;
 
         static ConfigQueries()
@@ -26,6 +27,7 @@ namespace FWO.ApiClient.Queries
                 addConfigItem = File.ReadAllText(QueryPath + "config/addConfigItem.graphql");
                 updateConfigItem = File.ReadAllText(QueryPath + "config/updateConfigItem.graphql");
                 getConfigItemsByUser = File.ReadAllText(QueryPath + "config/getConfigItemsByUser.graphql");
+                upsertConfigItem = File.ReadAllText(QueryPath + "config/upsertConfigItem.graphql");
             }
             catch (Exception exception)
             {

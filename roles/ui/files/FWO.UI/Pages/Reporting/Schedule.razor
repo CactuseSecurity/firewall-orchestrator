@@ -1,5 +1,4 @@
 ﻿@using FWO.Config.Api
-@using System.Text.Json
 
 @inject APIConnection apiConnection
 @inject UserConfig userConfig
@@ -10,10 +9,10 @@
 
 <button class="btn btn-sm btn-success mb-1" @onclick="() => { scheduledReportInEdit = new ScheduledReport() { RepeatInterval = Interval.Never }; ShowSaveScheduledReportDialog = true; }">@(userConfig.GetText("add"))</button>
 
-<Table TableClass="table table-bordered table-sm table-responsive" TableItem="ScheduledReport" Items="scheduledReports">
+<Table TableClass="table table-bordered table-sm table-responsive" TableItem="ScheduledReport" Items="scheduledReports" PageSize="0">
     <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("action"))">
         <Template>
-            @if (context.Owner.DbId == uiUserDbId || authenticationState.User.IsInRole("admin"))
+            @if (context.Owner.DbId == uiUserDbId || authenticationState!.User.IsInRole("admin"))
             {
                 <div class="btn-group">
                     <button class="btn btn-sm btn-warning" @onclick="() => { scheduledReportInEdit = context; ShowEditScheduledReportDialog = true; }">@(userConfig.GetText("edit"))</button>
@@ -55,7 +54,7 @@
             <div class="form-group row">
                 <label for="scheduleStartTime" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("start_time")):</label>
                 <div class="col-sm-4">
-                    <input id="scheduleStartTime" type="time" class="form-control form-control-sm" @bind="scheduledReportInEdit.StartTime" />
+                    <input id="scheduleStartTime" type="time" step="60" class="form-control form-control-sm" @bind="scheduledReportInEdit.StartTime" />
                 </div>
                 <div class="col-sm-4">
                     <input id="scheduleStartTimeDate" type="date" class="form-control form-control-sm" @bind="scheduledReportInEdit.StartTime" />
@@ -110,10 +109,10 @@
                             <label class="form-check-label" for="outputFormatJson">JSON</label>
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="outputFormatCsv" value="Csv"
+                            <input disabled class="form-check-input" type="checkbox" id="outputFormatCsv" value="Csv"
                                    checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == "csv"))"
                                    @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove("csv"))">
-                            <label class="form-check-label" for="outputFormatCsv">CSV</label>
+                            <label class="form-check-label" for="outputFormatCsv">CSV @(userConfig.GetText("coming_soon"))</label>
                         </div>
                     </div>
                 </div>
@@ -145,7 +144,7 @@
 @code
 {
     List<ScheduledReport> scheduledReports = new List<ScheduledReport>();
-    ScheduledReport scheduledReportInEdit = null;
+    ScheduledReport scheduledReportInEdit = new ScheduledReport();
 
     private bool ShowSaveScheduledReportDialog = false;
     private bool ShowEditScheduledReportDialog = false;
@@ -156,11 +155,11 @@
     ReportTemplate[] reportTemplates = new ReportTemplate[0];
 
     [CascadingParameter]
-    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
     [CascadingParameter]
-    private Task<AuthenticationState> authenticationStateTask { get; set; }
-    private AuthenticationState authenticationState;
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+    private AuthenticationState? authenticationState;
 
     protected override async Task OnInitializedAsync()
     {
@@ -169,11 +168,11 @@
             scheduledReports = (await apiConnection.SendQueryAsync<ScheduledReport[]>(ReportQueries.getReportSchedules)).ToList();
             reportTemplates = await apiConnection.SendQueryAsync<ReportTemplate[]>(ReportQueries.getReportTemplates);
             uiUserDbId = userConfig.User.DbId;
-            authenticationState = await authenticationStateTask;
+            authenticationState = await authenticationStateTask!;
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("schedule_fetch"), null, true);
+            DisplayMessageInUi!(exception, userConfig.GetText("schedule_fetch"), "", true);
         }
     }
 
@@ -189,42 +188,45 @@
             //$report_schedule_every: Int! # every x days/weeks/months/years
             //$report_schedule_active: Boolean!
 
-            // Add report schedule to DB
-            dynamic queryVariablesReportSchedule = new
+            if (checkInput())
             {
-                report_schedule_name = scheduledReportInEdit.Name,
-                report_schedule_owner_id = uiUserDbId,
-                report_schedule_template_id = scheduledReportInEdit.Template.Id,
-                report_schedule_start_time = scheduledReportInEdit.StartTime,
-                report_schedule_repeat = scheduledReportInEdit.RepeatOffset,
-                report_schedule_every = (int)scheduledReportInEdit.RepeatInterval,
-                report_schedule_active = scheduledReportInEdit.Active,
-                report_schedule_formats = new { data = scheduledReportInEdit.OutputFormat }
-            };
-            scheduledReportInEdit.Id = (await apiConnection.SendQueryAsync<NewReturning>(ReportQueries.addReportSchedule, queryVariablesReportSchedule)).ReturnIds[0].NewId;
+                // Add report schedule to DB
+                dynamic queryVariablesReportSchedule = new
+                {
+                    report_schedule_name = scheduledReportInEdit.Name,
+                    report_schedule_owner_id = uiUserDbId,
+                    report_schedule_template_id = scheduledReportInEdit.Template.Id,
+                    report_schedule_start_time = scheduledReportInEdit.StartTime,
+                    report_schedule_repeat = scheduledReportInEdit.RepeatOffset,
+                    report_schedule_every = (int)scheduledReportInEdit.RepeatInterval,
+                    report_schedule_active = scheduledReportInEdit.Active,
+                    report_schedule_formats = new { data = scheduledReportInEdit.OutputFormat }
+                };
+                scheduledReportInEdit.Id = (await apiConnection.SendQueryAsync<NewReturning>(ReportQueries.addReportSchedule, queryVariablesReportSchedule)).ReturnIds[0].NewId;
 
-            //// Add report schedule output format to DB (needs to be seperated because of unknown report schedule id)
-            //var queryVariablesReportScheduleOutputFormat = new
-            //{
-            //    report_schedule_ids_formats = new
-            //    {
-            //        data = scheduledReportInEdit.OutputFormat.ConvertAll(format =>
-            //        new { report_schedule_format_name = format.Name, report_schedule_id = scheduledReportInEdit.Id }).ToArray()
-            //    }
-            //};
+                //// Add report schedule output format to DB (needs to be seperated because of unknown report schedule id)
+                //var queryVariablesReportScheduleOutputFormat = new
+                //{
+                //    report_schedule_ids_formats = new
+                //    {
+                //        data = scheduledReportInEdit.OutputFormat.ConvertAll(format =>
+                //        new { report_schedule_format_name = format.Name, report_schedule_id = scheduledReportInEdit.Id }).ToArray()
+                //    }
+                //};
 
-            ////string test = JsonSerializer.Serialize(queryVariablesReportScheduleOutputFormat, new JsonSerializerOptions { WriteIndented = true });
-            //ReturnId test = await apiConnection.SendQueryAsync<ReturnId>(ReportQueries.addReportScheduleFileFormats, queryVariablesReportScheduleOutputFormat);
+                ////string test = JsonSerializer.Serialize(queryVariablesReportScheduleOutputFormat, new JsonSerializerOptions { WriteIndented = true });
+                //ReturnId test = await apiConnection.SendQueryAsync<ReturnId>(ReportQueries.addReportScheduleFileFormats, queryVariablesReportScheduleOutputFormat);
 
-            // Update scheduled reports
-            scheduledReports = (await apiConnection.SendQueryAsync<ScheduledReport[]>(ReportQueries.getReportSchedules)).ToList();
+                // Update scheduled reports
+                scheduledReports = (await apiConnection.SendQueryAsync<ScheduledReport[]>(ReportQueries.getReportSchedules)).ToList();
 
-            ShowSaveScheduledReportDialog = false;
+                ShowSaveScheduledReportDialog = false;
+            }
         }
         catch (Exception exception)
         {
             Log.WriteError("Save scheduled report", "Unclassified error.", exception);
-            DisplayMessageInUi(exception, userConfig.GetText("save_scheduled_report"), null, false);
+            DisplayMessageInUi!(exception, userConfig.GetText("save_scheduled_report"), "", false);
         }
     }
 
@@ -232,30 +234,33 @@
     {
         try
         {
-            var queryVariables = new
+            if (checkInput())
             {
-                report_schedule_id = scheduledReportInEdit.Id,
-                report_schedule_name = scheduledReportInEdit.Name,
-                report_schedule_owner_id = uiUserDbId,
-                report_schedule_template_id = scheduledReportInEdit.Template.Id,
-                report_schedule_start_time = scheduledReportInEdit.StartTime,
-                report_schedule_repeat = scheduledReportInEdit.RepeatOffset,
-                report_schedule_every = (int)scheduledReportInEdit.RepeatInterval,
-                report_schedule_active = scheduledReportInEdit.Active,
-                report_schedule_format_names = scheduledReportInEdit.OutputFormat.ConvertAll(format => format.Name),
-                report_schedule_format_rel = scheduledReportInEdit.OutputFormat.ConvertAll(format =>
-                new { report_schedule_format_name = format.Name, report_schedule_id = scheduledReportInEdit.Id })
-            };
+                var queryVariables = new
+                {
+                    report_schedule_id = scheduledReportInEdit.Id,
+                    report_schedule_name = scheduledReportInEdit.Name,
+                    report_schedule_owner_id = uiUserDbId,
+                    report_schedule_template_id = scheduledReportInEdit.Template.Id,
+                    report_schedule_start_time = scheduledReportInEdit.StartTime,
+                    report_schedule_repeat = scheduledReportInEdit.RepeatOffset,
+                    report_schedule_every = (int)scheduledReportInEdit.RepeatInterval,
+                    report_schedule_active = scheduledReportInEdit.Active,
+                    report_schedule_format_names = scheduledReportInEdit.OutputFormat.ConvertAll(format => format.Name),
+                    report_schedule_format_rel = scheduledReportInEdit.OutputFormat.ConvertAll(format =>
+                    new { report_schedule_format_name = format.Name, report_schedule_id = scheduledReportInEdit.Id })
+                };
 
-            await apiConnection.SendQueryAsync<object>(ReportQueries.editReportSchedule, queryVariables);
-            scheduledReports = (await apiConnection.SendQueryAsync<ScheduledReport[]>(ReportQueries.getReportSchedules)).ToList();
+                await apiConnection.SendQueryAsync<object>(ReportQueries.editReportSchedule, queryVariables);
+                scheduledReports = (await apiConnection.SendQueryAsync<ScheduledReport[]>(ReportQueries.getReportSchedules)).ToList();
 
-            ShowEditScheduledReportDialog = false;
+                ShowEditScheduledReportDialog = false;
+            }
         }
         catch (Exception exception)
         {
             Log.WriteError("Edit scheduled report", "Unclassified error.", exception);
-            DisplayMessageInUi(exception, userConfig.GetText("edit_scheduled_report"), null, false);
+            DisplayMessageInUi!(exception, userConfig.GetText("edit_scheduled_report"), "", false);
         }
     }
 
@@ -269,14 +274,26 @@
             };
 
             await apiConnection.SendQueryAsync<object>(ReportQueries.deleteReportSchedule, queryVariables);
-            scheduledReports.Remove(scheduledReports.Find(scheduledReport => scheduledReport.Id == scheduledReportInEdit.Id));
+            ScheduledReport? reportToDelete = scheduledReports.Find(scheduledReport => scheduledReport.Id == scheduledReportInEdit.Id);
+            if (reportToDelete != null)
+                scheduledReports.Remove(reportToDelete);
 
             ShowDeleteScheduledReportDialog = false;
         }
         catch (Exception exception)
         {
             Log.WriteError("Delete scheduled report", "Unclassified error.", exception);
-            DisplayMessageInUi(exception, userConfig.GetText("delete_scheduled_report"), null, false);
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_scheduled_report"), "", false);
         }
     }
+
+        private bool checkInput()
+        {
+            if(scheduledReportInEdit.Template == null || scheduledReportInEdit.Template.Id == 0)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("edit_scheduled_report"), userConfig.GetText("E2001"), true);
+                return false;
+            }
+            return true;
+        }
 }

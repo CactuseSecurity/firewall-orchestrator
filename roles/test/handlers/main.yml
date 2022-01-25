@@ -7,25 +7,82 @@
   become: yes
   listen: "test importer handler"
 
-- name: delete test fortinet gateway
-  postgresql_query:
-    db: "{{ fworch_db_name }}"
-    query: >
-      DO $do$ BEGIN 
-      DELETE FROM device WHERE dev_name='{{ test_fortigate_name }}'; 
-      END $do$ 
+- block:
+  - name: delete test fortinet gateway
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: >
+        DO $do$ BEGIN 
+        DELETE FROM device WHERE dev_name='{{ test_fortigate_name }}'; 
+        END $do$ 
+    listen: "test importer handler"
+
+  - name: delete test fortinet management
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: >
+        DO $do$ BEGIN 
+        DELETE FROM management WHERE mgm_name='{{ test_fortigate_name }}'; 
+        END $do$
+    listen: "test importer handler"
+
+  - name: delete tenant tenant1
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: >
+        DO $do$ BEGIN 
+        DELETE FROM tenant WHERE tenant_name='tenant1{{ sample_postfix }}'; 
+        END $do$
+    listen: "test importer handler"
+
+  - name: delete devices for tenant tenant1
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: >
+        DO $do$ BEGIN 
+        DELETE FROM tenant_to_device WHERE tenant_id=(SELECT tenant_id FROM tenant WHERE tenant_name='tenant1{{ sample_postfix }}'); 
+        END $do$
+    listen: "test importer handler"
+
+  - name: delete tenant tenant2
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: >
+        DO $do$ BEGIN 
+        DELETE FROM tenant WHERE tenant_name='tenant2{{ sample_postfix }}'; 
+        END $do$
+    listen: "test importer handler"
+
   become: yes
   become_user: postgres
-  listen: "test importer handler"
 
-- name: delete test fortinet management
-  postgresql_query:
-    db: "{{ fworch_db_name }}"
-    query: >
-      DO $do$ BEGIN 
-      DELETE FROM management WHERE mgm_name='{{ test_fortigate_name }}'; 
-      END $do$ 
+- name: find ldap entries with test_postfix
+  command: "ldapsearch -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ fworch_secrets_dir }}/ldap_manager_pw.txt -b {{ openldap_path }} -x '(|(cn=*{{ sample_postfix }}*)(ou=*{{ sample_postfix }}*)(uid=*{{ sample_postfix }}*))'"
+  register: ldap_entries_to_delete
+  listen: "test importer handler"
   become: yes
-  become_user: postgres
+
+- name: debug
+  debug:
+    var: ldap_entries_to_delete
   listen: "test importer handler"
 
+- set_fact:
+    delete_list: "{{ ldap_entries_to_delete.stdout | replace('\n', '') }}"
+  listen: "test importer handler"
+
+- set_fact:
+    delete_list2: "{{ delete_list.split('dn: ')[1:] | sort(reverse = True) }}"
+  listen: "test importer handler"
+
+- name: debug final input for ldap delete
+  debug:
+    msg: "{{ item | regex_replace('\\s', '') | regex_replace('dc=internal.*', 'dc=internal') }}"
+  listen: "test importer handler"
+  loop: "{{ delete_list2 }}"
+
+- name: delete ldap test data
+  command: "ldapdelete -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ fworch_secrets_dir }}/ldap_manager_pw.txt -x {{ item | regex_replace('\\s', '') | regex_replace('dc=internal.*', 'dc=internal') }}"
+  listen: "test importer handler"
+  loop: "{{ delete_list2 }}"
+  become: yes

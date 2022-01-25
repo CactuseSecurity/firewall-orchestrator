@@ -112,7 +112,7 @@
 
             if (jwtLoadRequest.Success) // reconnect
             {
-                await CreateUserContext(jwtLoadRequest.Value);
+                await CreateUserContext(jwtLoadRequest.Value ?? throw new AccessViolationException("Jwt from protected storage is null"));
             }
 
             else // no reconnect
@@ -139,14 +139,13 @@
             {
                 // There is no jwt in session storage. Get one from auth module.
                 AuthenticationTokenGetParameters authenticationParameters = new AuthenticationTokenGetParameters { Username = Username, Password = Password };
-                IRestResponse<string> apiAuthResponse = await middlewareClient.AuthenticateUser(authenticationParameters);
+                RestResponse<string> apiAuthResponse = await middlewareClient.AuthenticateUser(authenticationParameters);
 
                 if (apiAuthResponse.StatusCode == HttpStatusCode.OK)
                 {
                     Log.WriteAudit("AuthenticateUser", $"user {Username} successfully authenticated");
 
                     string jwt = apiAuthResponse.Data;
-                    middlewareClient.SetAuthenticationToken(jwt);
 
                     // Save it in session storage.
                     await sessionStorage.SetAsync("jwt", jwt);
@@ -165,14 +164,8 @@
                 else
                 {
                     // There was an error trying to authenticate the user. Probably invalid credentials
-                    //if (apiAuthResponse.StatusCode == HttpStatusCode.BadRequest)
-                    //{
-                    //    errorMessage = userConfig.GetText("E0011");
-                    //}
-                    //else
-                    //{
-                    errorMessage = apiAuthResponse.ErrorException != null ? apiAuthResponse.ErrorMessage : apiAuthResponse.Content; //userConfig.GetApiText(apiAuthResponse.ErrorException.Message);
-                    //}
+                    errorMessage = "Middleware Api Error: " + (apiAuthResponse.ErrorException != null ? apiAuthResponse.ErrorMessage : apiAuthResponse.Content);
+                    //userConfig.GetApiText(apiAuthResponse.ErrorException.Message);
 
                     // Visualisize there was an error by making border of inputboxes red
                     InputClass = "is-invalid";
@@ -201,6 +194,9 @@
         // Tell api connection to use jwt as authentication
         ApiConnection.SetAuthHeader(jwt);
 
+        // Tell middleware connection to use jwt as authentication
+        middlewareClient.SetAuthenticationToken(jwt);
+
         // Try to auth with jwt (validates it and creates user context on UI side).
         await ((AuthStateProvider)AuthService).AuthenticateUser(jwt, userConfig, ApiConnection, circuitHandler);
     }
@@ -217,7 +213,7 @@
                 {
                     showPasswordChangeForm = false;
                     ((AuthStateProvider)AuthService).ConfirmPasswordChanged();
-                    Log.WriteAudit("ChangePassword", $"user {Username} successfully change password");
+                    Log.WriteAudit("ChangePassword", $"user {Username} successfully changed password");
                 }
             }
             catch (Exception exception)

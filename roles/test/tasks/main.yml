@@ -12,6 +12,39 @@
   become: yes
   environment: "{{ proxy_env }}"
 
+- name: randomize test names to avoid interference with production data
+  set_fact:
+    test_postfix: "_test_{{ random_generated_pw }}"
+
+- name: set postfix to brand all objects in this test run
+  set_fact:
+    sample_postfix: "{{ test_postfix }}"
+
+- name: initialize handler for deleting test data
+  set_fact:
+    test_importer_handler_guard: start
+  changed_when: true
+  notify:
+  - test importer handler
+
+- name: include test data
+  include_role:
+    name: sample-data
+  vars:
+    sample_role_purpose: test
+    sample_fortigate_name: "{{ test_fortigate_name }}"
+    sample_config_user: fworchtest
+    sample_config_user_home: "/home/{{ sample_config_user }}"
+  when: "'sampleserver' in group_names"
+
+- name: include test auth data
+  include_role:
+    name: sample-auth-data
+  vars:
+    sample_postfix: "{{ test_postfix }}"
+    sample_role_purpose: test
+  when: "'middlewareserver' in group_names"
+
 - name: database testing
   import_tasks: test-database.yml
 
@@ -41,3 +74,9 @@
 #     state: absent
 #   loop: "{{ test_packages }}"
 #   become: yes
+
+- name: finalize handler for deleting test data
+  set_fact:
+    test_importer_handler_guard: stop
+  changed_when: true
+  notify: "test importer handler"

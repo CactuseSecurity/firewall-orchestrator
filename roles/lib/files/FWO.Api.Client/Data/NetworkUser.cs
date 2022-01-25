@@ -1,56 +1,56 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
+using System.Text.Json.Serialization; 
+using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
     public class NetworkUser
     {
-        [JsonPropertyName("user_id")]
+        [JsonProperty("user_id"), JsonPropertyName("user_id")]
         public long Id { get; set; }
 
-        [JsonPropertyName("user_uid")]
-        public string Uid { get; set; }
+        [JsonProperty("user_uid"), JsonPropertyName("user_uid")]
+        public string? Uid { get; set; }
 
-        [JsonPropertyName("user_name")]
-        public string Name { get; set; }
+        [JsonProperty("user_name"), JsonPropertyName("user_name")]
+        public string? Name { get; set; }
 
-        [JsonPropertyName("user_comment")]
-        public string Comment { get; set; }
+        [JsonProperty("user_comment"), JsonPropertyName("user_comment")]
+        public string? Comment { get; set; }
 
-        [JsonPropertyName("user_lastname")]
-        public string LastName { get; set; }
+        [JsonProperty("user_lastname"), JsonPropertyName("user_lastname")]
+        public string? LastName { get; set; }
 
-        [JsonPropertyName("user_firstname")]
-        public string FirstName { get; set; }
+        [JsonProperty("user_firstname"), JsonPropertyName("user_firstname")]
+        public string? FirstName { get; set; }
 
-        [JsonPropertyName("usr_typ_id")]
+        [JsonProperty("usr_typ_id"), JsonPropertyName("usr_typ_id")]
         public int TypeId { get; set; }
 
-        [JsonPropertyName("type")]
-        public NetworkUserType Type { get; set; }
+        [JsonProperty("type"), JsonPropertyName("type")]
+        public NetworkUserType? Type { get; set; }
 
-        [JsonPropertyName("user_create")]
+        [JsonProperty("user_create"), JsonPropertyName("user_create")]
         public int Create { get; set; }
 
-        [JsonPropertyName("user_last_seen")]
+        [JsonProperty("user_create_time"), JsonPropertyName("user_create_time")]
+        public TimeWrapper CreateTime { get; set; } = new TimeWrapper(){};
+
+        [JsonProperty("user_last_seen"), JsonPropertyName("user_last_seen")]
         public int LastSeen { get; set; }
 
-        [JsonPropertyName("user_member_names")]
-        public string MemberNames { get; set; }
+        [JsonProperty("user_member_names"), JsonPropertyName("user_member_names")]
+        public string? MemberNames { get; set; }
 
-        [JsonPropertyName("user_member_refs")]
-        public string MemberRefs { get; set; }
+        [JsonProperty("user_member_refs"), JsonPropertyName("user_member_refs")]
+        public string? MemberRefs { get; set; }
 
-        [JsonPropertyName("usergrps")]
-        public Group<NetworkUser>[] UserGroups { get; set; }
+        [JsonProperty("usergrps"), JsonPropertyName("usergrps")]
+        public Group<NetworkUser>[]? UserGroups { get; set; }
 
-        [JsonPropertyName("usergrp_flats")]
-        public GroupFlat<NetworkUser>[] UserGroupFlats { get; set; }
+        [JsonProperty("usergrp_flats"), JsonPropertyName("usergrp_flats")]
+        public GroupFlat<NetworkUser>[]? UserGroupFlats { get; set; }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             switch (obj)
             {

@@ -1,4 +1,0 @@
-dn: cn=anonymous,ou=role,dc=fworch,dc=internal
-changetype: modify
-add: uniquemember
-uniquemember: uid=fritzeeee,ou=tenant1_demo,ou=operator,ou=user,dc=fworch,dc=internal

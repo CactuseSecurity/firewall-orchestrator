@@ -1,34 +1,19 @@
-
-- name: change value for middleware_change_local_ldap if ldap conn already exists to prevent re-creation errors
-  set_fact:
-    middleware_change_local_ldap: "no"
-  when: ldap_conn_present.query_result.0.count >= 1
-
-- debug:
-    var: "{{ item }}"
-  loop:
-    - ldap_conn_present
-    - middleware_change_local_ldap
-
-- name: set add mode for creating ldap tree
-  set_fact:
-    ldif_changetype: add
-
 - name: copy the ldif templates to system once more (this time for adding entries)
   template:
     src: "{{ item }}"
-    dest: "{{  middleware_ldif_dir }}/{{ item | basename | regex_replace('\\.j2$', '') }}"
+    dest: "{{ middleware_ldif_dir }}/{{ item | basename | regex_replace('\\.j2$', '') }}"
     force: yes
   with_fileglob:
     - ../templates/tree_*.j2
   become: yes
 
 - name: add tree
-  command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ middleware_ldif_dir }}/tree_{{ item }}.ldif"
+  command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ fworch_secrets_dir }}/ldap_manager_pw.txt -x -f {{ middleware_ldif_dir }}/tree_{{ item }}.ldif"
   loop:
     - sample_tenants
     - sample_operators
     - sample_groups
     - roles_for_sample_operators
     - groups_for_sample_operators
-  when: "not installation_mode == 'upgrade'"
+  when: installation_mode is not match('upgrade') or sample_role_purpose is match('test')
+  become: yes

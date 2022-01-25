@@ -8,10 +8,10 @@ namespace FWO.Config.File
 {
     class KeyImporter
     {
-        public static RsaSecurityKey ExtractKeyFromPem(string rawKey, bool isPrivateKey)
+        public static RsaSecurityKey? ExtractKeyFromPem(string rawKey, bool isPrivateKey)
         {
             (string keyText, bool isRsaKey) = ExtractKeyFromPemAsString(rawKey);
-            RsaSecurityKey rsaKey = null;
+            RsaSecurityKey? rsaKey = null;
 
             try
             {
@@ -43,8 +43,8 @@ namespace FWO.Config.File
 
         public static (string key, bool isRsa) ExtractKeyFromPemAsString(string rawKey)
         {
-            string keyText = null;
             bool isRsaKey = true;
+            string keyText = "";
 
             rawKey = rawKey.Trim(); // remove trailing and leading empty lines
             // Log.WriteDebug("Key extraction", $"Raw key = \"{rawKey}\"");

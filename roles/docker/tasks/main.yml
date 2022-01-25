@@ -17,9 +17,6 @@
       url: https://download.docker.com/linux/ubuntu/gpg
       state: present
     environment: "{{ proxy_env }}"
-    # environment:
-    #   https_proxy: "{{ https_proxy }}"
-    # when: https_proxy is defined
 
   - name: add docker repo
     lineinfile:
@@ -48,49 +45,9 @@
       -  "{{ ansible_user }}"
       -  "{{ fworch_user }}"
 
-  - name: create systemd dir for docker
-    file:
-      state: directory
-      path: /etc/systemd/system/docker.service.d
-
-  - name: http-proxy-config for docker
-    blockinfile:
-      create: yes
-      path:  /etc/systemd/system/docker.service.d/http-proxy.conf
-      block: |
-        [Service]
-        Environment="HTTP_PROXY={{ http_proxy }}"
-
-  - name: setting proxy in /etc/default/docker for eg debian
-    lineinfile:
-      create: yes
-      path:  /etc/default/docker
-      line: export http_proxy="{{ http_proxy }}"
-
-  - name: restart service docker
-    service:
-      name: docker
-      state: restarted
-
-  - name: Reload service systemctl
-    systemd:
-      daemon_reload: yes
-            
-  - name: create local user docker config dir .docker
-    file:
-      dest: "{{ fworch_home }}/.docker"
-      state: directory
-      owner: "{{ fworch_user }}"
-      group: "{{ fworch_group }}"
-      mode: "0775"
-
-  - name: create local user docker config file .docker/config.json
-    template:
-      src: docker_config.j2
-      dest: "{{ fworch_home }}/.docker/config.json"
-      owner: "{{ fworch_user }}"
-      group: "{{ fworch_group }}"
-      mode: "0644"
+  - name: set proxy for docker daemon to get images via proxy
+    import_tasks: set-docker-daemon-proxy.yml
+    notify: "docker restart"
 
   - name: include upgrade script
     import_tasks: run-upgrades.yml

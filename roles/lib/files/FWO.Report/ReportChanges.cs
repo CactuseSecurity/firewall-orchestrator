@@ -1,20 +1,17 @@
 ﻿using FWO.Api.Data;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using FWO.ApiClient;
 using FWO.Report.Filter;
 using FWO.ApiClient.Queries;
 using FWO.Ui.Display;
+using FWO.Config.Api;
+using FWO.Logging;
 
 namespace FWO.Report
 {
     public class ReportChanges : ReportBase
     {
-        public ReportChanges(DynGraphqlQuery query) : base(query) { }
+        public ReportChanges(DynGraphqlQuery query, UserConfig userConfig) : base(query, userConfig) { }
 
         public override async Task GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback)
         {
@@ -23,13 +20,13 @@ namespace FWO.Report
             GotObjectsInReport = true;
         }
 
-        public override Task GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, APIConnection apiConnection, Func<Management[], Task> callback)
+        public override Task GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, int maxFetchCycles, APIConnection apiConnection, Func<Management[], Task> callback)
         {
             throw new NotImplementedException();
         }
 
 
-        public override async Task Generate(int changesPerFetch, APIConnection apiConnection, Func<Management[], Task> callback)
+        public override async Task Generate(int changesPerFetch, APIConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)
         {
             Query.QueryVariables["limit"] = changesPerFetch;
             Query.QueryVariables["offset"] = 0;
@@ -41,13 +38,18 @@ namespace FWO.Report
             DeviceFilter.syncFilterLineToLSBFilter(Query.RawFilter, tempDeviceFilter);
 
             Managements = await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables);
+            DeviceFilter.restoreSelectedState(tempDeviceFilter, Managements);
             while (gotNewObjects)
             {
+                if (ct.IsCancellationRequested)
+                {
+                    Log.WriteDebug("Generate Changes Report", "Task cancelled");
+                    ct.ThrowIfCancellationRequested();
+                }
                 Query.QueryVariables["offset"] = (int)Query.QueryVariables["offset"] + changesPerFetch;
                 gotNewObjects = Managements.Merge(await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables));
                 await callback(Managements);
             }
-            DeviceFilter.restoreSelectedState(tempDeviceFilter, Managements);
         }
 
         public override string ExportToCsv()
@@ -70,9 +72,10 @@ namespace FWO.Report
         public override string ExportToHtml()
         {
             StringBuilder report = new StringBuilder();
-            RuleChangeDisplay ruleChangeDisplay = new RuleChangeDisplay(null); // TODO: Add real UserConfig     
+            RuleChangeDisplay ruleChangeDisplay = new RuleChangeDisplay(userConfig);
 
-            foreach (Management management in Managements.Where(mgt => !mgt.Ignore))
+            foreach (Management management in Managements.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+            Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
             {
                 report.AppendLine($"<h3>{management.Name}</h3>");
                 report.AppendLine("<hr>");
@@ -84,22 +87,22 @@ namespace FWO.Report
 
                     report.AppendLine("<table>");
                     report.AppendLine("<tr>");
-                    report.AppendLine("<th>Change Time</th>");
-                    report.AppendLine("<th>Change Type</th>");
-                    report.AppendLine("<th>Name</th>");
-                    report.AppendLine("<th>Source Zone</th>");
-                    report.AppendLine("<th>Source</th>");
-                    report.AppendLine("<th>Destination Zone</th>");
-                    report.AppendLine("<th>Destination</th>");
-                    report.AppendLine("<th>Services</th>");
-                    report.AppendLine("<th>Action</th>");
-                    report.AppendLine("<th>Track</th>");
-                    report.AppendLine("<th>Enabled</th>");
-                    report.AppendLine("<th>UID</th>");
-                    report.AppendLine("<th>Comment</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("change_time")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("change_type")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("source_zone")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("source")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("destination_zone")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("destination")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("services")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("action")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("track")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("enabled")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                     report.AppendLine("</tr>");
 
-                    if (device.RuleChanges.Length > 0)
+                    if (device.RuleChanges != null)
                     {
                         foreach (RuleChange ruleChange in device.RuleChanges)
                         {
@@ -123,7 +126,7 @@ namespace FWO.Report
                     else
                     {
                         report.AppendLine("<tr>");
-                        report.AppendLine($"<td colspan=\"{ColumnCount}\">No changes found!</td>");
+                        report.AppendLine($"<td colspan=\"{ColumnCount}\">{userConfig.GetText("no_changes_found")}</td>");
                         report.AppendLine("</tr>");
                     }
 
@@ -131,7 +134,7 @@ namespace FWO.Report
                 }
             }
 
-            return GenerateHtmlFrame(title: "Changes Report", Query.RawFilter, DateTime.Now, report);
+            return GenerateHtmlFrame(title: userConfig.GetText("changes_report"), Query.RawFilter, DateTime.Now, report);
         }
     }
 }

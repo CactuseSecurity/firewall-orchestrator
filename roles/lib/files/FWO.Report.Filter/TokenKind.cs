@@ -27,7 +27,10 @@ namespace FWO.Report.Filter
         And,
         Or,
         Not,
+        EEQ, // Exact equals
         EQ, // ==
-        NEQ // !=
+        NEQ, // !=
+        LSS, // <
+        GRT, // >
     }
 }

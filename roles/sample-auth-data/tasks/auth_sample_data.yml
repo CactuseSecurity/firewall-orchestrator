@@ -1,49 +1,50 @@
 - block:
 
-  - name: insert tenant tenant1_demo
+  - name: insert tenant tenant1{{ sample_postfix }}
     postgresql_query:
       db: "{{ fworch_db_name }}"
       query: >
         DO $do$ BEGIN
-          IF NOT EXISTS (SELECT tenant_id FROM tenant WHERE tenant_name='tenant1_demo') THEN
+          IF NOT EXISTS (SELECT tenant_id FROM tenant WHERE tenant_name='tenant1{{ sample_postfix }}') THEN
             insert into tenant (tenant_name, tenant_can_view_all_devices, tenant_is_superadmin) 
-              values ('tenant1_demo', false, false); 
+              values ('tenant1{{ sample_postfix }}', false, false); 
           END IF; 
         END $do$
 
-  - name: add devices for tenant tenant1_demo
+  - name: add devices for tenant tenant1{{ sample_postfix }}
     postgresql_query:
       db: "{{ fworch_db_name }}"
       query: >
         DO $do$ BEGIN 
-          IF NOT EXISTS (SELECT * FROM tenant_to_device LEFT JOIN tenant USING (tenant_id) WHERE tenant_name='tenant1_demo') THEN 
+          IF NOT EXISTS (SELECT * FROM tenant_to_device LEFT JOIN tenant USING (tenant_id) WHERE tenant_name='tenant1{{ sample_postfix }}') THEN 
             INSERT INTO tenant_to_device (tenant_id, device_id)
-            SELECT tenant_id, (select dev_id FROM device where device.dev_name='fortigate_demo') from tenant WHERE tenant.tenant_name='tenant1_demo'; 
+            SELECT tenant_id, (select dev_id FROM device where device.dev_name='fortigate{{ sample_postfix }}') from tenant WHERE tenant.tenant_name='tenant1{{ sample_postfix }}'; 
           END IF; 
         END $do$
 
-  - name: insert tenant tenant2_demo
+  - name: insert tenant tenant2{{ sample_postfix }}
     postgresql_query:
       db: "{{ fworch_db_name }}"
       query: >
         DO $do$ BEGIN
-          IF NOT EXISTS (SELECT tenant_id FROM tenant WHERE tenant_name='tenant2_demo') THEN
+          IF NOT EXISTS (SELECT tenant_id FROM tenant WHERE tenant_name='tenant2{{ sample_postfix }}') THEN
             insert into tenant (tenant_name, tenant_can_view_all_devices, tenant_is_superadmin) 
-              values ('tenant2_demo', false, false); 
+              values ('tenant2{{ sample_postfix }}', false, false); 
           END IF; 
         END $do$
 
-  - name: add devices for tenant tenant2_demo
+  - name: add devices for tenant tenant2{{ sample_postfix }}
     postgresql_query:
       db: "{{ fworch_db_name }}"
       query: >
         DO $do$ BEGIN 
           IF NOT EXISTS 
-            (SELECT * FROM tenant_to_device LEFT JOIN tenant USING (tenant_id) WHERE tenant_name='tenant2_demo') THEN 
+            (SELECT * FROM tenant_to_device LEFT JOIN tenant USING (tenant_id) WHERE tenant_name='tenant2{{ sample_postfix }}') THEN 
             INSERT INTO tenant_to_device (tenant_id, device_id) 
-          SELECT tenant_id, (select dev_id FROM device where device.dev_name='checkpoint_demo') from tenant WHERE tenant.tenant_name='tenant2_demo'; 
+          SELECT tenant_id, (select dev_id FROM device where device.dev_name='checkpoint{{ sample_postfix }}') from tenant WHERE tenant.tenant_name='tenant2{{ sample_postfix }}'; 
           END IF; 
         END $do$
+    when: sample_role_purpose is not match('test')
 
   become: yes
   become_user: postgres

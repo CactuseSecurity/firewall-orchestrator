@@ -1,12 +1,9 @@
 @using FWO.Config.Api
 @using FWO.Report
-@using FWO.Ui.Display
 @using FWO.Report.Filter
 @using FWO.Report.Filter.Exceptions
-@using System.Text
 @using System
-@using System.Collections
-@using FWO.Ui.Services
+@using System.Threading
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.Reporting.Reports
 
@@ -36,7 +33,14 @@
     </form>
 
     <div class="btn-group mr-1 ml-1 mb-1">
-        <button class="btn btn-sm btn-primary" @onclick="GenerateReport">@(userConfig.GetText("generate_report"))</button>
+        @if (processing == false)
+        {
+            <button class="btn btn-sm btn-primary" @onclick="GenerateReport">@(userConfig.GetText("generate_report"))</button>
+        }
+        else
+        {
+            <button class="btn btn-sm btn-danger" @onclick="() => CancelGeneration()">@(userConfig.GetText("stop_fetching"))</button>
+        }
         <ReportExport ReportToExport="currentReport"></ReportExport>
         <button class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(filterInput); }">@(userConfig.GetText("save_as_template"))</button>
     </div>
@@ -54,7 +58,7 @@
                 selectAll = true;
             StateHasChanged();
         }"
-    @ref="reportTemplateControl"></ReportTemplateComponent>
+    @ref="reportTemplateControl" />
 
 @* ==== Report main div ==== *@
     <div class="card mr-1 ml-1 mb-1 shadow">
@@ -66,6 +70,10 @@
                 {
                     case ReportRules rulesReport:
                         <RulesReport Managements="managementsReport" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"></RulesReport>
+                        break;
+
+                    case ReportNatRules natRulesReport:
+                        <RulesReport NatRules="true" Managements="managementsReport" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"></RulesReport>
                         break;
 
                     case ReportChanges changesReport:
@@ -156,10 +164,10 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
-    [CascadingParameter]
-    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    private bool processing = false;
+    private CancellationTokenSource tokenSource = new CancellationTokenSource();
 
     private List<Rule> selectedItemsRuleReportTable = new List<Rule>();
     private List<RuleChange> selectedItemsChangeReportTable = new List<RuleChange>();
@@ -167,7 +175,7 @@
     private Management[] managementsDevFilter = new Management[0];
     private Management[] managementsReport = new Management[0];
     private Management[] managementsAllObjects = new Management[0];
-    private Management globalStats = null;
+    private Management? globalStats = null;
 
     private ScheduledReport[] scheduledReports = new ScheduledReport[0];
 
@@ -181,12 +189,12 @@
     private int sidebarLeftWidth = 300;
     private int sidebarRightWidth = 300;
 
-    private ReportTemplateComponent reportTemplateControl;
+    private ReportTemplateComponent reportTemplateControl = new ReportTemplateComponent();
 
-    private ReportBase currentReport;
+    private ReportBase? currentReport;
 
-    private TabSet rsbTabset;
-    private Sidebar deviceSelectionSidebar;
+    private TabSet? rsbTabset;
+    private Sidebar? deviceSelectionSidebar;
 
     private string filterFeedbackStart = "";
     private string filterFeedbackError = "";
@@ -215,7 +223,7 @@
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), null, true);
+                DisplayMessageInUi!(exception, userConfig.GetText("object_fetch"), "", true);
             }
         });
     }
@@ -279,7 +287,8 @@
                         { "mgmIds", (int) id }
                     };
 
-                    await currentReport.GetObjectsForManagementInReport(queryVars, (byte)(contentType - report), Connection, callback);
+                    if (currentReport != null)
+                        await currentReport.GetObjectsForManagementInReport(queryVars, (byte)(contentType - report), autoFillRightSidebar ? int.MaxValue : maxInitFetchRightSidebar, Connection, callback);
 
                     return;
 
@@ -313,11 +322,11 @@
                 await callback(managements);
             }
 
-            Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount} cycle(s) ({elementsPerFetch} at a time)");
+            Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount - 1} cycle(s) ({elementsPerFetch} at a time)");
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), null, true);
+            DisplayMessageInUi!(exception, userConfig.GetText("object_fetch"), "", true);
             // TODO: Error Interface for all Components, that enables displaying a message in the ui
         }
 
@@ -325,6 +334,9 @@
 
     private async Task GenerateReport()
     {
+        tokenSource = new CancellationTokenSource();
+        var token = tokenSource.Token;
+
         // clear selected rules
         selectedItemsRuleReportTable.Clear();
         selectedItemsChangeReportTable.Clear();
@@ -333,74 +345,94 @@
         reportTemplateControl.Collapse();
         // deviceSelectionSidebar.ToggleCollapse(true); // disabling left side bar collapse for now
 
+        Management[] managementsReportOrig = managementsReport;
         try
         {
-            // when generating report, filter line overrules LSB filter, as this can be triggered by changing the filter line and pressing enter
-            DeviceFilter.syncFilterLineToLSBFilter(filterInput, managementsReport);
+            processing = true;
 
-            currentReport = ReportBase.ConstructReport(filterInput);
-            if (!DeviceFilter.isAnyDeviceFilterSet(managementsReport, currentReport.Query))  // display warning
+            // when generating report, filter line overrules LSB filter, as this can be triggered by changing the filter line and pressing enter
+            managementsDevFilter = managementsReport;
+            DeviceFilter.syncFilterLineToLSBFilter(filterInput, managementsDevFilter);
+
+            currentReport = ReportBase.ConstructReport(filterInput, userConfig);
+            if (!DeviceFilter.isAnyDeviceFilterSet(managementsDevFilter, currentReport.Query))  // display warning
             {
-                DisplayMessageInUi(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
+                DisplayMessageInUi!(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
+                await reportTemplateControl.Uncollapse();
+                processing = false;
                 return;
             }
 
             // save selected managements before resetting
-            List<int> relevantManagements = DeviceFilter.getSelectedManagements(managementsReport);
+            List<int> relevantManagements = DeviceFilter.getSelectedManagements(managementsDevFilter);
 
             DateTime startTime = DateTime.Now;
             managementsReport = new Management[0]; // reset management data when switching between reports
-            switch (currentReport)
+
+            try
             {
-                case ReportRules rulesReport:
-                    await currentReport.Generate(elementsPerFetch, Connection,
-                        managementsReportIntermediate =>
-                        {
-                            managementsReport = managementsReportIntermediate;
-                            setRelevantManagements(relevantManagements);
-                            return InvokeAsync(StateHasChanged);
-                        });
-                    break;
-
-                case ReportChanges changesReport:
-                    await currentReport.Generate(elementsPerFetch, Connection,
-                        managementsReportIntermediate =>
-                        {
-                            managementsReport = managementsReportIntermediate;
-                            setRelevantManagements(relevantManagements);
-                            return InvokeAsync(StateHasChanged);
-                        });
-                    break;
-
-                case ReportStatistics statisticsReport:
-                    globalStats = new Management();
-                    await currentReport.Generate(0, Connection,
-                        managementsReportIntermediate =>
-                        {
-                            managementsReport = managementsReportIntermediate;
-                            setRelevantManagements(relevantManagements);
-                            return InvokeAsync(() =>
+                switch (currentReport)
+                {
+                    case ReportRules rulesReport:
+                    case ReportChanges changesReport:
+                    case ReportNatRules natRulesReport:
+                        await currentReport.Generate(elementsPerFetch, Connection,
+                            managementsReportIntermediate =>
                             {
-                                foreach (Management mgm in managementsReport.Where(mgt => !mgt.Ignore))
+                                managementsReport = managementsReportIntermediate;
+                                setRelevantManagements(relevantManagements);
+                                return InvokeAsync(StateHasChanged);
+                            }, token);
+                        break;
+
+                    case ReportStatistics statisticsReport:
+                        globalStats = new Management();
+                        await currentReport.Generate(0, Connection,
+                            managementsReportIntermediate =>
+                            {
+                                managementsReport = managementsReportIntermediate;
+                                setRelevantManagements(relevantManagements);
+                                return InvokeAsync(() =>
                                 {
-                                    globalStats.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
-                                    globalStats.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
-                                    globalStats.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
-                                    globalStats.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
-                                }
-                                StateHasChanged();
-                            });
-                        });
-                    break;
+                                    foreach (Management mgm in managementsReport.Where(mgt => !mgt.Ignore))
+                                    {
+                                        globalStats.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
+                                        globalStats.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
+                                        globalStats.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
+                                        globalStats.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
+                                    }
+                                    StateHasChanged();
+                                });
+                            }, token);
+                        break;
+                }
             }
+            catch (OperationCanceledException e)
+            {
+                Log.WriteDebug("Generate Report", $"Cancelled: {e.Message}");
+            }
+
+            processing = false;
             reportGenerationTimeLine = $"generation time: {DateTime.Now - startTime}.";
-            rsbTabset.SetActiveTab(1);
+            Log.WriteDebug("Report Generation", $"Generation Time: {DateTime.Now - startTime}.");
+            rsbTabset?.SetActiveTab(1);
             await InvokeAsync(StateHasChanged);
+            //StateHasChanged();
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("generate_report"), null, true);
+            processing = false;
+            managementsReport = managementsReportOrig;
+            reportTemplateControl.Uncollapse();
+            await InvokeAsync(StateHasChanged);
+            DisplayMessageInUi!(exception, userConfig.GetText("generate_report"), "", true);
         }
+    }
+
+    private void CancelGeneration()
+    {
+        tokenSource.Cancel();
+        DisplayMessageInUi!(null, userConfig.GetText("report_data_fetch"), userConfig.GetText("E1003"), true);
     }
 
     private void setRelevantManagements(List<int> relevantManagements)
@@ -415,7 +447,7 @@
     {
         try
         {
-            filterInput = changeArgs.Value.ToString();
+            filterInput = (changeArgs.Value ?? "").ToString() ?? "";
 
             DynGraphqlQuery query = Compiler.Compile(filterInput);
 
@@ -428,14 +460,14 @@
             int errorStart = filterError.ErrorPosition.Start.Value;
             int errorEnd = filterError.ErrorPosition.End.Value;
 
-            filterFeedbackStart = $"{filterInput.Substring(0, errorStart)}";
-            filterFeedbackError = filterInput.Substring(errorStart, errorEnd + 1 - errorStart);
-            filterFeedbackEnd = $"{filterInput.Substring(errorEnd, filterInput.Length - 1 - errorEnd)}";
+            filterFeedbackStart = filterInput[..errorStart];
+            filterFeedbackError = filterInput[errorStart..errorEnd];
+            filterFeedbackEnd = filterInput[errorEnd..];
         }
         catch (Exception unexpectedError)
         {
 #if DEBUG
-            DisplayMessageInUi(unexpectedError, userConfig.GetText("filter"), null, false);
+            DisplayMessageInUi!(unexpectedError, userConfig.GetText("filter"), "", false);
 #endif
         }
     }

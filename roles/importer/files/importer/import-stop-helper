@@ -1,0 +1,10 @@
+#!/bin/sh
+
+IMPORTER_SINGLE=import-mgm.py
+RES=`pidof -x $IMPORTER_SINGLE >/dev/null;echo $?`
+if [ $RES -eq 0 ]; then
+   while [ $RES -eq 0 ]; do
+      sleep 5
+      RES=`pidof -x $IMPORTER_SINGLE >/dev/null;echo $?`
+   done
+fi

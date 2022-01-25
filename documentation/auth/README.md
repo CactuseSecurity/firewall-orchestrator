@@ -307,7 +307,7 @@ public       | management | reporters | select    | {
 ### Testing auth frontend
 
 ```code
-tim@deb10-test:/var/log/fworch$ curl --request POST --url http://127.0.0.1:8888/AuthenticateUser/ --data '{"Username":"admin", "Password": "fworch.1"}'
+tim@deb10-test:/var/log/fworch$ curl --request POST --url http://127.0.0.1:8888/api/AuthenticationToken/Get/ --data '{"Username":"admin", "Password": "fworch.1"}'
 eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6ImFkbWluIiwieC1oYXN1cmEtdmlzaWJsZS1tYW5hZ2VtZW50cyI6InsxLDcsMTd9IiwieC1oYXN1cmEtdmlzaWJsZS1kZXZpY2VzIjoiezEsNH0iLCJyb2xlIjpbInJlcG9ydGVyLXZpZXdhbGwiLCJyZXBvcnRlciJdLCJ4LWhhc3VyYS1hbGxvd2VkLXJvbGVzIjpbInJlcG9ydGVyLXZpZXdhbGwiLCJyZXBvcnRlciJdLCJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiJyZXBvcnRlci12aWV3YWxsIiwibmJmIjoxNTk5MzAzMDY0LCJleHAiOjE1OTk5MDc4NjQsImlhdCI6MTU5OTMwMzA2NCwiaXNzIjoiRldPIEF1dGggTW9kdWxlIiwiYXVkIjoiRldPIn0.tN9oEcE5n_ClKEfpxjxXM73-u5LuT2Hh50sHvfRUkdnJ0HSpMC0adk1pmAqbxwHv
 tim@deb10-test:/var/log/fworch$ 
 ```

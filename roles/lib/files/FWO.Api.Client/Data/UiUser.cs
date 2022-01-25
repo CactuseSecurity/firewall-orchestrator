@@ -1,50 +1,50 @@
-﻿using System;
-using System.Text.Json.Serialization;
-using System.Collections.Generic;
+﻿using System.Text.Json.Serialization; 
+using Newtonsoft.Json;
+using FWO.Middleware.RequestParameters;
 
 namespace FWO.Api.Data
 {
     public class UiUser
     {
-        [JsonPropertyName("uiuser_username")]
-        public string Name { get; set; }
+        [JsonProperty("uiuser_username"), JsonPropertyName("uiuser_username")]
+        public string Name { get; set; } = "";
 
-        [JsonPropertyName("uiuser_id")]
+        [JsonProperty("uiuser_id"), JsonPropertyName("uiuser_id")]
         public int DbId { get; set; }
 
-        [JsonPropertyName("uuid")]
-        public string Dn { get; set; }
+        [JsonProperty("uuid"), JsonPropertyName("uuid")]
+        public string Dn { get; set; } = "";
 
-        public string Password { get; set; }
+        public string Password { get; set; } = "";
 
-        [JsonPropertyName("uiuser_email")]
-        public string Email { get; set; }
+        [JsonProperty("uiuser_email"), JsonPropertyName("uiuser_email")]
+        public string? Email { get; set; }
 
-        [JsonPropertyName("tenant")]
-        public Tenant Tenant { get; set;}
+        [JsonProperty("tenant"), JsonPropertyName("tenant")]
+        public Tenant? Tenant { get; set;}
 
-        [JsonPropertyName("uiuser_language")]
-        public string Language { get; set; }
+        [JsonProperty("uiuser_language"), JsonPropertyName("uiuser_language")]
+        public string? Language { get; set; }
 
-        [JsonPropertyName("uiuser_last_login")]
+        [JsonProperty("uiuser_last_login"), JsonPropertyName("uiuser_last_login")]
         public DateTime? LastLogin { get; set; }
 
-        [JsonPropertyName("uiuser_last_password_change")]
+        [JsonProperty("uiuser_last_password_change"), JsonPropertyName("uiuser_last_password_change")]
         public DateTime? LastPasswordChange { get; set; }
 
-        [JsonPropertyName("uiuser_password_must_be_changed")]
+        [JsonProperty("uiuser_password_must_be_changed"), JsonPropertyName("uiuser_password_must_be_changed")]
         public bool PasswordMustBeChanged { get; set; }
 
-        [JsonPropertyName("ldap_connection")]
-        public UiLdapConnection LdapConnection { get; set;}
+        [JsonProperty("ldap_connection"), JsonPropertyName("ldap_connection")]
+        public UiLdapConnection LdapConnection { get; set;} = new UiLdapConnection();
 
-        public string DefaultRole { get; set; }
+        public string DefaultRole { get; set; } = "";
 
-        public List<string> Roles { get; set; }
+        public List<string>? Roles { get; set; }
 
-        public string Jwt { get; set; }
+        public string Jwt { get; set; } = "";
 
-        public List<string> Groups { get; set; }
+        public List<string>? Groups { get; set; }
 
         public UiUser()
         {
@@ -78,17 +78,43 @@ namespace FWO.Api.Data
             }
         }
 
-        public void setNamesFromDn()
+        public UiUser(UserGetReturnParameters userGetReturnParameters)
         {
-            DistName distname = new DistName(Dn);
-            Name = distname.UserName;
-            Tenant = new Tenant();
-            Tenant.Name = distname.getTenant();
+            Name = userGetReturnParameters.Name;
+            DbId = userGetReturnParameters.UserId;
+            Dn = userGetReturnParameters.UserDn;
+            Email = userGetReturnParameters.Email;
+            if (userGetReturnParameters.TenantId != 0)
+            {
+                Tenant = new Tenant(){Id = userGetReturnParameters.TenantId};
+            }
+            Language = userGetReturnParameters.Language;
+            LastLogin = userGetReturnParameters.LastLogin;
+            LastPasswordChange = userGetReturnParameters.LastPasswordChange;
+            PasswordMustBeChanged = userGetReturnParameters.PwChangeRequired;
+            LdapConnection = new UiLdapConnection(){Id = userGetReturnParameters.LdapId};
         }
 
         public bool isInternal()
         {
             return new DistName(Dn).IsInternal();
+        }
+
+        public UserGetReturnParameters ToApiParams()
+        {
+            return new UserGetReturnParameters
+            {
+                Name = this.Name,
+                UserId = this.DbId,
+                UserDn = this.Dn,
+                Email = this.Email,
+                TenantId = (this.Tenant != null ? this.Tenant.Id : 0),
+                Language = this.Language,
+                LastLogin = this.LastLogin,
+                LastPasswordChange = this.LastPasswordChange,
+                PwChangeRequired = this.PasswordMustBeChanged,
+                LdapId = this.LdapConnection.Id
+            };
         }
     }
 }

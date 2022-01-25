@@ -32,41 +32,12 @@
       msg: "Could not find existing installation but running with installation_mode set to {{ installation_mode }}. Try running with installation_mode=new"
     when: not already_installed and installation_mode == "upgrade"
 
-  # - name: uninstall product
-  #   import_tasks: ../scripts/uninstall-fworch.yml
-  #   when: installation_mode == "uninstall"
-
-  # - name: stopping here in case of uninstall
-  #   fail:
-  #     msg: "uninstall completed, thanks for using firewall orchestrator"
-  #   when: installation_mode == "uninstall"
-
-  # - name: uninstall completed, thanks for using firewall orchestrator
-  #   meta: end_play
-  #   when: installation_mode == "uninstall"
-
- # - name: remove old backups
- #   file:
- #     path: "{{ fworch_parent_dir }}/{{ product_name }}_backup"
- #     state: absent
- #   when: installation_mode == "upgrade"
-
- # - name: backup {{ fworch_home }} dir
- #   command: "cp -rf {{ fworch_parent_dir }}/{{ product_name }} {{ fworch_parent_dir }}/{{ product_name }}_backup"
- #   when: installation_mode == "upgrade"
-
   - name: remove complete {{ fworch_home }} dir except for etc
     file:
       state: absent
       path: "{{ fworch_home }}/{{ item }}"
     loop:
-#      - api
-#      - middleware
       - bin
-#      - importer  
-#      - database  
-#      - ui
-#      - lib
 
   - name: include redhat install basics
     include_tasks: redhat_preps.yml
@@ -82,94 +53,14 @@
       upgrade: dist
     when: ansible_facts['distribution'] == "Red Hat" or ansible_facts['distribution'] == "CentOS"
 
-  - name: install packages rsyslog, rsync
+  - name: install packages rsync
     package:
-      name: "{{ item }}"
+      name: "rsync"
       state: present
-    loop:
-      - rsyslog
-      - rsync
 
-  - name: change rsyslog config to receive logs
-    blockinfile:
-      path: /etc/rsyslog.conf
-      block: |
-        module(load="im{{ syslog_proto }}")
-        input(type="im{{ syslog_proto }}" port="{{ syslog_port }}")
-
-  - name: create log dir for {{ product_name }} on ubuntu - owner syslog
-    file:
-      path: "/var/log/{{ product_name }}/"
-      state: directory
-      owner: syslog
-      group: syslog
-      mode: "0775"
-    when: ansible_facts['distribution'] == "Ubuntu"
-      
-  - name: create log dir for {{ product_name }} on debian - owner root
-    file:
-      path: "/var/log/{{ product_name }}/"
-      state: directory
-      owner: root
-      group: root
-      mode: "0775"
-    when: ansible_facts['distribution'] == "Debian"
-      
-  - name: create log dir for {{ product_name }} on redhat - owner root
-    file:
-      path: "/var/log/{{ product_name }}/"
-      state: directory
-      owner: root
-      group: root
-      mode: "0775"
-    when: ansible_facts['distribution'] == "RedHat"
-
-  - name: edit rsyslog
-    blockinfile:
-      path: "/etc/rsyslog.d/30-{{ product_name }}.conf"
-      create: yes
-      block: |
-        # syslog for {{ product_name }}
-        # Log {{ product_name }} log messages to file
-        local6.warning                 /var/log/{{ product_name }}/error.log
-        local6.=info                   /var/log/{{ product_name }}/login_info.log
-        local6.debug                   /var/log/{{ product_name }}/debug.log
-
-        if $programname == '{{ product_name }}-database' then /var/log/{{ product_name }}/database.log
-        if $programname == '{{ middleware_server_syslog_id }}' then /var/log/{{ product_name }}/middleware.log
-        if $programname == '{{ ui_syslog_id }}' then /var/log/{{ product_name }}/ui.log
-        if $programname == '{{ ldap_syslog_id }}' then /var/log/{{ product_name }}/ldap.log
-        if $programname == '{{ product_name }}-api' then /var/log/{{ product_name }}/api.log
-        if $programname startswith '{{ product_name }}-import' then /var/log/{{ product_name }}/importer.log
-        if $programname startswith '{{ product_name }}-' and $msg contains "Audit" then /var/log/{{ product_name }}/audit.log
-        # only for devsrv:
-        if $programname == '{{ product_name }}-webhook' then /var/log/{{ product_name }}/webhook.log
-
-  - name: edit logrotate
-    blockinfile:
-      path: "/etc/logrotate.d/{{ product_name }}.conf"
-      create: yes
-      block: |
-        /var/log/{{ product_name }}/*.log {
-            compress
-            maxage 7
-            rotate 99
-            size=+4096k
-            missingok
-            copytruncate
-            sharedscripts
-                prerotate
-                        systemctl stop {{ product_name }}-importer.service >/dev/null 2>&1
-                endscript
-                postrotate
-                        systemctl start {{ product_name }}-importer.service >/dev/null 2>&1
-                endscript
-        }
-
-  - name: reload rsyslog service
-    service:
-      name: "rsyslog"
-      state: restarted
+  - name: install rsyslog
+    import_tasks: install_syslog.yml
+    when: "install_syslog | bool"
 
   - name: create group {{ fworch_group }}
     group:
@@ -196,6 +87,20 @@
       owner: "{{ fworch_user }}"
       group: "{{ fworch_group }}"
       mode: "0775"
+
+  - name: add proxy setting to fworch users .profile and .bashrc
+    blockinfile:
+      path: "{{ fworch_home }}/{{ item }}"
+      create: yes
+      mode: "0644"
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
+      block: |
+        http_proxy={{ http_proxy }}
+        https_proxy={{ http_proxy }}
+    loop:
+      - .bashrc
+      - .profile
 
   - name: create etc dir
     file:

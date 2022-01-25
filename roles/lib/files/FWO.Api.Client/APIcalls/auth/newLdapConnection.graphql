@@ -14,6 +14,7 @@ mutation newLdapConnection(
   $writeUser: String
   $writeUserPwd: String
   $tenantId: Int
+  $globalTenantName: String
 ) {
   insert_ldap_connection(
     objects: {
@@ -32,6 +33,7 @@ mutation newLdapConnection(
       ldap_write_user: $writeUser
       ldap_write_user_pwd: $writeUserPwd
       tenant_id: $tenantId
+      ldap_global_tenant_name: $globalTenantName
     }
   ) {
     returning {

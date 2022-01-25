@@ -1,17 +1,11 @@
 ﻿using FWO.ApiClient.Queries;
 using FWO.ApiClient;
+using FWO.Api.Data;
 using FWO.Logging;
 using FWO.Middleware.Server;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Threading.Tasks;
-using System.Text.Json.Serialization;
 using FWO.Middleware.RequestParameters;
-using FWO.Api.Data;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -23,53 +17,79 @@ namespace FWO.Middleware.Controllers
     public class AuthenticationServerController : ControllerBase
     {
         private List<Ldap> ldaps = new List<Ldap>();
-        private readonly string apiUri;
+        private readonly APIConnection apiConnection;
 
-        public AuthenticationServerController(string apiUri, List<Ldap> ldaps)
+        public AuthenticationServerController(APIConnection apiConnection, List<Ldap> ldaps)
         {
-            this.apiUri = apiUri;
+            this.apiConnection = apiConnection;
             this.ldaps = ldaps;
         }
 
         // GET: api/<LdapController>
         [HttpGet]
-        [Authorize(Roles = "admin")]
-        public IEnumerable<string> Get()
+        [Authorize(Roles = "admin, auditor")]
+        public async Task<List<LdapGetUpdateParameters>> Get()
         {
-            return new string[] { "value1", "value2" };
+            UiLdapConnection[] ldapConnections = (await apiConnection.SendQueryAsync<UiLdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections));
+            List<LdapGetUpdateParameters> ldapList = new List<LdapGetUpdateParameters>();
+            foreach (UiLdapConnection conn in ldapConnections)
+            {
+                ldapList.Add(conn.ToApiParams());
+            }
+            return ldapList;
         }
 
-        // GET api/<LdapController>/5
-        [HttpPost("Get")]
-        [Authorize(Roles = "admin")]
-        public string Get(int id)
-        {
-            return "value";
-        }
-
-        // PUT api/<LdapController>/5
+        // POST api/<LdapController>/5
         [HttpPost]
         [Authorize(Roles = "admin")]
-        public async Task<LdapConnectionBase> PostAsync([FromBody] LdapAddParameters ldapData)//, [FromHeader] string bearer)
+        public async Task<int> PostAsync([FromBody] LdapAddParameters ldapData)//, [FromHeader] string bearer)
         {
-            // Create Api connection with given jwt
-            APIConnection apiConnection = new APIConnection(apiUri, "bearer");
-
             // Add ldap to DB and to middleware ldap list
-            Ldap newLdap = (await apiConnection.SendQueryAsync<Ldap[]>(AuthQueries.newLdapConnection, ldapData))[0];
-            ldaps.Add(newLdap);
-
-            Log.WriteAudit("AddLdap", $"LDAP server {ldapData.Address}:{ldapData.Port} successfully added");
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.newLdapConnection, ldapData)).ReturnIds;
+            int ldapId = 0;
+            if (returnIds != null)
+            {
+                ldapId = returnIds[0].NewId;
+                ldaps.Add(new Ldap(new LdapGetUpdateParameters (ldapData, ldapId) {}));
+                Log.WriteAudit("AddLdap", $"LDAP server {ldapData.Address}:{ldapData.Port} successfully added");
+            }
 
             // Return status and result
-            return newLdap;
+            return ldapId;
+        }
+
+        // PUT api/<LdapController>/Update/5
+        [HttpPut]
+        [Authorize(Roles = "admin")]
+        public async Task<int> Update([FromBody] LdapGetUpdateParameters ldapData)
+        {
+            // Update ldap in DB and in middleware ldap list
+            int ldapId = (await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.updateLdapConnection, ldapData)).UpdatedId;
+            if (ldapId == ldapData.Id)
+            {
+                ldaps[ldaps.FindIndex(x => x.Id == ldapId)] = new Ldap(ldapData);
+                Log.WriteAudit("UpdateLdap", $"LDAP server {ldapData.Address}:{ldapData.Port} successfully updated");
+            }
+
+            // Return status and result
+            return ldapId;
         }
 
         // DELETE api/<LdapController>/5
-        [HttpDelete("{id}")]
+        [HttpDelete]
         [Authorize(Roles = "admin")]
-        public void Delete(int id)
+        public async Task<int> Delete([FromBody] LdapDeleteParameters ldapData)
         {
+            // Delete ldap in DB and in middleware ldap list
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.deleteLdapConnection, ldapData)).DeletedId;
+            if (delId == ldapData.Id)
+            {
+                ldaps.RemoveAll(x => x.Id == delId);
+                Log.WriteAudit("DeleteLdap", $"LDAP server {ldapData.Id} successfully deleted");
+            }
+
+            // Return status and result
+            return delId;
         }
     }
 }

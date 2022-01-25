@@ -1,0 +1,17 @@
+mutation updateTenant(
+  $id: Int!
+  $project: String
+  $comment: String
+  $viewAllDevices: Boolean
+) {
+  update_tenant_by_pk(
+    pk_columns: { tenant_id: $id }
+    _set: {
+      tenant_projekt: $project
+      tenant_comment: $comment
+      tenant_can_view_all_devices: $viewAllDevices
+    }
+  ) {
+    UpdatedId: tenant_id
+  }
+}

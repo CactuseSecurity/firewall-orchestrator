@@ -105,8 +105,8 @@
                                         '
       HTTP_PROXY:                      "{{ http_proxy }}"
       HTTPS_PROXY:                     "{{ https_proxy }}"
-
-#                                          "claims_namespace_path": "https://hasura.io/jwt/claims"
+      http_proxy:                      "{{ http_proxy }}"
+      https_proxy:                     "{{ https_proxy }}"
 
 - name: show hasura env for debugging
   debug:
@@ -129,7 +129,6 @@
     recreate: yes
     exposed_ports:
       - "{{ api_port }}:{{ api_port }}"
-      #- "{{ api_ip_address }}:{{ api_port }}:{{ api_port }}"
     env:
       "{{ hasura_env }}"
   register: docker_return
@@ -155,7 +154,7 @@
     msg: "The container status is: {{ result }}"
   when: result.exists and result.container['State']['Status'] == 'exited'
 
-- name: copy hasura docker systemd service script
+- name: copy hasura systemd service script
   template:
      src: "{{ api_service_name }}.service.j2"
      dest: "/lib/systemd/system/{{ api_service_name }}.service"
@@ -164,7 +163,7 @@
      owner: "root"
   become: yes
 
-- name: make hasura docker container runs at host startup
+- name: make hasura docker container run at host startup
   systemd:
     name: "{{ api_service_name }}"
     daemon_reload: yes
@@ -192,4 +191,3 @@
       x-hasura-admin-secret: "{{ api_hasura_admin_secret }}"
       x-hasura-role: "admin"
     body: "{{ lookup('file','replace_metadata.json') | from_json }}"
-    # body: "{{ lookup('file','replace_metadata.json') | to_json | from_json }}"

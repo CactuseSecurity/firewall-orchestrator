@@ -28,16 +28,16 @@
     private int uiUserDbId = -1;
 
     [CascadingParameter]
-    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
     [CascadingParameter]
-    private Task<AuthenticationState> authenticationStateTask { get; set; }
-    private AuthenticationState authenticationState;
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+    private AuthenticationState? authenticationState;
 
     protected override async Task OnInitializedAsync()
     {
         uiUserDbId = userConfig.User.DbId;
-        authenticationState = await authenticationStateTask;
+        authenticationState = await authenticationStateTask!;
     }
 
 }

@@ -1,28 +1,29 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization; 
+using Newtonsoft.Json; 
 
 namespace FWO.ApiClient
 {
     public class ReturnId
     {
-        [JsonPropertyName("newId")]
+        [JsonProperty("newId"), JsonPropertyName("newId")]
         public int NewId { get; set; }
 
-        [JsonPropertyName("UpdatedId")]
+        [JsonProperty("UpdatedId"), JsonPropertyName("UpdatedId")]
         public int UpdatedId { get; set; }
 
-        [JsonPropertyName("DeletedId")]
+        [JsonProperty("DeletedId"), JsonPropertyName("DeletedId")]
         public int DeletedId { get; set; }
 
-        [JsonPropertyName("affected_rows")]
+        [JsonProperty("affected_rows"), JsonPropertyName("affected_rows")]
         public int AffectedRows { get; set; }
 
-        [JsonPropertyName("uiuser_password_must_be_changed")]
+        [JsonProperty("uiuser_password_must_be_changed"), JsonPropertyName("uiuser_password_must_be_changed")]
         public bool PasswordMustBeChanged { get; set; }
     }
     
     public class NewReturning
     {
-        [JsonPropertyName("returning")]
-        public ReturnId[] ReturnIds { get; set; }
+        [JsonProperty("returning"), JsonPropertyName("returning")]
+        public ReturnId[]? ReturnIds { get; set; }
     }
 }

@@ -1,15 +1,18 @@
 ---
-# installation options: see docs at https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/installer/install-advanced.md
+# for installation options see https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/installer/install-advanced.md
 
 - hosts: importers
   tasks:
     - name: stop importer service before making any changes
       systemd:
-        name: "{{ product_name }}-importer"
+        name: "{{ item }}"
         state: stopped
       become: yes
       when: "not installation_mode == 'new'"
       ignore_errors: yes
+      loop:
+        - "{{ product_name }}-importer"
+        - "{{ product_name }}-importer-api"
   tags:
     - frontend
     - importer
@@ -52,24 +55,16 @@
 - hosts: apiserver
   roles:
     - { role: docker, when: "not installation_mode == 'uninstall'" }
-    - { role: api, when: "not installation_mode == 'uninstall'" }
   tags:
     - backend
     - api
 
-# restart middlewareserver now that the API is ready.
-- hosts: middlewareserver
-  tasks:
-    - name: restart middleware service
-      systemd:
-        name: "{{ middleware_service_name }}"
-        state: restarted
-        daemon_reload: yes
-      become: yes
-      when: "not installation_mode == 'uninstall'"
+# do not put this into the same play as docker (handler needs to run inbetween!)
+- hosts: apiserver 
+  roles:
+    - { role: api, when: "not installation_mode == 'uninstall'" }
   tags:
     - backend
-    - csharp
     - api
 
 - hosts: frontends
@@ -116,7 +111,7 @@
 - hosts: frontends
   tasks:
     - name: restart ui service to display new version
-      service: 
+      service:
         name: "{{ ui_service_name }}"
         state: restarted
       become: yes

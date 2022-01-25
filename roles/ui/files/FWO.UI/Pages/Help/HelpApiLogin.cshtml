@@ -20,17 +20,16 @@
 <br>
 <pre>
 curl --request POST \
-    --url https://localhost:8888/AuthenticateUser/ \
+    --url https://localhost:8888/api/AuthenticationToken/Get/ \
     --header 'content-type: application/json' \
     --data '{"Username": "user1_demo", "Password": "cactus1"}'
-    </pre>
+</pre>
 
     <h4>@userConfig.GetText("err_incorr_login")</h4>
 <br>
-    <pre>
+<pre>
 curl --request POST \
-    --url https://localhost:8888/AuthenticateUser/ \
+    --url https://localhost:8888/api/AuthenticationToken/Get/ \
     --header 'content-type: application/json' \
     --data '{"Username": "user1_demo", "Password": "wrong-pwd"}'
-    </pre>
-
+</pre>

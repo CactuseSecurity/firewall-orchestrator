@@ -1,16 +1,16 @@
-dn: ou=tenant1_demo,ou=operator,ou=user,{{ openldap_path }}
+dn: ou=tenant1{{ sample_postfix }},ou=operator,ou=user,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top
 objectClass: organizationalUnit
-ou: tenant1_demo
+ou: tenant1{{ sample_postfix }}
 {%- endif %}
 
 
-dn: ou=tenant2_demo,ou=operator,ou=user,{{ openldap_path }}
+dn: ou=tenant2{{ sample_postfix }},ou=operator,ou=user,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top
 objectClass: organizationalUnit
-ou: tenant2_demo
+ou: tenant2{{ sample_postfix }}
 {%- endif %}

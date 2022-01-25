@@ -1,0 +1,124 @@
+﻿@page "/help/API/reporting"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpAPISidebar.cshtml"); 
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("reporting")</h3>
+    
+    @userConfig.GetText("H6904")
+    <br>
+
+    <ol>
+        <li>@userConfig.GetText("H6901")</li>
+        <li>@userConfig.GetText("H6906")</li>
+        <pre>
+curl --request POST \
+    --url https://localhost:8888/api/AuthenticationToken/Get/ \
+    --header 'content-type: application/json' \
+    --data '{"Username": "reportingscheduler", "Password": "xxx"}'
+
+
+eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6InJlcHNjaGVkIiwieC1oYXN1cmEtdXNlci1pZCI6IjciLCJ4LWhhc3VyYS11dWlkIjoidWlkPXJlcHNjaGVkLG91PXRlbmFudDAsb3U9b3BlcmF0b3Isb3U9dXNlcixkYz1md29yY2gsZGM9aW50ZXJuYWwiLCJ4LWhhc3VyYS10ZW5hbnQtaWQiOiIxIiwieC1oYXN1cmEtdmlzaWJsZS1tYW5hZ2VtZW50cyI6InsgNiwyLDEsNSB9IiwieC1oYXN1cmEtdmlzaWJsZS1kZXZpY2VzIjoieyAxLDIsNSw2IH0iLCJyb2xlIjoicmVwb3J0ZXItdmlld2FsbCIsIngtaGFzdXJhLWFsbG93ZWQtcm9sZXMiOlsicmVwb3J0ZXItdmlld2FsbCJdLCJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiJyZXBvcnRlci12aWV3YWxsIiwibmJmIjoxNjM3NDE2NDg5LCJleHAiOjE2Mzc0MzA5NDksImlhdCI6MTYzNzQxNjQ4OSwiaXNzIjoiRldPIE1pZGRsZXdhcmUgTW9kdWxlIiwiYXVkIjoiRldPIn0.0CBKRMGETlN01eiA3lPWMGmYfAQWeN61fUn0gBOG7c-rQRcHCCUzLCVHPFSkN0C_Y5Ngv2xflcGsqr7l4oQlsrzadd5OcM3zDXMBQmdFBTn08iy63jJeTsGxNMyXEXZ56eiE7KPlNKj1fOpAuYb9dN335X4fyeXIeZJzHiZ2orp9AUomh4weXLvP2v3LIiCHOtBDk7Ueu0ZMAxxfKXjlpqEZ4tnNwp6m--aMPVky0xniqRjrS80JBbPOReVXmscQ8ryVvPEhTD2UcaB7AyIjz-RXn0jag9Lujl5CYxzmMrYuqrv9w6BYB9B5axbqb-2c7x3jKls571tEmO8f-rvW4g
+        </pre>    
+
+        <li>@userConfig.GetText("H6905")</li>
+        <pre>
+curl --request POST \
+    --url https://localhost:9443/api/v1/graphql \
+    --header 'content-type: application/json' \
+    --header 'x-hasura-role: reporter-viewall' \
+    --header 'Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6InJlcHNjaGVkIiwieC1oYXN1cmEtdXNlci1pZCI6IjciLCJ4LWhhc3VyYS11dWlkIjoidWlkPXJlcHNjaGVkLG91PXRlbmFudDAsb3U9b3BlcmF0b3Isb3U9dXNlcixkYz1md29yY2gsZGM9aW50ZXJuYWwiLCJ4LWhhc3VyYS10ZW5hbnQtaWQiOiIxIiwieC1oYXN1cmEtdmlzaWJsZS1tYW5hZ2VtZW50cyI6InsgNiwyLDEsNSB9IiwieC1oYXN1cmEtdmlzaWJsZS1kZXZpY2VzIjoieyAxLDIsNSw2IH0iLCJyb2xlIjoicmVwb3J0ZXItdmlld2FsbCIsIngtaGFzdXJhLWFsbG93ZWQtcm9sZXMiOlsicmVwb3J0ZXItdmlld2FsbCJdLCJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiJyZXBvcnRlci12aWV3YWxsIiwibmJmIjoxNjM3MzM2MjY5LCJleHAiOjE2MzczNTA3MjksImlhdCI6MTYzNzMzNjI2OSwiaXNzIjoiRldPIE1pZGRsZXdhcmUgTW9kdWxlIiwiYXVkIjoiRldPIn0.asVkIHiw9MkzOPQtdoIEH5d63c9RTwqBb_cNOmjCO3lLqSFnfuvV_HNkoncSgLnrMnUljTOB4iSfbJOBZ5aOY7mS2FzK7TK4FBNwJwIRiOYJnwZ4vQgJzLrp9VYk7nPi5R84tKyOlPRRqkbvVHRjd-p8nVE72RIENITOSBL1l6v41vg0eqOY6650-y46k0nWGb3cUaSw8WIJkVHPuk2-8YYB4SdcPmHD2-KlVrDf0TDwfjqa09utr8SQdT8E5yGgQkoKgsJm9QpyFVuAPwA2lVLitPnv_F19mFhTBGrnEU3sA9YMUvS1iNvn2xJsDsQ-TqaLDNFFzjSjHBPpId0Ngw' \
+    --data '
+    {
+    "variables": { "userName": "repsched" },
+    "query": "query getIDs($userName:String!) { report_template { report_template_id report_template_name } uiuser(where:{uiuser_username:{_eq: $userName}}){ uiuser_id uiuser_username } }"}'
+
+
+{"data":{"report_template":[{"report_template_id":1,"report_template_name":"Current Rules"}, {"report_template_id":2,"report_template_name":"This year's Rule Changes"}, {"report_template_id":3,"report_template_name":"Basic Statistics"}, {"report_template_id":4,"report_template_name":"Compliance: Pass rules with ANY"}, {"report_template_id":5,"report_template_name":"Current NAT Rules"}, {"report_template_id":6,"report_template_name":"current rules cactus sting"}],"uiuser":[{"uiuser_id":7,"uiuser_username":"repsched"}]}}    
+        </pre>
+        <li>@userConfig.GetText("H6902")</li>
+        <pre>
+curl --request POST \
+    --url https://localhost:9443/api/v1/graphql \
+    --header 'content-type: application/json' \
+    --header 'x-hasura-role: reporter-viewall' \
+    --header 'Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6InJlcHNjaGVkIiwieC1oYXN1cmEtdXNlci1pZCI6IjciLCJ4LWhhc3VyYS11dWlkIjoidWlkPXJlcHNjaGVkLG91PXRlbmFudDAsb3U9b3BlcmF0b3Isb3U9dXNlcixkYz1md29yY2gsZGM9aW50ZXJuYWwiLCJ4LWhhc3VyYS10ZW5hbnQtaWQiOiIxIiwieC1oYXN1cmEtdmlzaWJsZS1tYW5hZ2VtZW50cyI6InsgMiw2LDEsNSB9IiwieC1oYXN1cmEtdmlzaWJsZS1kZXZpY2VzIjoieyAxLDIsNSw2IH0iLCJyb2xlIjoicmVwb3J0ZXItdmlld2FsbCIsIngtaGFzdXJhLWFsbG93ZWQtcm9sZXMiOlsicmVwb3J0ZXItdmlld2FsbCJdLCJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiJyZXBvcnRlci12aWV3YWxsIiwibmJmIjoxNjM3MzE5ODQ1LCJleHAiOjE2MzczMzQzMDUsImlhdCI6MTYzNzMxOTg0NSwiaXNzIjoiRldPIE1pZGRsZXdhcmUgTW9kdWxlIiwiYXVkIjoiRldPIn0.dff3-c5zdWdrgOBTcIkRX4XCzY7cwKnW1deYPBucIMhvzALs2tUi7y57k9HGz4wUYAUsIUA5J7n6MnK4-0UsDia7CmPD_nDKlOO00maBT_8qusB9WvLa2Adg_nGCdMl47kQXIbdHDKupqW_C9IDwendjEcOd0SJCR0FQl8SjgnzCjj-LQw_yZlcEn19wduD8TDTrbwae3DS_4foynH92KbiI-5BswT4CyyYQJTfZ4TU_qm1EiAHzj2DdW-B5_VnyS0nFTRc_0eG7L-TQp3sPML_5ymwfrg8cm5Dh3VAW0pQckTaG6SOpTU3oFiyiQ-K-XP63s317l_NiFPMdp_SQCQ' \
+    --data '
+    {
+    "variables": 
+        {
+            "report_schedule_name": "test-report-api-repsched1251",
+            "report_schedule_owner_id": 7,
+            "report_schedule_template_id": 6,
+            "report_schedule_start_time": "2021-11-19 12:51",
+            "report_schedule_repeat": 1,
+            "report_schedule_every": 2,
+            "report_schedule_active": true,
+            "report_schedule_formats": {"data": [{"report_schedule_format_name": "json"},{"report_schedule_format_name": "pdf"}]}
+        },
+    "query": "mutation addReportSchedule($report_schedule_name: String!, $report_schedule_owner_id: Int!, $report_schedule_template_id: Int!, $report_schedule_start_time: timestamp!, $report_schedule_repeat: Int!, $report_schedule_every: Int!, $report_schedule_active: Boolean!, $report_schedule_formats: report_schedule_format_arr_rel_insert_input!) { insert_report_schedule(objects: {report_schedule_name: $report_schedule_name, report_schedule_owner: $report_schedule_owner_id, report_schedule_start_time: $report_schedule_start_time, report_schedule_repeat: $report_schedule_repeat, report_schedule_every: $report_schedule_every, report_template_id: $report_schedule_template_id, report_schedule_active: $report_schedule_active, report_schedule_formats: $report_schedule_formats}) { returning { report_schedule_id } } } "}'
+
+
+{"data":{"insert_report_schedule":{"returning" : [{"report_schedule_id":40}]}}}
+        </pre>        
+
+        <li>@userConfig.GetText("H6907")</li>
+        <pre>
+curl --request POST \
+            --url https://localhost:9443/api/v1/graphql \
+            --header 'content-type: application/json' \
+            --header 'x-hasura-role: reporter-viewall' \
+            --header 'Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6InJlcHNjaGVkIiwieC1oYXN1cmEtdXNlci1pZCI6IjciLCJ4LWhhc3VyYS11dWlkIjoidWlkPXJlcHNjaGVkLG91PXRlbmFudDAsb3U9b3BlcmF0b3Isb3U9dXNlcixkYz1md29yY2gsZGM9aW50ZXJuYWwiLCJ4LWhhc3VyYS10ZW5hbnQtaWQiOiIxIiwieC1oYXN1cmEtdmlzaWJsZS1tYW5hZ2VtZW50cyI6InsgMiw2LDEsNSB9IiwieC1oYXN1cmEtdmlzaWJsZS1kZXZpY2VzIjoieyAxLDIsNSw2IH0iLCJyb2xlIjoicmVwb3J0ZXItdmlld2FsbCIsIngtaGFzdXJhLWFsbG93ZWQtcm9sZXMiOlsicmVwb3J0ZXItdmlld2FsbCJdLCJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiJyZXBvcnRlci12aWV3YWxsIiwibmJmIjoxNjM3MzE5ODQ1LCJleHAiOjE2MzczMzQzMDUsImlhdCI6MTYzNzMxOTg0NSwiaXNzIjoiRldPIE1pZGRsZXdhcmUgTW9kdWxlIiwiYXVkIjoiRldPIn0.dff3-c5zdWdrgOBTcIkRX4XCzY7cwKnW1deYPBucIMhvzALs2tUi7y57k9HGz4wUYAUsIUA5J7n6MnK4-0UsDia7CmPD_nDKlOO00maBT_8qusB9WvLa2Adg_nGCdMl47kQXIbdHDKupqW_C9IDwendjEcOd0SJCR0FQl8SjgnzCjj-LQw_yZlcEn19wduD8TDTrbwae3DS_4foynH92KbiI-5BswT4CyyYQJTfZ4TU_qm1EiAHzj2DdW-B5_VnyS0nFTRc_0eG7L-TQp3sPML_5ymwfrg8cm5Dh3VAW0pQckTaG6SOpTU3oFiyiQ-K-XP63s317l_NiFPMdp_SQCQ' \
+            --data '
+            {
+            "variables":  {"reportScheduleId": 40 },
+            "query": "query getLatestReportPerScheduleId($reportScheduleId: bigint) { report_schedule(where: {report_schedule_id: {_eq: $reportScheduleId}}) { report_schedule_id report_template { reports_aggregate { aggregate { max { report_start_time report_id } } } } } }"}'
+
+
+{
+  "data": {
+    "report_schedule": [
+      {
+        "report_schedule_id": 40,
+        "report_template": {
+          "reports_aggregate": {
+            "aggregate": {
+              "max": {
+                "report_start_time": "2021-11-19T15:00:20.724957",
+                "report_id": 5
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}
+        </pre>        
+
+        <li>@userConfig.GetText("H6903")</li>
+        <pre>
+curl --request POST \
+            --url https://localhost:9443/api/v1/graphql \
+            --header 'content-type: application/json' \
+            --header 'x-hasura-role: reporter-viewall' \
+            --header 'Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6InJlcHNjaGVkIiwieC1oYXN1cmEtdXNlci1pZCI6IjciLCJ4LWhhc3VyYS11dWlkIjoidWlkPXJlcHNjaGVkLG91PXRlbmFudDAsb3U9b3BlcmF0b3Isb3U9dXNlcixkYz1md29yY2gsZGM9aW50ZXJuYWwiLCJ4LWhhc3VyYS10ZW5hbnQtaWQiOiIxIiwieC1oYXN1cmEtdmlzaWJsZS1tYW5hZ2VtZW50cyI6InsgMiw2LDEsNSB9IiwieC1oYXN1cmEtdmlzaWJsZS1kZXZpY2VzIjoieyAxLDIsNSw2IH0iLCJyb2xlIjoicmVwb3J0ZXItdmlld2FsbCIsIngtaGFzdXJhLWFsbG93ZWQtcm9sZXMiOlsicmVwb3J0ZXItdmlld2FsbCJdLCJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiJyZXBvcnRlci12aWV3YWxsIiwibmJmIjoxNjM3MzE5ODQ1LCJleHAiOjE2MzczMzQzMDUsImlhdCI6MTYzNzMxOTg0NSwiaXNzIjoiRldPIE1pZGRsZXdhcmUgTW9kdWxlIiwiYXVkIjoiRldPIn0.dff3-c5zdWdrgOBTcIkRX4XCzY7cwKnW1deYPBucIMhvzALs2tUi7y57k9HGz4wUYAUsIUA5J7n6MnK4-0UsDia7CmPD_nDKlOO00maBT_8qusB9WvLa2Adg_nGCdMl47kQXIbdHDKupqW_C9IDwendjEcOd0SJCR0FQl8SjgnzCjj-LQw_yZlcEn19wduD8TDTrbwae3DS_4foynH92KbiI-5BswT4CyyYQJTfZ4TU_qm1EiAHzj2DdW-B5_VnyS0nFTRc_0eG7L-TQp3sPML_5ymwfrg8cm5Dh3VAW0pQckTaG6SOpTU3oFiyiQ-K-XP63s317l_NiFPMdp_SQCQ' \
+            --data '
+            {
+            "variables": { "reportId": 5 },
+            "query": "query getReportJson($reportId: bigint!) { report(where: {report_id: {_eq: $reportId}}) { report_json } } "}'
+
+
+{"data":{"report":[{"report_json":"[\n  {\n    \"id\": 2,\n    \"name\": \"checkpoint_demo\",\n    \"hostname\": null,\n    \"user\": null,\n    \"secret\": null,\n    \"configPath\": null,\n    \"importerHostname\": null,\n    \"port\": 0,\n    \"sshPublicKey\": null,\n    \"importDisabled\": false,\n    \"forceInitialImport\": false,\n    \"hideInUi\": false,\n    \"comment\": null,\n    \"debugLevel\": null,\n    \"tenant_id\": 0,\n    \"devices\": [\n      {\n        \"id\": 2,\n        \"name\": \"checkpoint_demo\",\n        \"deviceType\": null,\n        \"management\": null,\n        \"local_rulebase_name\": null,\n        \"global_rulebase_name\": null,\n        \"package_name\": null,\n        \"importDisabled\": false,\n        \"hideInUi\": false,\n        \"comment\": null,\n        \"rules\": [],\n        \"changelog_rules\": null,\n        \"rules_aggregate\": null,\n        \"selected\": false\n      }\n    ],\n    \"networkObjects\": null,\n    \"serviceObjects\": null,\n    \"userObjects\": null,\n    \"reportNetworkObjects\": null,\n    \"reportServiceObjects\": null,\n    \"reportUserObjects\": null,\n    \"deviceType\": null,\n    \"import\": {\n      \"aggregate\": {\n        \"max\": {\n          \"id\": 1\n        }\n      }\n    },\n    \"RelevantImportId\": null,\n    \"Ignore\": false,\n    \"ReportedRuleIds\": null,\n    \"ReportedNetworkServiceIds\": null,\n    \"objects_aggregate\": {\n      \"aggregate\": {\n        \"count\": 0\n      }\n    },\n    \"services_aggregate\": {\n      \"aggregate\": {\n        \"count\": 0\n      }\n    },\n    \"usrs_aggregate\": {\n      \"aggregate\": {\n        \"count\": 0\n      }\n    },\n    \"rules_aggregate\": {\n      \"aggregate\": {\n        \"count\": 0\n      }\n    }\n  },\n  {\n    \"id\": 1,\n    \"name\": \"fortigate_demo\",\n    \"hostname\": null,\n    \"user\": null,\n    \"secret\": null,\n    \"configPath\": ... snip ...  \"rules_aggregate\": {\n      \"aggregate\": {\n        \"count\": 0\n      }\n    }\n  }\n]"}]}
+        </pre>        
+    </ol>
+</div>

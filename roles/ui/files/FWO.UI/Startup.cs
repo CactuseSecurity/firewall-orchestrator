@@ -1,26 +1,12 @@
-using System;
-using System.Net;
-using System.Collections.Generic;
-using System.Data.Common;
-using System.Linq;
-using System.Threading.Tasks;
 using FWO.ApiClient;
 using FWO.Ui.Auth;
 using FWO.Middleware.Client;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using FWO.Config.File;
 using FWO.Config.Api;
 using FWO.Logging;
 using FWO.Ui.Services;
 using BlazorTable;
-using Microsoft.AspNetCore.Components.Server.Circuits;
 using RestSharp;
 
 namespace FWO.Ui
@@ -57,18 +43,22 @@ namespace FWO.Ui
 
             MiddlewareClient middlewareClient = new MiddlewareClient(MiddlewareUri);
             APIConnection apiConn = new APIConnection(ApiUri);
-            IRestResponse<string> createJWTResponse = middlewareClient.CreateInitialJWT().Result;
-            // if (createJWTResponse.StatusCode != HttpStatusCode.OK) 
-            if (!createJWTResponse.IsSuccessful) 
+
+            RestResponse<string> createJWTResponse = middlewareClient.CreateInitialJWT().Result;
+            bool connectionEstablished = createJWTResponse.IsSuccessful;
+            int connectionAttemptsCount = 1;
+            while (!connectionEstablished) 
             {
-                Log.WriteError("Middleware Server Connection", 
-                    "Error while authenticating as anonymous user from UI, "
-                    + $"Uri: {createJWTResponse.ResponseUri.AbsoluteUri}, "
-                    + $"HttpStatus: {createJWTResponse.StatusDescription}, "
-                    + $"Error: {createJWTResponse.ErrorMessage}"
-                );
-                Environment.Exit(1);
+                Log.WriteError("Middleware Server Connection",
+                $"Error while authenticating as anonymous user from UI (Attempt {connectionAttemptsCount}), "
+                + $"Uri: {createJWTResponse.ResponseUri?.AbsoluteUri}, "
+                + $"HttpStatus: {createJWTResponse.StatusDescription}, "
+                + $"Error: {createJWTResponse.ErrorMessage}");
+                Thread.Sleep(500 * connectionAttemptsCount++);
+                createJWTResponse = middlewareClient.CreateInitialJWT().Result;
+                connectionEstablished = createJWTResponse.IsSuccessful;
             }
+
             string jwt = createJWTResponse.Data;
             apiConn.SetAuthHeader(jwt);
             //((AuthStateProvider)AuthService).AuthenticateUser(jwt);

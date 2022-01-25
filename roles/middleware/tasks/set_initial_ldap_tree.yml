@@ -1,9 +1,3 @@
-
-- name: change value for middleware_change_local_ldap if ldap conn already exists to prevent re-creation errors
-  set_fact:
-    middleware_change_local_ldap: "no"
-  when: ldap_conn_present.query_result.0.count >= 1
-
 - name: set add mode for creating ldap tree
   set_fact:
     ldif_changetype: add
@@ -27,5 +21,4 @@
     - roles
     - tenant0
     - operators
-  when: installation_mode == "new"
   # ignore errors only when re-installing on a system

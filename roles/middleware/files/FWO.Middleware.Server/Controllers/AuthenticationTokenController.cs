@@ -3,14 +3,7 @@ using FWO.ApiClient;
 using FWO.ApiClient.Queries;
 using FWO.Logging;
 using FWO.Middleware.Server;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Novell.Directory.Ldap;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Threading.Tasks;
 
 namespace FWO.Middleware.Controllers
 {
@@ -31,8 +24,8 @@ namespace FWO.Middleware.Controllers
 
         public class AuthenticationTokenGetParameters
         {
-            public string Username { get; set; }
-            public string Password {  get; set; }
+            public string? Username { get; set; }
+            public string? Password {  get; set; }
         }
 
         // GET: api/<JwtController>
@@ -41,12 +34,12 @@ namespace FWO.Middleware.Controllers
         {
             try
             {
-                UiUser user = null;
+                UiUser? user = null;
 
                 if (parameters != null)
                 {
-                    string username = parameters.Username;
-                    string password = parameters.Password;
+                    string? username = parameters.Username;
+                    string? password = parameters.Password;
 
                     // Create User from given parameters / If user no login data provided => anonymous login
                     if (username != null && password != null)
@@ -72,10 +65,7 @@ namespace FWO.Middleware.Controllers
         private readonly JwtWriter jwtWriter;
         private readonly List<Ldap> ldaps;
         private readonly APIConnection apiConnection;
-        private int tenantLevel = 1;
-        private int? fixedTenantId;
-        private bool internalLdap = false;
-        private int ldapId = 0;
+        private Ldap loggedInLdap = new Ldap();
 
         public AuthManager(JwtWriter jwtWriter, List<Ldap> ldaps, APIConnection apiConnection)
         {
@@ -89,7 +79,7 @@ namespace FWO.Middleware.Controllers
         /// </summary>
         /// <param name="user"></param>
         /// <returns>jwt if credentials are valid</returns>
-        public async Task<string> AuthorizeUserAsync(UiUser user)
+        public async Task<string> AuthorizeUserAsync(UiUser? user)
         {
             // Case: anonymous user
             if (user == null)
@@ -104,7 +94,7 @@ namespace FWO.Middleware.Controllers
             // Get tenant of user
             user.Tenant = await GetTenantAsync(user);
 
-            user.LdapConnection.Id = ldapId;
+            user.LdapConnection.Id = loggedInLdap.Id;
 
             // Create JWT for validated user with roles and tenant
             return (await jwtWriter.CreateJWT(user));
@@ -121,7 +111,7 @@ namespace FWO.Middleware.Controllers
 
             else
             {
-                string userDn = null;
+                string userDn = "";
                 List<Task> ldapDnRequests = new List<Task>();
                 object dnLock = new object();
 
@@ -129,7 +119,7 @@ namespace FWO.Middleware.Controllers
                 {
                     ldapDnRequests.Add(Task.Run(() =>
                     {
-                        Log.WriteDebug("User Authentication", $"Trying to authenticate {user} against LDAP {currentLdap.Address}:{currentLdap.Port} ...");
+                        Log.WriteDebug("User Authentication", $"Trying to authenticate \"{user.Dn}\" against LDAP {currentLdap.Address}:{currentLdap.Port} ...");
 
                         try
                         {
@@ -142,11 +132,8 @@ namespace FWO.Middleware.Controllers
 
                                 lock (dnLock)
                                 {
-                                    tenantLevel = currentLdap.TenantLevel;
+                                    loggedInLdap = currentLdap;
                                     userDn = currentDn;
-                                    fixedTenantId = currentLdap.TenantId;
-                                    internalLdap = currentLdap.IsWritable();
-                                    ldapId = currentLdap.Id;
                                 }
                             }
                         }
@@ -161,7 +148,7 @@ namespace FWO.Middleware.Controllers
                 {
                     Task finishedDnRequest = await Task.WhenAny(ldapDnRequests);
 
-                    if (userDn != null)
+                    if (!string.IsNullOrWhiteSpace(userDn))
                         return userDn;
 
                     ldapDnRequests.Remove(finishedDnRequest);
@@ -217,45 +204,77 @@ namespace FWO.Middleware.Controllers
             return UserRoles;
         }
 
-        public async Task<Tenant> GetTenantAsync(UiUser user)
+        public async Task<Tenant?> GetTenantAsync(UiUser user)
         {
-            // TODO: All three api calls in this method can be shortened to to a single query / api call
-
             Tenant tenant = new Tenant();
-            if (fixedTenantId != null)
+            if (loggedInLdap.TenantId != null)
             {
-                Log.WriteDebug("Get Tenant", $"This LDAP has the fixed tenant {fixedTenantId.Value}");
-                tenant.Id = fixedTenantId.Value;
-                // TODO: do we also need the tenant name here?
+                Log.WriteDebug("Get Tenant", $"This LDAP has the fixed tenant {loggedInLdap.TenantId.Value}");
+                tenant.Id = loggedInLdap.TenantId.Value;
             }
             else
             {
-                tenant.Name = new DistName(user.Dn).getTenant(tenantLevel);
+                tenant.Name = new DistName(user.Dn).getTenant(loggedInLdap.TenantLevel);
                 if (tenant.Name == "")
                 {
                     return null;
                 }
                 Log.WriteDebug("Get Tenant", $"extracting TenantName as: {tenant.Name} from {user.Dn}");
-
-                var tenNameObj = new { tenant_name = tenant.Name };
-                tenant = (await apiConnection.SendQueryAsync<Tenant[]>(AuthQueries.getTenantId, tenNameObj, "getTenantId"))[0];
+                if(loggedInLdap.GlobalTenantName != null && tenant.Name == loggedInLdap.GlobalTenantName)
+                {
+                    tenant.Id = 1;
+                }
+                else
+                {
+                    var tenNameObj = new { tenant_name = tenant.Name };
+                    Tenant[] tenants = await apiConnection.SendQueryAsync<Tenant[]>(AuthQueries.getTenantId, tenNameObj, "getTenantId");
+                    if (tenants.Count() > 0)
+                    {
+                        tenant.Id = tenants[0].Id;
+                    }
+                    else
+                    {
+                        // tenant unknown: create in db. This should only happen for users from external Ldaps
+                        try
+                        {
+                            var Variables = new 
+                            { 
+                                name = tenant.Name,
+                                project = "",
+                                comment = "",
+                                viewAllDevices = false,
+                                create = DateTime.Now
+                            };
+                            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addTenant, Variables)).ReturnIds;
+                            if (returnIds != null)
+                            {
+                                tenant.Id = returnIds[0].NewId;
+                                // no further search for devices etc necessary
+                                return tenant;
+                            }
+                            else
+                            {
+                                return null;
+                            }
+                        }
+                        catch (Exception exception)
+                        {
+                            Log.WriteAudit("AddTenant", $"Adding Tenant {tenant.Name} locally failed: {exception.Message}");
+                            return null;
+                        }
+                    }
+                }
             }
 
+            // TODO: Both api calls in this method can be shortened to to a single query / api call
             var tenIdObj = new { tenantId = tenant.Id };
 
-            DeviceId[] deviceIds = await apiConnection.SendQueryAsync<DeviceId[]>(AuthQueries.getVisibleDeviceIdsPerTenant, tenIdObj, "getVisibleDeviceIdsPerTenant");
-            tenant.VisibleDevices = new int[deviceIds.Length];
-            for (int i = 0; i < deviceIds.Length; ++i)
-            {
-                tenant.VisibleDevices[i] = deviceIds[i].Id;
-            }
+            Device[] deviceIds = await apiConnection.SendQueryAsync<Device[]>(AuthQueries.getVisibleDeviceIdsPerTenant, tenIdObj, "getVisibleDeviceIdsPerTenant");
+            tenant.VisibleDevices = Array.ConvertAll(deviceIds, device => device.Id);
 
-            ManagementId[] managementIds = await apiConnection.SendQueryAsync<ManagementId[]>(AuthQueries.getVisibleManagementIdsPerTenant, tenIdObj, "getVisibleManagementIdsPerTenant");
-            tenant.VisibleManagements = new int[managementIds.Length];
-            for (int i = 0; i < managementIds.Length; ++i)
-            {
-                tenant.VisibleManagements[i] = managementIds[i].Id;
-            }
+            Management[] managementIds = await apiConnection.SendQueryAsync<Management[]>(AuthQueries.getVisibleManagementIdsPerTenant, tenIdObj, "getVisibleManagementIdsPerTenant");
+            tenant.VisibleManagements = Array.ConvertAll(managementIds, management => management.Id);
+
             return tenant;
         }
     }

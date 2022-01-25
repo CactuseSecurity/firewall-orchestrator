@@ -94,7 +94,8 @@ namespace FWO.Ui.Display
             {
                 case 'D': return ruleDisplay.DisplayService(ruleChange.OldRule, DisplayStyle(ruleChange));
                 case 'I': return ruleDisplay.DisplayService(ruleChange.NewRule, DisplayStyle(ruleChange));
-                case 'C': return ruleDisplay.DisplayService(ruleChange.OldRule, ruleDisplay.DisplayService(ruleChange.NewRule));
+                // case 'C': return ruleDisplay.DisplayService(ruleChange.OldRule, ruleDisplay.DisplayService(ruleChange.NewRule));
+                case 'C': return DisplayDiff(ruleDisplay.DisplayService(ruleChange.OldRule), ruleDisplay.DisplayService(ruleChange.NewRule));
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }
@@ -218,8 +219,8 @@ namespace FWO.Ui.Display
                 }
 
                 return string.Join("<br>", unchanged) 
-                       + (deleted.Count > 0 ? $" deleted: <p style=\"color: red; text-decoration: line-through red;\">{string.Join("<br>", deleted)}</p>" : "")
-                       + (added.Count > 0 ? $" added: <p style=\"color: green; text-decoration: bold;\">{string.Join("<br>", added)}</p>" : "");
+                       + (deleted.Count > 0 ? $" {userConfig.GetText("deleted")}: <p style=\"color: red; text-decoration: line-through red;\">{string.Join("<br>", deleted)}</p>" : "")
+                       + (added.Count > 0 ? $" {userConfig.GetText("added")}: <p style=\"color: green; text-decoration: bold;\">{string.Join("<br>", added)}</p>" : "");
             }
         }
         

@@ -39,8 +39,8 @@
         <Column TableItem="UserGroup" Title="@(userConfig.GetText("user_action"))" Field="(x => x.Name)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
-                    <button class="btn btn-sm btn-success" @onclick="() => AddUserToGroup(context)">@(userConfig.GetText("add_user"))</button>
-                    <button class="btn btn-sm btn-danger" @onclick="() => RemoveUserFromGroup(context)">@(userConfig.GetText("delete_user"))</button>
+                    <button class="btn btn-sm btn-success" @onclick="() => AddUserToGroup(context)">@(userConfig.GetText("assign_user"))</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => RemoveUserFromGroup(context)">@(userConfig.GetText("remove_user"))</button>
                 </div>
             </Template>
         </Column>
@@ -126,7 +126,7 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("add_user_to_group") + ": " + actGroup.Name)" Show="@AddUserMode" Large="true" OnClose="() => AddUserMode = false">
+<PopUp Title="@(userConfig.GetText("assign_user_to_group") + ": " + actGroup.Name)" Show="@AddUserMode" Large="true" OnClose="() => AddUserMode = false">
     <Body>
         @if (AddUserMode)
         {
@@ -148,10 +148,10 @@
     <Footer>
         <AuthorizeView Roles="admin">
             <Authorized>
-                <button class="btn btn-sm btn-success" @onclick="() => AddUserFromUiUsers(selectedUiUser)" @onclick:preventDefault>@(userConfig.GetText("add"))</button>
+                <button class="btn btn-sm btn-success" @onclick="() => AddUserFromUiUsers(selectedUiUser)" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
             </Authorized>
             <NotAuthorized>
-                <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("add"))</button>
+                <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
             </NotAuthorized> 
         </AuthorizeView>
         <div class="btn-group">
@@ -160,7 +160,7 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("delete_user_from_group") + ": " + actGroup.Name)" Show="@RemoveUserMode" OnClose="() => RemoveUserMode = false">
+<PopUp Title="@(userConfig.GetText("remove_user_from_group") + ": " + actGroup.Name)" Show="@RemoveUserMode" OnClose="() => RemoveUserMode = false">
     <Body>
         @if (RemoveUserMode)
         {
@@ -183,10 +183,10 @@
         <div class="btn-group">
             <AuthorizeView Roles="admin">
                 <Authorized>
-                    <button class="btn btn-sm btn-danger" @onclick="async () => await RemoveUserFromGroup(selectedUserToDelete)" @onclick:preventDefault>@(userConfig.GetText("delete"))</button>
+                    <button class="btn btn-sm btn-danger" @onclick="async () => await RemoveUserFromGroup(selectedUserToDelete)" @onclick:preventDefault>@(userConfig.GetText("remove"))</button>
                 </Authorized>
                 <NotAuthorized>
-                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("remove"))</button>
                 </NotAuthorized> 
             </AuthorizeView>
             <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
@@ -207,10 +207,10 @@
             {
                 <AuthorizeView Roles="admin">
                     <Authorized>
-                        <button class="btn btn-sm btn-danger" @onclick="() => RemoveSampleData()">@(userConfig.GetText("delete"))</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => RemoveSampleData()">@(userConfig.GetText("remove"))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("remove"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
             }
@@ -222,16 +222,16 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
     private List<UserGroup> groups = new List<UserGroup>();
     private List<UserGroup> sampleGroups = new List<UserGroup>();
     private List<UiUser> uiUsers = new List<UiUser>();
     private List<Role> roles = new List<Role>();
     private List<Role> availableRoles = new List<Role>();
 
-    private string selectedUiUser;
-    private string selectedUserToDelete;
-    private string selectedRoleName;
+    private string selectedUiUser = "";
+    private string selectedUserToDelete = "";
+    private string? selectedRoleName;
     private bool showSampleRemoveButton = false;
 
     private UserGroup actGroup = new UserGroup();
@@ -256,17 +256,17 @@
         // get groups from internal LDAP
         try
         { 
-            IRestResponse<List<KeyValuePair<string, List<string>>>> middlewareServerResponse = await middlewareClient.GetInternalGroups();
+            RestResponse<List<GroupGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetInternalGroups();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
-                DisplayMessageInUi(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
+                DisplayMessageInUi!(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
             }
             else
             {
                 foreach (var ldapUserGroup in middlewareServerResponse.Data)
                 {
-                    UserGroup group = new UserGroup() { Dn = ldapUserGroup.Key, Name = (new DistName(ldapUserGroup.Key)).Group };
-                    foreach (var userDn in ldapUserGroup.Value)
+                    UserGroup group = new UserGroup() { Dn = ldapUserGroup.GroupDn, Name = (new DistName(ldapUserGroup.GroupDn)).Group };
+                    foreach (var userDn in ldapUserGroup.Members)
                     {
                         UiUser newUser = new UiUser() { Dn = userDn, Name = (new DistName(userDn)).UserName };
                         group.Users.Add(newUser);
@@ -274,29 +274,22 @@
                     groups.Add(group);
                 }
             }
-        }
-        catch (System.Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_groups"), null, true);
-        }
         
-        CollectSampleGroups();
+            CollectSampleGroups();
 
-        try
-        {
             uiUsers = (await apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUsers)).ToList();
             uiUsers = uiUsers.FindAll(x => x.DbId != 0);
+
+            // get roles from internal ldap
+            await GetRolesFromInternalLdap();
+            SynchronizeGroupsToRoles();
+
+            availableRoles = roles.FindAll(x => (x.Name != "anonymous" && x.Name != "middleware-server"));
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_users"), null, true);
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
         }
-        
-        // get roles from internal ldap
-        await GetRolesFromInternalLdap();
-        SynchronizeGroupsToRoles();
-
-        availableRoles = roles.FindAll(x => (x.Name != "anonymous" && x.Name != "middleware-server"));
     }
 
     private void CollectSampleGroups()
@@ -316,17 +309,17 @@
     {
         try
         {
-            IRestResponse<KeyValuePair<string, List<KeyValuePair<string, string>>>[]> middlewareServerResponse = await middlewareClient.GetAllRoles();
+            RestResponse<List<RoleGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetAllRoles();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
-                DisplayMessageInUi(null, userConfig.GetText("fetch_roles"), userConfig.GetText("E5251"), true);
+                DisplayMessageInUi!(null, userConfig.GetText("fetch_roles"), userConfig.GetText("E5251"), true);
             }
             else
             {
                 foreach (var ldapRole in middlewareServerResponse.Data)
                 {
-                    Role role = new Role() { Dn = ldapRole.Key, Name = (new DistName(ldapRole.Key)).Role };
-                    foreach (var roleAttr in ldapRole.Value)
+                    Role role = new Role() { Dn = ldapRole.Role, Name = (new DistName(ldapRole.Role)).Role };
+                    foreach (var roleAttr in ldapRole.Attributes)
                     {
                         if (roleAttr.Key == "description")
                         {
@@ -344,7 +337,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_roles"), null, true);
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_roles"), "", true);
         }
     }
     private void SynchronizeGroupsToRoles()
@@ -391,21 +384,21 @@
 
                 if (newGroupName == null || newGroupName == "")
                 {
-                    DisplayMessageInUi(null, userConfig.GetText("add_new_group"), userConfig.GetText("E5234"), true);
+                    DisplayMessageInUi!(null, userConfig.GetText("add_new_group"), userConfig.GetText("E5234"), true);
                 }
                 else if(groups.Exists(x => x.Name == newGroupName))
                 {
-                    DisplayMessageInUi(null, userConfig.GetText("add_new_group"), userConfig.GetText("E5235"), true);
+                    DisplayMessageInUi!(null, userConfig.GetText("add_new_group"), userConfig.GetText("E5235"), true);
                 }
                 else
                 {
                     // insert new group to ldap
-                    GroupAddDeleteParameters addGroupParameters = new GroupAddDeleteParameters { GroupDn = newGroupName };
-                    IRestResponse<string> middlewareServerResponse = await middlewareClient.AddGroup(addGroupParameters);
+                    GroupAddDeleteParameters addGroupParameters = new GroupAddDeleteParameters { GroupName = newGroupName };
+                    RestResponse<string> middlewareServerResponse = await middlewareClient.AddGroup(addGroupParameters);
                     
-                    if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || actGroup.Dn == "")
+                    if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == "")
                     {
-                        DisplayMessageInUi(null, userConfig.GetText("add_new_group"), userConfig.GetText("E5236"), true);
+                        DisplayMessageInUi!(null, userConfig.GetText("add_new_group"), userConfig.GetText("E5236"), true);
                     }
                     else
                     {
@@ -421,12 +414,12 @@
             else
             {
                 // Update existing group in ldap --> currently only name
-                GroupEditParameters groupEditParameters = new GroupEditParameters { OldGroupDn = actGroup.Name, NewGroupDn = newGroupName };
-                IRestResponse<string> middlewareServerResponse = await middlewareClient.UpdateGroup(groupEditParameters);
+                GroupEditParameters groupEditParameters = new GroupEditParameters { OldGroupName = actGroup.Name, NewGroupName = newGroupName };
+                RestResponse<string> middlewareServerResponse = await middlewareClient.UpdateGroup(groupEditParameters);
 
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == "")
                 {
-                    DisplayMessageInUi(null, userConfig.GetText("edit_group"), userConfig.GetText("E5237"), true);
+                    DisplayMessageInUi!(null, userConfig.GetText("edit_group"), userConfig.GetText("E5237"), true);
                 }
                 else
                 {
@@ -440,7 +433,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("save_group"), null, true);
+            DisplayMessageInUi!(exception, userConfig.GetText("save_group"), "", true);
         }
     }
 
@@ -450,17 +443,21 @@
         {
             foreach(string roleName in group.Roles)
             {
-                RoleAddDeleteUserParameters addGroupToRoleParameters = new RoleAddDeleteUserParameters { Role = roles.Find(x => x.Name == roleName).Dn, UserDn = group.Dn };
-                IRestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToRole(addGroupToRoleParameters);
-                if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
+                Role? role = roles.FirstOrDefault(x => x.Name == roleName);
+                if (role != null)
                 {
-                    DisplayMessageInUi(null, userConfig.GetText("add_user_to_role"), userConfig.GetText("E5246"), true);
+                    RoleAddDeleteUserParameters addGroupToRoleParameters = new RoleAddDeleteUserParameters { Role = role.Dn, UserDn = group.Dn };
+                    RestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToRole(addGroupToRoleParameters);
+                    if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
+                    {
+                        DisplayMessageInUi!(null, userConfig.GetText("assign_user_group_to_role"), userConfig.GetText("E5246"), true);
+                    }
                 }
             }
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("add_user_to_role"), null, true);
+            DisplayMessageInUi!(exception, userConfig.GetText("assign_user_group_to_role"), "", true);
         }
     }
 
@@ -484,12 +481,12 @@
     {
         try
         {
-            // delete group from Ldap
-            GroupAddDeleteParameters groupDeleteParameters = new GroupAddDeleteParameters { GroupDn = actGroup.Name };
-            IRestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteGroup(groupDeleteParameters);
+            // remove group from Ldap
+            GroupAddDeleteParameters groupDeleteParameters = new GroupAddDeleteParameters { GroupName = actGroup.Name };
+            RestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteGroup(groupDeleteParameters);
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
             {
-                DisplayMessageInUi(null, userConfig.GetText("delete_group"), userConfig.GetText("E5239"), true);
+                DisplayMessageInUi!(null, userConfig.GetText("delete_group"), userConfig.GetText("E5239"), true);
             }
             else
             {
@@ -499,7 +496,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_group"), null, true);
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_group"), "", true);
         }
     }
 
@@ -507,37 +504,37 @@
     {
         AddUserMode = true;
         actGroup = group;
-        selectedUiUser = (uiUsers.Count == 0 ? "" : uiUsers.FirstOrDefault().Dn);
+        selectedUiUser = (uiUsers.Count == 0 ? "" : uiUsers.First().Dn);
     }
 
     private void RemoveUserFromGroup(UserGroup group)
     {
         RemoveUserMode = true;
         actGroup = group;
-        selectedUserToDelete = (actGroup.Users.Count == 0 ? "" : actGroup.Users.FirstOrDefault().Dn);
+        selectedUserToDelete = (actGroup.Users.Count == 0 ? "" : actGroup.Users.First().Dn);
     }
 
     private async Task AddUserFromUiUsers(string userDn)
     {
-        UiUser user = uiUsers.Find(x => x.Dn == userDn);
+        UiUser? user = uiUsers.FirstOrDefault(x => x.Dn == userDn);
         if (user == null)
         {
-            DisplayMessageInUi(null, userConfig.GetText("add_user_to_group"), userConfig.GetText("E5240"), true);
+            DisplayMessageInUi!(null, userConfig.GetText("assign_user_to_group"), userConfig.GetText("E5240"), true);
         }
         else if (actGroup.Users.Contains(user))
         {
-            DisplayMessageInUi(null, userConfig.GetText("add_user_to_group"), userConfig.GetText("E5241"), true);
+            DisplayMessageInUi!(null, userConfig.GetText("assign_user_to_group"), userConfig.GetText("E5241"), true);
         }
         else
         {
-            // add user to group in LDAP
+            // assign user to group in LDAP
             try
             {
-                GroupAddDeleteUserParameters groupAddParameters = new GroupAddDeleteUserParameters { UserDn = userDn, GroupDn = actGroup.Name };
-                IRestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToGroup(groupAddParameters);
+                GroupAddDeleteUserParameters groupAddParameters = new GroupAddDeleteUserParameters { UserDn = userDn, GroupDn = actGroup.Dn };
+                RestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToGroup(groupAddParameters);
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
                 {
-                    DisplayMessageInUi(null, userConfig.GetText("add_user_to_group"), userConfig.GetText("E5242"), true);
+                    DisplayMessageInUi!(null, userConfig.GetText("assign_user_to_group"), userConfig.GetText("E5242"), true);
                 }
                 else
                 {
@@ -548,7 +545,7 @@
             }
             catch (System.Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("add_user_to_group"), null, true);
+                DisplayMessageInUi!(exception, userConfig.GetText("assign_user_to_group"), "", true);
             }
         }
     }
@@ -562,10 +559,10 @@
             try
             {
                 GroupAddDeleteUserParameters removeUserFromGroupParameters = new GroupAddDeleteUserParameters { GroupDn = actGroup.Dn, UserDn = userDn };
-                IRestResponse<bool> middlewareServerResponse = await middlewareClient.RemoveUserFromGroup(removeUserFromGroupParameters);
+                RestResponse<bool> middlewareServerResponse = await middlewareClient.RemoveUserFromGroup(removeUserFromGroupParameters);
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
                 {
-                    DisplayMessageInUi(null, userConfig.GetText("delete_user"), userConfig.GetText("E5243"), true);
+                    DisplayMessageInUi!(null, userConfig.GetText("remove_user_from_group"), userConfig.GetText("E5243"), true);
                 }
                 else
                 {
@@ -576,12 +573,12 @@
             }
             catch (System.Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("delete_user"), null, true);
+                DisplayMessageInUi!(exception, userConfig.GetText("remove_user_from_group"), "", true);
             }
         }
         else
         {
-            DisplayMessageInUi(null, userConfig.GetText("delete_user"), userConfig.GetText("E5244"), true);
+            DisplayMessageInUi!(null, userConfig.GetText("remove_user_from_group"), userConfig.GetText("E5244"), true);
         }
     }
 

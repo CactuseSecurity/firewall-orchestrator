@@ -25,17 +25,17 @@ namespace FWO.Logging
             WriteLog("Warning", Title, Text, callerName, callerFile, callerLineNumber, ConsoleColor.DarkYellow);
         }
 
-        public static void WriteError(string Title, string Text = null, Exception Error = null, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
+        public static void WriteError(string Title, string? Text = null, Exception? Error = null, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
         {
             string DisplayText =
                 (Text != null ?
                 $"{Text}"
                 : "") +
-                (Error != null ?
+                (Error != null ? 
                 "\n ---\n" +
-                $"Exception thrown: \n {Error.GetType().Name} \n" +
-                $"Message: \n {Error.Message.TrimStart()} \n" +
-                $"Stack Trace: \n {Error.StackTrace.TrimStart()}"
+                $"Exception thrown: \n {Error?.GetType().Name} \n" +
+                $"Message: \n {Error?.Message.TrimStart()} \n" +
+                $"Stack Trace: \n {Error?.StackTrace?.TrimStart()}"
                 : "");
 
 
@@ -65,7 +65,7 @@ namespace FWO.Logging
         {
             // do not show the full file path, just the basename
             string File = Path.Split('\\', '/').Last();
-            WriteInColor($"{LogType} - {Title} ({File} in line {Line}): {Text}", ForegroundColor, BackgroundColor);
+            WriteInColor($"{DateTime.Now} {LogType} - {Title} ({File} in line {Line}): {Text}", ForegroundColor, BackgroundColor);
         }
 
         private static void WriteInColor(string Text, ConsoleColor? ForegroundColor = null, ConsoleColor? BackgroundColor = null)
@@ -76,7 +76,7 @@ namespace FWO.Logging
                     Console.ForegroundColor = (ConsoleColor)ForegroundColor;
                 if (BackgroundColor != null)
                     Console.BackgroundColor = (ConsoleColor)BackgroundColor;
-                Console.Out.WriteLineAsync(Text); // TODO: async method ?
+                Console.Out.WriteLine(Text); // TODO: async method ?
                 Console.ResetColor();
             }
         }

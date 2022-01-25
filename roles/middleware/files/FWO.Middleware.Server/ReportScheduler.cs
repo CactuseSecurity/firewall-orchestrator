@@ -1,15 +1,10 @@
 ﻿using FWO.Api.Data;
 using FWO.ApiClient;
 using FWO.ApiClient.Queries;
+using FWO.Config.Api;
 using FWO.Logging;
 using FWO.Middleware.Controllers;
 using FWO.Report;
-using Novell.Directory.Ldap;
-using System;
-using System.Collections.Generic;
-using System.Dynamic;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Timers;
 
 namespace FWO.Middleware.Server
@@ -38,10 +33,9 @@ namespace FWO.Middleware.Server
             connectedLdapsSubscription.OnUpdate += OnLdapUpdate;
 
             //scheduledReports = apiConnection.SendQueryAsync<ScheduledReport[]>(ReportQueries.getReportSchedules).Result.ToList();
-            scheduledReportsSubscription = apiConnection.GetSubscription<ScheduledReport[]>(ApiExceptionHandler, ReportQueries.subscribeReportScheduleChanges);
-            scheduledReportsSubscription.OnUpdate += OnScheduleUpdate;
+            scheduledReportsSubscription = apiConnection.GetSubscription<ScheduledReport[]>(ApiExceptionHandler, OnScheduleUpdate, ReportQueries.subscribeReportScheduleChanges);
 
-            Timer checkScheduleTimer = new Timer();
+            System.Timers.Timer checkScheduleTimer = new();
             checkScheduleTimer.Elapsed += CheckSchedule;
             checkScheduleTimer.Interval = CheckScheduleInterval.TotalMilliseconds;
             checkScheduleTimer.AutoReset = true;
@@ -70,7 +64,7 @@ namespace FWO.Middleware.Server
             // Subscription will be restored if no exception is thrown here
         }
 
-        private async void CheckSchedule(object _, ElapsedEventArgs __)
+        private async void CheckSchedule(object? _, ElapsedEventArgs __)
         {
             List<Task> reportGeneratorTasks = new List<Task>();
 
@@ -116,6 +110,7 @@ namespace FWO.Middleware.Server
 
         private Task GenerateReport(ScheduledReport report, DateTime dateTimeNowRounded)
         {
+            CancellationToken token = new CancellationToken();
             return Task.Run(async () =>
             {
                 try
@@ -136,15 +131,16 @@ namespace FWO.Middleware.Server
                     
                     report.Owner.Roles = await authHandler.GetRoles(report.Owner);
                     report.Owner.Tenant = await authHandler.GetTenantAsync(report.Owner);
-                    APIConnection apiConnectionUserContext = new APIConnection(apiServerUri, await jwtWriter.CreateJWT(report.Owner));
+                    string jwt = await jwtWriter.CreateJWT(report.Owner);
+                    APIConnection apiConnectionUserContext = new APIConnection(apiServerUri, jwt);
 
-                    ReportBase reportRules = ReportBase.ConstructReport(report.Template.Filter);
-                    await reportRules.Generate
-                    (
-                        int.MaxValue,
-                        apiConnectionUserContext, 
-                        _ => Task.CompletedTask
-                    );
+                    UserConfig userConfig = new UserConfig(new GlobalConfig(jwt));
+
+                    ReportBase reportRules = ReportBase.ConstructReport(report.Template.Filter, userConfig);                    
+                    await reportRules.Generate(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask, token);
+                    await reportRules.GetObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
+
+                    reportFile.Json = reportRules.ExportToJson();
 
                     foreach (FileFormat format in report.OutputFormat)
                     {
@@ -163,7 +159,6 @@ namespace FWO.Middleware.Server
                                 break;
 
                             case "json":
-                                reportFile.Json = reportRules.ExportToJson();
                                 break;
 
                             default:
@@ -187,12 +182,14 @@ namespace FWO.Middleware.Server
                     };
 
                     await apiConnectionUserContext.SendQueryAsync<object>(ReportQueries.addGeneratedReport, queryVariables);
+
+                    Log.WriteInfo("Report Scheduling", $"Scheduled report \"{report.Name}\" for user \"{report.Owner.Name}\" with id \"{report.Owner.DbId}\" successfully generated.");
                 }
                 catch (Exception exception)
                 {
                     Log.WriteError("Report Scheduling", $"Generating scheduled report \"{report.Name}\" lead to exception.", exception);
                 }
-            });
+            }, token);
         }
 
         private static DateTime RoundDown(DateTime dateTime, TimeSpan roundInterval)

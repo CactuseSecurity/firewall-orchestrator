@@ -1015,6 +1015,7 @@ Create table "ldap_connection"
 	"ldap_type" Integer NOT NULL Default 0,
 	"ldap_pattern_length" Integer NOT NULL Default 0,
 	"ldap_name" Varchar,
+	"ldap_global_tenant_name" Varchar,
 	primary key ("ldap_connection_id")
 );
 

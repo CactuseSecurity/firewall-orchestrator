@@ -15,8 +15,7 @@ namespace FWO.Test.Api
     {
         APIConnection apiConnection;
 
-        [SetUp]
-        public void EtablishConnectionToServer()
+        public ApiTest()
         {
             ConfigFile configConnection = new ConfigFile();
             string ApiUri = configConnection.ApiServerUri;
@@ -37,6 +36,15 @@ namespace FWO.Test.Api
             return;
         }
 
+        /// <summary>
+        /// Run before EACH test.
+        /// </summary>
+        [SetUp]
+        public void Setup()
+        {
+
+        }
+
         [Test]
         public async Task QueryTestIpProto()
         {
@@ -51,7 +59,7 @@ namespace FWO.Test.Api
                     }";
 
             NetworkProtocol networkProtocol = new NetworkProtocol();
-            networkProtocol = (await apiConnection.SendQueryAsync<NetworkProtocol[]>(query, new {}))[0];
+            networkProtocol = (await apiConnection.SendQueryAsync<NetworkProtocol[]>(query, new { }))[0];
             Assert.AreEqual(networkProtocol.Name, "TCP", "wrong result of protocol API query");
         }
     }

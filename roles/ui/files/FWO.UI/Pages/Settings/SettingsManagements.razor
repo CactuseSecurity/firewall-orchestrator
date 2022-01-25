@@ -108,13 +108,15 @@
                 <div class="form-group row">
                     <label for="managementPrivateKey" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("login_secret"))*:</label>
                     <div class="col-sm-8">
-                        <input id="managementPrivateKey" type="password" class="form-control form-control-sm" @bind="actManagement.PrivateKey" />
+                        <textarea rows="3" cols="60" name="text" class="form-control form-control-sm" placeholder=@(userConfig.GetText("login_secret")) @bind="actManagement.PrivateKey"></textarea>                        
+                        @* <input id="managementPrivateKey" type="password" class="form-control form-control-sm" @bind="actManagement.PrivateKey" /> *@
                     </div>
                 </div>
                 <div class="form-group row">
                     <label for="managementPublicKey" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("public_key")):</label>
                     <div class="col-sm-8">
-                        <input id="managementPublicKey" type="text" class="form-control form-control-sm" @bind="actManagement.PublicKey" />
+                        <textarea rows="2" cols="60" name="text" class="form-control form-control-sm" placeholder=@(userConfig.GetText("public_key")) @bind="actManagement.PublicKey"></textarea>                        
+                        @* <input id="managementPublicKey" type="text" class="form-control form-control-sm" @bind="actManagement.PublicKey" /> *@
                     </div>
                 </div>
                 <div class="form-group row">
@@ -213,12 +215,12 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
     private List<Management> managements = new List<Management>();
     private List<Management> sampleManagements = new List<Management>();
     private List<DeviceType> deviceTypes = new List<DeviceType>();
 
-    private ITable<Management> table;
+    private ITable<Management>? table;
 
     private bool EditMode = false;
     private bool DeleteMode = false;
@@ -226,8 +228,8 @@
     private bool AddMode = false;
     private bool showCleanupButton = false;
 
-    private Management newManagement;
-    private Management actManagement;
+    private Management newManagement = new Management();
+    private Management actManagement = new Management();
 
     private string deleteMessage = "";
     private string cleanupMessage = "";
@@ -245,19 +247,12 @@
                 }
             }
             showCleanupButton = (sampleManagements.Count > 0);
-        }
-        catch (System.Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_managements"), null, true);
-        }
 
-        try
-        {
             deviceTypes = (await apiConnection.SendQueryAsync<DeviceType[]>(FWO.ApiClient.Queries.DeviceQueries.getDeviceTypeDetails)).ToList();
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_managements"), null, true);
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_managements"), "", true);
         }
     }
 
@@ -273,7 +268,7 @@
         // Checks if delete possible. Todo: further checks?
         if (actManagement.Devices != null && actManagement.Devices.Length > 0)
         {
-            DisplayMessageInUi(null, userConfig.GetText("delete_management"), userConfig.GetText("E5101"), true);
+            DisplayMessageInUi!(null, userConfig.GetText("delete_management"), userConfig.GetText("E5101"), true);
         }
         else
         {
@@ -296,7 +291,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_management"), null, true);
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_management"), "", true);
         }
     }
 
@@ -356,10 +351,13 @@
                         configPath = actManagement.ConfigPath,
                         importerHostname = actManagement.ImporterHostname,
                         debugLevel = actManagement.DebugLevel,
-                        comment = actManagement.Comment /*,
-                    tenantId = actManagement.TenantId */
+                        comment = actManagement.Comment
                     };
-                    actManagement.Id = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newManagement, Variables)).ReturnIds[0].NewId;
+                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newManagement, Variables)).ReturnIds;
+                    if (returnIds != null)
+                    {
+                        actManagement.Id = returnIds[0].NewId;
+                    }
                     managements.Add(actManagement);
                     AddMode = false;
                     EditMode = false;
@@ -384,21 +382,21 @@
                         configPath = actManagement.ConfigPath,
                         importerHostname = actManagement.ImporterHostname,
                         debugLevel = actManagement.DebugLevel,
-                        comment = actManagement.Comment /*,
-                    tenantId = actManagement.TenantId */
+                        comment = actManagement.Comment
                     };
                     int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.updateManagement, Variables)).UpdatedId;
                     EditMode = (udId == actManagement.Id ? false : true);
                     managements[managements.FindIndex(x => x.Id == actManagement.Id)] = actManagement;
                 }
                 // update actManagement
-                actManagement.DeviceType.Name = deviceTypes.Find(x => x.Id == actManagement.DeviceType.Id).Name;
-                actManagement.DeviceType.Version = deviceTypes.Find(x => x.Id == actManagement.DeviceType.Id).Version;
+                DeviceType? devtype = deviceTypes.FirstOrDefault(x => x.Id == actManagement.DeviceType.Id) ?? throw new Exception("Unknown Device type");
+                actManagement.DeviceType.Name = devtype.Name;
+                actManagement.DeviceType.Version = devtype.Version;
             }
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("save_management"), null, true);
+            DisplayMessageInUi!(exception, userConfig.GetText("save_management"), "", true);
         }
     }
 
@@ -409,23 +407,23 @@
             actManagement.ImportUser == null || actManagement.ImportUser == "" || 
             actManagement.PrivateKey == null || actManagement.PrivateKey == "")
         {
-            DisplayMessageInUi(null, userConfig.GetText("save_management"), userConfig.GetText("E5102"), true);
+            DisplayMessageInUi!(null, userConfig.GetText("save_management"), userConfig.GetText("E5102"), true);
             return false;
         }
         if (actManagement.Port < 1 || actManagement.Port > 65535)
         {
-            DisplayMessageInUi(null, userConfig.GetText("save_management"), userConfig.GetText("E5103"), true);
+            DisplayMessageInUi!(null, userConfig.GetText("save_management"), userConfig.GetText("E5103"), true);
             return false;
         }
         else if (actManagement.DebugLevel != null && (actManagement.DebugLevel < 0 || actManagement.DebugLevel > 9))
         {
-            DisplayMessageInUi(null, userConfig.GetText("save_management"), userConfig.GetText("E5104"), true);
+            DisplayMessageInUi!(null, userConfig.GetText("save_management"), userConfig.GetText("E5104"), true);
             return false;
         }
         if (!actManagement.ImportDisabled && managements.FirstOrDefault(mgt => mgt.Hostname == actManagement.Hostname && mgt.Port == actManagement.Port 
             && mgt.ConfigPath == actManagement.ConfigPath && mgt.Id != actManagement.Id && !mgt.ImportDisabled) != null)
         {
-            DisplayMessageInUi(null, userConfig.GetText("save_management"), userConfig.GetText("E5105"), true);
+            DisplayMessageInUi!(null, userConfig.GetText("save_management"), userConfig.GetText("E5105"), true);
             return false;
         }
         return true;

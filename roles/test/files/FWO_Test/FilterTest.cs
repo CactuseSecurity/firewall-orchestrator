@@ -1,4 +1,5 @@
 ﻿using FWO.Report.Filter;
+using FWO.Report.Filter.Ast;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -30,19 +31,32 @@ namespace FWO.Test.Filter
         [Test]
         public void TextOnlySearch()
         {
-            Compiler.Compile("teststring");
+            AstNode ast = Compiler.CompileToAst("teststring");
+            DynGraphqlQuery query = Compiler.Compile("teststring");
         }
 
         [Test]
         public void AndOr()
         {
-            Compiler.Compile("((src=123) & (dst=234)) | (src = 123)");
+            var res = Compiler.Compile("((src=hi) & (dst=test)) | (src = a)");
         }
 
         [Test]
         public void TripleOr()
         {
-            Compiler.Compile("(src=cactus or dst=cactus or svc=smtps)");
+            var res = Compiler.Compile("(src=cactus or dst=cactus or svc=smtps)");
+        }
+
+        [Test]
+        public void ExactEquals()
+        {
+            var res = Compiler.Compile("(text==cactus)");
+        }
+
+        [Test]
+        public void ExactEquals2()
+        {
+            var res = Compiler.Compile("(text==cactus)");
         }
     }
 }

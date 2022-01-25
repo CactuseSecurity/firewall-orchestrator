@@ -1,0 +1,32 @@
+fragment natRuleDetails on rule {
+  ...ruleDetails
+  translate: ruleByXlateRule {
+    rule_src
+    rule_src_refs
+    rule_src_neg
+    rule_dst
+    rule_dst_refs
+    rule_dst_neg
+    rule_svc
+    rule_svc_refs
+    rule_svc_neg
+    rule_froms {
+      usr {
+        ...userDetails
+      }
+      object {
+        ...networkObjectDetails
+      }
+    }
+    rule_tos {
+      object {
+        ...networkObjectDetails
+      }
+    }
+    rule_services {
+      service {
+        ...networkServiceDetails
+      }
+    }
+  }
+}

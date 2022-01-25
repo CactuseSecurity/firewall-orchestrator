@@ -20,10 +20,3 @@
   package:
     name: glibc-langpack-en
   become: yes
-
-# - name: setting postgres package names for redhat
-#   set_fact:
-#     vars:
-#       postgresql_c_client_library_header_files: libpq-devel
-#       postgresql_test_package: pgtap12
-#       postgresql_package: postgresql-server

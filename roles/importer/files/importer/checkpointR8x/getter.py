@@ -2,6 +2,8 @@
 base_dir = "/usr/local/fworch"
 importer_base_dir = base_dir + '/importer'
 import sys
+
+from simplejson import JSONDecodeError
 sys.path.append(importer_base_dir)
 import json
 import logging, re
@@ -17,39 +19,55 @@ use_object_dictionary = 'false'
 # all obj table names to look at:
 api_obj_types = [
     'hosts', 'networks', 'groups', 'address-ranges', 'multicast-address-ranges', 'groups-with-exclusion', 'gateways-and-servers',
-    'security-zones', 'dynamic-objects', 'trusted-clients', 'dns-domains',
+    'security-zones', 'dynamic-objects', 'dns-domains', # 'trusted-clients',
     'services-tcp', 'services-udp', 'services-sctp', 'services-other', 'service-groups', 'services-dce-rpc', 'services-rpc', 'services-icmp', 'services-icmp6' ]
 
 svc_obj_table_names = ['services-tcp', 'services-udp', 'service-groups', 'services-dce-rpc', 'services-rpc', 'services-other', 'services-icmp', 'services-icmp6']
 # usr_obj_table_names : do not exist yet - not fetchable via API
 
 
-def api_call(ip_addr, port, url, command, json_payload, sid, ssl_verification, proxy_string, show_progress=False):
-    url = url + command
-    if sid == '':
-        request_headers = {'Content-Type' : 'application/json'}
-    else:
-        request_headers = {'Content-Type' : 'application/json', 'X-chkp-sid' : sid}
-    r = requests.post(url, data=json.dumps(json_payload), headers=request_headers, verify=ssl_verification, proxies=proxy_string)
+def api_call(url, command, json_payload, sid, ssl_verification, proxy, show_progress=False):
+    url += command
+    if not ssl_verification:
+        verify=''
+    request_headers = {'Content-Type' : 'application/json'}
+    if sid != '': # only not set for login
+        request_headers.update({'X-chkp-sid' : sid})
+
+    try:
+        r = requests.post(url, json=json_payload, headers=request_headers, verify=verify, proxies=proxy)
+        r.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        logging.exception("\checkpointR8x:api_call: error, url: " + str(url))
+        raise SystemExit(e) from None
+        
     if r is None:
-        logging.exception("\nerror while sending api_call to url '" + str(url) + "' with payload '" + json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
+        if 'password' in json.dumps(json_payload):
+            logging.exception("\nerror while sending api_call containing credential information to url '" + str(url))
+        else:
+            logging.exception("\nerror while sending api_call to url '" + str(url) + "' with payload '" + json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
         sys.exit(1)
     if show_progress:
         print ('.', end='', flush=True)
-    return r.json()
+
+    try:
+        json_response = r.json()
+    except:
+        logging.exception("checkpointR8x:api_call: response is not in valid json format: " + r.text)
+        sys.exit(1)
+    return json_response
 
 
-def login(user,password,api_host,api_port,domain, ssl_verification, proxy_string):
-    if domain == '':
-        payload = {'user':user, 'password' : password}
-    else:
-        payload = {'user':user, 'password' : password, 'domain' :  domain}
-    base_url = 'https://' + api_host + ':' + api_port + '/web_api/'
-    response = api_call(api_host, api_port, base_url, 'login', payload, '', ssl_verification, proxy_string)
+def login(user, password, api_host, api_port, domain, ssl_verification, proxy):
+    payload = {'user': user, 'password': password}
+    if domain is not None and domain != '':
+        payload.update({'domain': domain})
+    base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
+    response = api_call(base_url, 'login', payload, '', ssl_verification, proxy)
     if "sid" not in response:
         logging.exception("\ngetter ERROR: did not receive a sid during login, " +
             "api call: api_host: " + str(api_host) + ", api_port: " + str(api_port) + ", base_url: " + str(base_url) +
-            ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy_string))
+            ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy))
         sys.exit(1)
     return response["sid"]
 
@@ -67,13 +85,13 @@ def set_ssl_verification(ssl_verification_mode):
 
 def get_api_url(sid, api_host, api_port, user, base_url, limit, test_version, ssl_verification, proxy_string):
     logger = logging.getLogger(__name__)
-    api_versions = api_call(api_host, api_port, base_url, 'show-api-versions', {}, sid, ssl_verification, proxy_string)
+    api_versions = api_call(base_url, 'show-api-versions', {}, sid, ssl_verification, proxy_string)
     api_version = api_versions["current-version"]
     api_supported = api_versions["supported-versions"]
 
     logging.debug ("getter - current version: "+ api_version )
     logging.debug ("getter - supported versions: "+ ', '.join(api_supported) )
-    logging.debug ("getter - limit:"+ limit )
+    logging.debug ("getter - limit:"+ str(limit) )
     logging.debug ("getter - login:" + user )
     logging.debug ("getter - sid:"+ sid )
     v_url = ''
@@ -116,36 +134,37 @@ def set_api_url(base_url,testmode,api_supported,hostname):
 def get_changes(sid,api_host,api_port,fromdate,ssl_verification, proxy_string):
     payload = {'from-date' : fromdate, 'details-level' : 'uid'}
     logging.debug ("get_changes: payload: " + json.dumps(payload))
-    base_url = 'https://' + api_host + ':' + api_port + '/web_api/'
-    task_id = api_call(api_host, api_port, base_url, 'show-changes', payload, sid, ssl_verification, proxy_string)
+    base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
+    task_id = api_call(base_url, 'show-changes', payload, sid, ssl_verification, proxy_string)
 
     logging.debug ("task_id: " + json.dumps(task_id))
     sleeptime = 1
     status = 'in progress'
     while (status == 'in progress'):
         time.sleep(sleeptime)
-        tasks = api_call(api_host, api_port, base_url, 'show-task', task_id, sid, ssl_verification, proxy_string)
-        for task in tasks['tasks']:
-            # logging.debug ("task: " + json.dumps(task))
-            if 'status' in task:
-                status = task['status']
-                if 'succeeded' in status:
-                    for detail in task['task-details']:
-                        if detail['changes']:
-                            logging.debug ("show-changes - status: " + status + " -> changes found")
-                            return 1
-                        else:
-                            logging.debug ("show-changes - status: " + status + " -> but no changes found")
-                elif status == 'failed':
-                    logging.debug ("show-changes - status: failed -> no changes found")
-                elif status == 'in progress':
-                    logging.debug ("show-changes - status: in progress")
+        tasks = api_call(base_url, 'show-task', task_id, sid, ssl_verification, proxy_string)
+        if 'tasks' in tasks:
+            for task in tasks['tasks']:
+                # logging.debug ("task: " + json.dumps(task))
+                if 'status' in task:
+                    status = task['status']
+                    if 'succeeded' in status:
+                        for detail in task['task-details']:
+                            if detail['changes']:
+                                logging.debug ("show-changes - status: " + status + " -> changes found")
+                                return 1
+                            else:
+                                logging.debug ("show-changes - status: " + status + " -> but no changes found")
+                    elif status == 'failed':
+                        logging.debug ("show-changes - status: failed -> no changes found")
+                    elif status == 'in progress':
+                        logging.debug ("show-changes - status: in progress")
+                    else:
+                        logging.error ("show-changes - unknown status: " + status)
+                        return -1
                 else:
-                    logging.error ("show-changes - unknown status: " + status)
+                    logging.error ("show-changes - no status in task")
                     return -1
-            else:
-                logging.error ("show-changes - no status in task")
-                return -1
         sleeptime += 2
         if sleeptime > 40:
             logging.error ("show-changes - task took too long, aborting")
@@ -255,18 +274,23 @@ def get_layer_from_api_as_dict (api_host, api_port, api_v_url, sid, ssl_verifica
     total=current+1
     while (current<total) :
         show_params_rules['offset']=current
-        rulebase = api_call(api_host, api_port, api_v_url, 'show-access-rulebase', show_params_rules, sid, ssl_verification, proxy_string)
+        rulebase = api_call(api_v_url, 'show-access-rulebase', show_params_rules, sid, ssl_verification, proxy_string)
         current_layer_json['layerchunks'].append(rulebase)
         if 'total' in rulebase:
             total=rulebase['total']
         else:
             logging.error ( "get_layer_from_api - rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json " 
                 + str(current_layer_json))
-        if 'to' in rulebase:
-            current=rulebase['to']
+        if total==0:
+            current=0
         else:
-            sys.exit(1)
-        logging.debug ( "get_layer_from_api - rulebase current offset: "+ str(current) )
+            if 'to' in rulebase:
+                current=rulebase['to']
+            else:
+                logging.error ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " 
+                    + str(rulebase))
+                sys.exit(1)
+        logging.debug ( "get_layer_from_api - get_layer_from_api_as_dict current offset: "+ str(current) )
     # logging.debug ("get_config::get_rulebase_chunk_from_api - found rules:\n" + str(current_layer_json) + "\n")
     return current_layer_json
 
@@ -277,19 +301,23 @@ def get_nat_rules_from_api_as_dict (api_host, api_port, api_v_url, sid, ssl_veri
     total=current+1
     while (current<total) :
         show_params_rules['offset']=current
-        rulebase = api_call(api_host, api_port, api_v_url, 'show-nat-rulebase', show_params_rules, sid, ssl_verification, proxy_string)
+        logging.debug ("get_nat_rules_from_api_as_dict params: " + str(show_params_rules))
+        rulebase = api_call(api_v_url, 'show-nat-rulebase', show_params_rules, sid, ssl_verification, proxy_string)
         nat_rules['nat_rule_chunks'].append(rulebase)
         if 'total' in rulebase:
             total=rulebase['total']
         else:
             logging.error ( "get_nat_rules_from_api - rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json " 
                 + str(nat_rules))
-        if 'to' in rulebase:
-            current=rulebase['to']
+        if total==0:
+            current=0
         else:
-            sys.exit(1)
-        #logging.debug ( "get_nat_rules_from_api - rulebase current offset: "+ str(current) )
-    # logging.debug ("get_config::get_nat_rules - found nat rules:\n" + str(nat_rules) + "\n")
+            if 'to' in rulebase:
+                current=rulebase['to']
+            else:
+                logging.error ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " 
+                    + str(nat_rules))
+                sys.exit(1)
     return nat_rules
 
 

@@ -1,14 +1,8 @@
-- block: 
-  - name: Reload service systemctl
-    systemd:
-      daemon_reload: yes
-    listen: "restart daemons"
-  
-  - name: restart service docker
-    service:
-      name: docker
-      state: restarted
-    listen: "restart docker service"
+---
+- name: restart docker
+  systemd:
+    name: docker
+    daemon_reload: yes
+    state: restarted
   become: yes
-  
-  
+  listen: "docker restart"

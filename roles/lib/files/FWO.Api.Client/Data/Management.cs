@@ -1,109 +1,105 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using Newtonsoft.Json;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
-using FWO.Logging;
 
 namespace FWO.Api.Data
 {
     public class Management
     {
-        [JsonPropertyName("id")]
+        [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
 
-        [JsonPropertyName("name")]
-        public string Name { get; set; }
+        [JsonProperty("name"), JsonPropertyName("name")]
+        public string Name { get; set; } = "";
 
-        [JsonPropertyName("hostname")]
-        public string Hostname { get; set; }
+        [JsonProperty("hostname"), JsonPropertyName("hostname")]
+        public string Hostname { get; set; } = "";
 
-        [JsonPropertyName("user")]
-        public string ImportUser { get; set; }
+        [JsonProperty("user"), JsonPropertyName("user")]
+        public string? ImportUser { get; set; }
 
-        [JsonPropertyName("secret")]
-        public string PrivateKey { get; set; }
+        [JsonProperty("secret"), JsonPropertyName("secret")]
+        public string PrivateKey { get; set; } = "";
 
-        [JsonPropertyName("configPath")]
-        public string ConfigPath { get; set; }
+        [JsonProperty("configPath"), JsonPropertyName("configPath")]
+        public string ConfigPath { get; set; } = "";
 
-        [JsonPropertyName("importerHostname")]
-        public string ImporterHostname { get; set; }
+        [JsonProperty("importerHostname"), JsonPropertyName("importerHostname")]
+        public string ImporterHostname { get; set; } = "";
 
-        [JsonPropertyName("port")]
+        [JsonProperty("port"), JsonPropertyName("port")]
         public int Port { get; set; }
 
-        [JsonPropertyName("sshPublicKey")]
-        public string PublicKey { get; set; }
+        [JsonProperty("sshPublicKey"), JsonPropertyName("sshPublicKey")]
+        public string? PublicKey { get; set; }
 
-        [JsonPropertyName("importDisabled")]
+        [JsonProperty("importDisabled"), JsonPropertyName("importDisabled")]
         public bool ImportDisabled { get; set; }
 
-        [JsonPropertyName("forceInitialImport")]
+        [JsonProperty("forceInitialImport"), JsonPropertyName("forceInitialImport")]
         public bool ForceInitialImport { get; set; }
 
-        [JsonPropertyName("hideInUi")]
+        [JsonProperty("hideInUi"), JsonPropertyName("hideInUi")]
         public bool HideInUi { get; set; }
 
-        [JsonPropertyName("comment")]
-        public string Comment { get; set; }
+        [JsonProperty("comment"), JsonPropertyName("comment")]
+        public string? Comment { get; set; }
 
-        [JsonPropertyName("debugLevel")]
+        [JsonProperty("debugLevel"), JsonPropertyName("debugLevel")]
         public int? DebugLevel { get; set; }
 
-        [JsonPropertyName("tenant_id")]
+        [JsonProperty("tenant_id"), JsonPropertyName("tenant_id")]
         public int TenantId { get; set; }
 
-        [JsonPropertyName("devices")]
-        public Device[] Devices { get; set; }
+        [JsonProperty("devices"), JsonPropertyName("devices")]
+        public Device[] Devices { get; set; } = new Device[]{};
 
-        [JsonPropertyName("networkObjects")]
-        public NetworkObject[] Objects { get; set; }
+        [JsonProperty("networkObjects"), JsonPropertyName("networkObjects")]
+        public NetworkObject[] Objects { get; set; } = new NetworkObject[]{};
 
-        [JsonPropertyName("serviceObjects")]
-        public NetworkService[] Services { get; set; }
+        [JsonProperty("serviceObjects"), JsonPropertyName("serviceObjects")]
+        public NetworkService[] Services { get; set; } = new NetworkService[]{};
 
-        [JsonPropertyName("userObjects")]
-        public NetworkUser[] Users { get; set; }
+        [JsonProperty("userObjects"), JsonPropertyName("userObjects")]
+        public NetworkUser[] Users { get; set; } = new NetworkUser[]{};
 
-        [JsonPropertyName("reportNetworkObjects")]
-        public NetworkObjectWrapper[] ReportObjects { get; set; }
+        [JsonProperty("reportNetworkObjects"), JsonPropertyName("reportNetworkObjects")]
+        public NetworkObjectWrapper[] ReportObjects { get; set; } = new NetworkObjectWrapper[]{};
 
-        [JsonPropertyName("reportServiceObjects")]
-        public ServiceWrapper[] ReportServices { get; set; }
+        [JsonProperty("reportServiceObjects"), JsonPropertyName("reportServiceObjects")]
+        public ServiceWrapper[] ReportServices { get; set; } = new ServiceWrapper[]{};
 
-        [JsonPropertyName("reportUserObjects")]
-        public UserWrapper[] ReportUsers { get; set; }
+        [JsonProperty("reportUserObjects"), JsonPropertyName("reportUserObjects")]
+        public UserWrapper[] ReportUsers { get; set; } = new UserWrapper[]{};
 
-        [JsonPropertyName("deviceType")]
-        public DeviceType DeviceType { get; set; }
+        [JsonProperty("deviceType"), JsonPropertyName("deviceType")]
+        public DeviceType DeviceType { get; set; } = new DeviceType();
 
-        [JsonPropertyName("import")]
-        public Import Import { get; set; }
+        [JsonProperty("import"), JsonPropertyName("import")]
+        public Import Import { get; set; } = new Import();
 
-        // [JsonPropertyName("pointInTime")]
+        // [JsonProperty("pointInTime"), JsonPropertyName("pointInTime")]
         // public DateTime ReportTime { get; set; }
         public long? RelevantImportId { get; set; }
         public bool Ignore { get; set; }
 
-        //[JsonPropertyName("rule_id")]
-        public List<long> ReportedRuleIds { get; set; }
-        public List<long> ReportedNetworkServiceIds { get; set; }
+        //[JsonProperty("rule_id"), JsonPropertyName("rule_id")]
+        public List<long> ReportedRuleIds { get; set; } = new List<long>();
+        public List<long> ReportedNetworkServiceIds { get; set; } = new List<long>();
 
-        [JsonPropertyName("objects_aggregate")]
+        [JsonProperty("objects_aggregate"), JsonPropertyName("objects_aggregate")]
         public ObjectStatistics NetworkObjectStatistics { get; set; } = new ObjectStatistics();
 
-        [JsonPropertyName("services_aggregate")]
+        [JsonProperty("services_aggregate"), JsonPropertyName("services_aggregate")]
         public ObjectStatistics ServiceObjectStatistics { get; set; } = new ObjectStatistics();
 
-        [JsonPropertyName("usrs_aggregate")]
+        [JsonProperty("usrs_aggregate"), JsonPropertyName("usrs_aggregate")]
         public ObjectStatistics UserObjectStatistics { get; set; } = new ObjectStatistics();
         
-        [JsonPropertyName("rules_aggregate")]
+        [JsonProperty("rules_aggregate"), JsonPropertyName("rules_aggregate")]
         public ObjectStatistics RuleStatistics { get; set; } = new ObjectStatistics();
 
         public Management()
-        { }
+        {}
 
         public Management(Management management)
         {
@@ -122,8 +118,18 @@ namespace FWO.Api.Data
             Comment = management.Comment;
             DebugLevel = management.DebugLevel;
             TenantId = management.TenantId;
+            Devices = management.Devices;
+            Objects = management.Objects;
+            Services = management.Services;
+            Users = management.Users;
+            ReportObjects = management.ReportObjects;
+            ReportServices = management.ReportServices;
+            ReportUsers = management.ReportUsers;
+            DeviceType = management.DeviceType;
             Import = management.Import;
             Ignore = management.Ignore;
+            ReportedRuleIds = management.ReportedRuleIds;
+            ReportedNetworkServiceIds = management.ReportedNetworkServiceIds;
             if (management.Import != null && management.Import.ImportAggregate != null &&
                 management.Import.ImportAggregate.ImportAggregateMax != null &&
                 management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId != null)
@@ -136,7 +142,15 @@ namespace FWO.Api.Data
         public string Host()
         {
             return Hostname + ":" + Port;
-        }      
+        }
+        
+        public void AssignRuleNumbers()
+        {
+            foreach (Device device in Devices)
+            {
+                device.AssignRuleNumbers();
+            }
+        }
     }
 
     public static class ManagementUtility
@@ -146,32 +160,7 @@ namespace FWO.Api.Data
             bool newObjects = false;
 
             for (int i = 0; i < managementsToMerge.Length; i++)
-            {
-                if (managements[i].Objects != null && managementsToMerge[i].Objects != null && managementsToMerge[i].Objects.Length > 0)
-                {
-                    managements[i].Objects = managements[i].Objects.Concat(managementsToMerge[i].Objects).ToArray();
-                    newObjects = true;
-                }
-
-                if (managements[i].Services != null && managementsToMerge[i].Services != null && managementsToMerge[i].Services.Length > 0)
-                {
-                    managements[i].Services = managements[i].Services.Concat(managementsToMerge[i].Services).ToArray();
-                    newObjects = true;
-                }
-
-                if (managements[i].Users != null && managementsToMerge[i].Users != null && managementsToMerge[i].Users.Length > 0)
-                {
-                    managements[i].Users = managements[i].Users.Concat(managementsToMerge[i].Users).ToArray();
-                    newObjects = true;
-                }
-
-                if (managements[i].Devices != null && managementsToMerge[i].Devices != null && managementsToMerge[i].Devices.Length > 0)
-                {
-                    // important: if any management still returns rules, newObjects is set to true
-                    if (managements[i].Devices.Merge(managementsToMerge[i].Devices) == true)
-                        newObjects = true;
-                }
-            }
+                newObjects |= managements[i].Merge(managementsToMerge[i]);
 
             return newObjects;
         }
@@ -195,6 +184,37 @@ namespace FWO.Api.Data
             if (management.Users != null && managementToMerge.Users != null && managementToMerge.Users.Length > 0)
             {
                 management.Users = management.Users.Concat(managementToMerge.Users).ToArray();
+                newObjects = true;
+            }
+
+            if (management.Devices != null && managementToMerge.Devices != null && managementToMerge.Devices.Length > 0)
+            {
+                // important: if any management still returns rules, newObjects is set to true
+                if (management.Devices.Merge(managementToMerge.Devices) == true)
+                    newObjects = true;
+            }
+            return newObjects;
+        }
+
+        public static bool MergeReportObjects(this Management management, Management managementToMerge)
+        {
+            bool newObjects = false;
+
+            if (management.ReportObjects != null && managementToMerge.ReportObjects != null && managementToMerge.ReportObjects.Length > 0)
+            {
+                management.ReportObjects = management.ReportObjects.Concat(managementToMerge.ReportObjects).ToArray();
+                newObjects = true;
+            }
+
+            if (management.ReportServices != null && managementToMerge.ReportServices != null && managementToMerge.ReportServices.Length > 0)
+            {
+                management.ReportServices = management.ReportServices.Concat(managementToMerge.ReportServices).ToArray();
+                newObjects = true;
+            }
+
+            if (management.ReportUsers != null && managementToMerge.ReportUsers != null && managementToMerge.ReportUsers.Length > 0)
+            {
+                management.ReportUsers = management.ReportUsers.Concat(managementToMerge.ReportUsers).ToArray();
                 newObjects = true;
             }
 

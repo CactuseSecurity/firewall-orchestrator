@@ -6,14 +6,14 @@
 @inject UserConfig userConfig
 
 <button class="btn btn-sm btn-dark" @onclick='() => { if (ReportToExport != null) { ShowExportDialog = true; reportExportFile = new ReportFile { Name = "Report", OwnerId = userConfig.User.DbId }; } else { 
-                                                      DisplayMessageInUi(null, userConfig.GetText("export_report"), userConfig.GetText("E1002"), true); } }'>@userConfig.GetText("export_report")</button>
+                                                      DisplayMessageInUi!(null, userConfig.GetText("export_report"), userConfig.GetText("E1002"), true); } }'>@userConfig.GetText("export_report")</button>
 
 <PopUp Title="@(userConfig.GetText("export_report"))" Show="@ShowExportDialog" OnClose="() => ShowExportDialog = false">
     <Body>
         <div>
             <div class="input-group input-group-sm mb-2">
                 <div class="input-group-prepend">
-                    <div class="input-group-text">Report Name:</div>
+                    <div class="input-group-text">@(userConfig.GetText("report_name")):</div>
                 </div>
                 <input class="form-control" @bind:event="oninput" @bind="reportExportFile.Name" />
             </div>
@@ -34,9 +34,9 @@
                             </label>
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="reportExportCsv" @bind="ExportCsv">
+                            <input disabled class="form-check-input" type="checkbox" id="reportExportCsv" @bind="ExportCsv">
                             <label class="form-check-label" for="reportExportCsv">
-                                CSV
+                                CSV @(userConfig.GetText("coming_soon"))
                             </label>
                         </div>
                         <div class="form-check">
@@ -97,17 +97,17 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
     [Parameter]
-    public ReportBase ReportToExport { get; set; }
+    public ReportBase? ReportToExport { get; set; }
 
     private bool ExportPdf = false;
     private bool ExportJson = false;
     private bool ExportHtml = false;
     private bool ExportCsv = false;
     private bool ExportArchive = false;
-    private ReportFile reportExportFile;
+    private ReportFile reportExportFile = new ReportFile();
 
     private bool ShowExportDialog = false;
     private bool ShowExportDownloadDialog = false;
@@ -163,13 +163,13 @@
                 }
                 catch (Exception exception)
                 {
-                    DisplayMessageInUi(exception, userConfig.GetText("export_report"), null, true);
+                    DisplayMessageInUi!(exception, userConfig.GetText("export_report"), "", true);
                 }
             });
         }
         else
         {
-            DisplayMessageInUi(null, userConfig.GetText("export_report"), userConfig.GetText("E1002"), true);
+            DisplayMessageInUi!(null, userConfig.GetText("export_report"), userConfig.GetText("E1002"), true);
         }
     }
 }

@@ -115,10 +115,12 @@ BEGIN
 					SELECT INTO r_obj obj_id FROM object WHERE obj_uid=v_current_obj AND (zone_id=r_rule.rule_from_zone) 
 						AND mgm_id=i_mgm_id AND active;
 					IF NOT FOUND THEN -- last chance: global zone for juniper devices
-						SELECT INTO i_zone_id zone_id FROM zone WHERE zone_name='global' AND zone.mgm_id=i_mgm_id;
+						SELECT INTO i_zone_id zone_id FROM zone WHERE (zone_name='global') AND zone.mgm_id=i_mgm_id;
 						IF FOUND THEN
 							SELECT INTO r_obj obj_id FROM object WHERE obj_uid=v_current_obj AND zone_id=i_zone_id AND 
 								object.mgm_id=i_mgm_id AND object.active;
+						ELSE -- zone_id is null - pick any object with same name disregarding the zone
+							SELECT INTO r_obj obj_id FROM object WHERE obj_uid=v_current_obj AND object.mgm_id=i_mgm_id AND object.active;
 						END IF;
 					END IF;
 				END IF;
@@ -176,7 +178,8 @@ BEGIN
 	v_result := '';
 	FOR r_rule IN SELECT rule_id,rule_src, rule_dst, rule_svc, rule_src_refs, rule_dst_refs, rule_svc_refs, 
 			rule_from_zone, rule_to_zone, rule_create, rule_last_seen
-		FROM rule WHERE dev_id=i_dev_id and active LOOP
+			FROM rule WHERE dev_id=i_dev_id and active 
+	LOOP
 		SELECT INTO i_mgm_id mgm_id FROM rule WHERE rule_id=r_rule.rule_id;
 		SELECT INTO i_rule_created rule_create FROM rule WHERE rule_id=r_rule.rule_id;
 		SELECT INTO i_rule_last_seen rule_last_seen FROM rule WHERE rule_id=r_rule.rule_id;
@@ -187,11 +190,13 @@ BEGIN
 						SELECT INTO r_obj obj_id FROM object WHERE obj_uid=v_current_obj AND mgm_id=i_mgm_id AND active;
 					ELSE
 						SELECT INTO r_obj obj_id FROM object WHERE obj_uid=v_current_obj AND (zone_id=r_rule.rule_to_zone) AND mgm_id=i_mgm_id AND active;
-						IF NOT FOUND THEN -- last chance: global zone for juniper devices
-							SELECT INTO i_zone_id zone_id FROM zone WHERE zone_name='global' AND zone.mgm_id=i_mgm_id;
+						IF NOT FOUND THEN -- last chance: global zone
+							SELECT INTO i_zone_id zone_id FROM zone WHERE (zone_name='global') AND zone.mgm_id=i_mgm_id;
 							IF FOUND THEN
 								SELECT INTO r_obj obj_id FROM object WHERE obj_uid=v_current_obj AND zone_id=i_zone_id AND 
 									object.mgm_id=i_mgm_id AND object.active;
+							ELSE -- zone_id is null - pick any object with same name disregarding the zone
+								SELECT INTO r_obj obj_id FROM object WHERE obj_uid=v_current_obj AND object.mgm_id=i_mgm_id AND object.active;
 							END IF;
 						END IF;
 					END IF;

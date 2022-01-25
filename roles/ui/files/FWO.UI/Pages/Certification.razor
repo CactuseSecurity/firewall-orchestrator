@@ -1,4 +1,5 @@
 ﻿@using System
+@using System.Threading
 @using System.Text.RegularExpressions
 @using FWO.Ui.Data
 @using FWO.Report.Filter
@@ -30,7 +31,14 @@
                     <tr>
                         <td>
                             <div class="input-group-append">
-                                <button class="btn btn-sm btn-primary" @onclick="() => GenerateRecertificationReport()">@(userConfig.GetText("load_rules"))</button>
+                                @if (processing == false)
+                                {
+                                    <button class="btn btn-sm btn-primary" @onclick="() => GenerateRecertificationReport()">@(userConfig.GetText("load_rules"))</button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-sm btn-danger" @onclick="() => CancelGeneration()">@(userConfig.GetText("stop_fetching"))</button>
+                                }
                             </div>
                         </td>
                         <td>
@@ -108,7 +116,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
     private const int rulesPerPage = 0;
     private int elementsPerFetch = 100;
@@ -126,16 +134,18 @@
     private bool selectAll = true;
 
     private string filterInput = "remove=false and recertdisplay=0";
-
+    private bool processing = false;
+    private CancellationTokenSource tokenSource = new CancellationTokenSource();
+ 
     private Management[] managements = new Management[0];
 //    private Management[] managementsObjects = new Management[0];
 
     private List<Rule> selectedRules = new List<Rule>();
     private CollapseState collapseControlObjects = new CollapseState();
 
-    private ReportBase currentReport;
+    private ReportBase? currentReport;
 
-    private Sidebar deviceSelectionSidebar;
+    private Sidebar? deviceSelectionSidebar;
     // private bool fullDeviceActionIsSelect = true;
     private bool AddCommentMode = false;
     private string actComment = "";
@@ -157,47 +167,69 @@
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), null, true);
+                DisplayMessageInUi!(exception, userConfig.GetText("object_fetch"), "", true);
             }
         });
     }
 
     private async Task GenerateRecertificationReport()
     {
+        processing = true;
         // clear selected rules
         selectedRules.Clear();
 
+        Management[] managementsOrig = managements;
         try
         {
+            tokenSource = new CancellationTokenSource();
+            var token = tokenSource.Token;
+
             // when generating report, filter line overrules LSB filter, as this can be triggered by changing the filter line and pressing enter
             DeviceFilter.syncFilterLineToLSBFilter(filterInput, managements);
             SyncFilterToDisplay();
 
-            currentReport = ReportBase.ConstructReport(filterInput);
+            currentReport = ReportBase.ConstructReport(filterInput, userConfig);
             if (!DeviceFilter.isAnyDeviceFilterSet(managements, currentReport.Query))  // display pop-up with warning, todo: check if device is selected in filter line
             {
-                DisplayMessageInUi(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
+                DisplayMessageInUi!(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
+                processing = false;
                 return;
             }
 
             DateTime startTime = DateTime.Now;
             managements = new Management[0]; // reset management data when switching between reports
 
-            await currentReport.Generate(elementsPerFetch, apiConnection,
-            managementsReportIntermediate =>
+            try
             {
-                managements = managementsReportIntermediate;
-                return InvokeAsync(StateHasChanged);
-            });
+                await currentReport.Generate(elementsPerFetch, apiConnection,
+                managementsReportIntermediate =>
+                {
+                    managements = managementsReportIntermediate;
+                    return InvokeAsync(StateHasChanged);
+                }, token);
+            }
+            catch (OperationCanceledException e)
+            {
+                Log.WriteDebug("Generate Report", $"Cancelled: {e.Message}");
+            }
 
             PrepareMetadata();
-
+            processing = false;
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("generate_report"), null, true);
+            processing = false;
+            managements = managementsOrig;
+            StateHasChanged();
+            DisplayMessageInUi!(exception, userConfig.GetText("generate_report"), "", true);
         }
+    }
+
+    private void CancelGeneration()
+    {
+        tokenSource.Cancel();
+        DisplayMessageInUi!(null, userConfig.GetText("report_data_fetch"), userConfig.GetText("E1003"), true);
     }
 
     private void SyncFilterToDisplay()
@@ -211,37 +243,40 @@
         {
             foreach (Device device in management.Devices)
             {
-                foreach (Rule rule in device.Rules)
+                if(device.Rules != null)
                 {
-                    if (rule.Metadata.LastCertifierDn != null && rule.Metadata.LastCertifierDn != "")
+                    foreach (Rule rule in device.Rules)
                     {
-                        rule.Metadata.LastCertifierName = (new FWO.Api.Data.DistName(rule.Metadata.LastCertifierDn)).UserName;
-                    }
-                    else
-                    {
-                        rule.Metadata.LastCertifierName = userConfig.GetText("unknown");
-                    }
+                        if (rule.Metadata.LastCertifierDn != null && rule.Metadata.LastCertifierDn != "")
+                        {
+                            rule.Metadata.LastCertifierName = (new FWO.Api.Data.DistName(rule.Metadata.LastCertifierDn)).UserName;
+                        }
+                        else
+                        {
+                            rule.Metadata.LastCertifierName = userConfig.GetText("unknown");
+                        }
 
-                    if (rule.Metadata.LastCertified != null)
-                    {
-                        rule.Metadata.NextRecert = ((DateTime)rule.Metadata.LastCertified).AddDays(recertificationPeriod);
-                    }
-                    else if (rule.Metadata.Created != null)
-                    {
-                        rule.Metadata.NextRecert = ((DateTime)rule.Metadata.Created).AddDays(recertificationPeriod);
-                    }
-                    else
-                    {
-                        rule.Metadata.NextRecert = DateTime.Now;
-                    }
+                        if (rule.Metadata.LastCertified != null)
+                        {
+                            rule.Metadata.NextRecert = ((DateTime)rule.Metadata.LastCertified).AddDays(recertificationPeriod);
+                        }
+                        else if (rule.Metadata.Created != null)
+                        {
+                            rule.Metadata.NextRecert = ((DateTime)rule.Metadata.Created).AddDays(recertificationPeriod);
+                        }
+                        else
+                        {
+                            rule.Metadata.NextRecert = DateTime.Now;
+                        }
 
-                    if(rule.Metadata.NextRecert <= DateTime.Now)
-                    {
-                        rule.Metadata.Style = "background-color: red";
-                    }
-                    else if(rule.Metadata.NextRecert <= DateTime.Now.AddDays(recertificationNoticePeriod))
-                    {
-                        rule.Metadata.Style = "background-color: yellow";
+                        if(rule.Metadata.NextRecert <= DateTime.Now)
+                        {
+                            rule.Metadata.Style = "background-color: red";
+                        }
+                        else if(rule.Metadata.NextRecert <= DateTime.Now.AddDays(recertificationNoticePeriod))
+                        {
+                            rule.Metadata.Style = "background-color: yellow";
+                        }
                     }
                 }
             }
@@ -307,7 +342,8 @@
                         { "mgmIds", id }
                     };
 
-                    await currentReport.GetObjectsForManagementInReport(queryVars, (byte)(contentType - report), apiConnection, callback);
+                    if (currentReport != null)
+                        await currentReport.GetObjectsForManagementInReport(queryVars, (byte)(contentType - report), autoFillRightSidebar ? int.MaxValue : maxInitFetchRightSidebar, apiConnection, callback);
 
                     return;
 
@@ -341,11 +377,11 @@
                 await callback(managements);
             }
 
-            Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount} cycle(s) ({elementsPerFetch} at a time)");
+            Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount - 1} cycle(s) ({elementsPerFetch} at a time)");
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), null, true);
+            DisplayMessageInUi!(exception, userConfig.GetText("object_fetch"), "", true);
         }
     }
 
@@ -363,7 +399,7 @@
     {
         if(commentRequired && actComment == "")
         {
-            DisplayMessageInUi(null, userConfig.GetText("execute_selected"), userConfig.GetText("E4001"), true);
+            DisplayMessageInUi!(null, userConfig.GetText("execute_selected"), userConfig.GetText("E4001"), true);
             return;
         }
         AddCommentMode = false;
@@ -377,15 +413,18 @@
             {
                 foreach (Device device in management.Devices)
                 {
-                    foreach (Rule rule in device.Rules)
+                    if(device.Rules != null)
                     {
-                        if(rule.Metadata.Recert)
+                        foreach (Rule rule in device.Rules)
                         {
-                            RecertIds.Add(rule.Metadata.Id);
-                        }
-                        else if(rule.Metadata.ToBeRemoved)
-                        {
-                            DecertIds.Add(rule.Metadata.Id);
+                            if(rule.Metadata.Recert)
+                            {
+                                RecertIds.Add(rule.Metadata.Id);
+                            }
+                            else if(rule.Metadata.ToBeRemoved)
+                            {
+                                DecertIds.Add(rule.Metadata.Id);
+                            }
                         }
                     }
                 }
@@ -418,14 +457,14 @@
 
             string txt = userConfig.GetText("recerts_executed") + RecertIds.Count.ToString() + ", " +
                          userConfig.GetText("decerts_executed") + DecertIds.Count.ToString();
-            DisplayMessageInUi(null, userConfig.GetText("execute_selected"), txt, false);
+            DisplayMessageInUi!(null, userConfig.GetText("execute_selected"), txt, false);
 
             // reload updated report
             await GenerateRecertificationReport();
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("execute_selected"), null, true);
+            DisplayMessageInUi!(exception, userConfig.GetText("execute_selected"), "", true);
         }
     }
 

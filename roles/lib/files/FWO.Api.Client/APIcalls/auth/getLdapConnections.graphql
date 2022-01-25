@@ -19,5 +19,6 @@ query getLdapConnections {
     ldap_write_user
     ldap_write_user_pwd
     tenant_id
+    ldap_global_tenant_name
   }
 }

@@ -1,12 +1,7 @@
 ﻿using FWO.ApiClient;
 using FWO.Api.Data;
 using FWO.Report.Filter;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using FWO.ApiClient.Queries;
+using FWO.Config.Api;
 using System.Text.Json;
 using System.Text;
 using WkHtmlToPdfDotNet;
@@ -45,34 +40,38 @@ namespace FWO.Report
     </head>
     <body>
         <h2>##Title##</h2>
-        <p>Filter: ##Filter## - Generated on: ##Date##</p>
+        <p>Filter: ##Filter## - ##GeneratedOn##: ##Date##</p>
         <hr>
         ##Body##
     </body>
 </html>");
 
-        public Management[] Managements = null;
+        public Management[] Managements = new Management[]{};
         
         // public Management[] ReportObjects = null;
         
 
         public readonly DynGraphqlQuery Query;
+        protected UserConfig userConfig;
 
         private string htmlExport = "";
 
         // Pdf converter
         protected static readonly SynchronizedConverter converter = new SynchronizedConverter(new PdfTools());
 
-        public ReportBase(DynGraphqlQuery query)
+        public ReportBase(DynGraphqlQuery query, UserConfig UserConfig)
         {
             Query = query;
+            userConfig = UserConfig;
         }
 
-        public abstract Task Generate(int rulesPerFetch, APIConnection apiConnection, Func<Management[], Task> callback);
+        public abstract Task Generate(int rulesPerFetch, APIConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct);
 
         public bool GotObjectsInReport { get; protected set; } = false;
+
         public abstract Task GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback); // to be called when exporting
-        public abstract Task GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, APIConnection apiConnection, Func<Management[], Task> callback);
+
+        public abstract Task GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, int maxFetchCycles, APIConnection apiConnection, Func<Management[], Task> callback);
 
         public abstract string ExportToCsv();
 
@@ -85,12 +84,13 @@ namespace FWO.Report
 
         protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport)
         {
-            if (htmlExport == "")
+            if (string.IsNullOrEmpty(htmlExport))
             {
                 HtmlTemplate = HtmlTemplate.Replace("##Body##", htmlReport.ToString());
                 HtmlTemplate = HtmlTemplate.Replace("##Title##", title);
                 HtmlTemplate = HtmlTemplate.Replace("##Filter##", filter);
-                HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToString());
+                HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
+                HtmlTemplate = HtmlTemplate.Replace("##GeneratedOn##", userConfig.GetText("generated_on"));
                 htmlExport = HtmlTemplate.ToString();
             }
             return htmlExport;
@@ -99,7 +99,8 @@ namespace FWO.Report
         public virtual byte[] ToPdf()
         {
             // HTML
-            string html = ExportToHtml();
+            if (string.IsNullOrEmpty(htmlExport))
+                htmlExport = ExportToHtml();
 
             GlobalSettings globalSettings = new GlobalSettings
             {
@@ -116,7 +117,7 @@ namespace FWO.Report
                     new ObjectSettings()
                     {
                         PagesCount = true,
-                        HtmlContent = html,
+                        HtmlContent = htmlExport,
                         WebSettings = { DefaultEncoding = "utf-8" },
                         HeaderSettings = { FontSize = 9, Right = "Page [page] of [toPage]", Line = true, Spacing = 2.812 }
                     }
@@ -140,15 +141,17 @@ namespace FWO.Report
             //}
         }
 
-        public static ReportBase ConstructReport(string filterInput)
+        public static ReportBase ConstructReport(string filterInput, UserConfig userConfig)
         {
             DynGraphqlQuery query = Compiler.Compile(filterInput);
 
             return query.ReportType switch
             {
-                "statistics" => new ReportStatistics(query),
-                "rules" => new ReportRules(query),
-                "changes" => new ReportChanges(query),
+
+                ReportType.Statistics => new ReportStatistics(query, userConfig),
+                ReportType.Rules => new ReportRules(query, userConfig),
+                ReportType.Changes => new ReportChanges(query, userConfig),
+                ReportType.NatRules => new ReportNatRules(query, userConfig),
                 _ => throw new NotSupportedException("Report Type is not supported."),
             };
         }

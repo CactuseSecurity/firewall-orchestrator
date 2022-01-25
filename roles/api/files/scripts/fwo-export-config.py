@@ -2,7 +2,23 @@
 #  export-fworch-config.py: export the full config of the product itself for later import
 #  does not contain any firewall config data, just the device config plus fworch user config
 
-import sys, logging
+# todo: remove redundant code
+    # todo: use a single source for fwo_api between this script and importer
+    # todo: use a single source for graphql queries between importer, config im/exporter, C#
+
+# todo: get more config data
+    # get user related data:
+        # ldap servers
+        # tenants
+        # uiusers including roles & groups & tenants
+
+# todo: encrypt config before writing to file
+
+# todo: adapt device data:
+    # todo: replace importer_hostname with target machine
+    # todo: replace ssh_private_key with key of target machine
+
+import sys, logging, re
 import json, requests, requests.packages, argparse
 base_dir = "/usr/local/fworch"
 importer_base_dir = base_dir + '/importer'
@@ -10,7 +26,7 @@ sys.path.append(importer_base_dir)
 import common, fwo_api
 
 parser = argparse.ArgumentParser(
-    description='Export fworch configuration into encrypted json file')
+    description="Export fworch configuration into encrypted json file\nsample; synopsis for ex- and import: fwo-export-config.py -o/tmp/fworch-config.graphql; <move to freshly installed FWO system without demo data>; fwo-execute-graphql.py -i/tmp/fworch-config.graphql")
 parser.add_argument('-o', '--out', metavar='output_file', required=True, help='filename to write output in json format to')
 parser.add_argument('-u', '--user', metavar='user_name', default='admin', help='username for getting fworch config (default=admin')
 parser.add_argument('-p', '--password', metavar='password_file', default=base_dir + '/etc/secrets/ui_admin_pwd', help='username for getting fworch config (default=$FWORCH_HOME/etc/secrets/ui_admin_pwd')
@@ -20,6 +36,27 @@ parser.add_argument('-x', '--proxy', metavar='proxy_string',
                     help='proxy server string to use, e.g. http://1.2.3.4:8080')
 parser.add_argument('-s', '--ssl', metavar='ssl_verification_mode', default='',
                     help='[ca]certfile, if value not set, ssl check is off"; default=empty/off')
+parser.add_argument('-f', '--format', metavar='output_format', default='graphql',
+                    help='specify output format [json|graphql(default)]')
+
+
+def convert_jsonString2graphql(json_in):
+    json_transformed = ' '.join(json_in.split()) # replace multiple spaces with single space
+    json_transformed = json_transformed.translate(str.maketrans("", "", "\n")) # remove all line breaks
+    lines = json_transformed.split(",")  # only one key/value pair per line
+    result = []
+    for line in lines:
+        pos = line.find(':') # find first ":"
+        if pos>=0:
+            if pos>0:
+                left = line[:pos].translate(str.maketrans('', '', '"'))  # remove " around field name
+                right = line[pos+1:]
+            else:  # first char is :
+                left = ''
+                right = line[1:]
+            result.append(left + ':' + right)
+    return ','.join(result)
+
 
 args = parser.parse_args()
 if len(sys.argv) == 1:
@@ -100,18 +137,33 @@ else:
     logging.error('did not succeed in getting device details from API')
     sys.exit(1)
 
-# todo: use a single source for fwo_api between this script and importer
-# todo: use a single source for graphql queries between importer, config im/exporter, C#
+if not re.compile(args.format+"$").match(args.out ):
+    outfile = args.out + '.' + args.format
+else:
+    outfile = args.out
 
-# todo: get more config data
-    # get user related data:
-        # ldap servers
-        # tenants
-        # uiusers including roles & groups & tenants
+with open(outfile, 'w') as file:
+    if args.format == 'json':
+        file.write(str(api_call_result['data']))
+    elif args.format == 'graphql':
+        # graphql_query = {
+        #     "query_string": """mutation restoreDeviceData($managementObjects, $deviceObjects) { 
+        #             insert_management ( objects: $managementObjects ) { returning { mgm_id } } 
+        #             insert_device ( objects: $deviceObjects ) { returning { dev_id } }
+        #         }""",
+        #     "query_variables": {
+        #         "managementObjects": config_json['device_configuration']['management'], 
+        #         "deviceObjects": config_json['device_configuration']['device']
+        #     }
+        # }
+        # file.write(json.dumps(graphql_query))
 
-# todo: encrypt config before writing to file
-
-with open(args.out, 'w') as file:
-    file.write(json.dumps(config_json, indent=3))
+        config_string = "mutation restoreDeviceData { insert_management ( objects: " + \
+            convert_jsonString2graphql(json.dumps(config_json['device_configuration']['management'], indent=3)) + \
+            ") { returning { mgm_id } } " + \
+            "insert_device ( objects: " + \
+            convert_jsonString2graphql(json.dumps(config_json['device_configuration']['device'], indent=3)) + \
+            ") { returning { dev_id } } }\n"
+        file.write(config_string)
 
 sys.exit(0)

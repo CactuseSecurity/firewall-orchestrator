@@ -1,21 +1,21 @@
 
 # These are test groups
 
-dn: cn=group1_demo,ou=group,{{ openldap_path }}
+dn: cn=group1{{ sample_postfix }},ou=group,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top
 objectClass: groupofuniquenames
-cn: group1_demo
+cn: group1{{ sample_postfix }}
 uniqueMember:
 {%- endif %}
 
 
-dn: cn=group2_demo,ou=group,{{ openldap_path }}
+dn: cn=group2{{ sample_postfix }},ou=group,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top
 objectClass: groupofuniquenames
-cn: group2_demo
+cn: group2{{ sample_postfix }}
 uniqueMember:
 {%- endif %}

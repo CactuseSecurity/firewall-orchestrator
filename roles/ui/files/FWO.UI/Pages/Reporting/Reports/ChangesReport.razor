@@ -11,11 +11,11 @@
 
             @foreach (Device device in management.Devices)
             {
-                @if (device.RuleChanges.Length > 0)
+                @if (device.RuleChanges != null && device.RuleChanges.Length > 0 && ruleChangeDisplay != null && SelectedRuleChanges != null)
                 {
                     <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
                         <Table SelectedItems="SelectedRuleChanges"
-                               RowClickAction="async rule => { rule.DeviceName = device.Name; if (!SelectedRuleChanges.Remove(rule)) SelectedRuleChanges.Add(rule); await SelectedRuleChangesChanged.InvokeAsync(SelectedRuleChanges); }"
+                               RowClickAction="@(async rule => { rule.DeviceName = device.Name ?? ""; if (!SelectedRuleChanges.Remove(rule)) SelectedRuleChanges.Add(rule); await SelectedRuleChangesChanged.InvokeAsync(SelectedRuleChanges); })"
                                style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="RuleChange" Items="device.RuleChanges" ShowSearchBar="false"
                                PageSize="RulesPerPage" ColumnReorder="true">
 
@@ -124,13 +124,18 @@
     public EventCallback<List<RuleChange>> SelectedRuleChangesChanged { get; set; }
 
     [Parameter]
-    public List<RuleChange> SelectedRuleChanges { get; set; }
+    public List<RuleChange>? SelectedRuleChanges { get; set; }
 
     [Parameter]
     public int RulesPerPage { get; set; }
 
     [Parameter]
-    public Management[] Managements { get; set; }
+    public Management[] Managements { get; set; } = new Management[]{};
 
-    public RuleChangeDisplay ruleChangeDisplay = new RuleChangeDisplay(null); // TODO: add real user config (injection)
+    public RuleChangeDisplay? ruleChangeDisplay;
+
+    protected override void OnInitialized()
+    {
+        ruleChangeDisplay = new RuleChangeDisplay(userConfig);
+    }
 }

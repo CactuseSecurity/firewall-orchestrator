@@ -16,7 +16,7 @@
     headers:
       Content-Type: application/json
     body:
-      Username: user1_demo
+      Username: user1{{ test_postfix }}
       Password: cactus1
     body_format: json
     validate_certs: false
@@ -77,19 +77,19 @@
 - set_fact: jwt_unique_user_name="{{ jwt_payload.name }}"
   when: "'name' in jwt_payload"
 
-- name: middleware get jwt check valid creds output user user1_demo
+- name: middleware get jwt check valid creds output user user1_test...
   debug:
-    msg: "ERROR unexpected jwt test result (username does not match 'user1_demo'): {{ jwt_unique_user_name }}"
-  when: "jwt_unique_user_name is not match('user1_demo')"
+    msg: "ERROR unexpected jwt test result (username does not match 'user1{{ test_postfix }}'): {{ jwt_unique_user_name }}"
+  when: "jwt_unique_user_name is not match('user1{{ test_postfix }}')"
 
 - name: middleware test get jwt wrong creds
   uri:
-    url: https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/AuthenticateUser/
+    url: https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/api/AuthenticationToken/Get/
     method: POST
     headers:
       Content-Type: application/json
     body:
-      Username: user1_demo
+      Username: user1{{ test_postfix }}
       Password: wrong-pwd
     body_format: json
     validate_certs: false

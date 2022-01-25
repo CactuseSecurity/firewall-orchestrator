@@ -11,7 +11,7 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": []
-        },        
+        },
         {
             "name": "py-change-rule",
             "type": "python",
@@ -22,7 +22,7 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": []
-        },        
+        },
         {
             "name": "py-cpr8x-get-config",
             "type": "python",
@@ -91,34 +91,61 @@
             ]
         },
         {
-            "name": "py-import_mgm",
+            "name": "py-import-mgm",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/roles/importer/files/importer/import_mgm.py",
+            "program": "${workspaceFolder}/roles/importer/files/importer/import-mgm.py",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
                 "-m4",
-                "-d1",
-                "-l50"
+                "-d4",
+                "-f",
+                "-iC:/Users/Nils/Downloads/fortiManager_NAT_mgm_id_25_config_native.json.anon",
+                "-l250"
             ]
-        },        
+        },
         {
             "name": "py-export-config",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/roles/api/files/scripts/export-fworch-config.py",
+            "program": "${workspaceFolder}/roles/api/files/scripts/fwo-export-config.py",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-o/tmp/fworch-config.json",
-                "-d1"
+                "-o/tmp/fworch-config"
             ]
-        },        
+        },
+        {
+            "name": "py-execute-graphql",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/api/files/scripts/fwo-execute-graphql.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-i/tmp/fworch-config.graphql"
+            ]
+        },
+        {
+            "name": "py-execute-graphql-query",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/api/files/scripts/fwo-execute-graphql-query.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-i/tmp/fworch-config.graphql"
+            ]
+        },
         {
             "name": "py-cpr8x-autodiscovery",
             "type": "python",
@@ -130,22 +157,25 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-              "-a192.168.100.110",
-              "-w/home/tim/secrets/cp_apiuser_pwd",
-              "-uitsecorg",
-              "-fjson"
+                "-a192.168.100.110",
+                "-w/home/tim/secrets/cp_apiuser_pwd",
+                "-uitsecorg",
+                "-fjson"
             ]
         },
         {
-            "name": "py-import_main_loop",
+            "name": "py-import-main-loop",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/roles/importer/files/importer/import_main_loop.py",
+            "program": "${workspaceFolder}/roles/importer/files/importer/import-main-loop.py",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
-            "args": ["-d2", "-i2"]
+            "args": [
+                "-d2",
+                "-i30"
+            ]
         },
         {
             "name": "c#-FWO Test",
@@ -156,7 +186,7 @@
             "args": [
                 "test"
             ],
-          "cwd": "${workspaceFolder}/roles/test/files/FWO.Test",
+            "cwd": "${workspaceFolder}/roles/test/files/FWO.Test",
             "stopAtEntry": false,
             "console": "internalConsole"
         },
@@ -169,6 +199,7 @@
             "args": [],
             "cwd": "${workspaceFolder}/roles/ui/files/FWO.UI",
             "stopAtEntry": false,
+            "requireExactSource": false,
             "serverReadyAction": {
                 "action": "openExternally",
                 "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
@@ -197,9 +228,11 @@
             "cwd": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server",
             "console": "internalConsole",
             "stopAtEntry": false,
+            "requireExactSource": false,
             "serverReadyAction": {
                 "action": "openExternally",
-                "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+                "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+                "uriFormat": "%s/swagger"
             }
         }
     ]

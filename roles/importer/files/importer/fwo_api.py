@@ -8,7 +8,7 @@ import sys
 base_dir = "/usr/local/fworch/"
 sys.path.append(base_dir + '/importer')
 
-requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
+#requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
 details_level = "full"    # 'standard'
 use_object_dictionary = 'false'
@@ -16,7 +16,7 @@ use_object_dictionary = 'false'
 # call(fwo_api_base_url, jwt, lock_mutation, query_variables=query_variables);
 
 
-def call(url, jwt, query, query_variables="", role="reporter", ssl_verification='', proxy_string='', show_progress=False, method='', debug=0):
+def call(url, jwt, query, query_variables="", role="reporter", ssl_verification='', proxy=None, show_progress=False, method='', debug=0):
     request_headers = {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + jwt,
@@ -26,7 +26,7 @@ def call(url, jwt, query, query_variables="", role="reporter", ssl_verification=
 
     try:
         r = requests.post(url, data=json.dumps(
-            full_query), headers=request_headers, verify=ssl_verification, proxies=proxy_string)
+            full_query), headers=request_headers, verify=ssl_verification, proxies=proxy)
         r.raise_for_status()
     except requests.exceptions.RequestException as e:
         logging.exception("\nerror while sending api_call to url " + str(url) + " with payload \n" +
@@ -41,26 +41,24 @@ def call(url, jwt, query, query_variables="", role="reporter", ssl_verification=
     return r.json()
 
 
-def login(user, password, user_management_api_base_url, method, ssl_verification=False, proxy_string='', debug=0):
+def login(user, password, user_management_api_base_url, method='api/AuthenticationToken/Get', ssl_verification=False, proxy=None, debug=0):
     payload = {"Username": user, "Password": password}
     request_headers = {'Content-Type': 'application/json'}
 
     try:
         response = requests.post(user_management_api_base_url + method, data=json.dumps(
-            payload), headers=request_headers, verify=ssl_verification, proxies=proxy_string)
+            payload), headers=request_headers, verify=ssl_verification, proxies=proxy)
         response.raise_for_status()
-        #content = response.content
     except requests.exceptions.RequestException as e:
-        logging.exception("\nfwo_api: error while sending api_call to url " + str(user_management_api_base_url) + " with payload \n" +
-                          json.dumps(payload, indent=2) + "\n and  headers: \n" + json.dumps(request_headers, indent=2))
+        logging.exception("\nfwo_api: error during login, url: " + str(user_management_api_base_url))
         raise SystemExit(e) from None
 
     if response.text is not None:
         return response.text
     else:
         logging.exception("\nfwo_api: getter ERROR: did not receive a JWT during login, " +
-                        ", api_url: " + str(user_management_api_base_url) + ", payload: " + str(payload) +
-                        ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy_string))
+                        ", api_url: " + str(user_management_api_base_url) +
+                        ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy))
         sys.exit(1)
 
 
@@ -121,9 +119,22 @@ def set_api_url(base_url, testmode, api_supported, hostname):
 def get_mgm_ids(fwo_api_base_url, jwt, query_variables):
     mgm_query = """
         query getManagementIds {
-            management(where:{do_not_import:{_eq:false}} order_by: {mgm_name: asc}) {
-                id: mgm_id } } """
+            management(where:{do_not_import:{_eq:false}} order_by: {mgm_name: asc}) { id: mgm_id } } """
     return call(fwo_api_base_url, jwt, mgm_query, query_variables=query_variables, role='importer')['data']['management']
+
+
+def get_config_value(fwo_api_base_url, jwt, key='limit'):
+    query_variables = {'key': key}
+    mgm_query = "query getConf($key: String) {  config(where: {config_key: {_eq: $key}}) { config_value } }"
+    result = call(fwo_api_base_url, jwt, mgm_query, query_variables=query_variables, role='importer')
+    if 'data' in result and 'config' in result['data']:
+        first_result = result['data']['config'][0]
+        if 'config_value' in first_result:
+            return first_result['config_value']
+        else:
+            return None
+    else:
+        return None
 
 
 def get_mgm_details(fwo_api_base_url, jwt, query_variables):
@@ -262,6 +273,7 @@ def import_json_config(fwo_api_base_url, jwt, mgm_id, query_variables):
     try:
         import_result = call(fwo_api_base_url, jwt, import_mutation,
                              query_variables=query_variables, role='importer')
+        # note: this will not detect errors in triggered stored procedure run
         if 'errors' in import_result:
             logging.exception("fwo_api:import_json_config - error while writing importable config for mgm id " +
                               str(mgm_id) + ": " + str(import_result['errors']))

@@ -1,16 +1,17 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization; 
+using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
     public class ObjectStatistics
     {
-        [JsonPropertyName("aggregate")]
+        [JsonProperty("aggregate"), JsonPropertyName("aggregate")]
         public ObjectAggregate ObjectAggregate { get; set; } = new ObjectAggregate();
     }
 
     public class ObjectAggregate
     {
-        [JsonPropertyName("count")]
+        [JsonProperty("count"), JsonPropertyName("count")]
         public int ObjectCount { get; set; } = 0;
 
     }

@@ -1,32 +1,21 @@
-﻿using System.Collections.Generic;
-
-namespace FWO.Api.Data
+﻿namespace FWO.Api.Data
 {
     public class UserGroup
     {
-        public string Name;
-        public string Dn;
-        public List<UiUser> Users { get; set; }
-        public List<string> Roles { get; set; }
+        public string Name = "";
+        public string Dn = "";
+        public List<UiUser> Users { get; set; } = new List<UiUser>();
+        public List<string> Roles { get; set; } = new List<string>();
 
         public UserGroup()
-        { 
-            Users = new List<UiUser>();
-        }
+        {}
 
         public UserGroup(UserGroup group)
         {
             Name = group.Name;
             Dn = group.Dn;
-            if (group.Users != null)
-            {
-                Users = new List<UiUser>(group.Users);
-            }
-            if (group.Roles != null)
-            {
-                Roles = group.Roles;
-            }
-
+            Users = new List<UiUser>(group.Users);
+            Roles = new List<string>(group.Roles);
         }
 
         public string UserList()

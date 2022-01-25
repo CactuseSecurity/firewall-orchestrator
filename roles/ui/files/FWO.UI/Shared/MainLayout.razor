@@ -38,19 +38,19 @@
 {
     private bool errorDialogShow = false;
     private bool successDialogShow = false;
-    private string dialogTitle;
-    private string dialogMessage;
+    private string dialogTitle = "";
+    private string dialogMessage = "";
 
     private object errorLock = new object();
 
-    Action<Exception, string, string, bool> DisplayMessageInUiFunction;
+    Action<Exception?, string, string, bool>? DisplayMessageInUiFunction;
 
     [CascadingParameter]
-    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
     protected override void OnInitialized()
     {
-        var user = authenticationStateTask.Result.User;
+        var user = authenticationStateTask!.Result.User;
         DisplayMessageInUiFunction = DisplayMessageInUi;
     }
 
@@ -80,7 +80,7 @@
         }
     }
 
-    private void DisplayMessageInUi(Exception exception = null, string title = null, string message = null, bool ErrorFlag = false)
+    private void DisplayMessageInUi(Exception? exception = null, string title = "", string message = "", bool ErrorFlag = false)
     {
         if (exception == null)
         {
@@ -113,14 +113,14 @@
             else if (ErrorFlag)
             {
                 // the exception message is shown to the user
-                Log.WriteError((title != null ? title : "Unspecified Error"), (message != null ? message : "Unspecified error occured: "), exception);
-                ShowError((title != null ? title : userConfig.GetText("unspecified_error")), $"{(message != null ? message : userConfig.GetText("E0001"))}: {exception.Message}");
+                Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception);
+                ShowError((title != "" ? title : userConfig.GetText("unspecified_error")), $"{(message != "" ? message : userConfig.GetText("E0001"))}: {exception.Message}");
             }
             else
             {
                 // only title and message (if given) or unspecific error message is shown to the user
-                Log.WriteError((title != null ? title : "Unspecified Error"), (message != null ? message : "Unspecified error occured: "), exception);
-                ShowError((title != null ? title : userConfig.GetText("unspecified_error")), $"{(message != null ? message : userConfig.GetText("E0001"))}");
+                Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception);
+                ShowError((title != "" ? title : userConfig.GetText("unspecified_error")), $"{(message != "" ? message : userConfig.GetText("E0001"))}");
             }
         }
     }

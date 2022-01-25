@@ -9,7 +9,7 @@ namespace FWO.Ui.Services
 {
     public class CircuitHandlerService : CircuitHandler
     {
-        public UiUser User { get; set; }
+        public UiUser? User { get; set; }
 
         public override Task OnCircuitClosedAsync(Circuit circuit, CancellationToken cancellationToken)
         {

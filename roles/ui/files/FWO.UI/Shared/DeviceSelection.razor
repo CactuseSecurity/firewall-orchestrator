@@ -27,9 +27,9 @@
                 {
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="@device.Id"
-                               @bind="device.selected"
+                               @bind="device.Selected"
                                @oninput="async () => {
-                                    device.selected = !device.selected;
+                                    device.Selected = !device.Selected;
                                     if (DeviceFilter.areAllDevicesSelected(Managements))
                                         SelectAll = false;
                                     if (!DeviceFilter.isAnyLSBDeviceFilterSet(Managements))
@@ -51,13 +51,13 @@
 @code
 {
     [Parameter]
-    public string FilterInput { get; set; }
+    public string FilterInput { get; set; } = "";
 
     [Parameter]
     public EventCallback<string> FilterInputChanged { get; set; }
 
     [Parameter]
-    public Management[] Managements { get; set; }
+    public Management[] Managements { get; set; } = new Management[]{};
 
     [Parameter]
     public bool SelectAll { get; set; } // state of the device select/clear all button
@@ -65,8 +65,8 @@
     [Parameter]
     public EventCallback<bool> SelectAllChanged { get; set; }
 
-    private string selectAllText;
-    private string clearAllText;
+    private string selectAllText = "";
+    private string clearAllText = "";
 
     protected override void OnInitialized()
     {

@@ -20,7 +20,7 @@ openldap_server_organization: IT
 openldap_server_enable_ssl: yes
 
 #The path to the pw dir
-openldap_secrets_path: /tmp
+fworch_secrets_dir: /tmp
 
 #The current ansible user
 fworch_user: openldap

@@ -12,13 +12,13 @@ openldap_writer_name: "ldapwriter"
 openldap_writer_dn: "cn={{ openldap_writer_name }},ou=systemuser,ou=user,{{ openldap_path }}"
 openldap_generate_new_crypto: no
 openldap_server_domain_name: "{{ product_name }}.internal"
-openldap_secrets_path: "{{ fworch_home }}/etc/secrets"
 
 middleware_path_rel: FWO.Middleware.Server
 middleware_server_base_dir: "{{ fworch_home }}/middleware/files"
 middleware_server_start_dir: "{{ middleware_server_base_dir }}/FWO.Middleware.Server"
-middleware_change_local_ldap: "yes"
 middleware_ldif_dir: "{{ fworch_home }}/etc/ldif"
+
+sample_role_purpose: demo
 
 # use static jwt generation test key if set to yes
 # only for testing, not for production environment

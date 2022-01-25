@@ -5,10 +5,10 @@ using System.Threading.Tasks;
 
 namespace FWO.Api.Data
 {
-    public class Manufacturer
-    {
-        public readonly int Id;
-        public readonly string Name;
-        public readonly Management[] Managements;
-    }
+//    public class Manufacturer
+//    {
+//        public readonly int Id;
+//        public readonly string Name;
+//        public readonly Management[] Managements;
+//    }
 }

@@ -1,0 +1,94 @@
+
+- name: install package rsyslog
+  package:
+    name: "rsyslog"
+    state: present
+  become: yes
+
+- name: create log dir for {{ product_name }} on ubuntu - owner syslog
+  file:
+    path: "/var/log/{{ product_name }}/"
+    state: directory
+    owner: syslog
+    group: syslog
+    mode: "0775"
+  become: yes
+  when: ansible_facts['distribution'] == "Ubuntu"
+    
+- name: create log dir for {{ product_name }} on debian - owner root
+  file:
+    path: "/var/log/{{ product_name }}/"
+    state: directory
+    owner: root
+    group: root
+    mode: "0775"
+  become: yes
+  when: ansible_facts['distribution'] == "Debian"
+
+- name: change rsyslog config to receive logs
+  blockinfile:
+    path: /etc/rsyslog.conf
+    block: |
+      module(load="im{{ syslog_proto }}")
+      input(type="im{{ syslog_proto }}" port="{{ syslog_port }}")
+  become: yes
+
+- name: create log dir for {{ product_name }} on redhat - owner root
+  file:
+    path: "/var/log/{{ product_name }}/"
+    state: directory
+    owner: root
+    group: root
+    mode: "0775"
+  when: ansible_facts['distribution'] == "RedHat"
+  become: yes
+
+- name: edit rsyslog
+  blockinfile:
+    path: "/etc/rsyslog.d/30-{{ product_name }}.conf"
+    create: yes
+    block: |
+      # syslog for {{ product_name }}
+      # Log {{ product_name }} log messages to file
+      local6.warning                 /var/log/{{ product_name }}/error.log
+      local6.=info                   /var/log/{{ product_name }}/login_info.log
+      local6.debug                   /var/log/{{ product_name }}/debug.log
+
+      if $programname == '{{ product_name }}-database' then /var/log/{{ product_name }}/database.log
+      if $programname == '{{ middleware_server_syslog_id }}' then /var/log/{{ product_name }}/middleware.log
+      if $programname == '{{ ui_syslog_id }}' then /var/log/{{ product_name }}/ui.log
+      if $programname == '{{ ldap_syslog_id }}' then /var/log/{{ product_name }}/ldap.log
+      if $programname == '{{ product_name }}-api' then /var/log/{{ product_name }}/api.log
+      if $programname startswith '{{ product_name }}-import' then /var/log/{{ product_name }}/importer.log
+      if $programname startswith '{{ product_name }}-' and $msg contains "Audit" then /var/log/{{ product_name }}/audit.log
+      # only for devsrv:
+      if $programname == '{{ product_name }}-webhook' then /var/log/{{ product_name }}/webhook.log
+  become: yes
+
+- name: edit logrotate
+  blockinfile:
+    path: "/etc/logrotate.d/{{ product_name }}.conf"
+    create: yes
+    block: |
+      /var/log/{{ product_name }}/*.log {
+          compress
+          maxage 7
+          rotate 99
+          size=+4096k
+          missingok
+          copytruncate
+          sharedscripts
+              prerotate
+                      systemctl stop {{ product_name }}-importer.service >/dev/null 2>&1
+              endscript
+              postrotate
+                      systemctl start {{ product_name }}-importer.service >/dev/null 2>&1
+              endscript
+      }
+  become: yes
+
+- name: reload rsyslog service
+  service:
+    name: "rsyslog"
+    state: restarted
+  become: yes

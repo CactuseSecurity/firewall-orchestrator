@@ -321,7 +321,7 @@ namespace FWO.Report.Filter.Ast
         {
             string QueryVarName = "refdate" + query.parameterCounter++;
             query.QueryParameters.Add($"${QueryVarName}: timestamp! ");
-            string refDate = DateTime.Now.AddDays(-Convert.ToInt16(Value.Text)).ToString("yyyy-MM-dd HH:mm:ss");
+            string refDate = DateTime.Now.AddDays(-Convert.ToInt16(Value.Text)).ToString(DynGraphqlQuery.fullTimeFormat);
             query.QueryVariables[QueryVarName] = refDate;
 
             query.ruleWhereStatement += $@"

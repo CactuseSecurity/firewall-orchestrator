@@ -5,7 +5,7 @@
 @inject APIConnection apiConnection
 
 <div class="mr-1 ml-1 mb-1 shadow">
-    <Collapse Title="@(userConfig.GetText("templates"))" Style="@("primary")" @ref="collapseControl">
+    <Collapse Title="@(userConfig.GetText("templates"))" Style="@("primary")" StartToggled="false" @ref="collapseControl">
         <div class="card-body">
             <Table TableClass="table table-bordered table-sm table-responsive" TableItem="ReportTemplate" Items="reportTemplates" PageSize="0">
                 <Column Title="@(userConfig.GetText("action"))" TableItem="ReportTemplate">
@@ -141,7 +141,7 @@
 
     public void Collapse()
     {
-        collapseControl.ForceCollapse(false);
+        collapseControl.ForceCollapse();
     }
 
     public async Task Uncollapse()

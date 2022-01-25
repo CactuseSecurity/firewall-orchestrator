@@ -1,11 +1,3 @@
-import logging, ipaddress
-import sys
-base_dir = "/usr/local/fworch"
-importer_base_dir = base_dir + '/importer'
-sys.path.append(importer_base_dir)
-sys.path.append(importer_base_dir + '/fortiadom5ff')
-import common, fwcommon
-
 
 def normalize_zones(full_config, config2import, import_id):
     zones = []

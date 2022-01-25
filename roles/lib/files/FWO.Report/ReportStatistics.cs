@@ -30,14 +30,7 @@ namespace FWO.Report
 
         public override async Task Generate(int _, APIConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)
         {
-            string TimeFilter = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            Dictionary<string, object> ImpIdQueryVariables = new Dictionary<string, object>();
-            if (Query.ReportTime != null && Query.ReportTime != "" && Query.ReportTime != "now")
-                TimeFilter = Query.ReportTime;
-
-            // get relevant import ids for report time
-            ImpIdQueryVariables["time"] = TimeFilter;
-            Management[] managementsWithRelevantImportId = await apiConnection.SendQueryAsync<Management[]>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
+            Management[] managementsWithRelevantImportId = await getRelevantImportIds(apiConnection);
 
             List<Management> resultList = new List<Management>();
             int i;
@@ -52,10 +45,7 @@ namespace FWO.Report
 
                 // setting mgmt and relevantImporId QueryVariables 
                 Query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
-                if (managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId != null)
-                    Query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId!;
-                else    // managment was not yet imported at that time
-                    Query.QueryVariables["relevantImportId"] = -1;
+                Query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1 /* managment was not yet imported at that time */;
                 resultList.Add((await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables))[0]);
             }
             Managements = resultList.ToArray();

@@ -52,7 +52,7 @@
         <Column TableItem="Management" Title="@(userConfig.GetText("config_path"))" Field="@(x => x.ConfigPath)" Sortable="true" Filterable="true" />
         <Column TableItem="Management" Title="@(userConfig.GetText("super_manager"))" Field="@(x => x.SuperManagerId)" Sortable="true" Filterable="true">
             <Template>
-                @(((context.SuperManagerId != null) ? managements.Find(x => x.Id == context.SuperManagerId).Name : ""))
+                @(((context.SuperManagerId != null) ? managements.Find(x => x.Id == context.SuperManagerId)?.Name : ""))
             </Template>
         </Column>
 

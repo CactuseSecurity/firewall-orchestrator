@@ -330,7 +330,7 @@
 
         string page = Recert ? "certification" : "report";
         
-        return @<a href="@(page)#@(htmlObjRefPrefix + objId)" target="_top"><span class="@GetIconClass(objCategory, type)">&nbsp;</span>@(name)</a>;
+        return @<a href="@(page)#goto-@(htmlObjRefPrefix + objId)" target="_top"><span class="@GetIconClass(objCategory, type)">&nbsp;</span>@(name)</a>;
     }
 
     private async Task HandleUncollapse(byte objCategory)

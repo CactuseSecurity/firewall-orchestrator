@@ -222,6 +222,14 @@ INSERT INTO txt VALUES ('this month',		    'German', 	'diesen Monat');
 INSERT INTO txt VALUES ('this month',		    'English', 	'this month');
 INSERT INTO txt VALUES ('last month',		    'German', 	'letzten Monat');
 INSERT INTO txt VALUES ('last month',		    'English', 	'last month');
+INSERT INTO txt VALUES ('this week',		    'German', 	'diese Woche');
+INSERT INTO txt VALUES ('this week',		    'English', 	'this week');
+INSERT INTO txt VALUES ('last week',		    'German', 	'letzte Woche');
+INSERT INTO txt VALUES ('last week',		    'English', 	'last week');
+INSERT INTO txt VALUES ('today',		        'German', 	'heute');
+INSERT INTO txt VALUES ('today',		        'English', 	'today');
+INSERT INTO txt VALUES ('yesterday',		    'German', 	'gestern');
+INSERT INTO txt VALUES ('yesterday',		    'English', 	'yesterday');
 INSERT INTO txt VALUES ('time', 			    'German',	'Zeitpunkt');
 INSERT INTO txt VALUES ('time', 			    'English',	'Time');
 INSERT INTO txt VALUES ('end_time', 			'German',	'Endezeit');
@@ -1434,8 +1442,8 @@ INSERT INTO txt VALUES ('H1505', 'English', 'For report types requiring a report
 ');
 INSERT INTO txt VALUES ('H1506', 'German',  'F&uuml;r Report-Typen, die Zeitintervalle ben&ouml;tigen, kann gew&auml;hlt werden zwischen:');
 INSERT INTO txt VALUES ('H1506', 'English', 'For report types requiring a time range a selection can be done between:');
-INSERT INTO txt VALUES ('H1507', 'German',  'Vordefinierte Abk&uuml;rzungen "dieses Jahr", "letztes Jahr", "dieser Monat" or "letzter Monat"');
-INSERT INTO txt VALUES ('H1507', 'English', 'Predefined shortcuts "this year", "last year", "this month" or "last month"');
+INSERT INTO txt VALUES ('H1507', 'German',  'Vordefinierte Abk&uuml;rzungen "dieses Jahr", "letztes Jahr", "dieser Monat", "letzter Monat", "diese Woche", "letzte Woche", "heute" oder "gestern"');
+INSERT INTO txt VALUES ('H1507', 'English', 'Predefined shortcuts "this year", "last year", "this month", "last month", "this week", "last week", "today" or "yesterday"');
 INSERT INTO txt VALUES ('H1508', 'German',  'Zeitintervalle in Tagen, Wochen, Monaten oder Jahren relativ zum aktuellen Zeitpunkt');
 INSERT INTO txt VALUES ('H1508', 'English', 'Time intervals in days, weeks, months or years in relation to the actual time');
 INSERT INTO txt VALUES ('H1509', 'German',  'Absolute Start- und Endezeiten. Beide Grenzen k&ouml;nnen durch setzen der "offen"-Markierung ausser Kraft gesetzt werden.');
@@ -1607,7 +1615,7 @@ INSERT INTO txt VALUES ('H5102', 'German',  'Folgende Firewallprodukte k&ouml;nn
             <ul>
                 <li>Check Point R8x - SmartCenter</li>
                 <li>Check Point R8x - Multi Domain Server (MDS)</li>
-                <li>FortiManager 5ff - FortiManager. F&uml;r diesen Management-Typ kann die komplette Struktur (ADOM, FortiGateway Devices) mittels AutoDiscovery automatisch ausgelesen werden.</li>
+                <li>FortiManager 5ff - FortiManager. F&uuml;r diesen Management-Typ kann die komplette Struktur (ADOM, FortiGateway Devices) mittels AutoDiscovery automatisch ausgelesen werden.</li>
             </ul>
         </li>            
     </ul>
@@ -1644,7 +1652,7 @@ INSERT INTO txt VALUES ('H5104', 'English', 'If there are sample data (defined b
 INSERT INTO txt VALUES ('H5111', 'German',  'Name*: Name des Mangements. <br>
     F&uuml;r die meisten Firewalls ist dies ein willk&uuml;rlicher Name. Ausnahmen sind direkt verbundene Gateways von Fortigate, Netscreen und Juniper.
     Hier muss der Name des Firewallgateways eingetragen werden.<br>
-    Ein Management dessen Name mit "_demo" endet, wird beim bet&auml;tigen der "Beispieldaten l&ouml;schen"-Schaltfl&auml;che gel&ouml;scht.
+    Ein Management dessen Name mit "_demo" endet, wird beim Bet&auml;tigen der "Beispieldaten l&ouml;schen"-Schaltfl&auml;che gel&ouml;scht.
 ');
 INSERT INTO txt VALUES ('H5111', 'English', 'Name*: Name of the mangement. <br>
     For most firewalls this is an arbitrary name. Exceptions are Fortigate, Netscreen and Juniper directly connected gateways.

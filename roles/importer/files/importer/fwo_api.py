@@ -4,16 +4,10 @@ import logging
 import requests.packages
 import requests
 import json
-import sys
-base_dir = "/usr/local/fworch/"
-sys.path.append(base_dir + '/importer')
-
-#requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
+import common
 
 details_level = "full"    # 'standard'
 use_object_dictionary = 'false'
-
-# call(fwo_api_base_url, jwt, lock_mutation, query_variables=query_variables);
 
 
 def call(url, jwt, query, query_variables="", role="reporter", ssl_verification='', proxy=None, show_progress=False, method='', debug=0):
@@ -31,9 +25,8 @@ def call(url, jwt, query, query_variables="", role="reporter", ssl_verification=
     except requests.exceptions.RequestException as e:
         logging.exception("\nerror while sending api_call to url " + str(url) + " with payload \n" +
                           json.dumps(full_query, indent=2) + "\n and  headers: \n" + json.dumps(request_headers, indent=2))
-        raise SystemExit(e) from None
-
-    if debug > 0:
+        raise Exception ("FWO-API importer call error")
+    if debug > 2:
         logging.debug("\napi_call to url '" + str(url) + "' with payload '" + json.dumps(query, indent=2) + "' and headers: '" +
                       json.dumps(request_headers, indent=2))
     if show_progress:
@@ -48,18 +41,18 @@ def login(user, password, user_management_api_base_url, method='api/Authenticati
     try:
         response = requests.post(user_management_api_base_url + method, data=json.dumps(
             payload), headers=request_headers, verify=ssl_verification, proxies=proxy)
-        response.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        logging.exception("\nfwo_api: error during login, url: " + str(user_management_api_base_url))
-        raise SystemExit(e) from None
+        # response.raise_for_status()
+    except requests.exceptions.RequestException:
+        raise common.FwoApiLoginFailed ("fwo_api: error during login to url: " + str(user_management_api_base_url) + " with user " + user) from None
 
     if response.text is not None:
         return response.text
     else:
-        logging.exception("\nfwo_api: getter ERROR: did not receive a JWT during login, " +
-                        ", api_url: " + str(user_management_api_base_url) +
-                        ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy))
-        sys.exit(1)
+        error_txt = "fwo_api: ERROR: did not receive a JWT during login, " + \
+                        ", api_url: " + str(user_management_api_base_url) + \
+                        ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy)
+        logging.error(error_txt)
+        raise common.FwoApiLoginFailed(error_txt)
 
 
 def set_ssl_verification(ssl_verification_mode):
@@ -87,33 +80,13 @@ def set_api_url(base_url, testmode, api_supported, hostname):
             if testmode in api_supported:
                 url = base_url + 'v' + testmode + '/'
             else:
-                logger.debug("api version " + testmode +
-                             " is not supported by the manager " + hostname + " - Import is canceled")
-                sys.exit("api version " + testmode + " not supported")
+                exception_text = "api version " + testmode + \
+                             " is not supported by the manager " + hostname + " - Import is canceled"
+                raise Exception(exception_text)
         else:
-            logger.debug("not a valid version")
-            sys.exit("\"" + testmode + "\" - not a valid version")
+            raise Exception("\"" + testmode + "\" - not a valid version")
     logger.debug("testmode: " + testmode + " - url: " + url)
     return url
-
-
-# def update_config_with_fortinet_api_call(config_json, sid, api_base_url, api_path, result_name, payload={}, ssl_verification='', proxy_string="", show_progress=False, debug=0):
-#     result = fortinet_api_call(sid, api_base_url, api_path, payload=payload, ssl_verification=ssl_verification,
-#                                proxy_string=proxy_string, show_progress=show_progress, debug=debug)
-#     config_json.update({result_name: result})
-
-
-# def fortinet_api_call(sid, api_base_url, api_path, payload={}, ssl_verification='', proxy_string="", show_progress=False, debug=0):
-#     if payload == {}:
-#         payload = {"params": [{}]}
-#     result = call(api_base_url, api_path, payload, sid,
-#                   ssl_verification, proxy_string, debug=debug)
-#     plain_result = result["result"][0]
-#     if "data" in plain_result:
-#         result = plain_result["data"]
-#     else:
-#         result = {}
-#     return result
 
 
 def get_mgm_ids(fwo_api_base_url, jwt, query_variables):
@@ -140,7 +113,7 @@ def get_config_value(fwo_api_base_url, jwt, key='limit'):
 def get_mgm_details(fwo_api_base_url, jwt, query_variables):
     mgm_query = """
         query getManagementDetails($mgmId: Int!) {
-            management(where:{mgm_id:{_eq:$mgmId}, do_not_import:{_eq:false}} order_by: {mgm_name: asc}) {
+            management(where:{mgm_id:{_eq:$mgmId}} order_by: {mgm_name: asc}) {
                 id: mgm_id
                 name: mgm_name
                 hostname: ssh_hostname
@@ -176,21 +149,17 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables):
     if 'data' in api_call_result and 'management' in api_call_result['data'] and len(api_call_result['data']['management'])>=1:
         return api_call_result['data']['management'][0]
     else:
-        logging.error('did not succeed in getting management details from API')
-        sys.exit(1)
+        raise Exception('did not succeed in getting management details from FWO API')
 
 
 def lock_import(fwo_api_base_url, jwt, query_variables):
     lock_mutation = "mutation lockImport($mgmId: Int!) { insert_import_control(objects: {mgm_id: $mgmId}) { returning { control_id } } }"
-    try:
-        lock_result = call(fwo_api_base_url, jwt, lock_mutation,
-                           query_variables=query_variables, role='importer')
-        current_import_id = lock_result['data']['insert_import_control']['returning'][0]['control_id']
-    except:
-        logging.exception(
-            "fwo_api: failed to get import lock for management id " + str(query_variables))
+    lock_result = call(fwo_api_base_url, jwt, lock_mutation,
+                        query_variables=query_variables, role='importer')
+    if lock_result['data']['insert_import_control']['returning'][0]['control_id']:
+        return lock_result['data']['insert_import_control']['returning'][0]['control_id']
+    else:
         return -1
-    return current_import_id
 
 
 def count_changes_per_import(fwo_api_base_url, jwt, import_id):
@@ -217,6 +186,7 @@ def count_changes_per_import(fwo_api_base_url, jwt, import_id):
 
 
 def unlock_import(fwo_api_base_url, jwt, mgm_id, stop_time, current_import_id, error_count, change_count):
+    error_during_import_unlock = 0
     query_variables = {"stopTime": stop_time, "importId": current_import_id,
                        "success": error_count == 0, "changesFound": change_count > 0}
 
@@ -234,8 +204,8 @@ def unlock_import(fwo_api_base_url, jwt, mgm_id, stop_time, current_import_id, e
     except:
         logging.exception(
             "fwo_api: failed to unlock import for management id " + str(mgm_id))
-        changes_in_import_control = 0
-    return changes_in_import_control-1
+        error_during_import_unlock = 1
+    return error_during_import_unlock
 
 
 # this effectively clears the management!

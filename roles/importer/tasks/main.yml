@@ -7,12 +7,17 @@
     - importer handler
     when: installation_mode == "upgrade"
 
+  - name: check for importer dir
+    stat:
+      path: "{{ fworch_home }}/importer"
+    register: importer_dir_check
+
   - name: backup importer dir
     synchronize:
       src: "{{ fworch_home }}/importer"
       dest: "{{ fworch_home }}/backup_importer"
     delegate_to: "{{ inventory_hostname }}"
-    when: installation_mode == "upgrade"
+    when: importer_dir_check.stat.exists and installation_mode == "upgrade"
 
   - name: remove importer dir
     file:
@@ -69,8 +74,8 @@
 
   - name: copy importer systemd service script
     template:
-      src: "{{ product_name }}-importer.service.j2"
-      dest: "/lib/systemd/system/{{ product_name }}-importer.service"
+      src: "{{ product_name }}-importer-legacy.service.j2"
+      dest: "/lib/systemd/system/{{ product_name }}-importer-legacy.service"
       backup: yes
       mode: "0644"
       owner: "root"
@@ -78,7 +83,7 @@
 
   - name: make importer run at host startup
     ansible.builtin.systemd:
-      name: "{{ product_name }}-importer"
+      name: "{{ product_name }}-importer-legacy"
       state: started
       daemon_reload: yes
       enabled: yes

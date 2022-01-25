@@ -5,14 +5,14 @@ using System.Threading.Tasks;
 
 namespace FWO.Ui.Data
 {
-    public delegate void NotifyCollapse(bool show);
+    public delegate void NotifyCollapse();
     public class CollapseState
     {
         public event NotifyCollapse? OnCollapseAll;
 
         public void CollapseAll()
         {
-            OnCollapseAll?.Invoke(false);
+            OnCollapseAll?.Invoke();
         }
     }
 }

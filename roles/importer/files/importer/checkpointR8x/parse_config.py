@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import sys
-sys.path.append(r"/usr/local/fworch/importer")
+from common import importer_base_dir
+sys.path.append(importer_base_dir)
 import common 
 import parse_network, parse_service, parse_user # parse_rule, 
 import parse_network_csv, parse_rule_csv, parse_service_csv, parse_user_csv

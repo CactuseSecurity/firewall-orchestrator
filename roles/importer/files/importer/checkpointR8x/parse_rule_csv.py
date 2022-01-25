@@ -1,8 +1,5 @@
 import logging
-import sys, json
-base_dir = "/usr/local/fworch"
-importer_base_dir = base_dir + '/importer'
-sys.path.append(importer_base_dir)
+import json
 import common, fwcommon, parse_rule
 
 

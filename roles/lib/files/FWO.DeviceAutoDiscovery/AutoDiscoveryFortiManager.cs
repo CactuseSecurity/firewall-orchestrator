@@ -8,12 +8,12 @@ namespace FWO.DeviceAutoDiscovery
 {
     public class AutoDiscoveryFortiManager : AutoDiscoveryBase
     {
-        public AutoDiscoveryFortiManager(Management superManager) : base(superManager) { }
+        public AutoDiscoveryFortiManager(Management superManagement) : base(superManagement) { }
         public override async Task<List<Management>> Run()
         {
             List<Management> discoveredDevices = new List<Management>();
-            Log.WriteAudit("Autodiscovery", $"starting discovery for {superManager.Name} (id={superManager.Id})");
-            if (superManager.DeviceType.Name == "FortiManager")
+            Log.WriteAudit("Autodiscovery", $"starting discovery for {superManagement.Name} (id={superManagement.Id})");
+            if (superManagement.DeviceType.Name == "FortiManager")
             {
                 List<Adom> customAdoms = new List<Adom>();
                 List<string> predefinedAdoms = // TODO: move this to config file
@@ -21,9 +21,9 @@ namespace FWO.DeviceAutoDiscovery
                         "FortiDDoS", "FortiDeceptor", "FortiFirewall", "FortiMail", "FortiManager", "FortiProxy",
                         "FortiSandbox", "FortiWeb", "Syslog", "Unmanaged_Devices", "others", "rootp"};
                 Log.WriteDebug("Autodiscovery", $"discovering FortiManager adoms, vdoms, devices");
-                FortiManagerClient restClientFM = new FortiManagerClient(superManager);
+                FortiManagerClient restClientFM = new FortiManagerClient(superManagement);
 
-                IRestResponse<SessionAuthInfo> sessionResponse = await restClientFM.AuthenticateUser(superManager.ImportUser, superManager.PrivateKey);
+                IRestResponse<SessionAuthInfo> sessionResponse = await restClientFM.AuthenticateUser(superManagement.ImportUser, superManagement.PrivateKey);
                 if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful)
                 {
                     string sessionId = sessionResponse.Data.SessionId;
@@ -61,18 +61,18 @@ namespace FWO.DeviceAutoDiscovery
                             // create object from discovered adom
                             Management currentManagement = new Management
                             {
-                                Name = superManager.Name + "__" + adom.Name,
-                                ImporterHostname = superManager.ImporterHostname,
-                                Hostname = superManager.Hostname,
-                                ImportUser = superManager.ImportUser,
-                                PrivateKey = superManager.PrivateKey,
-                                Port = superManager.Port,
+                                Name = superManagement.Name + "__" + adom.Name,
+                                ImporterHostname = superManagement.ImporterHostname,
+                                Hostname = superManagement.Hostname,
+                                ImportUser = superManagement.ImportUser,
+                                PrivateKey = superManagement.PrivateKey,
+                                Port = superManagement.Port,
                                 ImportDisabled = false,
                                 ForceInitialImport = true,
                                 HideInUi = false,
                                 ConfigPath = adom.Name,
-                                DebugLevel = superManager.DebugLevel,
-                                SuperManager = new SuperManager { Id = superManager.Id },
+                                DebugLevel = superManagement.DebugLevel,
+                                SuperManagerId = superManagement.Id,
                                 DeviceType = new DeviceType { Id = 11 },
                                 Devices = new Device[] { }
                             };
@@ -84,6 +84,7 @@ namespace FWO.DeviceAutoDiscovery
                                 foreach (Assignment assign in assignmentList)
                                 {
                                     Device devFound = new Device();
+                                    // assign.PackageName = assign.PackageName.Replace("/", "\\/");    // replace / in package name with \/
                                     Log.WriteDebug("Autodiscovery", $"found assignment1 in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.DeviceName}, vdom: {assign.VdomName} ");
                                     if (assign.DeviceName != null)
                                     {
@@ -99,7 +100,7 @@ namespace FWO.DeviceAutoDiscovery
                                                 Name = devName,
                                                 LocalRulebase = assign.PackageName,
                                                 Package = assign.PackageName,
-                                                DeviceType = new DeviceType { Id = 11 } // fortiGate
+                                                DeviceType = new DeviceType { Id = 10 } // fortiGate
                                             };
                                             // handle global vs. local based on VdomName?
                                             Log.WriteDebug("Autodiscovery", $"assignment devFound Name = {devFound.Name}");

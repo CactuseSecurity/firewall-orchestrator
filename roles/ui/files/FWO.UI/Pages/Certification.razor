@@ -96,28 +96,46 @@
     <div class="p-3">
         <h5 class="text-center">@(userConfig.GetText("objects"))</h5>
 
-        <TabSet KeepPanelsAlive="true">
-            <Tab Title="@(userConfig.GetText("rule"))">
-                <div class="d-md-flex justify-content-md-between">
-                    <div class="btn btn-dark btn-sm mb-2" @onclick="@(() => selectedRules.Clear())">@(userConfig.GetText("clear_all"))</div>
-                    <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseControlObjects.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
-                </div>
-                <CascadingValue Value="collapseControlObjects">
-                    <ObjectGroupCollection FetchObjects="FetchContent" Type="30" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule" Data="selectedRules"
-                                           NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
-                                           NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object).Union(rule.Tos.Select(nl => nl.Object)).ToArray()"
-                                           NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
-                                           NetworkUserExtractor="rule => Array.FindAll(rule.Froms.Select(nl => nl.User).Distinct().ToArray(), user => user != null)" />
-                </CascadingValue>
-            </Tab>
-        </TabSet>
+        <CascadingValue Value="anchorNavToRSB">
+            <TabSet KeepPanelsAlive="true" @ref="rsbTabset">
+                <Tab Title="Report">
+                    <div class="d-md-flex justify-content-md-end">
+                        <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseControlObjects.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
+                    </div>
+                    <CascadingValue Value="collapseControlObjects">
+                        <ObjectGroupCollection FetchObjects="FetchContent" Recert="true" Tab="report" InputDataType="Management" Data="managements.Where(m => (m.Devices.Where(d => d.Rules != null && d.Rules.Count() > 0).Count() > 0))" NameExtractor="man => man.Name"
+                                            NetworkObjectExtractor="man => man.ReportObjects?.Select(ro => ro.Content).ToArray()"
+                                            NetworkServiceExtractor="man => man.ReportServices?.Select(rs => rs.Content).ToArray()"
+                                            NetworkUserExtractor="man => man.ReportUsers?.Select(ru => ru.Content).ToArray()" />
+                    </CascadingValue>
+                </Tab>
+                <Tab Title="@(userConfig.GetText("rule"))">
+                    <div class="d-md-flex justify-content-md-between">
+                        <div class="btn btn-dark btn-sm mb-2" @onclick="@(() => selectedRules.Clear())">@(userConfig.GetText("clear_all"))</div>
+                        <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseControlObjects.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
+                    </div>
+                    <CascadingValue Value="collapseControlObjects">
+                        <ObjectGroupCollection FetchObjects="FetchContent" Recert="true" Tab="rule" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule" Data="selectedRules"
+                                            NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
+                                            NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object).Union(rule.Tos.Select(nl => nl.Object)).ToArray()"
+                                            NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
+                                            NetworkUserExtractor="rule => Array.FindAll(rule.Froms.Select(nl => nl.User).Distinct().ToArray(), user => user != null)" />
+                    </CascadingValue>
+                </Tab>
+            </TabSet>
+        </CascadingValue>
     </div>
 </Sidebar>
+
+<AnchorNavToRSB @ref="anchorNavToRSB" TabSet="rsbTabset" />
 
 @code
 {
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+
+    private TabSet? rsbTabset;
+    private AnchorNavToRSB? anchorNavToRSB;
 
     private const int rulesPerPage = 0;
     private int elementsPerFetch = 100;
@@ -194,7 +212,7 @@
             }
 
             SyncFilterToDisplay();
-            currentReport = ReportBase.ConstructReport(filterInput, deviceFilter, ReportType.Rules, userConfig);
+            currentReport = ReportBase.ConstructReport(filterInput, deviceFilter, new TimeFilter(), ReportType.Rules, userConfig);
 
             DateTime startTime = DateTime.Now;
             managements = new Management[0]; // reset management data when switching between reports
@@ -271,11 +289,11 @@
 
                         if(rule.Metadata.NextRecert <= DateTime.Now)
                         {
-                            rule.Metadata.Style = "background-color: red";
+                            rule.Metadata.Style = "background-overdue";
                         }
                         else if(rule.Metadata.NextRecert <= DateTime.Now.AddDays(recertificationNoticePeriod))
                         {
-                            rule.Metadata.Style = "background-color: yellow";
+                            rule.Metadata.Style = "background-upcoming";
                         }
                     }
                 }
@@ -283,10 +301,9 @@
         }
     }
 
-    public async Task FetchContent(byte contentType, Func<Management[], Task> callback, long id = 0)
+    const byte all = 10, report = 20, rule = 30, all_nobj = 11, all_nsrv = 12, all_user = 13, report_nobj = 21, report_nsrv = 22, report_user = 23;
+    public async Task FetchContent(byte contentType, Func<Management[], Task> callback, long id = 0, bool nat = false)
     {
-        const byte all = 10, report = 20, rule = 30, all_nobj = 11, all_nsrv = 12, all_user = 13, report_nobj = 21, report_nsrv = 22, report_user = 23;
-
         Log.WriteDebug("Fetching Content..", "");
 
         Management[] managements = new Management[0];
@@ -316,7 +333,10 @@
                     query = ObjectQueries.getUserDetails;
                     break;
                 case rule:
-                    query = RuleQueries.getRuleDetails;
+                    if (nat)
+                        query = RuleQueries.getNatRuleDetails;
+                    else
+                        query = RuleQueries.getRuleDetails;
                     break;
             }
 
@@ -328,7 +348,7 @@
                     {
                         { "limit", elementsPerFetch },
                         { "offset", 0 },
-                        { "management_id", id }
+                        { "management_id", (int) id }
                     };
 
                     break;
@@ -339,7 +359,7 @@
                     {
                         { "limit", elementsPerFetch },
                         { "offset", 0 },
-                        { "mgmIds", id }
+                        { "mgmIds", (int) id }
                     };
 
                     if (currentReport != null)
@@ -382,7 +402,9 @@
         catch (Exception exception)
         {
             DisplayMessageInUi!(exception, userConfig.GetText("object_fetch"), "", true);
+            // TODO: Error Interface for all Components, that enables displaying a message in the ui
         }
+
     }
 
     private void RequestExecuteSelected()

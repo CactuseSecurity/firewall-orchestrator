@@ -30,11 +30,12 @@ namespace FWO.Api.Data
         public ReportTemplate()
         {}
 
-        public ReportTemplate(string filter, DeviceFilter deviceFilter, int? reportType)
+        public ReportTemplate(string filter, DeviceFilter deviceFilter, int? reportType, TimeFilter timeFilter)
         {
             Filter = filter;
             ReportParams.DeviceFilter = deviceFilter;
             ReportParams.ReportType = reportType;
+            ReportParams.TimeFilter = timeFilter;
         }
 
         public void Sanitize()
@@ -52,6 +53,7 @@ namespace FWO.Api.Data
         [JsonProperty("device_filter"), JsonPropertyName("device_filter")]
         public DeviceFilter DeviceFilter { get; set; } = new DeviceFilter();
 
-        // public Timefilter Timefilter { get; set; } = new Timefilter();
+        [JsonProperty("time_filter"), JsonPropertyName("time_filter")]
+        public TimeFilter TimeFilter { get; set; } = new TimeFilter();
     }
 }

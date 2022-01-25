@@ -102,7 +102,7 @@ namespace FWO.Api.Data
 
         public void Sanitize()
         {
-            Name = Sanitizer.SanitizeMand(Name);
+            Name = Sanitizer.SanitizeLdapNameMand(Name);
             Email = Sanitizer.SanitizeOpt(Email);
             Password = Sanitizer.SanitizePasswMand(Password);
         }

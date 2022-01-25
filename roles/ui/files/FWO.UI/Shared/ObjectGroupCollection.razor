@@ -6,7 +6,7 @@
 {
     @foreach (InputDataType obj in Data)
     {
-        <ObjectGroup FetchObjects="FetchObjects" Type="Type" StartCollapsed="StartCollapsed" StartContentDetailed="StartContentDetailed" InputDataType="InputDataType" InitialContent="obj" NameExtractor="NameExtractor"
+        <ObjectGroup FetchObjects="FetchObjects" Recert="Recert" Tab="Tab" StartCollapsed="StartCollapsed" StartContentDetailed="StartContentDetailed" InputDataType="InputDataType" InitialContent="obj" NameExtractor="NameExtractor"
                      NetworkObjectExtractor="NetworkObjectExtractor"
                      NetworkServiceExtractor="NetworkServiceExtractor"
                      NetworkUserExtractor="NetworkUserExtractor" />
@@ -16,10 +16,13 @@
 @code
 {
     [Parameter]
-    public Func<byte, Func<Management[], Task>, long, Task>? FetchObjects { get; set; }
+    public Func<byte, Func<Management[], Task>, long, bool, Task>? FetchObjects { get; set; }
 
     [Parameter]
-    public byte Type { get; set; }
+    public bool Recert { get; set; }
+
+    [Parameter]
+    public byte Tab { get; set; }
 
     [Parameter]
     public int PageSize { get; set; }

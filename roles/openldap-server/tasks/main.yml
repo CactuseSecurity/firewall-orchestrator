@@ -12,7 +12,7 @@
   - name: Add the OS specific varibles
     include_vars: "{{ ansible_os_family }}.yml"
 
-  - name: Install the openldap and required Packages for Ubuntu
+  - name: Install the openldap and required Packages
     package:
       name: "{{ item }}"
       state: present
@@ -60,57 +60,20 @@
     register: root_password
 
 ### TLS
-  - name: Delete the directory for ldap certificates
-    file:
-      state: absent
-      path: "{{ openldap_server_cert_path }}/"
-    when: "openldap_generate_new_crypto == 'yes'"
-
-  - name: Create the directory for ldap certificates
-    file:
-      path: "{{ openldap_server_cert_path }}/"
-      state: directory
-      owner: "{{ openldap_server_user }}"
-      group: "{{ openldap_server_user }}"
-
-  - name: Generate an OpenSSL private key
-    openssl_privatekey:
-      path: "{{ openldap_server_private_key }}"
-      size: 3072
-      type: RSA
-
-  - name: Generate an OpenSSL Certificate Signing Request with Subject information
-    openssl_csr:
-      path: "{{ openldap_server_csr }}"
-      privatekey_path: "{{ openldap_server_private_key }}"
-      country_name: "{{ openldap_server_country }}"
-      state_or_province_name: "{{ openldap_server_state }}"
-      locality_name: "{{ openldap_server_location }}"
-      organization_name: "{{ openldap_server_organization }}"
-      #email_address: "{{ email_address }}"
-      common_name: "{{ ansible_hostname }}"
-
-  - name: Generate a self signed OpenSSL Certificate
-    openssl_certificate:
-      path: "{{ openldap_server_cert }}"
-      privatekey_path: "{{ openldap_server_private_key }}"
-      csr_path: "{{ openldap_server_csr }}"
-      provider: selfsigned
-
-  - name: set permissions on key
-    file:
-      path: "{{ openldap_server_private_key }}"
-      state: file
-      owner: "{{ openldap_server_user }}"
-      group: "{{ openldap_server_user }}"
-      mode: g+r
-
-  - name: set permissions on cert
-    file:
-      path: "{{ openldap_server_cert }}"
-      state: file
-      owner: "{{ openldap_server_user }}"
-      group: "{{ openldap_server_user }}"
+  - name: Create ldap certificates
+    include_role:
+      name: openssl-cert
+    vars:
+      openssl_cert_path: "{{ openldap_server_cert_path }}"
+      openssl_user: "{{ openldap_server_user }}"
+      openssl_private_key: "{{ openldap_server_private_key }}"
+      openssl_csr: "{{ openldap_server_csr }}"
+      openssl_country: "{{ openldap_server_country }}"
+      openssl_state: "{{ openldap_server_state }}"
+      openssl_location: "{{ openldap_server_location }}"
+      openssl_organization: "{{ openldap_server_organization }}"
+      openssl_email_address: "{{ openldap_server_email_address }}"
+      openssl_cert: "{{ openldap_server_cert }}"
 
 ### Config files
   - name: Create the directory for ldap database

@@ -139,3 +139,32 @@ app {
     white-space: -o-pre-wrap; /* Opera 7 */
     word-wrap: break-word; /* Internet Explorer 5.5+ */
 }
+
+.sticky-header thead {
+    position: sticky;
+    top: 0px;
+    z-index: 1;
+  }
+
+.vheight75 {
+    height: 75vh
+}
+
+.background-upcoming {
+    background-color: rgba(255, 255, 0, 0.25)
+}
+
+.background-overdue {
+    background-color: rgba(255, 0, 0, 0.25)
+}
+
+.fade-bg {
+    background-color: rgba(0,0,0,0);
+    -webkit-transition: background-color 500ms linear;
+    -ms-transition: background-color 500ms linear;
+    transition: background-color 500ms linear;
+}
+
+.temp-highlight {
+    background-color: #a4d7f5;
+}

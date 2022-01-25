@@ -41,6 +41,12 @@ class FwoApiFailedLockImport(Exception):
             self.message = message
             super().__init__(self.message)
 
+class FwoApiFailure(Exception):
+    """Raised for any other FwoApi call exceptions"""
+
+    def __init__(self, message="There was an unclassified error while executing an FWO API call"):
+            self.message = message
+            super().__init__(self.message)
 
 #  import_management: import a single management (if no import for it is running)
 #     lock mgmt for import via FWORCH API call, generating new import_id y
@@ -172,7 +178,7 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
                 with open(normalized_config_filename, "w") as json_data:
                     json_data.write(json.dumps(config2import, indent=2))
 
-                if debug_level>3:
+                if debug_level>3 and in_file is None:   # do not write native config if we just got it as input file
                     full_native_config_filename = import_tmp_path + '/mgm_id_' + \
                         str(mgm_id) + '_config_native.json'
                     with open(full_native_config_filename, "w") as json_data:  # create empty config file

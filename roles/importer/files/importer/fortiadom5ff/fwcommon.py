@@ -1,5 +1,5 @@
 from curses import raw
-import logging
+import logging, traceback
 import sys
 from common import importer_base_dir
 sys.path.append(importer_base_dir + '/fortiadom5ff')
@@ -43,10 +43,16 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
             # currently reading zone from objects/rules for backward compat with FortiManager 6.x
             # getZones(sid, fm_api_url, full_config, adom_name, limit, debug_level)
             getInterfacesAndRouting(sid, fm_api_url, full_config, adom_name, mgm_details['devices'], limit, debug_level)
-            # initialize all rule dicts
+            
+            fmgr_rule.initializeRulebases(full_config) # initialize all rule dicts
             for dev in mgm_details['devices']:
                 fmgr_rule.getAccessPolicy(sid, fm_api_url, full_config, adom_name, dev, limit, debug_level)
                 fmgr_rule.getNatPolicy(sid, fm_api_url, full_config, adom_name, dev, limit, debug_level)
+        
+            try: # logout of fortimanager API
+                fmgr_getter.logout(fm_api_url, sid, ssl_verification='',proxy_string='', debug=debug_level)
+            except:
+                logging.warning("fortiadm5ff/get_config - logout exception probably due to timeout - irrelevant, so ignoring it")
 
         # now we normalize relevant parts of the raw config and write the results to config2import dict
         # currently reading zone from objects for backward compat with FortiManager 6.x
@@ -57,9 +63,6 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
         fmgr_rule.normalize_access_rules(full_config, config2import, current_import_id)
         fmgr_rule.normalize_nat_rules(full_config, config2import, current_import_id)
         fmgr_network.remove_nat_ip_entries(config2import)
-
-    if not parsing_config_only:   # no native config was passed in, logging out
-        fmgr_getter.logout(fm_api_url, sid, ssl_verification='',proxy_string='', debug=debug_level)
     return 0
 
 
@@ -92,11 +95,16 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
                 }
             ]
         }
-        fmgr_getter.update_config_with_fortinet_api_call(
-            raw_config, sid, fm_api_url, "/sys/proxy/json", \
-                "interfaces/adom:" + adom_name + "/device:" + dev_name + "/vdom:" + vdom_name, \
-                payload=payload, debug=debug_level, limit=limit, method="exec")
-
+        try:
+            fmgr_getter.update_config_with_fortinet_api_call(
+                raw_config, sid, fm_api_url, "/sys/proxy/json", \
+                    "interfaces/adom:" + adom_name + "/device:" + dev_name + "/vdom:" + vdom_name, \
+                    payload=payload, debug=debug_level, limit=limit, method="exec")
+        except:
+            # traceback_output = traceback.format_exc()
+            logging.warning("import_management - error while getting interfaces of device " + dev["name"] + ", ignoring" )
+            # raise
+            
         for ip_version in ["ipv4", "ipv6"]:
             payload = {
                 "params": [
@@ -109,10 +117,15 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
                     }
                 ]
             }
-            fmgr_getter.update_config_with_fortinet_api_call(
-                raw_config, sid, fm_api_url, "/sys/proxy/json", \
-                    "routing-table-" + ip_version + "/adom:" + adom_name + "/device:" + dev_name + "/vdom:" + vdom_name, \
-                    payload=payload, debug=debug_level, limit=limit, method="exec")
+            try:
+                fmgr_getter.update_config_with_fortinet_api_call(
+                    raw_config, sid, fm_api_url, "/sys/proxy/json", \
+                        "routing-table-" + ip_version + "/adom:" + adom_name + "/device:" + dev_name + "/vdom:" + vdom_name, \
+                        payload=payload, debug=debug_level, limit=limit, method="exec")
+            except:
+                # traceback_output = traceback.format_exc()
+                logging.warning("import_management - error while getting routing talbe of device " + dev["name"] + ", ignoring" )
+                # raise
 
 
 def getObjects(sid, fm_api_url, raw_config, adom_name, limit, debug_level, scope, nw_obj_types, svc_obj_types):

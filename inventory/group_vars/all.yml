@@ -1,5 +1,5 @@
 ### general settings
-product_version: "5.6.3"
+product_version: "5.6.4"
 ansible_python_interpreter: /usr/bin/python3
 ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 product_name: fworch

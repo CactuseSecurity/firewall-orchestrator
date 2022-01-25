@@ -60,7 +60,10 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
         fmgr_network.remove_nat_ip_entries(config2import)
 
     if not parsing_config_only:   # no native config was passed in, logging out
-        fmgr_getter.logout(fm_api_url, sid, ssl_verification='',proxy_string='', debug=debug_level)
+        try:
+            fmgr_getter.logout(fm_api_url, sid, ssl_verification='',proxy_string='', debug=debug_level)
+        except:
+            logging.warning("fortiadm5ff/get_config - logout exception - irrelevant, so ignoring it")
     return 0
 
 

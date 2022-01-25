@@ -62,7 +62,10 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
                     obj_zone = obj_orig['associated-interface'][0]
                 nat_obj.update({'obj_zone': obj_zone })
                 nat_obj.update({'control_id': import_id})
-                nw_objects.append(nat_obj)
+                if nat_obj not in nw_objects:   # rare case when a destination nat is down for two different orig ips to the same dest ip
+                    nw_objects.append(nat_obj)
+                else:
+                    pass
             else: # 'fqdn' in obj_orig: # "fully qualified domain name address" // other unknown types
                 obj.update({ 'obj_typ': 'network' })
                 obj.update({ 'obj_ip': '0.0.0.0/0'})
@@ -98,7 +101,8 @@ def set_ip_in_obj(nw_obj, ip): # add start and end ip in nw_obj if it is a range
     if '-' in ip: # dealing with range
         ip_start, ip_end = ip.split('-')
         nw_obj.update({'obj_ip': ip_start })
-        nw_obj.update({'obj_ip_end': ip_end })
+        if ip_end != ip_start:
+            nw_obj.update({'obj_ip_end': ip_end })
     else:
         nw_obj.update({'obj_ip': ip })
 

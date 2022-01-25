@@ -178,7 +178,7 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
                 with open(normalized_config_filename, "w") as json_data:
                     json_data.write(json.dumps(config2import, indent=2))
 
-                if debug_level>3:
+                if debug_level>3 and in_file is None:   # do not write native config if we just got it as input file
                     full_native_config_filename = import_tmp_path + '/mgm_id_' + \
                         str(mgm_id) + '_config_native.json'
                     with open(full_native_config_filename, "w") as json_data:  # create empty config file

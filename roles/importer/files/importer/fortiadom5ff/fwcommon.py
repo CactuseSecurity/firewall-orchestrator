@@ -43,7 +43,8 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
             # currently reading zone from objects/rules for backward compat with FortiManager 6.x
             # getZones(sid, fm_api_url, full_config, adom_name, limit, debug_level)
             getInterfacesAndRouting(sid, fm_api_url, full_config, adom_name, mgm_details['devices'], limit, debug_level)
-            # initialize all rule dicts
+            
+            fmgr_rule.initializeRulebases(full_config) # initialize all rule dicts
             for dev in mgm_details['devices']:
                 fmgr_rule.getAccessPolicy(sid, fm_api_url, full_config, adom_name, dev, limit, debug_level)
                 fmgr_rule.getNatPolicy(sid, fm_api_url, full_config, adom_name, dev, limit, debug_level)

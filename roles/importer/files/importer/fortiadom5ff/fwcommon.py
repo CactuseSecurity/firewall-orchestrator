@@ -1,5 +1,5 @@
 from curses import raw
-import logging
+import logging, traceback
 import sys
 from common import importer_base_dir
 sys.path.append(importer_base_dir + '/fortiadom5ff')
@@ -92,11 +92,16 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
                 }
             ]
         }
-        fmgr_getter.update_config_with_fortinet_api_call(
-            raw_config, sid, fm_api_url, "/sys/proxy/json", \
-                "interfaces/adom:" + adom_name + "/device:" + dev_name + "/vdom:" + vdom_name, \
-                payload=payload, debug=debug_level, limit=limit, method="exec")
-
+        try:
+            fmgr_getter.update_config_with_fortinet_api_call(
+                raw_config, sid, fm_api_url, "/sys/proxy/json", \
+                    "interfaces/adom:" + adom_name + "/device:" + dev_name + "/vdom:" + vdom_name, \
+                    payload=payload, debug=debug_level, limit=limit, method="exec")
+        except:
+            # traceback_output = traceback.format_exc()
+            logging.warning("import_management - error while getting interfaces of device " + dev["name"] + ", ignoring" )
+            # raise
+            
         for ip_version in ["ipv4", "ipv6"]:
             payload = {
                 "params": [
@@ -109,10 +114,15 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
                     }
                 ]
             }
-            fmgr_getter.update_config_with_fortinet_api_call(
-                raw_config, sid, fm_api_url, "/sys/proxy/json", \
-                    "routing-table-" + ip_version + "/adom:" + adom_name + "/device:" + dev_name + "/vdom:" + vdom_name, \
-                    payload=payload, debug=debug_level, limit=limit, method="exec")
+            try:
+                fmgr_getter.update_config_with_fortinet_api_call(
+                    raw_config, sid, fm_api_url, "/sys/proxy/json", \
+                        "routing-table-" + ip_version + "/adom:" + adom_name + "/device:" + dev_name + "/vdom:" + vdom_name, \
+                        payload=payload, debug=debug_level, limit=limit, method="exec")
+            except:
+                # traceback_output = traceback.format_exc()
+                logging.warning("import_management - error while getting routing talbe of device " + dev["name"] + ", ignoring" )
+                # raise
 
 
 def getObjects(sid, fm_api_url, raw_config, adom_name, limit, debug_level, scope, nw_obj_types, svc_obj_types):

@@ -41,6 +41,12 @@ class FwoApiFailedLockImport(Exception):
             self.message = message
             super().__init__(self.message)
 
+class FwoApiFailure(Exception):
+    """Raised for any other FwoApi call exceptions"""
+
+    def __init__(self, message="There was an unclassified error while executing an FWO API call"):
+            self.message = message
+            super().__init__(self.message)
 
 #  import_management: import a single management (if no import for it is running)
 #     lock mgmt for import via FWORCH API call, generating new import_id y

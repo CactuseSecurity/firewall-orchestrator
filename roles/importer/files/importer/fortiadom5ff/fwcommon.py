@@ -48,6 +48,11 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
             for dev in mgm_details['devices']:
                 fmgr_rule.getAccessPolicy(sid, fm_api_url, full_config, adom_name, dev, limit, debug_level)
                 fmgr_rule.getNatPolicy(sid, fm_api_url, full_config, adom_name, dev, limit, debug_level)
+        
+            try: # logout of fortimanager API
+                fmgr_getter.logout(fm_api_url, sid, ssl_verification='',proxy_string='', debug=debug_level)
+            except:
+                logging.warning("fortiadm5ff/get_config - logout exception probably due to timeout - irrelevant, so ignoring it")
 
         # now we normalize relevant parts of the raw config and write the results to config2import dict
         # currently reading zone from objects for backward compat with FortiManager 6.x
@@ -58,12 +63,6 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
         fmgr_rule.normalize_access_rules(full_config, config2import, current_import_id)
         fmgr_rule.normalize_nat_rules(full_config, config2import, current_import_id)
         fmgr_network.remove_nat_ip_entries(config2import)
-
-    if not parsing_config_only:   # no native config was passed in, logging out
-        try:
-            fmgr_getter.logout(fm_api_url, sid, ssl_verification='',proxy_string='', debug=debug_level)
-        except:
-            logging.warning("fortiadm5ff/get_config - logout exception - irrelevant, so ignoring it")
     return 0
 
 

@@ -35,17 +35,14 @@ namespace FWO.Report.Filter.Ast
 
         private DynGraphqlQuery ExtractRecertDisplayFilter(DynGraphqlQuery query)
         {
-            string QueryVarName = "refdate" + query.parameterCounter++;
-            query.QueryParameters.Add($"${QueryVarName}: timestamp! ");
-            string refDate = DateTime.Now.AddDays(-semanticValue).ToString("yyyy-MM-dd HH:mm:ss");
-            query.QueryVariables[QueryVarName] = refDate;
+            string queryVarName = AddVariable<DateTime>(query, "refdate", Operator.Kind, DateTime.Now.AddDays(-semanticValue));
 
             query.ruleWhereStatement += $@"
                 _or: [
-                        {{ rule_metadatum: {{ rule_last_certified: {{ _lte: ${QueryVarName} }} }} }}
+                        {{ rule_metadatum: {{ rule_last_certified: {{ _lte: ${queryVarName} }} }} }}
                         {{ _and:[ 
                                     {{ rule_metadatum: {{ rule_last_certified: {{ _is_null: true }} }} }}
-                                    {{ rule_metadatum: {{ rule_created: {{ _lte: ${QueryVarName} }} }} }}
+                                    {{ rule_metadatum: {{ rule_created: {{ _lte: ${queryVarName} }} }} }}
                                 ]
                         }}
                     ]";
@@ -54,14 +51,10 @@ namespace FWO.Report.Filter.Ast
 
         private DynGraphqlQuery ExtractDestinationPortFilter(DynGraphqlQuery query)
         {
-            string QueryVarName = "dport" + query.parameterCounter++;
+            string queryVarName = AddVariable<int>(query, "dport", Operator.Kind, semanticValue);
 
-            query.QueryParameters.Add($"${QueryVarName}: Int! ");
-            query.QueryVariables[QueryVarName] = Value.Text;
-
-            query.ruleWhereStatement +=
-                " rule_services: { service: { svcgrp_flats: { service: { svc_port: {_lte" +
-                ": $" + QueryVarName + "}, svc_port_end: {_gte: $" + QueryVarName + "} } } } }";
+            query.ruleWhereStatement += " rule_services: { service: { svcgrp_flats: { service: { svc_port: {_lte" +
+                ": $" + queryVarName + "}, svc_port_end: {_gte: $" + queryVarName + "} } } } }";
             return query;
         }
     }

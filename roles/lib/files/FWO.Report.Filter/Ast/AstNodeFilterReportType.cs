@@ -9,12 +9,12 @@ namespace FWO.Report.Filter.Ast
 {
     internal class AstNodeFilterReportType : AstNodeFilter
     {
-        ReportType semanticType;
+        ReportType semanticValue;
 
         public override void ConvertToSemanticType()
         {
             CheckOperator(Operator, true, TokenKind.EQ, TokenKind.EEQ);
-            semanticType = Value.Text switch
+            semanticValue = Value.Text switch
             {
                 "rules" or "rule" => ReportType.Rules,
                 "statistics" or "statistic" => ReportType.Statistics,
@@ -40,7 +40,7 @@ namespace FWO.Report.Filter.Ast
 
         private DynGraphqlQuery ExtractReportTypeFilter(DynGraphqlQuery query)
         {
-            query.ReportType = semanticType;
+            query.ReportType = semanticValue;
 
             if (query.ReportType == ReportType.Statistics)
             {

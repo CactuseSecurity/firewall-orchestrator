@@ -10,7 +10,6 @@ namespace FWO.Report.Filter.Ast
         public Token Name { get; set; } = new Token(new Range(), "", TokenKind.Value);
         public Token Operator { get; set; } = new Token(new Range(), "", TokenKind.Value);
         public Token Value { get; set; } = new Token(new Range(), "", TokenKind.Value);
-        private int queryLevel { get; set; }
 
         // public SemanticType? SemanticValue { get; set; }
 
@@ -39,12 +38,41 @@ namespace FWO.Report.Filter.Ast
             };
         }
 
-        private string AddBooleanVariable(DynGraphqlQuery query, string name)
+        protected string AddVariable<Type>(DynGraphqlQuery query, string name, TokenKind op, Type value)
         {
             string queryVarName = name + query.parameterCounter++;
+            string queryVarType = "";
+            string queryVarValue = "";
 
-            query.QueryParameters.Add($"${queryVarName}: Boolean ");
-            query.QueryVariables[queryVarName] = $"{Value.Text}";
+            switch (value)
+            {
+                case bool boolValue:
+                    queryVarType = "Boolean";
+                    queryVarValue = boolValue ? "true" : "false";
+                    break;
+
+                case string stringValue:
+                    queryVarType = "String";
+                    queryVarValue = stringValue;
+                    break;
+
+                case int intValue:
+                    queryVarType = "Int";
+                    queryVarValue = intValue.ToString();
+                    break;
+
+                case DateTime dateTimeValue:
+                    queryVarType = "timestamp";
+                    // 2018–08–10T14:14:57            
+                    queryVarValue = dateTimeValue.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss");
+                    break;
+
+                default:
+                    throw new NotSupportedException($"Type \"{typeof(Type)}\" is not supported in GraphQL Query");
+            }
+
+            query.QueryParameters.Add($"${queryVarName}: {queryVarType}! ");
+            query.QueryVariables[queryVarName] = op == TokenKind.EEQ ? queryVarValue : $"%{queryVarValue}%";
 
             return queryVarName;
         }

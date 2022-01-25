@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -11,17 +12,29 @@ namespace FWO.Report.Filter.Ast
     {
         public override void ConvertToSemanticType()
         {
-            throw new NotImplementedException();
+            CheckOperator(Operator, false, TokenKind.EQ, TokenKind.EEQ, TokenKind.NEQ);
+            // semanticValue = int.Parse(Value.Text);
         }
 
         public override void Extract(ref DynGraphqlQuery query)
         {
-            throw new NotImplementedException();
+            ConvertToSemanticType();
+
+            switch (Name.Kind)
+            {
+                case TokenKind.Destination:
+                    ExtractDestinationFilter(query);
+                    break;
+                case TokenKind.Source:
+                    ExtractSourceFilter(query);
+                    break;
+                default:
+                    break;
+            }
         }
 
         private DynGraphqlQuery ExtractDestinationFilter(DynGraphqlQuery query)
         {
-            string queryOperation = ExtractOperator();
             if (IsCidr(Value.Text))  // filtering for ip addresses
                 query = ExtractIpFilter(query, location: "dst", locationTable: "rule_tos");
             else // string search against dst obj name
@@ -29,7 +42,7 @@ namespace FWO.Report.Filter.Ast
                 string QueryVarName = "dst" + query.parameterCounter++;
                 query.QueryVariables[QueryVarName] = $"%{Value.Text}%";
                 query.QueryParameters.Add($"${QueryVarName}: String! ");
-                query.ruleWhereStatement += $"rule_tos: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {queryOperation}: ${QueryVarName} }} }} }} }} }}";
+                query.ruleWhereStatement += $"rule_tos: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }} }}";
             }
             return query;
         }
@@ -37,7 +50,6 @@ namespace FWO.Report.Filter.Ast
 
         private DynGraphqlQuery ExtractSourceFilter(DynGraphqlQuery query)
         {
-            string filterOperator = ExtractOperator();
             if (IsCidr(Value.Text))  // filtering for ip addresses
                 query = ExtractIpFilter(query, location: "src", locationTable: "rule_froms");
             else // string search against src obj name
@@ -45,7 +57,7 @@ namespace FWO.Report.Filter.Ast
                 string QueryVarName = "src" + query.parameterCounter++;
                 query.QueryVariables[QueryVarName] = $"%{Value.Text}%";
                 query.QueryParameters.Add($"${QueryVarName}: String! ");
-                query.ruleWhereStatement += $"rule_froms: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {filterOperator}: ${QueryVarName} }} }} }} }} }}";
+                query.ruleWhereStatement += $"rule_froms: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }} }}";
             }
             return query;
         }
@@ -137,7 +149,7 @@ namespace FWO.Report.Filter.Ast
         {
             string filterIP = SanitizeIp(Value.Text);
             (string firstIp, string lastIp) = GetFirstAndLastIp(filterIP);
-            string ipFilterString = "";
+            string ipFilterString;
 
             if (firstIp == lastIp) // optimization, just need a single comparison if searching for single ip
             {

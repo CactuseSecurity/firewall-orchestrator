@@ -70,8 +70,8 @@ namespace FWO.Middleware.Server
 
             JwtSecurityToken token = tokenHandler.CreateJwtSecurityToken
             (
-                issuer: issuer,
-                audience: audience,
+                issuer: JwtConstants.Issuer,
+                audience: JwtConstants.Audience,
                 subject: subject,
                 notBefore: DateTime.UtcNow.AddMinutes(-1), // we currently allow for some deviation in timing of the systems
                 issuedAt: DateTime.UtcNow.AddMinutes(-1),

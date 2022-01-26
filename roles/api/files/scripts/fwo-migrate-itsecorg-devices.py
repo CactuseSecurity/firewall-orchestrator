@@ -126,7 +126,7 @@ def cleanDevsWithoutValidMgm(devList, mgmIdList):
         if len(line)>0:
             mgm_id_of_this_device = int(line[3])
             if mgm_id_of_this_device not in mgmIdList:
-                print ("found device without valid mgm id reference, deleting: " + line)
+                print ("found device without valid mgm id reference, deleting: " + str(line))
                 devList.remove(line)
     return
 

@@ -111,6 +111,26 @@ def migrateCsvMgm(csv_in, input_type):
                 line[7] = "9"     # dev type id for checkpoint is now 9 (not 17)
 
 
+def getMgmIds(csv_in):
+    mgmIds = []
+    for line in csv_in:
+        if len(line)>0:
+            mgm_id = int(line[0])
+            if mgm_id not in mgmIds:
+                mgmIds.append(mgm_id)
+    return mgmIds
+
+
+def cleanDevsWithoutValidMgm(devList, mgmIdList):
+    for line in devList:
+        if len(line)>0:
+            mgm_id_of_this_device = int(line[3])
+            if mgm_id_of_this_device not in mgmIdList:
+                print ("found device without valid mgm id reference, deleting: " + line)
+                devList.remove(line)
+    return
+
+
 def migrateCsvDev(csv_in, input_type):
     for line in csv_in:
         if len(line)>0:
@@ -170,6 +190,9 @@ with open(args.dev_file) as devDataFile:
 
 migrateCsvMgm(mgmList,args.source)
 migrateCsvDev(devList,args.source)
+
+mgmIdList = getMgmIds(mgmList)
+cleanDevsWithoutValidMgm(devList, mgmIdList)
 
 mgmString = convert_csv2graphql(mgmList, mgm_keys, mgm_types)
 devString = convert_csv2graphql(devList, dev_keys, dev_types)

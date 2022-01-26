@@ -72,7 +72,7 @@ def convert_csv2graphql(csv_in, keys, types):
                 input_value = line[i]
                 value = None
                 graphql_mgm += keys[i] + ": "
-                if types[i] != 'int' and types[i] != 'bool':
+                if types[i] != 'int' and types[i] != 'bool' and input_value != None:
                     value = '"' + input_value.replace('\n', '\\n') + '"'    # escape linebreaks in strings
                 else:
                     if types[i]=='bool':

@@ -6,7 +6,7 @@
 @using FWO.Ui.Services
 
 @page "/settings/report"
-@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, recertifier, workflow-user, workflow-admin, auditor")]
+@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, recertifier, workflow-user, workflow-admin, auditor, fw-admin")]
 
 @inject APIConnection apiConnection
 @inject UserConfig userConfig

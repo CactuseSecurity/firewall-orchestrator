@@ -8,12 +8,12 @@
 <Sidebar PositionLeft="true" Collapsible="false" Resizeable="false" SidebarCssClass="navbar-dark bg-dark" @bind-Width="sidebarWidth">
     <div class="m-2 mt-4">
         <ul class="navbar-nav flex-column">
-            <AuthorizeView Roles="admin, importer, auditor">
+            <AuthorizeView Roles="admin, importer, auditor, fw-admin">
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5011"))">
                     <h5>@(userConfig.GetText("devices"))</h5>
                 </li>
             </AuthorizeView>
-            <AuthorizeView Roles="admin, auditor">
+            <AuthorizeView Roles="admin, auditor, fw-admin">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/managements">
                         <span class="oi oi-inbox"></span> @(userConfig.GetText("managements"))
@@ -25,7 +25,7 @@
                     </NavLink>
                 </li>
             </AuthorizeView>
-            <AuthorizeView Roles="admin, importer, auditor">
+            <AuthorizeView Roles="admin, importer, auditor, fw-admin">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/import">
                         <span class="oi oi-data-transfer-download"></span> @(userConfig.GetText("import_status"))
@@ -78,7 +78,7 @@
                 </li>
                 <hr />
             </AuthorizeView>
-            <AuthorizeView Roles="admin, reporter, reporter-viewall, recertifier, workflow-user, workflow-admin, auditor">
+            <AuthorizeView Roles="admin, reporter, reporter-viewall, recertifier, workflow-user, workflow-admin, auditor, fw-admin">
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5014"))">
                     <h5>@(userConfig.GetText("personal"))</h5>
                 </li>

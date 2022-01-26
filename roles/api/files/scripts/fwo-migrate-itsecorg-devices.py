@@ -99,6 +99,18 @@ def convert_csv2graphql(csv_in, keys, types):
     return "[" + result + "]"
 
 
+def migrateCsvMgm(csv_in, input_type):
+    for line in csv_in:
+        if len(line)>0:
+            dev_typ_id = int(line[8])
+            # if dev_typ_id==10: # fortigate
+            #     # delete line from csv_in (we will use autodiscovery for fortinet devs)
+            #     csv_in = csv_in.remove(line)
+            #     continue    # deal with next line
+            if dev_typ_id==17:
+                line[8] = 9     # dev type id for checkpoint is now 9 (not 17)
+
+
 def migrateCsvDev(csv_in, input_type):
     for line in csv_in:
         if len(line)>0:
@@ -106,16 +118,18 @@ def migrateCsvDev(csv_in, input_type):
             if dev_typ_id==10: # fortigate
                 # delete line from csv_in (we will use autodiscovery for fortinet devs)
                 csv_in = csv_in.remove(line)
-            else:
-                if input_type=='itsecorg':
-                    dev_rulebase_name = line[4]
-                    dev_rulebase_name_ar = '/'.split(dev_rulebase_name)
-                    if len(dev_rulebase_name_ar)>1: # found global rulebase
-                        line[4] = dev_rulebase_name_ar[0] # local rulebase name
-                        line.insert(5, dev_rulebase_name_ar[1]) # global rulebase name
-                    else:
-                        line.insert(5, None) # global rulebase name
-                    line.insert(6, None) # package name - needs to be set manually
+                continue    # deal with next line
+            if dev_typ_id==17:
+                line[2] = 9     # dev type id for checkpoint is now 9 (not 17)
+            if input_type=='itsecorg':
+                dev_rulebase_name = line[4]
+                dev_rulebase_name_ar = '/'.split(dev_rulebase_name)
+                if len(dev_rulebase_name_ar)>1: # found global rulebase
+                    line[4] = dev_rulebase_name_ar[0] # local rulebase name
+                    line.insert(5, dev_rulebase_name_ar[1]) # global rulebase name
+                else:
+                    line.insert(5, None) # global rulebase name
+                line.insert(6, None) # package name - needs to be set manually
 
 
 args = parser.parse_args()
@@ -130,16 +144,10 @@ mgm_types = ('int', 'string', 'string', 'int', 'string', 'string', 'string',
     'int', 'string', 'bool', 'bool', 'bool', 'string', 'string',
     'string', 'string', 'string' )
 
-# if args.source == 'fworch':
 dev_keys = ('dev_id', 'dev_name', 'dev_typ_id', 'mgm_id', 'local_rulebase_name', 'global_rulebase_name', 'package_name',
     'dev_comment', 'do_not_import', 'force_initial_import', 'hide_in_gui', 'dev_create', 'dev_update')
 dev_types = ('int', 'string', 'int', 'int', 'string', 'string', 'string',
     'string', 'bool', 'bool', 'bool', 'string', 'string')
-# elif args.source == 'itsecorg':
-#     dev_keys = ('dev_id', 'dev_name', 'dev_typ_id', 'mgm_id', 'dev_rulebase',
-#         'dev_comment', 'do_not_import', 'force_initial_import', 'hide_in_gui', 'dev_create', 'dev_update')
-#     dev_types = ('int', 'string', 'int', 'int', 'string',
-#         'string', 'bool', 'bool', 'bool', 'string', 'string')
 
 mgmList = list()
 with open(args.mgm_file) as mgmDataFile:
@@ -160,6 +168,7 @@ with open(args.dev_file) as devDataFile:
         devList.append(line)    
     # migrate itsecorg dev to fwo dev (dividing rulebase names)
 
+migrateCsvMgm(mgmList,args.source)
 migrateCsvDev(devList,args.source)
 
 mgmString = convert_csv2graphql(mgmList, mgm_keys, mgm_types)

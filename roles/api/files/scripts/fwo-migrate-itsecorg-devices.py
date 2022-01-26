@@ -102,13 +102,13 @@ def convert_csv2graphql(csv_in, keys, types):
 def migrateCsvMgm(csv_in, input_type):
     for line in csv_in:
         if len(line)>0:
-            dev_typ_id = int(line[8])
+            dev_typ_id = int(line[7])
             # if dev_typ_id==10: # fortigate
             #     # delete line from csv_in (we will use autodiscovery for fortinet devs)
             #     csv_in = csv_in.remove(line)
             #     continue    # deal with next line
             if dev_typ_id==17:
-                line[8] = 9     # dev type id for checkpoint is now 9 (not 17)
+                line[7] = 9     # dev type id for checkpoint is now 9 (not 17)
 
 
 def migrateCsvDev(csv_in, input_type):

@@ -189,3 +189,6 @@ adding report template format fk and permissions
 - main release merge
 - migrated api import-loop to a single python script without any sys executes of ext. scripts
 - minor but fixes and vip nat for fortimanager
+
+### 5.6.5 - 2022
+- next planned release

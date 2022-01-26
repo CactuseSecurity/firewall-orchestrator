@@ -1,11 +1,9 @@
 #!/usr/bin/python3
 import sys
-base_dir = "/usr/local/fworch"
-importer_base_dir = base_dir + '/importer'
+from common import importer_base_dir
 sys.path.append(importer_base_dir)
 import logging, logging.config
 import getter
-# import fwcommon
 import json, argparse, sys
 
 logging.config.fileConfig(fname='discovery_logging.conf', disable_existing_loggers=False)

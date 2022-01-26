@@ -107,7 +107,7 @@ rsyslog config
 
   - name: edit logrotate
     blockinfile:
-      path: "/etc/logrotate.d/{{ product_name }}.conf"
+      path: "/etc/logrotate.d/{{ product_name }}"
       create: yes
       block: |
         /var/log/{{ product_name }}/*.log {

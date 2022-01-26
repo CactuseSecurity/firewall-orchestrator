@@ -64,8 +64,8 @@ namespace FWO.Ui.Display
                 string page = recert ? "certification" : "report";
 
                 if (source.User != null)
-                    result.AppendLine($"<span class=\"oi oi-people\">&nbsp;</span><a href=\"{ page }#report-m{rule.MgmtId}-user{source.User.Id}\" target=\"_top\" style=\"{style}\">{source.User.Name}</a>@");
-                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"{ page }#report-m{rule.MgmtId}-nwobj{source.Object.Id}\" target=\"_top\" style=\"{style}\">{source.Object.Name}</a>");
+                    result.AppendLine($"<span class=\"oi oi-people\">&nbsp;</span><a href=\"{ page }#goto-report-m{rule.MgmtId}-user{source.User.Id}\" target=\"_top\" style=\"{style}\">{source.User.Name}</a>@");
+                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"{ page }#goto-report-m{rule.MgmtId}-nwobj{source.Object.Id}\" target=\"_top\" style=\"{style}\">{source.Object.Name}</a>");
                 result.Append((source.Object.IP != null ? $" ({source.Object.IP})" : ""));
                 result.AppendLine("<br>");
             }
@@ -103,7 +103,7 @@ namespace FWO.Ui.Display
 
                 string page = recert ? "certification" : "report";
 
-                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"{ page }#report-m{rule.MgmtId}-nwobj{destination.Object.Id}\" target=\"_top\" style=\"{style}\">{destination.Object.Name}</a>");
+                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"{ page }#goto-report-m{rule.MgmtId}-nwobj{destination.Object.Id}\" target=\"_top\" style=\"{style}\">{destination.Object.Name}</a>");
                 result.Append(destination.Object.IP != null ? $" ({destination.Object.IP})" : "");
                 result.AppendLine("<br>");
             }
@@ -134,7 +134,7 @@ namespace FWO.Ui.Display
 
                 string page = recert ? "certification" : "report";
 
-                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"{ page }#report-m{rule.MgmtId}-svc{service.Content.Id}\" target=\"_top\" style=\"{style}\">{service.Content.Name}</a>");
+                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"{ page }#goto-report-m{rule.MgmtId}-svc{service.Content.Id}\" target=\"_top\" style=\"{style}\">{service.Content.Name}</a>");
 
                 if (service.Content.DestinationPort != null)
                     result.Append(service.Content.DestinationPort == service.Content.DestinationPortEnd ? $" ({service.Content.DestinationPort}/{service.Content.Protocol?.Name})"

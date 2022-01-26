@@ -7,12 +7,17 @@
     - importer handler
     when: installation_mode == "upgrade"
 
+  - name: check for importer dir
+    stat:
+      path: "{{ fworch_home }}/importer"
+    register: importer_dir_check
+
   - name: backup importer dir
     synchronize:
       src: "{{ fworch_home }}/importer"
       dest: "{{ fworch_home }}/backup_importer"
     delegate_to: "{{ inventory_hostname }}"
-    when: installation_mode == "upgrade"
+    when: importer_dir_check.stat.exists and installation_mode == "upgrade"
 
   - name: remove importer dir
     file:

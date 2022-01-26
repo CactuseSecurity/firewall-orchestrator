@@ -108,7 +108,7 @@ def migrateCsvMgm(csv_in, input_type):
             #     csv_in = csv_in.remove(line)
             #     continue    # deal with next line
             if dev_typ_id==17:
-                line[7] = 9     # dev type id for checkpoint is now 9 (not 17)
+                line[7] = "9"     # dev type id for checkpoint is now 9 (not 17)
 
 
 def migrateCsvDev(csv_in, input_type):
@@ -120,7 +120,7 @@ def migrateCsvDev(csv_in, input_type):
                 csv_in = csv_in.remove(line)
                 continue    # deal with next line
             if dev_typ_id==17:
-                line[2] = 9     # dev type id for checkpoint is now 9 (not 17)
+                line[2] = "9"     # dev type id for checkpoint is now 9 (not 17)
             if input_type=='itsecorg':
                 dev_rulebase_name = line[4]
                 dev_rulebase_name_ar = '/'.split(dev_rulebase_name)

@@ -25,7 +25,7 @@ def showApiCallInfo(url, query, headers, type='debug'):
         result += query_string 
     else:
         result += str(query)[:round(max_query_size_to_display/2)] +   "\n ... [snip] ... \n" + \
-            str(query)[query_size-round(max_query_size_to_display/2):] + " (total query size=" + str(query_size) + " bytes)"
+            query_string[query_size-round(max_query_size_to_display/2):] + " (total query size=" + str(query_size) + " bytes)"
     result += "\n and  headers: \n" + header_string
     return result
 
@@ -244,7 +244,7 @@ def delete_import(fwo_api_base_url, jwt, current_import_id):
         return 1
 
 
-def import_json_config(fwo_api_base_url, jwt, mgm_id, query_variables):
+def import_json_config(fwo_api_base_url, jwt, mgm_id, query_variables, debug_level=0):
     import_mutation = """
         mutation import($importId: bigint!, $mgmId: Int!, $config: jsonb!, $start_import_flag: Boolean!) {
             insert_import_config(objects: {start_import_flag: $start_import_flag, import_id: $importId, mgm_id: $mgmId, config: $config}) {
@@ -255,7 +255,7 @@ def import_json_config(fwo_api_base_url, jwt, mgm_id, query_variables):
 
     try:
         import_result = call(fwo_api_base_url, jwt, import_mutation,
-                             query_variables=query_variables, role='importer')
+                             query_variables=query_variables, role='importer', debug=debug_level)
         # note: this will not detect errors in triggered stored procedure run
         if 'errors' in import_result:
             logging.exception("fwo_api:import_json_config - error while writing importable config for mgm id " +

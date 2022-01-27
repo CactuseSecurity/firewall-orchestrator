@@ -200,7 +200,8 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
                     else:
                         start_import_flag = False
                     error_count += fwo_api.import_json_config(fwo_api_base_url, jwt, mgm_id, {
-                        "start_import_flag": start_import_flag, "importId": current_import_id, "mgmId": mgm_id, "config": config2import_list[idx]})
+                        "start_import_flag": start_import_flag, "importId": current_import_id, "mgmId": mgm_id, "config": config2import_list[idx]},
+                        debug_level=debug_level)
                     idx += 1
             except:
                 logging.error("import_management - unspecified error while importing config via FWO API: " + str(traceback.format_exc()))

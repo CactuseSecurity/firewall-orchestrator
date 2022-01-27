@@ -16,7 +16,7 @@ def call(url, jwt, query, query_variables="", role="reporter", ssl_verification=
         'Authorization': 'Bearer ' + jwt,
         'x-hasura-role': role
     }
-    full_query = {"variables": query_variables, "query": query}
+    full_query = {"query": query, "variables": query_variables}
 
     try:
         r = requests.post(url, data=json.dumps(

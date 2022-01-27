@@ -20,6 +20,14 @@ apostrophe = "\""
 section_header_uids=[]
 nat_postfix = '_NatNwObj'
 
+# how many objects (network, services, rules, ...) should be sent to the FWO API in one go?
+# should be between 500 and 2.000 in production (results in a max obj number of 5 x this value)
+# the database has a limit of 255 MB per jsonb
+# https://stackoverflow.com/questions/12632871/size-limit-of-json-data-type-in-postgresql
+# >25.000 rules exceed this limit
+max_objs_per_chunk = 50  
+
+
 class FwLoginFailed(Exception):
     """Raised when login to FW management failed"""
 
@@ -242,11 +250,11 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
         else: # if no changes were found, we get get_config_response==512 and we skip everything else without errors
             pass
 
-        try: # CLEANUP: delete configs of imports without changes (if no error occured)
-            if change_count == 0 and error_count == 0 and get_config_response < 2:
-                if fwo_api.delete_json_config(fwo_api_base_url, jwt, {"importId": current_import_id})<0:
-                    error_count = +1
-                # error_count += fwo_api.delete_import(fwo_api_base_url, jwt, current_import_id)
+        try: # CLEANUP: delete configs of imports (without changes) (if no error occured)
+            if fwo_api.delete_json_config(fwo_api_base_url, jwt, {"importId": current_import_id})<0:
+                error_count = +1
+            # if change_count == 0 and error_count == 0 and get_config_response < 2:
+                # error_count += fwo_api.delete_import(fwo_api_base_url, jwt, current_import_id)  # this clears the import_control entry completely
             if change_count != 0 and config2import_size > config2import_size_limit:
                 error_count += fwo_api.delete_json_config(fwo_api_base_url, jwt, {"importId": current_import_id})
             if os.path.exists(secret_filename):
@@ -272,29 +280,59 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
     return error_count
 
 
+def split_list(list_in, max_list_length):
+    if len(list_in)<max_list_length:
+        return [list_in]
+    else:
+        list_of_lists = []
+        i=0
+        while i<len(list_in):
+            last_element_in_chunk = min(len(list_in), i+max_list_length)
+            list_of_lists.append(list_in[i:last_element_in_chunk])
+            i += max_list_length
+    return list_of_lists
+
+
 def split_config(config2import):
-    max_objs_per_chunk = 500
-    i = max_objs_per_chunk
-    total_rule_number = len(config2import['rules'])
+    conf_split_dict_of_lists = {}
+    max_number_of_chunks = 0
+    for obj_list_name in ["network_objects", "service_objects", "user_objects", "rules", "zone_objects"]:
+        if obj_list_name in config2import:
+            split_list_tmp = split_list(config2import[obj_list_name], max_objs_per_chunk)
+            conf_split_dict_of_lists.update({obj_list_name: split_list_tmp})
+            if len(split_list_tmp)>max_number_of_chunks:
+                max_number_of_chunks = len(split_list_tmp)
+        else:
+            conf_split_dict_of_lists.update({obj_list_name: []})
+    conf_split = []
+    current_chunk = 0
+    while current_chunk<max_number_of_chunks:
+        network_object_chunk = []
+        service_object_chunk = []
+        user_object_chunk = []
+        zone_object_chunk = []
+        rules_chunk = []
 
-    # todo: also split objects
-    last_rule_in_chunk = min(len(config2import['rules'])-1, i+max_objs_per_chunk-1)
-    conf_list = [{
-        "network_objects": config2import['network_objects'],
-        "service_objects": config2import['service_objects'],
-        "user_objects": config2import['user_objects'],
-        "rules": config2import['rules'][0:last_rule_in_chunk]
-    }]
-    if 'zone_objects' in config2import:
-        conf_list[0].update( { "zone_objects": config2import['zone_objects'] })
+        if current_chunk<len(conf_split_dict_of_lists['network_objects']):
+            network_object_chunk = conf_split_dict_of_lists['network_objects'][current_chunk]
+        if current_chunk<len(conf_split_dict_of_lists['service_objects']):
+            service_object_chunk = conf_split_dict_of_lists['service_objects'][current_chunk]
+        if current_chunk<len(conf_split_dict_of_lists['user_objects']):
+            user_object_chunk = conf_split_dict_of_lists['user_objects'][current_chunk]
+        if current_chunk<len(conf_split_dict_of_lists['zone_objects']):
+            zone_object_chunk = conf_split_dict_of_lists['zone_objects'][current_chunk]
+        if current_chunk<len(conf_split_dict_of_lists['rules']):
+            rules_chunk = conf_split_dict_of_lists['rules'][current_chunk]
 
-    while i<total_rule_number:
-        last_rule_in_chunk = min(len(config2import['rules'])-1, i+max_objs_per_chunk-1)
-        conf_list.append({
-            "rules": config2import['rules'][i:last_rule_in_chunk]
+        conf_split.append({
+            "network_objects": network_object_chunk,
+            "service_objects": service_object_chunk,
+            "user_objects": user_object_chunk,
+            "zone_objects": zone_object_chunk,
+            "rules": rules_chunk
         })
-        i += max_objs_per_chunk
-    return conf_list
+        current_chunk += 1
+    return conf_split
 
 
 def set_log_level(log_level, debug_level):

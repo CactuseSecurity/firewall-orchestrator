@@ -87,7 +87,7 @@ else: # visit each domain and fetch layers
     for obj in domains['objects']:
         domain_name = obj['name']
         logging.debug ("MDS: searchig in domain " + domain_name)
-        xsid = getter.login(args.user, args.password, args.hostname, args.port, domain_name, ssl_verification, proxy_string)
+        xsid = getter.login(args.user, args.password_file, args.hostname, args.port, domain_name, ssl_verification, proxy_string)
         obj['gateways'] = getter.api_call(v_url, 'show-gateways-and-servers', parameters, xsid, ssl_verification, proxy_string)
         if 'objects' in obj['gateways']:
             for gw in obj['gateways']['objects']:

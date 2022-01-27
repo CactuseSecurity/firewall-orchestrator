@@ -243,7 +243,8 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
 
         try: # CLEANUP: delete configs of imports without changes (if no error occured)
             if change_count == 0 and error_count == 0 and get_config_response < 2:
-                error_count += fwo_api.delete_json_config(fwo_api_base_url, jwt, {"importId": current_import_id})
+                if fwo_api.delete_json_config(fwo_api_base_url, jwt, {"importId": current_import_id})<0:
+                    error_count = +1
                 # error_count += fwo_api.delete_import(fwo_api_base_url, jwt, current_import_id)
             if change_count != 0 and config2import_size > config2import_size_limit:
                 error_count += fwo_api.delete_json_config(fwo_api_base_url, jwt, {"importId": current_import_id})
@@ -292,10 +293,6 @@ def split_config(config2import):
         })
         i += max_objs_per_chunk
     return conf_list
-
-            # "network_objects": [],
-            # "service_objects": [],
-            # "user_objects": [],
 
 
 def set_log_level(log_level, debug_level):

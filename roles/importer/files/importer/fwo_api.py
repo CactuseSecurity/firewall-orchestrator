@@ -1,6 +1,7 @@
 # library for FWORCH API calls
 import re
 import logging
+from textwrap import indent
 import requests.packages
 import requests
 import json
@@ -22,13 +23,29 @@ def call(url, jwt, query, query_variables="", role="reporter", ssl_verification=
         r = requests.post(url, data=json.dumps(
             full_query), headers=request_headers, verify=ssl_verification, proxies=proxy)
         r.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        logging.exception("\nerror while sending api_call to url " + str(url) + " with payload \n" +
-                          json.dumps(full_query, indent=2) + "\n and  headers: \n" + json.dumps(request_headers, indent=2))
-        raise Exception ("FWO-API importer call error")
+    except requests.exceptions.RequestException:
+        query_string = json.dumps(full_query, indent=2)
+        header_string = json.dumps(request_headers, indent=2)
+        query_size = len(query_string)
+        if query_size < 1000:
+            exc_text = "error while sending api_call to url " + str(url) + " with payload \n" +  query_string + \
+                 "\n and  headers: \n" + header_string
+        else:
+            exc_text = "error while sending api_call to url " + str(url) + " with large payload (size=" + \
+                str(query_size) + " bytes)\n and  headers: \n" + header_string 
+        logging.error(exc_text)
+        raise Exception ("FWO-API importer call error") from None
     if debug > 2:
-        logging.debug("\napi_call to url '" + str(url) + "' with payload '" + json.dumps(query, indent=2) + "' and headers: '" +
-                      json.dumps(request_headers, indent=2))
+        query_string = json.dumps(full_query, indent=2)
+        header_string = json.dumps(request_headers, indent=2)
+        query_size = len(query_string)
+        if query_size < 1000:
+            debug_text = "successful FWO API call to " + str(url) + " with payload \n" +  query_string + \
+                 "\n and  headers: \n" + header_string
+        else:
+            debug_text = "error while sending api_call to url " + str(url) + " with large payload (size=" + \
+                str(query_size) + " bytes)\n and  headers: \n" + header_string 
+        logging.debug(debug_text)
     if show_progress:
         print('.', end='', flush=True)
     return r.json()
@@ -268,8 +285,8 @@ def delete_json_config(fwo_api_base_url, jwt, query_variables):
         changes_in_delete_config = delete_result['data']['delete_import_config']['affected_rows']
     except:
         logging.exception("fwo_api: failed to delete config without changes")
-        return 2  # indicating 1 error
-    return changes_in_delete_config-1
+        return -1  # indicating error
+    return changes_in_delete_config
 
 
 def store_full_json_config(fwo_api_base_url, jwt, mgm_id, query_variables):

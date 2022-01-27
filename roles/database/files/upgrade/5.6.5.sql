@@ -7,20 +7,10 @@
 */
 
 -- migrate config import tables (deleting all old configs)
-
-ALTER TABLE "import_config"
-    DROP CONSTRAINT IF EXISTS "import_config_pkey";
-
--- ALTER TABLE "rule"
---     DROP CONSTRAINT IF EXISTS "rule_parent_rule_type_id_fkey" CASCADE;
-
--- ALTER TABLE "rule"
---     ADD CONSTRAINT rule_rule_parent_rule_id_fkey FOREIGN KEY ("parent_rule_id") REFERENCES "rule" ("rule_id") ON UPDATE RESTRICT ON DELETE CASCADE;
-
-
 DELETE FROM "import_config";
 DELETE FROM "import_full_config";
 
+ALTER TABLE "import_config" DROP CONSTRAINT IF EXISTS "import_config_pkey"; -- we now will have more than one entry per import
 ALTER TABLE "import_config" DROP COLUMN IF exists "config";
 ALTER TABLE "import_config" ADD COLUMN "config" jsonb NOT NULL;
 ALTER TABLE "import_config" ADD COLUMN IF NOT EXISTS "start_import_flag" BOOLEAN DEFAULT FALSE;

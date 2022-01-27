@@ -192,3 +192,6 @@ adding report template format fk and permissions
 
 ### 5.6.5 - 2022
 - next planned release
+- fixing migration scripts
+- splitting import_config into chunks to enable import of big managements
+- introducing fw-admin role (device admin without delete & auto-discovery rights)

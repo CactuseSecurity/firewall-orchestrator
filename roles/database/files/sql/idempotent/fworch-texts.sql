@@ -1646,7 +1646,7 @@ INSERT INTO txt VALUES ('H5102', 'English', 'The following firewall products can
     </ul>
 ');
 INSERT INTO txt VALUES ('H5103', 'German',  'F&uuml;r Firewallgateways ohne separates Management oder im Falle, dass das zentrale Management nicht in den Firewall Orchestrator eingebunden werden kann,
-    k&ouml;nnen, die Details des Gateways hier als Management und gleichzeitig noch einmal als Gateway eingetragen werden.
+    werden die Details des Gateways als Management und gleichzeitig auch als Gateway eingetragen.
 ');
 INSERT INTO txt VALUES ('H5103', 'English', 'For firewall gateways without a separate management or in case the central management cannot be integrated into Firewall Orchestrator 
     you may enter the details of the gateway here as a management system as well and then add it again as a gateway.

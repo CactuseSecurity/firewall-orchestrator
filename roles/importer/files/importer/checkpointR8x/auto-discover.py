@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import sys
-from common import importer_base_dir
-sys.path.append(importer_base_dir)
+# from .. common import importer_base_dir
+sys.path.append('..')
 import logging, logging.config
 import getter
 import json, argparse, sys
@@ -39,7 +39,7 @@ with open(args.password_file, 'r') as file:
 
 xsid = getter.login(args.user, apiuser_pwd, args.hostname, args.port, args.domain, ssl_verification, proxy_string)
 
-api_versions = getter.api_call(args.hostname, args.port, base_url, 'show-api-versions', {}, xsid, ssl_verification, proxy_string)
+api_versions = getter.api_call(base_url, 'show-api-versions', {}, xsid, ssl_verification, proxy_string)
 api_version = api_versions["current-version"]
 api_supported = api_versions["supported-versions"]
 v_url = getter.set_api_url(base_url,args.version,api_supported,args.hostname)
@@ -57,11 +57,8 @@ if args.debug == "1" or args.debug == "3":
 else:
     debug = False
 
-# todo: 
-# - only show active devices (optionally with a switch)
-
-domains = getter.api_call(args.hostname, args.port, v_url, "show-domains", {}, xsid, ssl_verification, proxy_string)
-
+# todo: only show active devices (optionally with a switch)
+domains = getter.api_call (v_url, 'show-domains', {}, xsid, ssl_verification, proxy_string)
 gw_types = ['simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiGatewayPlain', 'CpmiGatewayCluster', 'CpmiVsxClusterNetobj']
 parameters =  { "details-level" : "full" }
 
@@ -71,26 +68,27 @@ if domains['total']== 0:
 
     # fetching gateways for non-MDS management:
     obj = domains['objects'][0]
-    obj['gateways'] = getter.api_call(args.hostname, args.port, v_url, "show-gateways-and-servers", parameters, xsid, ssl_verification, proxy_string)
+    obj['gateways'] = getter.api_call(v_url, 'show-gateways-and-servers', parameters, xsid, ssl_verification, proxy_string)
+
     if 'objects' in obj['gateways']:
         for gw in obj['gateways']['objects']:
             if 'type' in gw and gw['type'] in gw_types and 'policy' in gw:
                 if 'access-policy-installed' in gw['policy'] and gw['policy']['access-policy-installed'] and "access-policy-name" in gw['policy']:
                     logging.debug ("standalone mgmt: found gateway " + gw['name'] + " with policy" + gw['policy']['access-policy-name'])
-                    gw['package'] = getter.api_call(args.hostname, args.port, v_url, 
+                    gw['package'] = getter.api_call(v_url, 
                         "show-package", 
                         { "name" : gw['policy']['access-policy-name'], "details-level": "full" }, 
                         xsid, ssl_verification, proxy_string)
     else:
         logging.warning ("Standalone WARNING: did not find any gateways in stand-alone management")
-    logout_result = getter.api_call(args.hostname, args.port, v_url, 'logout', {}, xsid, ssl_verification, proxy_string)
+    logout_result = getter.api_call(v_url, 'logout', {}, xsid, ssl_verification, proxy_string)
 
 else: # visit each domain and fetch layers
     for obj in domains['objects']:
         domain_name = obj['name']
         logging.debug ("MDS: searchig in domain " + domain_name)
-        xsid = getter.login(args.user, args.password, args.hostname, args.port, domain_name, ssl_verification, proxy_string)
-        obj['gateways'] = getter.api_call(args.hostname, args.port, v_url, "show-gateways-and-servers", parameters, xsid, ssl_verification, proxy_string)
+        xsid = getter.login(args.user, args.password_file, args.hostname, args.port, domain_name, ssl_verification, proxy_string)
+        obj['gateways'] = getter.api_call(v_url, 'show-gateways-and-servers', parameters, xsid, ssl_verification, proxy_string)
         if 'objects' in obj['gateways']:
             for gw in obj['gateways']['objects']:
                 if 'type' in gw and gw['type'] in gw_types and 'policy' in gw:
@@ -98,12 +96,10 @@ else: # visit each domain and fetch layers
                         api_call_str = "show-package name " + gw['policy']['access-policy-name'] + ", logged in to domain " + domain_name
                         logging.debug ("MDS: found gateway " + gw['name'] + " with policy: " + gw['policy']['access-policy-name'])
                         logging.debug ("api call: " + api_call_str)
-                        gw['package'] = getter.api_call(args.hostname, args.port, v_url, "show-package", 
-                            { "name" : gw['policy']['access-policy-name'], "details-level": "full" }, 
-                            xsid, ssl_verification, proxy_string)
+                        gw['package'] = getter.api_call(v_url, 'show-package', { "name" : gw['policy']['access-policy-name'], "details-level": "full" }, xsid, ssl_verification, proxy_string)
         else:
             logging.warning ("Domain-WARNING: did not find any gateways in domain " + obj['name'])
-        logout_result = getter.api_call(args.hostname, args.port, v_url, 'logout', {}, xsid, ssl_verification, proxy_string)
+        logout_result = getter.api_call(v_url, 'logout', {}, xsid, ssl_verification, proxy_string)
 
 # now collect only relevant data and copy to new dict
 domains_essential = []

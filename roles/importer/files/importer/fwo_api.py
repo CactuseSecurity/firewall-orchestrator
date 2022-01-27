@@ -10,13 +10,27 @@ import common
 details_level = "full"    # 'standard'
 use_object_dictionary = 'false'
 
+def showApiCallInfo(url, query, headers, type='debug'):
+    max_query_size_to_display = 1000
+    query_string = json.dumps(query, indent=2)
+    header_string = json.dumps(headers, indent=2)
+    query_size = len(query_string)
+
+    if type=='error':
+        result = "error while sending api_call to url "
+    else:
+        result = "successful FWO API call to url "        
+    result += str(url) + " with payload \n"
+    if query_size < max_query_size_to_display:
+        result += query_string 
+    else:
+        result += str(query)[:round(max_query_size_to_display/2)] +   "\n ... [snip] ... \n" + \
+            str(query)[query_size-round(max_query_size_to_display/2):] + " (total query size=" + str(query_size) + " bytes)"
+    result += "\n and  headers: \n" + header_string
+    return result
 
 def call(url, jwt, query, query_variables="", role="reporter", ssl_verification='', proxy=None, show_progress=False, method='', debug=0):
-    request_headers = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + jwt,
-        'x-hasura-role': role
-    }
+    request_headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jwt, 'x-hasura-role': role }
     full_query = {"query": query, "variables": query_variables}
 
     try:
@@ -24,28 +38,10 @@ def call(url, jwt, query, query_variables="", role="reporter", ssl_verification=
             full_query), headers=request_headers, verify=ssl_verification, proxies=proxy)
         r.raise_for_status()
     except requests.exceptions.RequestException:
-        query_string = json.dumps(full_query, indent=2)
-        header_string = json.dumps(request_headers, indent=2)
-        query_size = len(query_string)
-        if query_size < 1000:
-            exc_text = "error while sending api_call to url " + str(url) + " with payload \n" +  query_string + \
-                 "\n and  headers: \n" + header_string
-        else:
-            exc_text = "error while sending api_call to url " + str(url) + " with large payload (size=" + \
-                str(query_size) + " bytes)\n and  headers: \n" + header_string 
-        logging.error(exc_text)
+        logging.error(showApiCallInfo(url, full_query, request_headers, type='error'))
         raise Exception ("FWO-API importer call error") from None
     if debug > 2:
-        query_string = json.dumps(full_query, indent=2)
-        header_string = json.dumps(request_headers, indent=2)
-        query_size = len(query_string)
-        if query_size < 1000:
-            debug_text = "successful FWO API call to " + str(url) + " with payload \n" +  query_string + \
-                 "\n and  headers: \n" + header_string
-        else:
-            debug_text = "error while sending api_call to url " + str(url) + " with large payload (size=" + \
-                str(query_size) + " bytes)\n and  headers: \n" + header_string 
-        logging.debug(debug_text)
+        logging.debug(showApiCallInfo(url, full_query, request_headers, type='debug'))
     if show_progress:
         print('.', end='', flush=True)
     return r.json()

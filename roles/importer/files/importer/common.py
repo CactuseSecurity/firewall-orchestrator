@@ -276,6 +276,7 @@ def split_config(config2import):
     i = max_objs_per_chunk
     total_rule_number = len(config2import['rules'])
 
+    # todo: also split objects
     last_rule_in_chunk = min(len(config2import['rules'])-1, i+max_objs_per_chunk-1)
     conf_list = [{
         "network_objects": config2import['network_objects'],

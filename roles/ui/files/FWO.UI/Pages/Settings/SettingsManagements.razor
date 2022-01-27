@@ -486,6 +486,12 @@
         return true;
     }
 
+    private bool CheckValuesAutodiscover(Management mgm, string checkCause)
+    {
+        // todo: proper check
+        return true;
+    }
+
     private void Cancel()
     {
         AddMode = false;
@@ -522,7 +528,7 @@
             {
                 if (adom.ConfigPath != "global")
                 {
-                    if (CheckValues(adom, userConfig.GetText("autodiscover")))
+                    if (CheckValuesAutodiscover(adom, userConfig.GetText("autodiscover")))
                     {
                         var Variables = new
                         {

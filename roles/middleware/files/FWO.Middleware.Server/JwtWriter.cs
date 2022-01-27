@@ -127,6 +127,8 @@ namespace FWO.Middleware.Server
                     defaultRole = "admin";
                 else if (hasuraRolesList.Contains("auditor"))
                     defaultRole = "auditor";
+                else if (hasuraRolesList.Contains("fw-admin"))
+                    defaultRole = "fw-admin";
                 else if (hasuraRolesList.Contains("reporter-viewall"))
                     defaultRole = "reporter-viewall";
                 else if (hasuraRolesList.Contains("reporter"))

@@ -74,14 +74,14 @@ if __name__ == '__main__':
             logging.error(e.message)
             skipping = True
         except:
-            logging.error("import-main-loop - Unspecified error while logging into FWO API", traceback.format_exc())        
+            logging.error("import-main-loop - Unspecified error while logging into FWO API", traceback.format_exc())
             skipping = True
 
         if not skipping:
             try:
                 mgm_ids = fwo_api.get_mgm_ids(fwo_api_base_url, jwt, {})
             except:
-                logging.error("import-main-loop - error while getting FW management ids", traceback.format_exc())        
+                logging.error("import-main-loop - error while getting FW management ids: " + str(traceback.format_exc()))
                 skipping = True
 
             api_fetch_limit = 150
@@ -101,7 +101,7 @@ if __name__ == '__main__':
                     if killer.kill_now:
                         break
                     if 'id' not in mgm_id:
-                        logging.error("import-main-loop - did not get mgm_id", traceback.format_exc())        
+                        logging.error("import-main-loop - did not get mgm_id: " + str(traceback.format_exc()))
                     else:
                         id = str(mgm_id['id'])
                         # getting a new JWT in case the old one is not valid anymore after a long previous import
@@ -112,13 +112,13 @@ if __name__ == '__main__':
                             logging.error(e.message)
                             skipping = True
                         except:
-                            logging.error("import-main-loop - unspecified error during FWO API login - skipping", traceback.format_exc())
+                            logging.error("import-main-loop - unspecified error during FWO API login - skipping: " + str(traceback.format_exc()))
                             skipping = True
                         if not skipping:
                             try:
                                 mgm_details = fwo_api.get_mgm_details(fwo_api_base_url, jwt, {"mgmId": id})
                             except:
-                                logging.error("import-main-loop - error while getting FW management details for mgm_id=" + str(id) + " - skipping", traceback.format_exc())
+                                logging.error("import-main-loop - error while getting FW management details for mgm_id=" + str(id) + " - skipping: " + str(traceback.format_exc()))
                                 skipping = True
                             if not skipping and mgm_details["deviceType"]["id"] in (9, 11):  # only handle CPR8x and fortiManager
                                 logging.debug("import-main-loop: starting import of mgm_id=" + id)

@@ -35,7 +35,7 @@ try:
         mgm_id=args.mgm_id, in_file=args.in_file, debug_level=args.debug, ssl=args.ssl, proxy=args.proxy, \
         force=args.force, limit=args.limit)
 except:
-    logging.error("import-mgm - error while importing mgm_id=" + str(args.mgm_id), traceback.format_exc())        
+    logging.error("import-mgm - error while importing mgm_id=" + str(args.mgm_id) + ": " + str(traceback.format_exc()))
     error_count = 1
 
 sys.exit(error_count)

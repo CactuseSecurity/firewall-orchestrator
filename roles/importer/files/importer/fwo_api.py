@@ -233,8 +233,8 @@ def delete_import(fwo_api_base_url, jwt, current_import_id):
 
 def import_json_config(fwo_api_base_url, jwt, mgm_id, query_variables):
     import_mutation = """
-        mutation import($importId: bigint!, $mgmId: Int!, $config: json!) {
-            insert_import_config(objects: {import_id: $importId, mgm_id: $mgmId, config: $config}) {
+        mutation import($importId: bigint!, $mgmId: Int!, $config: jsonb!, $start_import_flag: Boolean!) {
+            insert_import_config(objects: {start_import_flag: $start_import_flag, import_id: $importId, mgm_id: $mgmId, config: $config}) {
                 affected_rows
             }
         }

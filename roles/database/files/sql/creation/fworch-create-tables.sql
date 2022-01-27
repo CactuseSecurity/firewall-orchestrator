@@ -633,6 +633,7 @@ CREATE TABLE IF NOT EXISTS "import_config" (
     PRIMARY KEY ("import_id")
 );
 
+-- todo: move this to git instead
 -- permanent table for storing the full config as an archive
 CREATE TABLE "import_full_config" (
     "import_id" bigint NOT NULL,

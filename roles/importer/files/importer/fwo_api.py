@@ -287,7 +287,7 @@ def delete_json_config(fwo_api_base_url, jwt, query_variables):
 
 def store_full_json_config(fwo_api_base_url, jwt, mgm_id, query_variables):
     import_mutation = """
-        mutation store_full_config($importId: bigint!, $mgmId: Int!, $config: json!) {
+        mutation store_full_config($importId: bigint!, $mgmId: Int!, $config: jsonb!) {
             insert_import_full_config(objects: {import_id: $importId, mgm_id: $mgmId, config: $config}) {
                 affected_rows
             }

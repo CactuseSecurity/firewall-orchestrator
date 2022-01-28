@@ -1,15 +1,14 @@
 #!/usr/bin/python3
-import sys, logging
-import requests.packages, argparse
-from common import importer_base_dir
+import sys, logging, traceback
+import argparse
+from common import importer_base_dir, import_management
 sys.path.append(importer_base_dir)
-import common, traceback
 
 parser = argparse.ArgumentParser(
     description='Read configuration from FW management via API calls')
 parser.add_argument('-m', '--mgm_id', metavar='management_id',
                     required=True, help='FWORCH DB ID of the management server to import')
-parser.add_argument('-c', '--clear', metavar='clear_management',
+parser.add_argument('-c', '--clear', action='store_true', default=False,
                     help='If set the import will delete all data for the given management instead of importing')
 parser.add_argument('-f', '--force', action='store_true', default=False,
                     help='If set the import will be attempted without checking for changes before')
@@ -31,9 +30,9 @@ if len(sys.argv) == 1:
     sys.exit(1)
 
 try:
-    error_count = common.import_management(
+    error_count = import_management(
         mgm_id=args.mgm_id, in_file=args.in_file, debug_level=args.debug, ssl=args.ssl, proxy=args.proxy, \
-        force=args.force, limit=args.limit)
+        force=args.force, limit=args.limit, clearManagementData=args.clear)
 except:
     logging.error("import-mgm - error while importing mgm_id=" + str(args.mgm_id) + ": " + str(traceback.format_exc()))
     error_count = 1

@@ -274,7 +274,7 @@ def import_json_config(fwo_api_base_url, jwt, mgm_id, query_variables, debug_lev
         return 1
 
 
-def delete_json_config(fwo_api_base_url, jwt, query_variables):
+def delete_json_config_in_import_table(fwo_api_base_url, jwt, query_variables):
     delete_mutation = """
         mutation delete_import_config($importId: bigint!) {
             delete_import_config(where: {import_id: {_eq: $importId}}) { affected_rows }

@@ -59,6 +59,10 @@ fworch_dbadmin_name: dbadmin
 dbadmin_password_file: "{{ fworch_secrets_dir }}/dbadmin_pwd"
 fworch_db_password_file: "{{ fworch_secrets_dir }}/fworch_db_pwd"
 
+### for api (mainly) for large imports
+# but also ui
+apache_timeout: 3600
+
 ### middleware server 
 jwt_private_key_file: "{{ fworch_secrets_dir }}/jwt_private_key.pem"
 jwt_public_key_file: "{{ fworch_secrets_dir }}/jwt_public_key.pem"

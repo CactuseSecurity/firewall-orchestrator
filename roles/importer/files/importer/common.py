@@ -19,7 +19,7 @@ line_delimiter = "\n"
 apostrophe = "\""
 section_header_uids=[]
 nat_postfix = '_NatNwObj'
-http_timeout = 3600 # one hour
+fwo_api_http_import_timeout = 3600 # one hour, todo: move this to config
 
 # how many objects (network, services, rules, ...) should be sent to the FWO API in one go?
 # should be between 500 and 2.000 in production (results in a max obj number of 5 x this value)

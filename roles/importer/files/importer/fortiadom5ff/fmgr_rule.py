@@ -11,6 +11,28 @@ rule_nat_scope = ['rules_global_nat', 'rules_adom_nat']
 rule_scope = rule_access_scope + rule_nat_scope
 
 
+def initializeRulebases(raw_config):
+    # initialize access rules
+    if 'rules_global_header_v4' not in raw_config:
+        raw_config.update({'rules_global_header_v4': {}})
+    if 'rules_global_header_v6' not in raw_config:
+        raw_config.update({'rules_global_header_v6': {}})
+    if 'rules_adom_v4' not in raw_config:
+        raw_config.update({'rules_adom_v4': {}})
+    if 'rules_adom_v6' not in raw_config:
+        raw_config.update({'rules_adom_v6': {}})
+    if 'rules_global_footer_v4' not in raw_config:
+        raw_config.update({'rules_global_footer_v4': {}})
+    if 'rules_global_footer_v6' not in raw_config:
+        raw_config.update({'rules_global_footer_v6': {}})
+
+    # initialize nat rules
+    if 'rules_global_nat' not in raw_config:
+        raw_config.update({'rules_global_nat': {}})
+    if 'rules_adom_nat' not in raw_config:
+        raw_config.update({'rules_adom_nat': {}})
+
+
 def getAccessPolicy(sid, fm_api_url, raw_config, adom_name, device, limit, debug_level):
     consolidated = '' # '/consolidated'
 
@@ -18,17 +40,10 @@ def getAccessPolicy(sid, fm_api_url, raw_config, adom_name, device, limit, debug
     global_pkg_name = device['global_rulebase_name']
     # pkg_name = device['package_name'] pkg_name is not used at all
 
-    # initialize rules as empty lists
-    raw_config.update({'rules_global_header_v4': {}})
-    raw_config.update({'rules_global_header_v6': {}})
-    raw_config.update({'rules_adom_v4': {}})
-    raw_config.update({'rules_adom_v6': {}})
-    raw_config.update({'rules_global_footer_v4': {}})
-    raw_config.update({'rules_global_footer_v6': {}})
 
     # get global header rulebase:
     if device['global_rulebase_name'] is None or device['global_rulebase_name'] == '':
-        logging.warning('no global rulebase name defined in fortimanager')
+        logging.debug('no global rulebase name defined in fortimanager, ADOM=' + adom_name + ', local_package=' + local_pkg_name)
     else:
         fmgr_getter.update_config_with_fortinet_api_call(
             raw_config['rules_global_header_v4'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/header" + consolidated + "/policy", local_pkg_name, debug=debug_level, limit=limit)
@@ -50,10 +65,6 @@ def getAccessPolicy(sid, fm_api_url, raw_config, adom_name, device, limit, debug
 
 
 def getNatPolicy(sid, fm_api_url, raw_config, adom_name, device, limit, debug_level):
-    # initialize nat rules as empty lists
-    raw_config.update({'rules_global_nat': {}})
-    raw_config.update({'rules_adom_nat': {}})
-
     scope = 'global'
     pkg = device['global_rulebase_name']
     if pkg is not None and pkg != '':   # only read global rulebase if it exists
@@ -70,12 +81,8 @@ def getNatPolicy(sid, fm_api_url, raw_config, adom_name, device, limit, debug_le
 
 
 def normalize_access_rules(full_config, config2import, import_id):
-    # for rule_dict in rule_access_scope:
-    #    full_config[rule_dict] = {}
     rules = []
-    list_delimiter = '|'
     first_v4, first_v6 = check_headers_needed(full_config, rule_access_scope)
-    vip_nat_rule_number = 0
     nat_rule_number = 0
     rule_number = 0
     src_ref_all = ""
@@ -140,7 +147,7 @@ def normalize_access_rules(full_config, config2import, import_id):
                 rule.update({ 'rule_dst_refs': resolve_raw_objects(rule['rule_dst'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table) })
                 rule.update({ 'rule_svc_refs': rule['rule_svc'] }) # services do not have uids, so using name instead
 
-                xlate_rule = handle_combined_nat_rule(rule, rule_orig, full_config, config2import, nat_rule_number)
+                xlate_rule = handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number)
                 rules.append(rule)
                 if xlate_rule is not None:
                     rules.append(xlate_rule)
@@ -302,7 +309,7 @@ def create_xlate_rule(rule):
     return xlate_rule
 
 
-def handle_combined_nat_rule(rule, rule_orig, full_config, config2import, nat_rule_number):
+def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number):
     # now dealing with VIPs (dst NAT part) of combined rules
     xlate_rule = None
 

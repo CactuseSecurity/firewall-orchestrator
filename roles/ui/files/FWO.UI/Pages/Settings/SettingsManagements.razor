@@ -5,7 +5,7 @@
 @using FWO.DeviceAutoDiscovery
 
 @page "/settings/managements"
-@attribute [Authorize(Roles = "admin, auditor")]
+@attribute [Authorize(Roles = "admin, auditor, fw-admin")]
 
 @inject APIConnection apiConnection
 @inject UserConfig userConfig
@@ -18,7 +18,11 @@
     <button class="btn btn-success m-2" @onclick="Add">@(userConfig.GetText("add_new_management"))</button>
     @if (showCleanupButton)
     {
-        <button class="btn btn-danger m-2" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
+        <AuthorizeView Roles="admin, auditor">
+            <Authorized>
+                <button class="btn btn-danger m-2" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
+            </Authorized>
+        </AuthorizeView>
     }
 </div>
 
@@ -29,11 +33,15 @@
                 <div class="btn-group">
                     <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">@(userConfig.GetText("clone"))</button>
                     <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">@(userConfig.GetText("edit"))</button>
-                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
-                    @if (context.DeviceType.CanBeSupermanager())
-                    {
-                        <button class="btn btn-sm btn-secondary" @onclick="() => AutoDiscover(context)">@(userConfig.GetText("autodiscover"))</button>
-                    }
+                    <AuthorizeView Roles="admin, auditor" Context="ctx">
+                        <Authorized>
+                            <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
+                            @if (context.DeviceType.CanBeSupermanager())
+                            {
+                                <button class="btn btn-sm btn-secondary" @onclick="() => AutoDiscover(context)">@(userConfig.GetText("autodiscover"))</button>
+                            }
+                        </Authorized>
+                    </AuthorizeView>
                 </div>
             </Template>
         </Column>
@@ -191,7 +199,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin">
+            <AuthorizeView Roles="admin, fw-admin">
                 <Authorized>
                     <button class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
                 </Authorized>
@@ -478,6 +486,12 @@
         return true;
     }
 
+    private bool CheckValuesAutodiscover(Management mgm, string checkCause)
+    {
+        // todo: proper check
+        return true;
+    }
+
     private void Cancel()
     {
         AddMode = false;
@@ -514,7 +528,7 @@
             {
                 if (adom.ConfigPath != "global")
                 {
-                    if (CheckValues(adom, userConfig.GetText("autodiscover")))
+                    if (CheckValuesAutodiscover(adom, userConfig.GetText("autodiscover")))
                     {
                         var Variables = new
                         {

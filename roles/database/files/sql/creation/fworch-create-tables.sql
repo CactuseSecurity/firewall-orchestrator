@@ -629,15 +629,16 @@ Create table "import_control"
 CREATE TABLE IF NOT EXISTS "import_config" (
     "import_id" bigint NOT NULL,
     "mgm_id" integer NOT NULL,
-    "config" json NOT NULL,
-    PRIMARY KEY ("import_id")
+    "config" jsonb NOT NULL,
+	"start_import_flag" Boolean NOT NULL Default FALSE
 );
 
+-- todo: move this to git instead
 -- permanent table for storing the full config as an archive
 CREATE TABLE "import_full_config" (
     "import_id" bigint NOT NULL,
     "mgm_id" integer NOT NULL,
-    "config" json NOT NULL,
+    "config" jsonb NOT NULL,
     PRIMARY KEY ("import_id")
 );
 

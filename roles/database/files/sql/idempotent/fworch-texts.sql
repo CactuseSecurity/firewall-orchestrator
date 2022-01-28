@@ -584,6 +584,10 @@ INSERT INTO txt VALUES ('global_rulebase',      'German', 	'Globale Rulebase');
 INSERT INTO txt VALUES ('global_rulebase',      'English', 	'Global Rulebase');
 INSERT INTO txt VALUES ('package',              'German', 	'Package');
 INSERT INTO txt VALUES ('package',              'English', 	'Package');
+INSERT INTO txt VALUES ('local_package',        'German', 	'Lokales Package');
+INSERT INTO txt VALUES ('local_package',        'English', 	'Local Package');
+INSERT INTO txt VALUES ('global_package',       'German', 	'Globales Package');
+INSERT INTO txt VALUES ('global_package',       'English', 	'Global Package');
 INSERT INTO txt VALUES ('details',              'German', 	'Details');
 INSERT INTO txt VALUES ('details',              'English', 	'Details');
 INSERT INTO txt VALUES ('import_status_details','German', 	'Importstatusdetails f&uuml;r ');
@@ -1235,8 +1239,8 @@ INSERT INTO txt VALUES ('T0008', 'German',  '(f&uuml;r zuk&uuml;nftige Anwendung
 INSERT INTO txt VALUES ('T0008', 'English', '(for future use) users who can request firewall changes');
 INSERT INTO txt VALUES ('T0009', 'German',  '(f&uuml;r zuk&uuml;nftige Anwendung) Nutzer zum Anlegen von change request workflows');
 INSERT INTO txt VALUES ('T0009', 'English', '(for future use) users who can create change request workflows');
-INSERT INTO txt VALUES ('T0010', 'German',  'Nutzer zum Dokumentieren von offenen Changes');
-INSERT INTO txt VALUES ('T0010', 'English', 'users who can document open changes');
+INSERT INTO txt VALUES ('T0010', 'German',  'wie reporter-viewall, aber mit Erlaubnis, Devices anzulegen und zu &auml;ndern');
+INSERT INTO txt VALUES ('T0010', 'English', 'like reporter-viewall, but allowed to create and update devices');
 INSERT INTO txt VALUES ('T0011', 'German',  'Nutzer mit vollem Zugriff auf den Firewall Orchestrator');
 INSERT INTO txt VALUES ('T0011', 'English', 'users with full access rights to firewall orchestrator');
 INSERT INTO txt VALUES ('T0012', 'German',  'Nutzer mit Berechtigung zum Rezertifizieren von Regeln');
@@ -1642,7 +1646,7 @@ INSERT INTO txt VALUES ('H5102', 'English', 'The following firewall products can
     </ul>
 ');
 INSERT INTO txt VALUES ('H5103', 'German',  'F&uuml;r Firewallgateways ohne separates Management oder im Falle, dass das zentrale Management nicht in den Firewall Orchestrator eingebunden werden kann,
-    k&ouml;nnen, die Details des Gateways hier als Management und gleichzeitig noch einmal als Gateway eingetragen werden.
+    werden die Details des Gateways als Management und gleichzeitig auch als Gateway eingetragen.
 ');
 INSERT INTO txt VALUES ('H5103', 'English', 'For firewall gateways without a separate management or in case the central management cannot be integrated into Firewall Orchestrator 
     you may enter the details of the gateway here as a management system as well and then add it again as a gateway.

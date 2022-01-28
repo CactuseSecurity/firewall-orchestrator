@@ -39,36 +39,33 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
                 else:
                     if len(obj_orig['extip'])>1:
                         logging.warning("normalizing network object vip (extip): found more than one extip, just using the first one")
-                    obj.update({ 'obj_ip': obj_orig['extip'][0] })
+                    set_ip_in_obj(obj, obj_orig['extip'][0])   # resolving nat range if there is one
+                    nat_obj = {}
+                    nat_obj.update({'obj_typ': 'host' })
+                    nat_obj.update({'obj_color': 'black'})
+                    nat_obj.update({'obj_comment': 'FWO-auto-generated nat object for VIP'})
 
                 # now dealing with the nat ip obj (mappedip)
-                nat_obj = {}
-                nat_obj.update({'obj_typ': 'host' })
-                nat_obj.update({'obj_color': 'black'})
-                nat_obj.update({'obj_comment': 'FWO-auto-generated nat object for VIP'})
                 if 'mappedip' not in obj_orig or len(obj_orig['mappedip'])==0:
-                    raise Exception("normalizing network object vip (extip): found empty mappedip field!")
+                    logging.warning("normalizing network object vip (extip): found empty mappedip field!")
                 else:
                     if len(obj_orig['mappedip'])>1:
                         logging.warning("normalizing network object vip (extip): found more than one mappedip, just using the first one")
                     nat_ip = obj_orig['mappedip'][0]
-                    if '-' in nat_ip: # dealing with range
-                        ip1, ip2 = nat_ip.split('-')
-                        nat_obj.update({ 'obj_ip': ip1 })
-                        nat_obj.update({ 'obj_ip_end': ip2 })
-                        obj.update({ 'obj_nat_ip': ip1 }) # save nat ip in vip obj
-                        nat_obj.update({'obj_name': ip1 + nat_postfix})
-                        nat_obj.update({'obj_uid': nat_obj['obj_name']})
-                    else:
-                        nat_obj.update({ 'obj_ip': obj_orig['mappedip'][0] })
-                        obj.update({ 'obj_nat_ip': obj_orig['mappedip'][0] }) # save nat ip in vip obj
-                        nat_obj.update({'obj_name': obj_orig['mappedip'][0] + nat_postfix})
-                        nat_obj.update({'obj_uid': nat_obj['obj_name']})
+                    set_ip_in_obj(nat_obj, nat_ip)
+                    obj.update({ 'obj_nat_ip': nat_obj['obj_ip'] }) # save nat ip in vip obj
+                    nat_obj.update({'obj_name': nat_obj['obj_ip'] + nat_postfix})
+                    nat_obj.update({'obj_uid': nat_obj['obj_name']})                    
+                    ###### range handling
+
                 if 'associated-interface' in obj_orig and len(obj_orig['associated-interface'])>0: # and obj_orig['associated-interface'][0] != 'any':
                     obj_zone = obj_orig['associated-interface'][0]
                 nat_obj.update({'obj_zone': obj_zone })
                 nat_obj.update({'control_id': import_id})
-                nw_objects.append(nat_obj)
+                if nat_obj not in nw_objects:   # rare case when a destination nat is down for two different orig ips to the same dest ip
+                    nw_objects.append(nat_obj)
+                else:
+                    pass
             else: # 'fqdn' in obj_orig: # "fully qualified domain name address" // other unknown types
                 obj.update({ 'obj_typ': 'network' })
                 obj.update({ 'obj_ip': '0.0.0.0/0'})
@@ -98,6 +95,16 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
         uid=original_obj_uid, zone='global', color='black', comment='"original" network object created by FWO importer for NAT purposes'))
 
     config2import.update({'network_objects': nw_objects})
+
+
+def set_ip_in_obj(nw_obj, ip): # add start and end ip in nw_obj if it is a range, otherwise do nothing
+    if '-' in ip: # dealing with range
+        ip_start, ip_end = ip.split('-')
+        nw_obj.update({'obj_ip': ip_start })
+        if ip_end != ip_start:
+            nw_obj.update({'obj_ip_end': ip_end })
+    else:
+        nw_obj.update({'obj_ip': ip })
 
 
 # for members of groups, the name of the member obj needs to be fetched separately (starting from API v1.?)

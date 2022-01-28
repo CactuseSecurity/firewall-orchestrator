@@ -1,6 +1,6 @@
 # library for FWORCH API calls
 import re
-import logging
+import logging, traceback
 from textwrap import indent
 import requests.packages
 import requests
@@ -35,11 +35,11 @@ def call(url, jwt, query, query_variables="", role="reporter", ssl_verification=
 
     try:
         r = requests.post(url, data=json.dumps(
-            full_query), headers=request_headers, verify=ssl_verification, proxies=proxy)
+            full_query), headers=request_headers, verify=ssl_verification, proxies=proxy, timeout=common.http_timeout)
         r.raise_for_status()
     except requests.exceptions.RequestException:
-        logging.error(showApiCallInfo(url, full_query, request_headers, type='error'))
-        raise Exception ("FWO-API importer call error") from None
+        logging.error(showApiCallInfo(url, full_query, request_headers, type='error') + ":\n" + str(traceback.format_exc()))
+        raise # Exception ("FWO-API importer call error") from requests.exceptions.RequestException
     if debug > 2:
         logging.debug(showApiCallInfo(url, full_query, request_headers, type='debug'))
     if show_progress:

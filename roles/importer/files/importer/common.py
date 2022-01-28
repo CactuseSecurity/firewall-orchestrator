@@ -19,13 +19,14 @@ line_delimiter = "\n"
 apostrophe = "\""
 section_header_uids=[]
 nat_postfix = '_NatNwObj'
+http_timeout = 3600 # one hour
 
 # how many objects (network, services, rules, ...) should be sent to the FWO API in one go?
 # should be between 500 and 2.000 in production (results in a max obj number of 5 x this value)
 # the database has a limit of 255 MB per jsonb
 # https://stackoverflow.com/questions/12632871/size-limit-of-json-data-type-in-postgresql
 # >25.000 rules exceed this limit
-max_objs_per_chunk = 50  
+max_objs_per_chunk = 1000 
 
 
 class FwLoginFailed(Exception):

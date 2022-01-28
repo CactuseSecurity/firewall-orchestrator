@@ -57,6 +57,13 @@ class FwoApiFailure(Exception):
             self.message = message
             super().__init__(self.message)
 
+class FwoApiTimeout(Exception):
+    """Raised for 502 http error with proxy due to timeout"""
+
+    def __init__(self, message="reverse proxy timeout error during FWO API call - try increasing the reverse proxy timeout"):
+            self.message = message
+            super().__init__(self.message)
+
 #  import_management: import a single management (if no import for it is running)
 #     lock mgmt for import via FWORCH API call, generating new import_id y
 #     check if we need to import (no md5, api call if anything has changed since last import)

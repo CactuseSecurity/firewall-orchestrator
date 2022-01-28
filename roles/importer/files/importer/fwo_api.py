@@ -39,7 +39,10 @@ def call(url, jwt, query, query_variables="", role="reporter", ssl_verification=
         r.raise_for_status()
     except requests.exceptions.RequestException:
         logging.error(showApiCallInfo(url, full_query, request_headers, type='error') + ":\n" + str(traceback.format_exc()))
-        raise # Exception ("FWO-API importer call error") from requests.exceptions.RequestException
+        if r.status_code == 502:
+            raise common.FwoApiTimeout
+        else:
+            raise
     if debug > 2:
         logging.debug(showApiCallInfo(url, full_query, request_headers, type='debug'))
     if show_progress:
@@ -262,10 +265,13 @@ def import_json_config(fwo_api_base_url, jwt, mgm_id, query_variables, debug_lev
                               str(mgm_id) + ": " + str(import_result['errors']))
         changes_in_import_control = import_result['data']['insert_import_config']['affected_rows']
     except:
-        logging.exception(
-            "fwo_api: failed to write importable config for mgm id " + str(mgm_id))
-        return 2  # indicating 1 error
-    return changes_in_import_control-1
+        logging.exception("fwo_api: failed to write importable config for mgm id " + str(mgm_id))
+        return 1 # error
+    
+    if changes_in_import_control==1:
+        return 0
+    else:
+        return 1
 
 
 def delete_json_config(fwo_api_base_url, jwt, query_variables):
@@ -274,7 +280,6 @@ def delete_json_config(fwo_api_base_url, jwt, query_variables):
             delete_import_config(where: {import_id: {_eq: $importId}}) { affected_rows }
         }
     """
-
     try:
         delete_result = call(fwo_api_base_url, jwt, delete_mutation,
                              query_variables=query_variables, role='importer')

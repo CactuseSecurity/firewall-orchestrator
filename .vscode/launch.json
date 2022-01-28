@@ -100,12 +100,12 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m45",
-                //"-i/home/alf/Downloads/fortiManager_NAT_mgm_id_25_config_native.json.anon",
+                "-m49",
                 "-d4",
                 "-f",
-                //"-i/usr/local/fworch/tmp/import/mgm_id_7_config_native.json",
-                "-i/home/tim/tmp/configs/mgm_id_56_config_native.json.anon",
+                // "-i/home/tim/tmp/configs/mgm_id_56_config_native.json.anon", // 30k rules, local mgm_id 45
+                "-i/home/tim/tmp/configs/mgm_id_52_config_native.json.anon", // many gateways, local mgm_id 49
+                //"-i/home/tim/tmp/configs/mgm_id_53_config_native.json.anon", // 1500 rules, 450 NAT rules, local mgm_id 4
                 "-l250"
             ]
         },

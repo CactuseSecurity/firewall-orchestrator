@@ -91,6 +91,20 @@
             ]
         },
         {
+            "name": "py-import-mgm-Trouble-shooting-m56",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/import-mgm.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-m45",
+                "-i/home/tim/tmp/configs/m56_1sthalf.json" // half of 30k rules, local mgm_id 45
+            ]
+        },
+        {
             "name": "py-import-mgm",
             "type": "python",
             "request": "launch",
@@ -100,12 +114,12 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m49",
+                "-m45",
                 "-d4",
                 "-f",
-                "-c",
-                // "-i/home/tim/tmp/configs/mgm_id_56_config_native.json.anon", // 30k rules, local mgm_id 45
-                "-i/home/tim/tmp/configs/mgm_id_52_config_native.json.anon", // many gateways, local mgm_id 49
+                //"-c",
+                "-i/home/tim/tmp/configs/mgm_id_56_config_native.json.anon", // 30k rules, local mgm_id 45
+                //"-i/home/tim/tmp/configs/mgm_id_52_config_native.json.anon", // many gateways, local mgm_id 49
                 //"-i/home/tim/tmp/configs/mgm_id_53_config_native.json.anon", // 1500 rules, 450 NAT rules, local mgm_id 4
                 "-l250"
             ]

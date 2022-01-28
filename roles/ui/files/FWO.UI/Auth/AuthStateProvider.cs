@@ -62,7 +62,7 @@ namespace FWO.Ui.Auth
 
         public void ConfirmPasswordChanged()
         {           
-            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(authenticatedUser ?? throw new Exception("Passwort cannot be changed because no user was authenticated"))));
+            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(authenticatedUser ?? throw new Exception("Password cannot be changed because user was not authenticated"))));
         }
     }
 }

@@ -74,7 +74,7 @@ if __name__ == '__main__':
             logging.error(e.message)
             skipping = True
         except:
-            logging.error("import-main-loop - Unspecified error while logging into FWO API", traceback.format_exc())
+            logging.error("import-main-loop - Unspecified error while logging into FWO API: " + str(traceback.format_exc()))
             skipping = True
 
         if not skipping:
@@ -127,7 +127,7 @@ if __name__ == '__main__':
                                 except (common.FwoApiFailedLockImport, common.FwLoginFailed):
                                     pass # minor errors for a single mgm, go to next one # logging.debug("Login to firewall failed for mgm_id: " + id)
                                 except: # all other exceptions are logged here
-                                    logging.error("import-main-loop - unspecific error while importing mgm_id=" + str(id), traceback.format_exc())
+                                    logging.error("import-main-loop - unspecific error while importing mgm_id=" + str(id) + ", " +  str(traceback.format_exc()))
                                     
         if not killer.kill_now:
             logging.info("import-main-loop.py: sleeping between loops for " + str(sleep_timer) + " seconds")

@@ -59,11 +59,6 @@ fworch_dbadmin_name: dbadmin
 dbadmin_password_file: "{{ fworch_secrets_dir }}/dbadmin_pwd"
 fworch_db_password_file: "{{ fworch_secrets_dir }}/fworch_db_pwd"
 
-### high timeout value for api (mainly) for large imports
-apache_fwo_api_timeout: 3600
-apache_ui_timeout: 900
-apache_mw_timeout: 900
-
 ### middleware server 
 jwt_private_key_file: "{{ fworch_secrets_dir }}/jwt_private_key.pem"
 jwt_public_key_file: "{{ fworch_secrets_dir }}/jwt_public_key.pem"

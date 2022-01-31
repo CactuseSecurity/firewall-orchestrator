@@ -72,7 +72,7 @@ namespace FWO.Report.Filter.Ast
             }
 
             query.QueryParameters.Add($"${queryVarName}: {queryVarType}! ");
-            query.QueryVariables[queryVarName] = op == TokenKind.EEQ ? queryVarValue : $"%{queryVarValue}%";
+            query.QueryVariables[queryVarName] = op == TokenKind.EQ ? $"%{queryVarValue}%" : queryVarValue;
 
             return queryVarName;
         }

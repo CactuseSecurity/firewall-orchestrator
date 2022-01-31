@@ -150,6 +150,7 @@ namespace FWO.Report.Filter
                                 position++;
                                 realToken = longerToken;
                                 potentialTokenText += input[beginPosition + potentialTokenText.Length];
+                                break;
                             }
                         }
                     }

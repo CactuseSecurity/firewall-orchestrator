@@ -1,5 +1,6 @@
 ﻿using FWO.Report.Filter;
 using FWO.Report.Filter.Ast;
+using FWO.Report.Filter.Exceptions;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -56,7 +57,21 @@ namespace FWO.Test.Filter
         [Test]
         public void ExactEquals2()
         {
-            var res = Compiler.Compile("(text==cactus)");
+            var res = Compiler.Compile("(gateway = \"checkpoint_demo\" or gateway = \"fortigate_demo\") & dst == IsoAAADray.local");
+        }
+
+        [Test]
+        public void ExactEquals3()
+        {
+            try
+            {
+                var res = Compiler.Compile("(gateway=\"checkpoint_demo\" or gateway = \"fortigate_demo\") & dst ==");
+                Assert.Fail("Excpetion should have been thrown");
+            }
+            catch (SyntaxException exception)
+            {
+                Assert.AreEqual("No token but one was expected", exception.Message);
+            }
         }
     }
 }

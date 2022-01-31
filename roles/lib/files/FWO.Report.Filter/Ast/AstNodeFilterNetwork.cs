@@ -39,9 +39,7 @@ namespace FWO.Report.Filter.Ast
                 query = ExtractIpFilter(query, location: "dst", locationTable: "rule_tos");
             else // string search against dst obj name
             {
-                string QueryVarName = "dst" + query.parameterCounter++;
-                query.QueryVariables[QueryVarName] = $"%{Value.Text}%";
-                query.QueryParameters.Add($"${QueryVarName}: String! ");
+                string QueryVarName = AddVariable<string>(query, "dst", Operator.Kind, Value.Text);
                 query.ruleWhereStatement += $"rule_tos: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }} }}";
             }
             return query;
@@ -54,9 +52,7 @@ namespace FWO.Report.Filter.Ast
                 query = ExtractIpFilter(query, location: "src", locationTable: "rule_froms");
             else // string search against src obj name
             {
-                string QueryVarName = "src" + query.parameterCounter++;
-                query.QueryVariables[QueryVarName] = $"%{Value.Text}%";
-                query.QueryParameters.Add($"${QueryVarName}: String! ");
+                string QueryVarName = AddVariable<string>(query, "src", Operator.Kind, Value.Text);
                 query.ruleWhereStatement += $"rule_froms: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }} }}";
             }
             return query;

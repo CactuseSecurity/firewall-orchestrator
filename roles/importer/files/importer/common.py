@@ -84,13 +84,11 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
     secret_filename = ''
     config2import = { "network_objects": [], "service_objects": [], "user_objects": [], "zone_objects": [], "rules": [] }
 
+    set_log_level(log_level=debug_level, debug_level=debug_level)
     if ssl == '' or ssl == 'off':
         requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
-    set_log_level(log_level=debug_level, debug_level=debug_level)
-    # read fwo config (API URLs)
-    if clearManagementData:
-        logging.info('this import run will reset the configuration of this management to "empty"')
 
+    # read fwo config (API URLs)
     with open(fwo_config_filename, "r") as fwo_config:
         fwo_config = json.loads(fwo_config.read())
     user_management_api_base_url = fwo_config['middleware_uri']
@@ -146,7 +144,9 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
         full_config_json = {}
         get_config_response = 0
 
-        if not clearManagementData:
+        if clearManagementData:
+            logging.info('this import run will reset the configuration of this management to "empty"')
+        else:
             if in_file is not None:    # read native config from file
                 try:
                     with open(in_file, 'r') as json_file:
@@ -203,30 +203,15 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
             error_count += get_config_response
         elif get_config_response == 0:
 
-            try: # split the config into multiple chunks not bigger than x elements
-                config2import_list = split_config(config2import)
-            except:
-                logging.error("import_management - unspecified error while splitting config: " + str(traceback.format_exc()))
-                raise
-
-            try: # now we import the config via API:
-                idx = 0
-                while idx<len(config2import_list):
-                    if idx==len(config2import_list)-1:
-                        start_import_flag = True
-                    else:
-                        start_import_flag = False
-                    error_count += fwo_api.import_json_config(fwo_api_base_url, jwt, mgm_id, {
-                        "start_import_flag": start_import_flag, "importId": current_import_id, "mgmId": mgm_id, "config": config2import_list[idx]},
-                        debug_level=debug_level)
-                    idx += 1
+            try: # now we import the config via API chunk by chunk:
+                for config_chunk in split_config(config2import, current_import_id, mgm_id, debug_level):
+                    error_count += fwo_api.import_json_config(fwo_api_base_url, jwt, mgm_id, config_chunk)
             except:
                 logging.error("import_management - unspecified error while importing config via FWO API: " + str(traceback.format_exc()))
                 raise
 
             try: # checking for errors during stored_procedure db imort in import_control table
-                error_from_imp_control = fwo_api.get_error_string_from_imp_control(
-                    fwo_api_base_url, jwt, {"importId": current_import_id})
+                error_from_imp_control = fwo_api.get_error_string_from_imp_control(fwo_api_base_url, jwt, {"importId": current_import_id})
             except:
                 logging.error("import_management - unspecified error while getting error string: " + str(traceback.format_exc()))
 
@@ -298,7 +283,7 @@ def split_list(list_in, max_list_length):
     return list_of_lists
 
 
-def split_config(config2import):
+def split_config(config2import, current_import_id, mgm_id, debug_level):
     conf_split_dict_of_lists = {}
     max_number_of_chunks = 0
     for obj_list_name in ["network_objects", "service_objects", "user_objects", "rules", "zone_objects"]:
@@ -337,7 +322,18 @@ def split_config(config2import):
             "rules": rules_chunk
         })
         current_chunk += 1
-    return conf_split
+
+    # now adding meta data around
+    config_split_with_metadata = []
+    for conf_chunk in conf_split:
+        config_split_with_metadata.append({
+            "config": conf_chunk,
+            "start_import_flag": False,
+            "importId": int(current_import_id), 
+            "mgmId": int(mgm_id), 
+        })
+    config_split_with_metadata[len(config_split_with_metadata)-1]["start_import_flag"] = True
+    return config_split_with_metadata
 
 
 def set_log_level(log_level, debug_level):

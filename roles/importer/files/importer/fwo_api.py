@@ -61,13 +61,13 @@ def login(user, password, user_management_api_base_url, method='api/Authenticati
     except requests.exceptions.RequestException:
         raise common.FwoApiLoginFailed ("fwo_api: error during login to url: " + str(user_management_api_base_url) + " with user " + user) from None
 
-    if response.text is not None:
+    if response.text is not None and response.status_code==200:
         return response.text
     else:
-        error_txt = "fwo_api: ERROR: did not receive a JWT during login, " + \
+        error_txt = "fwo_api: ERROR: did not receive a JWT during login" + \
                         ", api_url: " + str(user_management_api_base_url) + \
                         ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy)
-        logging.error(error_txt)
+        #logging.error(error_txt)
         raise common.FwoApiLoginFailed(error_txt)
 
 

@@ -1,6 +1,76 @@
+/*  (error handling) structure:
 
--- DROP FUNCTION public.import_all_main(BIGINT);
--- Function: public.import_all_main(BIGINT)
+	import_all_main(mgm_id) RETURNS boolean --> string with errors instead?
+	{
+		TRY:
+			all VOID returns: import_zone_main, import_nwobj_main, import_svc_main, import_usr_main
+			FOR all devices: 
+				IF import_rules() 
+					import_rules_set_rule_num_numeric 
+
+			if import_global_refhandler_main THEN raise returned exception error_string
+				-- here exception handling needs to be fixed
+			else 
+				if get_active_rules_with_broken_refs_per_mgm() <>'' THEN raise returned exception error_string
+					-- here exception handling already seems to be working
+
+			import_changelog_sync (mainly logging hitherto unnoticed deletes in import_change- tables)
+		CATCH:
+			enrich import_control.import_errors with errors from above
+	
+	--------- creating foreign key references for each element of a rule (and also object groups)
+		the _flat tables in addition contain all resolved group members (redundant information to speed up reporting)
+
+		import_global_refhandler_main: (exception handling not working)
+			import_nwobj_refhandler_main
+				import_nwobj_refhandler_insert
+					import_nwobj_refhandler_objgrp_add_group
+				import_nwobj_refhandler_change
+					import_nwobj_refhandler_change_objgrp_member_refs
+					import_nwobj_refhandler_objgrp_add_group
+				import_nwobj_refhandler_insert_flat
+					import_nwobj_refhandler_objgrp_flat_add_group
+				import_nwobj_refhandler_change_flat
+					import_nwobj_refhandler_change_objgrp_flat_member_refs
+					import_nwobj_refhandler_change_rule_from_refs
+					import_nwobj_refhandler_change_rule_to_refs	
+			
+			import_svc_refhandler_main (same sub functions as nwobj above)
+				...
+			import_usr_refhandler_main (same sub functions as nwobj above)
+				...
+
+			for each device:
+				import_rule_refhandler_main:
+					for each rule:
+						resolve_rule_list(rule_from):
+							for each rule-from element:
+								f_add_single_rule_from_element
+									import_rule_resolved_nwobj
+						resolve_rule_list(rule_to)
+							for each rule-to element:
+								f_add_single_rule_to_element
+									import_rule_resolved_nwobj
+						resolve_rule_list(rule_service)
+							for each rule-service element:
+								f_add_single_rule_svc_element
+									import_rule_resolved_svc
+
+	--------- Q&A the following code just checks for broken references and reports them
+	    broken refs can occur if the element is not the only element in a field?
+
+	get_active_rules_with_broken_refs_per_mgm: (exception handling working)
+		for each device:
+			get_active_rules_with_broken_refs_per_dev := 
+				get_active_rules_with_broken_src_refs_per_dev (v_delimiter, b_heal, i_dev_id) || 
+				get_active_rules_with_broken_dst_refs_per_dev (v_delimiter, b_heal, i_dev_id) ||
+				get_active_rules_with_broken_svc_refs_per_dev
+
+				the above functions check all refs 
+					if "healing mode" is set (not used during import), the missing refs are inserted into rule_from/rule_to/rule_svc
+					all broken refs are returned as a string
+	}  */
+
 CREATE OR REPLACE FUNCTION public.import_all_main(BIGINT)
   RETURNS boolean AS
 $BODY$

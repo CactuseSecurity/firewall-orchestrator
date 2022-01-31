@@ -259,7 +259,7 @@ namespace FWO.Report.Filter
             return CheckToken(
                 TokenKind.Destination, TokenKind.Source, TokenKind.Service, TokenKind.Protocol,
                 TokenKind.DestinationPort, TokenKind.Action, TokenKind.FullText, TokenKind.Gateway,
-                TokenKind.Management, TokenKind.Remove, TokenKind.RecertDisplay);
+                TokenKind.Management, TokenKind.Remove, TokenKind.RecertDisplay, TokenKind.Disabled);
         }
 
         private Token CheckToken(params TokenKind[] expectedTokenKinds)

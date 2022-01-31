@@ -1,8 +1,6 @@
 import sys
-base_dir = "/usr/local/fworch"
-sys.path.append(base_dir + '/importer')
-sys.path.append(base_dir + '/importer/checkpointR8x')
-import os 
+from common import importer_base_dir
+sys.path.append(importer_base_dir + '/checkpointR8x')
 import json
 import logging
 import copy, time
@@ -23,13 +21,9 @@ any_obj_uid = "97aeb369-9aea-11d5-bd16-0090272ccb30"
 original_obj_uid = "85c0f50f-6d8a-4528-88ab-5fb11d8fe16c"
 # used for nat only (both svc and nw obj)
 
-# this is just a test UID for debugging a single rule
-debug_new_uid = "90f749ec-5331-477d-89e5-a58990f7271d"
 
-# def get_config(config2import, full_config, current_import_id, mgm_details, debug_level=0, proxy=None, limit=100, force=False, ssl_verification=None):
-
-def get_config(config2import, full_config, current_import_id, mgm_details, config_filename=None, debug_level=0, proxy=None, limit=150, force=False, ssl_verification=None):
-    logging.info("found Check Point R8x management")
+def get_config(config2import, full_config, current_import_id, mgm_details, debug_level=0, proxy=None, limit=150, force=False, ssl_verification=None):
+    logging.debug("found Check Point R8x management")
 
     last_change_time = ''
     if 'import_controls' in mgm_details:
@@ -37,11 +31,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, confi
             if 'starttime' in importctl:
                 last_change_time = importctl['starttime']
 
-    # full_config_json = {}
-
     common.set_log_level(log_level=debug_level, debug_level=debug_level)
-
-    # todo: test if debug_level is handled properly
 
     if ssl_verification is None:
         ssl_verification = ''
@@ -361,7 +351,7 @@ def enrich_config (config, mgm_details, proxy=None, limit=150, details_level='fu
                 logging.debug ('missing obj: ' + obj['name'] + obj['type'])
             else:
                 logging.warning ( "checkpointR8x/enrich_config - missing nw obj of unexpected type '" + obj['type'] + "': " + missing_obj )
-                print ("WARNING - enrich_config - missing nw obj of unexpected type: '" + obj['type'] + "': " + missing_obj)
+                # print ("WARNING - enrich_config - missing nw obj of unexpected type: '" + obj['type'] + "': " + missing_obj)
 
         logging.debug ( "enrich_config - missing nw obj: " + missing_obj + " added" )
 
@@ -388,7 +378,7 @@ def enrich_config (config, mgm_details, proxy=None, limit=150, details_level='fu
                 config['object_tables'].append(json_obj)
             else:
                 logging.warning ( "checkpointR8x/enrich_config - missing svc obj of unexpected type: " + missing_obj )
-                print ("WARNING - enrich_config - missing svc obj of unexpected type: '" + obj['type'] + "': " + missing_obj)
+                # print ("WARNING - enrich_config - missing svc obj of unexpected type: '" + obj['type'] + "': " + missing_obj)
         logging.debug ( "enrich_config - missing svc obj: " + missing_obj + " added")
 
     if noapi == False:

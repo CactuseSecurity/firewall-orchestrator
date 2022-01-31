@@ -241,11 +241,46 @@ This is a complete example of a config which may be imported:
   ]}
 ```
 
+The following shows an example of how to import nat rules that are combined access/nat rules, here only translating destination (not showing irrelevant fields for brevity's sake):
+
+```json
+{
+  "rules": [
+    {
+      "rule_num": 0,
+      "rule_uid": "828b0f42-4b18-4352-8bdf-c9c864d692eb",
+      "rule_src": "test-ext-vpn-gw|test-interop-device|BeeW10|wsus",
+      "rule_dst": "sting-gw",
+      "rule_svc": "IPSEC",
+      "rule_src_refs": "a580c5a3-379c-479b-b49d-487faba2442e|98bc04fc-b88b-4283-83ad-7b6899bc1876|2ad18398-e004-4324-af79-634be66941d6|2661ec9f-293f-4c82-8150-4bb6c883ca79",
+      "rule_dst_refs": "cbdd1e35-b6e9-4ead-b13f-fd6389e34987",
+      "rule_svc_refs": "97aeb475-9aea-11d5-bd16-0090272ccb30",
+      "rule_type": "combined",    // this rule is both an access and a nat rule
+      "xlate_rule: "123abcdef-4b18-4352-8bdf-c9c864d692eb"
+    },
+    {
+      "rule_num": 1,
+      "rule_uid": "123abcdef-4b18-4352-8bdf-c9c864d692eb",
+      "rule_src": "test-ext-vpn-gw|test-interop-device|BeeW10|wsus",
+      "rule_dst": "sting-gw_xlate",
+      "rule_svc": "IPSEC",
+      "rule_src_refs": "a580c5a3-379c-479b-b49d-487faba2442e|98bc04fc-b88b-4283-83ad-7b6899bc1876|2ad18398-e004-4324-af79-634be66941d6|2661ec9f-293f-4c82-8150-4bb6c883ca79",
+      "rule_dst_refs": "123d1e35-b6e9-4ead-b13f-fd6389e34987",
+      "rule_svc_refs": "97aeb475-9aea-11d5-bd16-0090272ccb30",
+      "rule_type": "xlate",
+    }
+
+  ],
+  ```
+
 
 ## NAT Rules
+
+here we describe the representation of the rule in the rule table
+
 - "original" is the keyword for no translation - a special object needs to be created for this
 - algorithm for importing NAT rules: 
-  - a NAT rule is stored as two rules, both of which have nat_rule = true set
+  - a NAT rule is stored as two rules, for both of which nat_rule is set to "true"
   - the first rule contains the packet match information (original packet) and a pointer (in xlate_rule) to the translation rule
   - the translation rule has access_rule==false and xlate_rule==null set and defines how the packet is to be translated
   - for check point the NAT rules are pure NAT rules, meaning that access_rule is false
@@ -258,8 +293,6 @@ This is a complete example of a config which may be imported:
 #### final db rule tables
 
 The following gives an overview of the nat rule presentation as read via FWO API:
-
-```json
 
 ```json
 {
@@ -303,8 +336,6 @@ The following gives an overview of the nat rule presentation as read via FWO API
 ```
 
 #### final db rule tables with self ref to xlate rule
-```json
-
 ```json
 {
     "control_id": 1,                                        // bigint: ID of the current import

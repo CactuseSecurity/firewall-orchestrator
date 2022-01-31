@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Net;
 using FWO.Logging;
 using FWO.Report.Filter.Exceptions;
@@ -10,8 +10,7 @@ namespace FWO.Report.Filter.Ast
         public Token Name { get; set; } = new Token(new Range(), "", TokenKind.Value);
         public Token Operator { get; set; } = new Token(new Range(), "", TokenKind.Value);
         public Token Value { get; set; } = new Token(new Range(), "", TokenKind.Value);
-
-        // public SemanticType? SemanticValue { get; set; }
+        private List<string>? ruleFieldNames { get; set; }
 
         protected void CheckOperator(Token isOperator, bool equalsIsExactEquals, params TokenKind[] expectedOperators)
         {
@@ -50,7 +49,7 @@ namespace FWO.Report.Filter.Ast
                     queryVarType = "Boolean";
                     queryVarValue = boolValue ? "true" : "false";
                     break;
-
+                    
                 case string stringValue:
                     queryVarType = "String";
                     queryVarValue = stringValue;
@@ -62,8 +61,7 @@ namespace FWO.Report.Filter.Ast
                     break;
 
                 case DateTime dateTimeValue:
-                    queryVarType = "timestamp";
-                    // 2018–08–10T14:14:57            
+                    queryVarType = "timestamp";         
                     queryVarValue = dateTimeValue.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss");
                     break;
 

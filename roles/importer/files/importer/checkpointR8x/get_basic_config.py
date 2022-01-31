@@ -2,7 +2,8 @@
 
 import argparse, requests, requests.packages
 import time, sys, logging
-sys.path.append(r"/usr/local/fworch/importer")
+from common import importer_base_dir
+sys.path.append(importer_base_dir)
 import common, getter, fwcommon
 
 requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only

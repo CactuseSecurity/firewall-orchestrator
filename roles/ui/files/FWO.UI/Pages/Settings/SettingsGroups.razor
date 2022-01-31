@@ -374,24 +374,17 @@
         EditGroupMode = false;
         try
         {
-            if (AddGroupMode)
+            newGroupName = Sanitizer.SanitizeMand(newGroupName);
+            if (CheckValues())
             {
-                actGroup.Roles = new List<string>();
-                if(selectedRoleName != null)
+                if (AddGroupMode)
                 {
-                    actGroup.Roles.Add(selectedRoleName);
-                }
+                    actGroup.Roles = new List<string>();
+                    if(selectedRoleName != null)
+                    {
+                        actGroup.Roles.Add(selectedRoleName);
+                    }
 
-                if (newGroupName == null || newGroupName == "")
-                {
-                    DisplayMessageInUi!(null, userConfig.GetText("add_new_group"), userConfig.GetText("E5234"), true);
-                }
-                else if(groups.Exists(x => x.Name == newGroupName))
-                {
-                    DisplayMessageInUi!(null, userConfig.GetText("add_new_group"), userConfig.GetText("E5235"), true);
-                }
-                else
-                {
                     // insert new group to ldap
                     GroupAddDeleteParameters addGroupParameters = new GroupAddDeleteParameters { GroupName = newGroupName };
                     RestResponse<string> middlewareServerResponse = await middlewareClient.AddGroup(addGroupParameters);
@@ -410,24 +403,24 @@
                         EditGroupMode = false;
                     }
                 }
-            }
-            else
-            {
-                // Update existing group in ldap --> currently only name
-                GroupEditParameters groupEditParameters = new GroupEditParameters { OldGroupName = actGroup.Name, NewGroupName = newGroupName };
-                RestResponse<string> middlewareServerResponse = await middlewareClient.UpdateGroup(groupEditParameters);
-
-                if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == "")
-                {
-                    DisplayMessageInUi!(null, userConfig.GetText("edit_group"), userConfig.GetText("E5237"), true);
-                }
                 else
                 {
-                    string newDn = middlewareServerResponse.Data;
-                    int changedGroup = groups.FindIndex(x => x.Dn == actGroup.Dn);
-                    groups[changedGroup].Dn = newDn;
-                    groups[changedGroup].Name = newGroupName;
-                    EditGroupMode = false;
+                    // Update existing group in ldap --> currently only name
+                    GroupEditParameters groupEditParameters = new GroupEditParameters { OldGroupName = actGroup.Name, NewGroupName = newGroupName };
+                    IRestResponse<string> middlewareServerResponse = await middlewareClient.UpdateGroup(groupEditParameters);
+
+                    if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == "")
+                    {
+                        DisplayMessageInUi!(null, userConfig.GetText("edit_group"), userConfig.GetText("E5237"), true);
+                    }
+                    else
+                    {
+                        string newDn = middlewareServerResponse.Data;
+                        int changedGroup = groups.FindIndex(x => x.Dn == actGroup.Dn);
+                        groups[changedGroup].Dn = newDn;
+                        groups[changedGroup].Name = newGroupName;
+                        EditGroupMode = false;
+                    }
                 }
             }
         }
@@ -435,6 +428,21 @@
         {
             DisplayMessageInUi!(exception, userConfig.GetText("save_group"), "", true);
         }
+    }
+
+    private bool CheckValues()
+    {
+        if (newGroupName == null || newGroupName == "")
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("save_group"), userConfig.GetText("E5234"), true);
+            return false;
+        }
+        else if(groups.Exists(x => x.Name == newGroupName))
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("save_group"), userConfig.GetText("E5235"), true);
+            return false;
+        }
+        return true;
     }
 
     private async Task AddGroupToRolesInLdap(UserGroup group)

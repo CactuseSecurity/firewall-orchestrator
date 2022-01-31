@@ -45,7 +45,7 @@
   environment: "{{ proxy_env }}"
 
 - name: publish middlewareserver
-  command: "dotnet publish -c {{ dotnet_mode }} -o {{ middleware_server_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_version }}"
+  command: "dotnet publish --no-self-contained -c {{ dotnet_mode }} -o {{ middleware_server_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_version }}"
   args:
     chdir: "{{ middleware_server_start_dir }}"
   become: yes

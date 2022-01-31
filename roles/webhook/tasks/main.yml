@@ -68,4 +68,18 @@
         owner: "{{ fworchtest_user }}"
         group: "{{ fworch_group }}"
 
+    - name: create fworchtest gitconfig file
+      blockinfile:
+        path: "{{ fworchtest_home }}/.gitconfig"
+        block: |
+          [http]
+            proxy = {{ http_proxy }}
+          [https]
+            proxy = {{ http_proxy }}
+        create: yes
+        backup: yes
+        mode: 0644
+        owner: "{{ fworchtest_user }}"
+        group: "{{ fworch_group }}"
+
   become: yes

@@ -5,7 +5,7 @@
     @foreach (Tab tab in Tabs)
     {
         <li class="nav-item">
-            <a @onclick="() => SetActiveTab(tab)" class="nav-link text-dark @tab.CssClass @(ActiveTab == tab ? "active" : "")" href="javascript:void(0);">
+            <a href="" @onclick="() => SetActiveTab(tab)" @onclick:preventDefault class="nav-link text-dark @tab.CssClass @(ActiveTab == tab ? "active" : "")">
                 @tab.Title
                 @*@if (Closeable)
                     {

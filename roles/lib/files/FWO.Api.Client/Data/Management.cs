@@ -20,8 +20,13 @@ namespace FWO.Api.Data
         [JsonProperty("secret"), JsonPropertyName("secret")]
         public string PrivateKey { get; set; } = "";
 
+        public string Password { get; set; } = "";
+
         [JsonProperty("configPath"), JsonPropertyName("configPath")]
         public string ConfigPath { get; set; } = "";
+
+        [JsonProperty("superManager"), JsonPropertyName("superManager")]
+        public int? SuperManagerId { get; set; }
 
         [JsonProperty("importerHostname"), JsonPropertyName("importerHostname")]
         public string ImporterHostname { get; set; } = "";
@@ -77,8 +82,6 @@ namespace FWO.Api.Data
         [JsonProperty("import"), JsonPropertyName("import")]
         public Import Import { get; set; } = new Import();
 
-        // [JsonProperty("pointInTime"), JsonPropertyName("pointInTime")]
-        // public DateTime ReportTime { get; set; }
         public long? RelevantImportId { get; set; }
         public bool Ignore { get; set; }
 
@@ -108,6 +111,7 @@ namespace FWO.Api.Data
             Hostname = management.Hostname;
             ImportUser = management.ImportUser;
             PrivateKey = management.PrivateKey;
+            Password = management.Password;
             ConfigPath = management.ConfigPath;
             ImporterHostname = management.ImporterHostname;
             Port = management.Port;
@@ -129,6 +133,7 @@ namespace FWO.Api.Data
             Import = management.Import;
             Ignore = management.Ignore;
             ReportedRuleIds = management.ReportedRuleIds;
+            SuperManagerId = management.SuperManagerId;
             ReportedNetworkServiceIds = management.ReportedNetworkServiceIds;
             if (management.Import != null && management.Import.ImportAggregate != null &&
                 management.Import.ImportAggregate.ImportAggregateMax != null &&
@@ -150,6 +155,19 @@ namespace FWO.Api.Data
             {
                 device.AssignRuleNumbers();
             }
+        }
+
+        public void Sanitize()
+        {
+            Name = Sanitizer.SanitizeMand(Name);
+            Hostname = Sanitizer.SanitizeMand(Hostname);
+            ImportUser = Sanitizer.SanitizeOpt(ImportUser);
+            ConfigPath = Sanitizer.SanitizeMand(ConfigPath);
+            ImporterHostname = Sanitizer.SanitizeMand(ImporterHostname);
+            Comment = Sanitizer.SanitizeOpt(Comment);
+            PublicKey = Sanitizer.SanitizeKeyOpt(PublicKey);
+            PrivateKey = Sanitizer.SanitizeKeyMand(PrivateKey);
+            Password = Sanitizer.SanitizePasswMand(Password);
         }
     }
 

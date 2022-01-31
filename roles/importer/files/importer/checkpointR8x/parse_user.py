@@ -1,9 +1,3 @@
-import sys
-base_dir = "/usr/local/fworch"
-importer_base_dir = base_dir + '/importer'
-sys.path.append(importer_base_dir)
-import common
-
 
 def collect_users_from_rule(rule, users):
     if 'rule-number' in rule:  # standard rule

@@ -29,7 +29,7 @@
     public bool UseHtmlTitle { get; set; } = false;
 
     [Parameter]
-    public bool StartToggled { get; set; }
+    public bool StartToggled { get; set; } = false;
 
     [Parameter]
     public string Style { get; set; } = "secondary";
@@ -47,23 +47,30 @@
     public EventCallback<bool> OnOpen { get; set; }
 
     private bool show;
+    private bool invokeOnOpenAfterRender;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             show = !StartToggled;
+            invokeOnOpenAfterRender = false;
             if (!StartToggled)
-                await OnOpen.InvokeAsync();
+                invokeOnOpenAfterRender = true;
             if (collapseState != null)
                 collapseState.OnCollapseAll += ForceCollapse;
             StateHasChanged();
         }
+        if (invokeOnOpenAfterRender)
+        {
+            invokeOnOpenAfterRender = false;
+            await OnOpen.InvokeAsync();
+        }
     }
 
-    public void ForceCollapse(bool show)
+    public void ForceCollapse()
     {
-        this.show = show;
+        this.show = false;
         StateHasChanged();
     }
 
@@ -71,7 +78,7 @@
     {
         show = !show;
         if (show)
-            await OnOpen.InvokeAsync();
+            invokeOnOpenAfterRender = true;
     }
 
     void IDisposable.Dispose()

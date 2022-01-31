@@ -27,5 +27,10 @@
             }
             return string.Join(", ", userNames);
         }
+
+        public void Sanitize()
+        {
+            Name = Sanitizer.SanitizeLdapNameMand(Name);
+        }
     }
 }

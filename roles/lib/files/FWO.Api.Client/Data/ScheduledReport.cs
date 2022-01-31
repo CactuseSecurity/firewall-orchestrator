@@ -31,6 +31,11 @@ namespace FWO.Api.Data
 
         [JsonProperty("report_schedule_active"), JsonPropertyName("report_schedule_active")]
         public bool Active { get; set; }
+
+        public void Sanitize()
+        {
+            Name = Sanitizer.SanitizeMand(Name);
+        }
     }
 
     public enum Interval

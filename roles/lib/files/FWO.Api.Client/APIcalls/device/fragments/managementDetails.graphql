@@ -1,35 +1,30 @@
-
-fragment ManagementDetails on management
-{
-    id: mgm_id
-    name: mgm_name
-    hostname: ssh_hostname
-    port: ssh_port
-    secret: ssh_private_key
-    sshPublicKey: ssh_public_key
-    user: ssh_user
-    deviceType: stm_dev_typ {
-      id: dev_typ_id
-      name: dev_typ_name
-      version: dev_typ_version
-    }
-    configPath: config_path
-    importDisabled: do_not_import
-    forceInitialImport: force_initial_import
-    hideInUi: hide_in_gui
-    importerHostname: importer_hostname
-    comment: mgm_comment
-    debugLevel: debug_level
-    creationDate: mgm_create
-    updateDate: mgm_update
-    lastConfigHash: last_import_md5_complete_config
-    devices {
-      id: dev_id
-      name: dev_name
-    }
-    # tenant: tenant {
-    #   id: tenant_id
-    #   name: tenant_name
-    #   comment: tenant_comment
-    # } 
+fragment ManagementDetails on management {
+  id: mgm_id
+  name: mgm_name
+  hostname: ssh_hostname
+  port: ssh_port
+  secret: ssh_private_key
+  sshPublicKey: ssh_public_key
+  user: ssh_user
+  deviceType: stm_dev_typ {
+    id: dev_typ_id
+    name: dev_typ_name
+    version: dev_typ_version
+    manufacturer: dev_typ_manufacturer
   }
+  superManager: multi_device_manager_id
+  configPath: config_path
+  importDisabled: do_not_import
+  forceInitialImport: force_initial_import
+  hideInUi: hide_in_gui
+  importerHostname: importer_hostname
+  comment: mgm_comment
+  debugLevel: debug_level
+  creationDate: mgm_create
+  updateDate: mgm_update
+  lastConfigHash: last_import_md5_complete_config
+  devices {
+    id: dev_id
+    name: dev_name
+  }
+}

@@ -8,12 +8,17 @@
     - middleware handler
     when: installation_mode == "upgrade"
 
+  - name: check for middleware dir
+    stat:
+      path: "{{ fworch_home }}/middleware"
+    register: middleware_dir_check
+
   - name: backup middleware dir
     synchronize:
       src: "{{ fworch_home }}/middleware"
       dest: "{{ fworch_home }}/backup_middleware"
     delegate_to: "{{ inventory_hostname }}"
-    when: installation_mode == "upgrade"
+    when: middleware_dir_check.stat.exists and installation_mode == "upgrade"
 
   - name: remove middleware dir
     file:
@@ -190,6 +195,19 @@
   become: yes
   become_user: postgres
   when: installation_mode == "new"
+
+- name: insert admin tenant0 to device mapping - tenant0 can see all devices
+  postgresql_query:
+    db: "{{ fworch_db_name }}"
+    query: >
+      DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM tenant_to_device LEFT JOIN tenant USING (tenant_id) WHERE tenant_name='tenant0')
+        THEN INSERT INTO tenant_to_device (tenant_id, device_id) 
+          select tenant.tenant_id, device.dev_id FROM tenant, device WHERE tenant_name='tenant0'; 
+        END IF; 
+      END $do$
+  become: yes
+  become_user: postgres
+  when: installation_mode=="new"
 
 - name: install dot net
   import_tasks: middleware_install_dot_net.yml

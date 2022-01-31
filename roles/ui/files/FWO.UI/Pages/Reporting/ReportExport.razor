@@ -114,6 +114,7 @@
 
     private async Task Export()
     {
+        reportExportFile.Sanitize();
         if (ReportToExport != null)
         {
             await Task.Run(async () =>

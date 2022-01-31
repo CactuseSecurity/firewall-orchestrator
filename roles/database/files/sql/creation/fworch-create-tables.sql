@@ -77,6 +77,7 @@ Create table "management" -- contains an entry for each firewall management syst
 	"hide_in_gui" Boolean NOT NULL Default false,
 	"importer_hostname" Varchar,
 	"debug_level" Integer,
+	"multi_device_manager_id" integer,		-- if this manager belongs to another multi_device_manager, then this id points to it
  primary key ("mgm_id")
 );
 
@@ -552,6 +553,7 @@ Create table "stm_dev_typ"
 	"dev_typ_config_file_rules" Varchar,
 	"dev_typ_config_file_basic_objects" Varchar,
 	"dev_typ_config_file_users" Varchar,
+	"dev_typ_is_multi_mgmt" Boolean Default FALSE,
  primary key ("dev_typ_id")
 );
 
@@ -628,9 +630,10 @@ CREATE TABLE IF NOT EXISTS "import_config" (
     "import_id" bigint NOT NULL,
     "mgm_id" integer NOT NULL,
     "config" jsonb NOT NULL,
-    PRIMARY KEY ("import_id")
+	"start_import_flag" Boolean NOT NULL Default FALSE
 );
 
+-- todo: move this to git instead
 -- permanent table for storing the full config as an archive
 CREATE TABLE "import_full_config" (
     "import_id" bigint NOT NULL,
@@ -935,6 +938,7 @@ Create table "report_template"
 	"report_template_create" Timestamp DEFAULT now(),
 	"report_template_owner" Integer, --FK
 	"filterline_history" Boolean Default TRUE, -- every time a filterline is sent, we save it for future usage (auto-deleted every 90 days)
+	"report_parameters" json,
 	primary key ("report_template_id")
 );
 

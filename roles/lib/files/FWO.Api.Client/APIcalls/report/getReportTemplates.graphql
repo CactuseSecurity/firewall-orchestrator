@@ -10,5 +10,6 @@ query getReportTemplates($reportTemplateName: String) {
     report_template_id
     report_template_owner
     filterline_history
+    report_parameters
   }
 }

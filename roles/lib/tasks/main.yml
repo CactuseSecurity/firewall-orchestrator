@@ -9,12 +9,17 @@
       - lib handler
       when: installation_mode == "upgrade"
 
+    - name: check for lib dir
+      stat:
+        path: "{{ fworch_home }}/lib"
+      register: lib_dir_check
+
     - name: backup lib dir
       synchronize:
         src: "{{ fworch_home }}/lib"
         dest: "{{ fworch_home }}/backup_lib"
       delegate_to: "{{ inventory_hostname }}"
-      when: installation_mode == "upgrade"
+      when: lib_dir_check.stat.exists and installation_mode == "upgrade"
 
     - name: remove lib dir
       file:
@@ -23,7 +28,7 @@
 
     - name: create lib dir
       file:
-        dest: "{{ lib_dir }}"
+        path: "{{ lib_dir }}"
         state: directory
         owner: "{{ fworch_user }}"
         group: "{{ fworch_group }}"
@@ -43,6 +48,7 @@
         - FWO.Config.File
         - FWO.Report
         - FWO.Report.Filter
+        - FWO.DeviceAutoDiscovery
 
     - name: finalize handler for datarecovery
       set_fact:

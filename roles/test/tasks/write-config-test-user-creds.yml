@@ -1,0 +1,13 @@
+- name: set config values
+  set_fact:
+    config_json:
+      user: "user1{{ test_postfix }}"
+      password: "{{ test_user1_pw }}"
+  when: installation_mode != "uninstall"
+
+- name: create test user credential config file
+  copy: 
+    content: "{{ config_json | to_nice_json }}" 
+    dest: "{{ fworch_secrets_dir }}/TestUserCreds.json"
+  when: installation_mode != "uninstall"
+  become: yes

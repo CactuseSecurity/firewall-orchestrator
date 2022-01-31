@@ -2,7 +2,6 @@
 using System.Text;
 using FWO.ApiClient;
 using FWO.Report.Filter;
-using FWO.ApiClient.Queries;
 using FWO.Ui.Display;
 using FWO.Config.Api;
 using FWO.Logging;
@@ -33,12 +32,8 @@ namespace FWO.Report
             bool gotNewObjects = true;
             Managements = Array.Empty<Management>();
 
-            // save selected device state
-            Management[] tempDeviceFilter = await apiConnection.SendQueryAsync<Management[]>(DeviceQueries.getDevicesByManagements);
-            DeviceFilter.syncFilterLineToLSBFilter(Query.RawFilter, tempDeviceFilter);
-
             Managements = await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables);
-            DeviceFilter.restoreSelectedState(tempDeviceFilter, Managements);
+
             while (gotNewObjects)
             {
                 if (ct.IsCancellationRequested)

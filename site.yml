@@ -11,7 +11,7 @@
       when: "not installation_mode == 'new'"
       ignore_errors: yes
       loop:
-        - "{{ product_name }}-importer"
+        - "{{ product_name }}-importer-legacy"
         - "{{ product_name }}-importer-api"
   tags:
     - frontend
@@ -36,6 +36,7 @@
     - importer
     - api
     - ui
+    - frontend
 
 - hosts: backendserver
   roles:
@@ -70,6 +71,7 @@
 - hosts: frontends
   roles:
     # do not install lib role twice (for non distributed install, already installed for middlewareserver)
+    # todo: this does not work when using "ui" tag - lib is not built then!
     - { role: lib, when: "'middlewareserver' not in group_names and not installation_mode == 'uninstall'"}
     - { role: ui, when: "not installation_mode == 'uninstall'"}
   tags:
@@ -79,7 +81,7 @@
 
 - hosts: sampleserver
   roles:
-    - { role: sample-data, when: "not without_sample_data|bool and not installation_mode == 'uninstall'" }
+    - { role: sample-data, when: "add_demo_data|bool and not installation_mode == 'uninstall'" }
   tags:
     - samples
     - backend
@@ -87,7 +89,7 @@
 
 - hosts: middlewareserver
   roles:
-    - { role: sample-auth-data, when: "not without_sample_data|bool and not installation_mode == 'uninstall'" }
+    - { role: sample-auth-data, when: "add_demo_data|bool and not installation_mode == 'uninstall'" }
   tags:
     - samples
     - backend
@@ -97,14 +99,6 @@
   roles:
     - { role: importer, when: "not installation_mode == 'uninstall'" }
   tags:
-    - frontend
-    - importer
-
-- hosts: all
-  roles:
-    - { role: upgrade-completion, when: "installation_mode == 'upgrade'" }
-  tags:
-    - backend
     - frontend
     - importer
 
@@ -137,3 +131,7 @@
     - { role: cleanup, when: "not installation_mode == 'uninstall'" }
   tags:
     - cleanup
+    - backend
+    - frontend
+    - importer
+    - ui

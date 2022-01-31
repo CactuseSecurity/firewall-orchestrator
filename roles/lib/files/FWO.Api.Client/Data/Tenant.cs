@@ -83,6 +83,13 @@ namespace FWO.Api.Data
             return string.Join(", ", deviceList);
         }
 
+        public void Sanitize()
+        {
+            Name = Sanitizer.SanitizeLdapNameMand(Name);
+            Comment = Sanitizer.SanitizeOpt(Comment);
+            Project = Sanitizer.SanitizeOpt(Project);
+        }
+
         public TenantGetReturnParameters ToApiParams()
         {
             TenantGetReturnParameters tenantGetParams = new TenantGetReturnParameters

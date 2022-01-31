@@ -5,7 +5,7 @@ query listUsers(
   $limit: Int
   $offset: Int
 ) {
-  management(where: { mgm_id: { _in: $management_id } }) {
+  management(where: { mgm_id: { _in: $management_id }, stm_dev_typ:{dev_typ_is_multi_mgmt:{_eq:false}} }) {
     id: mgm_id
     name: mgm_name
     userObjects: usrs(

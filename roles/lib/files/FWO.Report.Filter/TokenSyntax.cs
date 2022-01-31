@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Text;
-
-namespace FWO.Report.Filter
+﻿namespace FWO.Report.Filter
 {
     class TokenSyntax
     {
@@ -24,18 +19,6 @@ namespace FWO.Report.Filter
                 (
                     WhiteSpaceRequiered: new string[] { },
                     NoWhiteSpaceRequiered: new string[] { }
-                ),
-
-                TokenKind.Time => new TokenSyntax
-                (
-                    WhiteSpaceRequiered : new string[] { "time" },
-                    NoWhiteSpaceRequiered : new string[] { }
-                ),
-                
-                TokenKind.ReportType => new TokenSyntax
-                (
-                    WhiteSpaceRequiered : new string[] { "type", "reporttype" },
-                    NoWhiteSpaceRequiered : new string[] { }
                 ),
 
                 TokenKind.Disabled => new TokenSyntax

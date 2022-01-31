@@ -1,8 +1,5 @@
 using FWO.Report.Filter.Ast;
 using FWO.Report.Filter.Exceptions;
-using System;
-using System.Collections.Generic;
-using System.Data;
 
 namespace FWO.Report.Filter
 {
@@ -16,9 +13,9 @@ namespace FWO.Report.Filter
             this.tokens = tokens;
         }
 
-        public AstNode Parse()
+        public AstNode? Parse()
         {
-            AstNode root = ParseReportType();
+            AstNode? root = ParseStart();
 
             if (NextTokenExists())
             {
@@ -30,118 +27,109 @@ namespace FWO.Report.Filter
             }
         }
 
-        private AstNode ParseReportType()
+        private AstNode? ParseStart()
         {
-            if (NextTokenExists() == false || GetNextToken().Kind != TokenKind.ReportType)
-            {
-                return new AstNodeConnector()
+            // if (NextTokenExists())
+            // {
+                if (GetNextToken().Kind == TokenKind.Value)
                 {
-                    Left = new AstNodeFilterReportType()
+            //         Left = new AstNodeFilterReportType()
+            //         {
+            //             Name = new Token(new Range(0, 0), "", TokenKind.ReportType),
+            //             Operator = new Token(new Range(0, 0), "", TokenKind.EEQ),
+            //             Value = new Token(new Range(0, 0), "rules", TokenKind.Value)
+            //         },
+            //         Connector = new Token(new Range(0, 0), "", TokenKind.And),
+
+            //         Right = ParseTime()
+            //     };
+            // }
+            // else
+            // {
+            //     AstNodeConnector root = new AstNodeConnector
+            //     {
+            //         Left = new AstNodeFilterReportType()
+            //         {
+            //             Name = CheckToken(TokenKind.ReportType),
+            //             Operator = CheckToken(TokenKind.EQ, TokenKind.EEQ),
+                    return new AstNodeFilter
                     {
-                        Name = new Token(new Range(0, 0), "", TokenKind.ReportType),
-                        Operator = new Token(new Range(0, 0), "", TokenKind.EEQ),
-                        Value = new Token(new Range(0, 0), "rules", TokenKind.Value)
-                    },
-                    Connector = new Token(new Range(0, 0), "", TokenKind.And),
-
-                    Right = ParseTime()
-                };
-            }
-            else
-            {
-                AstNodeConnector root = new AstNodeConnector
-                {
-                    Left = new AstNodeFilterReportType()
-                    {
-                        Name = CheckToken(TokenKind.ReportType),
-                        Operator = CheckToken(TokenKind.EQ, TokenKind.EEQ),
-                        Value = CheckToken(TokenKind.Value)
-                    }
-                };
-
-                if (NextTokenExists())
-                {
-                    root.Connector = CheckToken(TokenKind.And);
-                    root.Right = ParseTime();
-                    return root;
-                }
-
-                else
-                {
-                    return root.Left;
-                }
-            }
-        }
-
-        private AstNode ParseTime()
-        {
-            if (NextTokenExists() == false || GetNextToken().Kind != TokenKind.Time)
-            {
-                AstNodeConnector root = new AstNodeConnector
-                {
-                    Left = new AstNodeFilterDateTimeRange()
-                    {
-                        Name = new Token(new Range(0, 0), "", TokenKind.Time),
+                        Name = new Token(new Range(0, 0), "", TokenKind.Value),
                         Operator = new Token(new Range(0, 0), "", TokenKind.EQ),
-                        Value = new Token(new Range(0, 0), "now", TokenKind.Value) //DateTime.Now.ToString()
-                    }
-                };
-
-                if (NextTokenExists())
-                {
-                    root.Connector = new Token(new Range(0, 0), "", TokenKind.And);
-                    root.Right = ParseStart();
-                    return root;
-                }
-                else
-                {
-                    return root.Left;
-                }
-            }
-
-            else // TokenKinde == Time
-            {
-                AstNodeConnector root = new AstNodeConnector
-                {
-                    Left = new AstNodeFilterDateTimeRange()
-                    {
-                        Name = CheckToken(TokenKind.Time),
-                        Operator = ParseOperator(),
                         Value = CheckToken(TokenKind.Value)
-                    }
-                };
-
-                if (NextTokenExists() && GetNextToken().Kind == TokenKind.And)
-                {
-                    root.Connector = CheckToken(TokenKind.And);
-                    root.Right = ParseStart();
-                    return root;
+                    };
                 }
-
                 else
                 {
-                    return root.Left;
+                    return ParseOr();
                 }
             }
-        }
+        // }
 
-        private AstNode ParseStart()
-        {
-            if (GetNextToken().Kind == TokenKind.Value)
-            {
-                return new AstNodeFilterString
-                {
-                    Name = new Token(new Range(0, 0), "", TokenKind.Value),
-                    Operator = new Token(new Range(0, 0), "", TokenKind.EQ),
-                    Value = CheckToken(TokenKind.Value)
-                };
-            }
+        // private AstNode ParseTime()
+        // {
+        //     if (NextTokenExists() == false || GetNextToken().Kind != TokenKind.Time)
+        //     {
+        //         AstNodeConnector root = new AstNodeConnector
+        //         {
+        //             Left = new AstNodeFilterDateTimeRange()
+        //             {
+        //                 Name = new Token(new Range(0, 0), "", TokenKind.Time),
+        //                 Operator = new Token(new Range(0, 0), "", TokenKind.EQ),
+        //                 Value = new Token(new Range(0, 0), "now", TokenKind.Value) //DateTime.Now.ToString()
+        //             }
+        //         };
 
-            else
-            {
-                return ParseOr();
-            }
-        }
+        //         if (NextTokenExists())
+        //         {
+        //             root.Connector = new Token(new Range(0, 0), "", TokenKind.And);
+        //             root.Right = ParseStart();
+        //             return root;
+        //         }
+        //         else
+        //         {
+        //             return root.Left;
+        //         }
+        //     }
+
+        //     else // TokenKinde == Time
+        //     {
+        //         AstNodeConnector root = new AstNodeConnector
+        //         {
+        //             Left = new AstNodeFilterDateTimeRange()
+        //             {
+        //                 Name = CheckToken(TokenKind.Time),
+        //                 Operator = ParseOperator(),
+        //                 Value = CheckToken(TokenKind.Value)
+        //             }
+        //         };
+
+        //         if (NextTokenExists() && GetNextToken().Kind == TokenKind.And)
+        //         {
+        //             root.Connector = CheckToken(TokenKind.And);
+        //             root.Right = ParseStart();
+        //             return root;
+        //         }
+
+        //         else
+        //         {
+        //             return root.Left;
+        //         }
+        //     }
+        // }
+
+        // private AstNode ParseStart()
+        // {
+        //     if (GetNextToken().Kind == TokenKind.Value)
+        //     {
+        //         return new AstNodeFilterString
+        //         {
+        //             Name = new Token(new Range(0, 0), "", TokenKind.Value),
+        //             Operator = new Token(new Range(0, 0), "", TokenKind.EQ),
+        //             Value = CheckToken(TokenKind.Value)
+        //         };
+        //     }
+        // }
 
         private AstNode ParseOr()
         {

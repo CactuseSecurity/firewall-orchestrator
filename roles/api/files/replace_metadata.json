@@ -200,6 +200,34 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "abs_change_id",
+                      "control_id",
+                      "log_rule_id",
+                      "new_rule_id",
+                      "old_rule_id",
+                      "documented",
+                      "implicit_change",
+                      "security_relevant",
+                      "change_action",
+                      "change_request_info",
+                      "unique_name",
+                      "change_type_id",
+                      "dev_id",
+                      "doku_admin",
+                      "import_admin",
+                      "mgm_id",
+                      "changelog_rule_comment",
+                      "change_time",
+                      "docu_time"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
                   "role": "importer",
                   "permission": {
                     "columns": [
@@ -532,6 +560,18 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "check": {
+                      "config_user": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
+                    },
+                    "columns": ["config_user", "config_key", "config_value"],
+                    "backend_only": false
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "check": {
@@ -593,6 +633,26 @@
                   "permission": {
                     "columns": ["config_user", "config_key", "config_value"],
                     "filter": {}
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": ["config_user", "config_key", "config_value"],
+                    "filter": {
+                      "_or": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user": {
+                            "_eq": 0
+                          }
+                        }
+                      ]
+                    }
                   }
                 },
                 {
@@ -676,6 +736,18 @@
                   "role": "auditor",
                   "permission": {
                     "columns": ["config_user", "config_key", "config_value"],
+                    "filter": {
+                      "config_user": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
+                    },
+                    "check": null
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": ["config_value"],
                     "filter": {
                       "config_user": {
                         "_eq": "X-Hasura-User-Id"
@@ -818,6 +890,36 @@
                   }
                 }
               ],
+              "insert_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "clearing_import_ran",
+                      "dev_active",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "dev_name",
+                      "global_rulebase_name",
+                      "global_rulebase_uid",
+                      "local_rulebase_name",
+                      "local_rulebase_uid",
+                      "package_name",
+                      "package_uid",
+                      "dev_id",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "tenant_id",
+                      "dev_comment",
+                      "dev_create",
+                      "dev_update"
+                    ],
+                    "backend_only": false
+                  }
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "auditor",
@@ -842,6 +944,34 @@
                       "package_uid",
                       "local_rulebase_uid",
                       "local_rulebase_name"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "dev_active",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "dev_name",
+                      "global_rulebase_name",
+                      "global_rulebase_uid",
+                      "local_rulebase_name",
+                      "local_rulebase_uid",
+                      "package_name",
+                      "package_uid",
+                      "dev_id",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "tenant_id",
+                      "dev_comment",
+                      "dev_create",
+                      "dev_update"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -1012,6 +1142,36 @@
                     "allow_aggregations": true
                   }
                 }
+              ],
+              "update_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "dev_active",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "dev_name",
+                      "global_rulebase_name",
+                      "global_rulebase_uid",
+                      "local_rulebase_name",
+                      "local_rulebase_uid",
+                      "package_name",
+                      "package_uid",
+                      "dev_id",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "tenant_id",
+                      "dev_comment",
+                      "dev_create",
+                      "dev_update"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  }
+                }
               ]
             },
             {
@@ -1034,6 +1194,13 @@
                   "role": "auditor",
                   "permission": {
                     "columns": ["id", "name"],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": ["name", "id"],
                     "filter": {}
                   }
                 },
@@ -1136,7 +1303,12 @@
                   "role": "importer",
                   "permission": {
                     "check": {},
-                    "columns": ["config", "import_id", "mgm_id"],
+                    "columns": [
+                      "config",
+                      "import_id",
+                      "mgm_id",
+                      "start_import_flag"
+                    ],
                     "backend_only": false
                   }
                 }
@@ -1145,7 +1317,12 @@
                 {
                   "role": "importer",
                   "permission": {
-                    "columns": ["import_id", "mgm_id", "config"],
+                    "columns": [
+                      "config",
+                      "import_id",
+                      "mgm_id",
+                      "start_import_flag"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -1775,6 +1952,28 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "control_id",
+                      "changes_found",
+                      "is_initial_import",
+                      "successful_import",
+                      "delimiter_group",
+                      "delimiter_list",
+                      "delimiter_user",
+                      "delimiter_zone",
+                      "import_errors",
+                      "mgm_id",
+                      "last_change_in_config",
+                      "start_time",
+                      "stop_time"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
                   "role": "importer",
                   "permission": {
                     "columns": [
@@ -2272,6 +2471,13 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": ["culture_info", "name"],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": ["name", "culture_info"],
@@ -2431,6 +2637,12 @@
               },
               "object_relationships": [
                 {
+                  "name": "management",
+                  "using": {
+                    "foreign_key_constraint_on": "multi_device_manager_id"
+                  }
+                },
+                {
                   "name": "stm_dev_typ",
                   "using": {
                     "foreign_key_constraint_on": "dev_typ_id"
@@ -2541,6 +2753,18 @@
                   }
                 },
                 {
+                  "name": "managementByMultiDeviceManagerId",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "multi_device_manager_id",
+                      "table": {
+                        "schema": "public",
+                        "name": "management"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "objects",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -2637,6 +2861,41 @@
                   }
                 }
               ],
+              "insert_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "clearing_import_ran",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "config_path",
+                      "importer_hostname",
+                      "last_import_md5_complete_config",
+                      "last_import_md5_objects",
+                      "last_import_md5_rules",
+                      "last_import_md5_users",
+                      "mgm_name",
+                      "ssh_hostname",
+                      "ssh_user",
+                      "debug_level",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "multi_device_manager_id",
+                      "ssh_port",
+                      "tenant_id",
+                      "mgm_comment",
+                      "ssh_private_key",
+                      "ssh_public_key",
+                      "mgm_create",
+                      "mgm_update"
+                    ],
+                    "backend_only": false
+                  }
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "auditor",
@@ -2665,6 +2924,39 @@
                       "hide_in_gui",
                       "importer_hostname",
                       "debug_level"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "config_path",
+                      "importer_hostname",
+                      "last_import_md5_complete_config",
+                      "last_import_md5_objects",
+                      "last_import_md5_rules",
+                      "last_import_md5_users",
+                      "mgm_name",
+                      "ssh_hostname",
+                      "ssh_user",
+                      "debug_level",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "multi_device_manager_id",
+                      "ssh_port",
+                      "tenant_id",
+                      "mgm_comment",
+                      "ssh_private_key",
+                      "ssh_public_key",
+                      "mgm_create",
+                      "mgm_update"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -2758,31 +3050,68 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
-                      "mgm_id",
+                      "clearing_import_ran",
+                      "config_path",
+                      "debug_level",
                       "dev_typ_id",
-                      "mgm_name",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "importer_hostname",
+                      "last_import_md5_complete_config",
+                      "last_import_md5_objects",
+                      "last_import_md5_rules",
+                      "last_import_md5_users",
                       "mgm_comment",
-                      "tenant_id",
                       "mgm_create",
+                      "mgm_id",
+                      "mgm_name",
                       "mgm_update",
-                      "ssh_public_key",
-                      "ssh_private_key",
+                      "multi_device_manager_id",
                       "ssh_hostname",
                       "ssh_port",
+                      "ssh_private_key",
+                      "ssh_public_key",
                       "ssh_user",
-                      "last_import_md5_complete_config",
-                      "last_import_md5_rules",
-                      "last_import_md5_objects",
-                      "last_import_md5_users",
-                      "do_not_import",
-                      "clearing_import_ran",
-                      "force_initial_import",
-                      "config_path",
-                      "hide_in_gui",
-                      "importer_hostname"
+                      "tenant_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
+                  }
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "config_path",
+                      "importer_hostname",
+                      "last_import_md5_complete_config",
+                      "last_import_md5_objects",
+                      "last_import_md5_rules",
+                      "last_import_md5_users",
+                      "mgm_name",
+                      "ssh_hostname",
+                      "ssh_user",
+                      "debug_level",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "multi_device_manager_id",
+                      "ssh_port",
+                      "tenant_id",
+                      "mgm_comment",
+                      "ssh_private_key",
+                      "ssh_public_key",
+                      "mgm_create",
+                      "mgm_update"
+                    ],
+                    "filter": {},
+                    "check": {}
                   }
                 }
               ]
@@ -3011,6 +3340,45 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "obj_create",
+                      "obj_id",
+                      "obj_last_seen",
+                      "active",
+                      "initial_config",
+                      "obj_nat",
+                      "obj_comment",
+                      "obj_location",
+                      "obj_name",
+                      "obj_sw",
+                      "obj_sys_contact",
+                      "obj_sys_location",
+                      "obj_sys_name",
+                      "obj_sys_readcom",
+                      "obj_sys_writecom",
+                      "obj_ip",
+                      "obj_ip_end",
+                      "obj_nat_ip",
+                      "obj_nat_ip_end",
+                      "last_change_admin",
+                      "mgm_id",
+                      "nattyp_id",
+                      "obj_color_id",
+                      "obj_nat_install",
+                      "obj_typ_id",
+                      "zone_id",
+                      "obj_member_names",
+                      "obj_member_refs",
+                      "obj_sys_desc",
+                      "obj_uid"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -3185,6 +3553,20 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "import_created",
+                      "import_last_seen",
+                      "objgrp_id",
+                      "objgrp_member_id",
+                      "active",
+                      "negated"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -3278,6 +3660,20 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "import_created",
+                      "import_last_seen",
+                      "objgrp_flat_id",
+                      "objgrp_flat_member_id",
+                      "active",
+                      "negated"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -3348,6 +3744,14 @@
                   "permission": {
                     "columns": ["id", "name"],
                     "filter": {}
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": ["name", "id"],
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 },
                 {
@@ -3425,6 +3829,26 @@
                       "report_name",
                       "report_owner_id",
                       "tenant_wide_visible"
+                    ],
+                    "backend_only": false
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "report_id",
+                      "report_name",
+                      "report_owner_id",
+                      "report_template_id",
+                      "tenant_wide_visible",
+                      "report_json",
+                      "report_csv",
+                      "report_html",
+                      "report_pdf",
+                      "report_end_time",
+                      "report_start_time"
                     ],
                     "backend_only": false
                   }
@@ -3528,6 +3952,30 @@
                       "tenant_wide_visible"
                     ],
                     "filter": {}
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "report_pdf",
+                      "report_owner_id",
+                      "report_template_id",
+                      "tenant_wide_visible",
+                      "report_id",
+                      "report_json",
+                      "report_csv",
+                      "report_html",
+                      "report_end_time",
+                      "report_start_time",
+                      "report_name"
+                    ],
+                    "filter": {
+                      "report_owner_id": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
+                    },
+                    "allow_aggregations": true
                   }
                 },
                 {
@@ -3629,6 +4077,30 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "report_pdf",
+                      "report_owner_id",
+                      "report_template_id",
+                      "tenant_wide_visible",
+                      "report_id",
+                      "report_json",
+                      "report_csv",
+                      "report_html",
+                      "report_end_time",
+                      "report_start_time",
+                      "report_name"
+                    ],
+                    "filter": {
+                      "report_owner_id": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
+                    },
+                    "check": null
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -3713,6 +4185,16 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "filter": {
+                      "report_owner_id": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
+                    }
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "filter": {
@@ -3766,6 +4248,13 @@
               "select_permissions": [
                 {
                   "role": "auditor",
+                  "permission": {
+                    "columns": ["report_format_name"],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "fw-admin",
                   "permission": {
                     "columns": ["report_format_name"],
                     "filter": {}
@@ -3853,6 +4342,24 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "report_schedule_active",
+                      "report_schedule_every",
+                      "report_schedule_id",
+                      "report_schedule_name",
+                      "report_schedule_owner",
+                      "report_schedule_repeat",
+                      "report_schedule_repetitions",
+                      "report_schedule_start_time",
+                      "report_template_id"
+                    ],
+                    "backend_only": false
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "check": {},
@@ -3923,6 +4430,57 @@
                       "report_schedule_repetitions"
                     ],
                     "filter": {}
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "report_schedule_active",
+                      "report_schedule_every",
+                      "report_schedule_id",
+                      "report_schedule_name",
+                      "report_schedule_owner",
+                      "report_schedule_repeat",
+                      "report_schedule_repetitions",
+                      "report_schedule_start_time",
+                      "report_template_id"
+                    ],
+                    "filter": {
+                      "_or": [
+                        {
+                          "report_schedule_owner": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "_exists": {
+                            "_where": {
+                              "uiuser_id": {
+                                "_eq": "X-Hasura-User-Id"
+                              }
+                            },
+                            "_table": {
+                              "schema": "public",
+                              "name": "report_template_viewable_by_user"
+                            }
+                          }
+                        },
+                        {
+                          "_exists": {
+                            "_where": {
+                              "tenant_id": {
+                                "_eq": "X-Hasura-Tenant-Id"
+                              }
+                            },
+                            "_table": {
+                              "schema": "public",
+                              "name": "report_template_viewable_by_tenant"
+                            }
+                          }
+                        }
+                      ]
+                    }
                   }
                 },
                 {
@@ -4060,6 +4618,28 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "report_schedule_active",
+                      "report_schedule_every",
+                      "report_schedule_id",
+                      "report_schedule_name",
+                      "report_schedule_owner",
+                      "report_schedule_repeat",
+                      "report_schedule_repetitions",
+                      "report_schedule_start_time",
+                      "report_template_id"
+                    ],
+                    "filter": {
+                      "report_schedule_owner": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
+                    },
+                    "check": null
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -4138,6 +4718,16 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "filter": {
+                      "report_schedule_owner": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
+                    }
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "filter": {
@@ -4191,6 +4781,23 @@
               "insert_permissions": [
                 {
                   "role": "auditor",
+                  "permission": {
+                    "check": {
+                      "report_schedule": {
+                        "report_schedule_owner": {
+                          "_eq": "X-Hasura-User-Id"
+                        }
+                      }
+                    },
+                    "columns": [
+                      "report_schedule_format_name",
+                      "report_schedule_id"
+                    ],
+                    "backend_only": false
+                  }
+                },
+                {
+                  "role": "fw-admin",
                   "permission": {
                     "check": {
                       "report_schedule": {
@@ -4267,6 +4874,22 @@
                       "report_schedule_id"
                     ],
                     "filter": {}
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "report_schedule_format_name",
+                      "report_schedule_id"
+                    ],
+                    "filter": {
+                      "report_schedule": {
+                        "report_schedule_owner": {
+                          "_eq": "X-Hasura-User-Id"
+                        }
+                      }
+                    }
                   }
                 },
                 {
@@ -4347,6 +4970,29 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "report_schedule_format_name",
+                      "report_schedule_id"
+                    ],
+                    "filter": {
+                      "report_schedule": {
+                        "report_schedule_owner": {
+                          "_eq": "X-Hasura-User-Id"
+                        }
+                      }
+                    },
+                    "check": {
+                      "report_schedule": {
+                        "report_schedule_owner": {
+                          "_eq": "X-Hasura-User-Id"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -4419,6 +5065,18 @@
               "delete_permissions": [
                 {
                   "role": "auditor",
+                  "permission": {
+                    "filter": {
+                      "report_schedule": {
+                        "report_schedule_owner": {
+                          "_eq": "X-Hasura-User-Id"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "role": "fw-admin",
                   "permission": {
                     "filter": {
                       "report_schedule": {
@@ -4536,13 +5194,31 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "report_template_id",
+                      "filterline_history",
                       "report_filter",
-                      "report_template_name",
+                      "report_parameters",
                       "report_template_comment",
                       "report_template_create",
-                      "report_template_owner",
-                      "filterline_history"
+                      "report_template_id",
+                      "report_template_name",
+                      "report_template_owner"
+                    ],
+                    "backend_only": false
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "filterline_history",
+                      "report_filter",
+                      "report_parameters",
+                      "report_template_comment",
+                      "report_template_create",
+                      "report_template_id",
+                      "report_template_name",
+                      "report_template_owner"
                     ],
                     "backend_only": false
                   }
@@ -4552,13 +5228,14 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "report_template_id",
+                      "filterline_history",
                       "report_filter",
-                      "report_template_name",
+                      "report_parameters",
                       "report_template_comment",
                       "report_template_create",
-                      "report_template_owner",
-                      "filterline_history"
+                      "report_template_id",
+                      "report_template_name",
+                      "report_template_owner"
                     ],
                     "backend_only": false
                   }
@@ -4568,13 +5245,14 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "report_template_id",
+                      "filterline_history",
                       "report_filter",
-                      "report_template_name",
+                      "report_parameters",
                       "report_template_comment",
                       "report_template_create",
-                      "report_template_owner",
-                      "filterline_history"
+                      "report_template_id",
+                      "report_template_name",
+                      "report_template_owner"
                     ],
                     "backend_only": false
                   }
@@ -4584,13 +5262,14 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "report_template_id",
+                      "filterline_history",
                       "report_filter",
-                      "report_template_name",
+                      "report_parameters",
                       "report_template_comment",
                       "report_template_create",
-                      "report_template_owner",
-                      "filterline_history"
+                      "report_template_id",
+                      "report_template_name",
+                      "report_template_owner"
                     ],
                     "backend_only": false
                   }
@@ -4601,28 +5280,59 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "report_template_id",
+                      "filterline_history",
                       "report_filter",
-                      "report_template_name",
+                      "report_parameters",
                       "report_template_comment",
                       "report_template_create",
-                      "report_template_owner",
-                      "filterline_history"
+                      "report_template_id",
+                      "report_template_name",
+                      "report_template_owner"
                     ],
                     "filter": {}
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "filterline_history",
+                      "report_filter",
+                      "report_parameters",
+                      "report_template_comment",
+                      "report_template_create",
+                      "report_template_id",
+                      "report_template_name",
+                      "report_template_owner"
+                    ],
+                    "filter": {
+                      "_or": [
+                        {
+                          "report_template_owner": {
+                            "_eq": 0
+                          }
+                        },
+                        {
+                          "report_template_owner": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        }
+                      ]
+                    }
                   }
                 },
                 {
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "report_template_id",
+                      "filterline_history",
                       "report_filter",
-                      "report_template_name",
+                      "report_parameters",
                       "report_template_comment",
                       "report_template_create",
-                      "report_template_owner",
-                      "filterline_history"
+                      "report_template_id",
+                      "report_template_name",
+                      "report_template_owner"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -4633,12 +5343,13 @@
                   "permission": {
                     "columns": [
                       "filterline_history",
-                      "report_template_id",
-                      "report_template_owner",
+                      "report_filter",
+                      "report_parameters",
                       "report_template_comment",
                       "report_template_create",
-                      "report_filter",
-                      "report_template_name"
+                      "report_template_id",
+                      "report_template_name",
+                      "report_template_owner"
                     ],
                     "filter": {
                       "_or": [
@@ -4661,12 +5372,13 @@
                   "permission": {
                     "columns": [
                       "filterline_history",
-                      "report_template_id",
-                      "report_template_owner",
+                      "report_filter",
+                      "report_parameters",
                       "report_template_comment",
                       "report_template_create",
-                      "report_filter",
-                      "report_template_name"
+                      "report_template_id",
+                      "report_template_name",
+                      "report_template_owner"
                     ],
                     "filter": {
                       "_or": [
@@ -4689,12 +5401,13 @@
                   "permission": {
                     "columns": [
                       "filterline_history",
-                      "report_template_id",
-                      "report_template_owner",
+                      "report_filter",
+                      "report_parameters",
                       "report_template_comment",
                       "report_template_create",
-                      "report_filter",
-                      "report_template_name"
+                      "report_template_id",
+                      "report_template_name",
+                      "report_template_owner"
                     ],
                     "filter": {
                       "_or": [
@@ -4719,12 +5432,34 @@
                   "permission": {
                     "columns": [
                       "filterline_history",
-                      "report_template_id",
-                      "report_template_owner",
+                      "report_filter",
+                      "report_parameters",
                       "report_template_comment",
                       "report_template_create",
+                      "report_template_id",
+                      "report_template_name",
+                      "report_template_owner"
+                    ],
+                    "filter": {
+                      "report_template_owner": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
+                    },
+                    "check": null
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "filterline_history",
                       "report_filter",
-                      "report_template_name"
+                      "report_parameters",
+                      "report_template_comment",
+                      "report_template_create",
+                      "report_template_id",
+                      "report_template_name",
+                      "report_template_owner"
                     ],
                     "filter": {
                       "report_template_owner": {
@@ -4739,12 +5474,13 @@
                   "permission": {
                     "columns": [
                       "filterline_history",
-                      "report_template_id",
-                      "report_template_owner",
+                      "report_filter",
+                      "report_parameters",
                       "report_template_comment",
                       "report_template_create",
-                      "report_filter",
-                      "report_template_name"
+                      "report_template_id",
+                      "report_template_name",
+                      "report_template_owner"
                     ],
                     "filter": {
                       "report_template_owner": {
@@ -4759,12 +5495,13 @@
                   "permission": {
                     "columns": [
                       "filterline_history",
-                      "report_template_id",
-                      "report_template_owner",
+                      "report_filter",
+                      "report_parameters",
                       "report_template_comment",
                       "report_template_create",
-                      "report_filter",
-                      "report_template_name"
+                      "report_template_id",
+                      "report_template_name",
+                      "report_template_owner"
                     ],
                     "filter": {
                       "report_template_owner": {
@@ -4779,12 +5516,13 @@
                   "permission": {
                     "columns": [
                       "filterline_history",
-                      "report_template_id",
-                      "report_template_owner",
+                      "report_filter",
+                      "report_parameters",
                       "report_template_comment",
                       "report_template_create",
-                      "report_filter",
-                      "report_template_name"
+                      "report_template_id",
+                      "report_template_name",
+                      "report_template_owner"
                     ],
                     "filter": {
                       "report_template_owner": {
@@ -4798,6 +5536,16 @@
               "delete_permissions": [
                 {
                   "role": "auditor",
+                  "permission": {
+                    "filter": {
+                      "report_template_owner": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
+                    }
+                  }
+                },
+                {
+                  "role": "fw-admin",
                   "permission": {
                     "filter": {
                       "report_template_owner": {
@@ -5314,6 +6062,53 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "parent_rule_id",
+                      "rule_create",
+                      "rule_id",
+                      "rule_last_seen",
+                      "xlate_rule",
+                      "access_rule",
+                      "active",
+                      "nat_rule",
+                      "rule_disabled",
+                      "rule_dst_neg",
+                      "rule_implied",
+                      "rule_src_neg",
+                      "rule_svc_neg",
+                      "rule_installon",
+                      "rule_name",
+                      "rule_ruleid",
+                      "rule_time",
+                      "action_id",
+                      "dev_id",
+                      "last_change_admin",
+                      "mgm_id",
+                      "rule_from_zone",
+                      "rule_num",
+                      "rule_to_zone",
+                      "track_id",
+                      "rule_num_numeric",
+                      "parent_rule_type",
+                      "rule_action",
+                      "rule_comment",
+                      "rule_dst",
+                      "rule_dst_refs",
+                      "rule_head_text",
+                      "rule_src",
+                      "rule_src_refs",
+                      "rule_svc",
+                      "rule_svc_refs",
+                      "rule_track",
+                      "rule_uid"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -5519,6 +6314,22 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "rf_create",
+                      "rf_last_seen",
+                      "rule_from_id",
+                      "rule_id",
+                      "user_id",
+                      "active",
+                      "negated"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -5675,6 +6486,32 @@
                       "last_change_admin",
                       "rule_decert_date",
                       "rule_recertification_comment"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "rule_hit_counter",
+                      "rule_metadata_id",
+                      "rule_to_be_removed",
+                      "rule_last_certifier_dn",
+                      "rule_owner_dn",
+                      "rule_recertification_comment",
+                      "dev_id",
+                      "last_change_admin",
+                      "rule_last_certifier",
+                      "rule_owner",
+                      "rule_uid",
+                      "rule_created",
+                      "rule_decert_date",
+                      "rule_first_hit",
+                      "rule_last_certified",
+                      "rule_last_hit",
+                      "rule_last_modified"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -5893,6 +6730,20 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "obj_id",
+                      "removed",
+                      "rule_id",
+                      "mgm_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -6011,6 +6862,20 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "rs_create",
+                      "rs_last_seen",
+                      "rule_id",
+                      "svc_id",
+                      "active",
+                      "negated"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -6103,6 +6968,20 @@
                       "removed",
                       "rule_id",
                       "svc_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "rule_id",
+                      "svc_id",
+                      "mgm_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -6207,6 +7086,20 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "rt_create",
+                      "rt_last_seen",
+                      "rule_id",
+                      "active",
+                      "negated"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -6299,6 +7192,20 @@
                       "user_id",
                       "created",
                       "removed"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "rule_id",
+                      "user_id",
+                      "mgm_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -6541,6 +7448,48 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "svc_create",
+                      "svc_id",
+                      "svc_last_seen",
+                      "active",
+                      "initial_config",
+                      "srv_keeponinstall",
+                      "svc_accept_rep",
+                      "svc_accept_rep_any",
+                      "svc_mfa",
+                      "svc_sync",
+                      "svc_sync_delay",
+                      "svc_tcp_res",
+                      "svc_timeout_std",
+                      "svc_code",
+                      "svc_name",
+                      "svc_rpcnr",
+                      "ip_proto_id",
+                      "last_change_admin",
+                      "mgm_id",
+                      "svc_color_id",
+                      "svc_port",
+                      "svc_port_end",
+                      "svc_source_port",
+                      "svc_source_port_end",
+                      "svc_sync_delay_start",
+                      "svc_timeout",
+                      "svc_typ_id",
+                      "svc_comment",
+                      "svc_match",
+                      "svc_member_names",
+                      "svc_member_refs",
+                      "svc_prod_specific",
+                      "svc_uid"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -6704,6 +7653,14 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": ["action_name", "action_id"],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
                   "role": "importer",
                   "permission": {
                     "columns": [],
@@ -6799,6 +7756,14 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": ["change_type_name", "change_type_id"],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": ["change_type_id", "change_type_name"],
@@ -6878,6 +7843,19 @@
                       "color_comment"
                     ],
                     "filter": {}
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "color_rgb",
+                      "color_name",
+                      "color_id",
+                      "color_comment"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 },
                 {
@@ -6963,36 +7941,59 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "dev_typ_is_mgmt",
-                      "dev_typ_id",
                       "dev_typ_comment",
-                      "dev_typ_predef_obj",
-                      "dev_typ_predef_svc",
                       "dev_typ_config_file_basic_objects",
                       "dev_typ_config_file_rules",
                       "dev_typ_config_file_users",
+                      "dev_typ_id",
+                      "dev_typ_is_mgmt",
+                      "dev_typ_is_multi_mgmt",
                       "dev_typ_manufacturer",
                       "dev_typ_name",
+                      "dev_typ_predef_obj",
+                      "dev_typ_predef_svc",
                       "dev_typ_version"
                     ],
                     "filter": {}
                   }
                 },
                 {
-                  "role": "importer",
+                  "role": "fw-admin",
                   "permission": {
                     "columns": [
-                      "dev_typ_id",
+                      "dev_typ_is_mgmt",
+                      "dev_typ_is_multi_mgmt",
+                      "dev_typ_config_file_basic_objects",
+                      "dev_typ_config_file_rules",
+                      "dev_typ_config_file_users",
                       "dev_typ_manufacturer",
                       "dev_typ_name",
                       "dev_typ_version",
+                      "dev_typ_id",
                       "dev_typ_comment",
-                      "dev_typ_predef_svc",
                       "dev_typ_predef_obj",
-                      "dev_typ_is_mgmt",
-                      "dev_typ_config_file_rules",
+                      "dev_typ_predef_svc"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "dev_typ_comment",
                       "dev_typ_config_file_basic_objects",
-                      "dev_typ_config_file_users"
+                      "dev_typ_config_file_rules",
+                      "dev_typ_config_file_users",
+                      "dev_typ_id",
+                      "dev_typ_is_mgmt",
+                      "dev_typ_is_multi_mgmt",
+                      "dev_typ_manufacturer",
+                      "dev_typ_name",
+                      "dev_typ_predef_obj",
+                      "dev_typ_predef_svc",
+                      "dev_typ_version"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -7002,17 +8003,18 @@
                   "role": "recertifier",
                   "permission": {
                     "columns": [
+                      "dev_typ_comment",
+                      "dev_typ_config_file_basic_objects",
+                      "dev_typ_config_file_rules",
+                      "dev_typ_config_file_users",
                       "dev_typ_id",
+                      "dev_typ_is_mgmt",
+                      "dev_typ_is_multi_mgmt",
                       "dev_typ_manufacturer",
                       "dev_typ_name",
-                      "dev_typ_version",
-                      "dev_typ_comment",
-                      "dev_typ_predef_svc",
                       "dev_typ_predef_obj",
-                      "dev_typ_is_mgmt",
-                      "dev_typ_config_file_rules",
-                      "dev_typ_config_file_basic_objects",
-                      "dev_typ_config_file_users"
+                      "dev_typ_predef_svc",
+                      "dev_typ_version"
                     ],
                     "filter": {}
                   }
@@ -7021,17 +8023,18 @@
                   "role": "reporter",
                   "permission": {
                     "columns": [
+                      "dev_typ_comment",
+                      "dev_typ_config_file_basic_objects",
+                      "dev_typ_config_file_rules",
+                      "dev_typ_config_file_users",
                       "dev_typ_id",
+                      "dev_typ_is_mgmt",
+                      "dev_typ_is_multi_mgmt",
                       "dev_typ_manufacturer",
                       "dev_typ_name",
-                      "dev_typ_version",
-                      "dev_typ_comment",
-                      "dev_typ_predef_svc",
                       "dev_typ_predef_obj",
-                      "dev_typ_is_mgmt",
-                      "dev_typ_config_file_rules",
-                      "dev_typ_config_file_basic_objects",
-                      "dev_typ_config_file_users"
+                      "dev_typ_predef_svc",
+                      "dev_typ_version"
                     ],
                     "filter": {}
                   }
@@ -7040,17 +8043,18 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
+                      "dev_typ_comment",
+                      "dev_typ_config_file_basic_objects",
+                      "dev_typ_config_file_rules",
+                      "dev_typ_config_file_users",
                       "dev_typ_id",
+                      "dev_typ_is_mgmt",
+                      "dev_typ_is_multi_mgmt",
                       "dev_typ_manufacturer",
                       "dev_typ_name",
-                      "dev_typ_version",
-                      "dev_typ_comment",
-                      "dev_typ_predef_svc",
                       "dev_typ_predef_obj",
-                      "dev_typ_is_mgmt",
-                      "dev_typ_config_file_rules",
-                      "dev_typ_config_file_basic_objects",
-                      "dev_typ_config_file_users"
+                      "dev_typ_predef_svc",
+                      "dev_typ_version"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -7087,6 +8091,18 @@
                       "ip_proto_comment"
                     ],
                     "filter": {}
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "ip_proto_name",
+                      "ip_proto_id",
+                      "ip_proto_comment"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 },
                 {
@@ -7195,6 +8211,18 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "obj_typ_name",
+                      "obj_typ_id",
+                      "obj_typ_comment"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
                   "role": "importer",
                   "permission": {
                     "columns": [],
@@ -7267,6 +8295,18 @@
                       "svc_typ_comment"
                     ],
                     "filter": {}
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "svc_typ_name",
+                      "svc_typ_id",
+                      "svc_typ_comment"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 },
                 {
@@ -7343,6 +8383,14 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": ["track_name", "track_id"],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
                   "role": "importer",
                   "permission": {
                     "columns": [],
@@ -7399,6 +8447,14 @@
                   "permission": {
                     "columns": ["usr_typ_id", "usr_typ_name"],
                     "filter": {}
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": ["usr_typ_name", "usr_typ_id"],
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 },
                 {
@@ -7478,6 +8534,20 @@
                     ],
                     "filter": {},
                     "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "import_created",
+                      "import_last_seen",
+                      "svcgrp_id",
+                      "svcgrp_member_id",
+                      "active",
+                      "negated"
+                    ],
+                    "filter": {}
                   }
                 },
                 {
@@ -7571,6 +8641,20 @@
                     ],
                     "filter": {},
                     "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "active",
+                      "negated",
+                      "import_created",
+                      "import_last_seen",
+                      "svcgrp_flat_id",
+                      "svcgrp_flat_member_id"
+                    ],
+                    "filter": {}
                   }
                 },
                 {
@@ -7929,6 +9013,16 @@
                   }
                 }
               ],
+              "insert_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "check": {},
+                    "columns": ["device_id", "tenant_id"],
+                    "backend_only": false
+                  }
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "auditor",
@@ -7938,10 +9032,27 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": ["device_id", "tenant_id"],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "middleware-server",
                   "permission": {
                     "columns": ["tenant_id", "device_id"],
                     "filter": {}
+                  }
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": ["device_id", "tenant_id"],
+                    "filter": {},
+                    "check": null
                   }
                 }
               ]
@@ -8004,6 +9115,13 @@
                 },
                 {
                   "role": "auditor",
+                  "permission": {
+                    "columns": ["id", "language", "txt"],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "fw-admin",
                   "permission": {
                     "columns": ["id", "language", "txt"],
                     "filter": {}
@@ -8331,6 +9449,33 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "ldap_connection_id",
+                      "uiuser_password_must_be_changed",
+                      "uiuser_email",
+                      "uiuser_first_name",
+                      "uiuser_language",
+                      "uiuser_last_name",
+                      "uiuser_username",
+                      "uuid",
+                      "uiuser_end_date",
+                      "uiuser_start_date",
+                      "tenant_id",
+                      "uiuser_id",
+                      "uiuser_pwd_history",
+                      "uiuser_last_login",
+                      "uiuser_last_password_change"
+                    ],
+                    "filter": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    }
+                  }
+                },
+                {
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
@@ -8465,6 +9610,18 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": ["uiuser_language"],
+                    "filter": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    },
+                    "check": {}
+                  }
+                },
+                {
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
@@ -8581,6 +9738,19 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "import_created",
+                      "import_last_seen",
+                      "usergrp_id",
+                      "usergrp_member_id",
+                      "active"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -8667,6 +9837,19 @@
                     ],
                     "filter": {},
                     "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "import_created",
+                      "import_last_seen",
+                      "usergrp_flat_id",
+                      "usergrp_flat_member_id",
+                      "active"
+                    ],
+                    "filter": {}
                   }
                 },
                 {
@@ -8898,6 +10081,37 @@
                       "user_lastname",
                       "last_change_admin",
                       "tenant_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "user_create",
+                      "user_id",
+                      "user_last_seen",
+                      "active",
+                      "user_authmethod",
+                      "user_firstname",
+                      "user_lastname",
+                      "user_name",
+                      "user_valid_from",
+                      "user_valid_until",
+                      "last_change_admin",
+                      "mgm_id",
+                      "tenant_id",
+                      "user_color_id",
+                      "usr_typ_id",
+                      "dst_restrict",
+                      "src_restrict",
+                      "time_restrict",
+                      "user_comment",
+                      "user_member_names",
+                      "user_member_refs",
+                      "user_uid"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -9182,6 +10396,21 @@
                       "mgm_id",
                       "zone_name",
                       "active"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "zone_create",
+                      "zone_last_seen",
+                      "active",
+                      "zone_name",
+                      "mgm_id",
+                      "zone_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true

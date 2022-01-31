@@ -3,6 +3,7 @@ mutation addReportTemplateWithPermissions(
   $reportFilterLine: String!
   $userId: Int
   $tenantId: Int
+  $reportParameters: json
 ) {
   insert_report_template(
     objects: [
@@ -12,6 +13,7 @@ mutation addReportTemplateWithPermissions(
         report_template_owner: $userId
         report_template_viewable_by_users: { data: { uiuser_id: $userId } }
         report_template_viewable_by_tenants: { data: { tenant_id: $tenantId } }
+        report_parameters: $reportParameters
       }
     ]
   ) {

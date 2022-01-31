@@ -100,6 +100,13 @@ namespace FWO.Api.Data
             return new DistName(Dn).IsInternal();
         }
 
+        public void Sanitize()
+        {
+            Name = Sanitizer.SanitizeLdapNameMand(Name);
+            Email = Sanitizer.SanitizeOpt(Email);
+            Password = Sanitizer.SanitizePasswMand(Password);
+        }
+
         public UserGetReturnParameters ToApiParams()
         {
             return new UserGetReturnParameters

@@ -1,4 +1,5 @@
 ﻿using FWO.ApiClient;
+using FWO.ApiClient.Queries;
 using FWO.Api.Data;
 using FWO.Report.Filter;
 using FWO.Config.Api;
@@ -141,19 +142,26 @@ namespace FWO.Report
             //}
         }
 
-        public static ReportBase ConstructReport(string filterInput, UserConfig userConfig)
+        public static ReportBase ConstructReport(string filterInput, DeviceFilter deviceFilter, TimeFilter timeFilter, ReportType reportType, UserConfig userConfig)
         {
-            DynGraphqlQuery query = Compiler.Compile(filterInput);
+            DynGraphqlQuery query = Compiler.Compile(filterInput, reportType, deviceFilter, timeFilter);
 
-            return query.ReportType switch
+            return reportType switch
             {
-
                 ReportType.Statistics => new ReportStatistics(query, userConfig),
                 ReportType.Rules => new ReportRules(query, userConfig),
                 ReportType.Changes => new ReportChanges(query, userConfig),
                 ReportType.NatRules => new ReportNatRules(query, userConfig),
                 _ => throw new NotSupportedException("Report Type is not supported."),
             };
+        }
+
+        public async Task<Management[]> getRelevantImportIds(APIConnection apiConnection)
+        {
+            Dictionary<string, object> ImpIdQueryVariables = new Dictionary<string, object>();
+            ImpIdQueryVariables["time"] = (Query.ReportTimeString != "" ? Query.ReportTimeString : DateTime.Now.ToString(DynGraphqlQuery.fullTimeFormat));
+            ImpIdQueryVariables["mgmIds"] = Query.RelevantManagementIds;
+            return await apiConnection.SendQueryAsync<Management[]>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
         }
     }
 }

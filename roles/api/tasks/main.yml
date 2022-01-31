@@ -1,20 +1,4 @@
 # this playbook sets up the api
-- name: initialize handler for datarecovery
-  set_fact:
-    api_handler_guard: start
-  changed_when: true
-  notify:
-  - api handler
-  when: installation_mode == "upgrade"
-
-- name: backup api dir
-  synchronize:
-    src: "{{ fworch_home }}/api"
-    dest: "{{ fworch_home }}/backup_api"
-  delegate_to: "{{ inventory_hostname }}"
-  when: installation_mode == "upgrade"
-  become: yes
-
 - name: remove api home
   file:
     path: "{{ api_home }}"
@@ -36,6 +20,14 @@
 - name: hasura install 
   import_tasks: hasura-install.yml
 
+- name: settings grants for hasura schema old ansible
+  include_tasks: grants-ansible-pre2.10.yml
+  when: ansible_version.string is version_compare('2.10', '<')
+
+- name: settings grants for hasura schema new ansible
+  include_tasks: grants-ansible-2.10.yml
+  when: ansible_version.string is version_compare('2.10', '>=')
+
 - name: include upgrade script
   import_tasks: run-upgrades.yml
   when: "installation_mode == 'upgrade'"
@@ -52,11 +44,8 @@
 - name: api create documentation
   import_tasks: api-create-docu.yml
   when: api_docu | bool
-
-- name: finalize handler for datarecovery
-  set_fact:
-    api_handler_guard: stop
-  changed_when: true
-  notify: "api handler"
-  when: installation_mode == "upgrade"
-  
+- name: remove api home
+  file:
+    path: "{{ api_home }}"
+    state: absent
+  become: yes

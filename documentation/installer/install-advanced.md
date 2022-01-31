@@ -107,7 +107,7 @@ rsyslog config
 
   - name: edit logrotate
     blockinfile:
-      path: "/etc/logrotate.d/{{ product_name }}.conf"
+      path: "/etc/logrotate.d/{{ product_name }}"
       create: yes
       block: |
         /var/log/{{ product_name }}/*.log {
@@ -119,10 +119,10 @@ rsyslog config
             copytruncate
             sharedscripts
                 prerotate
-                        systemctl stop {{ product_name }}-importer.service >/dev/null 2>&1
+                        systemctl stop {{ product_name }}-importer-legacy.service >/dev/null 2>&1
                 endscript
                 postrotate
-                        systemctl start {{ product_name }}-importer.service >/dev/null 2>&1
+                        systemctl start {{ product_name }}-importer-legacy.service >/dev/null 2>&1
                 endscript
         }
 ```

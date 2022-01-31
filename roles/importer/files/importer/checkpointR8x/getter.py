@@ -1,10 +1,4 @@
 # library for API get functions
-base_dir = "/usr/local/fworch"
-importer_base_dir = base_dir + '/importer'
-import sys
-
-from simplejson import JSONDecodeError
-sys.path.append(importer_base_dir)
 import json
 import logging, re
 import requests, requests.packages
@@ -38,23 +32,21 @@ def api_call(url, command, json_payload, sid, ssl_verification, proxy, show_prog
         r = requests.post(url, json=json_payload, headers=request_headers, verify=verify, proxies=proxy)
         r.raise_for_status()
     except requests.exceptions.RequestException as e:
-        logging.exception("\checkpointR8x:api_call: error, url: " + str(url))
-        raise SystemExit(e) from None
+        raise Exception("\checkpointR8x:api_call: error, url: " + str(url))
         
     if r is None:
         if 'password' in json.dumps(json_payload):
-            logging.exception("\nerror while sending api_call containing credential information to url '" + str(url))
+            exception_text = "\nerror while sending api_call containing credential information to url '" + str(url)
         else:
-            logging.exception("\nerror while sending api_call to url '" + str(url) + "' with payload '" + json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
-        sys.exit(1)
+            exception_text = "\nerror while sending api_call to url '" + str(url) + "' with payload '" + json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2)
+        raise Exception (exception_text)
     if show_progress:
         print ('.', end='', flush=True)
 
     try:
         json_response = r.json()
     except:
-        logging.exception("checkpointR8x:api_call: response is not in valid json format: " + r.text)
-        sys.exit(1)
+        raise Exception("checkpointR8x:api_call: response is not in valid json format: " + r.text)
     return json_response
 
 
@@ -65,10 +57,10 @@ def login(user, password, api_host, api_port, domain, ssl_verification, proxy):
     base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
     response = api_call(base_url, 'login', payload, '', ssl_verification, proxy)
     if "sid" not in response:
-        logging.exception("\ngetter ERROR: did not receive a sid during login, " +
-            "api call: api_host: " + str(api_host) + ", api_port: " + str(api_port) + ", base_url: " + str(base_url) +
-            ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy))
-        sys.exit(1)
+        exception_text = "\ngetter ERROR: did not receive a sid during login, " + \
+            "api call: api_host: " + str(api_host) + ", api_port: " + str(api_port) + ", base_url: " + str(base_url) + \
+            ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy)
+        raise Exception(exception_text)
     return response["sid"]
 
 
@@ -102,12 +94,10 @@ def get_api_url(sid, api_host, api_port, user, base_url, limit, test_version, ss
             if test_version in api_supported :
                 v_url = base_url + 'v' + test_version + '/'
             else:
-                logging.debug ("getter - api version " + test_version + " is not supported by the manager " + api_host + " - Import is canceled")
-                #v_url = base_url
-                sys.exit("api version " + test_version + " not supported")
+                raise Exception("api version " + test_version + " not supported")
         else:
             logging.debug ("getter.py::get_api_url - not a valid version")
-            sys.exit("\"" + test_version +"\" - not a valid version")
+            raise Exception("\"" + test_version +"\" - not a valid version")
     logging.debug ("getter.py::get_api_url  - test_version: " + test_version + " - url: "+ v_url)
     return v_url
 
@@ -122,11 +112,10 @@ def set_api_url(base_url,testmode,api_supported,hostname):
             if testmode in api_supported :
                 url = base_url + 'v' + testmode + '/'
             else:
-                logger.debug ("api version " + testmode + " is not supported by the manager " + hostname + " - Import is canceled")
-                sys.exit("api version " + testmode +" not supported")
+                raise Exception("api version " + testmode + " is not supported by the manager " + hostname + " - Import is canceled")
         else:
             logger.debug ("not a valid version")
-            sys.exit("\"" + testmode +"\" - not a valid version")
+            raise Exception("\"" + testmode +"\" - not a valid version")
     logger.debug ("testmode: " + testmode + " - url: "+ url)
     return url
 
@@ -193,8 +182,6 @@ def collect_uids_from_rule(rule, nw_uids_found, svc_uids_found):
             svc_uids_found.append(svc['uid'])
         #logging.debug ("getter::collect_uids_from_rule nw_uids_found: " + str(nw_uids_found))
         #logging.debug ("getter::collect_uids_from_rule svc_uids_found: " + str(svc_uids_found))
-    if fwcommon.debug_new_uid in nw_uids_found:
-        logging.debug("found " + fwcommon.debug_new_uid + " in getter::collect_uids_from_rule")
     return
 
 
@@ -214,12 +201,6 @@ def collect_uids_from_rulebase(rulebase, nw_uids_found, svc_uids_found, debug_te
     else:
         for rule in rulebase:
             collect_uids_from_rule(rule, nw_uids_found, svc_uids_found)
-
-    if (debug_text == 'top_level'):
-        # logging.debug ("getter::collect_uids_from_rulebase final nw_uids_found: " + str(nw_uids_found))
-        # logging.debug ("getter::collect_uids_from_rulebase final svc_uids_found: " + str(svc_uids_found))
-        if fwcommon.debug_new_uid in nw_uids_found:
-            logging.debug("found " + fwcommon.debug_new_uid + " in getter::collect_uids_from_rulebase")
     return
 
 
@@ -287,11 +268,8 @@ def get_layer_from_api_as_dict (api_host, api_port, api_v_url, sid, ssl_verifica
             if 'to' in rulebase:
                 current=rulebase['to']
             else:
-                logging.error ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " 
-                    + str(rulebase))
-                sys.exit(1)
+                raise Exception ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(rulebase))
         logging.debug ( "get_layer_from_api - get_layer_from_api_as_dict current offset: "+ str(current) )
-    # logging.debug ("get_config::get_rulebase_chunk_from_api - found rules:\n" + str(current_layer_json) + "\n")
     return current_layer_json
 
 
@@ -315,9 +293,7 @@ def get_nat_rules_from_api_as_dict (api_host, api_port, api_v_url, sid, ssl_veri
             if 'to' in rulebase:
                 current=rulebase['to']
             else:
-                logging.error ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " 
-                    + str(nat_rules))
-                sys.exit(1)
+                raise Exception ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(nat_rules))
     return nat_rules
 
 

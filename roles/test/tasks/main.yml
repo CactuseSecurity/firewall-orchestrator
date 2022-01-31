@@ -1,9 +1,6 @@
 # this playbook sets up some sample devices with configs to play around with
 # postgresql-client
 
-# - name: create import sample user and copy configs
-#   include_tasks: setup-sample-import.yml
-
 - name: install packages necessary for testing
   package:
     name: "{{ item }}"
@@ -19,6 +16,14 @@
 - name: set postfix to brand all objects in this test run
   set_fact:
     sample_postfix: "{{ test_postfix }}"
+
+- name: create test user1 password
+  set_fact:
+    test_user1_pw: "{{ random_generated_pw }}"
+
+- name: create test user2 password
+  set_fact:
+    test_user2_pw: "{{ random_generated_pw }}"
 
 - name: initialize handler for deleting test data
   set_fact:
@@ -43,37 +48,28 @@
   vars:
     sample_postfix: "{{ test_postfix }}"
     sample_role_purpose: test
+    sample_user1_pw: "{{ test_user1_pw }}"
+    sample_user2_pw: "{{ test_user2_pw }}"
   when: "'middlewareserver' in group_names"
 
 - name: database testing
   import_tasks: test-database.yml
 
+- name: create config with test user creds
+  import_tasks: write-config-test-user-creds.yml
+
 - name: auth testing
   import_tasks: test-auth.yml
-  when: not without_sample_data | bool
 
 - name: api testing
   import_tasks: test-api.yml
-  when: not without_sample_data | bool
 
 - name: csharp testing
   import_tasks: test-csharp.yml
-  when: not without_sample_data | bool
 
 - name: imorter testing
   import_tasks: test-importer.yml
   when: "'sampleserver' in group_names"
-
-# - name: remove all test data
-#   import_tasks: test-data-cleanup.yml
-#   when: test == 'with_cleanup'
-
-# - name: remove packages only necessary for testing
-#   package:
-#     name: "{{ item }}"
-#     state: absent
-#   loop: "{{ test_packages }}"
-#   become: yes
 
 - name: finalize handler for deleting test data
   set_fact:

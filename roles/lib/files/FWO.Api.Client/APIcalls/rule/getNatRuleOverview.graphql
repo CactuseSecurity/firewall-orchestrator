@@ -25,6 +25,7 @@ query getNatRulesOverview($mgmId: [Int!], $device_id: [Int!]) {
         }
         order_by: { rule_num_numeric: asc }
       ) {
+        mgm_id: mgm_id
         rule_id
         rule_uid
         rule_action

@@ -1,7 +1,4 @@
 ﻿using FWO.Report.Filter.Exceptions;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace FWO.Report.Filter.Ast
 {
@@ -11,7 +8,7 @@ namespace FWO.Report.Filter.Ast
         public AstNode? Left { get; set; }
         public Token? Connector { get; set; }
 
-        public override void Extract(ref DynGraphqlQuery query)
+        public override void Extract(ref DynGraphqlQuery query, ReportType? reportType)
         {
             if (Connector == null)
                 throw new ArgumentNullException(nameof(Connector));
@@ -38,7 +35,7 @@ namespace FWO.Report.Filter.Ast
                     throw new SemanticException($"### Compiler Error: Found unexpected and unsupported connector token (prefix): \"{Connector}\". ###", Connector.Position);
             }
 
-            Left.Extract(ref query);
+            Left.Extract(ref query, reportType);
 
             switch (Connector.Kind)
             {
@@ -53,7 +50,7 @@ namespace FWO.Report.Filter.Ast
                     throw new SemanticException($"### Compiler Error: Found unexpected and unsupported connector token (operator): \"{Connector}\". ###", Connector.Position);
             }
 
-            Right.Extract(ref query);
+            Right.Extract(ref query, reportType);
 
             switch (Connector.Kind)
             {

@@ -40,5 +40,10 @@ namespace FWO.Api.Data
 
         [JsonProperty("report_csv"), JsonPropertyName("report_csv")]
         public string? Csv { get; set; }
+
+        public void Sanitize()
+        {
+            Name = Sanitizer.SanitizeMand(Name);
+        }
     }
 }

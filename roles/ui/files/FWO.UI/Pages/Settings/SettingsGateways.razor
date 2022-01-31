@@ -4,7 +4,7 @@
 @using FWO.Config.Api
 
 @page "/settings/gateways"
-@attribute [Authorize(Roles = "admin, auditor")]
+@attribute [Authorize(Roles = "admin, auditor, fw-admin")]
 
 @inject APIConnection apiConnection
 @inject UserConfig userConfig
@@ -22,7 +22,11 @@
                 <div class="btn-group">
                     <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">@(userConfig.GetText("clone"))</button>
                     <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">@(userConfig.GetText("edit"))</button>
-                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
+                    <AuthorizeView Roles="admin, auditor" Context="ctx">
+                        <Authorized>
+                            <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
+                        </Authorized>
+                    </AuthorizeView>
                 </div>
             </Template>
         </Column>
@@ -77,31 +81,59 @@
                     <label for="deviceManagement" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("management"))*:</label>
                     <div class="col-sm-8">
                         <select id="deviceManagement" class="form-control form-control-sm" @bind="actDevice.Management.Id">
-                            @foreach (Management management in managements)
+                            @foreach (Management management in managements.Where(x => x.DeviceType.Manufacturer == deviceTypes.Find(x => x.Id == actDevice.DeviceType.Id)?.Manufacturer))
                             {
                                 <option value="@management.Id">@(management.Name)</option>
                             }
                         </select>
                     </div>
                 </div>
-                <div class="form-group row">
-                    <label for="deviceLocalRulebase" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("local_rulebase"))*:</label>
-                    <div class="col-sm-8">
-                        <input id="deviceLocalRulebase" type="text" class="form-control form-control-sm" @bind="actDevice.LocalRulebase" />
+                @if (actDevice.DeviceType.IsLegacyDevType())
+                {
+                    <div class="form-group row">
+                        <label for="deviceLocalRulebase" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("local_rulebase"))*:</label>
+                        <div class="col-sm-8">
+                            <input id="deviceLocalRulebase" type="text" class="form-control form-control-sm" @bind="actDevice.LocalRulebase" />
+                        </div>
                     </div>
-                </div>
-                <div class="form-group row">
-                    <label for="deviceGlobalRulebase" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("global_rulebase")):</label>
-                    <div class="col-sm-8">
-                        <input id="deviceGlobalRulebase" type="text" class="form-control form-control-sm" @bind="actDevice.GlobalRulebase" />
+                }
+                else if(deviceTypes.Find(x => x.Id == actDevice.DeviceType.Id)?.Manufacturer == "Check Point")
+                {
+                    <div class="form-group row">
+                        <label for="deviceLocalRulebase" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("local_rulebase"))*:</label>
+                        <div class="col-sm-8">
+                            <input id="deviceLocalRulebase" type="text" class="form-control form-control-sm" @bind="actDevice.LocalRulebase" />
+                        </div>
                     </div>
-                </div>
-                <div class="form-group row">
-                    <label for="devicePackage" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("package")):</label>
-                    <div class="col-sm-8">
-                        <input id="devicePackage" type="text" class="form-control form-control-sm" @bind="actDevice.Package" />
+                    <div class="form-group row">
+                        <label for="deviceGlobalRulebase" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("global_rulebase")):</label>
+                        <div class="col-sm-8">
+                            <input id="deviceGlobalRulebase" type="text" class="form-control form-control-sm" @bind="actDevice.GlobalRulebase" />
+                        </div>
                     </div>
-                </div>
+                    <div class="form-group row">
+                        <label for="devicePackage" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("package")):</label>
+                        <div class="col-sm-8">
+                            <input id="devicePackage" type="text" class="form-control form-control-sm" @bind="actDevice.Package" />
+                        </div>
+                    </div>
+                }
+                else if(deviceTypes.Find(x => x.Id == actDevice.DeviceType.Id)?.Manufacturer == "Fortinet")
+                {
+                    <div class="form-group row">
+                        <label for="deviceLocalRulebase" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("local_package"))*:</label>
+                        <div class="col-sm-8">
+                            <input id="deviceLocalRulebase" type="text" class="form-control form-control-sm" @bind="actDevice.LocalRulebase" />
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="deviceGlobalRulebase" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("global_package")):</label>
+                        <div class="col-sm-8">
+                            <input id="deviceGlobalRulebase" type="text" class="form-control form-control-sm" @bind="actDevice.GlobalRulebase" />
+                        </div>
+                    </div>
+                }
+
                 <div class="form-check form-check-inline">
                     <input class="form-check-input" id="deviceImportDisabled" type="checkbox" @bind="actDevice.ImportDisabled">
                     <label class="form-check-label" for="deviceImportDisabled"><small>@(userConfig.GetText("import_disabled"))</small></label>
@@ -116,7 +148,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin">
+            <AuthorizeView Roles="admin, fw-admin">
                 <Authorized>
                     <button class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
                 </Authorized>
@@ -234,6 +266,7 @@
     {
         try
         {
+            actDevice.Sanitize();
             if (CheckValues())
             {    
                 if (AddMode)

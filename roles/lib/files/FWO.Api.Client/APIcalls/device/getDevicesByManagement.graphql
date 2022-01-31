@@ -1,6 +1,6 @@
 query getDevicesByManagement {
   management(
-    where: { hide_in_gui: { _eq: false } }
+    where: { hide_in_gui: { _eq: false }, stm_dev_typ:{dev_typ_is_multi_mgmt:{_eq:false} } }
     order_by: { mgm_name: asc }
   ) {
     id: mgm_id

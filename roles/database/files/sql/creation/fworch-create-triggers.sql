@@ -1,7 +1,7 @@
 
 -------------------
 -- the following triggers creates the bigserial obj_id as it does not seem to be set automatically, 
--- when insert via jsonb function and specifying no obj_id
+-- when insert via json function and specifying no obj_id
 
 CREATE OR REPLACE FUNCTION import_object_obj_id_seq() RETURNS TRIGGER AS $$
 BEGIN
@@ -45,7 +45,7 @@ CREATE TRIGGER import_rule_rule_id_seq BEFORE INSERT ON import_rule FOR EACH ROW
 
 -------------------
 
-CREATE OR REPLACE FUNCTION import_config_from_jsonb ()
+CREATE OR REPLACE FUNCTION import_config_from_json ()
     RETURNS TRIGGER
     AS $BODY$
 DECLARE
@@ -82,10 +82,10 @@ BEGIN
     FROM
         jsonb_populate_recordset(NULL::import_rule, NEW.config -> 'rules');
 
-    -- finally start the stored procedure import
-    PERFORM import_all_main(NEW.import_id);
-
-
+    IF NEW.start_import_flag THEN
+        -- finally start the stored procedure import
+        PERFORM import_all_main(NEW.import_id);        
+    END IF;
     RETURN NEW;
 END;
 $BODY$
@@ -93,11 +93,10 @@ LANGUAGE plpgsql
 VOLATILE
 COST 100;
 
-ALTER FUNCTION public.import_config_from_jsonb () OWNER TO fworch;
-
-DROP TRIGGER IF EXISTS import_config_insert ON import_config CASCADE;
+ALTER FUNCTION public.import_config_from_json () OWNER TO fworch;
 
 CREATE TRIGGER import_config_insert
     BEFORE INSERT ON import_config
     FOR EACH ROW
-    EXECUTE PROCEDURE import_config_from_jsonb ();
+    EXECUTE PROCEDURE import_config_from_json ();
+    

@@ -16,6 +16,7 @@ openldap_server_country: US
 openldap_server_state: oregon
 openldap_server_location: portland
 openldap_server_organization: IT
+openldap_server_email_address: "{{ product_name }}@cactus.de"
 
 openldap_server_enable_ssl: yes
 

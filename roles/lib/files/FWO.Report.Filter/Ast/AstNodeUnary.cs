@@ -6,7 +6,7 @@
 
         public AstNode? Value { get; set; }
 
-        public override void Extract(ref DynGraphqlQuery query)
+        public override void Extract(ref DynGraphqlQuery query, ReportType? reportType)
         {
             switch (Operator.Kind)
             {
@@ -16,7 +16,7 @@
                 default:
                     throw new NotSupportedException($"### Compiler Error: Found unexpected and unsupported unary token \"{Operator}\" ###");
             }
-            Value?.Extract(ref query);
+            Value?.Extract(ref query, reportType);
             query.ruleWhereStatement += "}";
         }
     }

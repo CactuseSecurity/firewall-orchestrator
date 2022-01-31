@@ -11,6 +11,9 @@ namespace FWO.Api.Data
         [JsonProperty("rule_uid"), JsonPropertyName("rule_uid")]
         public string? Uid { get; set; } = "";
 
+        [JsonProperty("mgm_id"), JsonPropertyName("mgm_id")]
+        public int MgmtId { get; set; }
+
         [JsonProperty("rule_num_numeric"), JsonPropertyName("rule_num_numeric")]
         public double OrderNumber { get; set; }
 

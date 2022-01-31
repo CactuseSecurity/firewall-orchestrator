@@ -1,5 +1,5 @@
 ### general settings
-product_version: "5.5.4"
+product_version: "5.6.5"
 ansible_python_interpreter: /usr/bin/python3
 ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 product_name: fworch
@@ -11,7 +11,7 @@ product_name: fworch
 installation_mode: new
 install_syslog: true
 run_on_github: false
-without_sample_data: false
+add_demo_data: true
 api_docu: false
 # initialize upgrade files list to empty, needed when running in test only mode (-t test):
 upgrade_files: []
@@ -115,4 +115,4 @@ http_conf_dir: /etc/{{ webserver_package_name }}/sites-available/
 ################# testing #########################
 test_dir: "{{ fworch_home }}/test"
 test_fortigate_name: "fortigate{{ test_postfix }}"
-csharp_test_start_dir: "{{ fworch_home }}/test/csharp/FWO_Test"
+csharp_test_start_dir: "{{ fworch_home }}/test/csharp/FWO.Test"

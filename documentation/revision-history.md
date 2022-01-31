@@ -164,3 +164,34 @@ adding report template format fk and permissions
 
 ### 5.5.4 - 13.12.2021
 - insert default config values
+
+### 5.5.5 - 20.12.2021
+- set ldap_tenant_level to 5
+
+### 5.5.6 - 02.01.2022
+- introducing multi device manager for auto discovery
+
+### 5.5.7 - 04.01.2022
+- add column report_parameters to report_template, update data for default templates
+
+### 5.6.1 - 12.01.2022
+- update data for default templates for time filter
+
+### 5.6.2 - 17.01.2022
+- adding new legacy fortigate all in one device type (ssh)
+- clean separation of legacy and api importer
+
+### 5.6.3 - 19.01.2022
+- migrating jsonb import config fields (import_config and import_full_config tables) to json
+- this allows for import of bigger configs but is only a workaround that will not help for configs with >40.000 rules
+
+### 5.6.4 - 25.01.2022
+- main release merge
+- migrated api import-loop to a single python script without any sys executes of ext. scripts
+- minor but fixes and vip nat for fortimanager
+
+### 5.6.5 - 2022
+- next planned release
+- fixing migration scripts
+- splitting import_config into chunks to enable import of big managements
+- introducing fw-admin role (device admin without delete & auto-discovery rights)

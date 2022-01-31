@@ -14,6 +14,7 @@ query getReportSchedules {
       report_template_id
       report_template_name
       report_filter
+      report_parameters
     }
     report_schedule_formats{
       report_schedule_format_name

@@ -91,6 +91,20 @@
             ]
         },
         {
+            "name": "py-import-mgm-Trouble-shooting-m56",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/import-mgm.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-m45",
+                "-i/home/tim/tmp/configs/m56_1sthalf.json" // half of 30k rules, local mgm_id 45
+            ]
+        },
+        {
             "name": "py-import-mgm",
             "type": "python",
             "request": "launch",
@@ -100,11 +114,31 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m4",
+                "-m45",
                 "-d4",
                 "-f",
-                "-iC:/Users/Nils/Downloads/fortiManager_NAT_mgm_id_25_config_native.json.anon",
+                //"-c",
+                "-i/home/tim/tmp/configs/mgm_id_56_config_native.json.anon", // 30k rules, local mgm_id 45
+                //"-i/home/tim/tmp/configs/mgm_id_52_config_native.json.anon", // many gateways, local mgm_id 49
+                //"-i/home/tim/tmp/configs/mgm_id_53_config_native.json.anon", // 1500 rules, 450 NAT rules, local mgm_id 4
                 "-l250"
+            ]
+        },
+        {
+            "name": "py-export-itsecorg",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/api/files/scripts/fwo-export-itsecorg-devices.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-m/usr/local/fworch/tmp/mgm.csv",
+                "-d/usr/local/fworch/tmp/dev.csv",
+                "-o/usr/local/fworch/tmp/devices.graphql",
+                "-sfworch",
+                "-f7"
             ]
         },
         {
@@ -173,8 +207,7 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-d2",
-                "-i30"
+                "-d0"
             ]
         },
         {
@@ -183,19 +216,17 @@
             "request": "launch",
             "preLaunchTask": "build_test",
             "program": "/usr/bin/dotnet",
-            "args": [
-                "test"
-            ],
+            "args": [ "test" ],
             "cwd": "${workspaceFolder}/roles/test/files/FWO.Test",
-            "stopAtEntry": false,
-            "console": "internalConsole"
+            "stopAtEntry": true,
+            "console": "integratedTerminal"
         },
         {
             "name": "c#-Blazor UI",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build_UI",
-            "program": "${workspaceFolder}/roles/ui/files/FWO.UI/bin/Debug/net5.0/FWO.Ui.dll",
+            "program": "${workspaceFolder}/roles/ui/files/FWO.UI/bin/Debug/net6.0/FWO.Ui.dll",
             "args": [],
             "cwd": "${workspaceFolder}/roles/ui/files/FWO.UI",
             "stopAtEntry": false,
@@ -223,7 +254,7 @@
             "request": "launch",
             "preLaunchTask": "build_middleware",
             "enableStepFiltering": false,
-            "program": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server/bin/Debug/net5.0/FWO.Middleware.Server.dll",
+            "program": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server/bin/Debug/net6.0/FWO.Middleware.Server.dll",
             "args": [],
             "cwd": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server",
             "console": "internalConsole",

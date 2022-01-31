@@ -1,6 +1,6 @@
 #!/bin/sh
 
-IMPORTER_SINGLE=import-mgm.py
+IMPORTER_SINGLE=fworch-importer-single.pl
 RES=`pidof -x $IMPORTER_SINGLE >/dev/null;echo $?`
 if [ $RES -eq 0 ]; then
    while [ $RES -eq 0 ]; do

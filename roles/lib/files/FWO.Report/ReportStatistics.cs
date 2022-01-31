@@ -1,10 +1,5 @@
 using FWO.Api.Data;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using FWO.ApiClient;
 using FWO.Report.Filter;
 using FWO.ApiClient.Queries;
@@ -17,7 +12,7 @@ namespace FWO.Report
     public class ReportStatistics : ReportBase
     {
         // TODO: Currently generated in Report.razor as well as here, because of export. Remove dupliacte.
-        private Management globalStatisticsManagament = new Management();
+        private Management globalStatisticsManagement = new Management();
 
         public ReportStatistics(DynGraphqlQuery query, UserConfig userConfig) : base(query, userConfig) { }
 
@@ -35,18 +30,7 @@ namespace FWO.Report
 
         public override async Task Generate(int _, APIConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)
         {
-            string TimeFilter = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            Dictionary<string, object> ImpIdQueryVariables = new Dictionary<string, object>();
-            if (Query.ReportTime != null && Query.ReportTime != "" && Query.ReportTime != "now")
-                TimeFilter = Query.ReportTime;
-
-            // get relevant import ids for report time
-            ImpIdQueryVariables["time"] = TimeFilter;
-            Management[] managementsWithRelevantImportId = await apiConnection.SendQueryAsync<Management[]>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
-
-            // save selected device state
-            Management[] tempDeviceFilter = await apiConnection.SendQueryAsync<Management[]>(DeviceQueries.getDevicesByManagements);
-            DeviceFilter.syncFilterLineToLSBFilter(Query.RawFilter, tempDeviceFilter);
+            Management[] managementsWithRelevantImportId = await getRelevantImportIds(apiConnection);
 
             List<Management> resultList = new List<Management>();
             int i;
@@ -56,35 +40,30 @@ namespace FWO.Report
                 if (ct.IsCancellationRequested)
                 {
                     Log.WriteDebug("Generate Statistics Report", "Task cancelled");
-                    DeviceFilter.restoreSelectedState(tempDeviceFilter, Managements);
                     ct.ThrowIfCancellationRequested();
                 }
 
                 // setting mgmt and relevantImporId QueryVariables 
                 Query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
-                if (managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId != null)
-                    Query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId!;
-                else    // managment was not yet imported at that time
-                    Query.QueryVariables["relevantImportId"] = -1;
+                Query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1 /* managment was not yet imported at that time */;
                 resultList.Add((await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables))[0]);
             }
             Managements = resultList.ToArray();
-            DeviceFilter.restoreSelectedState(tempDeviceFilter, Managements);
             await callback(Managements);
 
             foreach (Management mgm in Managements.Where(mgt => !mgt.Ignore))
             {
-                globalStatisticsManagament.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
-                globalStatisticsManagament.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
-                globalStatisticsManagament.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
-                globalStatisticsManagament.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
+                globalStatisticsManagement.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
+                globalStatisticsManagement.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
+                globalStatisticsManagement.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
+                globalStatisticsManagement.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
             }
         }
 
         public override string ExportToJson()
         {
-            globalStatisticsManagament.Name = "global statistics";
-            Management[] combinedManagements = (new Management[] { globalStatisticsManagament }).Concat(Managements.Where(mgt => !mgt.Ignore)).ToArray();
+            globalStatisticsManagement.Name = "global statistics";
+            Management[] combinedManagements = (new Management[] { globalStatisticsManagement }).Concat(Managements.Where(mgt => !mgt.Ignore)).ToArray();
             return JsonSerializer.Serialize(combinedManagements, new JsonSerializerOptions { WriteIndented = true });
         }
 
@@ -116,10 +95,10 @@ namespace FWO.Report
             report.AppendLine($"<th>{userConfig.GetText("rules")}</th>");
             report.AppendLine("</tr>");
             report.AppendLine("<tr>");
-            report.AppendLine($"<td>{globalStatisticsManagament.NetworkObjectStatistics.ObjectAggregate.ObjectCount}</td>");
-            report.AppendLine($"<td>{globalStatisticsManagament.ServiceObjectStatistics.ObjectAggregate.ObjectCount}</td>");
-            report.AppendLine($"<td>{globalStatisticsManagament.UserObjectStatistics.ObjectAggregate.ObjectCount}</td>");
-            report.AppendLine($"<td>{globalStatisticsManagament.RuleStatistics.ObjectAggregate.ObjectCount }</td>");
+            report.AppendLine($"<td>{globalStatisticsManagement.NetworkObjectStatistics.ObjectAggregate.ObjectCount}</td>");
+            report.AppendLine($"<td>{globalStatisticsManagement.ServiceObjectStatistics.ObjectAggregate.ObjectCount}</td>");
+            report.AppendLine($"<td>{globalStatisticsManagement.UserObjectStatistics.ObjectAggregate.ObjectCount}</td>");
+            report.AppendLine($"<td>{globalStatisticsManagement.RuleStatistics.ObjectAggregate.ObjectCount }</td>");
             report.AppendLine("</tr>");
             report.AppendLine("</table>");
             report.AppendLine("<hr>");

@@ -16,6 +16,8 @@
         Management,
         Gateway,
         Remove,
+        ReportType,
+        Time,
         RecertDisplay,
         FullText,
         BL, // (

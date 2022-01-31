@@ -52,7 +52,7 @@ namespace FWO.Report.Filter
             //         {
             //             Name = CheckToken(TokenKind.ReportType),
             //             Operator = CheckToken(TokenKind.EQ, TokenKind.EEQ),
-                    return new AstNodeFilter
+                    return new AstNodeFilterString
                     {
                         Name = new Token(new Range(0, 0), "", TokenKind.Value),
                         Operator = new Token(new Range(0, 0), "", TokenKind.EQ),

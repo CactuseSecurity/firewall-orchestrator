@@ -407,7 +407,7 @@
                 {
                     // Update existing group in ldap --> currently only name
                     GroupEditParameters groupEditParameters = new GroupEditParameters { OldGroupName = actGroup.Name, NewGroupName = newGroupName };
-                    IRestResponse<string> middlewareServerResponse = await middlewareClient.UpdateGroup(groupEditParameters);
+                    RestResponse<string> middlewareServerResponse = await middlewareClient.UpdateGroup(groupEditParameters);
 
                     if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == "")
                     {

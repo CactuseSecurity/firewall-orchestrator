@@ -24,7 +24,7 @@ namespace FWO.Report.Filter.Ast
             };
         }
 
-        public override void Extract(ref DynGraphqlQuery query)
+        public override void Extract(ref DynGraphqlQuery query, ReportType? reportType)
         {
             ConvertToSemanticType();
 

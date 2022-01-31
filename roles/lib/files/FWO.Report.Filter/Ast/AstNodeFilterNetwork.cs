@@ -16,7 +16,7 @@ namespace FWO.Report.Filter.Ast
             // semanticValue = int.Parse(Value.Text);
         }
 
-        public override void Extract(ref DynGraphqlQuery query)
+        public override void Extract(ref DynGraphqlQuery query, ReportType? reportType)
         {
             ConvertToSemanticType();
 

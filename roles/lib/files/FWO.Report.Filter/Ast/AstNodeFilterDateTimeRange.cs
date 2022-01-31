@@ -16,7 +16,7 @@ namespace FWO.Report.Filter.Ast
             semanticValue = new DateTimeRange(this);
         }
 
-        public override void Extract(ref DynGraphqlQuery query)
+        public override void Extract(ref DynGraphqlQuery query, ReportType? reportType)
         {
             ConvertToSemanticType();
 

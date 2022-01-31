@@ -73,5 +73,11 @@ namespace FWO.Test.Filter
                 Assert.AreEqual("No token but one was expected", exception.Message);
             }
         }
+
+        [Test]
+        public void Disabled()
+        {
+            var res = Compiler.Compile("disabled == true");
+        }
     }
 }

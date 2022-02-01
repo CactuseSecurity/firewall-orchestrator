@@ -61,8 +61,8 @@ namespace FWO.Report.Filter.Ast
                     break;
 
                 case DateTime dateTimeValue:
-                    queryVarType = "timestamp";         
-                    queryVarValue = dateTimeValue.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss"); // .ToString(DynGraphqlQuery.fullTimeFormat)
+                    queryVarType = "timestamp";
+                    queryVarValue = dateTimeValue.ToString(DynGraphqlQuery.fullTimeFormat);
                     break;
 
                 default:

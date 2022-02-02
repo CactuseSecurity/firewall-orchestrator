@@ -1080,6 +1080,8 @@ INSERT INTO txt VALUES ('E5105', 'German',  'Es gibt bereits ein Management mit 
 INSERT INTO txt VALUES ('E5105', 'English', 'There is already a management in the same configuration with import enabled');
 INSERT INTO txt VALUES ('E5106', 'German',  'Management wurde bereits angelegt: ');
 INSERT INTO txt VALUES ('E5106', 'English', 'Management has already been created: ');
+INSERT INTO txt VALUES ('E5107', 'German',  'Gateway wurde bereits angelegt: ');
+INSERT INTO txt VALUES ('E5107', 'English', 'Gateway has already been created: ');
 INSERT INTO txt VALUES ('E5111', 'German',  'Es gibt bereits ein Gateway mit derselben Konfiguration und Import aktiviert');
 INSERT INTO txt VALUES ('E5111', 'English', 'There is already a gateway in the same configuration with import enabled');
 INSERT INTO txt VALUES ('E5112', 'German',  'Gateway konnte nicht angelegt werden');

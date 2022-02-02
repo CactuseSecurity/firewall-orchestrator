@@ -488,7 +488,14 @@
 
     private bool CheckValuesAutodiscover(Management mgm, string checkCause)
     {
-        // todo: proper check
+        if (managements.FirstOrDefault(existingManagement =>
+            existingManagement.Name == mgm.Name
+            && existingManagement.ConfigPath == mgm.ConfigPath 
+            && existingManagement.SuperManagerId == mgm.SuperManagerId) != null)
+        {
+            DisplayMessageInUi!(null, checkCause, userConfig.GetText("E5106") + mgm.Name, true);
+            return false;
+        }
         return true;
     }
 
@@ -552,6 +559,9 @@
                             adomId = returnIds[0].NewId;
                             adomIds.Add(adomId);
                             adomChanges++;
+                            DeviceType? devtype = deviceTypes.FirstOrDefault(x => x.Id == domainDeviceId) ?? throw new Exception("Unknown Device type");
+                            managements.Add(new Management(superManagement){Id = adomId, ConfigPath = adom.ConfigPath, Name = adom.Name, 
+                                DeviceType = new DeviceType(devtype), SuperManagerId = superManagement.Id, Devices = adom.Devices});
                             Log.WriteDebug("AutoDiscovery", $"successfully added adom {adom.Name} via FWO API");
                         }
                         else

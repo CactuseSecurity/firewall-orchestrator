@@ -9,7 +9,7 @@ ExecStart={{ importer_home }}/fworch-importer-main.pl
 ExecStop={{ importer_home }}/import-stop-helper
 StandardOutput=syslog
 StandardError=syslog
-SyslogIdentifier={{ product_name }}-importer
+SyslogIdentifier={{ product_name }}-importer-legacy
 User={{ fworch_user }}
 Environment="PERL5LIB={{ importer_home }}"
 

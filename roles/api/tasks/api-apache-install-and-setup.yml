@@ -46,10 +46,10 @@
     - name: enable {{ product_name }} web site
       command: "a2ensite {{ product_name }}-api"
 
-    - name: increase apache timeout to 900 seconds
-      lineinfile:
-        path: /etc/apache2/apache2.conf
-        line: "Timeout 900"
+    # - name: increase apache timeout to {{ apache_timeout }} seconds (while importing we hit the old 15 min limit)
+    #   lineinfile:
+    #     path: /etc/apache2/apache2.conf
+    #     line: "Timeout {{ apache_timeout }}"
 
     - name: add port to apache
       lineinfile:

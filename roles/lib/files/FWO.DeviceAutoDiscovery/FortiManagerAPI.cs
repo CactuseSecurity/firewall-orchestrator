@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Text.Encodings.Web;
 using Newtonsoft.Json;
+using FWO.Logging;
 
 namespace FWO.Rest.Client
 {
@@ -76,6 +77,7 @@ namespace FWO.Rest.Client
             };
             IRestRequest request = new RestRequest("", Method.POST, DataFormat.Json);
             request.AddJsonBody(body);
+            Log.WriteDebug("Autodiscovery", $"using FortiManager REST API call with body='{body.ToString()}' and paramList='{paramList.ToString()}'");
             return await restClient.ExecuteAsync<FmApiTopLevelHelper>(request);
         }
 

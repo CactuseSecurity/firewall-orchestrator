@@ -82,7 +82,9 @@ def getNatPolicy(sid, fm_api_url, raw_config, adom_name, device, limit, debug_le
 
 def normalize_access_rules(full_config, config2import, import_id):
     rules = []
-    first_v4, first_v6 = check_headers_needed(full_config, rule_access_scope)
+    # first_v4, first_v6 = check_headers_needed(full_config, rule_access_scope)
+    first_v4 = True
+    first_v6 = True
     nat_rule_number = 0
     rule_number = 0
     src_ref_all = ""
@@ -91,7 +93,7 @@ def normalize_access_rules(full_config, config2import, import_id):
         src_ref_all = resolve_raw_objects("all", list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table)
         dst_ref_all = resolve_raw_objects("all", list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table)
         for localPkgName in full_config[rule_table]:
-            rule_number = insert_headers(rule_table, first_v6, first_v4, full_config, rules, import_id, localPkgName,src_ref_all,dst_ref_all,rule_number)
+            rule_number, first_v4, first_v6 = insert_headers(rule_table, first_v6, first_v4, full_config, rules, import_id, localPkgName,src_ref_all,dst_ref_all,rule_number)
 
             for rule_orig in full_config[rule_table][localPkgName]:
                 rule = {'rule_src': '', 'rule_dst': '', 'rule_svc': ''}
@@ -394,33 +396,32 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number):
 
 def insert_headers(rule_table, first_v6, first_v4, full_config, rules, import_id, localPkgName,src_ref_all,dst_ref_all,rule_number):
     if rule_table in rule_access_scope_v6 and first_v6:
-        insert_header(rules, import_id, "IPv6 rules", localPkgName, "IPv6HeaderText", 0, src_ref_all, dst_ref_all)
+        insert_header(rules, import_id, "IPv6 rules", localPkgName, "IPv6HeaderText", rule_number, src_ref_all, dst_ref_all)
         rule_number += 1
         first_v6 = False
     elif rule_table in rule_access_scope_v4 and first_v4:
-        rule_number = 0
         insert_header(rules, import_id, "IPv4 rules", localPkgName, "IPv4HeaderText", rule_number, src_ref_all, dst_ref_all)
         rule_number += 1
         first_v4 = False
-    if rule_table == 'rules_global_header_v4' and len(full_config['rules_global_header_v4'][localPkgName])>0:
-        insert_header(rules, import_id, "Global Header Rules IPv4", localPkgName, "IPv4GlobalHeaderRules", rule_number, src_ref_all, dst_ref_all)
-        rule_number += 1
-    if rule_table == 'rules_global_header_v6' and len(full_config['rules_global_header_v6'][localPkgName])>0:
-        insert_header(rules, import_id, "Global Header Rules IPv6", localPkgName, "IPv6GlobalHeaderRules", rule_number, src_ref_all, dst_ref_all)
-        rule_number += 1
-    if rule_table == 'rules_global_footer_v4' and len(full_config['rules_global_footer_v4'][localPkgName])>0:
-        insert_header(rules, import_id, "Global Footer Rules IPv4", localPkgName, "IPv4GlobalFooterRules", rule_number, src_ref_all, dst_ref_all)
-        rule_number += 1
-    if rule_table == 'rules_global_footer_v6' and len(full_config['rules_global_footer_v6'][localPkgName])>0:
-        insert_header(rules, import_id, "Global Footer Rules IPv6", localPkgName, "IPv6GlobalFooterRules", rule_number, src_ref_all, dst_ref_all)
-        rule_number += 1
     if rule_table == 'rules_adom_v4' and len(full_config['rules_adom_v4'][localPkgName])>0:
         insert_header(rules, import_id, "Adom Rules IPv4", localPkgName, "IPv4AdomRules", rule_number, src_ref_all, dst_ref_all)
         rule_number += 1
-    if rule_table == 'rules_adom_v6' and len(full_config['rules_adom_v6'][localPkgName])>0:
+    elif rule_table == 'rules_adom_v6' and len(full_config['rules_adom_v6'][localPkgName])>0:
         insert_header(rules, import_id, "Adom Rules IPv6", localPkgName, "IPv6AdomRules", rule_number, src_ref_all, dst_ref_all)
         rule_number += 1
-    return rule_number
+    elif rule_table == 'rules_global_header_v4' and len(full_config['rules_global_header_v4'][localPkgName])>0:
+        insert_header(rules, import_id, "Global Header Rules IPv4", localPkgName, "IPv4GlobalHeaderRules", rule_number, src_ref_all, dst_ref_all)
+        rule_number += 1
+    elif rule_table == 'rules_global_header_v6' and len(full_config['rules_global_header_v6'][localPkgName])>0:
+        insert_header(rules, import_id, "Global Header Rules IPv6", localPkgName, "IPv6GlobalHeaderRules", rule_number, src_ref_all, dst_ref_all)
+        rule_number += 1
+    elif rule_table == 'rules_global_footer_v4' and len(full_config['rules_global_footer_v4'][localPkgName])>0:
+        insert_header(rules, import_id, "Global Footer Rules IPv4", localPkgName, "IPv4GlobalFooterRules", rule_number, src_ref_all, dst_ref_all)
+        rule_number += 1
+    elif rule_table == 'rules_global_footer_v6' and len(full_config['rules_global_footer_v6'][localPkgName])>0:
+        insert_header(rules, import_id, "Global Footer Rules IPv6", localPkgName, "IPv6GlobalFooterRules", rule_number, src_ref_all, dst_ref_all)
+        rule_number += 1
+    return rule_number, first_v4, first_v6
 
 
 def extract_nat_objects(nwobj_list, all_nwobjects):

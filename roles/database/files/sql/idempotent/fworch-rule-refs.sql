@@ -19,6 +19,7 @@ DECLARE
 	v_error_str VARCHAR;
 	v_error_in_element VARCHAR;
 BEGIN
+	RAISE DEBUG 'starting import_rule_refhandler_main'; 
 	SELECT INTO r_control mgm_id,delimiter_group,delimiter_user,delimiter_zone,delimiter_list FROM import_control
 		WHERE control_id=i_current_import_id;
 	-- fuer alle neuen Regeln

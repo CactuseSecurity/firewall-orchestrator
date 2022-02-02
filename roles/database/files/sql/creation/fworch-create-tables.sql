@@ -764,6 +764,23 @@ Create table "import_zone"
 
 -- changelog tables -------------------------------------
 
+
+Create table "changelog_data_issue"
+(
+	"data_issue_id" BIGSERIAL,
+	"import_id" BIGINT NOT NULL,
+	"object_name" Varchar,
+	"object_uid" Varchar,
+	"rule_uid" Varchar,				-- if a rule ref is broken
+	"rule_id" BIGINT,				-- if a rule ref is broken
+	"dev_id" BIGINT,
+	"object_type" Varchar,
+	"suspected_cause" VARCHAR,
+	"description" VARCHAR,
+ primary key ("data_issue_id")
+);
+
+
 Create table "import_changelog"
 (
 	"change_time" Timestamp,

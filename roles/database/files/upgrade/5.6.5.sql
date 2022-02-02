@@ -75,3 +75,39 @@ CREATE TRIGGER import_config_insert
     BEFORE INSERT ON import_config
     FOR EACH ROW
     EXECUTE PROCEDURE import_config_from_json ();
+
+
+
+Create table IF NOT EXISTS "changelog_data_issue"
+(
+	"data_issue_id" BIGSERIAL,
+	"import_id" BIGINT NOT NULL,
+	"object_name" Varchar,
+	"object_uid" Varchar,
+	"rule_uid" Varchar,				-- if a rule ref is broken
+	"rule_id" BIGINT,				-- if a rule ref is broken
+	"dev_id" BIGINT,
+	"object_type" Varchar,
+	"suspected_cause" VARCHAR,
+	"description" VARCHAR,
+ primary key ("data_issue_id")
+);
+
+
+CREATE OR REPLACE FUNCTION add_data_issue(BIGINT,varchar,varchar,varchar,varchar,BIGINT,INT,varchar,varchar,varchar) RETURNS VOID AS $$
+DECLARE
+	i_current_import_id ALIAS FOR $1;
+	v_obj_name ALIAS FOR $2;
+	v_obj_uid ALIAS FOR $3;
+	v_rule_uid ALIAS FOR $4;
+    i_rule_id  ALIAS FOR $5;
+    i_dev_id   ALIAS FOR $6;
+	v_obj_type ALIAS FOR $7;
+	v_suspected_cause ALIAS FOR $8;
+	v_description ALIAS FOR $9;
+BEGIN
+	INSERT INTO changelog_data_issue (import_id, object_name, object_uid, rule_uid, rule_id, dev_id, object_type, suspected_cause, description) 
+	VALUES (i_current_import_id, v_obj_name, v_obj_uid, v_rule_uid, i_rule_id, v_obj_type, v_suspected_cause, v_description);
+	RETURN;
+END;
+$$ LANGUAGE plpgsql;

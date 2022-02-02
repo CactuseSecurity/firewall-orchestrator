@@ -17,7 +17,7 @@ svc_obj_scope = ['svc_obj_' + s1 + '_' + s2 for s1 in scope for s2 in svc_obj_ty
 user_types = ['users_global', 'users_adom']
 user_scope = ['user_objects']
 
-def get_config(config2import, full_config, current_import_id, mgm_details, debug_level=0, proxy=None, limit=100, force=False, ssl_verification=None):
+def get_config(config2import, full_config, current_import_id, mgm_details, debug_level=0, proxy=None, limit=100, force=False, ssl_verification=None, jwt=''):
     if full_config == {}:   # no native config was passed in, so getting it from FortiManager
         parsing_config_only = False
     else:
@@ -58,10 +58,10 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
         # currently reading zone from objects for backward compat with FortiManager 6.x
         # fmgr_zone.normalize_zones(full_config, config2import, current_import_id)
         fmgr_user.normalize_users(full_config, config2import, current_import_id, user_scope)
-        fmgr_network.normalize_nwobjects(full_config, config2import, current_import_id, nw_obj_scope)
+        fmgr_network.normalize_nwobjects(full_config, config2import, current_import_id, nw_obj_scope, jwt=jwt)
         fmgr_service.normalize_svcobjects(full_config, config2import, current_import_id, svc_obj_scope)
-        fmgr_rule.normalize_access_rules(full_config, config2import, current_import_id)
-        fmgr_rule.normalize_nat_rules(full_config, config2import, current_import_id)
+        fmgr_rule.normalize_access_rules(full_config, config2import, current_import_id, jwt=jwt)
+        fmgr_rule.normalize_nat_rules(full_config, config2import, current_import_id, jwt=jwt)
         fmgr_network.remove_nat_ip_entries(config2import)
     return 0
 

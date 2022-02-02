@@ -22,7 +22,7 @@ original_obj_uid = "85c0f50f-6d8a-4528-88ab-5fb11d8fe16c"
 # used for nat only (both svc and nw obj)
 
 
-def get_config(config2import, full_config, current_import_id, mgm_details, debug_level=0, proxy=None, limit=150, force=False, ssl_verification=None):
+def get_config(config2import, full_config, current_import_id, mgm_details, debug_level=0, proxy=None, limit=150, force=False, ssl_verification=None, jwt=None):
     logging.debug("found Check Point R8x management")
 
     last_change_time = ''

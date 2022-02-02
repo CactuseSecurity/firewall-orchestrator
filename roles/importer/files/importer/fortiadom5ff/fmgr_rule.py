@@ -326,6 +326,21 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number):
                         hideInterface=rule_orig['dstintf'][0]
                     else:
                         logging.warning("did not find exactly one nat hiding interface")
+                    
+                    obj = {'obj_name': 'devicename' + rule_orig['dstintf'][0], \
+                        'obj_type': 'host', \
+                        'obj_ip': '0.0.0.0/32', \
+                        'obj_uid': 'devicename' + rule_orig['dstintf'][0], \
+                        'obj_zone': rule_orig['dstintf'][0]}
+#                    obj.update({ 'obj_name': 'devicename_dstintf' }) #Muss mit device Namen gefüllt werden
+#                    obj.update({ 'obj_type': 'host' })
+#                    obj.update({ 'obj_ip': '0.0.0.0/32' })
+#                    obj.update({ 'obj_uid': 'devicename_dstintf' })
+#                    obj.update({ 'obj_zone': rule_orig['dstintf'][0] })
+#                    obj.update({ 'control_id': 83 }) #wird später generiert
+                    config2import['network_objects'].append(obj)
+
+
                     # need to 
                     # - find out ip of outbound interface
                     # - create an object for the ip of the dst interface and add it here as xlate src

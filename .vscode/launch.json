@@ -100,7 +100,7 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m4",
+                "-m14",
                 "-d4",
                 //"-c",
                 "-i/home/tim/tmp/configs/mgm_id_56_config_native.json.anon" // all rules, all objs local mgm_id 4

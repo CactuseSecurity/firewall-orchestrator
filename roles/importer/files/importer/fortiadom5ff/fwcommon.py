@@ -121,7 +121,7 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
                         "routing-table-" + ip_version + "/adom:" + adom_name + "/device:" + dev_name + "/vdom:" + vdom_name, \
                         payload=payload, debug=debug_level, limit=limit, method="exec")
             except:
-                logging.warning("import_management - error while getting routing talbe of device " + dev["name"] + ", ignoring" )
+                logging.warning("import_management - error while getting routing table of device " + dev["name"] + ", ignoring" )
 
 
 def getObjects(sid, fm_api_url, raw_config, adom_name, limit, debug_level, scope, nw_obj_types, svc_obj_types):

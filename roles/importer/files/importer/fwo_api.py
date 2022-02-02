@@ -40,7 +40,7 @@ def call(url, jwt, query, query_variables="", role="reporter", ssl_verification=
     except requests.exceptions.RequestException:
         logging.error(showApiCallInfo(url, full_query, request_headers, type='error') + ":\n" + str(traceback.format_exc()))
         if r.status_code == 502:
-            raise common.FwoApiTimeout("FWO API timeout of " + str(int(common.fwo_api_http_import_timeout)/60) + " minutes reached" )
+            raise common.FwoApiTimeout("FWO API HTTP error 502 (might have reached timeout of " + str(int(common.fwo_api_http_import_timeout)/60) + " minutes)" )
         else:
             raise
     if debug > 2:

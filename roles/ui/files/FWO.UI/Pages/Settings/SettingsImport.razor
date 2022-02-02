@@ -16,7 +16,7 @@
 <button class="btn btn-info m-2" @onclick="Refresh">@(userConfig.GetText("refresh"))</button>
 
 <div class="m-2">
-    <Table class="table table-bordered table-responsive" TableItem="ImportStatus" Items="importStati" PageSize="0" ColumnReorder="true">
+    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="ImportStatus" Items="importStati" PageSize="0" ColumnReorder="true">
         <Column TableItem="ImportStatus" Title="@(userConfig.GetText("action"))" Field="(x => x.MgmId)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">

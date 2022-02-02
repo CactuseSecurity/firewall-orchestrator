@@ -27,7 +27,7 @@
 </div>
 
 <div class="m-2">
-    <Table class="table table-bordered table-responsive" TableItem="UserGroup" Items="groups" PageSize="0" ColumnReorder="true">
+    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="UserGroup" Items="groups" PageSize="0" ColumnReorder="true">
         <Column TableItem="UserGroup" Title="@(userConfig.GetText("group_action"))" Field="(x => x.Name)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">

@@ -18,6 +18,10 @@
     # todo: replace importer_hostname with target machine
     # todo: replace ssh_private_key with key of target machine
 
+# do not forget to reset the sequences after importing 
+# SELECT setval(pg_get_serial_sequence('device', 'dev_id'), coalesce(max(dev_id), 0)+1 , false) FROM device;
+# SELECT setval(pg_get_serial_sequence('management', 'mgm_id'), coalesce(max(mgm_id), 0)+1 , false) FROM management;    
+
 import sys, logging, re
 import json, requests, requests.packages, argparse
 base_dir = "/usr/local/fworch"

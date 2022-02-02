@@ -18,11 +18,14 @@ DECLARE
 	v_local_error VARCHAR;
 	v_error_str VARCHAR;
 	v_error_in_element VARCHAR;
+	v_debug VARCHAR;
 BEGIN
-	RAISE DEBUG 'starting import_rule_refhandler_main'; 
+	RAISE DEBUG 'import_rule_refhandler_main - starting'; 
 	SELECT INTO r_control mgm_id,delimiter_group,delimiter_user,delimiter_zone,delimiter_list FROM import_control
 		WHERE control_id=i_current_import_id;
 	-- fuer alle neuen Regeln
+	RAISE DEBUG 'import_rule_refhandler_main - 1'; 
+
 	FOR r_liste IN
 	SELECT rule.rule_uid, rule.rule_from_zone,rule.rule_to_zone,rule.rule_id,rule.rule_src,rule.rule_dst,rule.rule_svc,
 				rule.rule_src_refs,rule.rule_dst_refs,rule.rule_svc_refs
@@ -33,7 +36,10 @@ BEGIN
 				changelog_rule.change_action <> 'D'   -- create new entries in rule_XXX for inserted or changed rules
 	LOOP
 		BEGIN
-			RAISE DEBUG '%', 'processing rule no. ' || r_liste.rule_uid || ': ' || r_liste.rule_src || ' --> ' || r_liste.rule_dst || ' with services: ' || r_liste.rule_svc; 
+			RAISE DEBUG 'import_rule_refhandler_main - 2'; 
+			v_debug := 'processing rule no. ' || r_liste.rule_uid || ': ' || r_liste.rule_src || ' --> ' || r_liste.rule_dst || ' with services: ' || r_liste.rule_svc; 
+			RAISE DEBUG 'import_rule_refhandler_main - 3'; 
+			RAISE DEBUG '%', v_debug; 
 			v_error_in_element := 'rule source';
 	--      PERFORM error_handling('DEBUG_GENERAL_INFO', CAST(r_liste.rule_id AS VARCHAR));
 			PERFORM resolve_rule_list (r_liste.rule_id, 'rule_from',r_liste.rule_src_refs, r_control.mgm_id,

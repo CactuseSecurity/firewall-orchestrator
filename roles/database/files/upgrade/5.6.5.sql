@@ -94,6 +94,11 @@ Create table IF NOT EXISTS "changelog_data_issue"
 );
 
 
+ALTER TABLE "changelog_data_issue"
+    DROP CONSTRAINT IF EXISTS "changelog_data_issue_import_control_control_id_fkey" CASCADE;
+ALTER TABLE "changelog_data_issue"
+    ADD CONSTRAINT changelog_data_issue_import_control_control_id_fkey FOREIGN KEY ("import_id") REFERENCES "import_control" ("control_id") ON UPDATE RESTRICT; -- ON DELETE CASCADE;
+
 CREATE OR REPLACE FUNCTION add_data_issue(BIGINT,varchar,varchar,varchar,varchar,BIGINT,INT,varchar,varchar,varchar) RETURNS VOID AS $$
 DECLARE
 	i_current_import_id ALIAS FOR $1;

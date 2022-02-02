@@ -322,8 +322,8 @@ BEGIN
 			v_error_str := v_error_str || 'unknown member';
 		END IF;
 		PERFORM error_handling('ERR_GRP_MISS_OBJ', v_error_str);
-        PERFORM add_data_issue(i_current_import_id, r_group.obj_name, r_group.obj_uid, NULL, NULL, 'nw obj group member', 
-			'non-existant nw obj ' || v_member_name || ' referenced in network object group ' || r_group.obj_name, NULL);
+        -- PERFORM add_data_issue(i_current_import_id, r_group.obj_name, r_group.obj_uid, NULL, NULL, 'nw obj group member', 
+		--	'non-existant nw obj ' || v_member_name || ' referenced in network object group ' || r_group.obj_name, NULL);
 	ELSE
 		RAISE DEBUG 'import_nwobj_refhandler_objgrp_add_single_groupmember - obj_uid already exists: duplicate';
 		-- debugging for duplicate members
@@ -342,8 +342,8 @@ BEGIN
 			ELSE
 				v_error_str := v_error_str || 'unknown member';
 			END IF;
-			PERFORM add_data_issue(i_current_import_id, r_group.obj_name, r_group.obj_uid, NULL, NULL, 'nw obj group member', 
-				'duplicate nw obj in group', 'nw obj ' || v_member_name || ' referenced more than once in network object group ' || r_group.obj_name);
+			-- PERFORM add_data_issue(i_current_import_id, r_group.obj_name, r_group.obj_uid, NULL, NULL, 'nw obj group member', 
+			--	'duplicate nw obj in group', 'nw obj ' || v_member_name || ' referenced more than once in network object group ' || r_group.obj_name);
 			PERFORM error_handling('ERR_GRP_DBL_OBJ', v_error_str);
 		ELSE 
 			INSERT INTO objgrp (objgrp_id,objgrp_member_id,import_created,import_last_seen)

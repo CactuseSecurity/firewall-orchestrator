@@ -121,7 +121,7 @@ BEGIN
     IF NOT (to_import.obj_zone IS NULL) THEN  -- wenn Zone-Info vorhanden (i.e. Netscreen-Object)
 	    SELECT INTO z zone_id FROM zone WHERE zone_name = to_import.obj_zone AND mgm_id = i_mgm_id; -- ZoneID holen
 	    IF NOT FOUND THEN -- TODO: das muss noch automatisiert werden: Neuanlegen einer Zone
-			PERFORM add_data_issue(i_control_id, to_import.obj_zone, to_import.obj_zone, NULL, NULL, 'zone object', 'undefined zone obj in network object', NULL);
+			-- PERFORM add_data_issue(i_control_id, to_import.obj_zone, to_import.obj_zone, NULL, NULL, 'zone object', 'undefined zone obj in network object', NULL);
        		PERFORM error_handling('ERR_ZONE_MISS', to_import.obj_zone);
 	    END IF;
 	    zoneID := z.zone_id; -- zoneID fuer spaeteres INSERT zwischenspeichern
@@ -130,7 +130,7 @@ BEGIN
 	RAISE DEBUG 'processing import_nwobj_single 2';
     SELECT INTO i_typ obj_typ_id FROM stm_obj_typ WHERE obj_typ_name = to_import.obj_typ; -- obj_typ_id holen (network,host,...)
     IF NOT FOUND THEN -- TODO: das muss noch automatisiert werden: Neuanlegen eines obj_typ
-       PERFORM add_data_issue(i_control_id, to_import.obj_typ, to_import.obj_typ, NULL, NULL, NULL, 'nw obj typ', 'undefined nw obj type in network object: ' || to_import.obj_typ, NULL);
+       -- PERFORM add_data_issue(i_control_id, to_import.obj_typ, to_import.obj_typ, NULL, NULL, NULL, 'nw obj typ', 'undefined nw obj type in network object: ' || to_import.obj_typ, NULL);
        PERFORM error_handling('ERR_OBJTYP_MISS', to_import.obj_typ);
     END IF;
     -- color_id holen (normalisiert ohne SPACES und in Kleinbuchstaben)
@@ -140,7 +140,7 @@ BEGIN
     IF NOT FOUND THEN -- TODO: Fehlerbehandlung bzw. automat. Neuanlegen einer Farbe?
 		i_farbe := NULL;
 		IF to_import.obj_color IS NOT NULL THEN
-        	PERFORM add_data_issue(i_control_id, to_import.obj_color, NULL, NULL, NULL, NULL, 'nw obj color', 'undefined color in network object: ' || to_import.obj_color, NULL);
+        	-- PERFORM add_data_issue(i_control_id, to_import.obj_color, NULL, NULL, NULL, NULL, 'nw obj color', 'undefined color in network object: ' || to_import.obj_color, NULL);
 		END IF;
     END IF;
     -- finde Objekt mit gleichem namen, zone_id und Management

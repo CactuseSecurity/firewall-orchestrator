@@ -534,7 +534,7 @@
                     {
                         foreach (Device dev in adom.Devices)
                         {
-                            if (CheckExistingAutodiscoverDevice(dev))
+                            if (CheckExistingAutodiscoverDevice(dev, adomId))
                             {
                                 if (await CreateAdomDevice(dev, adomId, gatewayDeviceId))
                                     deviceChanges++;
@@ -568,11 +568,11 @@
         return 0;
     }
 
-    private bool CheckExistingAutodiscoverDevice(Device dev)
+    private bool CheckExistingAutodiscoverDevice(Device dev, int adomId)
     {
         if (devices.FirstOrDefault(existingDevice => 
             existingDevice.Name == dev.Name 
-            && existingDevice.Management.Id == dev.Management.Id 
+            && existingDevice.Management.Id == adomId 
             && existingDevice.LocalRulebase == dev.LocalRulebase) != null)
         {
             DisplayMessageInUi!(null, userConfig.GetText("autodiscover"), userConfig.GetText("E5107") + dev.Name, true);

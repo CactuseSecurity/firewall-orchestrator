@@ -117,7 +117,7 @@
                     <div class="col-sm-3">@(actStatus.FirstImport != null && actStatus.FirstImport.Length > 0 ? actStatus.FirstImport[0].StopTime : "")</div>
                     <div class="col-sm-2">@(userConfig.GetText("duration")):</div>
                     <div class="col-sm-1">@(actStatus.FirstImport != null && actStatus.FirstImport.Length > 0 && actStatus.FirstImport[0].StartTime != null
-                        && actStatus.FirstImport[0].StopTime != null ? ((TimeSpan)(actStatus.FirstImport[0].StopTime - actStatus.FirstImport[0].StartTime)).Seconds : "")</div>
+                        && actStatus.FirstImport[0].StopTime != null ? ((TimeSpan)(actStatus.FirstImport[0].StopTime - actStatus.FirstImport[0].StartTime)).TotalSeconds.ToString("f2") : "")</div>
                 </div>
                 <div class="row">
                     <div class="col-sm-1"/>
@@ -141,7 +141,7 @@
                     <div class="col-sm-3">@(actStatus.LastSuccessfulImport != null && actStatus.LastSuccessfulImport.Length > 0 ? actStatus.LastSuccessfulImport[0].StopTime : "")</div>
                     <div class="col-sm-2">@(userConfig.GetText("duration")):</div>
                     <div class="col-sm-1">@(actStatus.LastSuccessfulImport != null && actStatus.LastSuccessfulImport.Length > 0 && actStatus.LastSuccessfulImport[0].StartTime != null 
-                        && actStatus.LastSuccessfulImport[0].StopTime != null ? ((TimeSpan)(actStatus.LastSuccessfulImport[0].StopTime - actStatus.LastSuccessfulImport[0].StartTime)).Seconds : "")</div>
+                        && actStatus.LastSuccessfulImport[0].StopTime != null ? ((TimeSpan)(actStatus.LastSuccessfulImport[0].StopTime - actStatus.LastSuccessfulImport[0].StartTime)).TotalSeconds.ToString("f2") : "")</div>
                 </div>
                 <div class="row">
                     <div class="col-sm-1"/>
@@ -163,7 +163,7 @@
                     <div class="col-sm-3">@(actStatus.LastImport != null && actStatus.LastImport.Length > 0 ? actStatus.LastImport[0].StopTime : "")</div>
                     <div class="col-sm-2">@(userConfig.GetText("duration")):</div>
                     <div class="col-sm-1">@(actStatus.LastImport != null && actStatus.LastImport.Length > 0 && actStatus.LastImport[0].StartTime != null
-                        && actStatus.LastImport[0].StopTime != null ? ((TimeSpan)(actStatus.LastImport[0].StopTime - actStatus.LastImport[0].StartTime)).Seconds : "")</div>
+                        && actStatus.LastImport[0].StopTime != null ? ((TimeSpan)(actStatus.LastImport[0].StopTime - actStatus.LastImport[0].StartTime)).TotalSeconds.ToString("f2") : "")</div>
                 </div>
                 <div class="row">
                     <div class="col-sm-1"/>

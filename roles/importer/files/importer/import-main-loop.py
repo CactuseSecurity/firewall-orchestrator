@@ -46,15 +46,19 @@ if __name__ == '__main__':
     importer_pwd_file = common.base_dir + '/etc/secrets/importer_pwd'
     requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
+    # setting defaults:
+    api_fetch_limit = 150
+    sleep_timer = 90
+
     # read fwo config (API URLs)
     try: 
         with open(fwo_config_filename, "r") as fwo_config:
             fwo_config = json.loads(fwo_config.read())
+        user_management_api_base_url = fwo_config['middleware_uri']
+        fwo_api_base_url = fwo_config['api_uri']
     except:
         logging.error("import-main-loop - error while reading FWO config file")        
         raise
-    user_management_api_base_url = fwo_config['middleware_uri']
-    fwo_api_base_url = fwo_config['api_uri']
 
     killer = GracefulKiller()
     while not killer.kill_now:
@@ -84,8 +88,6 @@ if __name__ == '__main__':
                 logging.error("import-main-loop - error while getting FW management ids: " + str(traceback.format_exc()))
                 skipping = True
 
-            api_fetch_limit = 150
-            sleep_timer = 90
             try:
                 api_fetch_limit = fwo_api.get_config_value(fwo_api_base_url, jwt, key='fwApiElementsPerFetch')
                 sleep_timer = fwo_api.get_config_value(fwo_api_base_url, jwt, key='importSleepTime')

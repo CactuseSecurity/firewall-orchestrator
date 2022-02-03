@@ -20,6 +20,11 @@ section_header_uids=[]
 nat_postfix = '_NatNwObj'
 fwo_api_http_import_timeout = 14400 # 4 hours
 
+fwo_config_filename = base_dir + '/etc/fworch.json'
+with open(fwo_config_filename, "r") as fwo_config:
+    fwo_config = json.loads(fwo_config.read())
+fwo_api_base_url = fwo_config['api_uri']
+
 # how many objects (network, services, rules, ...) should be sent to the FWO API in one go?
 # should be between 500 and 2.000 in production (results in a max obj number of 5 x this value)
 # the database has a limit of 255 MB per jsonb
@@ -84,13 +89,11 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
     secret_filename = ''
     config2import = { "network_objects": [], "service_objects": [], "user_objects": [], "zone_objects": [], "rules": [] }
 
+    set_log_level(log_level=debug_level, debug_level=debug_level)
     if ssl == '' or ssl == 'off':
         requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
-    set_log_level(log_level=debug_level, debug_level=debug_level)
-    # read fwo config (API URLs)
-    if clearManagementData:
-        logging.info('this import run will reset the configuration of this management to "empty"')
 
+    # read fwo config (API URLs)
     with open(fwo_config_filename, "r") as fwo_config:
         fwo_config = json.loads(fwo_config.read())
     user_management_api_base_url = fwo_config['middleware_uri']
@@ -135,8 +138,7 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
         # set import lock
         current_import_id = -1
         try: 
-            current_import_id = fwo_api.lock_import(
-                fwo_api_base_url, jwt, {"mgmId": int(mgm_id)})
+            current_import_id = fwo_api.lock_import(fwo_api_base_url, jwt, {"mgmId": int(mgm_id)})
         except:
             logging.error("import_management - failed to get import lock for management id " + str(mgm_id))
         if current_import_id == -1:
@@ -146,7 +148,9 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
         full_config_json = {}
         get_config_response = 0
 
-        if not clearManagementData:
+        if clearManagementData:
+            logging.info('this import run will reset the configuration of this management to "empty"')
+        else:
             if in_file is not None:    # read native config from file
                 try:
                     with open(in_file, 'r') as json_file:
@@ -173,7 +177,7 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
             try: # get config from product-specific FW API
                 get_config_response = fw_module.get_config(
                     config2import, full_config_json,  current_import_id, mgm_details, debug_level=debug_level, 
-                        ssl_verification=ssl, proxy=proxy, limit=limit, force=force)
+                        ssl_verification=ssl, proxy=proxy, limit=limit, force=force, jwt=jwt)
             except FwLoginFailed as e:
                 logging.error("mgm_id=" + str(mgm_id) + ", mgm_name=" + mgm_details['name'] + ", " + e.message)
                 fwo_api.delete_import(fwo_api_base_url, jwt, current_import_id) # deleting trace of not even begun import
@@ -203,30 +207,16 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
             error_count += get_config_response
         elif get_config_response == 0:
 
-            try: # split the config into multiple chunks not bigger than x elements
-                config2import_list = split_config(config2import)
-            except:
-                logging.error("import_management - unspecified error while splitting config: " + str(traceback.format_exc()))
-                raise
-
-            try: # now we import the config via API:
-                idx = 0
-                while idx<len(config2import_list):
-                    if idx==len(config2import_list)-1:
-                        start_import_flag = True
-                    else:
-                        start_import_flag = False
-                    error_count += fwo_api.import_json_config(fwo_api_base_url, jwt, mgm_id, {
-                        "start_import_flag": start_import_flag, "importId": current_import_id, "mgmId": mgm_id, "config": config2import_list[idx]},
-                        debug_level=debug_level)
-                    idx += 1
+            try: # now we import the config via API chunk by chunk:
+                for config_chunk in split_config(config2import, current_import_id, mgm_id, debug_level):
+                    error_count += fwo_api.import_json_config(fwo_api_base_url, jwt, mgm_id, config_chunk)
             except:
                 logging.error("import_management - unspecified error while importing config via FWO API: " + str(traceback.format_exc()))
                 raise
 
+            error_from_imp_control = "assuming error"
             try: # checking for errors during stored_procedure db imort in import_control table
-                error_from_imp_control = fwo_api.get_error_string_from_imp_control(
-                    fwo_api_base_url, jwt, {"importId": current_import_id})
+                error_from_imp_control = fwo_api.get_error_string_from_imp_control(fwo_api_base_url, jwt, {"importId": current_import_id})
             except:
                 logging.error("import_management - unspecified error while getting error string: " + str(traceback.format_exc()))
 
@@ -298,7 +288,7 @@ def split_list(list_in, max_list_length):
     return list_of_lists
 
 
-def split_config(config2import):
+def split_config(config2import, current_import_id, mgm_id, debug_level):
     conf_split_dict_of_lists = {}
     max_number_of_chunks = 0
     for obj_list_name in ["network_objects", "service_objects", "user_objects", "rules", "zone_objects"]:
@@ -337,7 +327,18 @@ def split_config(config2import):
             "rules": rules_chunk
         })
         current_chunk += 1
-    return conf_split
+
+    # now adding meta data around
+    config_split_with_metadata = []
+    for conf_chunk in conf_split:
+        config_split_with_metadata.append({
+            "config": conf_chunk,
+            "start_import_flag": False,
+            "importId": int(current_import_id), 
+            "mgmId": int(mgm_id), 
+        })
+    config_split_with_metadata[len(config_split_with_metadata)-1]["start_import_flag"] = True
+    return config_split_with_metadata
 
 
 def set_log_level(log_level, debug_level):
@@ -376,7 +377,7 @@ def sanitize(content):
     return result
 
 
-def extend_string_list(list_string, src_dict, key, delimiter):
+def extend_string_list(list_string, src_dict, key, delimiter, jwt=None, import_id=None):
     if list_string is None:
         list_string = ''
     if list_string == '':
@@ -384,6 +385,7 @@ def extend_string_list(list_string, src_dict, key, delimiter):
             result = delimiter.join(src_dict[key])
         else:
             result = ''
+#            fwo_api.create_data_issue(fwo_api_base_url, jwt, import_id, key)
     else:
         if key in src_dict:
             old_list = list_string.split(delimiter)
@@ -391,17 +393,20 @@ def extend_string_list(list_string, src_dict, key, delimiter):
             result = delimiter.join(combined_list)
         else:
             result = list_string
+#            fwo_api.create_data_issue(fwo_api_base_url, jwt, import_id, key)
     return result
 
 
-def resolve_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key):
+def resolve_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type=None, jwt=None, import_id=None):
     # guessing ipv4 and adom (to also search global objects)
-    return resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type='v4_adom', obj_type='network')
+    return resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type='v4_adom', obj_type='network', jwt=jwt, import_id=import_id)
 
 
-def resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type=None, obj_type='network'):
+def resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type=None, obj_type='network', jwt=None, import_id=None, rule_uid=None, object_type=None):
     ref_list = []
+    objects_not_found = []
     for el in obj_name_string_list.split(delimiter):
+        found = False
         if rule_type is not None:
             if obj_type == 'network':
                 if 'v4' in rule_type and 'global' in rule_type:
@@ -423,15 +428,21 @@ def resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, ui
                 break_flag = False # if we find a match we stop the two inner for-loops
                 for tab in object_tables:
                     if break_flag:
+                        found = True
                         break
                     else:
                         for obj in tab:
                             if obj[name_key] == el:
                                 ref_list.append(obj[uid_key])
                                 break_flag = True
+                                found = True
                                 break
             elif obj_type == 'service':
                 print('later')  # todo
         else:
             print('decide what to do')
+        if not found:
+            objects_not_found.append(el)
+    for obj in objects_not_found:
+        fwo_api.create_data_issue(fwo_api_base_url, jwt, import_id, obj, rule_uid=rule_uid, object_type=object_type)
     return delimiter.join(ref_list)

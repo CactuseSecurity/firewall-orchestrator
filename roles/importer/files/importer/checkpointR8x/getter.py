@@ -50,11 +50,13 @@ def api_call(url, command, json_payload, sid, ssl_verification, proxy, show_prog
     return json_response
 
 
-def login(user, password, api_host, api_port, domain, ssl_verification, proxy):
+def login(user, password, api_host, api_port, domain, ssl_verification, proxy, debug=0):
     payload = {'user': user, 'password': password}
     if domain is not None and domain != '':
         payload.update({'domain': domain})
     base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
+    if int(debug)>2:
+        logging.debug("auto-discover - login to url " + base_url + " with user " + user)
     response = api_call(base_url, 'login', payload, '', ssl_verification, proxy)
     if "sid" not in response:
         exception_text = "\ngetter ERROR: did not receive a sid during login, " + \

@@ -214,6 +214,7 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
                 logging.error("import_management - unspecified error while importing config via FWO API: " + str(traceback.format_exc()))
                 raise
 
+            error_from_imp_control = "assuming error"
             try: # checking for errors during stored_procedure db imort in import_control table
                 error_from_imp_control = fwo_api.get_error_string_from_imp_control(fwo_api_base_url, jwt, {"importId": current_import_id})
             except:

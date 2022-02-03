@@ -37,7 +37,7 @@ ssl_verification = getter.set_ssl_verification(args.ssl)
 with open(args.password_file, 'r') as file:
     apiuser_pwd = file.read().replace('\n', '')
 
-xsid = getter.login(args.user, apiuser_pwd, args.hostname, args.port, args.domain, ssl_verification, proxy_string)
+xsid = getter.login(args.user, apiuser_pwd, args.hostname, args.port, args.domain, ssl_verification, proxy_string, debug=args.debug)
 
 api_versions = getter.api_call(base_url, 'show-api-versions', {}, xsid, ssl_verification, proxy_string)
 api_version = api_versions["current-version"]
@@ -87,7 +87,7 @@ else: # visit each domain and fetch layers
     for obj in domains['objects']:
         domain_name = obj['name']
         logging.debug ("MDS: searchig in domain " + domain_name)
-        xsid = getter.login(args.user, args.password_file, args.hostname, args.port, domain_name, ssl_verification, proxy_string)
+        xsid = getter.login(args.user, apiuser_pwd, args.hostname, args.port, domain_name, ssl_verification, proxy_string)
         obj['gateways'] = getter.api_call(v_url, 'show-gateways-and-servers', parameters, xsid, ssl_verification, proxy_string)
         if 'objects' in obj['gateways']:
             for gw in obj['gateways']['objects']:

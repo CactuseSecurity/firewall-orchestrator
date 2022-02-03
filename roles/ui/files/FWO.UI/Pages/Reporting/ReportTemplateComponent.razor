@@ -7,7 +7,7 @@
 <div class="mr-1 ml-1 mb-1 shadow">
     <Collapse Title="@(userConfig.GetText("templates"))" Style="@("primary")" StartToggled="false" @ref="collapseControl">
         <div class="card-body">
-            <Table TableClass="table table-bordered table-sm table-responsive" TableItem="ReportTemplate" Items="reportTemplates" PageSize="0">
+            <Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="ReportTemplate" Items="reportTemplates" PageSize="0">
                 <Column Title="@(userConfig.GetText("action"))" TableItem="ReportTemplate">
                     <Template Context="template">
                         @if (OnTemplateLoad != null)

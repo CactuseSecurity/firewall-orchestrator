@@ -23,4 +23,4 @@ ui_php_dir: "{{ fworch_home }}/web/htdocs"
 ui_php_web_port: 8443
 ui_service_name: "{{ product_name }}-ui"
 
-apache_ui_timeout: 900
+apache_ui_timeout: 14400

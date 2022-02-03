@@ -100,8 +100,16 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m45",
-                "-i/home/tim/tmp/configs/m56_1sthalf.json" // half of 30k rules, local mgm_id 45
+                "-m14",
+                "-d4",
+                //"-c",
+                "-i/home/tim/tmp/configs/mgm_id_56_config_native.json.anon" // all rules, all objs local mgm_id 4
+                // "-i/home/tim/tmp/configs/m56-single-broken-rule.json" // 3 rules, very few objs local mgm_id 45
+                //"-i/home/tim/tmp/configs/m56-single-rule.json" // 3 rules, local mgm_id 45
+                //"-i/home/tim/tmp/configs/mgm_id_45_config_native.json.anon" // 3 rules, local mgm_id 45
+                //"-i/home/tim/tmp/configs/mgm_id_12_config_native.json"
+                //"-i/home/tim/tmp/configs/mgm_id_53_config_native.json.anon"
+                // "-i/home/tim/tmp/configs/m56_1sthalf.json" // half of 30k rules, local mgm_id 45
             ]
         },
         {
@@ -114,13 +122,15 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m45",
+                "-m4",
                 "-d4",
-                "-f",
+                // "-f",
                 //"-c",
-                "-i/home/tim/tmp/configs/mgm_id_56_config_native.json.anon", // 30k rules, local mgm_id 45
+                //  41 - lab fortimanager
+                // "-i/home/tim/tmp/configs/mgm_id_56_config_native.json.anon", // 30k rules, local mgm_id 45
                 //"-i/home/tim/tmp/configs/mgm_id_52_config_native.json.anon", // many gateways, local mgm_id 49
-                //"-i/home/tim/tmp/configs/mgm_id_53_config_native.json.anon", // 1500 rules, 450 NAT rules, local mgm_id 4
+                "-i/home/tim/tmp/configs/mgm_id_53_config_native.json.anon", // 1500 rules, 450 NAT rules, local mgm_id 4
+                //"-i/home/tim/tmp/configs/mgm_id_12_config_native.json",
                 "-l250"
             ]
         },
@@ -194,6 +204,7 @@
                 "-a192.168.100.110",
                 "-w/home/tim/secrets/cp_apiuser_pwd",
                 "-uitsecorg",
+                "-d4",
                 "-fjson"
             ]
         },

@@ -149,7 +149,7 @@ def normalize_access_rules(full_config, config2import, import_id):
                 rule.update({ 'rule_dst_refs': resolve_raw_objects(rule['rule_dst'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table) })
                 rule.update({ 'rule_svc_refs': rule['rule_svc'] }) # services do not have uids, so using name instead
 
-                xlate_rule = handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number)
+                xlate_rule = handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, localPkgName)
                 rules.append(rule)
                 if xlate_rule is not None:
                     rules.append(xlate_rule)
@@ -311,7 +311,7 @@ def create_xlate_rule(rule):
     return xlate_rule
 
 
-def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number):
+def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, localPkgName):
     # now dealing with VIPs (dst NAT part) of combined rules
     xlate_rule = None
 
@@ -329,24 +329,17 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number):
                     else:
                         logging.warning("did not find exactly one nat hiding interface")
                     
-                    obj = {'obj_name': 'devicename' + rule_orig['dstintf'][0], \
+                    # add dummy object "outbound-interface"
+                    obj = {'obj_name': localPkgName + '_' + rule_orig['dstintf'][0], \
                         'obj_type': 'host', \
                         'obj_ip': '0.0.0.0/32', \
-                        'obj_uid': 'devicename' + rule_orig['dstintf'][0], \
+                        'obj_uid': localPkgName + '_' + rule_orig['dstintf'][0], \
                         'obj_zone': rule_orig['dstintf'][0]}
-#                    obj.update({ 'obj_name': 'devicename_dstintf' }) #Muss mit device Namen gefüllt werden
-#                    obj.update({ 'obj_type': 'host' })
-#                    obj.update({ 'obj_ip': '0.0.0.0/32' })
-#                    obj.update({ 'obj_uid': 'devicename_dstintf' })
-#                    obj.update({ 'obj_zone': rule_orig['dstintf'][0] })
-#                    obj.update({ 'control_id': 83 }) #wird später generiert
                     config2import['network_objects'].append(obj)
-
 
                     # need to 
                     # - find out ip of outbound interface
                     # - create an object for the ip of the dst interface and add it here as xlate src
-                    # alternative: add dummy object "outbound-interface"
                     logging.warning("hide nat behind outgoing interface not implemented yet; hide interface: " + hideInterface)
 
             elif rule_orig['ippool']==1:

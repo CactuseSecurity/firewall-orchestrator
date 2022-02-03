@@ -68,6 +68,14 @@ class FwoApiTimeout(Exception):
             self.message = message
             super().__init__(self.message)
 
+class FwoApiTServiceUnavailable(Exception):
+    """Raised for 503 http error Serice unavailable"""
+
+    def __init__(self, message="FWO API Hasura container died"):
+            self.message = message
+            super().__init__(self.message)
+
+
 #  import_management: import a single management (if no import for it is running)
 #     lock mgmt for import via FWORCH API call, generating new import_id y
 #     check if we need to import (no md5, api call if anything has changed since last import)

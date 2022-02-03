@@ -16,7 +16,7 @@
 <button class="btn btn-success m-2" @onclick="Add">@(userConfig.GetText("add_new_gateway"))</button>
 
 <div class="m-2">
-    <Table class="table table-bordered table-responsive" TableItem="Device" Items="devices" PageSize="0" ColumnReorder="true">
+    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="Device" Items="devices" PageSize="0" ColumnReorder="true">
         <Column TableItem="Device" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">

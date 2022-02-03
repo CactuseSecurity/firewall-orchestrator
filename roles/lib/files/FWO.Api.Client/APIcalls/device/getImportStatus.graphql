@@ -2,6 +2,13 @@ query getImportStatus {
   management(where: {stm_dev_typ: {dev_typ_is_multi_mgmt: {_eq: false}}} order_by: { mgm_name: asc }) {
     mgm_id
     mgm_name
+    importDisabled: do_not_import
+    deviceType: stm_dev_typ {
+      id: dev_typ_id
+      name: dev_typ_name
+      version: dev_typ_version
+      manufacturer: dev_typ_manufacturer
+    }
     last_import: import_controls(order_by: { control_id: desc }, limit: 1) {
       control_id
       start_time
@@ -30,5 +37,10 @@ query getImportStatus {
       successful_import
       import_errors
     }
+    erroneous_imports: import_controls(where: { successful_import: {_eq: false} } order_by: {control_id: desc}) {
+      control_id
+      import_errors
+    }
+
   }
 }

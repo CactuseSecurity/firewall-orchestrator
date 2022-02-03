@@ -35,12 +35,12 @@ def call(url, jwt, query, query_variables="", role="reporter", ssl_verification=
 
     try:
         r = requests.post(url, data=json.dumps(
-            full_query), headers=request_headers, verify=ssl_verification, proxies=proxy, timeout=common.fwo_api_http_import_timeout)
+            full_query), headers=request_headers, verify=ssl_verification, proxies=proxy, timeout=int(common.fwo_api_http_import_timeout))
         r.raise_for_status()
     except requests.exceptions.RequestException:
         logging.error(showApiCallInfo(url, full_query, request_headers, type='error') + ":\n" + str(traceback.format_exc()))
         if r.status_code == 502:
-            raise common.FwoApiTimeout
+            raise common.FwoApiTimeout("FWO API HTTP error 502 (might have reached timeout of " + str(int(common.fwo_api_http_import_timeout)/60) + " minutes)" )
         else:
             raise
     if debug > 2:
@@ -61,13 +61,13 @@ def login(user, password, user_management_api_base_url, method='api/Authenticati
     except requests.exceptions.RequestException:
         raise common.FwoApiLoginFailed ("fwo_api: error during login to url: " + str(user_management_api_base_url) + " with user " + user) from None
 
-    if response.text is not None:
+    if response.text is not None and response.status_code==200:
         return response.text
     else:
-        error_txt = "fwo_api: ERROR: did not receive a JWT during login, " + \
+        error_txt = "fwo_api: ERROR: did not receive a JWT during login" + \
                         ", api_url: " + str(user_management_api_base_url) + \
                         ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy)
-        logging.error(error_txt)
+        #logging.error(error_txt)
         raise common.FwoApiLoginFailed(error_txt)
 
 
@@ -332,3 +332,26 @@ def delete_full_json_config(fwo_api_base_url, jwt, query_variables):
 def get_error_string_from_imp_control(fwo_api_base_url, jwt, query_variables):
     error_query = "query getErrors($importId:bigint) { import_control(where:{control_id:{_eq:$importId}}) { import_errors } }"
     return call(fwo_api_base_url, jwt, error_query, query_variables=query_variables, role='importer')['data']['import_control']
+
+
+def create_data_issue(fwo_api_base_url, jwt, import_id, obj_name, role='importer', rule_uid=None, object_type=None):
+    if obj_name=='all' or obj_name=='Original': 
+        return 0 # ignore resolve errors for enriched objects that are not in the native config
+    else:
+        create_data_issue_mutation = """
+            mutation createDataIssue($importId: bigint!, $objectName: String!, $objectType:String!, $ruleUid: String) {
+                insert_changelog_data_issue(objects: {import_id: $importId, object_name: $objectName, rule_uid: $ruleUid, object_type:$objectType}) {
+                    affected_rows
+                }
+            }
+        """
+
+        query_variables = { "importId": import_id, "objectName": obj_name, "ruleUid": rule_uid, "objectType": object_type }
+        try:
+            import_result = call(fwo_api_base_url, jwt, create_data_issue_mutation,
+                                query_variables=query_variables, role=role)
+            changes = import_result['data']['insert_changelog_data_issue']['affected_rows']
+        except:
+            logging.exception("fwo_api: failed to create a changelog_data_issue " + str(obj_name))
+            return 2  # indicating 1 error because we are expecting exactly one change
+        return changes==1

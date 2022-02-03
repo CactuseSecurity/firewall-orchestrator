@@ -214,6 +214,8 @@ DECLARE
 	r_parent_rule RECORD;
 	b_access_rule BOOLEAN;
 	b_nat_rule BOOLEAN;
+	-- v_local_error VARCHAR;
+	-- v_error_str VARCHAR;
 BEGIN
 	RAISE DEBUG 'insert_single_rule start, rule_id: %', id;
 
@@ -383,6 +385,17 @@ BEGIN
 					i_control_id,i_control_id, i_dev_id, i_parent_rule_id, i_parent_rule_type, b_access_rule, b_nat_rule)
 				RETURNING rule_id INTO i_new_rule_id;
 			EXCEPTION WHEN OTHERS THEN
+				-- v_local_error := 'ERR-insert_single_rule@rule_uid: ' || CAST (r_to_import.rule_uid AS VARCHAR);
+				-- RAISE WARNING '%', v_local_error;
+				-- -- adding the error to potential other errors alread in import_control.import_errors
+				-- SELECT INTO v_error_str import_errors FROM import_control WHERE control_id=i_current_import_id;
+				-- IF NOT v_error_str IS NULL THEN
+				-- 	v_error_str := v_error_str || '\n' || v_local_error;
+				-- ELSE
+				-- 	v_error_str := v_local_error;
+				-- END IF;
+				-- UPDATE import_control SET import_errors = v_error_str WHERE control_id=i_current_import_id;
+				-- -- RETURN NULL;
 				RAISE EXCEPTION 'rule_change_change exception while inserting rule: 
 					mgm_id=%
 					rule_name=%

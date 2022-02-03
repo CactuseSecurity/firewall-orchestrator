@@ -1,9 +1,8 @@
 
 # hasura:
 api_port: 8080
-### high timeout value for api (mainly) for large imports
-apache_fwo_api_timeout: 3600
-
+### high timeout value for api (mainly) for large imports (4h)
+apache_fwo_api_timeout: 14400
 api_user: "{{ fworch_dbadmin_name }}"
 api_hasura_admin_test_password: "not4production"
 api_user_email: "{{ api_user }}@{{ api_ip_address }}"

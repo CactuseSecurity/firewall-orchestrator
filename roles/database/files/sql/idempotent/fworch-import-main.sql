@@ -151,7 +151,8 @@ BEGIN
 			v_err_pos := 'get_active_rules_with_broken_refs_per_mgm';
 			SELECT INTO v_err_str_refs * FROM get_active_rules_with_broken_refs_per_mgm ('|', FALSE, i_mgm_id);
 			IF NOT are_equal(v_err_str_refs, '') THEN
-				RAISE NOTICE 'found broken references in get_active_rules_with_broken_refs_per_mgm: %', v_err_str_refs;
+				RAISE EXCEPTION 'error in get_active_rules_with_broken_refs_per_mgm: %', v_err_str_refs;
+--				RAISE NOTICE 'found broken references in get_active_rules_with_broken_refs_per_mgm: %', v_err_str_refs;
 			END IF;
 		END IF;
 		IF b_force_initial_import THEN UPDATE management SET force_initial_import=FALSE WHERE mgm_id=i_mgm_id; END IF; 	-- evtl. gesetztes management.force_initial_import-Flag loeschen	

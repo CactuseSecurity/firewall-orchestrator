@@ -139,9 +139,9 @@ BEGIN
 	RAISE DEBUG 'processing import_nwobj_single 4';
     IF NOT FOUND THEN -- TODO: Fehlerbehandlung bzw. automat. Neuanlegen einer Farbe?
 		i_farbe := NULL;
-		IF to_import.obj_color IS NOT NULL THEN
-        	-- PERFORM add_data_issue(i_control_id, to_import.obj_color, NULL, NULL, NULL, NULL, 'nw obj color', 'undefined color in network object: ' || to_import.obj_color, NULL);
-		END IF;
+		-- IF to_import.obj_color IS NOT NULL THEN
+        -- 	-- PERFORM add_data_issue(i_control_id, to_import.obj_color, NULL, NULL, NULL, NULL, 'nw obj color', 'undefined color in network object: ' || to_import.obj_color, NULL);
+		-- END IF;
     END IF;
     -- finde Objekt mit gleichem namen, zone_id und Management
 	IF (to_import.obj_uid IS NULL OR char_length(to_import.obj_uid) = 0) THEN -- nur der Weg ueber den Namen als ID geht

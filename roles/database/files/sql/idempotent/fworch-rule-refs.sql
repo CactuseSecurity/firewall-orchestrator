@@ -1,3 +1,6 @@
+-- $Id: iso-rule-refs.sql,v 1.1.2.9 2011-09-28 21:33:17 tim Exp $
+-- $Source: /home/cvs/iso/package/install/database/Attic/iso-rule-refs.sql,v $
+
 ----------------------------------------------------
 -- FUNCTION:  resolve_all_rule_lists
 -- Zweck:     Generiert die Beziehungen in rule_from, rule_to, rule_svc
@@ -15,17 +18,10 @@ DECLARE
 	i_dev_id  ALIAS FOR $2; -- Device ID
 	r_liste   RECORD; -- Record fuer Liste
 	r_control RECORD; -- Record fuer import control (Trennzeichen, Mangement)
-	v_local_error VARCHAR;
-	v_error_str VARCHAR;
-	v_error_in_element VARCHAR;
-	v_debug VARCHAR;
 BEGIN
-	RAISE DEBUG 'import_rule_refhandler_main - starting'; 
 	SELECT INTO r_control mgm_id,delimiter_group,delimiter_user,delimiter_zone,delimiter_list FROM import_control
 		WHERE control_id=i_current_import_id;
 	-- fuer alle neuen Regeln
-	RAISE DEBUG 'import_rule_refhandler_main - 1'; 
-
 	FOR r_liste IN
 	SELECT rule.rule_uid, rule.rule_from_zone,rule.rule_to_zone,rule.rule_id,rule.rule_src,rule.rule_dst,rule.rule_svc,
 				rule.rule_src_refs,rule.rule_dst_refs,rule.rule_svc_refs
@@ -35,38 +31,15 @@ BEGIN
 				changelog_rule.control_id = i_current_import_id AND
 				changelog_rule.change_action <> 'D'   -- create new entries in rule_XXX for inserted or changed rules
 	LOOP
-		BEGIN
-			RAISE DEBUG 'import_rule_refhandler_main - 2'; 
-			v_debug := 'processing rule no. ' || r_liste.rule_uid || ': ' || r_liste.rule_src || ' --> ' || r_liste.rule_dst || ' with services: ' || r_liste.rule_svc; 
-			RAISE DEBUG 'import_rule_refhandler_main - 3'; 
-			RAISE DEBUG '%', v_debug; 
-			v_error_in_element := 'rule source';
-	--      PERFORM error_handling('DEBUG_GENERAL_INFO', CAST(r_liste.rule_id AS VARCHAR));
-			PERFORM resolve_rule_list (r_liste.rule_id, 'rule_from',r_liste.rule_src_refs, r_control.mgm_id,
-				r_liste.rule_from_zone, r_control.delimiter_list,i_current_import_id);
-			v_error_in_element := 'rule destination';
-			PERFORM resolve_rule_list (r_liste.rule_id, 'rule_to',  r_liste.rule_dst_refs, r_control.mgm_id,
-				r_liste.rule_to_zone, r_control.delimiter_list,i_current_import_id);
-			v_error_in_element := 'rule service';
-			PERFORM resolve_rule_list (r_liste.rule_id, 'rule_service', r_liste.rule_svc_refs, r_control.mgm_id,
-				0, r_control.delimiter_list, i_current_import_id);
-		EXCEPTION WHEN OTHERS THEN
-			v_local_error := 'ERR-import_rule_refhandler@rule_uid: ' || r_liste.rule_uid;
-			RAISE WARNING '%', v_local_error;
-			-- adding the error to potential other errors already in import_control.import_errors
-			SELECT INTO v_error_str import_errors FROM import_control WHERE control_id=i_current_import_id;
-			IF NOT v_error_str IS NULL THEN
-				v_error_str := v_error_str || '\n' || v_local_error;
-			ELSE
-				v_error_str := v_local_error;
-			END IF;
-			UPDATE import_control SET import_errors = v_error_str WHERE control_id=i_current_import_id;
-			--                        1                        2                    3              4               5              6           7
-			PERFORM add_data_issue(i_current_import_id,  r_liste.rule_uid, r_liste.rule_uid, r_liste.rule_uid, r_liste.rule_id, i_dev_id, 'import_rule_refhandler_main', 
-				'Exception: broken ref in rule with UID "' || r_liste.rule_uid || '" in ' || v_error_in_element, NULL);
-		END;
+		RAISE DEBUG '%', 'processing rule no. ' || r_liste.rule_uid || ': ' || r_liste.rule_src || ' --> ' || r_liste.rule_dst || ' with services: ' || r_liste.rule_svc; 
+--      PERFORM error_handling('DEBUG_GENERAL_INFO', CAST(r_liste.rule_id AS VARCHAR));
+		PERFORM resolve_rule_list (r_liste.rule_id, 'rule_from',r_liste.rule_src_refs, r_control.mgm_id,
+			r_liste.rule_from_zone, r_control.delimiter_list,i_current_import_id);
+		PERFORM resolve_rule_list (r_liste.rule_id, 'rule_to',  r_liste.rule_dst_refs, r_control.mgm_id,
+			r_liste.rule_to_zone, r_control.delimiter_list,i_current_import_id);
+		PERFORM resolve_rule_list (r_liste.rule_id, 'rule_service', r_liste.rule_svc_refs, r_control.mgm_id,
+			0, r_control.delimiter_list, i_current_import_id);
 	END LOOP;
-
 	RETURN;
 END;
 $$ LANGUAGE plpgsql;
@@ -144,7 +117,6 @@ DECLARE
     v_src_obj			VARCHAR;
     r_debug				RECORD;
     v_error_str			VARCHAR;
-	i_dev_id 			INTEGER;
 BEGIN 
 	RAISE DEBUG 'f_add_single_rule_from_element - 1 starting for %', v_element;
 	i_at_sign_pos := instr(v_element,'@');
@@ -153,10 +125,7 @@ BEGIN
 		v_src_obj := substr(v_element,i_at_sign_pos+1);
 		SELECT INTO i_usr user_id FROM usr WHERE user_uid=v_usergroup_name AND mgm_id=i_mgm_id AND active;
 		IF NOT FOUND THEN
-		SELECT INTO i_dev_id dev_id FROM rule where rule_id=i_rule_id;
-		SELECT INTO r_debug user_name,user_uid FROM usr WHERE user_id = i_usr;
-		-- PERFORM add_data_issue(i_current_import_id, v_usergroup_name, r_debug.user_uid, r_debug.rule_uid, i_rule_id, i_dev_id, 'user object', 'undefined user obj in rule source', NULL);
-		-- PERFORM error_handling('ERR_LST_EL_MISS', 'User: ' || v_usergroup_name);
+			PERFORM error_handling('ERR_LST_EL_MISS', 'User: ' || v_usergroup_name);
 		END IF;
 	ELSE
 		v_src_obj := v_element;
@@ -172,9 +141,6 @@ BEGIN
 		END IF;
 	END IF;
 	IF NOT FOUND THEN
-		SELECT INTO i_dev_id dev_id FROM rule where rule_id=i_rule_id;
-		SELECT INTO r_debug user_name,user_uid FROM usr WHERE user_id = i_usr;
-		-- PERFORM add_data_issue(i_current_import_id, v_element, v_element, r_debug.rule_uid, i_rule_id, i_dev_id, 'user object', 'undefined user obj in rule source', NULL);
 		PERFORM error_handling('ERR_LST_EL_MISS', 'Obj: ' || v_src_obj);
 	END IF;
 	IF i_usr IS NULL THEN
@@ -223,7 +189,7 @@ BEGIN
 			EXCEPTION
 				WHEN others THEN
 					raise notice 'f_add_single_rule_from_element - rule_from import_rule_resolved_nwobj - uncommittable state. Rolling back';
-					raise EXCEPTION '% %', SQLERRM, SQLSTATE;
+					raise EXCEPTION '% %', SQLERRM, SQLSTATE;    
 			END;
 
 		END IF;
@@ -254,7 +220,6 @@ DECLARE
 	i_zone_id  ALIAS FOR $4;
 	i_current_import_id ALIAS FOR $5;
 	r_obj      RECORD;
-	i_dev_id INTEGER;
 	v_error_str VARCHAR;
 	r_debug RECORD;
 BEGIN
@@ -267,9 +232,6 @@ BEGIN
 		END IF;
 	END IF;
 	IF NOT FOUND THEN
-		SELECT INTO i_dev_id dev_id FROM rule where rule_id=i_rule_id;
-		SELECT INTO r_debug obj_name,obj_uid FROM object WHERE obj_id = r_obj.obj_id;
-		-- PERFORM add_data_issue(i_current_import_id, v_element, v_element, r_debug.rule_uid, i_rule_id, i_dev_id, 'nw object', 'undefined nw obj in rule destination', NULL);
 		PERFORM error_handling('ERR_LST_EL_MISS', v_element);
 	ELSE
 -- 		TODO: check if exactly one hit found
@@ -290,9 +252,6 @@ BEGIN
 		ELSE
 			v_error_str := 'unknown rule';
 		END IF;
-		SELECT INTO i_dev_id dev_id FROM rule where rule_id=i_rule_id;
-		SELECT INTO r_debug obj_name,obj_uid FROM object WHERE obj_id = r_obj.obj_id;
-		-- PERFORM add_data_issue(i_current_import_id, v_element, v_element, r_debug.rule_uid, i_rule_id, i_dev_id, 'nw object', 'duplicate nw obj in rule destination', NULL);
 		PERFORM error_handling('ERR_RULE_DBL_OBJ', v_error_str);
 	ELSE 
 		INSERT INTO rule_to (rule_id,obj_id,rt_create,rt_last_seen)
@@ -321,16 +280,12 @@ DECLARE
     v_element  ALIAS FOR $2;
     i_mgm_id   ALIAS FOR $3;
 	i_current_import_id ALIAS FOR $4;
-	i_dev_id INTEGER;
 	r_svc      RECORD;
 	v_error_str	VARCHAR;
 	r_debug		RECORD;
 BEGIN
 	SELECT INTO r_svc svc_id FROM service WHERE svc_uid=v_element AND mgm_id=i_mgm_id AND active;
 	IF NOT FOUND THEN
-		SELECT INTO i_dev_id dev_id FROM rule where rule_id=i_rule_id;
-		SELECT INTO r_debug svc_name,svc_uid FROM service WHERE svc_id = r_svc.svc_id;
-		-- PERFORM add_data_issue(i_current_import_id, v_element, v_element, r_debug.rule_uid, i_rule_id, i_dev_id, 'service', 'undefined service in rule', NULL);
 		PERFORM error_handling('ERR_LST_EL_MISS', v_element);
 	END IF;
 	
@@ -340,7 +295,6 @@ BEGIN
 	IF FOUND THEN
 --		RAISE NOTICE 'Error: found duplicate service in rule: %', v_element;
 		SELECT INTO r_debug svc_name,svc_uid FROM service WHERE svc_id = r_debug.svc_id;
-		SELECT INTO i_dev_id dev_id FROM rule where rule_id=i_rule_id;
 		v_error_str := '';
 		IF NOT r_debug.svc_name IS NULL THEN
 			v_error_str := 'service: ' || r_debug.svc_name || '(uid: ' || r_debug.svc_uid || '), ';
@@ -354,7 +308,6 @@ BEGIN
 			v_error_str := 'unknown rule';
 		END IF;
 		PERFORM error_handling('ERR_RULE_DBL_OBJ', v_error_str);
-		-- PERFORM add_data_issue(i_current_import_id, v_element, v_element, r_debug.rule_uid, i_rule_id, i_dev_id, 'service', 'duplicate service in rule', NULL);
 	ELSE
 		INSERT INTO rule_service (rule_id,svc_id,rs_create,rs_last_seen)
 			VALUES (i_rule_id,r_svc.svc_id,i_current_import_id,i_current_import_id);

@@ -98,7 +98,7 @@ DECLARE
 	v_result VARCHAR;
 	v_result_single VARCHAR;
 BEGIN
-	BEGIN
+	-- BEGIN
 		v_result := '';
 		FOR r_rule IN SELECT rule_id,rule_uid,rule_src, rule_dst, rule_svc, rule_src_refs, rule_dst_refs, rule_svc_refs, 
 				rule_from_zone, rule_to_zone, rule_create, rule_last_seen
@@ -198,12 +198,12 @@ BEGIN
 				END IF;
 			END LOOP;
 		END LOOP;
-	EXCEPTION WHEN OTHERS THEN 
-		--                        1                  2                     3         4                    5              6           7
-		PERFORM add_data_issue(i_rule_last_seen,  r_rule.rule_uid, r_rule.rule_uid, r_rule.rule_uid, r_rule.rule_id, i_dev_id, 'rule ref error', 
-			'exception raised while importing rule with UID "' || r_rule.rule_uid || '"', 'Unknown exception in get_active_rules_with_broken_src_refs_per_dev');
-		--RAISE EXCEPTION 'Unknown exception in get_active_rules_with_broken_src_refs_per_dev';
-	END;
+	-- EXCEPTION WHEN OTHERS THEN 
+	-- 	--                        1                  2                     3         4                    5              6           7
+	-- 	PERFORM add_data_issue(i_rule_last_seen,  r_rule.rule_uid, r_rule.rule_uid, r_rule.rule_uid, r_rule.rule_id, i_dev_id, 'rule ref error', 
+	-- 		'exception raised while importing rule with UID "' || r_rule.rule_uid || '"', 'Unknown exception in get_active_rules_with_broken_src_refs_per_dev');
+	-- 	RAISE EXCEPTION 'Unknown exception in get_active_rules_with_broken_src_refs_per_dev';
+	-- END;
 	RETURN v_result;
 END;
 $$ LANGUAGE plpgsql;

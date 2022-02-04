@@ -327,9 +327,10 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, lo
                     else:
                         logging.warning("did not find exactly one nat hiding interface")
                     
+                    print(localPkgName)
                     # add dummy object "outbound-interface"
                     obj = {'obj_name': localPkgName + '_' + rule_orig['dstintf'][0], \
-                        'obj_type': 'host', \
+                        'obj_typ': 'host', \
                         'obj_ip': '0.0.0.0/32', \
                         'obj_uid': localPkgName + '_' + rule_orig['dstintf'][0], \
                         'obj_zone': rule_orig['dstintf'][0]}

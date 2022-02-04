@@ -17,26 +17,33 @@
 
     @foreach (ManagementSelect management in DeviceFilter.Managements)
     {
-        <Collapse Title="@(management.Name)" StartToggled="false" Style="@("primary")">
-            @foreach (DeviceSelect device in management.Devices)
-            {
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="@device.Id"
-                            @bind="device.Selected"
-                            @oninput="async () => {
-                                device.Selected = !device.Selected;
-                                if (DeviceFilter.areAllDevicesSelected())
-                                    SelectAll = false;
-                                if (!DeviceFilter.isAnyDeviceFilterSet())
-                                    SelectAll = true;
-                                await SelectAllChanged.InvokeAsync(SelectAll);
-                            }" />
-                    <label class="form-check-label" for="@device.Id">
-                        @device.Name
-                    </label>
-                </div>
-            }
-        </Collapse>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="@management.Id"
+                    @bind="management.Selected"
+                    @oninput="async () => {
+                        management.Selected = !management.Selected;
+                        foreach (DeviceSelect device in management.Devices)
+                            device.Selected = management.Selected;
+                        await SetSelectAll();
+                    }" />
+            <Collapse Title="@(management.Name)" StartToggled="false" Style="@("primary")">
+                @foreach (DeviceSelect device in management.Devices)
+                {
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="@device.Id"
+                                @bind="device.Selected"
+                                @oninput="async () => {
+                                    device.Selected = !device.Selected;
+                                    DeviceFilter.SynchronizeMgmtFilter();
+                                    await SetSelectAll();
+                                }" />
+                        <label class="form-check-label" for="@device.Id">
+                            @device.Name
+                        </label>
+                    </div>
+                }
+            </Collapse>
+        </div>
     }
 </div>
 
@@ -64,5 +71,14 @@
     {
         selectAllText = userConfig.GetText("select_all");
         clearAllText = userConfig.GetText("clear_all");
+    }
+
+    private async Task SetSelectAll()
+    {
+        if (DeviceFilter.areAllDevicesSelected())
+            SelectAll = false;
+        if (!DeviceFilter.isAnyDeviceFilterSet())
+            SelectAll = true;
+        await SelectAllChanged.InvokeAsync(SelectAll);
     }
 }

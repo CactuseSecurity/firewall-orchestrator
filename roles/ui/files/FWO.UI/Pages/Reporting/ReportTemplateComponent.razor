@@ -128,6 +128,11 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await Refresh();    
+    }
+
+    public async Task Refresh()
+    {
         try
         {
             reportTemplates = (await apiConnection.SendQueryAsync<ReportTemplate[]>(ReportQueries.getReportTemplates)).ToList();
@@ -241,9 +246,8 @@
             if (returnIds != null)
             {
                 reportTemplateInEdit.Id = returnIds[0].NewId;
-                reportTemplates.Add(reportTemplateInEdit);
                 ShowSaveTemplateDialog = false;
-                StateHasChanged();
+                await Refresh(); // avoid strange behavior of new templates in device selection
             }
             else
             {

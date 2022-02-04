@@ -142,7 +142,7 @@ app {
 
 .sticky-header thead {
     position: sticky;
-    top: 0px;
+    top: -1px; /* looks better in chrome */
     z-index: 1;
   }
 

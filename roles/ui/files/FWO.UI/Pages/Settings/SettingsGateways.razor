@@ -56,6 +56,10 @@
         {
             <form>
                 <div class="form-group row">
+                    <label for="deviceId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                    <label class="col-sm-8">@actDevice.Id</label>
+                </div>
+                <div class="form-group row">
                     <label for="deviceName" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
                     <div class="col-sm-8">
                         <input id="deviceName" type="text" class="form-control form-control-sm" @bind="actDevice.Name" />

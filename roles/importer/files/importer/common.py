@@ -144,9 +144,8 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
             logging.debug("import_management - this host (" + gethostname() + ") is not responsible for importing management " + str(mgm_id))
             return ""
 
-        # set import lock
         current_import_id = -1
-        try: 
+        try: # set import lock
             current_import_id = fwo_api.lock_import(fwo_api_base_url, jwt, {"mgmId": int(mgm_id)})
         except:
             logging.error("import_management - failed to get import lock for management id " + str(mgm_id))
@@ -167,74 +166,15 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
                 except:
                     logging.exception("import_management - error while reading json import from file", traceback.format_exc())        
                     raise
-
-            secret_filename = base_dir + '/tmp/import/mgm_id_' + str(mgm_id) + '_secret.txt'
-            try:
-                if os.path.isfile(secret_filename):
-                    os.remove(secret_filename)
-                original_umask = os.umask(0o177)  # 0o777 ^ 0o600
-                secret = os.fdopen(os.open(secret_filename, os.O_WRONLY | os.O_CREAT, 0o600), 'w')
-                # with open(secret_filename, "w") as secret:  # write pwd to disk to avoid passing it as parameter
-                secret.write(mgm_details['secret'])
-            except:
-                logging.exception("import_management - error while writing secrets file to disk", traceback.format_exc())
-                raise
-            finally:
-                os.umask(original_umask)
-
-            try: # pick product-specific importer:
-                pkg_name = mgm_details['deviceType']['name'].lower().replace(' ', '') + mgm_details['deviceType']['version']
-                fw_module = importlib.import_module("." + fw_module_name, pkg_name)
-            except:
-                logging.exception("import_management - error while loading product specific fwcommon module", traceback.format_exc())        
-                raise
+            # note: we need to run get_config in any case as this function 
+            # also contains the conversion from native to config2import (parsing)
             
-            try: # get the config data from the firewall manager's API: 
-                # check for changes from product-specific FW API
-                config_changed_since_last_import = fw_module.has_config_changed(full_config_json,
-                    mgm_details, debug_level=debug_level, ssl_verification=ssl, proxy=proxy, force=force)
-                if config_changed_since_last_import:
-                    logging.debug ( "has_config_changed: changes found or forced mode -> go ahead with getting config, Force = " + str(force))
-                else:
-                    logging.debug ( "has_config_changed: no new changes found")
-
-                if config_changed_since_last_import:
-                    get_config_response = fw_module.get_config( # get config from product-specific FW API
-                        config2import, full_config_json,  current_import_id, mgm_details, debug_level=debug_level, 
-                        ssl_verification=ssl, proxy=proxy, limit=limit, force=force, jwt=jwt)
-            except FwLoginFailed as e:
-                error_string += "  login failed: mgm_id=" + str(mgm_id) + ", mgm_name=" + mgm_details['name'] + ", " + e.message
-                logging.error(error_string)
-                fwo_api.delete_import(fwo_api_base_url, jwt, current_import_id) # deleting trace of not even begun import
-                error_count = complete_import(current_import_id, error_string, start_time, secret_filename, mgm_details, change_count, error_count, jwt)
-                raise FwLoginFailed(e.message)
-            except:
-                error_string += "  import_management - unspecified error while getting config: " + str(traceback.format_exc())
-                logging.error(error_string)
-                error_count = complete_import(current_import_id, error_string, start_time, secret_filename, mgm_details, change_count, error_count, jwt)
-                raise
-
-            if config_changed_since_last_import and debug_level>2:   # debugging: writing config to json file
-                logging.debug("import_management: get_config completed, now writing debug config json files")
-                try:
-                    normalized_config_filename = import_tmp_path + '/mgm_id_' + \
-                        str(mgm_id) + '_config_normalized.json'
-                    with open(normalized_config_filename, "w") as json_data:
-                        json_data.write(json.dumps(config2import, indent=2))
-
-                    if debug_level>3 and in_file is None:   # do not write native config if we just got it as input file
-                        full_native_config_filename = import_tmp_path + '/mgm_id_' + \
-                            str(mgm_id) + '_config_native.json'
-                        with open(full_native_config_filename, "w") as json_data:  # create empty config file
-                            json_data.write(json.dumps(full_config_json, indent=2))
-                except:
-                    logging.error("import_management - unspecified error while dumping config to json file: " + str(traceback.format_exc()))
-                    raise
-            
-        if get_config_response == 1:
-            error_count += get_config_response
-        elif get_config_response == 0 and config_changed_since_last_import:
-
+            ### geting config from firewall manager ######################
+            config_changed_since_last_import, error_string, error_count, change_count = get_config_sub(mgm_details, full_config_json, config2import, jwt, current_import_id, start_time,
+                in_file=in_file, import_tmp_path=import_tmp_path, error_string=error_string, error_count=error_count, change_count=change_count, 
+                proxy=proxy, limit=limit, debug_level=debug_level, force=force, ssl=ssl)
+                    
+        if config_changed_since_last_import:
             try: # now we import the config via API chunk by chunk:
                 for config_chunk in split_config(config2import, current_import_id, mgm_id, debug_level):
                     error_count += fwo_api.import_json_config(fwo_api_base_url, jwt, mgm_id, config_chunk)
@@ -277,17 +217,72 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
         else: # if no changes were found, we get get_config_response==512 and we skip everything else without errors
             pass
 
-        error_count = complete_import(current_import_id, error_string, start_time, secret_filename, mgm_details, change_count, error_count, jwt)
+        error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)
         
     return error_count
 
 
-def complete_import(current_import_id, error_string, start_time, secret_filename, mgm_details, change_count, error_count, jwt):
+def get_config_sub(mgm_details, full_config_json, config2import, jwt, current_import_id, start_time,
+        in_file=None, import_tmp_path='.', error_string='', error_count=0, change_count=0, 
+        proxy='', limit=150, debug_level=0, force=False, ssl=''):
+
+    try: # pick product-specific importer:
+        pkg_name = mgm_details['deviceType']['name'].lower().replace(' ', '') + mgm_details['deviceType']['version']
+        fw_module = importlib.import_module("." + fw_module_name, pkg_name)
+    except:
+        logging.exception("import_management - error while loading product specific fwcommon module", traceback.format_exc())        
+        raise
+    
+    try: # get the config data from the firewall manager's API: 
+        # check for changes from product-specific FW API
+        config_changed_since_last_import = in_file != None or fw_module.has_config_changed(full_config_json,
+            mgm_details, debug_level=debug_level, ssl_verification=ssl, proxy=proxy, force=force)
+        if config_changed_since_last_import:
+            logging.debug ( "has_config_changed: changes found or forced mode -> go ahead with getting config, Force = " + str(force))
+        else:
+            logging.debug ( "has_config_changed: no new changes found")
+
+        if config_changed_since_last_import:
+            get_config_response = fw_module.get_config( # get config from product-specific FW API
+                config2import, full_config_json,  current_import_id, mgm_details, debug_level=debug_level, 
+                ssl_verification=ssl, proxy=proxy, limit=limit, force=force, jwt=jwt)
+    except FwLoginFailed as e:
+        error_string += "  login failed: mgm_id=" + str(mgm_details['id']) + ", mgm_name=" + mgm_details['name'] + ", " + e.message
+        logging.error(error_string)
+        fwo_api.delete_import(fwo_api_base_url, jwt, current_import_id) # deleting trace of not even begun import
+        error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)
+        raise FwLoginFailed(e.message)
+    except:
+        error_string += "  import_management - unspecified error while getting config: " + str(traceback.format_exc())
+        logging.error(error_string)
+        error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)
+        raise
+
+    if config_changed_since_last_import and debug_level>2:   # debugging: writing config to json file
+        logging.debug("import_management: get_config completed, now writing debug config json files")
+        try:
+            normalized_config_filename = import_tmp_path + '/mgm_id_' + \
+                str(mgm_details['id']) + '_config_normalized.json'
+            with open(normalized_config_filename, "w") as json_data:
+                json_data.write(json.dumps(config2import, indent=2))
+
+            if debug_level>3 and in_file is None:   # do not write native config if we just got it as input file
+                full_native_config_filename = import_tmp_path + '/mgm_id_' + \
+                    str(mgm_details['id']) + '_config_native.json'
+                with open(full_native_config_filename, "w") as json_data:  # create empty config file
+                    json_data.write(json.dumps(full_config_json, indent=2))
+        except:
+            logging.error("import_management - unspecified error while dumping config to json file: " + str(traceback.format_exc()))
+            raise
+    return config_changed_since_last_import, error_string, error_count, change_count
+
+
+def complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt):
     try: # CLEANUP: delete configs of imports (without changes) (if no error occured)
         if fwo_api.delete_json_config_in_import_table(fwo_api_base_url, jwt, {"importId": current_import_id})<0:
             error_count = +1
-        if os.path.exists(secret_filename):
-            os.remove(secret_filename)
+        # if os.path.exists(secret_filename):
+        #     os.remove(secret_filename)
     except:
         logging.error("import_management - unspecified error cleaning up: " + str(traceback.format_exc()))
         raise

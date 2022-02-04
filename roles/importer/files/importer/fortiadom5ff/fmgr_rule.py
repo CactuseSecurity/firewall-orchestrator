@@ -328,7 +328,7 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, im
                         logging.warning("did not find exactly one nat hiding interface")
                     
                     # add dummy object "outbound-interface"
-                    obj_name = localPkgName
+                    obj_name = localPkgName + '_' + hideInterface
                     obj_comment = 'FWO auto-generated dummy object for source nat'
                     obj = create_network_object(import_id, obj_name, 'host', '0.0.0.0/32', obj_name, 'black', obj_comment, hideInterface)
                     

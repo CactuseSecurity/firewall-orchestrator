@@ -335,11 +335,10 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, im
                         'obj_zone': hideInterface, \
                         'control_id': import_id }
                     config2import['network_objects'].append(obj)
+                    xlate_rule['rule_src'] = localPkgName + '_' + hideInterface
+                    xlate_rule['rule_src_refs'] = localPkgName + '_' + hideInterface
 
-                    # need to 
-                    # - find out ip of outbound interface
-                    # - create an object for the ip of the dst interface and add it here as xlate src
-                    logging.warning("hide nat behind outgoing interface not implemented yet; hide interface: " + hideInterface)
+                    #logging.warning("hide nat behind outgoing interface not implemented yet; hide interface: " + hideInterface)
 
             elif rule_orig['ippool']==1:
                 poolNameArray = rule_orig['poolname']

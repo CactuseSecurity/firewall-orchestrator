@@ -345,10 +345,6 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number):
             else:
                 logging.warning("found ippool rule with unexpected ippool value: " + rule_orig['ippool'])
         
-        if 'fixedport' in rule_orig and rule_orig['fixedport']!=0:
-            logging.warning("found fixedport translation - ignoring for now")
-            # need example for interpretation of config
-
         if 'natip' in rule_orig and rule_orig['natip']!=["0.0.0.0","0.0.0.0"]:
             logging.warning("found explicit natip rule - ignoring for now")
             # need example for interpretation of config

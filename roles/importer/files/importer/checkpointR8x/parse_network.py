@@ -1,6 +1,6 @@
 import logging
-import common, fwcommon
-
+import common
+from cpcommon import nw_obj_table_names, get_ip_of_obj
 
 def parse_network_objects_to_json(full_config, config2import, import_id):
     nw_objects = []
@@ -22,7 +22,7 @@ def collect_nw_objects(object_table, nw_objects):
         'CpmiClusterMember', 'CpmiGatewayPlain', 'CpmiHostCkp', 'CpmiGatewayCluster', 'checkpoint-host' 
     ]
 
-    if object_table['object_type'] in fwcommon.nw_obj_table_names:
+    if object_table['object_type'] in nw_obj_table_names:
         for chunk in object_table['object_chunks']:
             for obj in chunk['objects']:
                 ip_addr = ''                
@@ -36,7 +36,7 @@ def collect_nw_objects(object_table, nw_objects):
                     member_refs = member_refs[:-1]
                     if obj['members'] == '':
                         obj['members'] = None
-                ip_addr = fwcommon.get_ip_of_obj(obj)
+                ip_addr = get_ip_of_obj(obj)
                 first_ip = ip_addr
                 last_ip = ip_addr
                 obj_type = obj['type']

@@ -96,6 +96,7 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
     debug_level=int(debug_level)
     secret_filename = ''
     config2import = { "network_objects": [], "service_objects": [], "user_objects": [], "zone_objects": [], "rules": [] }
+    config_changed_since_last_import = False
 
     set_log_level(log_level=debug_level, debug_level=debug_level)
     if ssl == '' or ssl == 'off':
@@ -151,7 +152,7 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
             logging.error("import_management - failed to get import lock for management id " + str(mgm_id))
         if current_import_id == -1:
             raise FwoApiFailedLockImport("fwo_api: failed to get import lock for management id " + str(mgm_id)) from None
-        logging.debug("start import of management " + str(mgm_id) + ", import_id=" + str(current_import_id))
+        logging.info("starting import of management " + mgm_details['name'] + '(' + str(mgm_id) + "), import_id=" + str(current_import_id))
 
         full_config_json = {}
         get_config_response = 0
@@ -169,11 +170,17 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
 
             secret_filename = base_dir + '/tmp/import/mgm_id_' + str(mgm_id) + '_secret.txt'
             try:
-                with open(secret_filename, "w") as secret:  # write pwd to disk to avoid passing it as parameter
-                    secret.write(mgm_details['secret'])
+                if os.path.isfile(secret_filename):
+                    os.remove(secret_filename)
+                original_umask = os.umask(0o177)  # 0o777 ^ 0o600
+                secret = os.fdopen(os.open(secret_filename, os.O_WRONLY | os.O_CREAT, 0o600), 'w')
+                # with open(secret_filename, "w") as secret:  # write pwd to disk to avoid passing it as parameter
+                secret.write(mgm_details['secret'])
             except:
                 logging.exception("import_management - error while writing secrets file to disk", traceback.format_exc())
                 raise
+            finally:
+                os.umask(original_umask)
 
             try: # pick product-specific importer:
                 pkg_name = mgm_details['deviceType']['name'].lower().replace(' ', '') + mgm_details['deviceType']['version']
@@ -182,19 +189,32 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
                 logging.exception("import_management - error while loading product specific fwcommon module", traceback.format_exc())        
                 raise
             
-            try: # get config from product-specific FW API
-                get_config_response = fw_module.get_config(
-                    config2import, full_config_json,  current_import_id, mgm_details, debug_level=debug_level, 
+            try: # get the config data from the firewall manager's API: 
+                # check for changes from product-specific FW API
+                config_changed_since_last_import = fw_module.has_config_changed(full_config_json,
+                    mgm_details, debug_level=debug_level, ssl_verification=ssl, proxy=proxy, force=force)
+                if config_changed_since_last_import:
+                    logging.debug ( "has_config_changed: changes found or forced mode -> go ahead with getting config, Force = " + str(force))
+                else:
+                    logging.debug ( "has_config_changed: no new changes found")
+
+                if config_changed_since_last_import:
+                    get_config_response = fw_module.get_config( # get config from product-specific FW API
+                        config2import, full_config_json,  current_import_id, mgm_details, debug_level=debug_level, 
                         ssl_verification=ssl, proxy=proxy, limit=limit, force=force, jwt=jwt)
             except FwLoginFailed as e:
-                logging.error("mgm_id=" + str(mgm_id) + ", mgm_name=" + mgm_details['name'] + ", " + e.message)
+                error_string += "  login failed: mgm_id=" + str(mgm_id) + ", mgm_name=" + mgm_details['name'] + ", " + e.message
+                logging.error(error_string)
                 fwo_api.delete_import(fwo_api_base_url, jwt, current_import_id) # deleting trace of not even begun import
+                error_count = complete_import(current_import_id, error_string, start_time, secret_filename, mgm_details, change_count, error_count, jwt)
                 raise FwLoginFailed(e.message)
             except:
-                logging.error("import_management - unspecified error while getting config: " + str(traceback.format_exc()))
+                error_string += "  import_management - unspecified error while getting config: " + str(traceback.format_exc())
+                logging.error(error_string)
+                error_count = complete_import(current_import_id, error_string, start_time, secret_filename, mgm_details, change_count, error_count, jwt)
                 raise
 
-            if debug_level>2:   # debugging: writing config to json file
+            if config_changed_since_last_import and debug_level>2:   # debugging: writing config to json file
                 logging.debug("import_management: get_config completed, now writing debug config json files")
                 try:
                     normalized_config_filename = import_tmp_path + '/mgm_id_' + \
@@ -213,7 +233,7 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
             
         if get_config_response == 1:
             error_count += get_config_response
-        elif get_config_response == 0:
+        elif get_config_response == 0 and config_changed_since_last_import:
 
             try: # now we import the config via API chunk by chunk:
                 for config_chunk in split_config(config2import, current_import_id, mgm_id, debug_level):
@@ -257,29 +277,36 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
         else: # if no changes were found, we get get_config_response==512 and we skip everything else without errors
             pass
 
-        try: # CLEANUP: delete configs of imports (without changes) (if no error occured)
-            if fwo_api.delete_json_config_in_import_table(fwo_api_base_url, jwt, {"importId": current_import_id})<0:
-                error_count = +1
-            if os.path.exists(secret_filename):
-                os.remove(secret_filename)
-        except:
-            logging.error("import_management - unspecified error cleaning up: " + str(traceback.format_exc()))
-            raise
+        error_count = complete_import(current_import_id, error_string, start_time, secret_filename, mgm_details, change_count, error_count, jwt)
+        
+    return error_count
 
-        try: # finalize import by unlocking it
-            error_count += fwo_api.unlock_import(fwo_api_base_url, jwt, int(
-                mgm_id), datetime.datetime.now().isoformat(), current_import_id, error_count, change_count)
-        except:
-            logging.error("import_management - unspecified error while unlocking import: " + str(traceback.format_exc()))
-            raise
 
-        import_result = "import_management: import no. " + str(current_import_id) + \
-            " for management " + mgm_details['name'] + ' (id=' + str(mgm_id) + ")" + \
+def complete_import(current_import_id, error_string, start_time, secret_filename, mgm_details, change_count, error_count, jwt):
+    try: # CLEANUP: delete configs of imports (without changes) (if no error occured)
+        if fwo_api.delete_json_config_in_import_table(fwo_api_base_url, jwt, {"importId": current_import_id})<0:
+            error_count = +1
+        if os.path.exists(secret_filename):
+            os.remove(secret_filename)
+    except:
+        logging.error("import_management - unspecified error cleaning up: " + str(traceback.format_exc()))
+        raise
+
+    try: # finalize import by unlocking it
+        error_count += fwo_api.unlock_import(fwo_api_base_url, jwt, int(
+            mgm_details['id']), datetime.datetime.now().isoformat(), current_import_id, error_count, change_count)
+    except:
+        logging.error("import_management - unspecified error while unlocking import: " + str(traceback.format_exc()))
+        raise
+
+    import_result = "import_management: import no. " + str(current_import_id) + \
+            " for management " + mgm_details['name'] + ' (id=' + str(mgm_details['id']) + ")" + \
             str(" threw errors," if error_count else " successful,") + \
             " change_count: " + str(change_count) + \
             ", duration: " + str(int(time.time()) - start_time) + "s" 
-        import_result += "\n   ERRORS: " + error_string if len(error_string) > 0 else ""
-        logging.info(import_result)
+    import_result += "\n   ERRORS: " + error_string if len(error_string) > 0 else ""
+    logging.info(import_result)
+
     return error_count
 
 

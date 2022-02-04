@@ -2,7 +2,6 @@
 import json
 import logging, re
 import requests, requests.packages
-import fwcommon
 import time
 
 requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only

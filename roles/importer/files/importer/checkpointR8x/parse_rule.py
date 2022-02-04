@@ -1,6 +1,6 @@
 import logging
 import json
-import common, fwcommon
+import common, cpcommon
 
 
 def add_section_header_rule_in_json (rulebase, section_name, layer_name, import_id, rule_uid, rule_num, section_header_uids, parent_uid):
@@ -13,13 +13,13 @@ def add_section_header_rule_in_json (rulebase, section_name, layer_name, import_
         "rule_disabled":    False,
         "rule_src_neg":     False,
         "rule_src":         "Any",
-        "rule_src_refs":    common.sanitize(fwcommon.any_obj_uid),
+        "rule_src_refs":    common.sanitize(cpcommon.any_obj_uid),
         "rule_dst_neg":     False,
         "rule_dst":         "Any",
-        "rule_dst_refs":    common.sanitize(fwcommon.any_obj_uid),
+        "rule_dst_refs":    common.sanitize(cpcommon.any_obj_uid),
         "rule_svc_neg":     False,
         "rule_svc":         "Any",
-        "rule_svc_refs":    common.sanitize(fwcommon.any_obj_uid),
+        "rule_svc_refs":    common.sanitize(cpcommon.any_obj_uid),
         "rule_action":      "Accept",
         "rule_track":       "Log",
         "rule_installon":   "Policy Targets",
@@ -76,7 +76,7 @@ def parse_single_rule_to_json (src_rule, rulebase, layer_name, import_id, rule_n
                 elif src['type'] == 'access-role':
                     if isinstance(src['networks'], str):  # just a single source
                         if src['networks'] == 'any':
-                            rule_src_ref += src['uid'] + '@' + fwcommon.any_obj_uid + common.list_delimiter
+                            rule_src_ref += src['uid'] + '@' + cpcommon.any_obj_uid + common.list_delimiter
                         else:
                             rule_src_ref += src['uid'] + '@' + src['networks'] + common.list_delimiter
                     else:  # more than one source

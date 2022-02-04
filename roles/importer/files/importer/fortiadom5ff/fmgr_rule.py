@@ -335,8 +335,8 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, im
                     if obj not in config2import['network_objects']:
                         config2import['network_objects'].append(obj)
                         print('object appended')
-                    xlate_rule['rule_src'] = localPkgName + '_' + hideInterface
-                    xlate_rule['rule_src_refs'] = localPkgName + '_' + hideInterface
+                    xlate_rule['rule_src'] = obj_name
+                    xlate_rule['rule_src_refs'] = obj_name
 
                     #logging.warning("hide nat behind outgoing interface not implemented yet; hide interface: " + hideInterface)
 

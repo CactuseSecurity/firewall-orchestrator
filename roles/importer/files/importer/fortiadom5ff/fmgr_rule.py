@@ -1,7 +1,7 @@
 import logging, copy
 from common import resolve_raw_objects, extend_string_list, list_delimiter, nat_postfix
 from fmgr_service import create_svc_object
-from fmgr_network import resolve_objects
+from fmgr_network import resolve_objects, create_network_object
 import fmgr_zone, fmgr_getter
 
 rule_access_scope_v4 = ['rules_global_header_v4', 'rules_adom_v4', 'rules_global_footer_v4']
@@ -328,17 +328,13 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, im
                         logging.warning("did not find exactly one nat hiding interface")
                     
                     # add dummy object "outbound-interface"
-                    obj = {'obj_name': localPkgName + '_' + hideInterface, \
-                        'obj_typ': 'host', \
-                        'obj_ip': '0.0.0.0/32', \
-                        'obj_color': 'black', \
-                        'obj_comment': 'FWO auto-generated dummy object for source nat', \
-                        'obj_uid': localPkgName + '_' + hideInterface, \
-                        'obj_zone': hideInterface, \
-                        'control_id': import_id }
+                    obj_name = localPkgName
+                    obj_comment = 'FWO auto-generated dummy object for source nat'
+                    obj = create_network_object(import_id, obj_name, 'host', '0.0.0.0/32', obj_name, 'black', obj_comment, hideInterface)
                     
                     if obj not in config2import['network_objects']:
                         config2import['network_objects'].append(obj)
+                        print('object appended')
                     xlate_rule['rule_src'] = localPkgName + '_' + hideInterface
                     xlate_rule['rule_src_refs'] = localPkgName + '_' + hideInterface
 

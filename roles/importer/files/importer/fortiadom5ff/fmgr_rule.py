@@ -149,7 +149,7 @@ def normalize_access_rules(full_config, config2import, import_id, jwt=None):
                 rule.update({ 'rule_dst_refs': resolve_raw_objects(rule['rule_dst'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object') })
                 rule.update({ 'rule_svc_refs': rule['rule_svc'] }) # services do not have uids, so using name instead
 
-                xlate_rule = handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, localPkgName)
+                xlate_rule = handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, import_id, localPkgName)
                 rules.append(rule)
                 if xlate_rule is not None:
                     rules.append(xlate_rule)
@@ -309,7 +309,7 @@ def create_xlate_rule(rule):
     return xlate_rule
 
 
-def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, localPkgName):
+def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, import_id, localPkgName):
     # now dealing with VIPs (dst NAT part) of combined rules
     xlate_rule = None
 
@@ -327,13 +327,13 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, lo
                     else:
                         logging.warning("did not find exactly one nat hiding interface")
                     
-                    print(localPkgName)
                     # add dummy object "outbound-interface"
-                    obj = {'obj_name': localPkgName + '_' + rule_orig['dstintf'][0], \
+                    obj = {'obj_name': localPkgName + '_' + hideInterface, \
                         'obj_typ': 'host', \
                         'obj_ip': '0.0.0.0/32', \
-                        'obj_uid': localPkgName + '_' + rule_orig['dstintf'][0], \
-                        'obj_zone': rule_orig['dstintf'][0]}
+                        'obj_uid': localPkgName + '_' + hideInterface, \
+                        'obj_zone': hideInterface, \
+                        'control_id': import_id }
                     config2import['network_objects'].append(obj)
 
                     # need to 

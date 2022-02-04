@@ -331,10 +331,14 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, im
                     obj = {'obj_name': localPkgName + '_' + hideInterface, \
                         'obj_typ': 'host', \
                         'obj_ip': '0.0.0.0/32', \
+                        'obj_color': 'black', \
+                        'obj_comment': 'FWO auto-generated dummy object for source nat', \
                         'obj_uid': localPkgName + '_' + hideInterface, \
                         'obj_zone': hideInterface, \
                         'control_id': import_id }
-                    config2import['network_objects'].append(obj)
+                    
+                    if obj not in config2import['network_objects']:
+                        config2import['network_objects'].append(obj)
                     xlate_rule['rule_src'] = localPkgName + '_' + hideInterface
                     xlate_rule['rule_src_refs'] = localPkgName + '_' + hideInterface
 

@@ -14,48 +14,21 @@
 
 @* ==== LEFT SIDEBAR ==== *@
 <Sidebar @ref="deviceSelectionSidebar" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth">
-    
-    <div class="d-flex flex-row flex-wrap mb-2">
-        <div class="mr-3">
-            <div class="input-group input-group-sm">
-                <table style="margin-left: 10px; margin-top: 10px;">
-                    <tr>
-                        <td>
-                            <div class="input-group-prepend">
-                                <label for="inputGroupSelect01">@(userConfig.GetText("due_within")):</label>
-                            </div>
-                        </td>
-                        <td>
-                            <input id="inputGroupSelect01" type="text" class="form-control form-control-sm" @bind="recertificationDisplayPeriod" />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="input-group-append">
-                                @if (processing == false)
-                                {
-                                    <button class="btn btn-sm btn-primary" @onclick="() => GenerateRecertificationReport()">@(userConfig.GetText("load_rules"))</button>
-                                }
-                                else
-                                {
-                                    <button class="btn btn-sm btn-danger" @onclick="() => CancelGeneration()">@(userConfig.GetText("stop_fetching"))</button>
-                                }
-                            </div>
-                        </td>
-                        <td>
-                            <AuthorizeView Roles="admin, recertifier">
-                                <Authorized>
-                                    <button class="btn btn-sm btn-primary" @onclick="() => RequestExecuteSelected()">@(userConfig.GetText("execute_selected"))</button>
-                                </Authorized>
-                                <NotAuthorized>
-                                    <button class="btn btn-sm btn-dark" disabled>@(userConfig.GetText("execute_selected"))</button>
-                                </NotAuthorized>
-                            </AuthorizeView>
-                        </td>
-                    </tr>
-                </table>
-            </div>
-        </div>
+    <br>
+    <div class="btn-group sticky-button p-3">
+        @if (processing == false)
+        {
+            <button class="btn btn-sm btn-primary" @onclick="() => GenerateRecertificationReport()">@(userConfig.GetText("load_rules"))</button>
+        }
+        else
+        {
+            <button class="btn btn-sm btn-danger" @onclick="() => CancelGeneration()">@(userConfig.GetText("stop_fetching"))</button>
+        }
+        <br>
+    </div>
+    <div class="p-3">
+        <h5 class="text-left">@(userConfig.GetText("due_within")):</h5>
+        <input  type="text" class="form-control form-control-sm" @bind="recertificationDisplayPeriod" />
     </div>
 
     <DeviceSelection DeviceFilter="deviceFilter" @bind-FilterInput="filterInput" @bind-SelectAll="selectAll" ></DeviceSelection>
@@ -65,7 +38,24 @@
 
 <div style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px");">
     <h3>@(userConfig.GetText("recertification"))</h3>
-
+    <div class="btn-group sticky-button-nav">
+        <AuthorizeView Roles="admin, recertifier">
+            <Authorized>
+                @if(rules_selected)
+                {
+                    <button class="btn btn-sm btn-danger" @onclick="() => RequestExecuteSelected()">@(userConfig.GetText("execute_selected"))</button>
+                }
+                else
+                {
+                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("execute_selected"))</button>
+                }
+            </Authorized>
+            <NotAuthorized>
+                <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("execute_selected"))</button>
+            </NotAuthorized>
+        </AuthorizeView>
+    </div>
+    <hr />
     <RulesReport Recertification="true" Managements="managements" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedRules"></RulesReport>
 </div>
 
@@ -154,6 +144,7 @@
 
     private string filterInput = "remove=false and recertdisplay=0";
     private bool processing = false;
+    private bool rules_selected = false;
     private CancellationTokenSource tokenSource = new CancellationTokenSource();
  
     private Management[] managements = new Management[0];
@@ -177,6 +168,7 @@
             try
             {
                 GetSettings();
+                rules_selected = false;
 
                 deviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
                 await InvokeAsync(StateHasChanged);
@@ -233,6 +225,7 @@
 
             PrepareMetadata();
             processing = false;
+            rules_selected = true;
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)

@@ -50,7 +50,7 @@
         </div>
     </form>
 
-    <div class="btn-group mr-1 ml-1 mb-1">
+    <div class="btn-group sticky-button-nav">
         @if (processing == false)
         {
             <button class="btn btn-sm btn-primary" @onclick="GenerateReport">@(userConfig.GetText("generate_report"))</button>

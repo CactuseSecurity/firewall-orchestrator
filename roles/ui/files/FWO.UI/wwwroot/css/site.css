@@ -43,6 +43,7 @@ app {
     position: fixed;
     top: 56px;
     height: 95%;
+    z-index: 10;
 }
 
 .sidebar-sizer {
@@ -146,8 +147,31 @@ app {
     z-index: 1;
   }
 
+.sticky-buttongroup div.btn-group.sticky-button {
+    position: sticky;
+    top: 0px;
+    z-index: 2;
+  }
+
+.sticky-buttongroup-nav div.btn-group.sticky-button-nav {
+    position: sticky;
+    top: 60px;
+    z-index: 2;
+  }
+
+.sticky-button {
+    padding-top: 10px;
+    padding-right: 10px;
+    padding-bottom: 10px;
+    padding-left: 10px;
+}
+
 .vheight75 {
     height: 75vh
+}
+
+.vheight100 {
+    height: 100vh
 }
 
 .background-upcoming {

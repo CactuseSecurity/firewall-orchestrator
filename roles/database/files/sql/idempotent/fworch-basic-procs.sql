@@ -532,20 +532,34 @@ $$
 LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION add_data_issue(BIGINT,varchar,varchar,varchar,BIGINT,INT,varchar,varchar,varchar) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION add_data_issue(BIGINT,varchar,varchar,varchar,BIGINT,INT,varchar,varchar,varchar, varchar, int, int, int, timestamp) RETURNS VOID AS $$
 DECLARE
 	i_current_import_id ALIAS FOR $1;
 	v_obj_name ALIAS FOR $2;
 	v_obj_uid ALIAS FOR $3;
 	v_rule_uid ALIAS FOR $4;
     i_rule_id  ALIAS FOR $5;
-    i_dev_id   ALIAS FOR $6;
-	v_obj_type ALIAS FOR $7;
-	v_suspected_cause ALIAS FOR $8;
-	v_description ALIAS FOR $9;
+    i_mgm_id ALIAS FOR $6;
+    i_dev_id   ALIAS FOR $7;
+	v_obj_type ALIAS FOR $8;
+	v_suspected_cause ALIAS FOR $9;
+	v_description ALIAS FOR $10;
+    v_source ALIAS FOR $11;
+    i_severity ALIAS FOR $12;
+    t_timestamp ALIAS FOR $13;
+    v_log_string VARCHAR;
 BEGIN
-	INSERT INTO changelog_data_issue (import_id, object_name, object_uid, rule_uid, rule_id, dev_id, object_type, suspected_cause, description) 
-	VALUES (i_current_import_id, v_obj_name, v_obj_uid, v_rule_uid, i_rule_id, v_obj_type, v_suspected_cause, v_description);
+	INSERT INTO log_data_issue (
+        import_id, object_name, object_uid, rule_uid, rule_id, issue_mgm_id, issue_dev_id, object_type, suspected_cause, 
+        description, source, severity, issue_mgm_id, issue_dev_id, issue_timestamp) 
+	VALUES (i_current_import_id, v_obj_name, v_obj_uid, v_rule_uid, i_rule_id, i_mgm_id, i_dev_id, v_obj_type, v_suspected_cause, 
+        v_description, v_source, i_severity, t_timestamp);
 	RETURN;
+    v_log_string := 'src=' || v_source || ', sev=' || v_severity;
+    IF t_timestamp IS NOT NULL  THEN
+        v_log_string := v_log_string || ', time=' || t_timestamp; 
+    END IF;
+    -- todo: add more issue information
+    RAISE INFO '%', v_log_string; -- send the log to syslog as well
 END;
 $$ LANGUAGE plpgsql;

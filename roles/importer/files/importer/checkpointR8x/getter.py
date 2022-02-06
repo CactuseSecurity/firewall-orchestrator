@@ -3,6 +3,7 @@ import json
 import logging, re
 import requests, requests.packages
 import time
+from common import FwLoginFailed 
 
 requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
@@ -61,7 +62,7 @@ def login(user, password, api_host, api_port, domain, ssl_verification, proxy, d
         exception_text = "\ngetter ERROR: did not receive a sid during login, " + \
             "api call: api_host: " + str(api_host) + ", api_port: " + str(api_port) + ", base_url: " + str(base_url) + \
             ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy)
-        raise Exception(exception_text)
+        raise  FwLoginFailed(exception_text)
     return response["sid"]
 
 

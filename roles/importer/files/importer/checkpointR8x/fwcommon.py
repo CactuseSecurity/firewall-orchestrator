@@ -13,8 +13,10 @@ def has_config_changed (full_config, mgm_details, debug_level=0, force=False, pr
     if full_config != {}:   # a native config was passed in, so no need to get it from FW Manager
         return 1
 
-    # top level dict start, sid contains the domain information, so only sending domain during login
-    sid = getter.login(mgm_details['user'], mgm_details['secret'], mgm_details['hostname'], str(mgm_details['port']), mgm_details['configPath'], ssl_verification, proxy)
+    try: # top level dict start, sid contains the domain information, so only sending domain during login
+        session_id = getter.login(mgm_details['user'], mgm_details['secret'], mgm_details['hostname'], str(mgm_details['port']), mgm_details['configPath'], ssl_verification, proxy)
+    except:
+        raise common.FwLoginFailed     # maybe 2Temporary failure in name resolution"
 
     last_change_time = ''
     if 'import_controls' in mgm_details:
@@ -27,7 +29,7 @@ def has_config_changed (full_config, mgm_details, debug_level=0, force=False, pr
         return 1
     else:
         # otherwise search for any changes since last import
-        return (getter.get_changes(sid, mgm_details['hostname'], str(mgm_details['port']),last_change_time,ssl_verification, proxy) != 0)
+        return (getter.get_changes(session_id, mgm_details['hostname'], str(mgm_details['port']),last_change_time,ssl_verification, proxy) != 0)
 
 
 def get_config(config2import, full_config, current_import_id, mgm_details, debug_level=0, proxy=None, limit=150, force=False, ssl_verification=None, jwt=None):

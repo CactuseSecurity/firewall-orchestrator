@@ -150,9 +150,11 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
         except:
             logging.error("import_management - failed to get import lock for management id " + str(mgm_id))
         if current_import_id == -1:
+            fwo_api.create_data_issue(fwo_api_base_url, jwt, mgm_id=int(mgm_id), severity=1, 
+                description="failed to get import lock for management id " + str(mgm_id))
             raise FwoApiFailedLockImport("fwo_api: failed to get import lock for management id " + str(mgm_id)) from None
-        logging.info("starting import of management " + mgm_details['name'] + '(' + str(mgm_id) + "), import_id=" + str(current_import_id))
 
+        logging.info("starting import of management " + mgm_details['name'] + '(' + str(mgm_id) + "), import_id=" + str(current_import_id))
         full_config_json = {}
         get_config_response = 0
 
@@ -214,7 +216,7 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
                 except:
                     logging.error("import_management - unspecified error while storing full config: " + str(traceback.format_exc()))
                     raise
-        else: # if no changes were found, we get get_config_response==512 and we skip everything else without errors
+        else: # if no changes were found, we skip everything else without errors
             pass
 
         error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)
@@ -233,6 +235,7 @@ def get_config_sub(mgm_details, full_config_json, config2import, jwt, current_im
         logging.exception("import_management - error while loading product specific fwcommon module", traceback.format_exc())        
         raise
     
+    # Temporary failure in name resolution
     try: # get the config data from the firewall manager's API: 
         # check for changes from product-specific FW API
         config_changed_since_last_import = in_file != None or fw_module.has_config_changed(full_config_json,
@@ -248,6 +251,7 @@ def get_config_sub(mgm_details, full_config_json, config2import, jwt, current_im
                 ssl_verification=ssl, proxy=proxy, limit=limit, force=force, jwt=jwt)
     except FwLoginFailed as e:
         error_string += "  login failed: mgm_id=" + str(mgm_details['id']) + ", mgm_name=" + mgm_details['name'] + ", " + e.message
+        error_count += 1
         logging.error(error_string)
         fwo_api.delete_import(fwo_api_base_url, jwt, current_import_id) # deleting trace of not even begun import
         error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)
@@ -255,6 +259,7 @@ def get_config_sub(mgm_details, full_config_json, config2import, jwt, current_im
     except:
         error_string += "  import_management - unspecified error while getting config: " + str(traceback.format_exc())
         logging.error(error_string)
+        error_count += 1
         error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)
         raise
 
@@ -299,7 +304,10 @@ def complete_import(current_import_id, error_string, start_time, mgm_details, ch
             str(" threw errors," if error_count else " successful,") + \
             " change_count: " + str(change_count) + \
             ", duration: " + str(int(time.time()) - start_time) + "s" 
-    import_result += "\n   ERRORS: " + error_string if len(error_string) > 0 else ""
+    import_result += ", ERRORS: " + error_string if len(error_string) > 0 else ""
+    if error_count>0:
+        fwo_api.create_data_issue(fwo_api_base_url, jwt, import_id=current_import_id, severity=1, description=error_string)
+
     logging.info(import_result)
 
     return error_count
@@ -474,5 +482,6 @@ def resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, ui
         if not found:
             objects_not_found.append(el)
     for obj in objects_not_found:
-        fwo_api.create_data_issue(fwo_api_base_url, jwt, import_id, obj, rule_uid=rule_uid, object_type=object_type)
+        if not fwo_api.create_data_issue(fwo_api_base_url, jwt, import_id=import_id, obj_name=obj, severity=2, rule_uid=rule_uid, object_type=object_type):
+            logging.warning("resolve_raw_objects: encountered error while trying to log an import data issue using create_data_issue")
     return delimiter.join(ref_list)

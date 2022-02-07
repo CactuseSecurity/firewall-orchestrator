@@ -62,6 +62,8 @@
 
 ### Health API
 
+this only works up to hasura v2.1
+
     curl --request GET \
         --url https://127.0.0.1:18443/api//healthz \
         --header 'content-type: application/json' \

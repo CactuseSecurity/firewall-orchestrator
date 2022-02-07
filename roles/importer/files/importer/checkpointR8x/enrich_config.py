@@ -5,7 +5,7 @@ import sys, os
 from common import importer_base_dir
 sys.path.append(importer_base_dir)
 sys.path.append(importer_base_dir + "/checkpointR8x")
-import fwcommon, common, getter
+import cpcommon, common, getter
 
 parser = argparse.ArgumentParser(description='Read configuration from Check Point R8x management via API calls')
 parser.add_argument('-a', '--apihost', metavar='api_host', required=True, help='Check Point R8x management server')
@@ -53,7 +53,7 @@ mgm_details = {
     ]
 }
 
-result = fwcommon.enrich_config (config, mgm_details, noapi=False,
+result = cpcommon.enrich_config (config, mgm_details, noapi=False,
     proxy=args.proxy, limit=args.limit, details_level=details_level,
     debug_level=debug_level, ssl_verification=getter.set_ssl_verification(args.ssl))
 

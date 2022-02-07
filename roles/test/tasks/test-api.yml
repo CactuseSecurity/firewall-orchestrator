@@ -1,23 +1,26 @@
 # this playbook contains api tests
 
-# TODO: the JWT needs to be generated dynamically as the following JWT is only valid for 2 hours
-#- set_fact: sample_JWT="eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6IiIsIngtaGFzdXJhLXZpc2libGUtbWFuYWdlbWVudHMiOiJ7MSw3LDE3fSIsIngtaGFzdXJhLXZpc2libGUtZGV2aWNlcyI6InsxLDR9Iiwicm9sZSI6ImFub255bW91cyIsIngtaGFzdXJhLWFsbG93ZWQtcm9sZXMiOlsiYW5vbnltb3VzIl0sIngtaGFzdXJhLWRlZmF1bHQtcm9sZSI6ImFub255bW91cyIsIm5iZiI6MTYwMDkzMzM1NiwiZXhwIjoxNjAwOTQwNTU2LCJpYXQiOjE2MDA5MzMzNTYsImlzcyI6IkZXTyBBdXRoIE1vZHVsZSIsImF1ZCI6IkZXTyJ9.nI16gsP6v12AHOpQS-2OM8CviUvCWUEbpTSPOjuYTzokZXGDV1ZF1MioPYPhbh2j9bq8kWoGVGhAfO0GycTPiuQhGso3q8BgKdbLbmPtQF6NmBlupaCsoxiXC8RLVOnRrwC28TAOS2ZtS0rQa_avQI8QL9poPUIYBJ39Epot1T9aup9FVhmHJ_4BpLGqCUk9-0AtRnJFXIInSi0YtVuXa-4h0wE8kVNOttjdyQw_vLQ49V9dRjphh_GzQwze4HGV9B8aXKYJttumNbooWhGEsAvjmmMBWPyAa7euHm8Kjyn4HXm2cV1nG4YmrBPeY5btqXpAarFnXVqShxn2wpryjw"
-# This should work now with sample_JWT.content
+# - block:
+#   - name: test api health
+#     uri:
+#       url: https://{{ api_ip_address }}:{{ api_web_port }}/api/healthz
+#       method: GET
+#       headers:
+#         Content-Type: application/json
+#       body:
+#         query: ""
+#       body_format: json
+#       validate_certs: false
+#       return_content: yes
+#     register: api_health
+#     changed_when: false
+#     failed_when: false
 
-- name: test api health
-  uri:
-    url: https://{{ api_ip_address }}:{{ api_web_port }}/api/healthz
-    method: GET
-    headers:
-      Content-Type: application/json
-    body:
-      query: ""
-    body_format: json
-    validate_certs: false
-    return_content: yes
-  register: api_health
-  changed_when: false
-  failed_when: false
+#   - name: api health test output
+#     debug:
+#       msg: "ERROR unexpected health test result (not equal 'OK'): {{ api_health.content }}"
+#     when: api_health.content is not match('OK')
+#  when: api_hasura_version<="v2.2"
 
 - name: test api version
   uri:
@@ -33,17 +36,6 @@
   register: api_version
   changed_when: false
   failed_when: false
-
-- debug:
-    var: api_health
-
-- debug:
-    var: api_version
-
-- name: api health test output
-  debug:
-    msg: "ERROR unexpected health test result (not equal 'OK'): {{ api_health.content }}"
-  when: api_health.content is not match('OK')
 
 - name: api version test output
   debug:
@@ -65,9 +57,6 @@
   register: api_query_anonymous
   changed_when: false
   environment: "{{ proxy_env }}"
-
-- debug:
-    var: api_query_anonymous
 
 - name: anonymous api access output
   debug:
@@ -107,9 +96,6 @@
   changed_when: false
   environment: "{{ proxy_env }}"
 
-- debug:
-    var: api_query_anonymous_with_JWT
-
 - name: anonymous api access with JWT output
   debug:
     msg: "ERROR unexpected version test result (does not contain id): {{ api_query_anonymous_with_JWT.content }}"
@@ -143,29 +129,7 @@
   changed_when: false
   environment: "{{ proxy_env }}"
 
-- debug:
-    var: api_query_admin
-
 - name: admin api access output
   debug:
     msg: "ERROR unexpected version test result (does not contain obj_name): {{ api_query_admin.content }}"
   when: api_query_admin.content is not search('obj_name')
-
-# - name: api health test
-#   assert:
-#     that: 
-#       - api_health.stdout is match('OK')
-#       - api_query_admin.stdout is not search('obj_name')
-#     fail_msg: "api health test failed"
-#     success_msg: "api health test passed"
-#   failed_when: false
-
-# - name: get jwt restricted reporter
-#   command:
-#   register: jwt
-
-# - name: get rules for device the user is not authorized for
-#   command:
-
-# - name: get rules for device the user is authorized for
-#   command:

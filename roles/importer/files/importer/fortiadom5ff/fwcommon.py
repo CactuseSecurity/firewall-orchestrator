@@ -17,6 +17,11 @@ svc_obj_scope = ['svc_obj_' + s1 + '_' + s2 for s1 in scope for s2 in svc_obj_ty
 user_types = ['users_global', 'users_adom']
 user_scope = ['user_objects']
 
+
+def has_config_changed (full_config, mgm_details, debug_level=0, force=False, proxy=None, ssl_verification=None):
+    return True
+
+
 def get_config(config2import, full_config, current_import_id, mgm_details, debug_level=0, proxy=None, limit=100, force=False, ssl_verification=None, jwt=''):
     if full_config == {}:   # no native config was passed in, so getting it from FortiManager
         parsing_config_only = False

@@ -8,7 +8,8 @@ api_hasura_admin_test_password: "not4production"
 api_user_email: "{{ api_user }}@{{ api_ip_address }}"
 api_home: "{{ fworch_home }}/api"
 api_hasura_cli_bin: "/usr/local/bin/hasura"
-api_hasura_version: "v2.1.1"
+# api_hasura_version: "v2.1.1"
+api_hasura_version: "v2.2.0"
 api_project_name: api
 api_no_metadata: false
 # debug > info > warn > error

@@ -8,11 +8,11 @@ namespace FWO.Report.Filter
     {
         public readonly Range Position;
         public readonly string Text;
-        public readonly TokenKind Kind;
+        public TokenKind Kind { get; private set; }
 
         public override string ToString()
         {
-            return $"Text: \"{Text}\" Kind: \"{Kind}\"";
+            return $"Position: \"{Position}\" Text: \"{Text}\" Kind: \"{Kind}\"";
         }
 
         public Token(Range position, string text, TokenKind kind)
@@ -20,6 +20,14 @@ namespace FWO.Report.Filter
             Position = position;
             Text = text;
             Kind = kind;
+        }
+
+        public void EqualsIsExactEquals()
+        {
+            if (Kind == TokenKind.EQ)
+            {
+                Kind = TokenKind.EEQ;
+            }
         }
     }
 }

@@ -280,7 +280,7 @@
     {
         try
         {
-            IRestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
+            RestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
                 DisplayMessageInUi!(null, userConfig.GetText("get_tenant_data"), userConfig.GetText("E5284"), true);
@@ -341,7 +341,7 @@
                 else
                 {
                     // add tenant in local Ldap and db
-                    IRestResponse<int> middlewareServerResponse = await middlewareClient.AddTenant(actTenant.ToApiParams());
+                    RestResponse<int> middlewareServerResponse = await middlewareClient.AddTenant(actTenant.ToApiParams());
                     if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == 0)
                     {
                         DisplayMessageInUi!(null, userConfig.GetText("add_tenant"), userConfig.GetText("E5281"), true);
@@ -358,7 +358,7 @@
             else
             {
                 // update tenant in local db
-                IRestResponse<bool> middlewareServerResponse = await middlewareClient.UpdateTenant(actTenant.ToApiUpdateParams());
+                RestResponse<bool> middlewareServerResponse = await middlewareClient.UpdateTenant(actTenant.ToApiUpdateParams());
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
                 {
                     DisplayMessageInUi!(null, userConfig.GetText("edit_tenant"), userConfig.GetText("E5285"), true);
@@ -404,8 +404,8 @@
         try
         {
             // delete tenant from Ldap
-            TenantDeleteParameters deleteTenantParameters = new TenantDeleteParameters { Name = tenant.Name, Id = tenant.Id};
-            IRestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteTenant(deleteTenantParameters);
+            TenantDeleteParameters deleteTenantParameters = new TenantDeleteParameters { Name = actTenant.Name, Id = actTenant.Id};
+            RestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteTenant(deleteTenantParameters);
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
             {
                 DisplayMessageInUi!(null, userConfig.GetText("delete_tenant"), userConfig.GetText("E5282"), true);

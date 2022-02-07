@@ -1,4 +1,4 @@
-﻿namespace FWO.Report.Filter
+namespace FWO.Report.Filter
 {
     public enum ReportType
     {

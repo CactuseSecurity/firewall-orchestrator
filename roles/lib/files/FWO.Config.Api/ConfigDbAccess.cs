@@ -21,8 +21,10 @@ namespace FWO.Config.Api
             {
                 user = userId,
             };
+
+            ConfigItem[] confItems = apiConnection.SendQueryAsync<ConfigItem[]>(ConfigQueries.getConfigItemsByUser, Variables).Result;
             // New task needed (why though?)
-            ConfigItem[] confItems = Task.Run(async () => await apiConnection.SendQueryAsync<ConfigItem[]>(ConfigQueries.getConfigItemsByUser, Variables)).Result;
+            // ConfigItem[] confItems = Task.Run(async () => await apiConnection.SendQueryAsync<ConfigItem[]>(ConfigQueries.getConfigItemsByUser, Variables)).Result;
             foreach (ConfigItem confItem in confItems)
             {
                 try

@@ -772,9 +772,9 @@
             int errorStart = filterError.ErrorPosition.Start.Value;
             int errorEnd = filterError.ErrorPosition.End.Value;
 
-            filterFeedbackStart = $"{filterInput.Substring(0, errorStart)}";
-            filterFeedbackError = filterInput.Substring(errorStart, errorEnd + 1 - errorStart);
-            filterFeedbackEnd = $"{filterInput.Substring(errorEnd, filterInput.Length - 1 - errorEnd)}";
+            filterFeedbackStart = filterInput[..errorStart];
+            filterFeedbackError = filterInput[errorStart..errorEnd];
+            filterFeedbackEnd = filterInput[errorEnd..];
         }
         catch (Exception unexpectedError)
         {

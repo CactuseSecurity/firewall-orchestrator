@@ -15,7 +15,7 @@
 @* ==== LEFT SIDEBAR ==== *@
 <Sidebar @ref="deviceSelectionSidebar" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth">
     <br>
-    <div class="btn-group sticky-button p-3">
+    <div class="btn-group sticky-marker pl-3 pr-3 w-100">
         @if (processing == false)
         {
             <button class="btn btn-sm btn-primary" @onclick="() => GenerateRecertificationReport()">@(userConfig.GetText("load_rules"))</button>
@@ -31,17 +31,17 @@
         <input  type="text" class="form-control form-control-sm" @bind="recertificationDisplayPeriod" />
     </div>
 
-    <DeviceSelection DeviceFilter="deviceFilter" @bind-FilterInput="filterInput" @bind-SelectAll="selectAll" ></DeviceSelection>
+    <DeviceSelection Environment="Cert" @bind-DeviceFilter="deviceFilter" @bind-CollapseAll="collapseDevices" @bind-FilterInput="filterInput" @bind-SelectAll="selectAll" ></DeviceSelection>
 </Sidebar>
 
 @* ==== MAIN MIDDLE SECTION ==== *@
 
 <div style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px");">
     <h3>@(userConfig.GetText("recertification"))</h3>
-    <div class="btn-group sticky-button-nav">
+    <div class="btn-group sticky-marker-nav">
         <AuthorizeView Roles="admin, recertifier">
             <Authorized>
-                @if(rules_selected)
+                @if(rulesFound)
                 {
                     <button class="btn btn-sm btn-danger" @onclick="() => RequestExecuteSelected()">@(userConfig.GetText("execute_selected"))</button>
                 }
@@ -128,23 +128,24 @@
     private AnchorNavToRSB? anchorNavToRSB;
 
     private const int rulesPerPage = 0;
-    private int elementsPerFetch = 100;
-    private int maxInitFetchRightSidebar = 20;
+    private int elementsPerFetch = GlobalConfig.kDefaultInitElementsPerFetch;
+    private int maxInitFetchRightSidebar = GlobalConfig.kDefaultInitMaxInitFetch;
     private bool autoFillRightSidebar;
 
-    private int recertificationPeriod = 365;
-    private int recertificationNoticePeriod = 30;
-    private int recertificationDisplayPeriod = 30;
-    private int ruleRemovalGracePeriod = 60;
+    private int recertificationPeriod = GlobalConfig.kDefaultInitRecertificationPeriod;
+    private int recertificationNoticePeriod = GlobalConfig.kDefaultInitRecertificationNoticePeriod;
+    private int recertificationDisplayPeriod = GlobalConfig.kDefaultInitRecertificationDisplayPeriod;
+    private int ruleRemovalGracePeriod = GlobalConfig.kDefaultInitRuleRemovalGracePeriod;
     private bool commentRequired = false;
 
-    private int sidebarLeftWidth = 300;
-    private int sidebarRightWidth = 300;
+    private int sidebarLeftWidth = GlobalConfig.kSidebarLeftWidth;
+    private int sidebarRightWidth = GlobalConfig.kSidebarRightWidth;
     private bool selectAll = true;
+    private int minCollapseAllDevices = GlobalConfig.kDefaultInitCollapseFrom;
 
     private string filterInput = "remove=false and recertdisplay=0";
     private bool processing = false;
-    private bool rules_selected = false;
+    private bool rulesFound = false;
     private CancellationTokenSource tokenSource = new CancellationTokenSource();
  
     private Management[] managements = new Management[0];
@@ -152,6 +153,7 @@
 
     private DeviceFilter deviceFilter = new DeviceFilter();
     private List<Rule> selectedRules = new List<Rule>();
+    private bool collapseDevices = false;
     private CollapseState collapseControlObjects = new CollapseState();
 
     private ReportBase? currentReport;
@@ -160,6 +162,7 @@
     // private bool fullDeviceActionIsSelect = true;
     private bool AddCommentMode = false;
     private string actComment = "";
+    private bool anythingFound = false;
 
     protected override void OnInitialized()
     {
@@ -168,10 +171,15 @@
             try
             {
                 GetSettings();
-                rules_selected = false;
+                rulesFound = false;
 
                 deviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
                 await InvokeAsync(StateHasChanged);
+                if (deviceFilter.NumberMgmtDev() > minCollapseAllDevices)
+                {
+                    collapseDevices = true;
+                    await InvokeAsync(StateHasChanged);
+                }
 
 //                PaginationVariables paginationVariables = new PaginationVariables() { Limit = 0, Offset = 0 };
 //                managementsObjects = await apiConnection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
@@ -225,8 +233,11 @@
 
             PrepareMetadata();
             processing = false;
-            rules_selected = true;
             await InvokeAsync(StateHasChanged);
+            if(!rulesFound)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
+            }
         }
         catch (Exception exception)
         {
@@ -250,6 +261,7 @@
 
     private void PrepareMetadata()
     {
+        rulesFound = false;
         foreach (Management management in managements)
         {
             foreach (Device device in management.Devices)
@@ -258,6 +270,7 @@
                 {
                     foreach (Rule rule in device.Rules)
                     {
+                        rulesFound = true;
                         if (rule.Metadata.LastCertifierDn != null && rule.Metadata.LastCertifierDn != "")
                         {
                             rule.Metadata.LastCertifierName = (new FWO.Api.Data.DistName(rule.Metadata.LastCertifierDn)).UserName;
@@ -496,6 +509,7 @@
             GetIntSetting(ref recertificationDisplayPeriod, GlobalConfig.kRecertificationDisplayPeriod);
             GetIntSetting(ref ruleRemovalGracePeriod, GlobalConfig.kRuleRemovalGracePeriod);
             GetBoolSetting(ref commentRequired, GlobalConfig.kCommentRequired);
+            GetIntSetting(ref minCollapseAllDevices, GlobalConfig.kMinCollapseAllDevices);
         }
         catch (Exception exception)
         {

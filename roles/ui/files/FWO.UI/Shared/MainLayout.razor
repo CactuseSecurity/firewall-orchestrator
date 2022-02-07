@@ -19,7 +19,7 @@
 {
     <div class="footer alert alert-danger">
         <div class="d-flex flex-row justify-content-between">
-            <div>@dialogTitle - @dialogMessage . @(userConfig.GetText("E0002"))</div>
+            <div>@dialogTitle - @dialogMessage</div>
             <div class="oi oi-x" @onclick="@(() => { errorDialogShow = false; StateHasChanged();})"></div>
         </div>
     </div>
@@ -122,6 +122,7 @@
                 Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception);
                 ShowError((title != "" ? title : userConfig.GetText("unspecified_error")), $"{(message != "" ? message : userConfig.GetText("E0001"))}");
             }
+            message += " . " + userConfig.GetText("E0002");
         }
     }
 }

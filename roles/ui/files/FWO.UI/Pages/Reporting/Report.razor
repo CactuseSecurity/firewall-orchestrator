@@ -14,27 +14,27 @@
 @inject UserConfig userConfig
 
 @* ==== LEFT SIDEBAR ==== *@
-<Sidebar @ref="deviceSelectionSidebar" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth" >
-    <div class="p-3">
-        <h5 class="text-left">@(userConfig.GetText("report_type"))</h5>
-        <div class="col-sm-8">
-            <select id="reportType" class="form-control form-control-sm" value="@selectedReportType" @onchange="ReportTypeChanged">
-                @foreach (var reportType in Enum.GetValues(typeof(ReportType)))
-                {
-                    <option value="@reportType">@userConfig.GetText(reportType?.ToString()?.ToLower() ?? "")</option>
-                }
-            </select>
+    <Sidebar @ref="deviceSelectionSidebar" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth" >
+        <div class="p-3">
+            <h5 class="text-left">@(userConfig.GetText("report_type"))</h5>
+            <div class="col-sm-8">
+                <select id="reportType" class="form-control form-control-sm" value="@selectedReportType" @onchange="ReportTypeChanged">
+                    @foreach (var reportType in Enum.GetValues(typeof(ReportType)))
+                    {
+                        <option value="@reportType">@userConfig.GetText(reportType?.ToString()?.ToLower() ?? "")</option>
+                    }
+                </select>
+            </div>
         </div>
-    </div>
-    <div class="p-3">
-        <h5 class="text-left">@(userConfig.GetText("report_time"))</h5>
-        <div class="btn-group mr-1 ml-1 mb-1">
-            <label class="col-sm-8">@displayedTimeSelection</label>
-            <button class="btn btn-sm btn-secondary" @onclick="SelectTime">@(userConfig.GetText("change"))</button>
+        <div class="p-3">
+            <h5 class="text-left">@(userConfig.GetText("report_time"))</h5>
+            <div class="btn-group mr-1 ml-1 mb-1">
+                <label class="col-sm-8">@displayedTimeSelection</label>
+                <button class="btn btn-sm btn-secondary" @onclick="SelectTime">@(userConfig.GetText("change"))</button>
+            </div>
         </div>
-    </div>
-    <DeviceSelection DeviceFilter="deviceFilter" @bind-SelectAll="selectAll"></DeviceSelection>
-</Sidebar>
+        <DeviceSelection @bind-DeviceFilter="deviceFilter" @bind-CollapseAll="collapseDevices" @bind-SelectAll="selectAll"></DeviceSelection>
+    </Sidebar>
 
 @* ==== Middle div ==== *@
 <div style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px");">
@@ -50,7 +50,7 @@
         </div>
     </form>
 
-    <div class="btn-group sticky-button-nav">
+    <div class="btn-group sticky-marker-nav">
         @if (processing == false)
         {
             <button class="btn btn-sm btn-primary" @onclick="GenerateReport">@(userConfig.GetText("generate_report"))</button>
@@ -150,7 +150,7 @@
         <CascadingValue Value="anchorNavToRSB">
             <TabSet KeepPanelsAlive="true" @ref="rsbTabset">
                 <Tab Title="@(userConfig.GetText("all"))">
-                    <div class="d-md-flex justify-content-md-end">
+                    <div class="d-md-flex justify-content-md-end sticky-marker">
                         <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarAll.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
                     </div>
                     <CascadingValue Value="collapseSidebarAll">
@@ -159,7 +159,7 @@
                     </CascadingValue>
                 </Tab>
                 <Tab Title="Report">
-                    <div class="d-md-flex justify-content-md-end">
+                    <div class="d-md-flex justify-content-md-end sticky-marker">
                         <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarReport.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
                     </div>
                     <CascadingValue Value="collapseSidebarReport">
@@ -170,7 +170,7 @@
                     </CascadingValue>
                 </Tab>
                 <Tab Title="@(userConfig.GetText("rule"))">
-                    <div class="d-md-flex justify-content-md-between">
+                    <div class="d-md-flex justify-content-md-between sticky-marker">
                         <div class="btn btn-dark btn-sm mb-2" @onclick="@(() => selectedItemsRuleReportTable.Clear())">@(userConfig.GetText("clear_all"))</div>
                         <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarRule.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
                     </div>
@@ -343,6 +343,7 @@
 
     private DeviceFilter deviceFilter = new DeviceFilter();
     private bool selectAll = true;
+    private int minCollapseAllDevices = GlobalConfig.kDefaultInitCollapseFrom;
 
     private DateTime actDate = DateTime.Now;
     private DateTime actTime = DateTime.Now;
@@ -357,13 +358,13 @@
 
     private ScheduledReport[] scheduledReports = new ScheduledReport[0];
 
-    private int elementsPerFetch = 100;
+    private int elementsPerFetch = GlobalConfig.kDefaultInitElementsPerFetch;
     private int rulesPerPage = 0;   // todo: remove - no pagination implemented?
 
     private bool autoFillRightSidebar = false;
-    private int maxInitFetchRightSidebar = 10;
-    private int sidebarLeftWidth = 300;
-    private int sidebarRightWidth = 300;
+    private int maxInitFetchRightSidebar = GlobalConfig.kDefaultInitMaxInitFetch;
+    private int sidebarLeftWidth = GlobalConfig.kSidebarLeftWidth;
+    private int sidebarRightWidth = GlobalConfig.kSidebarRightWidth;
 
     private ReportTemplateComponent reportTemplateControl = new ReportTemplateComponent();
 
@@ -382,6 +383,7 @@
     private CollapseState collapseSidebarAll = new CollapseState();
     private CollapseState collapseSidebarReport = new CollapseState();
     private CollapseState collapseSidebarRule = new CollapseState();
+    private bool collapseDevices = false;
 
     protected override void OnInitialized()
     {
@@ -394,6 +396,11 @@
 
                 deviceFilter.Managements = await Connection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
                 await InvokeAsync(StateHasChanged);
+                if (deviceFilter.NumberMgmtDev() > minCollapseAllDevices)
+                {
+                    collapseDevices = true;
+                    await InvokeAsync(StateHasChanged);
+                }
 
                 PaginationVariables paginationVariables = new PaginationVariables() { Limit = 0, Offset = 0 };
                 managementsAllObjects = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
@@ -781,24 +788,30 @@
     {
         try
         {
-            string settingsValue = userConfig.GetConfigValue(GlobalConfig.kElementsPerFetch);
-            if (settingsValue != "")
-            {
-                elementsPerFetch = Int32.Parse(settingsValue);
-            }
-
-            settingsValue = userConfig.GetConfigValue(GlobalConfig.kMaxInitialFetchesRightSidebar);
-            if (settingsValue != "")
-            {
-                maxInitFetchRightSidebar = Int32.Parse(settingsValue);
-            }
-
-            settingsValue = userConfig.GetConfigValue(GlobalConfig.kAutoFillRightSidebar);
-            autoFillRightSidebar = (settingsValue == "True" ? true : false);
+            GetIntSetting(ref elementsPerFetch, GlobalConfig.kElementsPerFetch);
+            GetIntSetting(ref maxInitFetchRightSidebar, GlobalConfig.kMaxInitialFetchesRightSidebar);
+            GetBoolSetting(ref autoFillRightSidebar, GlobalConfig.kAutoFillRightSidebar);
+            GetIntSetting(ref minCollapseAllDevices, GlobalConfig.kMinCollapseAllDevices);
         }
         catch (Exception exception)
         {
             Log.WriteError("Read Config", $"Error reading config value", exception);
         }
     }
+
+    private void GetIntSetting(ref int value, string setting)
+    {
+        string settingsValue = userConfig.GetConfigValue(setting);
+        if (settingsValue != "")
+        {
+            value = Int32.Parse(settingsValue);
+        }
+    }
+
+    private void GetBoolSetting(ref bool value, string setting)
+    {
+        string settingsValue = userConfig.GetConfigValue(setting);
+        value = (settingsValue == "True" ? true : false);
+    }
+
 }

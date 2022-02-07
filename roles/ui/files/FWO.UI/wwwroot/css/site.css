@@ -147,24 +147,35 @@ app {
     z-index: 1;
   }
 
-.sticky-buttongroup div.btn-group.sticky-button {
+.sticky-headersec table.sticky-marker-2 thead {
     position: sticky;
     top: 0px;
+    z-index: 1;
+  }
+
+
+.sticky-group .sticky-marker {
+    position: sticky;
+    top: 5px;
     z-index: 2;
   }
 
-.sticky-buttongroup-nav div.btn-group.sticky-button-nav {
+  .sticky-group-2 .sticky-marker-2 {
+    position: sticky;
+    top: 35px;
+    z-index: 2;
+  }
+
+.sticky-group-nav .sticky-marker-nav {
     position: sticky;
     top: 60px;
     z-index: 2;
   }
-
-.sticky-button {
-    padding-top: 10px;
-    padding-right: 10px;
-    padding-bottom: 10px;
-    padding-left: 10px;
-}
+.sticky-group-nav-2 .sticky-marker-nav-2 {
+    position: sticky;
+    top: 90px;
+    z-index: 2;
+  }
 
 .vheight75 {
     height: 75vh

@@ -44,6 +44,23 @@ namespace FWO.Config.Api
         public static readonly string kPwLowerCaseRequired = "pwLowerCaseRequired";
         public static readonly string kPwNumberRequired = "pwNumberRequired";
         public static readonly string kPwSpecialCharactersRequired = "pwSpecialCharactersRequired";
+        public static readonly string kMinCollapseAllDevices = "minCollapseAllDevices";
+
+        public static readonly int kDefaultInitElementsPerFetch = 100;
+        public static readonly int kDefaultInitMaxInitFetch = 10;
+        public static readonly int kDefaultInitDataRetentionTime = 731;
+        public static readonly int kDefaultInitImportSleepTime = 40;
+        public static readonly int kDefaultInitFwApiElementsPerFetch = 150;
+        public static readonly int kDefaultInitRecertificationPeriod = 365;
+        public static readonly int kDefaultInitRecertificationNoticePeriod = 30;
+        public static readonly int kDefaultInitRecertificationDisplayPeriod = 30;
+        public static readonly int kDefaultInitRuleRemovalGracePeriod = 60;
+        public static readonly int kDefaultInitCollapseFrom = 15;
+        public static readonly int kDefaultInitMinPwdLength = 10;
+        
+
+        public static readonly int kSidebarLeftWidth = 300;
+        public static readonly int kSidebarRightWidth = 300;
 
         public string productVersion { get; set; }
 

@@ -170,5 +170,19 @@ namespace FWO.Api.Data
                 }
             }
         }
+
+        public int NumberMgmtDev()
+        {
+            int counter = 0;
+            foreach (ManagementSelect management in Managements)
+            {
+                counter ++;
+                foreach (DeviceSelect device in management.Devices)
+                {
+                    counter ++;
+                }
+            }
+            return counter;
+        }
     }
 }

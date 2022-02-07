@@ -42,6 +42,11 @@ BEGIN
 				0, r_control.delimiter_list, i_current_import_id);
 		END LOOP;
 	EXCEPTION WHEN OTHERS THEN
+		-- the following log entry gets rolled-back as we have to raise another exception to avoid a half-finished import state for this rulebase
+		-- alternatively we need to avoid the error where it occurs and not raise any exceptions, just add the log_data_issue and leave out the single object that is broken
+		-- --                        1      2   3            4              5     6           7              8            9       10      11           12
+		-- PERFORM add_data_issue('import', 3, NULL, i_current_import_id,  NULL, NULL, r_liste.rule_uid, r_liste.rule_id, NULL, i_dev_id, NULL, 
+		-- 	'broken ref in rule',  'non-existant object  referenced in rule with UID ' || r_liste.rule_uid);
 		RAISE EXCEPTION 'Exception caught in import_rule_refhandler_main while handling rule %', r_liste.rule_uid;
 	END;
 	RETURN;

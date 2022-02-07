@@ -1,7 +1,7 @@
 import logging, copy
 from common import resolve_raw_objects, extend_string_list, list_delimiter, nat_postfix
 from fmgr_service import create_svc_object
-from fmgr_network import resolve_objects
+from fmgr_network import resolve_objects, create_network_object
 import fmgr_zone, fmgr_getter
 
 rule_access_scope_v4 = ['rules_global_header_v4', 'rules_adom_v4', 'rules_global_footer_v4']
@@ -149,7 +149,7 @@ def normalize_access_rules(full_config, config2import, import_id, jwt=None):
                 rule.update({ 'rule_dst_refs': resolve_raw_objects(rule['rule_dst'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object') })
                 rule.update({ 'rule_svc_refs': rule['rule_svc'] }) # services do not have uids, so using name instead
 
-                xlate_rule = handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number)
+                xlate_rule = handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, import_id, localPkgName)
                 rules.append(rule)
                 if xlate_rule is not None:
                     rules.append(xlate_rule)
@@ -309,7 +309,7 @@ def create_xlate_rule(rule):
     return xlate_rule
 
 
-def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number):
+def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, import_id, localPkgName):
     # now dealing with VIPs (dst NAT part) of combined rules
     xlate_rule = None
 
@@ -322,15 +322,23 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number):
             if rule_orig['ippool']==0:  # hiding behind outbound interface
                 # logging.debug("found outbound interface hide nat rule") # needs to be checked
                 if 'dstintf' in rule_orig:
-                    if len(rule_orig['dstintf'])==1:
-                        hideInterface=rule_orig['dstintf'][0]
-                    else:
-                        logging.warning("did not find exactly one nat hiding interface")
-                    # need to 
-                    # - find out ip of outbound interface
-                    # - create an object for the ip of the dst interface and add it here as xlate src
-                    # alternative: add dummy object "outbound-interface"
-                    logging.warning("hide nat behind outgoing interface not implemented yet; hide interface: " + hideInterface)
+                    if len(rule_orig['dstintf'])==0:
+                        logging.warning("found empty nat hiding interface list")
+                    elif len(rule_orig['dstintf'])>1:
+                        logging.warning("found more than one nat hiding interface")
+                    hideInterface=rule_orig['dstintf'][0]
+                    
+                    # add dummy object "outbound-interface"
+                    obj_name = localPkgName + '_' + hideInterface
+                    obj_comment = 'FWO auto-generated dummy object for source nat'
+                    obj = create_network_object(import_id, obj_name, 'host', '0.0.0.0/32', obj_name, 'black', obj_comment, 'global')
+                    
+                    if obj not in config2import['network_objects']:
+                        config2import['network_objects'].append(obj)
+                    xlate_rule['rule_src'] = obj_name
+                    xlate_rule['rule_src_refs'] = obj_name
+
+                    #logging.warning("hide nat behind outgoing interface not implemented yet; hide interface: " + hideInterface)
 
             elif rule_orig['ippool']==1:
                 poolNameArray = rule_orig['poolname']

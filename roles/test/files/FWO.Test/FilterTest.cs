@@ -1,5 +1,6 @@
 ﻿using FWO.Report.Filter;
 using FWO.Report.Filter.Ast;
+using FWO.Report.Filter.Exceptions;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -38,13 +39,45 @@ namespace FWO.Test.Filter
         [Test]
         public void AndOr()
         {
-            Compiler.Compile("((src=123) & (dst=234)) | (src = 123)", ReportType.Rules);
+            var res = Compiler.Compile("((src=hi) & (dst=test)) | (src = a)", ReportType.Rules);
         }
 
         [Test]
         public void TripleOr()
         {
-            Compiler.Compile("(src=cactus or dst=cactus or svc=smtps)", ReportType.Rules);
+            var res = Compiler.Compile("(src=cactus or dst=cactus or svc=smtps)", ReportType.Rules);
+        }
+
+        [Test]
+        public void ExactEquals()
+        {
+            var res = Compiler.Compile("(text==cactus)", ReportType.Rules);
+        }
+
+        [Test]
+        public void ExactEquals2()
+        {
+            var res = Compiler.Compile("(gateway = \"checkpoint_demo\" or gateway = \"fortigate_demo\") & dst == IsoAAADray.local", ReportType.Rules);
+        }
+
+        [Test]
+        public void ExactEquals3()
+        {
+            try
+            {
+                var res = Compiler.Compile("(gateway=\"checkpoint_demo\" or gateway = \"fortigate_demo\") & dst ==", ReportType.Rules);
+                Assert.Fail("Excpetion should have been thrown");
+            }
+            catch (SyntaxException exception)
+            {
+                Assert.AreEqual("No token but one was expected", exception.Message);
+            }
+        }
+
+        [Test]
+        public void Disabled()
+        {
+            var res = Compiler.Compile("disabled == true", ReportType.Rules);
         }
     }
 }

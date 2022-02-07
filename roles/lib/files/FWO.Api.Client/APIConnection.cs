@@ -76,30 +76,8 @@ namespace FWO.ApiClient
         {
             try
             {
-                // Log.WriteDebug("API Response", $"API Call variables: { variables }");
-
-                //Log.WriteDebug("API call", $"Sending API call {operationName}: {query}");
-
-                // if (variables == null)
-                // {
-                //     Log.WriteDebug("API variables", $"no variables set");
-                // }
-                // else
-                // {
-                //     Log.WriteDebug("API variables", $"Sending the following variables:");
-
-                //     foreach (var propertyInfo in variables?.GetType()?.GetProperties())
-                //     {
-                //         if (propertyInfo!=null)
-                //         {
-                //             var propertyName = propertyInfo.Name;
-                //             var propertyValue = propertyInfo.GetValue(variables);
-                //             if (propertyName!=null && propertyValue!=null)
-                //                 Log.WriteDebug("API variables", $"var {propertyName} = {propertyValue}");
-                //         }
-                //     }
-                // }
-                // Dictionary<string, object> items =  (Dictionary<string, object>) variables;
+                Log.WriteDebug("API call", $"Sending API call {operationName}: {query.Substring(0, Math.Min(query.Length, 50)).Replace(Environment.NewLine, "")}... " +
+                    (variables != null ? $"with variables: { JsonSerializer.Serialize(variables).Substring(0, Math.Min(JsonSerializer.Serialize(variables).Length, 50)).Replace(Environment.NewLine, "")}..." : ""));
                 GraphQLResponse<dynamic> response = await graphQlClient.SendQueryAsync<dynamic>(query, variables, operationName);
                 // Log.WriteDebug("API call", "API response received.");
 
@@ -144,17 +122,7 @@ namespace FWO.ApiClient
 
             catch (Exception exception)
             {
-                Log.WriteError("API Connection", $"Error while sending query to GraphQL API. Query: {(query != null ? query : "")}", exception);
-                Log.WriteError("API variables", $"Sending the following variables:", null);
-
-                //foreach (var propertyInfo in variables?.GetType()?.GetProperties())
-                //{
-                //    var propertyName = propertyInfo.Name;
-                //    var propertyValue = propertyInfo.GetValue(variables);
-                //    Log.WriteError("API variables", $"var {propertyName} = {propertyValue}", null);
-
-                //}
-                // todo: #1220 add variables readable
+                Log.WriteError("API Connection", $"Error while sending query to GraphQL API. Query: {(query != null ? query : "")}, variables: {(variables != null ? JsonSerializer.Serialize(variables) : "")}", exception);
                 throw;
             }
         }

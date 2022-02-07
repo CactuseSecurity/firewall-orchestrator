@@ -139,7 +139,7 @@
             {
                 // There is no jwt in session storage. Get one from auth module.
                 AuthenticationTokenGetParameters authenticationParameters = new AuthenticationTokenGetParameters { Username = Username, Password = Password };
-                IRestResponse<string> apiAuthResponse = await middlewareClient.AuthenticateUser(authenticationParameters);
+                RestResponse<string> apiAuthResponse = await middlewareClient.AuthenticateUser(authenticationParameters);
 
                 if (apiAuthResponse.StatusCode == HttpStatusCode.OK)
                 {

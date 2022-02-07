@@ -29,11 +29,30 @@ namespace FWO.Report.Filter
 
         private AstNode? ParseStart()
         {
-            if (NextTokenExists())
-            {
+            // if (NextTokenExists())
+            // {
                 if (GetNextToken().Kind == TokenKind.Value)
                 {
-                    return new AstNodeFilter
+            //         Left = new AstNodeFilterReportType()
+            //         {
+            //             Name = new Token(new Range(0, 0), "", TokenKind.ReportType),
+            //             Operator = new Token(new Range(0, 0), "", TokenKind.EEQ),
+            //             Value = new Token(new Range(0, 0), "rules", TokenKind.Value)
+            //         },
+            //         Connector = new Token(new Range(0, 0), "", TokenKind.And),
+
+            //         Right = ParseTime()
+            //     };
+            // }
+            // else
+            // {
+            //     AstNodeConnector root = new AstNodeConnector
+            //     {
+            //         Left = new AstNodeFilterReportType()
+            //         {
+            //             Name = CheckToken(TokenKind.ReportType),
+            //             Operator = CheckToken(TokenKind.EQ, TokenKind.EEQ),
+                    return new AstNodeFilterString
                     {
                         Name = new Token(new Range(0, 0), "", TokenKind.Value),
                         Operator = new Token(new Range(0, 0), "", TokenKind.EQ),
@@ -45,11 +64,72 @@ namespace FWO.Report.Filter
                     return ParseOr();
                 }
             }
-            else
-            {
-                return null;
-            }
-        }
+        // }
+
+        // private AstNode ParseTime()
+        // {
+        //     if (NextTokenExists() == false || GetNextToken().Kind != TokenKind.Time)
+        //     {
+        //         AstNodeConnector root = new AstNodeConnector
+        //         {
+        //             Left = new AstNodeFilterDateTimeRange()
+        //             {
+        //                 Name = new Token(new Range(0, 0), "", TokenKind.Time),
+        //                 Operator = new Token(new Range(0, 0), "", TokenKind.EQ),
+        //                 Value = new Token(new Range(0, 0), "now", TokenKind.Value) //DateTime.Now.ToString()
+        //             }
+        //         };
+
+        //         if (NextTokenExists())
+        //         {
+        //             root.Connector = new Token(new Range(0, 0), "", TokenKind.And);
+        //             root.Right = ParseStart();
+        //             return root;
+        //         }
+        //         else
+        //         {
+        //             return root.Left;
+        //         }
+        //     }
+
+        //     else // TokenKinde == Time
+        //     {
+        //         AstNodeConnector root = new AstNodeConnector
+        //         {
+        //             Left = new AstNodeFilterDateTimeRange()
+        //             {
+        //                 Name = CheckToken(TokenKind.Time),
+        //                 Operator = ParseOperator(),
+        //                 Value = CheckToken(TokenKind.Value)
+        //             }
+        //         };
+
+        //         if (NextTokenExists() && GetNextToken().Kind == TokenKind.And)
+        //         {
+        //             root.Connector = CheckToken(TokenKind.And);
+        //             root.Right = ParseStart();
+        //             return root;
+        //         }
+
+        //         else
+        //         {
+        //             return root.Left;
+        //         }
+        //     }
+        // }
+
+        // private AstNode ParseStart()
+        // {
+        //     if (GetNextToken().Kind == TokenKind.Value)
+        //     {
+        //         return new AstNodeFilterString
+        //         {
+        //             Name = new Token(new Range(0, 0), "", TokenKind.Value),
+        //             Operator = new Token(new Range(0, 0), "", TokenKind.EQ),
+        //             Value = CheckToken(TokenKind.Value)
+        //         };
+        //     }
+        // }
 
         private AstNode ParseOr()
         {
@@ -142,17 +222,36 @@ namespace FWO.Report.Filter
 
         private AstNode ParseFilter()
         {
-            return new AstNodeFilter
+            Token Name = ParseFilterName();
+            Token Operator = ParseOperator();
+            Token Value = CheckToken(TokenKind.Value);
+            return Name.Kind switch
             {
-                Name = ParseFilterName(),
-                Operator = ParseOperator(),
-                Value = CheckToken(TokenKind.Value)
+                TokenKind.Value or TokenKind.Service or TokenKind.Action or TokenKind.Management or TokenKind.Gateway or TokenKind.FullText or TokenKind.Protocol
+                => new AstNodeFilterString() { Name = Name, Operator = Operator, Value = Value },
+
+                TokenKind.Disabled or TokenKind.SourceNegated or TokenKind.DestinationNegated or TokenKind.ServiceNegated or TokenKind.Remove
+                => new AstNodeFilterBool() { Name = Name, Operator = Operator, Value = Value },
+
+                TokenKind.Time
+                => new AstNodeFilterDateTimeRange() { Name = Name, Operator = Operator, Value = Value },
+
+                TokenKind.ReportType 
+                => new AstNodeFilterReportType() { Name = Name, Operator = Operator, Value = Value },
+
+                TokenKind.DestinationPort or TokenKind.RecertDisplay
+                => new AstNodeFilterInt() { Name = Name, Operator = Operator, Value = Value },
+
+                TokenKind.Source or TokenKind.Destination
+                => new AstNodeFilterNetwork() { Name = Name, Operator = Operator, Value = Value},
+
+                _ => throw new NotSupportedException($"No type found for filter with token kind: {Name.Kind}"),
             };
         }
 
         private Token ParseOperator()
         {
-            return CheckToken(TokenKind.EQ, TokenKind.NEQ, TokenKind.LSS, TokenKind.GRT);
+            return CheckToken(TokenKind.EQ, TokenKind.EEQ, TokenKind.NEQ, TokenKind.LSS, TokenKind.GRT);
         }
 
         private Token ParseFilterName()
@@ -160,7 +259,7 @@ namespace FWO.Report.Filter
             return CheckToken(
                 TokenKind.Destination, TokenKind.Source, TokenKind.Service, TokenKind.Protocol,
                 TokenKind.DestinationPort, TokenKind.Action, TokenKind.FullText, TokenKind.Gateway,
-                TokenKind.Management, TokenKind.Remove, TokenKind.RecertDisplay);
+                TokenKind.Management, TokenKind.Remove, TokenKind.RecertDisplay, TokenKind.Disabled);
         }
 
         private Token CheckToken(params TokenKind[] expectedTokenKinds)

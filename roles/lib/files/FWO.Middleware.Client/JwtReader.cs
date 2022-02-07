@@ -58,9 +58,11 @@ namespace FWO.Middleware.Client
                 {
                     RequireExpirationTime = true,
                     RequireSignedTokens = true,
-                    ValidateAudience = false,
-                    ValidateIssuer = false,
+                    ValidateAudience = true,
+                    ValidateIssuer = true,
                     ValidateLifetime = true,
+                    ValidAudience = JwtConstants.Audience,
+                    ValidIssuer = JwtConstants.Issuer,
                     IssuerSigningKey = jwtPublicKey
                 };
 
@@ -79,6 +81,16 @@ namespace FWO.Middleware.Client
             catch (SecurityTokenInvalidSignatureException InvalidSignatureException)
             {
                 Log.WriteError("Jwt Validation", $"Jwt signature could not be verified. Potential attack!", InvalidSignatureException);
+                return false;
+            }
+            catch (SecurityTokenInvalidAudienceException InvalidAudienceException)
+            {
+                Log.WriteError("Jwt Validation", $"Jwt audience incorrect.", InvalidAudienceException);
+                return false;
+            }
+            catch (SecurityTokenInvalidIssuerException InvalidIssuerException)
+            {
+                Log.WriteError("Jwt Validation", $"Jwt issuer incorrect.", InvalidIssuerException);
                 return false;
             }
             catch (Exception UnexpectedError)

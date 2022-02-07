@@ -228,10 +228,10 @@ namespace FWO.Report
                                 report.AppendLine($"<td>{ruleDisplay.DisplayNumber(rule, device.Rules)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayName(rule)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplaySourceZone(rule)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplaySource(rule)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplaySource(rule, location: "")}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayDestinationZone(rule)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayDestination(rule)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayService(rule)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayDestination(rule, location: "")}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayService(rule, location: "")}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayAction(rule)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayTrack(rule)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayEnabled(rule, export: true)}</td>");

@@ -9,7 +9,7 @@ namespace FWO.Ui.Display
         public NatRuleDisplay(UserConfig userConfig) : base(userConfig)
         {}
 
-        public string DisplayTranslatedSource(Rule rule, string style = "", bool recert = false)
+        public string DisplayTranslatedSource(Rule rule, string style = "", string location = "report")
         {
             result = new StringBuilder();
 
@@ -30,11 +30,15 @@ namespace FWO.Ui.Display
                 else
                     symbol = "oi oi-monitor";
 
-                string page = recert ? "certification" : "report";
+                string userLink = location == "" ? $"user{source.User?.Id}"
+                                                 : $"goto-report-m{rule.MgmtId}-user{source.User?.Id}";
+
+                string nwobjLink = location == "" ? $"nwobj{source.Object.Id}"
+                                                  : $"goto-report-m{rule.MgmtId}-nwobj{source.Object.Id}";
 
                 if (source.User != null)
-                    result.AppendLine($"<span class=\"oi oi-people\">&nbsp;</span><a href=\"report#goto-report-m{rule.MgmtId}-user{source.User.Id}\" target=\"_top\" style=\"{style}\">{source.User.Name}</a>@");
-                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"report#goto-report-m{rule.MgmtId}-nwobj{source.Object.Id}\" target=\"_top\" style=\"{style}\">{source.Object.Name}</a>");
+                    result.AppendLine($"<span class=\"oi oi-people\">&nbsp;</span><a href=\"{location}#{userLink}\" target=\"_top\" style=\"{style}\">{source.User.Name}</a>@");
+                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"{location}#{nwobjLink}\" target=\"_top\" style=\"{style}\">{source.Object.Name}</a>");
                 result.Append((source.Object.IP != null ? $" ({source.Object.IP})" : ""));
                 result.AppendLine("<br>");
             }
@@ -49,7 +53,7 @@ namespace FWO.Ui.Display
             return result.ToString();
         }
 
-        public string DisplayTranslatedDestination(Rule rule, string style = "", bool recert = false)
+        public string DisplayTranslatedDestination(Rule rule, string style = "", string location = "report")
         {
             result = new StringBuilder();
 
@@ -70,9 +74,10 @@ namespace FWO.Ui.Display
                 else
                     symbol = "oi oi-monitor";
 
-                string page = recert ? "certification" : "report";
+                string link = location == "" ? $"nwobj{destination.Object.Id}"
+                                             : $"goto-report-m{rule.MgmtId}-nwobj{destination.Object.Id}";
 
-                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"report#goto-report-m{rule.MgmtId}-nwobj{destination.Object.Id}\" target=\"_top\" style=\"{style}\">{destination.Object.Name}</a>");
+                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"{location}#{link}\" target=\"_top\" style=\"{style}\">{destination.Object.Name}</a>");
                 result.Append(destination.Object.IP != null ? $" ({destination.Object.IP})" : "");
                 result.AppendLine("<br>");
             }
@@ -87,7 +92,7 @@ namespace FWO.Ui.Display
             return result.ToString();
         }
 
-        public string DisplayTranslatedService(Rule rule, string style = "", bool recert = false)
+        public string DisplayTranslatedService(Rule rule, string style = "", string location = "report")
         {
             result = new StringBuilder();
 
@@ -106,9 +111,10 @@ namespace FWO.Ui.Display
                 else
                     symbol = "oi oi-wrench";
 
-                string page = recert ? "certification" : "report";
+                string link = location == "" ? $"svc{service.Content.Id}"
+                                             : $"goto-report-m{rule.MgmtId}-svc{service.Content.Id}";
 
-                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"report#goto-report-m{rule.MgmtId}-svc{service.Content.Id}\" target=\"_top\" style=\"{style}\">{service.Content.Name}</a>");
+                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"{location}#{link}\" target=\"_top\" style=\"{style}\">{service.Content.Name}</a>");
 
                 if (service.Content.DestinationPort != null)
                     result.Append(service.Content.DestinationPort == service.Content.DestinationPortEnd ? $" ({service.Content.DestinationPort}/{service.Content.Protocol?.Name})"

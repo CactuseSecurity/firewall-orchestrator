@@ -58,15 +58,20 @@ namespace FWO.Ui.Display
                     symbol = "oi oi-list-rich";
                 else if (source.Object.Type.Name == "network")
                     symbol = "oi oi-rss";
+                else if (source.Object.Type.Name == "ip_range")
+                    symbol = "oi oi-resize-width";
                 else
                     symbol = "oi oi-monitor";
+                
+                string userLink = location == "" ? $"user{source.User?.Id}"
+                                                 : $"goto-report-m{rule.MgmtId}-user{source.User?.Id}";
 
-                string link = location == "" ? $"user{source.User?.Id}"
-                                             : $"goto-report-m{rule.MgmtId}-user{source.User?.Id}";
+                string nwobjLink = location == "" ? $"nwobj{source.Object.Id}"
+                                                  : $"goto-report-m{rule.MgmtId}-nwobj{source.Object.Id}";
 
                 if (source.User != null)
-                    result.AppendLine($"<span class=\"oi oi-people\">&nbsp;</span><a href=\"{location}#{link}\" target=\"_top\" style=\"{style}\">{source.User.Name}</a>@");
-                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"{location}#{link}\" target=\"_top\" style=\"{style}\">{source.Object.Name}</a>");
+                    result.AppendLine($"<span class=\"oi oi-people\">&nbsp;</span><a href=\"{location}#{userLink}\" target=\"_top\" style=\"{style}\">{source.User.Name}</a>@");
+                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"{location}#{nwobjLink}\" target=\"_top\" style=\"{style}\">{source.Object.Name}</a>");
                 result.Append((source.Object.IP != null ? $" ({source.Object.IP})" : ""));
                 result.AppendLine("<br>");
             }
@@ -99,6 +104,8 @@ namespace FWO.Ui.Display
                     symbol = "oi oi-list-rich";
                 else if (destination.Object.Type.Name == "network")
                     symbol = "oi oi-rss";
+                else if (destination.Object.Type.Name == "ip_range")
+                    symbol = "oi oi-resize-width";
                 else
                     symbol = "oi oi-monitor";
 

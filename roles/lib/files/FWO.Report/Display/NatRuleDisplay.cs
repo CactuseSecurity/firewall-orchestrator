@@ -27,6 +27,8 @@ namespace FWO.Ui.Display
                     symbol = "oi oi-list-rich";
                 else if (source.Object.Type.Name == "network")
                     symbol = "oi oi-rss";
+                else if (source.Object.Type.Name == "ip_range")
+                    symbol = "oi oi-resize-width";
                 else
                     symbol = "oi oi-monitor";
 
@@ -71,6 +73,8 @@ namespace FWO.Ui.Display
                     symbol = "oi oi-list-rich";
                 else if (destination.Object.Type.Name == "network")
                     symbol = "oi oi-rss";
+                else if (destination.Object.Type.Name == "ip_range")
+                    symbol = "oi oi-resize-width";
                 else
                     symbol = "oi oi-monitor";
 

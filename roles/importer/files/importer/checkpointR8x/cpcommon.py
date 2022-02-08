@@ -71,11 +71,16 @@ def get_basic_config (config_json, mgm_details, force=False, config_filename=Non
             # get global layer rulebase
             logging.debug ( "get_config - getting layer: " + show_params_rules['name'] )
             current_layer_json = getter.get_layer_from_api_as_dict (api_host, api_port, v_url, sid, ssl_verification, proxy, show_params_rules, layername=device['global_rulebase_name'])
+            if current_layer_json is None:
+                return 1
             # now also get domain rules 
             show_params_rules['name'] = device['local_rulebase_name']
             current_layer_json['layername'] = device['local_rulebase_name']
             logging.debug ( "get_config - getting domain rule layer: " + show_params_rules['name'] )
             domain_rules = getter.get_layer_from_api_as_dict (api_host, api_port, v_url, sid, ssl_verification, proxy, show_params_rules, layername=device['local_rulebase_name'])
+            if current_layer_json is None:
+                return 1
+
             # logging.debug ("found domain rules: " + str(domain_rules) + "\n\n")
             # now handling possible reference to domain rules within global rules
             # if we find the reference, replace it with the domain rules
@@ -90,6 +95,8 @@ def get_basic_config (config_json, mgm_details, force=False, config_filename=Non
             show_params_rules['name'] = device['local_rulebase_name']
             logging.debug ( "get_config - getting layer: " + show_params_rules['name'] )
             current_layer_json = getter.get_layer_from_api_as_dict (api_host, api_port, v_url, sid, ssl_verification, proxy, show_params_rules, layername=device['local_rulebase_name'])
+            if current_layer_json is None:
+                return 1
 
         config_json['rulebases'].append(current_layer_json)
 
@@ -101,6 +108,8 @@ def get_basic_config (config_json, mgm_details, force=False, config_filename=Non
             nat_rules = getter.get_nat_rules_from_api_as_dict (api_host, api_port, v_url, sid, ssl_verification, proxy, show_params_rules)
             if len(nat_rules)>0:
                 config_json['nat_rulebases'].append(nat_rules)
+            else:
+                config_json['nat_rulebases'].append({ "nat_rule_chunks": [] })
 
     # leaving rules, moving on to objects
     config_json["object_tables"] = []

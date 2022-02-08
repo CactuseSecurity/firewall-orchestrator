@@ -3,7 +3,8 @@ import json
 import logging, re
 import requests, requests.packages
 import time
-from common import FwLoginFailed 
+from common import FwLoginFailed, fwo_api_base_url
+from fwo_api import create_data_issue
 
 requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
@@ -257,13 +258,22 @@ def get_layer_from_api_as_dict (api_host, api_port, api_v_url, sid, ssl_verifica
     total=current+1
     while (current<total) :
         show_params_rules['offset']=current
-        rulebase = api_call(api_v_url, 'show-access-rulebase', show_params_rules, sid, ssl_verification, proxy_string)
-        current_layer_json['layerchunks'].append(rulebase)
+        try:
+            rulebase = api_call(api_v_url, 'show-access-rulebase', show_params_rules, sid, ssl_verification, proxy_string)
+            current_layer_json['layerchunks'].append(rulebase)
+        except:
+            logging.error("get_layer_from_api_as_dict - could not find layer " + layername)
+            # todo: need to get FWO API jwt here somehow:
+            # create_data_issue(fwo_api_base_url, jwt, severity=2, description="failed to get show-access-rulebase  " + layername)
+            return None
+
         if 'total' in rulebase:
             total=rulebase['total']
         else:
             logging.error ( "get_layer_from_api - rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json " 
                 + str(current_layer_json))
+            return None
+
         if total==0:
             current=0
         else:

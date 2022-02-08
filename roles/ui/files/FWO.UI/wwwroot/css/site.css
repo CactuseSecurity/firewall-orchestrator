@@ -147,33 +147,27 @@ app {
     z-index: 1;
   }
 
-.sticky-headersec table.sticky-marker-2 thead {
-    position: sticky;
-    top: 0px;
-    z-index: 1;
-  }
-
-
 .sticky-group .sticky-marker {
     position: sticky;
     top: 5px;
     z-index: 2;
   }
 
-  .sticky-group-2 .sticky-marker-2 {
+.sticky-group-35 .sticky-marker-35 {
     position: sticky;
     top: 35px;
     z-index: 2;
   }
 
-.sticky-group-nav .sticky-marker-nav {
+.sticky-group-40 .sticky-marker-45 {
     position: sticky;
-    top: 60px;
+    top: 45px;
     z-index: 2;
   }
-.sticky-group-nav-2 .sticky-marker-nav-2 {
+
+.sticky-group-60 .sticky-marker-60 {
     position: sticky;
-    top: 90px;
+    top: 60px;
     z-index: 2;
   }
 
@@ -202,4 +196,8 @@ app {
 
 .temp-highlight {
     background-color: #a4d7f5;
+}
+
+.nav-tabs {
+    background-color: #d6d5d5;
 }

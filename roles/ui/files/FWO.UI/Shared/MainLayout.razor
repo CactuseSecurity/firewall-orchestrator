@@ -114,15 +114,14 @@
             {
                 // the exception message is shown to the user
                 Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception);
-                ShowError((title != "" ? title : userConfig.GetText("unspecified_error")), $"{(message != "" ? message : userConfig.GetText("E0001"))}: {exception.Message}");
+                ShowError((title != "" ? title : userConfig.GetText("unspecified_error")), $"{(message != "" ? message : userConfig.GetText("E0001"))}: {exception.Message} . " + userConfig.GetText("E0002"));
             }
             else
             {
                 // only title and message (if given) or unspecific error message is shown to the user
                 Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception);
-                ShowError((title != "" ? title : userConfig.GetText("unspecified_error")), $"{(message != "" ? message : userConfig.GetText("E0001"))}");
+                ShowError((title != "" ? title : userConfig.GetText("unspecified_error")), $"{(message != "" ? message : userConfig.GetText("E0001"))} . " + userConfig.GetText("E0002"));
             }
-            message += " . " + userConfig.GetText("E0002");
         }
     }
 }

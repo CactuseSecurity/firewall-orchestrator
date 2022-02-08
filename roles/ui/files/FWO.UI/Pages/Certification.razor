@@ -38,7 +38,7 @@
 
 <div style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px");">
     <h3>@(userConfig.GetText("recertification"))</h3>
-    <div class="btn-group sticky-marker-nav">
+    <div class="btn-group sticky-marker-60">
         <AuthorizeView Roles="admin, recertifier">
             <Authorized>
                 @if(rulesFound)
@@ -89,28 +89,32 @@
         <CascadingValue Value="anchorNavToRSB">
             <TabSet KeepPanelsAlive="true" @ref="rsbTabset">
                 <Tab Title="Report">
-                    <div class="d-md-flex justify-content-md-end">
-                        <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseControlObjects.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
+                    <div class="d-md-flex justify-content-md-end sticky-marker-45 bg-white">
+                        <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseControlObjects.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
                     </div>
-                    <CascadingValue Value="collapseControlObjects">
-                        <ObjectGroupCollection FetchObjects="FetchContent" Recert="true" Tab="report" InputDataType="Management" Data="managements.Where(m => (m.Devices.Where(d => d.Rules != null && d.Rules.Count() > 0).Count() > 0))" NameExtractor="man => man.Name"
-                                            NetworkObjectExtractor="man => man.ReportObjects?.Select(ro => ro.Content).ToArray()"
-                                            NetworkServiceExtractor="man => man.ReportServices?.Select(rs => rs.Content).ToArray()"
-                                            NetworkUserExtractor="man => man.ReportUsers?.Select(ru => ru.Content).ToArray()" />
-                    </CascadingValue>
+                    <div class="mt-2">
+                        <CascadingValue Value="collapseControlObjects">
+                            <ObjectGroupCollection FetchObjects="FetchContent" Recert="true" Tab="report" InputDataType="Management" Data="managements.Where(m => (m.Devices.Where(d => d.Rules != null && d.Rules.Count() > 0).Count() > 0))" NameExtractor="man => man.Name"
+                                                NetworkObjectExtractor="man => man.ReportObjects?.Select(ro => ro.Content).ToArray()"
+                                                NetworkServiceExtractor="man => man.ReportServices?.Select(rs => rs.Content).ToArray()"
+                                                NetworkUserExtractor="man => man.ReportUsers?.Select(ru => ru.Content).ToArray()" />
+                        </CascadingValue>
+                    </div>
                 </Tab>
                 <Tab Title="@(userConfig.GetText("rule"))">
-                    <div class="d-md-flex justify-content-md-between">
-                        <div class="btn btn-dark btn-sm mb-2" @onclick="@(() => selectedRules.Clear())">@(userConfig.GetText("clear_all"))</div>
-                        <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseControlObjects.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
+                    <div class="d-md-flex justify-content-md-between sticky-marker-45 bg-white">
+                        <div class="btn btn-dark btn-sm w-50" @onclick="@(() => selectedRules.Clear())">@(userConfig.GetText("clear_all"))</div>
+                        <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseControlObjects.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
                     </div>
-                    <CascadingValue Value="collapseControlObjects">
-                        <ObjectGroupCollection FetchObjects="FetchContent" Recert="true" Tab="rule" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule" Data="selectedRules"
-                                            NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
-                                            NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object).Union(rule.Tos.Select(nl => nl.Object)).ToArray()"
-                                            NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
-                                            NetworkUserExtractor="rule => Array.FindAll(rule.Froms.Select(nl => nl.User).Distinct().ToArray(), user => user != null)" />
-                    </CascadingValue>
+                    <div class="mt-2">
+                        <CascadingValue Value="collapseControlObjects">
+                            <ObjectGroupCollection FetchObjects="FetchContent" Recert="true" Tab="rule" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule" Data="selectedRules"
+                                                NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
+                                                NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object).Union(rule.Tos.Select(nl => nl.Object)).ToArray()"
+                                                NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
+                                                NetworkUserExtractor="rule => Array.FindAll(rule.Froms.Select(nl => nl.User).Distinct().ToArray(), user => user != null)" />
+                        </CascadingValue>
+                    </div>
                 </Tab>
             </TabSet>
         </CascadingValue>

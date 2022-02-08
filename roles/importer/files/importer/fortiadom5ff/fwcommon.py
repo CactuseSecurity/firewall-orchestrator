@@ -1,15 +1,15 @@
+import sys
+from common import importer_base_dir
+sys.path.append(importer_base_dir + '/fortiadom5ff')
 import fmgr_user
 import fmgr_service
 import fmgr_zone
+import traceback
 import fmgr_rule
 import fmgr_network
 import fmgr_getter
 from curses import raw
 import logging
-import traceback
-import sys
-from common import importer_base_dir
-sys.path.append(importer_base_dir + '/fortiadom5ff')
 
 scope = ['global', 'adom']
 nw_obj_types = ['firewall/address', 'firewall/address6', 'firewall/addrgrp',
@@ -126,8 +126,7 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
         # }
 
         payload = {
-            "id": 3,
-            "method": "get",
+            "id": 1,
             "params": [
                 {
                     "fields": [
@@ -186,17 +185,19 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
             ]
         }
         try:
-            # fmgr_getter.update_config_with_fortinet_api_call(
-            #     raw_config, sid, fm_api_url, "/sys/proxy/json",
-            #     "interfaces/adom:" + adom_name + "/device:" + dev_name + "/vdom:" + vdom_name,
-            #     payload=payload, debug=debug_level, limit=limit, method="exec")
             fmgr_getter.update_config_with_fortinet_api_call(
                 raw_config, sid, fm_api_url, "/pm/config/device/" + dev_name + "/global/system/interface",
-                "interfaces/dev:" + dev_name + "/vdom:" + vdom_name,
-                payload=payload, debug=debug_level, limit=limit, method="get")
+                "interfaces_per_device/dev:" + dev_name, payload=payload, debug=debug_level, limit=limit, method="get")
         except:
-            logging.warning(
-                "import_management - error while getting interfaces of device " + dev["name"] + ", ignoring")
+            logging.warning("import_management - error while getting interfaces of device " + dev_name + ", ignoring, traceback: " + str(traceback.format_exc()))
+        if vdom_name != 'undefined':
+            try:
+                fmgr_getter.update_config_with_fortinet_api_call(
+                    raw_config, sid, fm_api_url, "/pm/config/device/" + vdom_name + "/global/system/interface",
+                    "interfaces_per_vdom/dev:" + dev_name + "/vdom:" + vdom_name,
+                    payload=payload, debug=debug_level, limit=limit, method="get")
+            except:
+                logging.warning("import_management - error while getting vdom interfaces of device " + vdom_name + ", ignoring, traceback: " + str(traceback.format_exc()))
 
         for ip_version in ["ipv4", "ipv6"]:
             payload = {

@@ -100,8 +100,8 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m8",
-                "-d4",
+                "-m9",
+                "-d0",
                 "-f",
                 //"-c",
                 //  41 - lab fortimanager

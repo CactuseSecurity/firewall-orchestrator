@@ -26,16 +26,19 @@ def api_call(url, command, json_payload, sid, ssl_verification='', proxy_string=
             exception_text = "error while sending api_call to url '" + str(url) + "' with payload '" + json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2)
         raise Exception(exception_text)
     result_json = r.json()
-    if 'result' not in result_json or len(result_json['result'])<1 or 'status' not in result_json['result'][0] or 'code' not in result_json['result'][0]['status'] or result_json['result'][0]['status']['code'] != 0:
+    if 'result' not in result_json or len(result_json['result'])<1:
         if 'pass' in json.dumps(json_payload):
             raise Exception("error while sending api_call containing credential information to url '" + str(url))
         else:
             if 'status' in result_json['result'][0]:
                 raise Exception("error while sending api_call to url '" + str(url) + "' with payload '" +
-                          json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2) + ', result=' + json.dumps(r.json()['result'][0]['status'], indent=2))
+                        json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2) + ', result=' + json.dumps(r.json()['result'][0]['status'], indent=2))
             else:
                 raise Exception("error while sending api_call to url '" + str(url) + "' with payload '" +
-                          json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2) + ', result=' + json.dumps(r.json()['result'][0], indent=2))
+                        json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2) + ', result=' + json.dumps(r.json()['result'][0], indent=2))
+    if 'status' not in result_json['result'][0] or 'code' not in result_json['result'][0]['status'] or result_json['result'][0]['status']['code'] != 0:
+        # trying to ignore empty results as valid
+        pass # logging.warning('received empty result')
     if debug>2:
         if 'pass' in json.dumps(json_payload):
             logging.debug("api_call containing credential information to url '" + str(url) + " - not logging query")
@@ -45,7 +48,7 @@ def api_call(url, command, json_payload, sid, ssl_verification='', proxy_string=
 
         if show_progress:
             print('.', end='', flush=True)
-    return r.json()
+    return result_json
 
 
 def login(user, password, api_host, api_port, domain, ssl_verification, proxy_string, debug=0):

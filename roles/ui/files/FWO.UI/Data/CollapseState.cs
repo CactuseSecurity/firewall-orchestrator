@@ -9,10 +9,16 @@ namespace FWO.Ui.Data
     public class CollapseState
     {
         public event NotifyCollapse? OnCollapseAll;
+        public event NotifyCollapse? OnExpandAll;
 
         public void CollapseAll()
         {
             OnCollapseAll?.Invoke();
+        }
+
+        public void ExpandAll()
+        {
+            OnExpandAll?.Invoke();
         }
     }
 }

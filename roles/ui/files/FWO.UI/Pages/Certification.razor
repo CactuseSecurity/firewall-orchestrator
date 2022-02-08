@@ -14,58 +14,48 @@
 
 @* ==== LEFT SIDEBAR ==== *@
 <Sidebar @ref="deviceSelectionSidebar" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth">
-    
-    <div class="d-flex flex-row flex-wrap mb-2">
-        <div class="mr-3">
-            <div class="input-group input-group-sm">
-                <table style="margin-left: 10px; margin-top: 10px;">
-                    <tr>
-                        <td>
-                            <div class="input-group-prepend">
-                                <label for="inputGroupSelect01">@(userConfig.GetText("due_within")):</label>
-                            </div>
-                        </td>
-                        <td>
-                            <input id="inputGroupSelect01" type="text" class="form-control form-control-sm" @bind="recertificationDisplayPeriod" />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="input-group-append">
-                                @if (processing == false)
-                                {
-                                    <button class="btn btn-sm btn-primary" @onclick="() => GenerateRecertificationReport()">@(userConfig.GetText("load_rules"))</button>
-                                }
-                                else
-                                {
-                                    <button class="btn btn-sm btn-danger" @onclick="() => CancelGeneration()">@(userConfig.GetText("stop_fetching"))</button>
-                                }
-                            </div>
-                        </td>
-                        <td>
-                            <AuthorizeView Roles="admin, recertifier">
-                                <Authorized>
-                                    <button class="btn btn-sm btn-primary" @onclick="() => RequestExecuteSelected()">@(userConfig.GetText("execute_selected"))</button>
-                                </Authorized>
-                                <NotAuthorized>
-                                    <button class="btn btn-sm btn-dark" disabled>@(userConfig.GetText("execute_selected"))</button>
-                                </NotAuthorized>
-                            </AuthorizeView>
-                        </td>
-                    </tr>
-                </table>
-            </div>
-        </div>
+    <br>
+    <div class="btn-group sticky-marker pl-3 pr-3 w-100">
+        @if (processing == false)
+        {
+            <button class="btn btn-sm btn-primary" @onclick="() => GenerateRecertificationReport()">@(userConfig.GetText("load_rules"))</button>
+        }
+        else
+        {
+            <button class="btn btn-sm btn-danger" @onclick="() => CancelGeneration()">@(userConfig.GetText("stop_fetching"))</button>
+        }
+        <br>
+    </div>
+    <div class="p-3">
+        <h5 class="text-left">@(userConfig.GetText("due_within")):</h5>
+        <input  type="text" class="form-control form-control-sm" @bind="recertificationDisplayPeriod" />
     </div>
 
-    <DeviceSelection DeviceFilter="deviceFilter" @bind-FilterInput="filterInput" @bind-SelectAll="selectAll" ></DeviceSelection>
+    <DeviceSelection Environment="Cert" @bind-DeviceFilter="deviceFilter" @bind-CollapseAll="collapseDevices" @bind-FilterInput="filterInput" @bind-SelectAll="selectAll" ></DeviceSelection>
 </Sidebar>
 
 @* ==== MAIN MIDDLE SECTION ==== *@
 
 <div style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px");">
     <h3>@(userConfig.GetText("recertification"))</h3>
-
+    <div class="btn-group sticky-marker-60">
+        <AuthorizeView Roles="admin, recertifier">
+            <Authorized>
+                @if(rulesFound)
+                {
+                    <button class="btn btn-sm btn-danger" @onclick="() => RequestExecuteSelected()">@(userConfig.GetText("execute_selected"))</button>
+                }
+                else
+                {
+                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("execute_selected"))</button>
+                }
+            </Authorized>
+            <NotAuthorized>
+                <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("execute_selected"))</button>
+            </NotAuthorized>
+        </AuthorizeView>
+    </div>
+    <hr />
     <RulesReport Recertification="true" Managements="managements" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedRules"></RulesReport>
 </div>
 
@@ -99,28 +89,32 @@
         <CascadingValue Value="anchorNavToRSB">
             <TabSet KeepPanelsAlive="true" @ref="rsbTabset">
                 <Tab Title="Report">
-                    <div class="d-md-flex justify-content-md-end">
-                        <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseControlObjects.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
+                    <div class="d-md-flex justify-content-md-end sticky-marker-45 bg-white">
+                        <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseControlObjects.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
                     </div>
-                    <CascadingValue Value="collapseControlObjects">
-                        <ObjectGroupCollection FetchObjects="FetchContent" Recert="true" Tab="report" InputDataType="Management" Data="managements.Where(m => (m.Devices.Where(d => d.Rules != null && d.Rules.Count() > 0).Count() > 0))" NameExtractor="man => man.Name"
-                                            NetworkObjectExtractor="man => man.ReportObjects?.Select(ro => ro.Content).ToArray()"
-                                            NetworkServiceExtractor="man => man.ReportServices?.Select(rs => rs.Content).ToArray()"
-                                            NetworkUserExtractor="man => man.ReportUsers?.Select(ru => ru.Content).ToArray()" />
-                    </CascadingValue>
+                    <div class="mt-2">
+                        <CascadingValue Value="collapseControlObjects">
+                            <ObjectGroupCollection FetchObjects="FetchContent" Recert="true" Tab="report" InputDataType="Management" Data="managements.Where(m => (m.Devices.Where(d => d.Rules != null && d.Rules.Count() > 0).Count() > 0))" NameExtractor="man => man.Name"
+                                                NetworkObjectExtractor="man => man.ReportObjects?.Select(ro => ro.Content).ToArray()"
+                                                NetworkServiceExtractor="man => man.ReportServices?.Select(rs => rs.Content).ToArray()"
+                                                NetworkUserExtractor="man => man.ReportUsers?.Select(ru => ru.Content).ToArray()" />
+                        </CascadingValue>
+                    </div>
                 </Tab>
                 <Tab Title="@(userConfig.GetText("rule"))">
-                    <div class="d-md-flex justify-content-md-between">
-                        <div class="btn btn-dark btn-sm mb-2" @onclick="@(() => selectedRules.Clear())">@(userConfig.GetText("clear_all"))</div>
-                        <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseControlObjects.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
+                    <div class="d-md-flex justify-content-md-between sticky-marker-45 bg-white">
+                        <div class="btn btn-dark btn-sm w-50" @onclick="@(() => selectedRules.Clear())">@(userConfig.GetText("clear_all"))</div>
+                        <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseControlObjects.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
                     </div>
-                    <CascadingValue Value="collapseControlObjects">
-                        <ObjectGroupCollection FetchObjects="FetchContent" Recert="true" Tab="rule" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule" Data="selectedRules"
-                                            NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
-                                            NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object).Union(rule.Tos.Select(nl => nl.Object)).ToArray()"
-                                            NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
-                                            NetworkUserExtractor="rule => Array.FindAll(rule.Froms.Select(nl => nl.User).Distinct().ToArray(), user => user != null)" />
-                    </CascadingValue>
+                    <div class="mt-2">
+                        <CascadingValue Value="collapseControlObjects">
+                            <ObjectGroupCollection FetchObjects="FetchContent" Recert="true" Tab="rule" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule" Data="selectedRules"
+                                                NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
+                                                NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object).Union(rule.Tos.Select(nl => nl.Object)).ToArray()"
+                                                NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
+                                                NetworkUserExtractor="rule => Array.FindAll(rule.Froms.Select(nl => nl.User).Distinct().ToArray(), user => user != null)" />
+                        </CascadingValue>
+                    </div>
                 </Tab>
             </TabSet>
         </CascadingValue>
@@ -138,22 +132,24 @@
     private AnchorNavToRSB? anchorNavToRSB;
 
     private const int rulesPerPage = 0;
-    private int elementsPerFetch = 100;
-    private int maxInitFetchRightSidebar = 20;
+    private int elementsPerFetch = GlobalConfig.kDefaultInitElementsPerFetch;
+    private int maxInitFetchRightSidebar = GlobalConfig.kDefaultInitMaxInitFetch;
     private bool autoFillRightSidebar;
 
-    private int recertificationPeriod = 365;
-    private int recertificationNoticePeriod = 30;
-    private int recertificationDisplayPeriod = 30;
-    private int ruleRemovalGracePeriod = 60;
+    private int recertificationPeriod = GlobalConfig.kDefaultInitRecertificationPeriod;
+    private int recertificationNoticePeriod = GlobalConfig.kDefaultInitRecertificationNoticePeriod;
+    private int recertificationDisplayPeriod = GlobalConfig.kDefaultInitRecertificationDisplayPeriod;
+    private int ruleRemovalGracePeriod = GlobalConfig.kDefaultInitRuleRemovalGracePeriod;
     private bool commentRequired = false;
 
-    private int sidebarLeftWidth = 300;
-    private int sidebarRightWidth = 300;
+    private int sidebarLeftWidth = GlobalConfig.kSidebarLeftWidth;
+    private int sidebarRightWidth = GlobalConfig.kSidebarRightWidth;
     private bool selectAll = true;
+    private int minCollapseAllDevices = GlobalConfig.kDefaultInitCollapseFrom;
 
     private string filterInput = "remove=false and recertdisplay=0";
     private bool processing = false;
+    private bool rulesFound = false;
     private CancellationTokenSource tokenSource = new CancellationTokenSource();
  
     private Management[] managements = new Management[0];
@@ -161,6 +157,7 @@
 
     private DeviceFilter deviceFilter = new DeviceFilter();
     private List<Rule> selectedRules = new List<Rule>();
+    private bool collapseDevices = false;
     private CollapseState collapseControlObjects = new CollapseState();
 
     private ReportBase? currentReport;
@@ -169,6 +166,7 @@
     // private bool fullDeviceActionIsSelect = true;
     private bool AddCommentMode = false;
     private string actComment = "";
+    private bool anythingFound = false;
 
     protected override void OnInitialized()
     {
@@ -177,9 +175,15 @@
             try
             {
                 GetSettings();
+                rulesFound = false;
 
                 deviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
                 await InvokeAsync(StateHasChanged);
+                if (deviceFilter.NumberMgmtDev() > minCollapseAllDevices)
+                {
+                    collapseDevices = true;
+                    await InvokeAsync(StateHasChanged);
+                }
 
 //                PaginationVariables paginationVariables = new PaginationVariables() { Limit = 0, Offset = 0 };
 //                managementsObjects = await apiConnection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
@@ -234,6 +238,10 @@
             PrepareMetadata();
             processing = false;
             await InvokeAsync(StateHasChanged);
+            if(!rulesFound)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
+            }
         }
         catch (Exception exception)
         {
@@ -257,6 +265,7 @@
 
     private void PrepareMetadata()
     {
+        rulesFound = false;
         foreach (Management management in managements)
         {
             foreach (Device device in management.Devices)
@@ -265,6 +274,7 @@
                 {
                     foreach (Rule rule in device.Rules)
                     {
+                        rulesFound = true;
                         if (rule.Metadata.LastCertifierDn != null && rule.Metadata.LastCertifierDn != "")
                         {
                             rule.Metadata.LastCertifierName = (new FWO.Api.Data.DistName(rule.Metadata.LastCertifierDn)).UserName;
@@ -503,6 +513,7 @@
             GetIntSetting(ref recertificationDisplayPeriod, GlobalConfig.kRecertificationDisplayPeriod);
             GetIntSetting(ref ruleRemovalGracePeriod, GlobalConfig.kRuleRemovalGracePeriod);
             GetBoolSetting(ref commentRequired, GlobalConfig.kCommentRequired);
+            GetIntSetting(ref minCollapseAllDevices, GlobalConfig.kMinCollapseAllDevices);
         }
         catch (Exception exception)
         {

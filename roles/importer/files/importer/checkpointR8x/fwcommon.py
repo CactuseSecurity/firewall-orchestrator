@@ -81,13 +81,19 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
 
             # parse access rules
             rule_num = parse_rule.parse_rulebase_json(
-                full_config['rulebases'][rb_id], target_rulebase, full_config['rulebases'][rb_id]['layername'], current_import_id, rule_num, section_header_uids, parent_uid)
+                full_config['rulebases'][rb_id], target_rulebase, full_config['rulebases'][rb_id]['layername'], 
+                current_import_id, rule_num, section_header_uids, parent_uid)
             # now parse the nat rulebase
 
             # parse nat rules
             if len(full_config['nat_rulebases'])>0:
-                rule_num = parse_rule.parse_nat_rulebase_json(
-                    full_config['nat_rulebases'][rb_id], target_rulebase, full_config['rulebases'][rb_id]['layername'], current_import_id, rule_num, section_header_uids, parent_uid)
+                if len(full_config['nat_rulebases']) != len(rb_range):
+                    logging.warning('get_config - found ' + str(len(full_config['nat_rulebases'])) +
+                        ' nat rulebases and ' +  str(len(rb_range)) + ' rulebases')
+                else:
+                    rule_num = parse_rule.parse_nat_rulebase_json(
+                        full_config['nat_rulebases'][rb_id], target_rulebase, full_config['rulebases'][rb_id]['layername'], 
+                        current_import_id, rule_num, section_header_uids, parent_uid)
         config2import.update({'rules': target_rulebase})
 
         # copy users from full_config to config2import

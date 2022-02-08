@@ -54,7 +54,7 @@ namespace FWO.Report.Filter.Ast
         private DynGraphqlQuery ExtractRemoveFilter(DynGraphqlQuery query)
         {
             string queryVarName = AddVariable<bool>(query, "remove", Operator.Kind, semanticValue);
-            query.ruleWhereStatement += $"rule_metadata: {{rule_to_be_removed: {{ {ExtractOperator()}: ${queryVarName} }}}}";
+            query.ruleWhereStatement += $"rule_metadatum: {{rule_to_be_removed: {{ {ExtractOperator()}: ${queryVarName} }}}}";
             return query;
         }
 

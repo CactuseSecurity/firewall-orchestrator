@@ -20,7 +20,7 @@
         <Column TableItem="ImportStatus" Title="@(userConfig.GetText("action"))" Field="(x => x.MgmId)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
-                    <button class="btn btn-sm btn-primary" @onclick="() => Details(context)">@(userConfig.GetText("details"))</button>
+                    <button class="btn btn-sm btn-secondary" @onclick="() => Details(context)">@(userConfig.GetText("details"))</button>
                 </div>
             </Template>
         </Column>

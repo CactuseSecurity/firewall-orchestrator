@@ -338,6 +338,8 @@ INSERT INTO txt VALUES ('no_of_rules',		    'German', 	'Anzahl Regeln');
 INSERT INTO txt VALUES ('no_of_rules',		    'English', 	'Number of Rules');
 INSERT INTO txt VALUES ('collapse_all',		    'German', 	'Alles einklappen');
 INSERT INTO txt VALUES ('collapse_all',		    'English', 	'Collapse all');
+INSERT INTO txt VALUES ('expand_all',	        'German', 	'Alles ausklappen');
+INSERT INTO txt VALUES ('expand_all',		    'English', 	'Expand all');
 INSERT INTO txt VALUES ('all',		            'German', 	'Alle');
 INSERT INTO txt VALUES ('all',		            'English', 	'All');
 INSERT INTO txt VALUES ('rule',		            'German', 	'Regel');
@@ -728,6 +730,8 @@ INSERT INTO txt VALUES ('maxInitialFetchesRightSidebar','German','Max initiale A
 INSERT INTO txt VALUES ('maxInitialFetchesRightSidebar','English','Max initial fetches right sidebar');
 INSERT INTO txt VALUES ('autoFillRightSidebar', 'German', 	'Komplettes F&uuml;llen rechte Randleiste');
 INSERT INTO txt VALUES ('autoFillRightSidebar', 'English', 	'Completely auto-fill right sidebar');
+INSERT INTO txt VALUES ('minCollapseAllDevices','German', 	'Devices zu Beginn eingeklappt ab');
+INSERT INTO txt VALUES ('minCollapseAllDevices','English', 	'Devices collapsed at beginning from');
 INSERT INTO txt VALUES ('dataRetentionTime',    'German', 	'Datenaufbewahrungszeit (in Tagen)');
 INSERT INTO txt VALUES ('dataRetentionTime',    'English', 	'Data retention time (in days)');
 INSERT INTO txt VALUES ('importSleepTime',      'German', 	'Importintervall (in Sekunden)');
@@ -1073,6 +1077,8 @@ INSERT INTO txt VALUES ('E2001', 'English', 'Please select a template');
 
 INSERT INTO txt VALUES ('E4001', 'German',  'Bitte Kommentar hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('E4001', 'English', 'Please insert a comment');
+INSERT INTO txt VALUES ('E4002', 'German',  'Keine Regeln f&uuml;r die gew&auml;hlten Kriterien gefunden');
+INSERT INTO txt VALUES ('E4002', 'English', 'No rules found for given criteria');
 
 INSERT INTO txt VALUES ('E5101', 'German',  'L&ouml;schen des Managements nicht erlaubt, da noch Gateways zugeordnet sind. Diese zuerst l&ouml;schen wenn m&ouml;glich');
 INSERT INTO txt VALUES ('E5101', 'English', 'Deletion of management not allowed as there are related Gateways. Delete them first if possible');

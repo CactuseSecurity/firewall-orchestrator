@@ -43,6 +43,7 @@ app {
     position: fixed;
     top: 56px;
     height: 95%;
+    z-index: 10;
 }
 
 .sidebar-sizer {
@@ -146,8 +147,36 @@ app {
     z-index: 1;
   }
 
+.sticky-group .sticky-marker {
+    position: sticky;
+    top: 5px;
+    z-index: 2;
+  }
+
+.sticky-group-35 .sticky-marker-35 {
+    position: sticky;
+    top: 35px;
+    z-index: 2;
+  }
+
+.sticky-group-40 .sticky-marker-45 {
+    position: sticky;
+    top: 45px;
+    z-index: 2;
+  }
+
+.sticky-group-60 .sticky-marker-60 {
+    position: sticky;
+    top: 60px;
+    z-index: 2;
+  }
+
 .vheight75 {
     height: 75vh
+}
+
+.vheight100 {
+    height: 100vh
 }
 
 .background-upcoming {
@@ -167,4 +196,8 @@ app {
 
 .temp-highlight {
     background-color: #a4d7f5;
+}
+
+.nav-tabs {
+    background-color: #d6d5d5;
 }

@@ -97,12 +97,16 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
 
 def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, limit, debug_level):
     # get network information (also needed for source nat)
-    adom_scope = 'adom/'+adom_name
-    fmgr_getter.update_config_with_fortinet_api_call(
-        raw_config, sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/dynamic/interface", "interfaces-dynamic", debug=debug_level, limit=limit)
+    # adom_scope = 'adom/'+adom_name
+    # fmgr_getter.update_config_with_fortinet_api_call(
+    #     raw_config, sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/dynamic/interface", "interfaces-dynamic", debug=debug_level, limit=limit)
 
     # get interfaces via encapsulated call to FortiOS on FortiGate
     # (https://fndn.fortinet.net/index.php?/forums/topic/2938-get-interface-status-not-administrative-status-from-api/&tab=comments#comment-11344)
+    # obsolete
+
+    # strip off vdom names, just deal with the plain device
+    device_array = []
     for dev in devices:
         dev_name = dev["name"]
         vdom_str = ""
@@ -112,18 +116,10 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
             vdom_name = dev_name_ar.pop()
             vdom_str = "&vdom="+vdom_name
             dev_name = "_".join(dev_name_ar)
-        # "resource": "/api/v2/monitor/system/interface/select?&include_vlan=1&"
-        # payload = {
-        #     "params": [
-        #         {
-        #             "data": {
-        #                 "target": [ "adom/"+ adom_name + "/device/" + dev_name ],
-        #                 "action": "get",
-        #                 "resource": "/api/v2/monitor/system/interface/select?&include_vlan=1" + vdom_str
-        #             }
-        #         }
-        #     ]
-        # }
+
+        device_array.append(dev_name)
+
+    for dev_name in device_array:
 
         payload = {
             "id": 1,
@@ -187,17 +183,17 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
         try:
             fmgr_getter.update_config_with_fortinet_api_call(
                 raw_config, sid, fm_api_url, "/pm/config/device/" + dev_name + "/global/system/interface",
-                "interfaces_per_device/dev:" + dev_name, payload=payload, debug=debug_level, limit=limit, method="get")
+                "interfaces_per_device/" + dev_name, payload=payload, debug=debug_level, limit=limit, method="get")
         except:
             logging.warning("import_management - error while getting interfaces of device " + dev_name + ", ignoring, traceback: " + str(traceback.format_exc()))
-        if vdom_name != 'undefined':
-            try:
-                fmgr_getter.update_config_with_fortinet_api_call(
-                    raw_config, sid, fm_api_url, "/pm/config/device/" + vdom_name + "/global/system/interface",
-                    "interfaces_per_vdom/dev:" + dev_name + "/vdom:" + vdom_name,
-                    payload=payload, debug=debug_level, limit=limit, method="get")
-            except:
-                logging.warning("import_management - error while getting vdom interfaces of device " + vdom_name + ", ignoring, traceback: " + str(traceback.format_exc()))
+        # if vdom_name != 'undefined':
+        #     try:
+        #         fmgr_getter.update_config_with_fortinet_api_call(
+        #             raw_config, sid, fm_api_url, "/pm/config/device/" + vdom_name + "/global/system/interface",
+        #             "interfaces_per_vdom/dev:" + dev_name + "/vdom:" + vdom_name,
+        #             payload=payload, debug=debug_level, limit=limit, method="get")
+        #     except:
+        #         logging.warning("import_management - error while getting vdom interfaces of device " + vdom_name + ", ignoring, traceback: " + str(traceback.format_exc()))
 
         for ip_version in ["ipv4", "ipv6"]:
             payload = {
@@ -211,11 +207,11 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
                     }
                 ]
             }
+
             try:
                 fmgr_getter.update_config_with_fortinet_api_call(
                     raw_config, sid, fm_api_url, "/sys/proxy/json",
-                    "routing-table-" + ip_version + "/adom:" + adom_name +
-                    "/device:" + dev_name + "/vdom:" + vdom_name,
+                    "routing-table-" + ip_version + '/' + dev_name,
                     payload=payload, debug=debug_level, limit=limit, method="exec")
             except:
                 logging.warning(

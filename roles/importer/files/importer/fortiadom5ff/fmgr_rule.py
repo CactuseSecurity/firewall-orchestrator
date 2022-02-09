@@ -93,6 +93,14 @@ def normalize_access_rules(full_config, config2import, import_id, jwt=None):
         src_ref_all = resolve_raw_objects("all", list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id)
         dst_ref_all = resolve_raw_objects("all", list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id)
         for localPkgName in full_config[rule_table]:
+
+            # get routing table
+            ip_version = 'ipv4' if 'v4' in rule_table else 'ipv6'
+
+            if ip_version == 'ipv4':
+                routing_table = full_config['routing-table-' + ip_version + '/' + localPkgName]
+            # assuming no NAT for ipv6
+
             rule_number, first_v4, first_v6 = insert_headers(rule_table, first_v6, first_v4, full_config, rules, import_id, localPkgName,src_ref_all,dst_ref_all,rule_number)
 
             for rule_orig in full_config[rule_table][localPkgName]:
@@ -322,6 +330,7 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, im
             if rule_orig['ippool']==0:  # hiding behind outbound interface
                 # logging.debug("found outbound interface hide nat rule") # needs to be checked
                 if 'dstintf' in rule_orig:
+                    # plan: lookup in routing table, which interface the dst-ip is routed out of and use this interface's IP as new src
                     if len(rule_orig['dstintf'])==0:
                         logging.warning("found empty nat hiding interface list")
                     elif len(rule_orig['dstintf'])>1:

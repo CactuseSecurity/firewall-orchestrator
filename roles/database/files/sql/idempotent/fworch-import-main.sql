@@ -86,7 +86,7 @@
 					all broken refs are returned as a string
 	}  */
 
-DROP FUNCTION IF EXISTS public.import_all_main;
+DROP FUNCTION IF EXISTS public.import_all_main(BIGINT);
 CREATE OR REPLACE FUNCTION public.import_all_main(BIGINT)
   RETURNS VARCHAR AS
 $BODY$

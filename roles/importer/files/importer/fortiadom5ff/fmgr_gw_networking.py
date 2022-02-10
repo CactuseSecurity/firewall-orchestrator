@@ -5,6 +5,7 @@ import netaddr
 # import ipaddress
 from functools import cmp_to_key
 import traceback
+import json
 
 def normalize_network_data(native_config, normalized_config, mgm_details):
 
@@ -190,7 +191,7 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
     device_array = get_device_names_plus_one_vdom(devices)
 
     for dev_name, vdom_name in device_array:
-
+        logging.info("dev_name: " + dev_name + ", vdom_name: " + vdom_name)
         payload = {
             "id": 1,
             "params": [
@@ -273,6 +274,7 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
                     raw_config.update({ "routing-table-" + ip_version + '/' + dev_name: routing_helper[0]['response']['results']})
                 else:
                     logging.warning("import_management - error while getting routing table of device " + dev_name + ", ignoring")
+                    logging.info("got the following response: " + json.dumps(routing_helper))
                     raw_config.update({"routing-table-" + ip_version + '/' + dev_name: []})
             except:
                 logging.warning(

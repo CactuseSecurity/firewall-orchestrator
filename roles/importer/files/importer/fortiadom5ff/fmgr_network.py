@@ -160,4 +160,17 @@ def remove_nat_ip_entries(config2import):
     for obj in config2import['network_objects']:
         if 'obj_nat_ip' in obj:
             obj.pop('obj_nat_ip')
-            
+
+
+def get_first_ip_of_destination(obj_ref, config2import):
+
+    if list_delimiter in obj_ref:
+        obj_ref = obj_ref.split(list_delimiter)[0]
+        # if destination does not contain exactly one ip, raise a warning 
+        logging.warning('src nat behind interface: more than one NAT IP - just using the first one for routing decision')
+
+    for obj in config2import['network_objects']:
+        if 'obj_uid' in obj and obj['obj_uid']==obj_ref:
+            return obj['obj_ip']
+    logging.warning('src nat behind interface: found no IP info for destination object ' + obj_ref)
+    return None

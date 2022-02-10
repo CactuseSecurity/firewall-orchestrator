@@ -176,7 +176,6 @@ def get_device_names_plus_one_vdom(devices):
     device_array_with_vdom = []
     for dev in devices:
         dev_name = strip_off_last_part(dev["name"])
-        device_array.append(dev_name)
         vdom_name = get_last_part(dev["name"])
         if dev_name not in device_array:
             device_array.append(dev_name)

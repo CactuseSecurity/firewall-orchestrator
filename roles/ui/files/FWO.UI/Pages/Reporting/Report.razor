@@ -50,7 +50,7 @@
         </div>
     </form>
 
-    <div class="btn-group sticky-marker-60">
+    <div class="btn-group sticky-marker-60" style="z-index: 16;">
         @if (processing == false)
         {
             <button class="btn btn-sm btn-primary" @onclick="GenerateReport">@(userConfig.GetText("generate_report"))</button>

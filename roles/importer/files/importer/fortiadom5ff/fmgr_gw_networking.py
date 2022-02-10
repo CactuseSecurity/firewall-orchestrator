@@ -269,7 +269,7 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
                     routing_helper, sid, fm_api_url, "/sys/proxy/json",
                     "routing-table-" + ip_version + '/' + dev_name,
                     payload=payload, debug=debug_level, limit=limit, method="exec")
-                if 0 in routing_helper and 'response' in routing_helper[0] and 'results' in routing_helper[0]['response']:
+                if len(routing_helper)>0 and 'response' in routing_helper[0] and 'results' in routing_helper[0]['response']:
                     raw_config.update({ "routing-table-" + ip_version + '/' + dev_name: routing_helper[0]['response']['results']})
                 else:
                     logging.warning("import_management - error while getting routing table of device " + dev_name + ", ignoring")

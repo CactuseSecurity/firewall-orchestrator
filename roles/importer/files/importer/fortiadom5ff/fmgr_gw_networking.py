@@ -142,13 +142,21 @@ def sort_reverse(ar_in, key):
 
 
 # strip off vdom name, just deal with the plain device
-def strip_off_last_part(device_including_vdom, separator='_'):
-    plain_dev_name = device_including_vdom
-    if separator in device_including_vdom:  # strip off _vdom_name
-        dev_name_ar = device_including_vdom.split(separator)
-        dev_name_ar.pop()
-        plain_dev_name = separator.join(dev_name_ar)
-    return plain_dev_name
+def strip_off_last_part(string_in, separator='_'):
+    string_out = string_in
+    if separator in string_in:  # strip off final _xxx part
+        str_ar = string_in.split(separator)
+        str_ar.pop()
+        string_out = separator.join(str_ar)
+    return string_out
+
+
+def get_last_part(string_in, separator='_'):
+    string_out = ''
+    if separator in string_in:  # strip off _vdom_name
+        str_ar = string_in.split(separator)
+        string_out = str_ar.pop()
+    return string_out
 
 
 def get_plain_device_names_without_vdoms(devices):
@@ -160,35 +168,28 @@ def get_plain_device_names_without_vdoms(devices):
     return device_array
 
 
-# def parse_routing_table(full_config, mgm_details):
-#     if 'devices' in mgm_details:
-#         device_array = get_plain_device_names_without_vdoms(mgm_details['devices'])
-#         for dev in device_array:
-#             # get routing table
-
-#             # ip_version = 'ipv4' if 'v4' in rule_table else 'ipv6'
-
-#             if ip_version == 'ipv4':
-#                 pass #routing_table = full_config['routing-table-' + ip_version + '/' + localPkgName]  ## needs to be device name
-#             # assuming no NAT for ipv6
-#     return routing_table
-
-
-# def parse_interfaces(full_config, dev_name):
-#     raw_interfaces = full_config['interfaces_per_device/' + dev_name]
-#     if_parsed = []
-#     for interface in raw_interfaces:
-#         if_parsed.append({'name': interface['name'], 'ip': interface['ip']})
-#     return if_parsed
+# only getting one vdom as currntly assuming routing to be
+# the same for all vdoms on a device
+def get_device_names_plus_one_vdom(devices):
+    device_array = []
+    device_array_with_vdom = []
+    for dev in devices:
+        dev_name = strip_off_last_part(dev["name"])
+        device_array.append(dev_name)
+        vdom_name = get_last_part(dev["name"])
+        if dev_name not in device_array:
+            device_array.append(dev_name)
+            device_array_with_vdom.append([dev_name, vdom_name])
+    return device_array_with_vdom
 
 
 # get network information (currently only used for source nat)
 def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, limit, debug_level):
 
     # strip off vdom names, just deal with the plain device
-    device_array = get_plain_device_names_without_vdoms(devices)
+    device_array = get_device_names_plus_one_vdom(devices)
 
-    for dev_name in device_array:
+    for dev_name, vdom_name in device_array:
 
         payload = {
             "id": 1,
@@ -256,29 +257,12 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
                 "interfaces_per_device/" + dev_name, payload=payload, debug=debug_level, limit=limit, method="get")
         except:
             logging.warning("import_management - error while getting interfaces of device " + dev_name + ", ignoring, traceback: " + str(traceback.format_exc()))
-        # if vdom_name != 'undefined':
-        #     try:
-        #         fmgr_getter.update_config_with_fortinet_api_call(
-        #             raw_config, sid, fm_api_url, "/pm/config/device/" + vdom_name + "/global/system/interface",
-        #             "interfaces_per_vdom/dev:" + dev_name + "/vdom:" + vdom_name,
-        #             payload=payload, debug=debug_level, limit=limit, method="get")
-        #     except:
-        #         logging.warning("import_management - error while getting vdom interfaces of device " + vdom_name + ", ignoring, traceback: " + str(traceback.format_exc()))
 
         for ip_version in ["ipv4", "ipv6"]:
-            payload = {
-                "params": [
-                    {
-                        "data": {
+            payload = { "params": [ { "data": {
                             "target": ["adom/" + adom_name + "/device/" + dev_name],
                             "action": "get",
-                            "resource": "/api/v2/monitor/router/" + ip_version
-                            # "resource": "/api/v2/monitor/router/" + ip_version + "/select?" + vdom_str
-                        }
-                    }
-                ]
-            }
-
+                            "resource": "/api/v2/monitor/router/" + ip_version + "/select?" + vdom_name } } ] }
             try:    # get routing table
                 routing_helper = {}
                 fmgr_getter.update_config_with_fortinet_api_call(
@@ -306,8 +290,8 @@ def get_device_from_package(package_name, mgm_details):
 
 
 def test_if_default_route_exists(routing_table):
-    for r in routing_table:
-        logging.info(r['destination'])
+    # for r in routing_table:
+    #     logging.info(r['destination'])
     default_route_v4 = list(filter(lambda default_route: default_route['destination'] == '0.0.0.0/0', routing_table))
     default_route_v6 =  list(filter(lambda default_route: default_route['destination'] == '::/0', routing_table))
     if default_route_v4 == [] and default_route_v6 == []:

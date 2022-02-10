@@ -2,6 +2,76 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "c#-MiddlewareServer",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build_middleware",
+            "enableStepFiltering": false,
+            "program": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server/bin/Debug/net6.0/FWO.Middleware.Server.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server",
+            "console": "internalConsole",
+            "stopAtEntry": false,
+            "requireExactSource": false,
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+                "uriFormat": "%s/swagger"
+            }
+        },
+        {
+            "name": "c#-Blazor UI",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build_UI",
+            "program": "${workspaceFolder}/roles/ui/files/FWO.UI/bin/Debug/net6.0/FWO.Ui.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/roles/ui/files/FWO.UI",
+            "stopAtEntry": false,
+            "requireExactSource": false,
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+            },
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            },
+            "sourceFileMap": {
+                "/Views": "${workspaceFolder}/Views"
+            }
+        },
+        {
+            "name": "py-import-mgm",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/import-mgm.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-m4",
+                "-d4",
+                "-f",
+                //"-c",
+                //  41 - lab fortimanager
+                //"-i/home/tim/tmp/configs/mgm_id_56_config_native.json.anon", // all rules, all objs local mgm_id 4
+                // "-i/home/tim/tmp/configs/mgm_id_56_config_native.json.anon", // 30k rules, local mgm_id 45
+                //"-i/home/tim/tmp/configs/mgm_id_52_config_native.json.anon", // many gateways, local mgm_id 49
+                //"-i/home/tim/tmp/configs/mgm_id_53_config_native.json.anon", // 1500 rules, 450 NAT rules, local mgm_id 4
+                //"-i/home/tim/tmp/configs/mgm_id_12_config_native.json",
+                // "-i/home/tim/tmp/configs/m56-single-broken-rule.json", // 3 rules, very few objs local mgm_id 45
+                //"-i/home/tim/tmp/configs/m56-single-rule.json", // 3 rules, local mgm_id 45
+                //"-i/home/tim/tmp/configs/mgm_id_45_config_native.json.anon", // 3 rules, local mgm_id 45
+                //"-i/home/tim/tmp/configs/mgm_id_12_config_native.json",
+                "-i/home/tim/tmp/configs/mgm_id_53_config_native.json.anon",
+                // "-i/home/tim/tmp/configs/m56_1sthalf.json", // half of 30k rules, local mgm_id 45
+                //"-i/home/tim/tmp/configs/mgm_id_1176_config_native.json.anon_error_in_fprs100-s999-rz99-xxx-PolicyNetwork.anon",
+                //"-i/home/tim/tmp/configs/mgm_id_1176_config_native.json.anon_error_in_fprs100-s999-rz99-xxx-PolicyNetwork.anon-with-broken-svc",
+                "-l250"
+            ]
+        },
+        {
             "name": "py-change-comment",
             "type": "python",
             "request": "launch",
@@ -88,37 +158,6 @@
                 "-llayer1",
                 "-d1",
                 "-o/tmp/outfile"
-            ]
-        },
-        {
-            "name": "py-import-mgm",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/roles/importer/files/importer/import-mgm.py",
-            "console": "integratedTerminal",
-            "env": {
-                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
-            },
-            "args": [
-                "-m4",
-                "-d0",
-                "-f",
-                //"-c",
-                //  41 - lab fortimanager
-                //"-i/home/tim/tmp/configs/mgm_id_56_config_native.json.anon", // all rules, all objs local mgm_id 4
-                // "-i/home/tim/tmp/configs/mgm_id_56_config_native.json.anon", // 30k rules, local mgm_id 45
-                //"-i/home/tim/tmp/configs/mgm_id_52_config_native.json.anon", // many gateways, local mgm_id 49
-                //"-i/home/tim/tmp/configs/mgm_id_53_config_native.json.anon", // 1500 rules, 450 NAT rules, local mgm_id 4
-                //"-i/home/tim/tmp/configs/mgm_id_12_config_native.json",
-                // "-i/home/tim/tmp/configs/m56-single-broken-rule.json", // 3 rules, very few objs local mgm_id 45
-                //"-i/home/tim/tmp/configs/m56-single-rule.json", // 3 rules, local mgm_id 45
-                //"-i/home/tim/tmp/configs/mgm_id_45_config_native.json.anon", // 3 rules, local mgm_id 45
-                //"-i/home/tim/tmp/configs/mgm_id_12_config_native.json",
-                "-i/home/tim/tmp/configs/mgm_id_53_config_native.json.anon",
-                // "-i/home/tim/tmp/configs/m56_1sthalf.json", // half of 30k rules, local mgm_id 45
-                //"-i/home/tim/tmp/configs/mgm_id_1176_config_native.json.anon_error_in_fprs100-s999-rz99-xxx-PolicyNetwork.anon",
-                //"-i/home/tim/tmp/configs/mgm_id_1176_config_native.json.anon_error_in_fprs100-s999-rz99-xxx-PolicyNetwork.anon-with-broken-svc",
-                "-l250"
             ]
         },
         {
@@ -222,49 +261,10 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "c#-Blazor UI",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "build_UI",
-            "program": "${workspaceFolder}/roles/ui/files/FWO.UI/bin/Debug/net6.0/FWO.Ui.dll",
-            "args": [],
-            "cwd": "${workspaceFolder}/roles/ui/files/FWO.UI",
-            "stopAtEntry": false,
-            "requireExactSource": false,
-            "serverReadyAction": {
-                "action": "openExternally",
-                "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
-            },
-            "env": {
-                "ASPNETCORE_ENVIRONMENT": "Development"
-            },
-            "sourceFileMap": {
-                "/Views": "${workspaceFolder}/Views"
-            }
-        },
-        {
             "name": "c#-.NET Core Attach ",
             "type": "coreclr",
             "request": "attach",
             "processId": "${command:pickProcess}"
-        },
-        {
-            "name": "c#-MiddlewareServer",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "build_middleware",
-            "enableStepFiltering": false,
-            "program": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server/bin/Debug/net6.0/FWO.Middleware.Server.dll",
-            "args": [],
-            "cwd": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server",
-            "console": "internalConsole",
-            "stopAtEntry": false,
-            "requireExactSource": false,
-            "serverReadyAction": {
-                "action": "openExternally",
-                "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
-                "uriFormat": "%s/swagger"
-            }
         }
     ]
 }

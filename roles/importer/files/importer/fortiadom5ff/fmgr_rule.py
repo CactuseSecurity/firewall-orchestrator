@@ -339,6 +339,7 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, im
                         destination_interface_ip = '0.0.0.0'
                     else:
                         destination_interface_ip = get_ip_of_interface(matching_route['interface'], config2import['networking'][device_name]['interfaces'])
+                        interface_name = matching_route['interface'] # ['name']
                         if destination_interface_ip is None:
                             logging.warning('src nat behind interface: found no matching interface IP')
                             destination_interface_ip = '0.0.0.0'
@@ -349,10 +350,11 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, im
                         logging.warning("found empty nat hiding interface list")
                     elif len(rule_orig['dstintf'])>1:
                         logging.warning("found more than one nat hiding interface")
-                    hideInterface=rule_orig['dstintf'][0]
+                    hideInterface=interface_name
                     
                     # add dummy object "outbound-interface"
-                    obj_name = localPkgName + '_' + hideInterface
+                    # obj_name = localPkgName + '_' + hideInterface
+                    obj_name = 'hide_IF_ip_' + hideInterface
                     obj_comment = 'FWO auto-generated dummy object for source nat'
                     obj = create_network_object(import_id, obj_name, 'host', destination_interface_ip + '/32', obj_name, 'black', obj_comment, 'global')
                     

@@ -96,7 +96,7 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
     debug_level=int(debug_level)
     secret_filename = ''
     config2import = { "network_objects": [], "service_objects": [], "user_objects": [], "zone_objects": [], "rules": [] }
-    config_changed_since_last_import = False
+    config_changed_since_last_import = True
 
     set_log_level(log_level=debug_level, debug_level=debug_level)
     if ssl == '' or ssl == 'off':
@@ -156,7 +156,7 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
 
         logging.info("starting import of management " + mgm_details['name'] + '(' + str(mgm_id) + "), import_id=" + str(current_import_id))
         full_config_json = {}
-        get_config_response = 0
+        # get_config_response = 0
 
         if clearManagementData:
             logging.info('this import run will reset the configuration of this management to "empty"')
@@ -168,7 +168,7 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
                 except:
                     logging.exception("import_management - error while reading json import from file", traceback.format_exc())        
                     raise
-            # note: we need to run get_config in any case as this function 
+            # note: we need to run get_config in any case (even when importing from a file) as this function 
             # also contains the conversion from native to config2import (parsing)
             
             ### geting config from firewall manager ######################
@@ -271,7 +271,7 @@ def get_config_sub(mgm_details, full_config_json, config2import, jwt, current_im
             with open(normalized_config_filename, "w") as json_data:
                 json_data.write(json.dumps(config2import, indent=2))
 
-            if debug_level>3 and in_file is None:   # do not write native config if we just got it as input file
+            if debug_level>3:
                 full_native_config_filename = import_tmp_path + '/mgm_id_' + \
                     str(mgm_details['id']) + '_config_native.json'
                 with open(full_native_config_filename, "w") as json_data:  # create empty config file

@@ -33,7 +33,8 @@
       loop:
         - libjpeg62
         - libgdiplus
-
+      # - wkhtmltopdf
+      
     - name: create ui dir
       file:
         dest: "{{ ui_dir }}"

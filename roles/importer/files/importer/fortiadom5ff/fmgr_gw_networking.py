@@ -46,32 +46,43 @@ def normalize_network_data(native_config, normalized_config, mgm_details):
             'routingv6': [],
             'interfaces': [],
         }})
-        for route in native_config['routing-table-ipv4/' + dev]:
-            gateway = None if route['gateway']=='0.0.0.0' else route['gateway'] # local network
-            normalized_config['networking'][dev]['routingv4'].append({
-                'destination': route['ip_mask'],
-                'interface': route['interface'],
-                'gateway': gateway,
-                'metric': route['metric'],
-                'distance': route['distance'],
-                'type': route['type']
-            })
-        normalized_config['networking'][dev]['routingv4'] = sort_reverse(normalized_config['networking'][dev]['routingv4'], 'destination')
+
+        if 'routing-table-ipv4/' + dev not in native_config:
+            logging.warning('normalize_network_data: could not find routing data routing-table-ipv4/' + dev)
+            logging.warning('native configs contains the following keys ' + str(native_config.keys()))
+            normalized_config['networking'][dev]['routingv4'] = []
+        else:
+            for route in native_config['routing-table-ipv4/' + dev]:
+                gateway = None if route['gateway']=='0.0.0.0' else route['gateway'] # local network
+                normalized_config['networking'][dev]['routingv4'].append({
+                    'destination': route['ip_mask'],
+                    'interface': route['interface'],
+                    'gateway': gateway,
+                    'metric': route['metric'],
+                    'distance': route['distance'],
+                    'type': route['type']
+                })
+            normalized_config['networking'][dev]['routingv4'] = sort_reverse(normalized_config['networking'][dev]['routingv4'], 'destination')
 
         if not test_if_default_route_exists(normalized_config['networking'][dev]['routingv4']):
             logging.error('found no default route in ipv4 table of device ' + dev )
 
-        for route in native_config['routing-table-ipv6/' + dev]:
-            gateway = None if route['gateway']=='::' else route['gateway'] # local network
-            normalized_config['networking'][dev]['routingv6'].append({
-                'destination': route['ip_mask'],
-                'interface': route['interface'],
-                'gateway': gateway,
-                'metric': route['metric'],
-                'distance': route['distance'],
-                'type': route['type']
-            })
-        normalized_config['networking'][dev]['routingv6'] = sort_reverse(normalized_config['networking'][dev]['routingv6'], 'destination')
+        if 'routing-table-ipv6/' + dev not in native_config:
+            logging.warning('normalize_network_data: could not find routing data routing-table-ipv6/' + dev)
+            # logging.warning('native configs contains the following keys ' + str(native_config.keys()))
+            normalized_config['networking'][dev]['routingv6'] = []
+        else:
+            for route in native_config['routing-table-ipv6/' + dev]:
+                gateway = None if route['gateway']=='::' else route['gateway'] # local network
+                normalized_config['networking'][dev]['routingv6'].append({
+                    'destination': route['ip_mask'],
+                    'interface': route['interface'],
+                    'gateway': gateway,
+                    'metric': route['metric'],
+                    'distance': route['distance'],
+                    'type': route['type']
+                })
+            normalized_config['networking'][dev]['routingv6'] = sort_reverse(normalized_config['networking'][dev]['routingv6'], 'destination')
 
         if test_if_default_route_exists(normalized_config['networking'][dev]['routingv6']):
             logging.error('found no default route in ipv6 table of device ' + dev )
@@ -191,6 +202,10 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
 
     for dev_name, vdom_name in device_array:
         logging.info("dev_name: " + dev_name + ", vdom_name: " + vdom_name)
+        if vdom_name != '':
+            full_device_name = dev_name + '_' + vdom_name
+        else:
+            full_device_name = dev_name
         payload = {
             "id": 1,
             "params": [
@@ -262,22 +277,30 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
             payload = { "params": [ { "data": {
                             "target": ["adom/" + adom_name + "/device/" + dev_name],
                             "action": "get",
-                            "resource": "/api/v2/monitor/router/" + ip_version + "/select?" + vdom_name } } ] }
+                            "resource": "/api/v2/monitor/router/" + ip_version + "/select?" + full_device_name } } ] }
             try:    # get routing table
                 routing_helper = {}
                 fmgr_getter.update_config_with_fortinet_api_call(
                     routing_helper, sid, fm_api_url, "/sys/proxy/json",
                     "routing-table-" + ip_version + '/' + dev_name,
                     payload=payload, debug=debug_level, limit=limit, method="exec")
+                logging.info("routing helper array dump: " + str(routing_helper))
+                
+                if "routing-table-" + ip_version + '/' + dev_name in routing_helper:
+                    routing_helper = routing_helper["routing-table-" + ip_version + '/' + dev_name]
                 if len(routing_helper)>0 and 'response' in routing_helper[0] and 'results' in routing_helper[0]['response']:
-                    raw_config.update({ "routing-table-" + ip_version + '/' + dev_name: routing_helper[0]['response']['results']})
+                    routing_table = routing_helper[0]['response']['results']
                 else:
                     logging.warning("import_management - error while getting routing table of device " + dev_name + ", ignoring")
                     logging.info("got the following response: " + json.dumps(routing_helper))
-                    raw_config.update({"routing-table-" + ip_version + '/' + dev_name: []})
+                    routing_table = []
             except:
                 logging.warning(
-                    "import_management - error while getting routing table of device " + dev_name + ", ignoring")
+                    "import_management - error while getting routing table of device " + dev_name + ", ignoring exception " + str(traceback.format_exc()))
+                routing_table = []
+            finally:
+                raw_config.update({"routing-table-" + ip_version + '/' + dev_name: routing_table})
+
 
 
 def get_device_from_package(package_name, mgm_details):

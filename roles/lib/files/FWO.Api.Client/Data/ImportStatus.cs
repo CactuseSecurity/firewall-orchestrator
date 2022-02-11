@@ -29,6 +29,14 @@ namespace FWO.Api.Data
 
         [JsonProperty("mgm_name"), JsonPropertyName("mgm_name")]
         public string MgmName { get; set; } = "";
+        
+        [JsonProperty("importDisabled"), JsonPropertyName("importDisabled")]
+        public bool ImportDisabled { get; set; }
+
+        public int SortPrio = 0;
+
+        [JsonProperty("deviceType"), JsonPropertyName("deviceType")]
+        public DeviceType DeviceType { get; set; } = new DeviceType();
 
         [JsonProperty("last_import"), JsonPropertyName("last_import")]
         public ImportControl[]? LastImport { get; set; }
@@ -41,5 +49,10 @@ namespace FWO.Api.Data
 
         [JsonProperty("first_import"), JsonPropertyName("first_import")]
         public ImportControl[]? FirstImport { get; set; }
+        
+        [JsonProperty("erroneous_imports"), JsonPropertyName("erroneous_imports")]
+        public ImportControl[]? ErroneousImports { get; set; }
+
+        public int ErrorCount = 0;
     }
 }

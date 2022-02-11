@@ -10,10 +10,35 @@ namespace FWO.Report.Filter
     {
         private string input;
         private int position;
+        private const int lookAhead = 1;
+
+        static List<Token> whitespaceTokens = new List<Token>();
+        static List<Token> noWhitespaceTokens = new List<Token>();
 
         public Scanner(string input)
         {
             this.input = input ?? throw new ArgumentNullException(nameof(input));
+        }
+
+        static Scanner()
+        {
+            // Initialize Token Syntax
+            foreach (TokenKind tokenKind in Enum.GetValues(typeof(TokenKind)))
+            {
+                TokenSyntax validTokenSyntax = TokenSyntax.Get(tokenKind);
+
+                foreach (string tokenSyntax in validTokenSyntax.WhiteSpaceRequiered)
+                {
+                    whitespaceTokens.Add(new Token(0..0, tokenSyntax, tokenKind));
+                }
+                foreach (string tokenSyntax in validTokenSyntax.NoWhiteSpaceRequiered)
+                {
+                    noWhitespaceTokens.Add(new Token(0..0, tokenSyntax, tokenKind));
+                }
+            }
+
+            whitespaceTokens.Sort((x, y) => x.Text.Length - y.Text.Length);
+            noWhitespaceTokens.Sort((x, y) => x.Text.Length - y.Text.Length);
         }
 
         public List<Token> Scan()
@@ -27,7 +52,7 @@ namespace FWO.Report.Filter
                     position++;
                 }
 
-                tokens.AddRange(ReadToken());
+                tokens.AddRange(ReadTokens());
             }
 
             return tokens;
@@ -35,7 +60,7 @@ namespace FWO.Report.Filter
 
         private bool IsWhitespaceOrEnd(int currentPosition)
         {
-            if (currentPosition >= input.Length || input[currentPosition] == ' ' || input[currentPosition] == '\t' || input[currentPosition] == '\n' || input[position] == '\r')
+            if (currentPosition >= input.Length || input[currentPosition] == ' ' || input[currentPosition] == '\t' || input[currentPosition] == '\n' || input[currentPosition] == '\r')
             {
                 return true;
             }
@@ -45,7 +70,7 @@ namespace FWO.Report.Filter
             }      
         }
 
-        private List<Token> ReadToken()
+        private List<Token> ReadTokens()
         {
             List<Token> tokens = new List<Token>();
 
@@ -54,9 +79,6 @@ namespace FWO.Report.Filter
             
             // Token text
             string tokenText = "";
-
-            // Token kind
-            TokenKind tokenKind = TokenKind.Value;
 
             while (IsWhitespaceOrEnd(position) == false)
             {             
@@ -91,63 +113,87 @@ namespace FWO.Report.Filter
 
             if (tokenText != "")
             {
-                tokens.Add(new Token(tokenBeginPosition..^(position-1), tokenText, tokenKind));
+                tokens.Add(new Token(tokenBeginPosition..position, tokenText, TokenKind.Value));
             }
 
             return tokens;
         }
 
-        private List<Token> TryExtractToken(int beginPosition, string potentialToken, bool surroundedByWhitespace = false)
+        private List<Token> TryExtractToken(int beginPosition, string potentialTokenText, bool surroundedByWhitespace = false)
         {
             List<Token> tokens = new List<Token>();
-
-            foreach (TokenKind tokenKind in Enum.GetValues(typeof(TokenKind)))
+           
+            if (surroundedByWhitespace == true)
             {
-                TokenSyntax validTokenSyntax = TokenSyntax.Get(tokenKind);
-
-                if (surroundedByWhitespace == true)
+                foreach (Token validToken in whitespaceTokens)
                 {
-                    foreach (string validToken in validTokenSyntax.WhiteSpaceRequiered)
+                    if (potentialTokenText == validToken.Text)
                     {
-                        if (potentialToken == validToken)
-                        {
-                            tokens.Add(new Token(beginPosition..^position, potentialToken, tokenKind));
-                            return tokens;
-                        }
-                    }
-                }
-
-                foreach (string validToken in validTokenSyntax.NoWhiteSpaceRequiered)
-                {
-                    if (potentialToken.EndsWith(validToken))
-                    {
-                        TokenKind realTokenKind = tokenKind;
-
-                        if (potentialToken.Length - validToken.Length > 0)
-                        {
-                            List<Token> potentialTokens = TryExtractToken(beginPosition, potentialToken.Substring(0, potentialToken.Length - validToken.Length), true);
-                            if (potentialTokens.Count == 0)
-                            {
-                                tokens.Add(new Token(beginPosition..^(beginPosition + potentialToken.Length - validToken.Length), potentialToken.Substring(0, potentialToken.Length - validToken.Length), TokenKind.Value));
-                            }
-                            else
-                            {
-                                if (potentialTokens.Last().Kind == TokenKind.Not && tokenKind == TokenKind.EQ)
-                                {
-                                    potentialTokens.RemoveAt(potentialTokens.Count - 1);
-                                    realTokenKind = TokenKind.NEQ;
-                                }
-
-                                tokens.AddRange(potentialTokens);
-                            }
-                        }
-
-                        tokens.Add(new Token((beginPosition + potentialToken.Length - validToken.Length)..^position, validToken, realTokenKind));
-
+                        tokens.Add(new Token(beginPosition..(beginPosition + potentialTokenText.Length), potentialTokenText, validToken.Kind));
                         return tokens;
                     }
                 }
             }
+
+            foreach (Token validToken in noWhitespaceTokens)
+            {
+                if (potentialTokenText.EndsWith(validToken.Text))
+                {
+                    Token realToken = validToken;
+
+                    if (!IsWhitespaceOrEnd(beginPosition + potentialTokenText.Length))
+                    {
+                        foreach (Token longerToken in noWhitespaceTokens)
+                        {
+                            if (longerToken != validToken && (potentialTokenText + input[beginPosition + potentialTokenText.Length]).EndsWith(longerToken.Text))
+                            {
+                                position++;
+                                realToken = longerToken;
+                                potentialTokenText += input[beginPosition + potentialTokenText.Length];
+                                break;
+                            }
+                        }
+                    }
+
+                    if (potentialTokenText.Length - realToken.Text.Length > 0)
+                    {
+                        List<Token> potentialTokens = TryExtractToken(beginPosition, potentialTokenText[..(potentialTokenText.Length - realToken.Text.Length)], true);
+                        if (potentialTokens.Count > 0)
+                        {
+                            tokens.AddRange(potentialTokens);
+                        }
+                        else
+                        {
+                            tokens.Add(new Token(beginPosition..(beginPosition + potentialTokenText.Length - realToken.Text.Length), potentialTokenText[..^realToken.Text.Length], TokenKind.Value));
+                        }
+                    }
+
+                    tokens.Add(new Token((beginPosition + potentialTokenText.Length - realToken.Text.Length)..(beginPosition + potentialTokenText.Length), realToken.Text, realToken.Kind));
+                    break;
+                    //for (int i = potentialTokenText.Length - validToken.Text.Length; i > 0; i--)
+                    //{
+                    //    List<Token> potentialTokens = TryExtractToken(beginPosition, potentialTokenText[..i], true);
+                    //    if (potentialTokens.Count > 0)
+                    //    {
+                    //        tokens.AddRange(potentialTokens);
+                    //        if (!string.IsNullOrWhiteSpace(potentialTokenText[i..^validToken.Text.Length]))
+                    //        {
+                    //            tokens.Add(new Token((beginPosition + i)..(beginPosition + potentialTokenText.Length - validToken.Text.Length), potentialTokenText[i..^validToken.Text.Length], TokenKind.Value));
+                    //        }
+                    //        break;
+                    //    }
+                    //}
+
+                    //if (tokens.Count == 0 && !string.IsNullOrWhiteSpace(potentialTokenText[..^validToken.Text.Length]))
+                    //{
+                    //    tokens.Add(new Token(beginPosition..(beginPosition + potentialTokenText.Length - validToken.Text.Length), potentialTokenText[..^validToken.Text.Length], TokenKind.Value));
+                    //}
+
+                    //tokens.Add(new Token((beginPosition + potentialTokenText.Length - validToken.Text.Length)..(beginPosition + potentialTokenText.Length), validToken.Text, realTokenKind));
+
+                    //return tokens;
+                }
+            }       
 
             return tokens;
         }
@@ -169,7 +215,7 @@ namespace FWO.Report.Filter
 
                 else if (input[position] == quoteChar)
                 {
-                    return new Token(tokenBeginPosition..^(position), tokenText, TokenKind.Value);
+                    return new Token(tokenBeginPosition..(position), tokenText, TokenKind.Value);
                 }
 
                 else
@@ -179,7 +225,7 @@ namespace FWO.Report.Filter
                 }
             }
 
-            throw new SyntaxException($"Expected {quoteChar} got end.", (tokenBeginPosition)..^(position - 1));
+            throw new SyntaxException($"Expected {quoteChar} got end.", (tokenBeginPosition)..(position));
         }
 
         private char ScanEscapeSequence()
@@ -188,7 +234,7 @@ namespace FWO.Report.Filter
 
             if (IsWhitespaceOrEnd(position))
             {
-                throw new SyntaxException("Expected escape sequence got whitespace or end.", (position - 1)..^(position - 1));
+                throw new SyntaxException("Expected escape sequence got whitespace or end.", (position - 1)..(position));
             }
 
             char characterCode = input[position];
@@ -204,7 +250,7 @@ namespace FWO.Report.Filter
                 // carriage return
                 'r' => '\r',
                 // default case
-                _ => throw new SyntaxException($"Escape Sequence \"\\{characterCode}\" is unknown.", (position - 1)..^position),
+                _ => throw new SyntaxException($"Escape Sequence \"\\{characterCode}\" is unknown.", (position - 1)..position),
             };
         }
     }

@@ -3,11 +3,11 @@
 
 @inject UserConfig userConfig
 
-<div style="z-index:2; top:0px;" class="position-sticky">
+<div style="z-index:15; top:0px;" class="position-sticky">
     <NavigationMenu />
 </div>
 
-<div class="main h-100">
+<div class="main">
     <div class="content p-4">
         <CascadingValue Value="@DisplayMessageInUiFunction">
             @Body
@@ -19,7 +19,7 @@
 {
     <div class="footer alert alert-danger">
         <div class="d-flex flex-row justify-content-between">
-            <div>@dialogTitle - @dialogMessage . @(userConfig.GetText("E0002"))</div>
+            <div>@dialogTitle - @dialogMessage</div>
             <div class="oi oi-x" @onclick="@(() => { errorDialogShow = false; StateHasChanged();})"></div>
         </div>
     </div>
@@ -114,13 +114,13 @@
             {
                 // the exception message is shown to the user
                 Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception);
-                ShowError((title != "" ? title : userConfig.GetText("unspecified_error")), $"{(message != "" ? message : userConfig.GetText("E0001"))}: {exception.Message}");
+                ShowError((title != "" ? title : userConfig.GetText("unspecified_error")), $"{(message != "" ? message : userConfig.GetText("E0001"))}: {exception.Message} . " + userConfig.GetText("E0002"));
             }
             else
             {
                 // only title and message (if given) or unspecific error message is shown to the user
                 Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception);
-                ShowError((title != "" ? title : userConfig.GetText("unspecified_error")), $"{(message != "" ? message : userConfig.GetText("E0001"))}");
+                ShowError((title != "" ? title : userConfig.GetText("unspecified_error")), $"{(message != "" ? message : userConfig.GetText("E0001"))} . " + userConfig.GetText("E0002"));
             }
         }
     }

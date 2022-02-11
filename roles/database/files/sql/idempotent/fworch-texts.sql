@@ -338,6 +338,8 @@ INSERT INTO txt VALUES ('no_of_rules',		    'German', 	'Anzahl Regeln');
 INSERT INTO txt VALUES ('no_of_rules',		    'English', 	'Number of Rules');
 INSERT INTO txt VALUES ('collapse_all',		    'German', 	'Alles einklappen');
 INSERT INTO txt VALUES ('collapse_all',		    'English', 	'Collapse all');
+INSERT INTO txt VALUES ('expand_all',	        'German', 	'Alles ausklappen');
+INSERT INTO txt VALUES ('expand_all',		    'English', 	'Expand all');
 INSERT INTO txt VALUES ('all',		            'German', 	'Alle');
 INSERT INTO txt VALUES ('all',		            'English', 	'All');
 INSERT INTO txt VALUES ('rule',		            'German', 	'Regel');
@@ -584,9 +586,13 @@ INSERT INTO txt VALUES ('global_rulebase',      'German', 	'Globale Rulebase');
 INSERT INTO txt VALUES ('global_rulebase',      'English', 	'Global Rulebase');
 INSERT INTO txt VALUES ('package',              'German', 	'Package');
 INSERT INTO txt VALUES ('package',              'English', 	'Package');
+INSERT INTO txt VALUES ('local_package',        'German', 	'Lokales Package');
+INSERT INTO txt VALUES ('local_package',        'English', 	'Local Package');
+INSERT INTO txt VALUES ('global_package',       'German', 	'Globales Package');
+INSERT INTO txt VALUES ('global_package',       'English', 	'Global Package');
 INSERT INTO txt VALUES ('details',              'German', 	'Details');
 INSERT INTO txt VALUES ('details',              'English', 	'Details');
-INSERT INTO txt VALUES ('import_status_details','German', 	'Importstatusdetails f&uuml;r ');
+INSERT INTO txt VALUES ('import_status_details','German', 	'Importstatus-Details f&uuml;r ');
 INSERT INTO txt VALUES ('import_status_details','English', 	'Import Status Details for ');
 INSERT INTO txt VALUES ('last_incomplete',      'German', 	'Letzter Unvollendeter');
 INSERT INTO txt VALUES ('last_incomplete',      'English', 	'Last Incomplete');
@@ -608,6 +614,12 @@ INSERT INTO txt VALUES ('start',                'German', 	'Start');
 INSERT INTO txt VALUES ('start',                'English', 	'Start');
 INSERT INTO txt VALUES ('stop',                 'German', 	'Stop');
 INSERT INTO txt VALUES ('stop',                 'English', 	'Stop');
+INSERT INTO txt VALUES ('import_id',            'German', 	'Import Id');
+INSERT INTO txt VALUES ('import_id',            'English', 	'Import Id');
+INSERT INTO txt VALUES ('duration',             'German', 	'Dauer');
+INSERT INTO txt VALUES ('duration',             'English', 	'Duration');
+INSERT INTO txt VALUES ('err_since_last_succ',  'German', 	'Fehler seit letztem erfolgreichen Import');
+INSERT INTO txt VALUES ('err_since_last_succ',  'English', 	'Errors since last successful import');
 INSERT INTO txt VALUES ('remove_sample_data',   'German', 	'Beispieldaten l&ouml;schen');
 INSERT INTO txt VALUES ('remove_sample_data',	'English', 	'Remove Sample Data');
 INSERT INTO txt VALUES ('refresh', 				'German',	'Neu anzeigen');
@@ -718,6 +730,8 @@ INSERT INTO txt VALUES ('maxInitialFetchesRightSidebar','German','Max initiale A
 INSERT INTO txt VALUES ('maxInitialFetchesRightSidebar','English','Max initial fetches right sidebar');
 INSERT INTO txt VALUES ('autoFillRightSidebar', 'German', 	'Komplettes F&uuml;llen rechte Randleiste');
 INSERT INTO txt VALUES ('autoFillRightSidebar', 'English', 	'Completely auto-fill right sidebar');
+INSERT INTO txt VALUES ('minCollapseAllDevices','German', 	'Devices zu Beginn eingeklappt ab');
+INSERT INTO txt VALUES ('minCollapseAllDevices','English', 	'Devices collapsed at beginning from');
 INSERT INTO txt VALUES ('dataRetentionTime',    'German', 	'Datenaufbewahrungszeit (in Tagen)');
 INSERT INTO txt VALUES ('dataRetentionTime',    'English', 	'Data retention time (in days)');
 INSERT INTO txt VALUES ('importSleepTime',      'German', 	'Importintervall (in Sekunden)');
@@ -1063,6 +1077,8 @@ INSERT INTO txt VALUES ('E2001', 'English', 'Please select a template');
 
 INSERT INTO txt VALUES ('E4001', 'German',  'Bitte Kommentar hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('E4001', 'English', 'Please insert a comment');
+INSERT INTO txt VALUES ('E4002', 'German',  'Keine Regeln f&uuml;r die gew&auml;hlten Kriterien gefunden');
+INSERT INTO txt VALUES ('E4002', 'English', 'No rules found for given criteria');
 
 INSERT INTO txt VALUES ('E5101', 'German',  'L&ouml;schen des Managements nicht erlaubt, da noch Gateways zugeordnet sind. Diese zuerst l&ouml;schen wenn m&ouml;glich');
 INSERT INTO txt VALUES ('E5101', 'English', 'Deletion of management not allowed as there are related Gateways. Delete them first if possible');
@@ -1074,6 +1090,10 @@ INSERT INTO txt VALUES ('E5104', 'German',  'Wert der Debug Stufe muss im Bereic
 INSERT INTO txt VALUES ('E5104', 'English', 'Value for Debug Level has to be in the range 0 - 9');
 INSERT INTO txt VALUES ('E5105', 'German',  'Es gibt bereits ein Management mit derselben Konfiguration und Import aktiviert');
 INSERT INTO txt VALUES ('E5105', 'English', 'There is already a management in the same configuration with import enabled');
+INSERT INTO txt VALUES ('E5106', 'German',  'Management wurde bereits angelegt: ');
+INSERT INTO txt VALUES ('E5106', 'English', 'Management has already been created: ');
+INSERT INTO txt VALUES ('E5107', 'German',  'Gateway wurde bereits angelegt: ');
+INSERT INTO txt VALUES ('E5107', 'English', 'Gateway has already been created: ');
 INSERT INTO txt VALUES ('E5111', 'German',  'Es gibt bereits ein Gateway mit derselben Konfiguration und Import aktiviert');
 INSERT INTO txt VALUES ('E5111', 'English', 'There is already a gateway in the same configuration with import enabled');
 INSERT INTO txt VALUES ('E5112', 'German',  'Gateway konnte nicht angelegt werden');
@@ -1235,8 +1255,8 @@ INSERT INTO txt VALUES ('T0008', 'German',  '(f&uuml;r zuk&uuml;nftige Anwendung
 INSERT INTO txt VALUES ('T0008', 'English', '(for future use) users who can request firewall changes');
 INSERT INTO txt VALUES ('T0009', 'German',  '(f&uuml;r zuk&uuml;nftige Anwendung) Nutzer zum Anlegen von change request workflows');
 INSERT INTO txt VALUES ('T0009', 'English', '(for future use) users who can create change request workflows');
-INSERT INTO txt VALUES ('T0010', 'German',  'Nutzer zum Dokumentieren von offenen Changes');
-INSERT INTO txt VALUES ('T0010', 'English', 'users who can document open changes');
+INSERT INTO txt VALUES ('T0010', 'German',  'wie reporter-viewall, aber mit Erlaubnis, Devices anzulegen und zu &auml;ndern');
+INSERT INTO txt VALUES ('T0010', 'English', 'like reporter-viewall, but allowed to create and update devices');
 INSERT INTO txt VALUES ('T0011', 'German',  'Nutzer mit vollem Zugriff auf den Firewall Orchestrator');
 INSERT INTO txt VALUES ('T0011', 'English', 'users with full access rights to firewall orchestrator');
 INSERT INTO txt VALUES ('T0012', 'German',  'Nutzer mit Berechtigung zum Rezertifizieren von Regeln');
@@ -1642,14 +1662,14 @@ INSERT INTO txt VALUES ('H5102', 'English', 'The following firewall products can
     </ul>
 ');
 INSERT INTO txt VALUES ('H5103', 'German',  'F&uuml;r Firewallgateways ohne separates Management oder im Falle, dass das zentrale Management nicht in den Firewall Orchestrator eingebunden werden kann,
-    k&ouml;nnen, die Details des Gateways hier als Management und gleichzeitig noch einmal als Gateway eingetragen werden.
+    werden die Details des Gateways als Management und gleichzeitig auch als Gateway eingetragen.
 ');
 INSERT INTO txt VALUES ('H5103', 'English', 'For firewall gateways without a separate management or in case the central management cannot be integrated into Firewall Orchestrator 
     you may enter the details of the gateway here as a management system as well and then add it again as a gateway.
 ');
 INSERT INTO txt VALUES ('H5104', 'German',  'Wenn Beispieldaten (definiert durch die Endung "_demo" vom Namen) existieren, wird eine Schaltfl&auml;che angezeigt, um diese und alle verkn&uuml;pften <a href="/help/settings/gateways">Gateways</a> zu l&ouml;schen.');
 INSERT INTO txt VALUES ('H5104', 'English', 'If there are sample data (defined by the ending "_demo" of the name), a button is displayed to delete them and all related <a href="/help/settings/gateways">gateways</a>.');
-INSERT INTO txt VALUES ('H5111', 'German',  'Name*: Name des Mangements. <br>
+INSERT INTO txt VALUES ('H5111', 'German',  'Name*: Name des Managements. <br>
     F&uuml;r die meisten Firewalls ist dies ein willk&uuml;rlicher Name. Ausnahmen sind direkt verbundene Gateways von Fortigate, Netscreen und Juniper.
     Hier muss der Name des Firewallgateways eingetragen werden.<br>
     Ein Management dessen Name mit "_demo" endet, wird beim Bet&auml;tigen der "Beispieldaten l&ouml;schen"-Schaltfl&auml;che gel&ouml;scht.
@@ -1687,10 +1707,10 @@ INSERT INTO txt VALUES ('H5116', 'English', 'Import User*: The user used to logi
     This user needs to be created on the firewall system in advance and needs full read access to the system.<br>
     On Check Point R8x we recommend using the predefined "Read Only All" profile (both global and domain management) for the user.
 ');
-INSERT INTO txt VALUES ('H5117', 'German',  'Privater Schl&uuml;ssel*: F&uuml;r den ssh-Zugang hier den privaten ssh-Schl&uuml;ssel hinterlegen (Schl&uuml;ssel muss unverschl&uuml;sselt und ohne Passphrase sein)<br>
+INSERT INTO txt VALUES ('H5117', 'German',  'Privater Schl&uuml;ssel* / Passwort*: F&uuml;r den ssh-Zugang hier den privaten ssh-Schl&uuml;ssel hinterlegen (Schl&uuml;ssel muss unverschl&uuml;sselt und ohne Passphrase sein)<br>
     F&uuml;r den API-Zugang ist dies das Passwort des API-Nutzers.
 ');
-INSERT INTO txt VALUES ('H5117', 'English', 'Login Secret*: For ssh access enter the private ssh key (key needs to be unencrypted without passphrase)<br>
+INSERT INTO txt VALUES ('H5117', 'English', 'Login Secret* / Password*: For ssh access enter the private ssh key (key needs to be unencrypted without passphrase)<br>
     For API access this is the password of the API user.
 ');
 INSERT INTO txt VALUES ('H5118', 'German',  '&Ouml;ffentlicher Schl&uuml;ssel: Dieses Feld muss nur f&uuml;r Netscreen-Firewalls gef&uuml;llt werden - dieses System ben&ouml;tigt auch den &ouml;ffentlichen Schl&uuml;ssel zum Anmelden.');
@@ -1733,7 +1753,7 @@ INSERT INTO txt VALUES ('H5153', 'English', 'Device Type*: Out of a list of avai
 ');
 INSERT INTO txt VALUES ('H5154', 'German',  'Management*: W&auml;hlen Sie das Management, welches dieses Gateway kontrolliert. Wenn zu einem Beispielmanagement zugeordnet, wird es mitgel&ouml;scht, wenn die "Beispieldaten l&ouml;schen"-Schaltfl&auml;che bei den Managementeinstellungen bet&auml;tigt wird.');
 INSERT INTO txt VALUES ('H5154', 'English', 'Management*: Select the management system that controls this gateway. If related to a sample management this Gateway will also be deleted when using the "Remove Sample Data" button on the management settings page.');
-INSERT INTO txt VALUES ('H5155', 'German',  'Lokale Rulebase*: Hier wird der Name der Rulebase hinterlegt.
+INSERT INTO txt VALUES ('H5155', 'German',  'Lokale Rulebase* / Lokales Package*: Hier wird der Name der Rulebase hinterlegt.
     <ul>
         <li>F&uuml;r Check Point R8x kommt hierhin der Name der top level Zugriffsschicht (default ist "Network").</li>
         <li>F&uuml;r Check Point R8x MDS wird hier der Name der global policy Schicht eingetragen, gefolgt vom Namen der domain policy, gertrennt durch "/", z.B. "global-policy-layer-name/domain-policy-layer-name".</li>
@@ -1742,7 +1762,7 @@ INSERT INTO txt VALUES ('H5155', 'German',  'Lokale Rulebase*: Hier wird der Nam
         </li>
     </ul>
 ');
-INSERT INTO txt VALUES ('H5155', 'English', 'Local Rulebase*: Enter the name of the rulebase here. 
+INSERT INTO txt VALUES ('H5155', 'English', 'Local Rulebase* / Local Package*: Enter the name of the rulebase here. 
     <ul>
         <li>For Check Point R8x the top level access layer name goes here (default is "Network").</li>
         <li>For Check Point R8x MDS enter the name of the global policy layer followed by the name of the domain policy separated by "/", e.g. "global-policy-layer-name/domain-policy-layer-name".</li>
@@ -1751,10 +1771,10 @@ INSERT INTO txt VALUES ('H5155', 'English', 'Local Rulebase*: Enter the name of 
             </li>
     </ul>
 ');
-INSERT INTO txt VALUES ('H5156', 'German',  'Globale Rulebase: Hier wird der Name der Globalen Rulebase hinterlegt.');
-INSERT INTO txt VALUES ('H5156', 'English', 'Global Rulebase: Enter the name of the global rulebase here.');
-INSERT INTO txt VALUES ('H5157', 'German',  'Package: Hier wird ggf. der Name des Package hinterlegt.');
-INSERT INTO txt VALUES ('H5157', 'English', 'Package: Enter the name of the Package here.');
+INSERT INTO txt VALUES ('H5156', 'German',  'Globale Rulebase / Globales Package: Hier wird der Name der Globalen Rulebase hinterlegt.');
+INSERT INTO txt VALUES ('H5156', 'English', 'Global Rulebase / Global Package: Enter the name of the global rulebase here.');
+INSERT INTO txt VALUES ('H5157', 'German',  'Package: Hier wird ggf. der Name des Package hinterlegt (nur f&uuml;r Check Point).');
+INSERT INTO txt VALUES ('H5157', 'English', 'Package: Enter the name of the Package here (only for Check Point).');
 INSERT INTO txt VALUES ('H5158', 'German',  'Import Deaktiviert: Schalter um den Datenimport zu deaktivieren.');
 INSERT INTO txt VALUES ('H5158', 'English', 'Import Disabled: Flag if the data import is disabled.');
 INSERT INTO txt VALUES ('H5159', 'German',  'Nicht sichtbar: Wenn gesetzt ist dieses Gateway nicht mit Standard-Reporter-Rolle sichtbar.');

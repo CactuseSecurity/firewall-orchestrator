@@ -5,7 +5,7 @@
 @using FWO.DeviceAutoDiscovery
 
 @page "/settings/managements"
-@attribute [Authorize(Roles = "admin, auditor")]
+@attribute [Authorize(Roles = "admin, auditor, fw-admin")]
 
 @inject APIConnection apiConnection
 @inject UserConfig userConfig
@@ -18,22 +18,30 @@
     <button class="btn btn-success m-2" @onclick="Add">@(userConfig.GetText("add_new_management"))</button>
     @if (showCleanupButton)
     {
-        <button class="btn btn-danger m-2" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
+        <AuthorizeView Roles="admin, auditor">
+            <Authorized>
+                <button class="btn btn-danger m-2" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
+            </Authorized>
+        </AuthorizeView>
     }
 </div>
 
 <div class="d-flex flex-column m-2">
-    <Table class="table table-bordered table-responsive" TableItem="Management" Items="managements" @ref="table" PageSize="0" ColumnReorder="true">
+    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="Management" Items="managements" @ref="table" PageSize="0" ColumnReorder="true">
         <Column TableItem="Management" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
                     <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">@(userConfig.GetText("clone"))</button>
                     <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">@(userConfig.GetText("edit"))</button>
-                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
-                    @if (context.DeviceType.CanBeSupermanager())
-                    {
-                        <button class="btn btn-sm btn-secondary" @onclick="() => AutoDiscover(context)">@(userConfig.GetText("autodiscover"))</button>
-                    }
+                    <AuthorizeView Roles="admin, auditor" Context="ctx">
+                        <Authorized>
+                            <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
+                            @if (context.DeviceType.CanBeSupermanager())
+                            {
+                                <button class="btn btn-sm btn-secondary" @onclick="() => AutoDiscover(context)">@(userConfig.GetText("autodiscover"))</button>
+                            }
+                        </Authorized>
+                    </AuthorizeView>
                 </div>
             </Template>
         </Column>
@@ -191,7 +199,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin">
+            <AuthorizeView Roles="admin, fw-admin">
                 <Authorized>
                     <button class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
                 </Authorized>
@@ -256,6 +264,7 @@
     private List<Management> managements = new List<Management>();
     private List<Management> sampleManagements = new List<Management>();
     private List<DeviceType> deviceTypes = new List<DeviceType>();
+    private List<Device> devices = new List<Device>();
 
     private ITable<Management>? table;
 
@@ -410,7 +419,6 @@
                 else
                 {
                     // Update existing management
-                    // Todo: handle TenantId
                     var Variables = new
                     {
                         id = actManagement.Id,
@@ -504,8 +512,8 @@
         try
         {
             List<Management> discoveredManagements = await new AutoDiscoveryBase(superManagement).Run();
-            List<int> adomIds = new List<int>();
-            List<int> devIds = new List<int>();
+            devices = (await apiConnection.SendQueryAsync<Device[]>(FWO.ApiClient.Queries.DeviceQueries.getDeviceDetails)).ToList();
+
             int adomId = 0;
             int adomChanges = 0;
             int deviceChanges = 0;
@@ -514,76 +522,23 @@
             {
                 if (adom.ConfigPath != "global")
                 {
-                    if (CheckValues(adom, userConfig.GetText("autodiscover")))
+                    adomId = CheckExistingAutodiscoverManagement(adom);
+                    if (adomId == 0)
                     {
-                        var Variables = new
-                        {
-                            hostname = superManagement.Hostname,
-                            importUser = superManagement.ImportUser,
-                            importUserSecret = (superManagement.DeviceType.IsLegacyDevType() ? superManagement.PrivateKey : superManagement.Password),
-                            importerHostname = superManagement.ImporterHostname,
-                            debugLevel = superManagement.DebugLevel,
-                            port = superManagement.Port,
-                            importDisabled = false,
-                            forceInitialImport = true,
-                            hideInUi = false,
-                            configPath = adom.ConfigPath,
-                            name = adom.Name,
-                            devTypeId = domainDeviceId,
-                            superManager = superManagement.Id
-                        };
-                        ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newManagement, Variables)).ReturnIds;
-                        if (returnIds != null) 
-                        {
-                            adomId = returnIds[0].NewId;
-                            adomIds.Add(adomId);
+                        adomId = await CreateAdomManagement(adom, superManagement, domainDeviceId);
+                        if (adomId != 0)
                             adomChanges++;
-                            Log.WriteDebug("AutoDiscovery", $"successfully added adom {adom.Name} via FWO API");
-                        }
-                        else
-                        {
-                            Log.WriteWarning("AutoDiscovery", $"error while adding adom {adom.Name} - ignoring as duplicate");
-                            // break; do not stop here as we need to check for new devices as well
-                            // TODO: need to find out the adomId of the already existing adom and set it here
-                        }
+                    }
 
+                    if (adomId != 0)
+                    {
                         foreach (Device dev in adom.Devices)
                         {
-                            // check dev for plausibility and duplicity:
-                            if (dev.Name == null || dev.Name == "" || dev.LocalRulebase == null || dev.LocalRulebase == "")
+                            if (CheckExistingAutodiscoverDevice(dev, adomId))
                             {
-                                DisplayMessageInUi!(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5102"), true);
-                                break;
+                                if (await CreateAdomDevice(dev, adomId, gatewayDeviceId))
+                                    deviceChanges++;
                             }
-                            // we need the existing device list here!
-                            // if (!dev.ImportDisabled && devices.FirstOrDefault(existingDevice => existingDevice.DeviceType.Id == dev.DeviceType.Id && existingDevice.Management.Id == dev.Management.Id 
-                            //     && existingDevice.LocalRulebase == dev.LocalRulebase && existingDevice.Id != dev.Id && !existingDevice.ImportDisabled) != null)
-                            // {
-                            //    DisplayMessageInUi!(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5111"), true);
-                            //    break;
-                            // }
-                        
-                            var DevVariables = new
-                            {
-                                name = dev.Name,
-                                devTypeId = gatewayDeviceId,
-                                managementId = adomId,
-                                localRulebase = dev.LocalRulebase,
-                                globalRulebase = dev.GlobalRulebase,
-                                package = dev.Package,
-                                importDisabled = dev.ImportDisabled,
-                                hideInUi = dev.HideInUi,
-                                comment = dev.Comment
-                            };
-                            ReturnId[]? devReturnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newDevice, DevVariables)).ReturnIds;
-                            if (devReturnIds != null) 
-                            {
-                                Log.WriteDebug("AutoDiscovery", $"successfully added device {dev.Name} with policy {dev.LocalRulebase} via FWO API");
-                                devIds.Add(devReturnIds[0].NewId);
-                                deviceChanges++;
-                            }
-                            else
-                                Log.WriteWarning("AutoDiscovery", $"error while adding device {dev.Name} - ignoring as duplicate");
                         }
                     }
                 }
@@ -591,12 +546,114 @@
             Log.WriteDebug("AutoDiscovery", $"found a total of {adomChanges} adom changes");
             Log.WriteDebug("AutoDiscovery", $"found a total of {deviceChanges} device changes");
             DisplayMessageInUi!(null, userConfig.GetText("U5115"), $"{adomChanges + deviceChanges}", false);
-            // todo: add all new adoms to managements for rendering / or just reload (ugly)
             StateHasChanged();
         }
         catch (Exception exception)
         {
             DisplayMessageInUi!(exception, userConfig.GetText("autodiscover"), "", true);
         }
+    }
+
+    private int CheckExistingAutodiscoverManagement(Management mgm)
+    {
+        Management? existingManagement = managements.FirstOrDefault(x =>
+            x.Name == mgm.Name
+            && x.ConfigPath == mgm.ConfigPath 
+            && x.SuperManagerId == mgm.SuperManagerId);
+        if(existingManagement != null)
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("autodiscover"), userConfig.GetText("E5106") + mgm.Name, true);
+            return existingManagement.Id;
+        }
+        return 0;
+    }
+
+    private bool CheckExistingAutodiscoverDevice(Device dev, int adomId)
+    {
+        if (devices.FirstOrDefault(existingDevice => 
+            existingDevice.Name == dev.Name 
+            && existingDevice.Management.Id == adomId 
+            && existingDevice.LocalRulebase == dev.LocalRulebase) != null)
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("autodiscover"), userConfig.GetText("E5107") + dev.Name, true);
+            return false;
+        }
+        return true;
+    }
+
+    private async Task<int> CreateAdomManagement(Management adom, Management superManagement, int domainDeviceId)
+    {
+        int adomId = 0;
+        try
+        {
+            var Variables = new
+            {
+                hostname = superManagement.Hostname,
+                importUser = superManagement.ImportUser,
+                importUserSecret = (superManagement.DeviceType.IsLegacyDevType() ? superManagement.PrivateKey : superManagement.Password),
+                importerHostname = superManagement.ImporterHostname,
+                debugLevel = superManagement.DebugLevel,
+                port = superManagement.Port,
+                importDisabled = false,
+                forceInitialImport = true,
+                hideInUi = false,
+                configPath = adom.ConfigPath,
+                name = adom.Name,
+                devTypeId = domainDeviceId,
+                superManager = superManagement.Id
+            };
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newManagement, Variables)).ReturnIds;
+            if (returnIds != null) 
+            {
+                adomId = returnIds[0].NewId;
+                DeviceType? devtype = deviceTypes.FirstOrDefault(x => x.Id == domainDeviceId) ?? throw new Exception("Unknown Device type");
+                managements.Add(new Management(superManagement){Id = adomId, ConfigPath = adom.ConfigPath, Name = adom.Name, 
+                    DeviceType = new DeviceType(devtype), SuperManagerId = superManagement.Id, Devices = adom.Devices});
+                Log.WriteDebug("AutoDiscovery", $"successfully added adom {adom.Name} via FWO API");
+            }
+            else
+            {
+                Log.WriteWarning("AutoDiscovery", $"error while adding adom {adom.Name}");
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("autodiscover"), "", true);
+        }
+        return adomId;
+    }
+
+    private async Task<bool> CreateAdomDevice(Device dev, int adomId, int gatewayDeviceId)
+    {
+        try
+        {
+            var DevVariables = new
+            {
+                name = dev.Name,
+                devTypeId = gatewayDeviceId,
+                managementId = adomId,
+                localRulebase = dev.LocalRulebase,
+                globalRulebase = dev.GlobalRulebase,
+                package = dev.Package,
+                importDisabled = dev.ImportDisabled,
+                hideInUi = dev.HideInUi,
+                comment = dev.Comment
+            };
+            ReturnId[]? devReturnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newDevice, DevVariables)).ReturnIds;
+            if (devReturnIds != null) 
+            {
+                Log.WriteDebug("AutoDiscovery", $"successfully added device {dev.Name} with policy {dev.LocalRulebase} via FWO API");
+                return true;
+            }
+            else
+            {
+                Log.WriteWarning("AutoDiscovery", $"error while adding device {dev.Name}");
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("autodiscover"), "", true);
+        }
+        return false;
     }
 }

@@ -46,10 +46,11 @@
       debug:
         var: testoutput
 
-    - name: increase apache timeout to 900 seconds
-      lineinfile:
-        path: /etc/apache2/apache2.conf
-        line: "Timeout 900"
+    # # currently only necessary here if we are running on the same machine as API
+    # - name: increase apache timeout to {{ apache_timeout }} seconds
+    #   lineinfile:
+    #     path: /etc/apache2/apache2.conf
+    #     line: "Timeout {{ apache_timeout }}"
 
     - name: restart apache
       service:

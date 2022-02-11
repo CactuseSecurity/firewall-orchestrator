@@ -629,15 +629,16 @@ Create table "import_control"
 CREATE TABLE IF NOT EXISTS "import_config" (
     "import_id" bigint NOT NULL,
     "mgm_id" integer NOT NULL,
-    "config" json NOT NULL,
-    PRIMARY KEY ("import_id")
+    "config" jsonb NOT NULL,
+	"start_import_flag" Boolean NOT NULL Default FALSE
 );
 
+-- todo: move this to git instead
 -- permanent table for storing the full config as an archive
 CREATE TABLE "import_full_config" (
     "import_id" bigint NOT NULL,
     "mgm_id" integer NOT NULL,
-    "config" json NOT NULL,
+    "config" jsonb NOT NULL,
     PRIMARY KEY ("import_id")
 );
 
@@ -761,7 +762,26 @@ Create table "import_zone"
 	"last_change_time" Timestamp
 );
 
--- changelog tables -------------------------------------
+-- (change)log tables -------------------------------------
+
+Create table "log_data_issue"
+(
+	"data_issue_id" BIGSERIAL,
+	"import_id" BIGINT,
+	"object_name" Varchar,
+	"object_uid" Varchar,
+	"rule_uid" Varchar,				-- if a rule ref is broken
+	"rule_id" BIGINT,				-- if a rule ref is broken
+	"object_type" Varchar,
+	"suspected_cause" VARCHAR,
+	"description" VARCHAR,
+	"issue_mgm_id" INTEGER,
+	"issue_dev_id" INTEGER,
+	"severity" INTEGER NOT NULL DEFAULT 1,
+	"source" VARCHAR NOT NULL DEFAULT 'import',
+	"issue_timestamp" TIMESTAMP DEFAULT NOW(),
+ primary key ("data_issue_id")
+);
 
 Create table "import_changelog"
 (

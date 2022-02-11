@@ -6,6 +6,8 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Text.Encodings.Web;
 using Newtonsoft.Json;
+using FWO.Logging;
+using RestSharp.Serializers.NewtonsoftJson;
 
 namespace FWO.Rest.Client
 {
@@ -15,18 +17,18 @@ namespace FWO.Rest.Client
 
         public FortiManagerClient(Management fortiManager)
         {
-            restClient = new RestClient("https://" + fortiManager.Hostname + ":" + fortiManager.Port + "/jsonrpc");
-            restClient.RemoteCertificateValidationCallback += (_, _, _, _) => true;
-            restClient.Encoding = Encoding.Latin1;
-            restClient.AddDefaultHeader("Content-Type", "application/json");
-            JsonSerializerOptions options = new JsonSerializerOptions();
-            options.PropertyNameCaseInsensitive = true;
-            options.Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping; // needed to be able to deal with "+" signs in session id
-            SystemTextJsonSerializer serializer = new SystemTextJsonSerializer(options);
+            RestClientOptions restClientOptions = new RestClientOptions();
+            restClientOptions.RemoteCertificateValidationCallback += (_, _, _, _) => true;
+            restClientOptions.Encoding = Encoding.Latin1;
+            restClientOptions.BaseUrl = new Uri("https://" + fortiManager.Hostname + ":" + fortiManager.Port + "/jsonrpc");
+            restClient = new RestClient(restClientOptions);
+
+            JsonNetSerializer serializer = new JsonNetSerializer(); // Case insensivitive is enabled by default
+            restClient.UseDefaultSerializers();
             restClient.UseSerializer(() => serializer);
         }
 
-        public async Task<IRestResponse<SessionAuthInfo>> AuthenticateUser(string? user, string pwd)
+        public async Task<RestResponse<SessionAuthInfo>> AuthenticateUser(string? user, string pwd)
         {
             List<object> dataList = new List<object>();
             dataList.Add(new { passwd = pwd, user = user });
@@ -40,12 +42,12 @@ namespace FWO.Rest.Client
                 id = 1,
                 @params = paramList // because "params" is a c# keyword, we have to escape it here with @
             };
-            IRestRequest request = new RestRequest("", Method.POST, DataFormat.Json);
+            RestRequest request = new RestRequest("", Method.Post);
             request.AddJsonBody(body);
             return await restClient.ExecuteAsync<SessionAuthInfo>(request);
         }
 
-        public async Task<IRestResponse<SessionAuthInfo>> DeAuthenticateUser(string session)
+        public async Task<RestResponse<SessionAuthInfo>> DeAuthenticateUser(string session)
         {
             List<object> paramList = new List<object>();
             paramList.Add(new { session = session, url = "/sys/logout" });
@@ -56,12 +58,12 @@ namespace FWO.Rest.Client
                 id = 1,
                 @params = paramList // because "params" is a c# keyword, we have to escape it here with @
             };
-            IRestRequest request = new RestRequest("", Method.POST, DataFormat.Json);
+            RestRequest request = new RestRequest("", Method.Post);
             request.AddJsonBody(body);
             return await restClient.ExecuteAsync<SessionAuthInfo>(request);
         }
 
-        public async Task<IRestResponse<FmApiTopLevelHelper>> GetAdoms(string session)
+        public async Task<RestResponse<FmApiTopLevelHelper>> GetAdoms(string session)
         {
             string[] fieldArray = { "name", "oid", "uuid" };
             List<object> paramList = new List<object>();
@@ -74,12 +76,13 @@ namespace FWO.Rest.Client
                 id = 1,
                 session = session
             };
-            IRestRequest request = new RestRequest("", Method.POST, DataFormat.Json);
+            RestRequest request = new RestRequest("", Method.Post);
             request.AddJsonBody(body);
+            Log.WriteDebug("Autodiscovery", $"using FortiManager REST API call with body='{body.ToString()}' and paramList='{paramList.ToString()}'");
             return await restClient.ExecuteAsync<FmApiTopLevelHelper>(request);
         }
 
-        public async Task<IRestResponse<FmApiTopLevelHelperDev>> GetDevices(string session)
+        public async Task<RestResponse<FmApiTopLevelHelperDev>> GetDevices(string session)
         {
             string[] fieldArray = { "name", "desc", "hostname", "vdom", "ip", "mgmt_id", "mgt_vdom", "os_type", "os_ver", "platform_str", "dev_status" };
             List<object> paramList = new List<object>();
@@ -92,12 +95,12 @@ namespace FWO.Rest.Client
                 id = 1,
                 session = session
             };
-            IRestRequest request = new RestRequest("", Method.POST, DataFormat.Json);
+            RestRequest request = new RestRequest("", Method.Post);
             request.AddJsonBody(body);
             return await restClient.ExecuteAsync<FmApiTopLevelHelperDev>(request);
         }
 
-        public async Task<IRestResponse<FmApiTopLevelHelperAssign>> GetPackageAssignmentsPerAdom(string session, string adomName)
+        public async Task<RestResponse<FmApiTopLevelHelperAssign>> GetPackageAssignmentsPerAdom(string session, string adomName)
         {
             List<object> paramList = new List<object>();
             string urlString = "/pm/config/";
@@ -115,7 +118,7 @@ namespace FWO.Rest.Client
                 id = 1,
                 session = session
             };
-            IRestRequest request = new RestRequest("", Method.POST, DataFormat.Json);
+            RestRequest request = new RestRequest("", Method.Post);
             request.AddJsonBody(body);
             return await restClient.ExecuteAsync<FmApiTopLevelHelperAssign>(request);
         }

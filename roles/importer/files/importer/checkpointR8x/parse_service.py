@@ -1,5 +1,5 @@
 import re
-import common, fwcommon
+import common, cpcommon
 
 
 # collect_svcobjects writes svc info into global users dict
@@ -11,7 +11,7 @@ def collect_svc_objects(object_table, svc_objects):
     }
     simple_obj_types = ['services-tcp','services-udp', 'services-dce-rpc','services-rpc','services-other','services-icmp','services-icmp6']
 
-    if object_table['object_type'] in fwcommon.svc_obj_table_names:
+    if object_table['object_type'] in cpcommon.svc_obj_table_names:
         session_timeout = ''
         typ = 'undef'
         if object_table['object_type'] == 'service-groups':

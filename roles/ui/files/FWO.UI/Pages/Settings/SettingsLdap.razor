@@ -22,7 +22,7 @@
 <button class="btn btn-success m-2" @onclick="Add">@(userConfig.GetText("add_new_ldap"))</button>
 
 <div class="m-2">
-    <Table class="table table-bordered table-responsive" TableItem="UiLdapConnection" Items="connectedLdaps" PageSize="0" ColumnReorder="true">
+    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="UiLdapConnection" Items="connectedLdaps" PageSize="0" ColumnReorder="true">
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
@@ -240,7 +240,7 @@
     {
         try
         {
-            IRestResponse<List<LdapGetUpdateParameters>> ldapMiddlewareServerResponse = await middlewareClient.GetLdaps();
+            RestResponse<List<LdapGetUpdateParameters>> ldapMiddlewareServerResponse = await middlewareClient.GetLdaps();
             if (ldapMiddlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
                 DisplayMessageInUi!(null, userConfig.GetText("fetch_ldap_conn"), userConfig.GetText("E5204"), true);
@@ -292,7 +292,7 @@
         try
         {
             LdapDeleteParameters ldapDeleteParameters = new LdapDeleteParameters { Id = ldapConnection.Id };
-            IRestResponse<int> ldapMiddlewareServerResponse = await middlewareClient.DeleteLdap(ldapDeleteParameters);
+            RestResponse<int> ldapMiddlewareServerResponse = await middlewareClient.DeleteLdap(ldapDeleteParameters);
             if (ldapMiddlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
                 DisplayMessageInUi!(null, userConfig.GetText("delete_ldap_conn"), userConfig.GetText("E5203"), true);
@@ -337,7 +337,7 @@
             {    
                 if (AddMode)
                 {
-                    IRestResponse<int> ldapMiddlewareServerResponse = await middlewareClient.AddLdap(actLdapConnection.ToApiParams());
+                    RestResponse<int> ldapMiddlewareServerResponse = await middlewareClient.AddLdap(actLdapConnection.ToApiParams());
                     if (ldapMiddlewareServerResponse.StatusCode != HttpStatusCode.OK)
                     {
                         DisplayMessageInUi!(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5201"), true);
@@ -352,7 +352,7 @@
                 }
                 else
                 {
-                    IRestResponse<int> ldapMiddlewareServerResponse = await middlewareClient.UpdateLdap(actLdapConnection.ToApiParams());
+                    RestResponse<int> ldapMiddlewareServerResponse = await middlewareClient.UpdateLdap(actLdapConnection.ToApiParams());
                     if (ldapMiddlewareServerResponse.StatusCode != HttpStatusCode.OK)
                     {
                         DisplayMessageInUi!(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5202"), true);

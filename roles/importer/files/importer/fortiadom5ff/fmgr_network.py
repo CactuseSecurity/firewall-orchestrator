@@ -3,7 +3,7 @@ from common import list_delimiter, resolve_objects, nat_postfix
 from fmgr_zone import add_zone_if_missing
 
 
-def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
+def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt=None):
     nw_objects = []
     for obj_type in nw_obj_types:
         for obj_orig in full_config[obj_type]:
@@ -27,7 +27,7 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
             elif 'member' in obj_orig: # addrgrp4 / addrgrp6
                 obj.update({ 'obj_typ': 'group' })
                 obj.update({ 'obj_member_names' : list_delimiter.join(obj_orig['member']) })
-                obj.update({ 'obj_member_refs' : resolve_objects(obj['obj_member_names'], list_delimiter, full_config, 'name', 'uuid')})
+                obj.update({ 'obj_member_refs' : resolve_objects(obj['obj_member_names'], list_delimiter, full_config, 'name', 'uuid', jwt=jwt, import_id=import_id)})
             elif 'startip' in obj_orig: # ippool object
                 obj.update({ 'obj_typ': 'ip_range' })
                 obj.update({ 'obj_ip': obj_orig['startip'] })
@@ -160,4 +160,17 @@ def remove_nat_ip_entries(config2import):
     for obj in config2import['network_objects']:
         if 'obj_nat_ip' in obj:
             obj.pop('obj_nat_ip')
-            
+
+
+def get_first_ip_of_destination(obj_ref, config2import):
+
+    if list_delimiter in obj_ref:
+        obj_ref = obj_ref.split(list_delimiter)[0]
+        # if destination does not contain exactly one ip, raise a warning 
+        logging.warning('src nat behind interface: more than one NAT IP - just using the first one for routing decision')
+
+    for obj in config2import['network_objects']:
+        if 'obj_uid' in obj and obj['obj_uid']==obj_ref:
+            return obj['obj_ip']
+    logging.warning('src nat behind interface: found no IP info for destination object ' + obj_ref)
+    return None

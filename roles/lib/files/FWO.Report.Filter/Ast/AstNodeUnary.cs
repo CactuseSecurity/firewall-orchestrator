@@ -18,7 +18,6 @@
             }
             Value?.Extract(ref query, reportType);
             query.ruleWhereStatement += "}";
-            return;
         }
     }
 }

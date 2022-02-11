@@ -16,6 +16,8 @@
         Management,
         Gateway,
         Remove,
+        ReportType,
+        Time,
         RecertDisplay,
         FullText,
         BL, // (
@@ -23,6 +25,7 @@
         And,
         Or,
         Not,
+        EEQ, // Exact equals
         EQ, // ==
         NEQ, // !=
         LSS, // <

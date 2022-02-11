@@ -2,8 +2,9 @@
 import json
 import logging, re
 import requests, requests.packages
-import fwcommon
 import time
+from common import FwLoginFailed, fwo_api_base_url
+from fwo_api import create_data_issue
 
 requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
@@ -50,17 +51,19 @@ def api_call(url, command, json_payload, sid, ssl_verification, proxy, show_prog
     return json_response
 
 
-def login(user, password, api_host, api_port, domain, ssl_verification, proxy):
+def login(user, password, api_host, api_port, domain, ssl_verification, proxy, debug=0):
     payload = {'user': user, 'password': password}
     if domain is not None and domain != '':
         payload.update({'domain': domain})
     base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
+    if int(debug)>2:
+        logging.debug("auto-discover - login to url " + base_url + " with user " + user)
     response = api_call(base_url, 'login', payload, '', ssl_verification, proxy)
     if "sid" not in response:
         exception_text = "\ngetter ERROR: did not receive a sid during login, " + \
             "api call: api_host: " + str(api_host) + ", api_port: " + str(api_port) + ", base_url: " + str(base_url) + \
             ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy)
-        raise Exception(exception_text)
+        raise  FwLoginFailed(exception_text)
     return response["sid"]
 
 
@@ -182,8 +185,6 @@ def collect_uids_from_rule(rule, nw_uids_found, svc_uids_found):
             svc_uids_found.append(svc['uid'])
         #logging.debug ("getter::collect_uids_from_rule nw_uids_found: " + str(nw_uids_found))
         #logging.debug ("getter::collect_uids_from_rule svc_uids_found: " + str(svc_uids_found))
-    if fwcommon.debug_new_uid in nw_uids_found:
-        logging.debug("found " + fwcommon.debug_new_uid + " in getter::collect_uids_from_rule")
     return
 
 
@@ -203,12 +204,6 @@ def collect_uids_from_rulebase(rulebase, nw_uids_found, svc_uids_found, debug_te
     else:
         for rule in rulebase:
             collect_uids_from_rule(rule, nw_uids_found, svc_uids_found)
-
-    if (debug_text == 'top_level'):
-        # logging.debug ("getter::collect_uids_from_rulebase final nw_uids_found: " + str(nw_uids_found))
-        # logging.debug ("getter::collect_uids_from_rulebase final svc_uids_found: " + str(svc_uids_found))
-        if fwcommon.debug_new_uid in nw_uids_found:
-            logging.debug("found " + fwcommon.debug_new_uid + " in getter::collect_uids_from_rulebase")
     return
 
 
@@ -263,13 +258,22 @@ def get_layer_from_api_as_dict (api_host, api_port, api_v_url, sid, ssl_verifica
     total=current+1
     while (current<total) :
         show_params_rules['offset']=current
-        rulebase = api_call(api_v_url, 'show-access-rulebase', show_params_rules, sid, ssl_verification, proxy_string)
-        current_layer_json['layerchunks'].append(rulebase)
+        try:
+            rulebase = api_call(api_v_url, 'show-access-rulebase', show_params_rules, sid, ssl_verification, proxy_string)
+            current_layer_json['layerchunks'].append(rulebase)
+        except:
+            logging.error("get_layer_from_api_as_dict - could not find layer " + layername)
+            # todo: need to get FWO API jwt here somehow:
+            # create_data_issue(fwo_api_base_url, jwt, severity=2, description="failed to get show-access-rulebase  " + layername)
+            return None
+
         if 'total' in rulebase:
             total=rulebase['total']
         else:
             logging.error ( "get_layer_from_api - rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json " 
                 + str(current_layer_json))
+            return None
+
         if total==0:
             current=0
         else:

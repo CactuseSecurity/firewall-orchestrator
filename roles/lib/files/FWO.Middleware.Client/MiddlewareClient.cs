@@ -3,6 +3,8 @@ using FWO.Middleware.RequestParameters;
 using RestSharp.Authenticators;
 using RestSharp.Serializers.SystemTextJson;
 using System.Text.Json;
+using RestSharp.Serializers.NewtonsoftJson;
+using Newtonsoft.Json;
 
 namespace FWO.Middleware.Client
 {
@@ -12,13 +14,19 @@ namespace FWO.Middleware.Client
 
         public MiddlewareClient(string middlewareServerUri)
         {
-            restClient = new RestClient(middlewareServerUri + "api/");
-            restClient.RemoteCertificateValidationCallback += (_, _, _, _) => true;
+            RestClientOptions restClientOptions = new RestClientOptions();
+            restClientOptions.RemoteCertificateValidationCallback += (_, _, _, _) => true;
+            restClientOptions.BaseUrl = new Uri(middlewareServerUri + "api/");
+            restClient = new RestClient(restClientOptions);
 
-            JsonSerializerOptions options = new JsonSerializerOptions();
-            options.PropertyNameCaseInsensitive = true;
-            SystemTextJsonSerializer serializer = new SystemTextJsonSerializer(options);
-            restClient.UseSerializer(() => serializer);
+            //JsonSerializerOptions options = new JsonSerializerOptions();
+            //options.PropertyNameCaseInsensitive = true;
+            //SystemTextJsonSerializer serializer = new SystemTextJsonSerializer(options);
+            // TODO: UPDATE RESTSHARP SERIALIZER LIBRARY (CURRENT VERSION IS OUT OF DATE)
+
+            JsonNetSerializer serializer = new JsonNetSerializer(); // Case insensivitive is enabled by default
+            restClient.UseDefaultSerializers();
+            restClient.UseSerializer(() => serializer); 
         }
 
         public void SetAuthenticationToken(string jwt)
@@ -26,196 +34,196 @@ namespace FWO.Middleware.Client
             restClient.Authenticator = new JwtAuthenticator(jwt);
         }
 
-        public async Task<IRestResponse<string>> AuthenticateUser(AuthenticationTokenGetParameters parameters)
+        public async Task<RestResponse<string>> AuthenticateUser(AuthenticationTokenGetParameters parameters)
         {
-            IRestRequest request = new RestRequest("AuthenticationToken/Get", Method.POST, DataFormat.Json);
+            RestRequest request = new RestRequest("AuthenticationToken/Get", Method.Post);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<string>(request);
         }
 
-        public async Task<IRestResponse<string>> CreateInitialJWT()
+        public async Task<RestResponse<string>> CreateInitialJWT()
         {
-            IRestRequest request = new RestRequest("AuthenticationToken/Get", Method.POST, DataFormat.Json);
+            RestRequest request = new RestRequest("AuthenticationToken/Get", Method.Post);
             request.AddJsonBody(new object());
             return await restClient.ExecuteAsync<string>(request);
         }
 
-        public async Task<IRestResponse<List<LdapGetUpdateParameters>>> GetLdaps()
+        public async Task<RestResponse<List<LdapGetUpdateParameters>>> GetLdaps()
         {
-            IRestRequest request = new RestRequest("AuthenticationServer", Method.GET, DataFormat.Json);
+            RestRequest request = new RestRequest("AuthenticationServer", Method.Get);
             request.AddJsonBody(new object());
             return await restClient.ExecuteAsync<List<LdapGetUpdateParameters>>(request);
         }
 
-        public async Task<IRestResponse<int>> AddLdap(LdapAddParameters parameters)
+        public async Task<RestResponse<int>> AddLdap(LdapAddParameters parameters)
         {
-            IRestRequest request = new RestRequest("AuthenticationServer", Method.POST, DataFormat.Json);
+            RestRequest request = new RestRequest("AuthenticationServer", Method.Post);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<int>(request);
         }
 
-        public async Task<IRestResponse<int>> UpdateLdap(LdapGetUpdateParameters parameters)
+        public async Task<RestResponse<int>> UpdateLdap(LdapGetUpdateParameters parameters)
         {
-            IRestRequest request = new RestRequest("AuthenticationServer", Method.PUT, DataFormat.Json);
+            RestRequest request = new RestRequest("AuthenticationServer", Method.Put);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<int>(request);
         }
 
-        public async Task<IRestResponse<int>> DeleteLdap(LdapDeleteParameters parameters)
+        public async Task<RestResponse<int>> DeleteLdap(LdapDeleteParameters parameters)
         {
-            IRestRequest request = new RestRequest("AuthenticationServer", Method.DELETE, DataFormat.Json);
+            RestRequest request = new RestRequest("AuthenticationServer", Method.Delete);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<int>(request);
         }
 
-        public async Task<IRestResponse<string>> ChangePassword(UserChangePasswordParameters parameters)
+        public async Task<RestResponse<string>> ChangePassword(UserChangePasswordParameters parameters)
         {
-            IRestRequest request = new RestRequest("User/EditPassword", Method.PATCH, DataFormat.Json);
+            RestRequest request = new RestRequest("User/EditPassword", Method.Patch);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<string>(request);
         }
 
-        public async Task<IRestResponse<List<RoleGetReturnParameters>>> GetAllRoles()
+        public async Task<RestResponse<List<RoleGetReturnParameters>>> GetAllRoles()
         {
-            IRestRequest request = new RestRequest("Role", Method.GET, DataFormat.Json);
+            RestRequest request = new RestRequest("Role", Method.Get);
             return await restClient.ExecuteAsync<List<RoleGetReturnParameters>>(request);
         }
 
-        public async Task<IRestResponse<List<string>>> GetGroups(GroupGetParameters parameters)
+        public async Task<RestResponse<List<string>>> GetGroups(GroupGetParameters parameters)
         {
-            IRestRequest request = new RestRequest("Group/Get", Method.POST, DataFormat.Json);
+            RestRequest request = new RestRequest("Group/Get", Method.Post);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<List<string>>(request);
         }
 
-        public async Task<IRestResponse<List<GroupGetReturnParameters>>> GetInternalGroups()
+        public async Task<RestResponse<List<GroupGetReturnParameters>>> GetInternalGroups()
         {
-            IRestRequest request = new RestRequest("Group", Method.GET, DataFormat.Json);
+            RestRequest request = new RestRequest("Group", Method.Get);
             return await restClient.ExecuteAsync<List<GroupGetReturnParameters>>(request);
         }
 
-        public async Task<IRestResponse<List<UserGetReturnParameters>>> GetUsers()
+        public async Task<RestResponse<List<UserGetReturnParameters>>> GetUsers()
         {
-            IRestRequest request = new RestRequest("User", Method.GET, DataFormat.Json);
+            RestRequest request = new RestRequest("User", Method.Get);
             request.AddJsonBody(new object());
             return await restClient.ExecuteAsync<List<UserGetReturnParameters>>(request);
         }
 
-        public async Task<IRestResponse<List<LdapUserGetReturnParameters>>> GetLdapUsers(LdapUserGetParameters parameters)
+        public async Task<RestResponse<List<LdapUserGetReturnParameters>>> GetLdapUsers(LdapUserGetParameters parameters)
         {
-            IRestRequest request = new RestRequest("User/Get", Method.POST, DataFormat.Json);
+            RestRequest request = new RestRequest("User/Get", Method.Post);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<List<LdapUserGetReturnParameters>>(request);
         }
 
-        public async Task<IRestResponse<int>> AddUser(UserAddParameters parameters)
+        public async Task<RestResponse<int>> AddUser(UserAddParameters parameters)
         {
-            IRestRequest request = new RestRequest("User", Method.POST, DataFormat.Json);
+            RestRequest request = new RestRequest("User", Method.Post);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<int>(request);
         }
 
-        public async Task<IRestResponse<bool>> UpdateUser(UserEditParameters parameters)
+        public async Task<RestResponse<bool>> UpdateUser(UserEditParameters parameters)
         {
-            IRestRequest request = new RestRequest("User", Method.PUT, DataFormat.Json);
+            RestRequest request = new RestRequest("User", Method.Put);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<bool>(request);
         }
 
-        public async Task<IRestResponse<string>> SetPassword(UserResetPasswordParameters parameters)
+        public async Task<RestResponse<string>> SetPassword(UserResetPasswordParameters parameters)
         {
-            IRestRequest request = new RestRequest("User/ResetPassword", Method.PATCH, DataFormat.Json);
+            RestRequest request = new RestRequest("User/ResetPassword", Method.Patch);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<string>(request);
         }
 
-        public async Task<IRestResponse<bool>> DeleteUser(UserDeleteParameters parameters)
+        public async Task<RestResponse<bool>> DeleteUser(UserDeleteParameters parameters)
         {
-            IRestRequest request = new RestRequest("User", Method.DELETE, DataFormat.Json);
+            RestRequest request = new RestRequest("User", Method.Delete);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<bool>(request);
         }
 
-        public async Task<IRestResponse<string>> AddGroup(GroupAddDeleteParameters parameters)
+        public async Task<RestResponse<string>> AddGroup(GroupAddDeleteParameters parameters)
         {
-            IRestRequest request = new RestRequest("Group", Method.POST, DataFormat.Json);
+            RestRequest request = new RestRequest("Group", Method.Post);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<string>(request);
         }
 
-        public async Task<IRestResponse<string>> UpdateGroup(GroupEditParameters parameters)
+        public async Task<RestResponse<string>> UpdateGroup(GroupEditParameters parameters)
         {
-            IRestRequest request = new RestRequest("Group", Method.PUT, DataFormat.Json);
+            RestRequest request = new RestRequest("Group", Method.Put);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<string>(request);
         }
 
-        public async Task<IRestResponse<bool>> DeleteGroup(GroupAddDeleteParameters parameters)
+        public async Task<RestResponse<bool>> DeleteGroup(GroupAddDeleteParameters parameters)
         {
-            IRestRequest request = new RestRequest("Group", Method.DELETE, DataFormat.Json);
+            RestRequest request = new RestRequest("Group", Method.Delete);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<bool>(request);
         }
 
-        public async Task<IRestResponse<bool>> AddUserToRole(RoleAddDeleteUserParameters parameters)
+        public async Task<RestResponse<bool>> AddUserToRole(RoleAddDeleteUserParameters parameters)
         {
-            IRestRequest request = new RestRequest("Role/User", Method.POST, DataFormat.Json);
+            RestRequest request = new RestRequest("Role/User", Method.Post);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<bool>(request);
         }
 
-        public async Task<IRestResponse<bool>> RemoveUserFromRole(RoleAddDeleteUserParameters parameters)
+        public async Task<RestResponse<bool>> RemoveUserFromRole(RoleAddDeleteUserParameters parameters)
         {
-            IRestRequest request = new RestRequest("Role/User", Method.DELETE, DataFormat.Json);
+            RestRequest request = new RestRequest("Role/User", Method.Delete);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<bool>(request);
         }
 
-        public async Task<IRestResponse<bool>> AddUserToGroup(GroupAddDeleteUserParameters parameters)
+        public async Task<RestResponse<bool>> AddUserToGroup(GroupAddDeleteUserParameters parameters)
         {
-            IRestRequest request = new RestRequest("Group/User", Method.POST, DataFormat.Json);
+            RestRequest request = new RestRequest("Group/User", Method.Post);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<bool>(request);
         }
 
-        public async Task<IRestResponse<bool>> RemoveUserFromGroup(GroupAddDeleteUserParameters parameters)
+        public async Task<RestResponse<bool>> RemoveUserFromGroup(GroupAddDeleteUserParameters parameters)
         {
-            IRestRequest request = new RestRequest("Group/User", Method.DELETE, DataFormat.Json);
+            RestRequest request = new RestRequest("Group/User", Method.Delete);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<bool>(request);
         }
 
-        public async Task<IRestResponse<bool>> RemoveUserFromAllEntries(UserDeleteAllEntriesParameters parameters)
+        public async Task<RestResponse<bool>> RemoveUserFromAllEntries(UserDeleteAllEntriesParameters parameters)
         {
-            IRestRequest request = new RestRequest("User/AllGroupsAndRoles", Method.DELETE, DataFormat.Json);
+            RestRequest request = new RestRequest("User/AllGroupsAndRoles", Method.Delete);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<bool>(request);
         }
 
-        public async Task<IRestResponse<List<TenantGetReturnParameters>>> GetTenants()
+        public async Task<RestResponse<List<TenantGetReturnParameters>>> GetTenants()
         {
-            IRestRequest request = new RestRequest("Tenant", Method.GET, DataFormat.Json);
+            RestRequest request = new RestRequest("Tenant", Method.Get);
             request.AddJsonBody(new object());
             return await restClient.ExecuteAsync<List<TenantGetReturnParameters>>(request);
         }
 
-        public async Task<IRestResponse<int>> AddTenant(TenantAddParameters parameters)
+        public async Task<RestResponse<int>> AddTenant(TenantAddParameters parameters)
         {
-            IRestRequest request = new RestRequest("Tenant", Method.POST, DataFormat.Json);
+            RestRequest request = new RestRequest("Tenant", Method.Post);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<int>(request);
         }
 
-        public async Task<IRestResponse<bool>> UpdateTenant(TenantEditParameters parameters)
+        public async Task<RestResponse<bool>> UpdateTenant(TenantEditParameters parameters)
         {
-            IRestRequest request = new RestRequest("Tenant", Method.PUT, DataFormat.Json);
+            RestRequest request = new RestRequest("Tenant", Method.Put);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<bool>(request);
         }
 
-        public async Task<IRestResponse<bool>> DeleteTenant(TenantDeleteParameters parameters)
+        public async Task<RestResponse<bool>> DeleteTenant(TenantDeleteParameters parameters)
         {
-            IRestRequest request = new RestRequest("Tenant", Method.DELETE, DataFormat.Json);
+            RestRequest request = new RestRequest("Tenant", Method.Delete);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<bool>(request);
         }

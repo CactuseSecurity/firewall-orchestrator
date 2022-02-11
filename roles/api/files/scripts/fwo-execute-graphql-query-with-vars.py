@@ -1,5 +1,6 @@
 #!/usr/bin/python3
-# fwo-execute-graphql.py: run a graphql query/mutation against the FWO API
+# fwo-execute-graphql.py: run a graphql query/mutation with variables against the FWO API
+# 
 
 import sys
 import json, requests, requests.packages, argparse

@@ -54,6 +54,7 @@
     loop:
       - libjpeg62
       - libgdiplus
+      # - wkhtmltopdf
   
   become: yes
 

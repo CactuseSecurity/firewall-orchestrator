@@ -99,6 +99,8 @@ Create table IF NOT EXISTS "log_data_issue"
  primary key ("data_issue_id")
 );
 
+-- DROP FUNCTION IF EXISTS public.import_all_main(BIGINT);
+
 DROP TABLE IF EXISTS changelog_data_issue;
 DROP FUNCTION IF EXISTS add_data_issue(BIGINT,varchar,varchar,varchar,BIGINT,INT,varchar,varchar);
 

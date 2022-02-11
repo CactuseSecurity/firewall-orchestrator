@@ -986,6 +986,7 @@ INSERT INTO txt VALUES ('architecture',         'English',  'Firewall Orchestrat
 --            5300-5399: defaults
 --            5400-5499: personal settings
 -- 6000-6999: API
+-- 7000-7999: Monitoring
 
 -- user messages
 INSERT INTO txt VALUES ('U1002', 'German',  'Sind sie sicher, dass sie folgende Reportvorlage l&ouml;schen wollen: ');
@@ -997,8 +998,8 @@ INSERT INTO txt VALUES ('U2002', 'English', 'Do you really want to delete report
 INSERT INTO txt VALUES ('U3002', 'German',  'Sind sie sicher, dass sie folgenden Report l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U3002', 'English', 'Do you really want to delete generated report ');
 
-INSERT INTO txt VALUES ('U5001', 'German',  'Bitte eine Einstellung ausw&auml;hlen.');
-INSERT INTO txt VALUES ('U5001', 'English', 'Please choose a setting.');
+INSERT INTO txt VALUES ('U5001', 'German',  'Setup und Verwaltung des Firewall Orchestrator. Bitte eine Einstellung in der linken Randleiste ausw&auml;hlen.');
+INSERT INTO txt VALUES ('U5001', 'English', 'Setup and administration of Firewall Orchestrator. Please choose a setting in the left sidebar.');
 INSERT INTO txt VALUES ('U5011', 'German',  'Verwaltung der technischen Komponenten (nur f&uuml;r Admin)');
 INSERT INTO txt VALUES ('U5011', 'English', 'Administration of technical components (only by admin)');
 INSERT INTO txt VALUES ('U5012', 'German',  'Verwaltung der Nutzerautorisierung (nur f&uuml;r Admin)');
@@ -1085,6 +1086,15 @@ INSERT INTO txt VALUES ('U5413', 'German',  'Anpassung der pers&ouml;nlichen Rep
 INSERT INTO txt VALUES ('U5413', 'English', 'Adapt your personal reporting settings');
 INSERT INTO txt VALUES ('U5414', 'German',  'Anpassung der pers&ouml;nlichen Rezertifizierungseinstellungen');
 INSERT INTO txt VALUES ('U5414', 'English', 'Adapt your personal recertification settings');
+
+INSERT INTO txt VALUES ('U7001', 'German',  '&Uuml;berblick, was im Firewall Orchestrator passiert');
+INSERT INTO txt VALUES ('U7001', 'English', 'View what is going on in Firewall Orchestrator');
+INSERT INTO txt VALUES ('U7101', 'German',  'Archiv der Alarme mit Best&auml;tigungen');
+INSERT INTO txt VALUES ('U7101', 'English', 'View the past alerts with acknowledgements');
+INSERT INTO txt VALUES ('U7201', 'German',  'Archiv der Importer-Nachrichten');
+INSERT INTO txt VALUES ('U7201', 'English', 'View the past importer messages');
+INSERT INTO txt VALUES ('U7301', 'German',  'Archiv der eigenen Nutzernachrichten');
+INSERT INTO txt VALUES ('U7301', 'English', 'View the past own UI user messages');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');

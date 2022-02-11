@@ -7,9 +7,11 @@
 @inject UserConfig userConfig
 
 <h3>@(userConfig.GetText("monitoring"))</h3>
+@(userConfig.GetText("U7001"))
+<hr />
 
 <AuthorizeView Roles="admin, fw-admin, auditor">
-    <h4>@(userConfig.GetText("open_alerts"))</h4>
+    <h5>@(userConfig.GetText("open_alerts"))</h5>
     <Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="LogEntry" Items="alertEntrys" PageSize="0">
         <Column Context="alert" TableItem="LogEntry" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)">
             <Template>

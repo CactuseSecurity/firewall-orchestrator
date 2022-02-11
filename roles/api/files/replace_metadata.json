@@ -2764,11 +2764,7 @@
                 {
                   "role": "auditor",
                   "permission": {
-                    "check": {
-                      "user_id": {
-                        "_eq": "x-hasura-uuid"
-                      }
-                    },
+                    "check": {},
                     "columns": [
                       "data_issue_id",
                       "description",
@@ -2867,11 +2863,7 @@
                 {
                   "role": "recertifier",
                   "permission": {
-                    "check": {
-                      "user_id": {
-                        "_eq": "x-hasura-uuid"
-                      }
-                    },
+                    "check": {},
                     "columns": [
                       "data_issue_id",
                       "description",
@@ -2894,11 +2886,7 @@
                 {
                   "role": "reporter",
                   "permission": {
-                    "check": {
-                      "user_id": {
-                        "_eq": "x-hasura-uuid"
-                      }
-                    },
+                    "check": {},
                     "columns": [
                       "data_issue_id",
                       "description",
@@ -2921,11 +2909,7 @@
                 {
                   "role": "reporter-viewall",
                   "permission": {
-                    "check": {
-                      "user_id": {
-                        "_eq": "x-hasura-uuid"
-                      }
-                    },
+                    "check": {},
                     "columns": [
                       "data_issue_id",
                       "description",
@@ -9911,6 +9895,18 @@
                       "table": {
                         "schema": "public",
                         "name": "config"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "log_data_issues",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "user_id",
+                      "table": {
+                        "schema": "public",
+                        "name": "log_data_issue"
                       }
                     }
                   }

@@ -1,0 +1,43 @@
+﻿@using System.Text
+@using FWO.Config.Api
+
+@inject APIConnection apiConnection
+@inject UserConfig userConfig
+
+@page "/monitoring/alerts"
+
+<h3>@(userConfig.GetText("alerts"))</h3>
+
+<Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="LogEntry" Items="alertEntrys" PageSize="0">
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("title"))" Field="@(x => x.SuspectedCause)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("acknowledged_by"))" Field="@(x => x.AcknowledgedBy)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.AckTimestamp)" />
+</Table>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    private List<LogEntry> alertEntrys = new List<LogEntry>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            alertEntrys = await apiConnection.SendQueryAsync<List<LogEntry>>(MonitorQueries.getAlertEntrys);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_log_entrys"), "", true);
+        }
+    }
+}

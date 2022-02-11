@@ -1,0 +1,19 @@
+mutation addAlertEntry(
+  $source: String!
+  $suspectedCause: String
+  $description: String
+) {
+  insert_log_data_issue(
+    objects: {
+      source: $source
+      user_id: 0
+      severity: 5
+      suspected_cause: $suspectedCause
+      description: $description
+    }
+  ) {
+    returning {
+       newId: data_issue_id
+    }
+  }
+}

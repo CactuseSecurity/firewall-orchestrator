@@ -1,0 +1,21 @@
+query getLogEntrys {
+  log_data_issue (order_by: { data_issue_id: desc }, limit: 100){
+    data_issue_id
+    source
+    severity
+    issue_timestamp
+    suspected_cause
+    issue_mgm_id
+    issue_dev_id
+    import_id
+    object_type
+    object_name
+    object_uid
+    rule_uid
+    rule_id
+    description
+    user_id
+    ack_by
+    ack_timestamp
+  }
+}

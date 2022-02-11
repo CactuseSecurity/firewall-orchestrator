@@ -1,10 +1,18 @@
 ﻿@inherits LayoutComponentBase
 @using FWO.Config.Api
+@using FWO.Config.File
+@using FWO.ApiClient
+@using FWO.Api.Data
+@using FWO.Config.Api.Data
+@using FWO.ApiClient.Queries
+@using System.Timers
 
+
+@inject APIConnection apiConnection
 @inject UserConfig userConfig
 
 <div style="z-index:15; top:0px;" class="position-sticky">
-    <NavigationMenu />
+    <NavigationMenu @bind-ShowAlert="showAlert"/>
 </div>
 
 <div class="main">
@@ -15,113 +23,213 @@
     </div>
 </div>
 
-@if (errorDialogShow)
+@if (messageDialogShow)
 {
-    <div class="footer alert alert-danger">
+    <div class="@cssClass">
         <div class="d-flex flex-row justify-content-between">
             <div>@dialogTitle - @dialogMessage</div>
-            <div class="oi oi-x" @onclick="@(() => { errorDialogShow = false; StateHasChanged();})"></div>
-        </div>
-    </div>
-}
-@if (successDialogShow)
-{
-    <div class="footer alert alert-success">
-        <div class="d-flex flex-row justify-content-between">
-            <div>@dialogTitle - @dialogMessage</div>
-            <div class="oi oi-x" @onclick="@(() => { successDialogShow = false; StateHasChanged();})"></div>
+            <div class="oi oi-x" @onclick="@(() => { messageDialogShow = false; StateHasChanged();})"></div>
         </div>
     </div>
 }
 
 @code
 {
-    private bool errorDialogShow = false;
-    private bool successDialogShow = false;
-    private string dialogTitle = "";
-    private string dialogMessage = "";
-
-    private object errorLock = new object();
-
     Action<Exception?, string, string, bool>? DisplayMessageInUiFunction;
 
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
+    private ApiSubscription<LogEntry[]> alertSubscription;
+    private bool showAlert = false;
+    private bool messageDialogShow = false;
+    private string dialogTitle = "";
+    private string dialogMessage = "";
+    private string cssClass = "";
+
+    private object errorLock = new object();
+
+    public enum MessageType
+    {
+        Info,
+        Success,
+        Warning,
+        Error
+    }
+
+
+
     protected override void OnInitialized()
     {
         var user = authenticationStateTask!.Result.User;
         DisplayMessageInUiFunction = DisplayMessageInUi;
+
+        alertSubscription = apiConnection.GetSubscription<LogEntry[]>(ApiExceptionHandler, OnAlertUpdate, MonitorQueries.subscribeAlertChanges);
     }
 
-    private void ShowError(string title, string message)
+    private void OnAlertUpdate(LogEntry[] alerts)
+    {
+        showAlert = alerts.Count() > 0;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void ShowMessage(string title, string message, MessageType type)
     {
         // Needed so there is no chance an error is announced by 2 threads at the same time.
         lock (errorLock)
         {
+            int showtime = 7000;
+            switch(type)
+            {
+                case MessageType.Info:
+                    cssClass = "footer alert alert-info";
+                    break;
+                case MessageType.Success:
+                    cssClass = "footer alert alert-success";
+                    break;
+                case MessageType.Warning:
+                    setAlert(title, message);
+                    cssClass = "footer alert alert-warning";
+                    break;
+                case MessageType.Error:
+                    cssClass = "footer alert alert-danger";
+                    showtime = 30000;
+                    break;
+            }
+
             dialogTitle = title;
             dialogMessage = message;
-            errorDialogShow = true;
-            successDialogShow = false;
+            messageDialogShow = true;
+
+            Timer messageTimer = new Timer(showtime);
+            messageTimer.Elapsed += HideMessage;
+            messageTimer.AutoReset = false;
+            messageTimer.Start();
+
             InvokeAsync(StateHasChanged);
         }
     }
 
-    private void ShowSuccess(string title, string message)
+    private void HideMessage(object? _, ElapsedEventArgs __)
     {
-        // Needed so there is no chance an error is announced by 2 threads at the same time.
-        lock (errorLock)
-        {
-            dialogTitle = title;
-            dialogMessage = message;
-            errorDialogShow = false;
-            successDialogShow = true;
-            InvokeAsync(StateHasChanged);
-        }
+        messageDialogShow = false;
+        InvokeAsync(StateHasChanged);
     }
 
     private void DisplayMessageInUi(Exception? exception = null, string title = "", string message = "", bool ErrorFlag = false)
     {
+        int severity = 0;
+        string cause = "";
+        string description = "";
+        MessageType messageType = MessageType.Info;
+
         if (exception == null)
         {
+            cause = title;
+            description = message;
             if (ErrorFlag)
             {
                 // User message to be displayed as error
-                ShowError(title, message); // todo: display warnings in yellow
                 Log.WriteWarning(title, message);
+                messageType = MessageType.Warning;
+                severity = 1;
             }
             else
             {
                 // User message is no error
-                ShowSuccess(title, message);
+                messageType = MessageType.Success;
             }
         }
         else
         {
+            messageType = MessageType.Error;
+
             // first some recurring specific messages
             if (exception.Message.Contains("JWTExpired"))
             {
                 // todo: consider redirect to login page
                 Log.WriteError("Auth Token Error", "JWT expired in session.", exception);
-                ShowError(userConfig.GetText("jwt_expiry"), userConfig.GetText("E0003"));
+                severity = 1;
+                cause = userConfig.GetText("jwt_expiry");
+                description = userConfig.GetText("E0003");
             }
             else if (exception.Message == "no such type exists in the schema: 'cidr'")
             {
                 // this is the default error message when user's access rights are not sufficient for API access
-                ShowError(userConfig.GetText("api_access"), userConfig.GetText("E0004"));
+                severity = 2;
+                cause = userConfig.GetText("api_access");
+                description = userConfig.GetText("E0004");
             }
             else if (ErrorFlag)
             {
                 // the exception message is shown to the user
                 Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception);
-                ShowError((title != "" ? title : userConfig.GetText("unspecified_error")), $"{(message != "" ? message : userConfig.GetText("E0001"))}: {exception.Message} . " + userConfig.GetText("E0002"));
+                severity = 2;
+                cause = (title != "" ? title : userConfig.GetText("unspecified_error"));
+                description = $"{(message != "" ? message : userConfig.GetText("E0001"))}: {exception.Message} . " + userConfig.GetText("E0002");
             }
             else
             {
                 // only title and message (if given) or unspecific error message is shown to the user
                 Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception);
-                ShowError((title != "" ? title : userConfig.GetText("unspecified_error")), $"{(message != "" ? message : userConfig.GetText("E0001"))} . " + userConfig.GetText("E0002"));
+                severity = 2;
+                cause = (title != "" ? title : userConfig.GetText("unspecified_error"));
+                description = $"{(message != "" ? message : userConfig.GetText("E0001"))} . " + userConfig.GetText("E0002");
             }
+        }
+        ShowMessage(cause, description, messageType);
+        AddUiLogEntry(severity, cause, description);
+    }
+
+    public async Task AddUiLogEntry(int severity, string cause, string description)
+    {
+        try
+        {
+            var Variables = new
+            {
+                user = userConfig.User.DbId,
+                severity = severity,
+                suspectedCause = cause,
+                description = description,
+            };
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.MonitorQueries.addUiLogEntry, Variables)).ReturnIds;
+            if (returnIds == null)
+            {
+                Log.WriteError("Write Log", "Log could not be written to database");
+            }
+        }
+        catch(Exception exc)
+        {
+            Log.WriteError("Write Log", $"Could not write log for user {userConfig.User.DbId}: ", exc);
+        }
+    }
+
+    private void ApiExceptionHandler(Exception exception)
+    {
+        Log.WriteError("Alert Handling", "Api subscription lead to exception. Retry subscription.", exception);
+        // Subscription will be restored if no exception is thrown here
+    }
+
+    public async Task setAlert(string title, string message)
+    {
+        try
+        {
+            var Variables = new
+            {
+                source = "ui",
+                suspectedCause = title,
+                description = message
+            };
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.MonitorQueries.addAlertEntry, Variables)).ReturnIds;
+            if (returnIds == null)
+            {
+                Log.WriteError("Write Alert", "Log could not be written to database");
+            }
+            InvokeAsync(StateHasChanged);
+        }
+        catch(Exception exc)
+        {
+            Log.WriteError("Write Log", $"Could not write log for user {userConfig.User.DbId}: ", exc);
         }
     }
 }

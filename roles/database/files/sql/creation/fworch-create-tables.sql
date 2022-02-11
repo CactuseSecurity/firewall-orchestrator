@@ -780,6 +780,9 @@ Create table "log_data_issue"
 	"severity" INTEGER NOT NULL DEFAULT 1,
 	"source" VARCHAR NOT NULL DEFAULT 'import',
 	"issue_timestamp" TIMESTAMP DEFAULT NOW(),
+	"user_id" INTEGER DEFAULT 0,
+	"ack_by" INTEGER,
+	"ack_timestamp" TIMESTAMP,
  primary key ("data_issue_id")
 );
 

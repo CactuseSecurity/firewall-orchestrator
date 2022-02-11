@@ -57,6 +57,15 @@
                 </NavLink>
             </li>
             <li class="nav-item px-2">
+                <NavLink class="nav-link" href="/monitoring">
+                    @if(ShowAlert)
+                    {
+                        <span class="oi oi-bell" style="color: red"></span>
+                    }
+                    <span class="oi oi-monitor"></span> @(userConfig.GetText("monitoring"))
+                </NavLink>
+            </li>
+            <li class="nav-item px-2">
                 <NavLink class="nav-link" href="/settings">
                     <span class="oi oi-cog"></span> @(userConfig.GetText("settings"))
                 </NavLink>
@@ -77,6 +86,12 @@
 
 @code
 {
+    [Parameter]
+    public bool ShowAlert { get; set; }
+    
+    [Parameter]
+    public EventCallback<bool> ShowAlertChanged { get; set; }
+
     bool collapseNavMenu = true;
 
     string NavMenuCollapseClass => (collapseNavMenu ? " collapse" : "");

@@ -1,0 +1,41 @@
+﻿@using System.Text
+@using FWO.Config.Api
+
+@inject APIConnection apiConnection
+@inject UserConfig userConfig
+
+@page "/monitoring/ui_logs"
+
+<h3>@(userConfig.GetText("ui_logs"))</h3>
+
+<Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys" PageSize="0">
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("severity"))" Field="@(x => x.Severity)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("title"))" Field="@(x => x.SuspectedCause)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" />
+</Table>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    private List<LogEntry> logEntrys = new List<LogEntry>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            logEntrys = await apiConnection.SendQueryAsync<List<LogEntry>>(MonitorQueries.getUiLogEntrys, new { user = userConfig.User.DbId });
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_log_entrys"), "", true);
+        }
+    }
+}

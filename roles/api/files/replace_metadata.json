@@ -555,7 +555,11 @@
                         "_eq": "X-Hasura-User-Id"
                       }
                     },
-                    "columns": ["config_key", "config_value", "config_user"],
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "config_user"
+                    ],
                     "backend_only": false
                   }
                 },
@@ -567,7 +571,11 @@
                         "_eq": "X-Hasura-User-Id"
                       }
                     },
-                    "columns": ["config_user", "config_key", "config_value"],
+                    "columns": [
+                      "config_user",
+                      "config_key",
+                      "config_value"
+                    ],
                     "backend_only": false
                   }
                 },
@@ -588,7 +596,11 @@
                         }
                       ]
                     },
-                    "columns": ["config_key", "config_value", "config_user"]
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "config_user"
+                    ]
                   }
                 },
                 {
@@ -599,7 +611,11 @@
                         "_eq": "X-Hasura-User-Id"
                       }
                     },
-                    "columns": ["config_user", "config_key", "config_value"],
+                    "columns": [
+                      "config_user",
+                      "config_key",
+                      "config_value"
+                    ],
                     "backend_only": false
                   }
                 },
@@ -611,7 +627,11 @@
                         "_eq": "X-Hasura-User-Id"
                       }
                     },
-                    "columns": ["config_user", "config_key", "config_value"],
+                    "columns": [
+                      "config_user",
+                      "config_key",
+                      "config_value"
+                    ],
                     "backend_only": false
                   }
                 }
@@ -620,7 +640,11 @@
                 {
                   "role": "anonymous",
                   "permission": {
-                    "columns": ["config_key", "config_value", "config_user"],
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "config_user"
+                    ],
                     "filter": {
                       "config_user": {
                         "_eq": 0
@@ -631,14 +655,22 @@
                 {
                   "role": "auditor",
                   "permission": {
-                    "columns": ["config_user", "config_key", "config_value"],
+                    "columns": [
+                      "config_user",
+                      "config_key",
+                      "config_value"
+                    ],
                     "filter": {}
                   }
                 },
                 {
                   "role": "fw-admin",
                   "permission": {
-                    "columns": ["config_user", "config_key", "config_value"],
+                    "columns": [
+                      "config_user",
+                      "config_key",
+                      "config_value"
+                    ],
                     "filter": {
                       "_or": [
                         {
@@ -658,7 +690,11 @@
                 {
                   "role": "importer",
                   "permission": {
-                    "columns": ["config_key", "config_value", "config_user"],
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "config_user"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -666,14 +702,22 @@
                 {
                   "role": "middleware-server",
                   "permission": {
-                    "columns": ["config_key", "config_value", "config_user"],
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "config_user"
+                    ],
                     "filter": {}
                   }
                 },
                 {
                   "role": "recertifier",
                   "permission": {
-                    "columns": ["config_key", "config_value", "config_user"],
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "config_user"
+                    ],
                     "filter": {
                       "_or": [
                         {
@@ -693,7 +737,11 @@
                 {
                   "role": "reporter",
                   "permission": {
-                    "columns": ["config_key", "config_value", "config_user"],
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "config_user"
+                    ],
                     "filter": {
                       "_or": [
                         {
@@ -713,7 +761,11 @@
                 {
                   "role": "reporter-viewall",
                   "permission": {
-                    "columns": ["config_user", "config_key", "config_value"],
+                    "columns": [
+                      "config_user",
+                      "config_key",
+                      "config_value"
+                    ],
                     "filter": {
                       "_or": [
                         {
@@ -735,7 +787,11 @@
                 {
                   "role": "auditor",
                   "permission": {
-                    "columns": ["config_user", "config_key", "config_value"],
+                    "columns": [
+                      "config_user",
+                      "config_key",
+                      "config_value"
+                    ],
                     "filter": {
                       "config_user": {
                         "_eq": "X-Hasura-User-Id"
@@ -747,7 +803,9 @@
                 {
                   "role": "fw-admin",
                   "permission": {
-                    "columns": ["config_value"],
+                    "columns": [
+                      "config_value"
+                    ],
                     "filter": {
                       "config_user": {
                         "_eq": "X-Hasura-User-Id"
@@ -759,7 +817,11 @@
                 {
                   "role": "recertifier",
                   "permission": {
-                    "columns": ["config_key", "config_value", "config_user"],
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "config_user"
+                    ],
                     "filter": {
                       "_or": [
                         {
@@ -780,7 +842,9 @@
                 {
                   "role": "reporter",
                   "permission": {
-                    "columns": ["config_value"],
+                    "columns": [
+                      "config_value"
+                    ],
                     "filter": {
                       "config_user": {
                         "_eq": "X-Hasura-User-Id"
@@ -792,7 +856,9 @@
                 {
                   "role": "reporter-viewall",
                   "permission": {
-                    "columns": ["config_value"],
+                    "columns": [
+                      "config_value"
+                    ],
                     "filter": {
                       "config_user": {
                         "_eq": "X-Hasura-User-Id"
@@ -1184,7 +1250,10 @@
                   "role": "middleware-server",
                   "permission": {
                     "check": {},
-                    "columns": ["id", "name"],
+                    "columns": [
+                      "id",
+                      "name"
+                    ],
                     "backend_only": false
                   }
                 }
@@ -1193,21 +1262,30 @@
                 {
                   "role": "auditor",
                   "permission": {
-                    "columns": ["id", "name"],
+                    "columns": [
+                      "id",
+                      "name"
+                    ],
                     "filter": {}
                   }
                 },
                 {
                   "role": "fw-admin",
                   "permission": {
-                    "columns": ["name", "id"],
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
                     "filter": {}
                   }
                 },
                 {
                   "role": "middleware-server",
                   "permission": {
-                    "columns": ["id", "name"],
+                    "columns": [
+                      "id",
+                      "name"
+                    ],
                     "filter": {}
                   }
                 }
@@ -1216,7 +1294,10 @@
                 {
                   "role": "middleware-server",
                   "permission": {
-                    "columns": ["id", "name"],
+                    "columns": [
+                      "id",
+                      "name"
+                    ],
                     "filter": {},
                     "check": null
                   }
@@ -2139,7 +2220,11 @@
                   "role": "importer",
                   "permission": {
                     "check": {},
-                    "columns": ["config", "import_id", "mgm_id"],
+                    "columns": [
+                      "config",
+                      "import_id",
+                      "mgm_id"
+                    ],
                     "backend_only": false
                   }
                 }
@@ -2148,7 +2233,11 @@
                 {
                   "role": "importer",
                   "permission": {
-                    "columns": ["import_id", "mgm_id", "config"],
+                    "columns": [
+                      "import_id",
+                      "mgm_id",
+                      "config"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -2429,7 +2518,11 @@
                   "role": "importer",
                   "permission": {
                     "check": {},
-                    "columns": ["control_id", "zone_name", "last_change_time"],
+                    "columns": [
+                      "control_id",
+                      "zone_name",
+                      "last_change_time"
+                    ],
                     "backend_only": false
                   }
                 }
@@ -2470,7 +2563,10 @@
                 {
                   "role": "anonymous",
                   "permission": {
-                    "columns": ["name", "culture_info"],
+                    "columns": [
+                      "name",
+                      "culture_info"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -2478,21 +2574,30 @@
                 {
                   "role": "auditor",
                   "permission": {
-                    "columns": ["culture_info", "name"],
+                    "columns": [
+                      "culture_info",
+                      "name"
+                    ],
                     "filter": {}
                   }
                 },
                 {
                   "role": "fw-admin",
                   "permission": {
-                    "columns": ["culture_info", "name"],
+                    "columns": [
+                      "culture_info",
+                      "name"
+                    ],
                     "filter": {}
                   }
                 },
                 {
                   "role": "reporter-viewall",
                   "permission": {
-                    "columns": ["name", "culture_info"],
+                    "columns": [
+                      "name",
+                      "culture_info"
+                    ],
                     "filter": {}
                   }
                 }
@@ -2647,9 +2752,44 @@
                 "schema": "public",
                 "name": "log_data_issue"
               },
+              "object_relationships": [
+                {
+                  "name": "uiuser",
+                  "using": {
+                    "foreign_key_constraint_on": "user_id"
+                  }
+                }
+              ],
               "insert_permissions": [
                 {
-                  "role": "importer",
+                  "role": "auditor",
+                  "permission": {
+                    "check": {
+                      "user_id": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    },
+                    "columns": [
+                      "data_issue_id",
+                      "description",
+                      "import_id",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "issue_timestamp",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_id",
+                      "rule_uid",
+                      "severity",
+                      "source",
+                      "suspected_cause",
+                      "user_id"
+                    ]
+                  }
+                },
+                {
+                  "role": "fw-admin",
                   "permission": {
                     "check": {},
                     "columns": [
@@ -2663,10 +2803,37 @@
                       "rule_uid",
                       "source",
                       "suspected_cause",
+                      "ack_by",
                       "issue_dev_id",
                       "issue_mgm_id",
                       "severity",
+                      "user_id",
+                      "ack_timestamp",
                       "issue_timestamp"
+                    ],
+                    "backend_only": false
+                  }
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "data_issue_id",
+                      "description",
+                      "import_id",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "issue_timestamp",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_id",
+                      "rule_uid",
+                      "severity",
+                      "source",
+                      "suspected_cause",
+                      "user_id"
                     ],
                     "backend_only": false
                   }
@@ -2676,22 +2843,106 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "ack_by",
+                      "ack_timestamp",
                       "data_issue_id",
-                      "import_id",
-                      "rule_id",
                       "description",
+                      "import_id",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "issue_timestamp",
                       "object_name",
                       "object_type",
                       "object_uid",
+                      "rule_id",
                       "rule_uid",
+                      "severity",
                       "source",
                       "suspected_cause",
-                      "issue_dev_id",
-                      "issue_mgm_id",
-                      "severity",
-                      "issue_timestamp"
+                      "user_id"
                     ],
                     "backend_only": false
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "check": {
+                      "user_id": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    },
+                    "columns": [
+                      "data_issue_id",
+                      "description",
+                      "import_id",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "issue_timestamp",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_id",
+                      "rule_uid",
+                      "severity",
+                      "source",
+                      "suspected_cause",
+                      "user_id"
+                    ]
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "check": {
+                      "user_id": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    },
+                    "columns": [
+                      "data_issue_id",
+                      "description",
+                      "import_id",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "issue_timestamp",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_id",
+                      "rule_uid",
+                      "severity",
+                      "source",
+                      "suspected_cause",
+                      "user_id"
+                    ]
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "check": {
+                      "user_id": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    },
+                    "columns": [
+                      "data_issue_id",
+                      "description",
+                      "import_id",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "issue_timestamp",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_id",
+                      "rule_uid",
+                      "severity",
+                      "source",
+                      "suspected_cause",
+                      "user_id"
+                    ]
                   }
                 }
               ],
@@ -2700,20 +2951,23 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
+                      "ack_by",
+                      "ack_timestamp",
                       "data_issue_id",
-                      "import_id",
-                      "rule_id",
                       "description",
+                      "import_id",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "issue_timestamp",
                       "object_name",
                       "object_type",
                       "object_uid",
+                      "rule_id",
                       "rule_uid",
+                      "severity",
                       "source",
                       "suspected_cause",
-                      "issue_dev_id",
-                      "issue_mgm_id",
-                      "severity",
-                      "issue_timestamp"
+                      "user_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -2723,20 +2977,23 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
+                      "ack_by",
+                      "ack_timestamp",
                       "data_issue_id",
-                      "import_id",
-                      "rule_id",
                       "description",
+                      "import_id",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "issue_timestamp",
                       "object_name",
                       "object_type",
                       "object_uid",
+                      "rule_id",
                       "rule_uid",
+                      "severity",
                       "source",
                       "suspected_cause",
-                      "issue_dev_id",
-                      "issue_mgm_id",
-                      "severity",
-                      "issue_timestamp"
+                      "user_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -2746,20 +3003,23 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
+                      "ack_by",
+                      "ack_timestamp",
                       "data_issue_id",
-                      "import_id",
-                      "rule_id",
                       "description",
+                      "import_id",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "issue_timestamp",
                       "object_name",
                       "object_type",
                       "object_uid",
+                      "rule_id",
                       "rule_uid",
+                      "severity",
                       "source",
                       "suspected_cause",
-                      "issue_dev_id",
-                      "issue_mgm_id",
-                      "severity",
-                      "issue_timestamp"
+                      "user_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -2767,6 +3027,32 @@
                 },
                 {
                   "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "ack_by",
+                      "ack_timestamp",
+                      "data_issue_id",
+                      "description",
+                      "import_id",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "issue_timestamp",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_id",
+                      "rule_uid",
+                      "severity",
+                      "source",
+                      "suspected_cause",
+                      "user_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "recertifier",
                   "permission": {
                     "columns": [
                       "data_issue_id",
@@ -2779,13 +3065,78 @@
                       "rule_uid",
                       "source",
                       "suspected_cause",
+                      "ack_by",
                       "issue_dev_id",
                       "issue_mgm_id",
                       "severity",
+                      "user_id",
+                      "ack_timestamp",
                       "issue_timestamp"
                     ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "data_issue_id",
+                      "import_id",
+                      "rule_id",
+                      "description",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_uid",
+                      "source",
+                      "suspected_cause",
+                      "ack_by",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "severity",
+                      "user_id",
+                      "ack_timestamp",
+                      "issue_timestamp"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "data_issue_id",
+                      "import_id",
+                      "rule_id",
+                      "description",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_uid",
+                      "source",
+                      "suspected_cause",
+                      "ack_by",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "severity",
+                      "user_id",
+                      "ack_timestamp",
+                      "issue_timestamp"
+                    ],
+                    "filter": {}
+                  }
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "ack_by",
+                      "ack_timestamp"
+                    ],
                     "filter": {},
-                    "allow_aggregations": true
+                    "check": null
                   }
                 }
               ]
@@ -3904,14 +4255,20 @@
                 {
                   "role": "auditor",
                   "permission": {
-                    "columns": ["id", "name"],
+                    "columns": [
+                      "id",
+                      "name"
+                    ],
                     "filter": {}
                   }
                 },
                 {
                   "role": "fw-admin",
                   "permission": {
-                    "columns": ["name", "id"],
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -3919,14 +4276,20 @@
                 {
                   "role": "importer",
                   "permission": {
-                    "columns": ["id", "name"],
+                    "columns": [
+                      "id",
+                      "name"
+                    ],
                     "filter": {}
                   }
                 },
                 {
                   "role": "recertifier",
                   "permission": {
-                    "columns": ["id", "name"],
+                    "columns": [
+                      "id",
+                      "name"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -3934,7 +4297,10 @@
                 {
                   "role": "reporter",
                   "permission": {
-                    "columns": ["id", "name"],
+                    "columns": [
+                      "id",
+                      "name"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -3942,7 +4308,10 @@
                 {
                   "role": "reporter-viewall",
                   "permission": {
-                    "columns": ["id", "name"],
+                    "columns": [
+                      "id",
+                      "name"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -4411,42 +4780,54 @@
                 {
                   "role": "auditor",
                   "permission": {
-                    "columns": ["report_format_name"],
+                    "columns": [
+                      "report_format_name"
+                    ],
                     "filter": {}
                   }
                 },
                 {
                   "role": "fw-admin",
                   "permission": {
-                    "columns": ["report_format_name"],
+                    "columns": [
+                      "report_format_name"
+                    ],
                     "filter": {}
                   }
                 },
                 {
                   "role": "middleware-server",
                   "permission": {
-                    "columns": ["report_format_name"],
+                    "columns": [
+                      "report_format_name"
+                    ],
                     "filter": {}
                   }
                 },
                 {
                   "role": "recertifier",
                   "permission": {
-                    "columns": ["report_format_name"],
+                    "columns": [
+                      "report_format_name"
+                    ],
                     "filter": {}
                   }
                 },
                 {
                   "role": "reporter",
                   "permission": {
-                    "columns": ["report_format_name"],
+                    "columns": [
+                      "report_format_name"
+                    ],
                     "filter": {}
                   }
                 },
                 {
                   "role": "reporter-viewall",
                   "permission": {
-                    "columns": ["report_format_name"],
+                    "columns": [
+                      "report_format_name"
+                    ],
                     "filter": {}
                   }
                 }
@@ -7810,14 +8191,20 @@
                 {
                   "role": "auditor",
                   "permission": {
-                    "columns": ["action_id", "action_name"],
+                    "columns": [
+                      "action_id",
+                      "action_name"
+                    ],
                     "filter": {}
                   }
                 },
                 {
                   "role": "fw-admin",
                   "permission": {
-                    "columns": ["action_name", "action_id"],
+                    "columns": [
+                      "action_name",
+                      "action_id"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -7833,21 +8220,30 @@
                 {
                   "role": "recertifier",
                   "permission": {
-                    "columns": ["action_id", "action_name"],
+                    "columns": [
+                      "action_id",
+                      "action_name"
+                    ],
                     "filter": {}
                   }
                 },
                 {
                   "role": "reporter",
                   "permission": {
-                    "columns": ["action_id", "action_name"],
+                    "columns": [
+                      "action_id",
+                      "action_name"
+                    ],
                     "filter": {}
                   }
                 },
                 {
                   "role": "reporter-viewall",
                   "permission": {
-                    "columns": ["action_id", "action_name"],
+                    "columns": [
+                      "action_id",
+                      "action_name"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -7913,14 +8309,20 @@
                 {
                   "role": "auditor",
                   "permission": {
-                    "columns": ["change_type_id", "change_type_name"],
+                    "columns": [
+                      "change_type_id",
+                      "change_type_name"
+                    ],
                     "filter": {}
                   }
                 },
                 {
                   "role": "fw-admin",
                   "permission": {
-                    "columns": ["change_type_name", "change_type_id"],
+                    "columns": [
+                      "change_type_name",
+                      "change_type_id"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -7928,7 +8330,10 @@
                 {
                   "role": "recertifier",
                   "permission": {
-                    "columns": ["change_type_id", "change_type_name"],
+                    "columns": [
+                      "change_type_id",
+                      "change_type_name"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -7936,7 +8341,10 @@
                 {
                   "role": "reporter",
                   "permission": {
-                    "columns": ["change_type_id", "change_type_name"],
+                    "columns": [
+                      "change_type_id",
+                      "change_type_name"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -7944,7 +8352,10 @@
                 {
                   "role": "reporter-viewall",
                   "permission": {
-                    "columns": ["change_type_id", "change_type_name"],
+                    "columns": [
+                      "change_type_id",
+                      "change_type_name"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -8540,14 +8951,20 @@
                 {
                   "role": "auditor",
                   "permission": {
-                    "columns": ["track_id", "track_name"],
+                    "columns": [
+                      "track_id",
+                      "track_name"
+                    ],
                     "filter": {}
                   }
                 },
                 {
                   "role": "fw-admin",
                   "permission": {
-                    "columns": ["track_name", "track_id"],
+                    "columns": [
+                      "track_name",
+                      "track_id"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -8563,21 +8980,30 @@
                 {
                   "role": "recertifier",
                   "permission": {
-                    "columns": ["track_id", "track_name"],
+                    "columns": [
+                      "track_id",
+                      "track_name"
+                    ],
                     "filter": {}
                   }
                 },
                 {
                   "role": "reporter",
                   "permission": {
-                    "columns": ["track_id", "track_name"],
+                    "columns": [
+                      "track_id",
+                      "track_name"
+                    ],
                     "filter": {}
                   }
                 },
                 {
                   "role": "reporter-viewall",
                   "permission": {
-                    "columns": ["track_id", "track_name"],
+                    "columns": [
+                      "track_id",
+                      "track_name"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -8607,14 +9033,20 @@
                 {
                   "role": "auditor",
                   "permission": {
-                    "columns": ["usr_typ_id", "usr_typ_name"],
+                    "columns": [
+                      "usr_typ_id",
+                      "usr_typ_name"
+                    ],
                     "filter": {}
                   }
                 },
                 {
                   "role": "fw-admin",
                   "permission": {
-                    "columns": ["usr_typ_name", "usr_typ_id"],
+                    "columns": [
+                      "usr_typ_name",
+                      "usr_typ_id"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -8630,21 +9062,30 @@
                 {
                   "role": "recertifier",
                   "permission": {
-                    "columns": ["usr_typ_id", "usr_typ_name"],
+                    "columns": [
+                      "usr_typ_id",
+                      "usr_typ_name"
+                    ],
                     "filter": {}
                   }
                 },
                 {
                   "role": "reporter",
                   "permission": {
-                    "columns": ["usr_typ_id", "usr_typ_name"],
+                    "columns": [
+                      "usr_typ_id",
+                      "usr_typ_name"
+                    ],
                     "filter": {}
                   }
                 },
                 {
                   "role": "reporter-viewall",
                   "permission": {
-                    "columns": ["usr_typ_id", "usr_typ_name"],
+                    "columns": [
+                      "usr_typ_id",
+                      "usr_typ_name"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -9180,7 +9621,10 @@
                   "role": "fw-admin",
                   "permission": {
                     "check": {},
-                    "columns": ["device_id", "tenant_id"],
+                    "columns": [
+                      "device_id",
+                      "tenant_id"
+                    ],
                     "backend_only": false
                   }
                 }
@@ -9189,21 +9633,30 @@
                 {
                   "role": "auditor",
                   "permission": {
-                    "columns": ["tenant_id", "device_id"],
+                    "columns": [
+                      "tenant_id",
+                      "device_id"
+                    ],
                     "filter": {}
                   }
                 },
                 {
                   "role": "fw-admin",
                   "permission": {
-                    "columns": ["device_id", "tenant_id"],
+                    "columns": [
+                      "device_id",
+                      "tenant_id"
+                    ],
                     "filter": {}
                   }
                 },
                 {
                   "role": "middleware-server",
                   "permission": {
-                    "columns": ["tenant_id", "device_id"],
+                    "columns": [
+                      "tenant_id",
+                      "device_id"
+                    ],
                     "filter": {}
                   }
                 }
@@ -9212,7 +9665,10 @@
                 {
                   "role": "fw-admin",
                   "permission": {
-                    "columns": ["device_id", "tenant_id"],
+                    "columns": [
+                      "device_id",
+                      "tenant_id"
+                    ],
                     "filter": {},
                     "check": null
                   }
@@ -9270,7 +9726,11 @@
                 {
                   "role": "anonymous",
                   "permission": {
-                    "columns": ["id", "language", "txt"],
+                    "columns": [
+                      "id",
+                      "language",
+                      "txt"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -9278,28 +9738,44 @@
                 {
                   "role": "auditor",
                   "permission": {
-                    "columns": ["id", "language", "txt"],
+                    "columns": [
+                      "id",
+                      "language",
+                      "txt"
+                    ],
                     "filter": {}
                   }
                 },
                 {
                   "role": "fw-admin",
                   "permission": {
-                    "columns": ["id", "language", "txt"],
+                    "columns": [
+                      "id",
+                      "language",
+                      "txt"
+                    ],
                     "filter": {}
                   }
                 },
                 {
                   "role": "reporter",
                   "permission": {
-                    "columns": ["id", "language", "txt"],
+                    "columns": [
+                      "id",
+                      "language",
+                      "txt"
+                    ],
                     "filter": {}
                   }
                 },
                 {
                   "role": "reporter-viewall",
                   "permission": {
-                    "columns": ["id", "language", "txt"],
+                    "columns": [
+                      "id",
+                      "language",
+                      "txt"
+                    ],
                     "filter": {}
                   }
                 }
@@ -9774,7 +10250,9 @@
                 {
                   "role": "fw-admin",
                   "permission": {
-                    "columns": ["uiuser_language"],
+                    "columns": [
+                      "uiuser_language"
+                    ],
                     "filter": {
                       "uuid": {
                         "_eq": "x-hasura-uuid"
@@ -9810,7 +10288,9 @@
                 {
                   "role": "recertifier",
                   "permission": {
-                    "columns": ["uiuser_language"],
+                    "columns": [
+                      "uiuser_language"
+                    ],
                     "filter": {
                       "uuid": {
                         "_eq": "x-hasura-uuid"
@@ -9822,7 +10302,9 @@
                 {
                   "role": "reporter",
                   "permission": {
-                    "columns": ["uiuser_language"],
+                    "columns": [
+                      "uiuser_language"
+                    ],
                     "filter": {
                       "uuid": {
                         "_eq": "x-hasura-uuid"
@@ -9834,7 +10316,9 @@
                 {
                   "role": "reporter-viewall",
                   "permission": {
-                    "columns": ["uiuser_language"],
+                    "columns": [
+                      "uiuser_language"
+                    ],
                     "filter": {
                       "uuid": {
                         "_eq": "x-hasura-uuid"
@@ -10696,7 +11180,9 @@
             }
           },
           "url": "getImportConfig",
-          "methods": ["GET"],
+          "methods": [
+            "GET"
+          ],
           "name": "getImportConfig",
           "comment": null
         },
@@ -10708,7 +11194,9 @@
             }
           },
           "url": "getImports",
-          "methods": ["GET"],
+          "methods": [
+            "GET"
+          ],
           "name": "getImports",
           "comment": null
         }

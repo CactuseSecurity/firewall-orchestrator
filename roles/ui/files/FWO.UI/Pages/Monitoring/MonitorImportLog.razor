@@ -1,0 +1,51 @@
+﻿@using System.Text
+@using FWO.Config.Api
+
+@inject APIConnection apiConnection
+@inject UserConfig userConfig
+
+@page "/monitoring/import_logs"
+
+<h3>@(userConfig.GetText("import_logs"))</h3>
+
+<Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys" PageSize="0">
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("severity"))" Field="@(x => x.Severity)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("import_id"))" Field="@(x => x.ImportId)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("suspected_cause"))" Field="@(x => x.SuspectedCause)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("device"))" Field="@(x => x.DeviceId)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("rule_uid"))" Field="@(x => x.RuleUid)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("rule_id"))" Field="@(x => x.RuleId)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("object_type"))" Field="@(x => x.ObjectType)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("object_name"))" Field="@(x => x.ObjectName)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("object_uid"))" Field="@(x => x.ObjectUid)" />
+</Table>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    private List<LogEntry> logEntrys = new List<LogEntry>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            logEntrys = await apiConnection.SendQueryAsync<List<LogEntry>>(MonitorQueries.getImportLogEntrys);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_log_entrys"), "", true);
+        }
+    }
+
+
+}

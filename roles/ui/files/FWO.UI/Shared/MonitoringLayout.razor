@@ -1,0 +1,79 @@
+﻿@using FWO.Config.Api
+
+@inherits LayoutComponentBase
+@layout MainLayout
+
+@inject UserConfig userConfig
+
+<Sidebar PositionLeft="true" Collapsible="false" Resizeable="false" SidebarCssClass="navbar-dark bg-dark" @bind-Width="sidebarWidth">
+    <div class="m-2 mt-4">
+        <ul class="navbar-nav flex-column">
+            <AuthorizeView Roles="admin, auditor, fw-admin">
+                <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5011"))">
+                    <h5>@(userConfig.GetText("alerts"))</h5>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="monitoring/alerts">
+                        <span class="oi oi-bell"></span> @(userConfig.GetText("alerts"))
+                    </NavLink>
+                </li>
+                <hr />
+                <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5011"))">
+                    <h5>@(userConfig.GetText("import"))</h5>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="monitoring/import_status">
+                        <span class="oi oi-data-transfer-download"></span> @(userConfig.GetText("import_status"))
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="monitoring/import_logs">
+                        <span class="oi oi-data-transfer-download"></span> @(userConfig.GetText("import_logs"))
+                    </NavLink>
+                </li>
+            <hr />
+            </AuthorizeView>
+            <AuthorizeView Roles="admin, reporter, reporter-viewall, recertifier, workflow-user, workflow-admin, auditor, fw-admin">
+                <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5014"))">
+                    <h5>@(userConfig.GetText("personal"))</h5>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="monitoring/ui_logs">
+                        <span class="oi oi-monitor"></span> @(userConfig.GetText("ui_logs"))
+                    </NavLink>
+                </li>
+            </AuthorizeView>
+            <hr />
+            <hr />
+            <AuthorizeView Roles="admin, auditor">
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="monitoring/monitor_all">
+                        <span class="oi oi-monitor"></span> @(userConfig.GetText("all"))
+                    </NavLink>
+                </li>
+            </AuthorizeView>
+        </ul>
+    </div>
+    <hr />
+    <hr />
+</Sidebar>
+
+    
+<div style="margin-left: @($"{sidebarWidth + 20}px");">
+    @Body
+</div>
+
+@code
+{
+    private int sidebarWidth = 250;
+    
+    protected override void OnInitialized()
+    {
+        userConfig.OnChange += OnChange;
+    }
+    private async Task OnChange(UserConfig _)
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+}
+

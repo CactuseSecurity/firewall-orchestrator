@@ -1,0 +1,11 @@
+﻿subscription subscribeAlertChanges {
+  log_data_issue (where: {severity: {_eq: 5}, user_id: {_eq: 0}, ack_by: {_is_null: true}} order_by: { data_issue_id: desc }, limit: 10){
+    data_issue_id
+    source
+    issue_timestamp
+    suspected_cause
+    description
+    ack_by
+    ack_timestamp
+  }
+}

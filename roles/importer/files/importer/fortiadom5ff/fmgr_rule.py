@@ -354,7 +354,7 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, im
                     
                     # add dummy object "outbound-interface"
                     # obj_name = localPkgName + '_' + hideInterface
-                    obj_name = 'hide_IF_ip_' + hideInterface
+                    obj_name = 'hide_IF_ip_' + localPkgName + '_' + hideInterface
                     obj_comment = 'FWO auto-generated dummy object for source nat'
                     obj = create_network_object(import_id, obj_name, 'host', destination_interface_ip + '/32', obj_name, 'black', obj_comment, 'global')
                     

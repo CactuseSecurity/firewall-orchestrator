@@ -58,7 +58,10 @@
             if (!StartToggled)
                 invokeOnOpenAfterRender = true;
             if (collapseState != null)
+            {
                 collapseState.OnCollapseAll += ForceCollapse;
+                collapseState.OnExpandAll += ForceExpand;
+            }
             StateHasChanged();
         }
         if (invokeOnOpenAfterRender)
@@ -72,6 +75,12 @@
     {
         this.show = false;
         StateHasChanged();
+    }
+
+    public void ForceExpand()
+    {
+        this.show = true;
+        invokeOnOpenAfterRender = true;
     }
 
     public async Task ToggleCollapse()

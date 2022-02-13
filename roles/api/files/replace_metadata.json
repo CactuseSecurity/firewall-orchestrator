@@ -1436,6 +1436,18 @@
                   }
                 },
                 {
+                  "name": "import_configs",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "import_id",
+                      "table": {
+                        "schema": "public",
+                        "name": "import_config"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "import_objects",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -2633,6 +2645,154 @@
             {
               "table": {
                 "schema": "public",
+                "name": "log_data_issue"
+              },
+              "insert_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "data_issue_id",
+                      "import_id",
+                      "rule_id",
+                      "description",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_uid",
+                      "source",
+                      "suspected_cause",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "severity",
+                      "issue_timestamp"
+                    ],
+                    "backend_only": false
+                  }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "data_issue_id",
+                      "import_id",
+                      "rule_id",
+                      "description",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_uid",
+                      "source",
+                      "suspected_cause",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "severity",
+                      "issue_timestamp"
+                    ],
+                    "backend_only": false
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "data_issue_id",
+                      "import_id",
+                      "rule_id",
+                      "description",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_uid",
+                      "source",
+                      "suspected_cause",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "severity",
+                      "issue_timestamp"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "data_issue_id",
+                      "import_id",
+                      "rule_id",
+                      "description",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_uid",
+                      "source",
+                      "suspected_cause",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "severity",
+                      "issue_timestamp"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "data_issue_id",
+                      "import_id",
+                      "rule_id",
+                      "description",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_uid",
+                      "source",
+                      "suspected_cause",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "severity",
+                      "issue_timestamp"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "data_issue_id",
+                      "import_id",
+                      "rule_id",
+                      "description",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_uid",
+                      "source",
+                      "suspected_cause",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "severity",
+                      "issue_timestamp"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "schema": "public",
                 "name": "management"
               },
               "object_relationships": [
@@ -2901,29 +3061,30 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "mgm_id",
-                      "dev_typ_id",
-                      "mgm_name",
-                      "mgm_comment",
-                      "tenant_id",
-                      "mgm_create",
-                      "mgm_update",
-                      "ssh_public_key",
-                      "ssh_private_key",
-                      "ssh_hostname",
-                      "ssh_port",
-                      "ssh_user",
-                      "last_import_md5_complete_config",
-                      "last_import_md5_rules",
-                      "last_import_md5_objects",
-                      "last_import_md5_users",
-                      "do_not_import",
                       "clearing_import_ran",
-                      "force_initial_import",
                       "config_path",
+                      "debug_level",
+                      "dev_typ_id",
+                      "do_not_import",
+                      "force_initial_import",
                       "hide_in_gui",
                       "importer_hostname",
-                      "debug_level"
+                      "last_import_md5_complete_config",
+                      "last_import_md5_objects",
+                      "last_import_md5_rules",
+                      "last_import_md5_users",
+                      "mgm_comment",
+                      "mgm_create",
+                      "mgm_id",
+                      "mgm_name",
+                      "mgm_update",
+                      "multi_device_manager_id",
+                      "ssh_hostname",
+                      "ssh_port",
+                      "ssh_private_key",
+                      "ssh_public_key",
+                      "ssh_user",
+                      "tenant_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -2966,29 +3127,30 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
-                      "mgm_id",
-                      "dev_typ_id",
-                      "mgm_name",
-                      "mgm_comment",
-                      "tenant_id",
-                      "mgm_create",
-                      "mgm_update",
-                      "ssh_public_key",
-                      "ssh_private_key",
-                      "ssh_hostname",
-                      "ssh_port",
-                      "ssh_user",
-                      "last_import_md5_complete_config",
-                      "last_import_md5_rules",
-                      "last_import_md5_objects",
-                      "last_import_md5_users",
-                      "do_not_import",
                       "clearing_import_ran",
-                      "force_initial_import",
                       "config_path",
+                      "debug_level",
+                      "dev_typ_id",
+                      "do_not_import",
+                      "force_initial_import",
                       "hide_in_gui",
                       "importer_hostname",
-                      "debug_level"
+                      "last_import_md5_complete_config",
+                      "last_import_md5_objects",
+                      "last_import_md5_rules",
+                      "last_import_md5_users",
+                      "mgm_comment",
+                      "mgm_create",
+                      "mgm_id",
+                      "mgm_name",
+                      "mgm_update",
+                      "multi_device_manager_id",
+                      "ssh_hostname",
+                      "ssh_port",
+                      "ssh_private_key",
+                      "ssh_public_key",
+                      "ssh_user",
+                      "tenant_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true

@@ -29,12 +29,15 @@ def normalize_svcobjects(full_config, config2import, import_id, scope):
             proto = 0
             range_names = ''
             if 'protocol' in obj_orig:
+                added_svc_obj = 0
                 if obj_orig['protocol'] == 1:
                     addObject(svc_objects, type, name, color, 1, None, None, session_timeout, import_id)
+                    added_svc_obj += 1
                 elif obj_orig['protocol'] == 2:
                     if 'protocol-number' in obj_orig:
                         proto = obj_orig['protocol-number']
                     addObject(svc_objects, type, name, color, proto, None, None, session_timeout, import_id)
+                    added_svc_obj += 1
                 elif  obj_orig['protocol'] == 5 or obj_orig['protocol'] == 11:
                     split = check_split(obj_orig)
                     if "tcp-portrange" in obj_orig and len(obj_orig['tcp-portrange']) > 0:
@@ -43,21 +46,28 @@ def normalize_svcobjects(full_config, config2import, import_id, scope):
                             tcpname += "_tcp"
                             range_names += tcpname + common.list_delimiter
                         addObject(svc_objects, type, tcpname, color, 6, obj_orig['tcp-portrange'], None, session_timeout, import_id)
+                        added_svc_obj += 1
                     if "udp-portrange" in obj_orig and len(obj_orig['udp-portrange']) > 0:
                         udpname = name
                         if split:
                             udpname += "_udp"
                             range_names += udpname + common.list_delimiter
                         addObject(svc_objects, type, udpname, color, 17, obj_orig['udp-portrange'], None, session_timeout, import_id)
+                        added_svc_obj += 1
                     if "sctp-portrange" in obj_orig and len(obj_orig['sctp-portrange']) > 0:
                         sctpname = name
                         if split:
                             sctpname += "_sctp"
                             range_names += sctpname + common.list_delimiter
                         addObject(svc_objects, type, sctpname, color, 132, obj_orig['sctp-portrange'], None, session_timeout, import_id)
+                        added_svc_obj += 1
                     if split:
                         range_names = range_names[:-1]
                         addObject(svc_objects, 'group', name, color, 0, None, range_names, session_timeout, import_id)
+                        added_svc_obj += 1
+                    if added_svc_obj==0: # assuming RPC service which here has no properties at all
+                        addObject(svc_objects, 'rpc', name, color, 0, None, None, None, import_id)
+                        added_svc_obj += 1
                 elif  obj_orig['protocol'] == 6:
                     addObject(svc_objects, type, name, color, 58, None, None, session_timeout, import_id)
             elif type == 'group':

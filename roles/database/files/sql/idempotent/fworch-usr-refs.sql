@@ -96,6 +96,7 @@ BEGIN
 		LOOP
 			PERFORM import_rule_resolved_usr (i_mgm_id, NULL, r_user.old_user_id, r_user.new_user_id, i_current_import_id, r_user.change_action, 'U');
 		END LOOP;
+		RAISE DEBUG 'import_usr_refhandler_main - 3 completed';
 	EXCEPTION
 	    WHEN others THEN
             raise notice 'import_user_refhandler_main - uncommittable state. Rolling back';

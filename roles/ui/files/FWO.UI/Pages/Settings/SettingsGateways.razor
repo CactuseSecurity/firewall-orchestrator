@@ -16,7 +16,7 @@
 <button class="btn btn-success m-2" @onclick="Add">@(userConfig.GetText("add_new_gateway"))</button>
 
 <div class="m-2">
-    <Table class="table table-bordered table-responsive" TableItem="Device" Items="devices" PageSize="0" ColumnReorder="true">
+    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="Device" Items="devices" PageSize="0" ColumnReorder="true">
         <Column TableItem="Device" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
@@ -30,6 +30,7 @@
                 </div>
             </Template>
         </Column>
+        <Column TableItem="Device" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
         <Column TableItem="Device" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
         <Column TableItem="Device" Title="@(userConfig.GetText("type"))" Field="@(x => x.DeviceType.Id)" Sortable="true" Filterable="true">
             <Template>
@@ -55,6 +56,10 @@
         {
             <form>
                 <div class="form-group row">
+                    <label for="deviceId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                    <label class="col-sm-8">@actDevice.Id</label>
+                </div>
+                <div class="form-group row">
                     <label for="deviceName" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
                     <div class="col-sm-8">
                         <input id="deviceName" type="text" class="form-control form-control-sm" @bind="actDevice.Name" />
@@ -67,23 +72,24 @@
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="deviceDevType" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("device_type"))*:</label>
+                    <label for="deviceManagement" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("management"))*:</label>
                     <div class="col-sm-8">
-                        <select id="deviceDevType" class="form-control form-control-sm" @bind="actDevice.DeviceType.Id">
-                            @foreach (DeviceType devType in deviceTypes)
+                        <select id="deviceManagement" class="form-control form-control-sm" @bind="actDevice.Management.Id">
+                            @foreach (Management management in managements)
                             {
-                                <option value="@devType.Id">@(devType.NameVersion())</option>
+                                <option value="@management.Id">@(management.Name)</option>
                             }
                         </select>
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="deviceManagement" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("management"))*:</label>
+                    <label for="deviceDevType" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("device_type"))*:</label>
                     <div class="col-sm-8">
-                        <select id="deviceManagement" class="form-control form-control-sm" @bind="actDevice.Management.Id">
-                            @foreach (Management management in managements.Where(x => x.DeviceType.Manufacturer == deviceTypes.Find(x => x.Id == actDevice.DeviceType.Id)?.Manufacturer))
+                        <select id="deviceDevType" class="form-control form-control-sm" @bind="actDevice.DeviceType.Id">
+                            @foreach (DeviceType devType in deviceTypes.Where(x => x.Manufacturer == deviceTypes.Find(
+                                y => y.Id == managements.Find(z => z.Id ==actDevice.Management.Id)?.DeviceType.Id)?.Manufacturer))
                             {
-                                <option value="@management.Id">@(management.Name)</option>
+                                <option value="@devType.Id">@(devType.NameVersion())</option>
                             }
                         </select>
                     </div>

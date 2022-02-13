@@ -2,7 +2,7 @@
 	ServerName {{ api_server_name }}:{{ api_web_port }}
 	ServerAdmin {{ server_admin }}
 #	DocumentRoot stays empty, only proxying
-	timeout {{ apache_fwo_api_timeout }}
+	Timeout {{ apache_fwo_api_timeout }}
 
     ProxyRequests On
     <Proxy *>

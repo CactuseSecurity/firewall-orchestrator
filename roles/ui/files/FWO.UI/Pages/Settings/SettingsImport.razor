@@ -16,15 +16,21 @@
 <button class="btn btn-info m-2" @onclick="Refresh">@(userConfig.GetText("refresh"))</button>
 
 <div class="m-2">
-    <Table class="table table-bordered table-responsive" TableItem="ImportStatus" Items="importStati" PageSize="0" ColumnReorder="true">
+    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="ImportStatus" Items="sortedImportStati" PageSize="0" ColumnReorder="true" TableRowClass="@(stat => getTableRowClass(stat))">
         <Column TableItem="ImportStatus" Title="@(userConfig.GetText("action"))" Field="(x => x.MgmId)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
-                    <button class="btn btn-sm btn-success" @onclick="() => Details(context)">@(userConfig.GetText("details"))</button>
+                    <button class="btn btn-sm btn-secondary" @onclick="() => Details(context)">@(userConfig.GetText("details"))</button>
                 </div>
             </Template>
         </Column>
+        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("id"))" Field="@(x => x.MgmId)" Sortable="true" Filterable="true" />
         <Column TableItem="ImportStatus" Title="@(userConfig.GetText("management"))" Field="@(x => x.MgmName)" Sortable="true" Filterable="true" />
+        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("type"))" Field="@(x => x.DeviceType.Id)" Sortable="true" Filterable="true">
+            <Template>
+                @(context.DeviceType.NameVersion())
+            </Template>
+        </Column>
         <Column TableItem="ImportStatus" Title="@(userConfig.GetText("last_incomplete"))" Field="@(x => x.LastIncompleteImport)" Sortable="true" Filterable="true">
             <Template>
                 @if (context.LastIncompleteImport != null && context.LastIncompleteImport.Length > 0)
@@ -80,52 +86,91 @@
         {
             <form>
                 <div class="row">
-                    <div class="col-sm-3 col-form-label">@(userConfig.GetText("management")):</div>
-                    <div class="m-2">@actStatus.MgmName</div>
+                    <div class="col-sm-3">@(userConfig.GetText("id")):</div>
+                    <div class="col-sm-2">@actStatus.MgmId</div>
                 </div>
+                <div class="row">
+                    <div class="col-sm-3">@(userConfig.GetText("management")):</div>
+                    <div class="col-sm-9">@actStatus.MgmName</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-3">@(userConfig.GetText("type")):</div>
+                    <div class="col-sm-9">@actStatus.DeviceType.NameVersion()</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-3">@(userConfig.GetText("import_enabled")):</div>
+                    <div class="col-sm-2">@GlobalConfig.ShowBool(!actStatus.ImportDisabled)</div>
+                </div>
+                <br>
 
                 <h6>@(userConfig.GetText("first_import"))</h6>
                 <div class="row">
-                    <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("start")):</div>
-                    <div class="m-2">@(actStatus.FirstImport != null && actStatus.FirstImport.Length > 0 ? actStatus.FirstImport[0].StartTime : null)</div>
+                    <div class="col-sm-1"/>
+                    <div class="col-sm-2">@(userConfig.GetText("import_id")):</div>
+                    <div class="col-sm-2">@(actStatus.FirstImport != null && actStatus.FirstImport.Length > 0 ? actStatus.FirstImport[0].ControlId : "")</div>
                 </div>
                 <div class="row">
-                    <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("stop")):</div>
-                    <div class="m-2">@(actStatus.FirstImport != null && actStatus.FirstImport.Length > 0 ? actStatus.FirstImport[0].StopTime : null)</div>
+                    <div class="col-sm-1"/>
+                    <div class="col-sm-1">@(userConfig.GetText("start")):</div>
+                    <div class="col-sm-3">@(actStatus.FirstImport != null && actStatus.FirstImport.Length > 0 ? actStatus.FirstImport[0].StartTime : "")</div>
+                    <div class="col-sm-1">@(userConfig.GetText("stop")):</div>
+                    <div class="col-sm-3">@(actStatus.FirstImport != null && actStatus.FirstImport.Length > 0 ? actStatus.FirstImport[0].StopTime : "")</div>
+                    <div class="col-sm-2">@(userConfig.GetText("duration")):</div>
+                    <div class="col-sm-1">@(actStatus.FirstImport != null && actStatus.FirstImport.Length > 0 && actStatus.FirstImport[0].StartTime != null
+                        && actStatus.FirstImport[0].StopTime != null ? ((TimeSpan)(actStatus.FirstImport[0].StopTime - actStatus.FirstImport[0].StartTime)).TotalSeconds.ToString("f2") : "")</div>
                 </div>
                 <div class="row">
-                    <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("success")):</div>
-                    <div class="m-2">@(actStatus.FirstImport != null && actStatus.FirstImport.Length > 0 ? GlobalConfig.ShowBool(actStatus.FirstImport[0].SuccessfulImport) : null)</div>
+                    <div class="col-sm-1"/>
+                    <div class="col-sm-1">@(userConfig.GetText("success")):</div>
+                    <div class="col-sm-1">@(actStatus.FirstImport != null && actStatus.FirstImport.Length > 0 ? GlobalConfig.ShowBool(actStatus.FirstImport[0].SuccessfulImport) : "")</div>
+                    <div class="col-sm-1">@(userConfig.GetText("errors")):</div>
+                    <div class="col-sm-8">@(actStatus.FirstImport != null && actStatus.FirstImport.Length > 0 ? actStatus.FirstImport[0].ImportErrors : "")</div>
                 </div>
-                <div class="row">
-                    <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("errors")):</div>
-                    <div class="m-2">@(actStatus.FirstImport != null && actStatus.FirstImport.Length > 0 ? actStatus.FirstImport[0].ImportErrors : null)</div>
-                </div>
+                <br>
                 <h6>@(userConfig.GetText("last_successful_import"))</h6>
                 <div class="row">
-                    <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("start")):</div>
-                    <div class="m-2">@(actStatus.LastSuccessfulImport != null && actStatus.LastSuccessfulImport.Length > 0 ? actStatus.LastSuccessfulImport[0].StartTime : null)</div>
+                    <div class="col-sm-1"/>
+                    <div class="col-sm-2">@(userConfig.GetText("import_id")):</div>
+                    <div class="col-sm-2">@(actStatus.LastSuccessfulImport != null && actStatus.LastSuccessfulImport.Length > 0 ? actStatus.LastSuccessfulImport[0].ControlId : "")</div>
                 </div>
                 <div class="row">
-                    <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("stop")):</div>
-                    <div class="m-2">@(actStatus.LastSuccessfulImport != null && actStatus.LastSuccessfulImport.Length > 0 ? actStatus.LastSuccessfulImport[0].StopTime : null)</div>
+                    <div class="col-sm-1"/>
+                    <div class="col-sm-1">@(userConfig.GetText("start")):</div>
+                    <div class="col-sm-3">@(actStatus.LastSuccessfulImport != null && actStatus.LastSuccessfulImport.Length > 0 ? actStatus.LastSuccessfulImport[0].StartTime : "")</div>
+                    <div class="col-sm-1">@(userConfig.GetText("stop")):</div>
+                    <div class="col-sm-3">@(actStatus.LastSuccessfulImport != null && actStatus.LastSuccessfulImport.Length > 0 ? actStatus.LastSuccessfulImport[0].StopTime : "")</div>
+                    <div class="col-sm-2">@(userConfig.GetText("duration")):</div>
+                    <div class="col-sm-1">@(actStatus.LastSuccessfulImport != null && actStatus.LastSuccessfulImport.Length > 0 && actStatus.LastSuccessfulImport[0].StartTime != null 
+                        && actStatus.LastSuccessfulImport[0].StopTime != null ? ((TimeSpan)(actStatus.LastSuccessfulImport[0].StopTime - actStatus.LastSuccessfulImport[0].StartTime)).TotalSeconds.ToString("f2") : "")</div>
                 </div>
+                <div class="row">
+                    <div class="col-sm-1"/>
+                    <div class="col-sm-5">@(userConfig.GetText("err_since_last_succ")):</div>
+                    <div class="col-sm-2">@(actStatus.ErrorCount)</div>
+                </div>
+                <br>
                 <h6>@(userConfig.GetText("last_import"))</h6>
                 <div class="row">
-                    <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("start")):</div>
-                    <div class="m-2">@(actStatus.LastImport != null && actStatus.LastImport.Length > 0 ? actStatus.LastImport[0].StartTime : null)</div>
+                    <div class="col-sm-1"/>
+                    <div class="col-sm-2">@(userConfig.GetText("import_id")):</div>
+                    <div class="col-sm-2">@(actStatus.LastImport != null && actStatus.LastImport.Length > 0 ? actStatus.LastImport[0].ControlId : "")</div>
                 </div>
                 <div class="row">
-                    <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("stop")):</div>
-                    <div class="m-2">@(actStatus.LastImport != null && actStatus.LastImport.Length > 0 ? actStatus.LastImport[0].StopTime : null)</div>
+                    <div class="col-sm-1"/>
+                    <div class="col-sm-1">@(userConfig.GetText("start")):</div>
+                    <div class="col-sm-3">@(actStatus.LastImport != null && actStatus.LastImport.Length > 0 ? actStatus.LastImport[0].StartTime : "")</div>
+                    <div class="col-sm-1">@(userConfig.GetText("stop")):</div>
+                    <div class="col-sm-3">@(actStatus.LastImport != null && actStatus.LastImport.Length > 0 ? actStatus.LastImport[0].StopTime : "")</div>
+                    <div class="col-sm-2">@(userConfig.GetText("duration")):</div>
+                    <div class="col-sm-1">@(actStatus.LastImport != null && actStatus.LastImport.Length > 0 && actStatus.LastImport[0].StartTime != null
+                        && actStatus.LastImport[0].StopTime != null ? ((TimeSpan)(actStatus.LastImport[0].StopTime - actStatus.LastImport[0].StartTime)).TotalSeconds.ToString("f2") : "")</div>
                 </div>
                 <div class="row">
-                    <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("success")):</div>
-                    <div class="m-2">@(actStatus.LastImport != null && actStatus.LastImport.Length > 0 ? GlobalConfig.ShowBool(actStatus.LastImport[0].SuccessfulImport) : null)</div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("errors")):</div>
-                    <div class="m-2">@(actStatus.LastImport != null && actStatus.LastImport.Length > 0 ? actStatus.LastImport[0].ImportErrors : null)</div>
+                    <div class="col-sm-1"/>
+                    <div class="col-sm-1">@(userConfig.GetText("success")):</div>
+                    <div class="col-sm-1">@(actStatus.LastImport != null && actStatus.LastImport.Length > 0 ? GlobalConfig.ShowBool(actStatus.LastImport[0].SuccessfulImport) : "")</div>
+                    <div class="col-sm-1">@(userConfig.GetText("errors")):</div>
+                    <div class="col-sm-8">@(actStatus.LastImport != null && actStatus.LastImport.Length > 0 ? actStatus.LastImport[0].ImportErrors : "")</div>
                 </div>
             </form>
         }
@@ -171,6 +216,7 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
     private List<ImportStatus> importStati = new List<ImportStatus>();
+    private List<ImportStatus> sortedImportStati = new List<ImportStatus>();
     private bool DetailsMode = false;
     private bool RollbackMode = false;
     private ImportStatus actStatus = new ImportStatus();
@@ -185,6 +231,9 @@
         try
         {
             importStati = (await apiConnection.SendQueryAsync<ImportStatus[]>(FWO.ApiClient.Queries.DeviceQueries.getImportStatus)).ToList();
+            countErrors();
+            setSortPrio();
+            sortedImportStati = importStati.OrderByDescending(stat=>stat.SortPrio).ToList();
         }
         catch (System.Exception exception)
         {
@@ -243,5 +292,64 @@
         DetailsMode = false;
         RollbackMode = false;
         await fetchImportStati();
+    }
+
+    private void countErrors()
+    {
+        foreach(ImportStatus impStat in importStati)
+        {
+            if(impStat.ErroneousImports != null && impStat.ErroneousImports.Length > 0)
+            {
+                long lastSuccess = (impStat.LastSuccessfulImport != null && impStat.LastSuccessfulImport.Length > 0 ? impStat.LastSuccessfulImport[0].ControlId : 0);
+                foreach(ImportControl import in impStat.ErroneousImports)
+                {
+                    if(import.ControlId > lastSuccess)
+                    {
+                        impStat.ErrorCount++;
+                    }
+                }
+            }
+        }
+    }
+
+    private void setSortPrio()
+    {
+        foreach(ImportStatus imp in importStati)
+        {
+            // import running
+            if(imp.LastIncompleteImport != null && imp.LastIncompleteImport.Length > 0)
+            {
+                imp.SortPrio = 1;
+                // too long
+                if (imp.LastIncompleteImport[0].StartTime < DateTime.Now.AddHours(-4))
+                {
+                    imp.SortPrio = 2;
+                }
+            }
+            else if( 
+                    // last import not successful
+                    (imp.LastImport != null && imp.LastImport.Length > 0 && !imp.LastImport[0].SuccessfulImport)
+                    // active, but no import at all
+                    || (!imp.ImportDisabled && (imp.LastImport == null || imp.LastImport.Length == 0
+                                            // or too long ago
+                                            || imp.LastImport[0].StartTime < DateTime.Now.AddHours(-12)))
+                    )
+            {
+                imp.SortPrio = 2;
+            }
+        }
+    }
+
+    private string getTableRowClass(ImportStatus importStatus)
+    {
+        switch(importStatus.SortPrio)
+        {
+            case 1:
+                return "background-upcoming";
+            case 2:
+                return "background-overdue";
+            default:
+                return "";
+        }
     }
 }

@@ -8,7 +8,7 @@ namespace FWO.Ui.Services
 {
     public class PasswordPolicy
     {
-        private static int minLength = 10;
+        private static int minLength = GlobalConfig.kDefaultInitMinPwdLength;
         private static bool upperCaseRequired = false;
         private static bool lowerCaseRequired = false;
         private static bool numberRequired = false;

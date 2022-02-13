@@ -19,27 +19,36 @@ DECLARE
 	r_liste   RECORD; -- Record fuer Liste
 	r_control RECORD; -- Record fuer import control (Trennzeichen, Mangement)
 BEGIN
-	SELECT INTO r_control mgm_id,delimiter_group,delimiter_user,delimiter_zone,delimiter_list FROM import_control
-		WHERE control_id=i_current_import_id;
-	-- fuer alle neuen Regeln
-	FOR r_liste IN
-	SELECT rule.rule_uid, rule.rule_from_zone,rule.rule_to_zone,rule.rule_id,rule.rule_src,rule.rule_dst,rule.rule_svc,
-				rule.rule_src_refs,rule.rule_dst_refs,rule.rule_svc_refs
-			FROM changelog_rule,rule WHERE
-				changelog_rule.dev_id = i_dev_id AND
-				changelog_rule.new_rule_id = rule.rule_id AND
-				changelog_rule.control_id = i_current_import_id AND
-				changelog_rule.change_action <> 'D'   -- create new entries in rule_XXX for inserted or changed rules
-	LOOP
-		RAISE DEBUG '%', 'processing rule no. ' || r_liste.rule_uid || ': ' || r_liste.rule_src || ' --> ' || r_liste.rule_dst || ' with services: ' || r_liste.rule_svc; 
---      PERFORM error_handling('DEBUG_GENERAL_INFO', CAST(r_liste.rule_id AS VARCHAR));
-		PERFORM resolve_rule_list (r_liste.rule_id, 'rule_from',r_liste.rule_src_refs, r_control.mgm_id,
-			r_liste.rule_from_zone, r_control.delimiter_list,i_current_import_id);
-		PERFORM resolve_rule_list (r_liste.rule_id, 'rule_to',  r_liste.rule_dst_refs, r_control.mgm_id,
-			r_liste.rule_to_zone, r_control.delimiter_list,i_current_import_id);
-		PERFORM resolve_rule_list (r_liste.rule_id, 'rule_service', r_liste.rule_svc_refs, r_control.mgm_id,
-			0, r_control.delimiter_list, i_current_import_id);
-	END LOOP;
+	BEGIN
+		SELECT INTO r_control mgm_id,delimiter_group,delimiter_user,delimiter_zone,delimiter_list FROM import_control
+			WHERE control_id=i_current_import_id;
+		-- fuer alle neuen Regeln
+		FOR r_liste IN
+		SELECT rule.rule_uid, rule.rule_from_zone,rule.rule_to_zone,rule.rule_id,rule.rule_src,rule.rule_dst,rule.rule_svc,
+					rule.rule_src_refs,rule.rule_dst_refs,rule.rule_svc_refs
+				FROM changelog_rule,rule WHERE
+					changelog_rule.dev_id = i_dev_id AND
+					changelog_rule.new_rule_id = rule.rule_id AND
+					changelog_rule.control_id = i_current_import_id AND
+					changelog_rule.change_action <> 'D'   -- create new entries in rule_XXX for inserted or changed rules
+		LOOP
+			RAISE DEBUG '%', 'processing rule no. ' || r_liste.rule_uid || ': ' || r_liste.rule_src || ' --> ' || r_liste.rule_dst || ' with services: ' || r_liste.rule_svc; 
+	--      PERFORM error_handling('DEBUG_GENERAL_INFO', CAST(r_liste.rule_id AS VARCHAR));
+			PERFORM resolve_rule_list (r_liste.rule_id, 'rule_from',r_liste.rule_src_refs, r_control.mgm_id,
+				r_liste.rule_from_zone, r_control.delimiter_list,i_current_import_id);
+			PERFORM resolve_rule_list (r_liste.rule_id, 'rule_to',  r_liste.rule_dst_refs, r_control.mgm_id,
+				r_liste.rule_to_zone, r_control.delimiter_list,i_current_import_id);
+			PERFORM resolve_rule_list (r_liste.rule_id, 'rule_service', r_liste.rule_svc_refs, r_control.mgm_id,
+				0, r_control.delimiter_list, i_current_import_id);
+		END LOOP;
+	EXCEPTION WHEN OTHERS THEN
+		-- the following log entry gets rolled-back as we have to raise another exception to avoid a half-finished import state for this rulebase
+		-- alternatively we need to avoid the error where it occurs and not raise any exceptions, just add the log_data_issue and leave out the single object that is broken
+		-- --                        1      2   3            4              5     6           7              8            9       10      11           12
+		-- PERFORM add_data_issue('import', 3, NULL, i_current_import_id,  NULL, NULL, r_liste.rule_uid, r_liste.rule_id, NULL, i_dev_id, NULL, 
+		-- 	'broken ref in rule',  'non-existant object  referenced in rule with UID ' || r_liste.rule_uid);
+		RAISE EXCEPTION 'Exception caught in import_rule_refhandler_main while handling rule %', r_liste.rule_uid;
+	END;
 	RETURN;
 END;
 $$ LANGUAGE plpgsql;

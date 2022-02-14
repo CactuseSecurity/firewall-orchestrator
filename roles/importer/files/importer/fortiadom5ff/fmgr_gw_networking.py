@@ -65,7 +65,7 @@ def normalize_network_data(native_config, normalized_config, mgm_details):
             normalized_config['networking'][full_vdom_name]['routingv4'] = sort_reverse(normalized_config['networking'][full_vdom_name]['routingv4'], 'destination')
 
         if not test_if_default_route_exists(normalized_config['networking'][full_vdom_name]['routingv4']):
-            logging.error('found no default route in ipv4 table of device ' + full_vdom_name )
+            logging.warning('found no default route in ipv4 table of device ' + full_vdom_name )
 
         if 'routing-table-ipv6/' + full_vdom_name not in native_config:
             logging.warning('normalize_network_data: could not find routing data routing-table-ipv6/' + full_vdom_name)
@@ -85,7 +85,7 @@ def normalize_network_data(native_config, normalized_config, mgm_details):
             normalized_config['networking'][full_vdom_name]['routingv6'] = sort_reverse(normalized_config['networking'][full_vdom_name]['routingv6'], 'destination')
 
         if test_if_default_route_exists(normalized_config['networking'][full_vdom_name]['routingv6']):
-            logging.error('found no default route in ipv6 table of device ' + full_vdom_name )
+            logging.warning('found no default route in ipv6 table of device ' + full_vdom_name )
 
         for interface in native_config['interfaces_per_device/' + full_vdom_name]:
             ipv6, ipv6mask = interface['ipv6']['ip6-address'].split('/')

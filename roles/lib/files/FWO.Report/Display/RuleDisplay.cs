@@ -109,10 +109,20 @@ namespace FWO.Ui.Display
                 else
                     symbol = "oi oi-monitor";
 
-                string link = location == "" ? $"nwobj{destination.Object.Id}"
-                                             : $"goto-report-m{rule.MgmtId}-nwobj{destination.Object.Id}";
 
-                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"{location}#{link}\" target=\"_top\" style=\"{style}\">{destination.Object.Name}</a>");
+                string userLink = location == "" ? $"user{destination.User?.Id}"
+                                                 : $"goto-report-m{rule.MgmtId}-user{destination.User?.Id}";
+
+                string nwobjLink = location == "" ? $"nwobj{destination.Object.Id}"
+                                                  : $"goto-report-m{rule.MgmtId}-nwobj{destination.Object.Id}";
+
+                if (destination.User != null)
+                    result.AppendLine($"<span class=\"oi oi-people\">&nbsp;</span><a href=\"{location}#{userLink}\" target=\"_top\" style=\"{style}\">{destination.User.Name}</a>@");
+
+                // string link = location == "" ? $"nwobj{destination.Object.Id}"
+                //                              : $"goto-report-m{rule.MgmtId}-nwobj{destination.Object.Id}";
+
+                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"{location}#{nwobjLink}\" target=\"_top\" style=\"{style}\">{destination.Object.Name}</a>");
                 result.Append(destination.Object.IP != null ? $" ({destination.Object.IP})" : "");
                 result.AppendLine("<br>");
             }

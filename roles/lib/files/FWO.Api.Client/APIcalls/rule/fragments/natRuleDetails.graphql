@@ -19,6 +19,9 @@ fragment natRuleDetails on rule {
       }
     }
     rule_tos {
+      usr {
+        ...userDetails
+      }
       object {
         ...networkObjectDetails
       }

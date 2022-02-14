@@ -226,7 +226,6 @@ Create table "rule_user_resolved"
 
 Create table "rule_from"
 (
-	"rule_from_id" BIGSERIAL,
 	"rf_create" BIGINT NOT NULL,
 	"rf_last_seen" BIGINT NOT NULL,
 	"rule_id" BIGINT NOT NULL,
@@ -266,6 +265,7 @@ Create table "rule_to"
 (
 	"rule_id" BIGINT NOT NULL,
 	"obj_id" BIGINT NOT NULL,
+	"user_id" BIGINT,
 	"rt_create" BIGINT NOT NULL,
 	"rt_last_seen" BIGINT NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,

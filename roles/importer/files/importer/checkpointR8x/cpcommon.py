@@ -269,9 +269,10 @@ def enrich_config (config, mgm_details, proxy=None, limit=150, details_level='fu
                     } ] } ] }
                 config['object_tables'].append(json_obj)
                 logging.debug ('missing obj: ' + obj['name'] + obj['type'])
+            elif (obj['type'] == 'access-role'):
+                pass # ignorning user objects
             else:
                 logging.warning ( "checkpointR8x/enrich_config - missing nw obj of unexpected type '" + obj['type'] + "': " + missing_obj )
-                # print ("WARNING - enrich_config - missing nw obj of unexpected type: '" + obj['type'] + "': " + missing_obj)
 
         logging.debug ( "enrich_config - missing nw obj: " + missing_obj + " added" )
 

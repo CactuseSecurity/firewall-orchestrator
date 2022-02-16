@@ -228,13 +228,13 @@ Create table "rule_from"
 -- needs separate primary key as user_id can be null
 (
 	"rule_from_id" BIGSERIAL PRIMARY KEY,
-	"rf_create" BIGINT NOT NULL,
-	"rf_last_seen" BIGINT NOT NULL,
 	"rule_id" BIGINT NOT NULL,
 	"obj_id" BIGINT NOT NULL,
 	"user_id" BIGINT,
 	"active" Boolean NOT NULL Default TRUE,
-	"negated" Boolean NOT NULL Default FALSE
+	"negated" Boolean NOT NULL Default FALSE,
+	"rf_create" BIGINT NOT NULL,
+	"rf_last_seen" BIGINT NOT NULL
 );
 
 

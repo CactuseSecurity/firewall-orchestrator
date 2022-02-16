@@ -141,7 +141,7 @@ Alter table "rule_to" add  foreign key ("obj_id") references "object" ("obj_id")
 Alter table "rule_to" add  foreign key ("rt_create") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "rule_to" add  foreign key ("rt_last_seen") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "rule_to" add  foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
-Alter table "rule_to" add  foreign key ("user_id") references "usr" ("user_id") on update restrict on delete cascade;
+Alter table "rule_to" add constraint rule_to_user_id_usr_user_id FOREIGN KEY ("user_id") references "usr" ("user_id") on update restrict on delete cascade;
 
 Alter table "rule_user_resolved" add foreign key ("user_id") references "usr" ("user_id") on update restrict on delete cascade;
 Alter table "rule_user_resolved" add foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;

@@ -52,9 +52,9 @@
       name: "{{ item }}"
       state: present
     loop:
-      - libjpeg62
       - libgdiplus
       - libc6-dev
+      - libjpeg62
   
   become: yes
 

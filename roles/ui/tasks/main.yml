@@ -33,7 +33,7 @@
       loop:
         - libjpeg62
         - libgdiplus
-      # - wkhtmltopdf
+        - libc6-dev
       
     - name: create ui dir
       file:

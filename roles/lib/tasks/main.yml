@@ -14,6 +14,15 @@
         path: "{{ fworch_home }}/lib"
       register: lib_dir_check
 
+    - name: install libs needed for pdf creator nuget packet HakanL/WkHtmlToPdf-DotNet
+      package:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - libjpeg62
+        - libgdiplus
+        - libc6-dev
+
     - name: backup lib dir
       synchronize:
         src: "{{ fworch_home }}/lib"

@@ -55,6 +55,13 @@ namespace FWO.Test.HtmlToPdf
             };
 
             byte[] pdf = converter.Convert(doc);
+            string filePath = "/tmp/test.pdf";
+            using (var s = File.OpenWrite(filePath)) {
+              var bw = new BinaryWriter(s);
+              bw.Write(pdf);
+            }
+            Assert.That(filePath, Does.Exist);
+            Assert.Greater(new System.IO.FileInfo(filePath).Length, 5000);
         }
     }
 }

@@ -17,6 +17,9 @@ namespace FWO.Api.Data
         [JsonProperty("data_issue_id"), JsonPropertyName("data_issue_id")]
         public long Id { get; set; }
 
+        [JsonProperty("ref_alert_id"), JsonPropertyName("ref_alert_id")]
+        public long RefAlertId { get; set; }
+
         [JsonProperty("suspected_cause"), JsonPropertyName("suspected_cause")]
         public string? Supermanager { get; set; }
 
@@ -35,14 +38,15 @@ namespace FWO.Api.Data
         public ActionItem()
         {}
 
-        public ActionItem(LogEntry logEntry)
+        public ActionItem(Alert alert)
         {
-            Id = logEntry.Id;
-            Supermanager = logEntry.SuspectedCause;
-            ActionType = logEntry.Description;
-            ManagementId = logEntry.ManagementId;
-            DeviceId = logEntry.DeviceId;
-            JsonData = logEntry.JsonData;
+            Id = alert.Id;
+            Supermanager = alert.Title;
+            ActionType = alert.Description;
+            ManagementId = alert.ManagementId;
+            DeviceId = alert.DeviceId;
+            JsonData = alert.JsonData;
+            RefAlertId = alert.RefAlert;
         }
     }
 }

@@ -1,0 +1,12 @@
+query getAlerts {
+  alert (order_by: { data_issue_id: desc }, limit: 100){
+    alert_id
+    source
+    title
+    description
+    alert_timestamp
+    user_id
+    ack_by
+    ack_timestamp
+  }
+}

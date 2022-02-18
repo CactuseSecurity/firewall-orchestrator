@@ -1,12 +1,15 @@
 query getOpenAlerts {
-  log_data_issue (where: {severity: {_eq: 5}, user_id: {_eq: 0}, ack_by: {_is_null: true}} order_by: { data_issue_id: desc }, limit: 100){
-    data_issue_id
+  alert (where: ack_by: {_is_null: true}} order_by: { alert_id: desc }, limit: 100){
+    alert_id
+    ref_log_id
+    ref_alert_id
     source
-    issue_timestamp
-    suspected_cause
+    title
     description
-    issue_mgm_id
-    issue_dev_id
+    alert_mgm_id
+    alert_dev_id
+    alert_timestamp
+    user_id
     json_data
   }
 }

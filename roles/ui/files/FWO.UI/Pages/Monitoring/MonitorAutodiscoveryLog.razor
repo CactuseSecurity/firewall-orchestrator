@@ -22,12 +22,6 @@
             @(uiUsers.FirstOrDefault(x => x.DbId == context.UserId)?.Name)
         </Template>
     </Column>
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("acknowledged_by"))" Field="@(x => x.AcknowledgedBy)" >
-        <Template>
-            @(uiUsers.FirstOrDefault(x => x.DbId == context.AcknowledgedBy)?.Name)
-        </Template>
-    </Column>
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.AckTimestamp)" />
 </Table>
 
 

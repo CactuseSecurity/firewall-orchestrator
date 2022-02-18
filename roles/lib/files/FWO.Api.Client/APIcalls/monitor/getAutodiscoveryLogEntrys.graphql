@@ -8,7 +8,5 @@ query getAutodiscoveryLogEntrys {
     description
     issue_mgm_id
     issue_dev_id
-    ack_by
-    ack_timestamp
   }
 }

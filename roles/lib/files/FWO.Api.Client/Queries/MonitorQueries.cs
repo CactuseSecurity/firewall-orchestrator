@@ -13,9 +13,9 @@ namespace FWO.ApiClient.Queries
         public static readonly string addUiLogEntry;
         public static readonly string getUiLogEntrys;
         public static readonly string getImportLogEntrys;
-        public static readonly string addAlertEntry;
+        public static readonly string addAlert;
         public static readonly string getOpenAlerts;
-        public static readonly string getAlertEntrys;
+        public static readonly string getAlerts;
         public static readonly string acknowledgeAlert;
         public static readonly string subscribeAlertChanges;
         public static readonly string addAutodiscoveryLogEntry;
@@ -33,9 +33,9 @@ namespace FWO.ApiClient.Queries
 
                 getImportLogEntrys = File.ReadAllText(QueryPath + "monitor/getImportLogEntrys.graphql");
 
-                addAlertEntry = File.ReadAllText(QueryPath + "monitor/addAlertEntry.graphql");
+                addAlert = File.ReadAllText(QueryPath + "monitor/addAlert.graphql");
                 getOpenAlerts = File.ReadAllText(QueryPath + "monitor/getOpenAlerts.graphql");
-                getAlertEntrys = File.ReadAllText(QueryPath + "monitor/getAlertEntrys.graphql");
+                getAlerts = File.ReadAllText(QueryPath + "monitor/getAlerts.graphql");
                 acknowledgeAlert = File.ReadAllText(QueryPath + "monitor/acknowledgeAlert.graphql");
                 subscribeAlertChanges = File.ReadAllText(QueryPath + "monitor/subscribeAlertChanges.graphql");
 

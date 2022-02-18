@@ -3,13 +3,13 @@ mutation acknowledgeAlert(
   $ackUser: Int!
   $ackTime: timestamp!
 ) {
-  update_log_data_issue_by_pk(
-    pk_columns: { data_issue_id: $id }
+  update_alert_by_pk(
+    pk_columns: { alert_id: $id }
     _set: {
       ack_by: $ackUser
       ack_timestamp: $ackTime
     }
   ) {
-    UpdatedId: data_issue_id
+    UpdatedId: alert_id
   }
 }

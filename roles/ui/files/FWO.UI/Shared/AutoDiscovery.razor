@@ -228,7 +228,7 @@
                         }
                         else
                         {
-                            int mgmtId = getResultFromAlert(action.ManagementId);
+                            int mgmtId = getResultFromAlert(action.RefAlertId);
                             if(mgmtId != 0)
                             {
                                 Management? exMgmt = existingManagements.FirstOrDefault(x => x.Id == mgmtId);

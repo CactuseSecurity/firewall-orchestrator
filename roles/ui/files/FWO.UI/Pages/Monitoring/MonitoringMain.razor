@@ -19,8 +19,8 @@
     }
     else
     {
-        <Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="LogEntry" Items="alertEntrys" PageSize="0">
-            <Column Context="alert" TableItem="LogEntry" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)">
+        <Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="Alert" Items="alertEntrys" PageSize="0">
+            <Column Context="alert" TableItem="Alert" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)">
                 <Template>
                     <button class="btn btn-sm btn-primary" @onclick="() => Show(alert)">@(userConfig.GetText("details"))</button>
                     <AuthorizeView Roles="admin, fw-admin">
@@ -33,11 +33,11 @@
                     </AuthorizeView>
                 </Template>
             </Column>
-            <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" />
-            <Column TableItem="LogEntry" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" />
-            <Column TableItem="LogEntry" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" />
-            <Column TableItem="LogEntry" Title="@(userConfig.GetText("title"))" Field="@(x => x.SuspectedCause)" />
-            <Column TableItem="LogEntry" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" />
+            <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" />
+            <Column TableItem="Alert" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" />
+            <Column TableItem="Alert" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" />
+            <Column TableItem="Alert" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" />
+            <Column TableItem="Alert" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" />
         </Table>
     }
 </AuthorizeView>
@@ -50,7 +50,7 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
-    private List<LogEntry> alertEntrys = new List<LogEntry>();
+    private List<Alert> alertEntrys = new List<Alert>();
     private List<ActionItem> actActions = new List<ActionItem>();
     private bool AutoDiscoverMode = false;
  
@@ -58,7 +58,7 @@
     {
         try
         {
-            alertEntrys = await apiConnection.SendQueryAsync<List<LogEntry>>(MonitorQueries.getOpenAlerts);
+            alertEntrys = await apiConnection.SendQueryAsync<List<Alert>>(MonitorQueries.getOpenAlerts);
         }
         catch (Exception exception)
         {
@@ -66,7 +66,7 @@
         }
     }
 
-    private async Task Acknowledge(LogEntry alert)
+    private async Task Acknowledge(Alert alert)
     {
         try
         {
@@ -85,7 +85,7 @@
         }
     }
 
-    private void Show(LogEntry alert)
+    private void Show(Alert alert)
     {
         if(alert.Source == "autodiscovery")
         {

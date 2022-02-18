@@ -868,6 +868,8 @@ INSERT INTO txt VALUES ('recert_settings',      'English', 	'Recertification Set
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
 INSERT INTO txt VALUES ('open_alerts',          'English', 	'Open Alerts');
+INSERT INTO txt VALUES ('fetch_alerts',         'German', 	'Abholen Alarme');
+INSERT INTO txt VALUES ('fetch_alerts',         'English', 	'Fetch Alerts');
 INSERT INTO txt VALUES ('fetch_log_entrys',     'German', 	'Abholen Log-Eintr&auml;ge');
 INSERT INTO txt VALUES ('fetch_log_entrys',     'English', 	'Fetch Log Entrys');
 INSERT INTO txt VALUES ('severity',             'German', 	'Schwere');

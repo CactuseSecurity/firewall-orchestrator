@@ -5,8 +5,6 @@ mutation addAutodiscoveryLog(
   $description: String
   $mgmId: Int
   $devId: Int
-  $ackUser: Int
-  $ackTime: timestamp
 ) {
   insert_log_data_issue(
     objects: {
@@ -17,8 +15,6 @@ mutation addAutodiscoveryLog(
       description: $description
       issue_mgm_id: $mgmId
       issue_dev_id: $devId
-      ack_by: $ackUser
-      ack_timestamp: $ackTime
     }
   ) {
     returning {

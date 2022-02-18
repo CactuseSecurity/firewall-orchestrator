@@ -52,7 +52,7 @@ namespace FWO.Middleware.Server
                     {
                         if(action.ActionType == ActionCode.AddGatewayToNewManagement.ToString())
                         {
-                            action.ManagementId = lastMgmtAlertId;
+                            action.RefAlertId = lastMgmtAlertId;
                         }
                         await setAlert(action);
                         ChangeCounter++;
@@ -73,13 +73,15 @@ namespace FWO.Middleware.Server
                 var Variables = new
                 {
                     source = "autodiscovery",
-                    suspectedCause = action.Supermanager,
+                    userId = 0,
+                    title = action.Supermanager,
                     description = action.ActionType,
                     mgmId = action.ManagementId,
                     devId = action.DeviceId,
-                    jsonData = action.JsonData
+                    jsonData = action.JsonData,
+                    refAlert = action.RefAlertId
                 };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.MonitorQueries.addAlertEntry, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.MonitorQueries.addAlert, Variables)).ReturnIds;
                 if (returnIds != null)
                 {
                     if(action.ActionType == ActionCode.AddManagement.ToString())

@@ -10,10 +10,26 @@ Alter table "rule_to" drop constraint if exists rule_to_user_id_usr_user_id;
 Alter table "rule_to" add constraint rule_to_user_id_usr_user_id FOREIGN KEY 
     ("user_id") references "usr" ("user_id") on update restrict on delete cascade;
 
+
 ALTER TABLE "log_data_issue" ADD COLUMN IF NOT EXISTS "user_id" INTEGER DEFAULT 0;
-ALTER TABLE "log_data_issue" ADD COLUMN IF NOT EXISTS "ack_by" INTEGER;
-ALTER TABLE "log_data_issue" ADD COLUMN IF NOT EXISTS "ack_timestamp" TIMESTAMP;
-ALTER TABLE "log_data_issue" ADD COLUMN IF NOT EXISTS "json_data" json;
 
 ALTER TABLE "log_data_issue" DROP CONSTRAINT IF EXISTS "log_data_issue_uiuser_uiuser_id_fkey" CASCADE;
 Alter table "log_data_issue" add CONSTRAINT log_data_issue_uiuser_uiuser_id_fkey foreign key ("user_id") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
+
+Create table "alert"
+(
+	"alert_id" BIGSERIAL,
+	"ref_log_id" BIGINT,
+	"ref_alert_id" BIGINT,
+	"source" VARCHAR NOT NULL,
+	"title" VARCHAR,
+	"description" VARCHAR,
+	"alert_mgm_id" INTEGER,
+	"alert_dev_id" INTEGER,
+	"alert_timestamp" TIMESTAMP DEFAULT NOW(),
+	"user_id" INTEGER DEFAULT 0,
+	"ack_by" INTEGER,
+	"ack_timestamp" TIMESTAMP,
+	"json_data" json,
+ primary key ("alert_id")
+);

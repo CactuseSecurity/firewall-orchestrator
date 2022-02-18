@@ -15,7 +15,5 @@ query getLogEntrys {
     rule_id
     description
     user_id
-    ack_by
-    ack_timestamp
   }
 }

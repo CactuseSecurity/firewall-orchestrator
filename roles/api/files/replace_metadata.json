@@ -3506,6 +3506,38 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "config_path",
+                      "importer_hostname",
+                      "last_import_md5_complete_config",
+                      "last_import_md5_objects",
+                      "last_import_md5_rules",
+                      "last_import_md5_users",
+                      "mgm_name",
+                      "ssh_hostname",
+                      "ssh_user",
+                      "debug_level",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "multi_device_manager_id",
+                      "ssh_port",
+                      "tenant_id",
+                      "mgm_comment",
+                      "ssh_private_key",
+                      "ssh_public_key",
+                      "mgm_create",
+                      "mgm_update"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -8495,6 +8527,26 @@
                     ],
                     "filter": {},
                     "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "dev_typ_is_mgmt",
+                      "dev_typ_is_multi_mgmt",
+                      "dev_typ_config_file_basic_objects",
+                      "dev_typ_config_file_rules",
+                      "dev_typ_config_file_users",
+                      "dev_typ_manufacturer",
+                      "dev_typ_name",
+                      "dev_typ_version",
+                      "dev_typ_id",
+                      "dev_typ_comment",
+                      "dev_typ_predef_obj",
+                      "dev_typ_predef_svc"
+                    ],
+                    "filter": {}
                   }
                 },
                 {

@@ -1,6 +1,8 @@
 ﻿using FWO.ApiClient;
+using FWO.ApiClient.Queries;
 using FWO.Api.Data;
 using FWO.Config.Api;
+using FWO.Config.Api.Data;
 using FWO.Logging;
 using System.Timers;
 using FWO.DeviceAutoDiscovery;
@@ -12,7 +14,12 @@ namespace FWO.Middleware.Server
         private readonly APIConnection apiConnection;
         private ConfigDbAccess config;
         private int autoDiscoverSleepTime = GlobalConfig.kDefaultInitAutoDiscoverSleepTime; // in hours
+        private string autoDiscoverStartAt = DateTime.Now.TimeOfDay.ToString();
         private long? lastMgmtAlertId;
+        private readonly ApiSubscription<List<ConfigItem>> configChangeSubscription;
+
+        private System.Timers.Timer ScheduleTimer = new();
+        private System.Timers.Timer AutoDiscoverTimer = new();
 
     
         public AutoDiscoverScheduler(APIConnection apiConnection)
@@ -23,24 +30,79 @@ namespace FWO.Middleware.Server
             try
             {
                 autoDiscoverSleepTime = config.Get<int>(GlobalConfig.kAutoDiscoverSleepTime);
+                autoDiscoverStartAt = config.Get<string>(GlobalConfig.kAutoDiscoverStartAt);
             }
             catch (KeyNotFoundException) {}
+            
+            configChangeSubscription = apiConnection.GetSubscription<List<ConfigItem>>(ApiExceptionHandler, OnConfigUpdate, ConfigQueries.subscribeAutodiscoveryConfigChanges);
 
+            startScheduleTimer();
+        }
+
+        public void startScheduleTimer()
+        {
             if(autoDiscoverSleepTime > 0)
             {
-                System.Timers.Timer checkScheduleTimer = new();
-                checkScheduleTimer.Elapsed += AutoDiscover;
-                checkScheduleTimer.Interval = autoDiscoverSleepTime * 60000; // 3600000;  // convert hours to milliseconds
-                checkScheduleTimer.AutoReset = true;
-                checkScheduleTimer.Start();
+                DateTime startTime = DateTime.Now;
+                try
+                {
+                    startTime = Convert.ToDateTime(autoDiscoverStartAt);
+                    while(startTime < DateTime.Now)
+                    {
+                        startTime = startTime.AddMinutes(autoDiscoverSleepTime); // todo:hours!
+                    }
+                }
+                catch (Exception exception)
+                {
+                    Log.WriteError("Autodiscover scheduler", "Could not calculate start time.", exception);
+                }
+                TimeSpan interval = startTime - DateTime.Now;
+            
+                ScheduleTimer = new();
+                ScheduleTimer.Elapsed += StartAutoDiscoverTimer;
+                ScheduleTimer.Interval = interval.TotalMilliseconds;
+                ScheduleTimer.AutoReset = false;
+                ScheduleTimer.Start();
+                Log.WriteDebug("Autodiscover scheduler", "ScheduleTimer started.");
             }
+        }
+
+        private void StartAutoDiscoverTimer(object? _, ElapsedEventArgs __)
+        {
+            AutoDiscoverTimer.Stop();
+            AutoDiscoverTimer = new();
+            AutoDiscoverTimer.Elapsed += AutoDiscover;
+            AutoDiscoverTimer.Interval = autoDiscoverSleepTime * 3600000;  // convert hours to milliseconds
+            AutoDiscoverTimer.AutoReset = true;
+            AutoDiscoverTimer.Start();
+            Log.WriteDebug("Autodiscover scheduler", "AutoDiscoverTimer started.");
+        }
+
+        private void OnConfigUpdate(List<ConfigItem> configItems)
+        {
+            if(configItems.Count() > 0 && configItems[0] != null)
+            {
+                ConfigItem? confItem = configItems[0];
+                if (confItem.Value != null && confItem.Value != "")
+                {
+                    autoDiscoverSleepTime = Int32.Parse(confItem.Value);
+                    AutoDiscoverTimer.Interval = autoDiscoverSleepTime * 3600000; // convert hours to milliseconds
+                    ScheduleTimer.Stop();
+                    startScheduleTimer();
+                }
+            }
+        }
+
+        private void ApiExceptionHandler(Exception exception)
+        {
+            Log.WriteError("Autodiscover scheduler", "Api subscription lead to exception. Retry subscription.", exception);
         }
 
         private async void AutoDiscover(object? _, ElapsedEventArgs __)
         {
             try
             {
-                List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails);
+                List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
                 foreach(Management superManagement in managements.Where(x => x.DeviceType.CanBeSupermanager()))
                 {
                     AutoDiscoveryBase autodiscovery = new AutoDiscoveryBase(superManagement, apiConnection);
@@ -81,7 +143,7 @@ namespace FWO.Middleware.Server
                     jsonData = action.JsonData,
                     refAlert = action.RefAlertId
                 };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.MonitorQueries.addAlert, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addAlert, Variables)).ReturnIds;
                 if (returnIds != null)
                 {
                     if(action.ActionType == ActionCode.AddManagement.ToString())
@@ -111,7 +173,7 @@ namespace FWO.Middleware.Server
                     suspectedCause = cause,
                     description = description,
                 };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.MonitorQueries.addAutodiscoveryLogEntry, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addAutodiscoveryLogEntry, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
                     Log.WriteError("Write Log", "Log could not be written to database");

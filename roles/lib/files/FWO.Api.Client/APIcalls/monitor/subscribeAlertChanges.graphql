@@ -1,5 +1,5 @@
 ﻿subscription subscribeAlertChanges {
-  alert (where: ack_by: {_is_null: true}} order_by: { data_issue_id: desc }, limit: 1){
+  alert (where: {ack_by: {_is_null: true}} order_by: { alert_id: desc }, limit: 1){
     alert_id
     source
     alert_timestamp

@@ -9,7 +9,7 @@ namespace FWO.Api.Data
         public long Id { get; set; }
 
         [JsonProperty("ref_alert_id"), JsonPropertyName("ref_alert_id")]
-        public long RefAlert { get; set; }
+        public long? RefAlert { get; set; }
 
         [JsonProperty("ref_log_id"), JsonPropertyName("ref_log_id")]
         public long? RefLogId { get; set; }

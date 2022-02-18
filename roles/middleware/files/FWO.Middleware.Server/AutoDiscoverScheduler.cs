@@ -12,7 +12,7 @@ namespace FWO.Middleware.Server
         private readonly APIConnection apiConnection;
         private ConfigDbAccess config;
         private int autoDiscoverSleepTime = GlobalConfig.kDefaultInitAutoDiscoverSleepTime; // in hours
-        private long lastMgmtAlertId = 0;
+        private long? lastMgmtAlertId;
 
     
         public AutoDiscoverScheduler(APIConnection apiConnection)

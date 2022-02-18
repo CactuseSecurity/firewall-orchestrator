@@ -730,7 +730,7 @@
             }
 
             processing = false;
-            if(!(currentReport is ReportStatistics) && NoRuleFound())
+            if((currentReport is ReportRules || currentReport is ReportNatRules) && NoRuleFound())
             {
                 DisplayMessageInUi!(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
             }

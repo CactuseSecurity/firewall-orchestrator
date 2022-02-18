@@ -1,12 +1,11 @@
-﻿@using System.Text
-@using FWO.Config.Api
+﻿@using FWO.Config.Api
 
 @inject APIConnection apiConnection
 @inject UserConfig userConfig
 
-@page "/monitoring/ui_logs"
+@page "/monitoring/ui_messages"
 
-<h3>@(userConfig.GetText("ui_logs"))</h3>
+<h3>@(userConfig.GetText("ui_messages"))</h3>
 @(userConfig.GetText("U7301"))
 <hr />
 
@@ -23,9 +22,6 @@
 {
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
-
-    [CascadingParameter]
-    private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
     private List<LogEntry> logEntrys = new List<LogEntry>();
 

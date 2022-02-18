@@ -49,6 +49,12 @@
         <input id="minCollapseAllDevices" type="number" class="form-control form-control-sm" @bind="minCollapseAllDevices">
     </div>
 </form>
+<form class="form-inline" onsubmit="return false">
+    <label for="messageViewTime" class="col-form-label col-sm-4">@(userConfig.GetText("messageViewTime"))*:</label>
+    <div class="col-sm-2">
+        <input id="messageViewTime" type="number" class="form-control form-control-sm" @bind="messageViewTime">
+    </div>
+</form>
 <hr />
 <form class="form-inline" onsubmit="return false">
     <label for="dataRetentionTime" class="col-form-label col-sm-4">@(userConfig.GetText("dataRetentionTime")):</label>
@@ -67,6 +73,12 @@
     <label for="fwApiElementsPerFetch" class="col-form-label col-sm-4">@(userConfig.GetText("fwApiElementsPerFetch")):</label>
     <div class="col-sm-2">
         <input id="fwApiElementsPerFetch" type="number" class="form-control form-control-sm" @bind="fwApiElementsPerFetch" />
+    </div>
+</form>
+<form class="form-inline" onsubmit="return false">
+    <label for="autoDiscoverSleepTime" class="col-form-label col-sm-4">@(userConfig.GetText("autoDiscoverSleepTime")):</label>
+    <div class="col-sm-2">
+        <input id="autoDiscoverSleepTime" type="number" class="form-control form-control-sm" @bind="autoDiscoverSleepTime" />
     </div>
 </form>
 <hr />
@@ -121,10 +133,12 @@
     int maxInitFetch = GlobalConfig.kDefaultInitMaxInitFetch;
     bool autoFillRightSidebar = false;
     int minCollapseAllDevices = GlobalConfig.kDefaultInitCollapseFrom;
+    int messageViewTime = GlobalConfig.kDefaultInitMessageViewTime;
     string selectedDefaultLanguage = GlobalConfig.kEnglish;
     int dataRetentionTime = GlobalConfig.kDefaultInitDataRetentionTime;
     int importSleepTime = GlobalConfig.kDefaultInitImportSleepTime;
     int fwApiElementsPerFetch = GlobalConfig.kDefaultInitFwApiElementsPerFetch;
+    int autoDiscoverSleepTime = GlobalConfig.kDefaultInitAutoDiscoverSleepTime;
     int recertificationPeriod = GlobalConfig.kDefaultInitRecertificationPeriod;
     int recertificationNoticePeriod = GlobalConfig.kDefaultInitRecertificationNoticePeriod;
     int recertificationDisplayPeriod = GlobalConfig.kDefaultInitRecertificationDisplayPeriod;
@@ -143,9 +157,11 @@
             maxInitFetch = GetIntSetting(maxInitFetch, GlobalConfig.kMaxInitialFetchesRightSidebar);
             autoFillRightSidebar = GetBoolSetting(autoFillRightSidebar, GlobalConfig.kAutoFillRightSidebar);
             minCollapseAllDevices = GetIntSetting(minCollapseAllDevices, GlobalConfig.kMinCollapseAllDevices);
+            messageViewTime = GetIntSetting(messageViewTime, GlobalConfig.kMessageViewTime);
             dataRetentionTime = GetIntSetting(dataRetentionTime, GlobalConfig.kDataRetentionTime);
             importSleepTime = GetIntSetting(importSleepTime, GlobalConfig.kImportSleepTime);
             fwApiElementsPerFetch = GetIntSetting(fwApiElementsPerFetch, GlobalConfig.kFwApiElementsPerFetch);
+            autoDiscoverSleepTime = GetIntSetting(autoDiscoverSleepTime, GlobalConfig.kAutoDiscoverSleepTime);
             recertificationPeriod = GetIntSetting(recertificationPeriod, GlobalConfig.kRecertificationPeriod);
             recertificationNoticePeriod = GetIntSetting(recertificationNoticePeriod, GlobalConfig.kRecertificationNoticePeriod);
             recertificationDisplayPeriod = GetIntSetting(recertificationDisplayPeriod, GlobalConfig.kRecertificationDisplayPeriod);
@@ -197,9 +213,11 @@
                 await config.Set(GlobalConfig.kMaxInitialFetchesRightSidebar, maxInitFetch.ToString());
                 await config.Set(GlobalConfig.kAutoFillRightSidebar, autoFillRightSidebar.ToString());
                 await config.Set(GlobalConfig.kMinCollapseAllDevices, minCollapseAllDevices.ToString());
+                await config.Set(GlobalConfig.kMessageViewTime, messageViewTime.ToString());
                 await config.Set(GlobalConfig.kDataRetentionTime, dataRetentionTime.ToString());
                 await config.Set(GlobalConfig.kImportSleepTime, importSleepTime.ToString());
                 await config.Set(GlobalConfig.kFwApiElementsPerFetch, fwApiElementsPerFetch.ToString());
+                await config.Set(GlobalConfig.kAutoDiscoverSleepTime, autoDiscoverSleepTime.ToString());
                 await config.Set(GlobalConfig.kRecertificationPeriod, recertificationPeriod.ToString());
                 await config.Set(GlobalConfig.kRecertificationNoticePeriod, recertificationNoticePeriod.ToString());
                 await config.Set(GlobalConfig.kRecertificationDisplayPeriod, recertificationDisplayPeriod.ToString());

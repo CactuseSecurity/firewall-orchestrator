@@ -9,12 +9,21 @@
     <div class="m-2 mt-4">
         <ul class="navbar-nav flex-column">
             <AuthorizeView Roles="admin, auditor, fw-admin">
-                <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5011"))">
+                <li class="nav-item px-2">
                     <h5>@(userConfig.GetText("alerts"))</h5>
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="monitoring/alerts">
                         <span class="oi oi-bell"></span> @(userConfig.GetText("alerts"))
+                    </NavLink>
+                </li>
+                <hr />
+                <li class="nav-item px-2">
+                    <h5>@(userConfig.GetText("autodiscovery"))</h5>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="monitoring/autodiscovery_logs">
+                        <span class="oi oi-magnifying-glass"></span> @(userConfig.GetText("autodiscovery_logs"))
                     </NavLink>
                 </li>
                 <hr />
@@ -38,8 +47,8 @@
                     <h5>@(userConfig.GetText("personal"))</h5>
                 </li>
                 <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="monitoring/ui_logs">
-                        <span class="oi oi-monitor"></span> @(userConfig.GetText("ui_logs"))
+                    <NavLink class="nav-link" href="monitoring/ui_messages">
+                        <span class="oi oi-monitor"></span> @(userConfig.GetText("ui_messages"))
                     </NavLink>
                 </li>
             </AuthorizeView>

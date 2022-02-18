@@ -3,6 +3,7 @@
 ALTER TABLE "log_data_issue" ADD COLUMN IF NOT EXISTS "user_id" INTEGER DEFAULT 0;
 ALTER TABLE "log_data_issue" ADD COLUMN IF NOT EXISTS "ack_by" INTEGER;
 ALTER TABLE "log_data_issue" ADD COLUMN IF NOT EXISTS "ack_timestamp" TIMESTAMP;
+ALTER TABLE "log_data_issue" ADD COLUMN IF NOT EXISTS "json_data" json;
 
 ALTER TABLE "log_data_issue" DROP CONSTRAINT IF EXISTS "log_data_issue_uiuser_uiuser_id_fkey" CASCADE;
 Alter table "log_data_issue" add CONSTRAINT log_data_issue_uiuser_uiuser_id_fkey foreign key ("user_id") references "uiuser" ("uiuser_id") on update restrict on delete cascade;

@@ -5,5 +5,8 @@ query getOpenAlerts {
     issue_timestamp
     suspected_cause
     description
+    issue_mgm_id
+    issue_dev_id
+    json_data
   }
 }

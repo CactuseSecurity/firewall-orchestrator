@@ -1,18 +1,19 @@
-﻿using System.Net;
-using RestSharp;
-using FWO.Api.Data;
+﻿using FWO.Api.Data;
+using FWO.ApiClient;
 using FWO.Logging;
-using FWO.Rest.Client;
 
 namespace FWO.DeviceAutoDiscovery
 {
     public class AutoDiscoveryFortiManager : AutoDiscoveryBase
     {
-        public AutoDiscoveryFortiManager(Management superManagement) : base(superManagement) { }
+        public AutoDiscoveryFortiManager(Management superManagement, APIConnection apiConn) : base(superManagement, apiConn) { }
         public override async Task<List<Management>> Run()
         {
             List<Management> discoveredDevices = new List<Management>();
             Log.WriteAudit("Autodiscovery", $"starting discovery for {superManagement.Name} (id={superManagement.Id})");
+#if DEBUG
+            discoveredDevices = fillTestDevices();
+#else
             if (superManagement.DeviceType.Name == "FortiManager")
             {
                 List<Adom> customAdoms = new List<Adom>();
@@ -141,7 +142,51 @@ namespace FWO.DeviceAutoDiscovery
                     throw new Exception(errorTxt);
                 }
             }
-            return discoveredDevices;
+#endif
+            return await GetDeltas(discoveredDevices);
         }
+
+#if DEBUG
+        List<Management> fillTestDevices()
+        {
+            List<Management> testDevices = new List<Management>();
+            Management currentManagement = new Management
+            {
+                Name = superManagement.Name + "__TestAdom",
+                ImporterHostname = superManagement.ImporterHostname,
+                Hostname = superManagement.Hostname,
+                ImportUser = superManagement.ImportUser,
+                PrivateKey = superManagement.PrivateKey,
+                Password = superManagement.Password,
+                Port = superManagement.Port,
+                ImportDisabled = false,
+                ForceInitialImport = true,
+                HideInUi = false,
+                ConfigPath = "TestAdom",
+                DebugLevel = superManagement.DebugLevel,
+                SuperManagerId = superManagement.Id,
+                DeviceType = new DeviceType { Id = 11 },
+                Devices = new Device[] { }
+            };
+            Device dev1 = new Device
+            {
+                Name = "TestGateway1",
+                LocalRulebase = "Package1",
+                Package = "Package1",
+                DeviceType = new DeviceType { Id = 10 } // fortiGate
+            };
+            currentManagement.Devices = currentManagement.Devices.Append(dev1).ToArray();
+            Device dev2 = new Device
+            {
+                Name = "TestGateway2",
+                LocalRulebase = "Package2",
+                Package = "Package2",
+                DeviceType = new DeviceType { Id = 10 } // fortiGate
+            };
+            currentManagement.Devices = currentManagement.Devices.Append(dev2).ToArray();
+            testDevices.Add(currentManagement);
+            return testDevices;
+        }
+#endif
     }
 }

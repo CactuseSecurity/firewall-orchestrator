@@ -2764,7 +2764,11 @@
                 {
                   "role": "auditor",
                   "permission": {
-                    "check": {},
+                    "check": {
+                      "user_id": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    },
                     "columns": [
                       "data_issue_id",
                       "description",
@@ -2789,23 +2793,24 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "ack_by",
+                      "ack_timestamp",
                       "data_issue_id",
-                      "import_id",
-                      "rule_id",
                       "description",
+                      "import_id",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "issue_timestamp",
+                      "json_data",
                       "object_name",
                       "object_type",
                       "object_uid",
+                      "rule_id",
                       "rule_uid",
+                      "severity",
                       "source",
                       "suspected_cause",
-                      "ack_by",
-                      "issue_dev_id",
-                      "issue_mgm_id",
-                      "severity",
-                      "user_id",
-                      "ack_timestamp",
-                      "issue_timestamp"
+                      "user_id"
                     ],
                     "backend_only": false
                   }
@@ -2847,6 +2852,7 @@
                       "issue_dev_id",
                       "issue_mgm_id",
                       "issue_timestamp",
+                      "json_data",
                       "object_name",
                       "object_type",
                       "object_uid",
@@ -2863,7 +2869,11 @@
                 {
                   "role": "recertifier",
                   "permission": {
-                    "check": {},
+                    "check": {
+                      "user_id": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    },
                     "columns": [
                       "data_issue_id",
                       "description",
@@ -2886,7 +2896,11 @@
                 {
                   "role": "reporter",
                   "permission": {
-                    "check": {},
+                    "check": {
+                      "user_id": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    },
                     "columns": [
                       "data_issue_id",
                       "description",
@@ -2909,7 +2923,11 @@
                 {
                   "role": "reporter-viewall",
                   "permission": {
-                    "check": {},
+                    "check": {
+                      "user_id": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    },
                     "columns": [
                       "data_issue_id",
                       "description",
@@ -2943,6 +2961,7 @@
                       "issue_dev_id",
                       "issue_mgm_id",
                       "issue_timestamp",
+                      "json_data",
                       "object_name",
                       "object_type",
                       "object_uid",
@@ -2969,6 +2988,7 @@
                       "issue_dev_id",
                       "issue_mgm_id",
                       "issue_timestamp",
+                      "json_data",
                       "object_name",
                       "object_type",
                       "object_uid",
@@ -3021,6 +3041,7 @@
                       "issue_dev_id",
                       "issue_mgm_id",
                       "issue_timestamp",
+                      "json_data",
                       "object_name",
                       "object_type",
                       "object_uid",
@@ -3489,6 +3510,38 @@
                     ],
                     "filter": {},
                     "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "config_path",
+                      "importer_hostname",
+                      "last_import_md5_complete_config",
+                      "last_import_md5_objects",
+                      "last_import_md5_rules",
+                      "last_import_md5_users",
+                      "mgm_name",
+                      "ssh_hostname",
+                      "ssh_user",
+                      "debug_level",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "multi_device_manager_id",
+                      "ssh_port",
+                      "tenant_id",
+                      "mgm_comment",
+                      "ssh_private_key",
+                      "ssh_public_key",
+                      "mgm_create",
+                      "mgm_update"
+                    ],
+                    "filter": {}
                   }
                 },
                 {
@@ -8557,6 +8610,26 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "dev_typ_is_mgmt",
+                      "dev_typ_is_multi_mgmt",
+                      "dev_typ_config_file_basic_objects",
+                      "dev_typ_config_file_rules",
+                      "dev_typ_config_file_users",
+                      "dev_typ_manufacturer",
+                      "dev_typ_name",
+                      "dev_typ_version",
+                      "dev_typ_id",
+                      "dev_typ_comment",
+                      "dev_typ_predef_obj",
+                      "dev_typ_predef_svc"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -9895,18 +9968,6 @@
                       "table": {
                         "schema": "public",
                         "name": "config"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "log_data_issues",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "user_id",
-                      "table": {
-                        "schema": "public",
-                        "name": "log_data_issue"
                       }
                     }
                   }

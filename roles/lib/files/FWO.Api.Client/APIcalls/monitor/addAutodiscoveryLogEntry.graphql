@@ -1,21 +1,24 @@
-mutation addAlertEntry(
-  $source: String!
+mutation addAutodiscoveryLog(
+  $discoverUser: Int!
+  $severity: Int!
   $suspectedCause: String
   $description: String
   $mgmId: Int
   $devId: Int
-  $jsonData: json
+  $ackUser: Int
+  $ackTime: timestamp
 ) {
   insert_log_data_issue(
     objects: {
-      source: $source
-      user_id: 0
-      severity: 5
+      source: "autodiscovery"
+      user_id: $discoverUser
+      severity: $severity
       suspected_cause: $suspectedCause
       description: $description
       issue_mgm_id: $mgmId
       issue_dev_id: $devId
-      json_data: $jsonData
+      ack_by: $ackUser
+      ack_timestamp: $ackTime
     }
   ) {
     returning {

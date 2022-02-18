@@ -10,7 +10,7 @@ namespace FWO.Api.Data
         public long Id { get; set; }
 
         [JsonProperty("source"), JsonPropertyName("source")]
-        public string Source { get; set; }
+        public string Source { get; set; } = "";
 
         [JsonProperty("severity"), JsonPropertyName("severity")]
         public int Severity { get; set; }
@@ -56,5 +56,8 @@ namespace FWO.Api.Data
 
         [JsonProperty("ack_timestamp"), JsonPropertyName("ack_timestamp")]
         public DateTime? AckTimestamp { get; set; }
+
+        [JsonProperty("json_data"), JsonPropertyName("json_data")]
+        public String? JsonData { get; set; }
     }
 }

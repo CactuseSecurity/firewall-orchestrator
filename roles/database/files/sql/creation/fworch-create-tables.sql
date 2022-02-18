@@ -783,6 +783,7 @@ Create table "log_data_issue"
 	"user_id" INTEGER DEFAULT 0,
 	"ack_by" INTEGER,
 	"ack_timestamp" TIMESTAMP,
+	"json_data" json,
  primary key ("data_issue_id")
 );
 

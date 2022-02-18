@@ -32,8 +32,15 @@ namespace FWO.Api.Data
 
         public static Dictionary<int, int> SupermanagerMap = new Dictionary<int, int>
         {  
+            // Mgmt -> Supermgmt
             { 11, 12 }, // FortiADOM 5ff -> FortiManager 5ff
             { 9, 13 }   // Check Point R8x -> Check Point MDS R8x
+        };
+        public static Dictionary<int, int> SupermanagerGatewayMap = new Dictionary<int, int>
+        {  
+            // Supermgmt -> Gateway
+            { 12, 10},  // FortiManager 5ff-> FortiGate 5ff
+            { 13, 9 }   // Check Point MDS R8x-> Check Point R8x (?)
         };
 
         public DeviceType()
@@ -70,6 +77,16 @@ namespace FWO.Api.Data
         public int GetSupermanagerId()
         {
             return SupermanagerMap[Id];
+        }
+
+        public int GetManagementTypeId()
+        {
+            return SupermanagerMap.FirstOrDefault(x => x.Value == Id).Key;
+        }
+
+        public int GetGatewayTypeId()
+        {
+            return SupermanagerGatewayMap[Id];
         }
     }
 }

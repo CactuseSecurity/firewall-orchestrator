@@ -1,9 +1,7 @@
 ﻿@inherits LayoutComponentBase
 @using FWO.Config.Api
-@using FWO.Config.File
 @using FWO.ApiClient
 @using FWO.Api.Data
-@using FWO.Config.Api.Data
 @using FWO.ApiClient.Queries
 @using System.Timers
 
@@ -40,12 +38,13 @@
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
-    private ApiSubscription<LogEntry[]> alertSubscription;
+    private ApiSubscription<LogEntry[]>? alertSubscription;
     private bool showAlert = false;
     private bool messageDialogShow = false;
     private string dialogTitle = "";
     private string dialogMessage = "";
     private string cssClass = "";
+    private int messageViewTime = GlobalConfig.kDefaultInitMessageViewTime;
 
     private object errorLock = new object();
 
@@ -65,6 +64,12 @@
         DisplayMessageInUiFunction = DisplayMessageInUi;
 
         alertSubscription = apiConnection.GetSubscription<LogEntry[]>(ApiExceptionHandler, OnAlertUpdate, MonitorQueries.subscribeAlertChanges);
+
+        string settingsValue = userConfig.GetConfigValue(GlobalConfig.kMessageViewTime);
+        if (settingsValue != "")
+        {
+            messageViewTime = int.Parse(settingsValue);
+        }
     }
 
     private void OnAlertUpdate(LogEntry[] alerts)
@@ -78,7 +83,8 @@
         // Needed so there is no chance an error is announced by 2 threads at the same time.
         lock (errorLock)
         {
-            int showtime = 7000;
+            int showtime = messageViewTime * 1000; // convert to milliseconds
+            
             switch(type)
             {
                 case MessageType.Info:
@@ -93,7 +99,7 @@
                     break;
                 case MessageType.Error:
                     cssClass = "footer alert alert-danger";
-                    showtime = 30000;
+                    showtime = showtime * 3; // show errors a bit longer
                     break;
             }
 
@@ -101,10 +107,13 @@
             dialogMessage = message;
             messageDialogShow = true;
 
-            Timer messageTimer = new Timer(showtime);
-            messageTimer.Elapsed += HideMessage;
-            messageTimer.AutoReset = false;
-            messageTimer.Start();
+            if(showtime > 0)
+            {
+                Timer messageTimer = new Timer(showtime);
+                messageTimer.Elapsed += HideMessage;
+                messageTimer.AutoReset = false;
+                messageTimer.Start();
+            }
 
             InvokeAsync(StateHasChanged);
         }
@@ -178,7 +187,7 @@
             }
         }
         ShowMessage(cause, description, messageType);
-        AddUiLogEntry(severity, cause, description);
+        Task.Run(async () => await AddUiLogEntry(severity, cause, description));
     }
 
     public async Task AddUiLogEntry(int severity, string cause, string description)
@@ -225,7 +234,6 @@
             {
                 Log.WriteError("Write Alert", "Log could not be written to database");
             }
-            InvokeAsync(StateHasChanged);
         }
         catch(Exception exc)
         {

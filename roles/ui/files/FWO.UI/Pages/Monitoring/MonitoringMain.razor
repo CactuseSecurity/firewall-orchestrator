@@ -1,4 +1,5 @@
 ﻿@using FWO.Config.Api
+@using FWO.Api.Data
 
 @page "/monitoring"
 @attribute [Authorize(Roles = "admin, reporter, reporter-viewall, recertifier, workflow-user, workflow-admin, auditor, fw-admin")]
@@ -12,37 +13,47 @@
 
 <AuthorizeView Roles="admin, fw-admin, auditor">
     <h5>@(userConfig.GetText("open_alerts"))</h5>
-    <Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="LogEntry" Items="alertEntrys" PageSize="0">
-        <Column Context="alert" TableItem="LogEntry" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)">
-            <Template>
-                <AuthorizeView Roles="admin, fw-admin">
-                    <Authorized Context="ctx">
-                        <button class="btn btn-sm btn-danger" @onclick="() => Acknowledge(alert)">@(userConfig.GetText("acknowledge"))</button>
-                    </Authorized>
-                    <NotAuthorized Context="ctx">
-                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("acknowledge"))</button>
-                    </NotAuthorized> 
-                </AuthorizeView>
-            </Template>
-        </Column>
-        <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" />
-        <Column TableItem="LogEntry" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" />
-        <Column TableItem="LogEntry" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" />
-        <Column TableItem="LogEntry" Title="@(userConfig.GetText("title"))" Field="@(x => x.SuspectedCause)" />
-        <Column TableItem="LogEntry" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" />
-    </Table>
+    @if(alertEntrys.Count == 0)
+    {
+        @(userConfig.GetText("no_open_alerts"))
+    }
+    else
+    {
+        <Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="LogEntry" Items="alertEntrys" PageSize="0">
+            <Column Context="alert" TableItem="LogEntry" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)">
+                <Template>
+                    <button class="btn btn-sm btn-primary" @onclick="() => Show(alert)">@(userConfig.GetText("details"))</button>
+                    <AuthorizeView Roles="admin, fw-admin">
+                        <Authorized Context="ctx">
+                            <button class="btn btn-sm btn-secondary" @onclick="() => Acknowledge(alert)">@(userConfig.GetText("acknowledge"))</button>
+                        </Authorized>
+                        <NotAuthorized Context="ctx">
+                            <button class="btn btn-sm btn-secondary" disabled>@(userConfig.GetText("acknowledge"))</button>
+                        </NotAuthorized> 
+                    </AuthorizeView>
+                </Template>
+            </Column>
+            <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" />
+            <Column TableItem="LogEntry" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" />
+            <Column TableItem="LogEntry" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" />
+            <Column TableItem="LogEntry" Title="@(userConfig.GetText("title"))" Field="@(x => x.SuspectedCause)" />
+            <Column TableItem="LogEntry" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" />
+        </Table>
+    }
 </AuthorizeView>
+
+<AutoDiscovery Actions="actActions" @bind-Display="AutoDiscoverMode"/>
+
 
 @code
 {
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
-    [CascadingParameter]
-    private Task<AuthenticationState>? authenticationStateTask { get; set; }
-
     private List<LogEntry> alertEntrys = new List<LogEntry>();
-
+    private List<ActionItem> actActions = new List<ActionItem>();
+    private bool AutoDiscoverMode = false;
+ 
     protected override async Task OnInitializedAsync()
     {
         try
@@ -67,7 +78,6 @@
             };
             await apiConnection.SendQueryAsync<ReturnId>(MonitorQueries.acknowledgeAlert, Variables);
             alertEntrys.Remove(alert);
-            InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)
         {
@@ -75,4 +85,12 @@
         }
     }
 
+    private void Show(LogEntry alert)
+    {
+        if(alert.Source == "autodiscovery")
+        {
+            actActions = new List<ActionItem>() { new ActionItem(alert) }; 
+            AutoDiscoverMode = true;
+        }
+    }
 }

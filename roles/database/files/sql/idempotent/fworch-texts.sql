@@ -732,12 +732,16 @@ INSERT INTO txt VALUES ('autoFillRightSidebar', 'German', 	'Komplettes F&uuml;ll
 INSERT INTO txt VALUES ('autoFillRightSidebar', 'English', 	'Completely auto-fill right sidebar');
 INSERT INTO txt VALUES ('minCollapseAllDevices','German', 	'Devices zu Beginn eingeklappt ab');
 INSERT INTO txt VALUES ('minCollapseAllDevices','English', 	'Devices collapsed at beginning from');
+INSERT INTO txt VALUES ('messageViewTime',      'German', 	'Nachrichten-Anzeigedauer (in Sekunden)');
+INSERT INTO txt VALUES ('messageViewTime',      'English', 	'Message view time (in seconds)');
 INSERT INTO txt VALUES ('dataRetentionTime',    'German', 	'Datenaufbewahrungszeit (in Tagen)');
 INSERT INTO txt VALUES ('dataRetentionTime',    'English', 	'Data retention time (in days)');
 INSERT INTO txt VALUES ('importSleepTime',      'German', 	'Importintervall (in Sekunden)');
 INSERT INTO txt VALUES ('importSleepTime',      'English', 	'Import sleep time (in seconds)');
 INSERT INTO txt VALUES ('fwApiElementsPerFetch','German', 	'FW API - Pro Abruf geholte Elemente');
 INSERT INTO txt VALUES ('fwApiElementsPerFetch','English', 	'FW API - Elements per fetch');
+INSERT INTO txt VALUES ('autoDiscoverSleepTime','German', 	'Autodiscover-Intervall (in Stunden)');
+INSERT INTO txt VALUES ('autoDiscoverSleepTime','English', 	'Auto-discovery sleep time (in hours)');
 INSERT INTO txt VALUES ('recertificationPeriod','German', 	'Rezertifizierungsintervall (in Tagen)');
 INSERT INTO txt VALUES ('recertificationPeriod','English',  'Recertification Period (in days)');
 INSERT INTO txt VALUES ('recertificationNoticePeriod','German','Rezertifizierungserinnerungsintervall (in Tagen)');
@@ -892,8 +896,12 @@ INSERT INTO txt VALUES ('import_logs',          'German', 	'Import-Logs');
 INSERT INTO txt VALUES ('import_logs',          'English', 	'Import Logs');
 INSERT INTO txt VALUES ('import_status',       	'German', 	'Import-Status');
 INSERT INTO txt VALUES ('import_status',    	'English', 	'Import Status');
-INSERT INTO txt VALUES ('ui_logs',              'German', 	'UI-Logs');
-INSERT INTO txt VALUES ('ui_logs',              'English', 	'Ui Logs');
+INSERT INTO txt VALUES ('ui_messages',          'German', 	'UI-Nachrichten');
+INSERT INTO txt VALUES ('ui_messages',          'English', 	'Ui Messages');
+INSERT INTO txt VALUES ('autodiscovery',        'German', 	'Autodiscovery');
+INSERT INTO txt VALUES ('autodiscovery',        'English', 	'Autodiscovery');
+INSERT INTO txt VALUES ('autodiscovery_logs',   'German', 	'Autodiscovery-Logs');
+INSERT INTO txt VALUES ('autodiscovery_logs',   'English', 	'Autodiscovery Logs');
 INSERT INTO txt VALUES ('alerts',               'German', 	'Alarme');
 INSERT INTO txt VALUES ('alerts',               'English', 	'Alerts');
 INSERT INTO txt VALUES ('acknowledge',          'German', 	'Best&auml;tigen');
@@ -902,6 +910,24 @@ INSERT INTO txt VALUES ('acknowledged_by',      'German', 	'Best&auml;tigt von')
 INSERT INTO txt VALUES ('acknowledged_by',      'English', 	'Acknowledged by');
 INSERT INTO txt VALUES ('acknowledged_alert',   'German', 	'Alarm best&auml;tigen');
 INSERT INTO txt VALUES ('acknowledged_alert',   'English', 	'Acknowledge alert');
+INSERT INTO txt VALUES ('confirm',              'German', 	'Best&auml;tigen');
+INSERT INTO txt VALUES ('confirm',              'English', 	'Confirm');
+INSERT INTO txt VALUES ('found_by',             'German', 	'Gefunden von');
+INSERT INTO txt VALUES ('found_by',             'English', 	'Found by');
+INSERT INTO txt VALUES ('nothing_more_to_change','German', 	'Keine weiteren &Auml;nderungen gefunden');
+INSERT INTO txt VALUES ('nothing_more_to_change','English', 'Nothing more to change');
+INSERT INTO txt VALUES ('no_open_alerts',       'German', 	'Keine offenen Alarme');
+INSERT INTO txt VALUES ('no_open_alerts',       'English', 	'Currently no open alerts');
+INSERT INTO txt VALUES ('new_managements',      'German', 	'Neue Managements');
+INSERT INTO txt VALUES ('new_managements',      'English', 	'New Managements');
+INSERT INTO txt VALUES ('new_devices',          'German', 	'Neue Gateways');
+INSERT INTO txt VALUES ('new_devices',          'English', 	'New Gateways');
+INSERT INTO txt VALUES ('deleted_managements',  'German', 	'Gel&ounl;schte Managements');
+INSERT INTO txt VALUES ('deleted_managements',  'English', 	'Deleted Managements');
+INSERT INTO txt VALUES ('deleted_devices',      'German', 	'Gel&ounl;schte Gateways');
+INSERT INTO txt VALUES ('deleted_devices',      'English', 	'Deleted Gateways');
+INSERT INTO txt VALUES ('analyze_actions',      'German', 	'Aktionen analysieren');
+INSERT INTO txt VALUES ('analyze_actions',      'English', 	'Analyze Actions');
 
 
 -- help pages
@@ -1095,6 +1121,8 @@ INSERT INTO txt VALUES ('U7201', 'German',  'Archiv der Importer-Nachrichten');
 INSERT INTO txt VALUES ('U7201', 'English', 'View the past importer messages');
 INSERT INTO txt VALUES ('U7301', 'German',  'Archiv der eigenen Nutzernachrichten');
 INSERT INTO txt VALUES ('U7301', 'English', 'View the past own UI user messages');
+INSERT INTO txt VALUES ('U7401', 'German',  'Archiv der Autodiscovery-Nachrichten');
+INSERT INTO txt VALUES ('U7401', 'English', 'View the past autodiscovery messages');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');

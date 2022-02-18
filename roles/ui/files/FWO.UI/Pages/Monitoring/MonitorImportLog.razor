@@ -1,5 +1,4 @@
-﻿@using System.Text
-@using FWO.Config.Api
+﻿@using FWO.Config.Api
 
 @inject APIConnection apiConnection
 @inject UserConfig userConfig
@@ -32,9 +31,6 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
-    [CascadingParameter]
-    private Task<AuthenticationState>? authenticationStateTask { get; set; }
-
     private List<LogEntry> logEntrys = new List<LogEntry>();
 
     protected override async Task OnInitializedAsync()
@@ -48,6 +44,4 @@
             DisplayMessageInUi!(exception, userConfig.GetText("fetch_log_entrys"), "", true);
         }
     }
-
-
 }

@@ -18,6 +18,8 @@ namespace FWO.ApiClient.Queries
         public static readonly string getAlertEntrys;
         public static readonly string acknowledgeAlert;
         public static readonly string subscribeAlertChanges;
+        public static readonly string addAutodiscoveryLogEntry;
+        public static readonly string getAutodiscoveryLogEntrys;
 
 
         static MonitorQueries()
@@ -36,6 +38,9 @@ namespace FWO.ApiClient.Queries
                 getAlertEntrys = File.ReadAllText(QueryPath + "monitor/getAlertEntrys.graphql");
                 acknowledgeAlert = File.ReadAllText(QueryPath + "monitor/acknowledgeAlert.graphql");
                 subscribeAlertChanges = File.ReadAllText(QueryPath + "monitor/subscribeAlertChanges.graphql");
+
+                addAutodiscoveryLogEntry = File.ReadAllText(QueryPath + "monitor/addAutodiscoveryLogEntry.graphql");
+                getAutodiscoveryLogEntrys = File.ReadAllText(QueryPath + "monitor/getAutodiscoveryLogEntrys.graphql");
             }
             catch (Exception exception)
             {

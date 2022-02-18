@@ -34,6 +34,9 @@ fragment ruleDetails on rule {
     zone_id
   }
   rule_tos {
+    usr {
+      ...userDetails
+    }
     object {
       ...networkObjectDetails
     }

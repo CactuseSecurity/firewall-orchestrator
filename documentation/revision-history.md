@@ -190,13 +190,13 @@ adding report template format fk and permissions
 - migrated api import-loop to a single python script without any sys executes of ext. scripts
 - minor but fixes and vip nat for fortimanager
 
-### 5.6.5 - 2022
+### 5.6.5 - 11.02.2022
 - next planned release
 - fixing migration scripts
 - splitting import_config into chunks to enable import of big managements
 - introducing fw-admin role (device admin without delete & auto-discovery rights)
+- working fortinet src hide nat behind interface
 
 ### 5.6.6 - 2022
-- next planned release
+- allow for users in rule destination (CP)
 - monitoring
-

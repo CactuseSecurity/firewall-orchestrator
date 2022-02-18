@@ -96,7 +96,11 @@ else: # visit each domain and fetch layers
                         api_call_str = "show-package name " + gw['policy']['access-policy-name'] + ", logged in to domain " + domain_name
                         logging.debug ("MDS: found gateway " + gw['name'] + " with policy: " + gw['policy']['access-policy-name'])
                         logging.debug ("api call: " + api_call_str)
-                        gw['package'] = getter.api_call(v_url, 'show-package', { "name" : gw['policy']['access-policy-name'], "details-level": "full" }, xsid, ssl_verification, proxy_string)
+                        try:
+                            tmp_pkg_name = getter.api_call(v_url, 'show-package', { "name" : gw['policy']['access-policy-name'], "details-level": "full" }, xsid, ssl_verification, proxy_string)
+                        except:
+                            tmp_pkg_name = "ERROR while trying to get package " + gw['policy']['access-policy-name']
+                        gw['package'] = tmp_pkg_name
         else:
             logging.warning ("Domain-WARNING: did not find any gateways in domain " + obj['name'])
         logout_result = getter.api_call(v_url, 'logout', {}, xsid, ssl_verification, proxy_string)

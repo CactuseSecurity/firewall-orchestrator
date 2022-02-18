@@ -6875,90 +6875,6 @@
                     "foreign_key_constraint_on": "user_id"
                   }
                 }
-              ],
-              "select_permissions": [
-                {
-                  "role": "auditor",
-                  "permission": {
-                    "columns": [
-                      "rule_from_id",
-                      "rf_create",
-                      "rf_last_seen",
-                      "rule_id",
-                      "obj_id",
-                      "user_id",
-                      "active",
-                      "negated"
-                    ],
-                    "filter": {}
-                  }
-                },
-                {
-                  "role": "fw-admin",
-                  "permission": {
-                    "columns": [
-                      "obj_id",
-                      "rf_create",
-                      "rf_last_seen",
-                      "rule_from_id",
-                      "rule_id",
-                      "user_id",
-                      "active",
-                      "negated"
-                    ],
-                    "filter": {}
-                  }
-                },
-                {
-                  "role": "recertifier",
-                  "permission": {
-                    "columns": [
-                      "rule_from_id",
-                      "rf_create",
-                      "rf_last_seen",
-                      "rule_id",
-                      "obj_id",
-                      "user_id",
-                      "active",
-                      "negated"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
-                  }
-                },
-                {
-                  "role": "reporter",
-                  "permission": {
-                    "columns": [
-                      "rule_from_id",
-                      "rf_create",
-                      "rf_last_seen",
-                      "rule_id",
-                      "obj_id",
-                      "user_id",
-                      "active",
-                      "negated"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
-                  }
-                },
-                {
-                  "role": "reporter-viewall",
-                  "permission": {
-                    "columns": [
-                      "rule_from_id",
-                      "rf_create",
-                      "rf_last_seen",
-                      "rule_id",
-                      "obj_id",
-                      "user_id",
-                      "active",
-                      "negated"
-                    ],
-                    "filter": {}
-                  }
-                }
               ]
             },
             {
@@ -7648,6 +7564,12 @@
                   "using": {
                     "foreign_key_constraint_on": "rule_id"
                   }
+                },
+                {
+                  "name": "usr",
+                  "using": {
+                    "foreign_key_constraint_on": "user_id"
+                  }
                 }
               ],
               "select_permissions": [
@@ -7655,10 +7577,11 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "rule_id",
                       "obj_id",
                       "rt_create",
                       "rt_last_seen",
+                      "rule_id",
+                      "user_id",
                       "active",
                       "negated"
                     ],
@@ -7673,6 +7596,7 @@
                       "rt_create",
                       "rt_last_seen",
                       "rule_id",
+                      "user_id",
                       "active",
                       "negated"
                     ],
@@ -7683,10 +7607,11 @@
                   "role": "recertifier",
                   "permission": {
                     "columns": [
-                      "rule_id",
                       "obj_id",
                       "rt_create",
                       "rt_last_seen",
+                      "rule_id",
+                      "user_id",
                       "active",
                       "negated"
                     ],
@@ -7698,10 +7623,11 @@
                   "role": "reporter",
                   "permission": {
                     "columns": [
-                      "rule_id",
                       "obj_id",
                       "rt_create",
                       "rt_last_seen",
+                      "rule_id",
+                      "user_id",
                       "active",
                       "negated"
                     ],
@@ -7713,10 +7639,11 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
-                      "rule_id",
                       "obj_id",
                       "rt_create",
                       "rt_last_seen",
+                      "rule_id",
+                      "user_id",
                       "active",
                       "negated"
                     ],
@@ -10680,6 +10607,18 @@
                       "table": {
                         "schema": "public",
                         "name": "rule_from"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "rule_tos",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "user_id",
+                      "table": {
+                        "schema": "public",
+                        "name": "rule_to"
                       }
                     }
                   }

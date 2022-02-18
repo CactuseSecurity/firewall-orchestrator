@@ -326,43 +326,33 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, im
         xlate_rule = create_xlate_rule(rule)
         if 'ippool' in rule_orig:
             if rule_orig['ippool']==0:  # hiding behind outbound interface
-                # logging.debug("found outbound interface hide nat rule") # needs to be checked
-                
+                interface_name = 'unknownIF'
+                destination_interface_ip = '0.0.0.0'
                 destination_ip = get_first_ip_of_destination(rule['rule_dst_refs'], config2import) # get an ip of destination
                 if destination_ip is None:
-                    logging.warning('src nat behind interface: found no valid destination ip in rule')
-                    destination_interface_ip = '0.0.0.0'
+                    logging.warning('src nat behind interface: found no valid destination ip in rule with UID ' + rule['rule_uid'])
                 else:
                     matching_route = get_matching_route(destination_ip, config2import['networking'][device_name]['routingv4'])
                     if matching_route is None:
-                        logging.warning('src nat behind interface: found no matching route')
-                        destination_interface_ip = '0.0.0.0'
+                        logging.warning('src nat behind interface: found no matching route in rule with UID '
+                            + rule['rule_uid'] + ', dest_ip: ' + destination_ip)
                     else:
                         destination_interface_ip = get_ip_of_interface(matching_route['interface'], config2import['networking'][device_name]['interfaces'])
                         interface_name = matching_route['interface'] # ['name']
+                        hideInterface=interface_name
                         if destination_interface_ip is None:
-                            logging.warning('src nat behind interface: found no matching interface IP')
-                            destination_interface_ip = '0.0.0.0'
-
-                if 'dstintf' in rule_orig:
-                    # plan: lookup in routing table, which interface the dst-ip is routed out of and use this interface's IP as new src
-                    if len(rule_orig['dstintf'])==0:
-                        logging.warning("found empty nat hiding interface list")
-                    elif len(rule_orig['dstintf'])>1:
-                        logging.warning("found more than one nat hiding interface")
-                    hideInterface=interface_name
-                    
-                    # add dummy object "outbound-interface"
-                    obj_name = 'hide_IF_ip_' + hideInterface + '_' + destination_interface_ip
-                    obj_comment = 'FWO auto-generated dummy object for source nat'
-                    obj = create_network_object(import_id, obj_name, 'host', destination_interface_ip + '/32', obj_name, 'black', obj_comment, 'global')
-                    
-                    if obj not in config2import['network_objects']:
-                        config2import['network_objects'].append(obj)
-                    xlate_rule['rule_src'] = obj_name
-                    xlate_rule['rule_src_refs'] = obj_name
-
-                    #logging.warning("hide nat behind outgoing interface not implemented yet; hide interface: " + hideInterface)
+                            logging.warning('src nat behind interface: found no matching interface IP in rule with UID '
+                            + rule['rule_uid'] + ', dest_ip: ' + destination_ip)
+        
+                # add dummy object "outbound-interface"
+                obj_name = 'hide_IF_ip_' + hideInterface + '_' + destination_interface_ip
+                obj_comment = 'FWO auto-generated dummy object for source nat'
+                obj = create_network_object(import_id, obj_name, 'host', destination_interface_ip + '/32', obj_name, 'black', obj_comment, 'global')
+                
+                if obj not in config2import['network_objects']:
+                    config2import['network_objects'].append(obj)
+                xlate_rule['rule_src'] = obj_name
+                xlate_rule['rule_src_refs'] = obj_name
 
             elif rule_orig['ippool']==1: # hiding behind one ip of an ip pool
                 poolNameArray = rule_orig['poolname']

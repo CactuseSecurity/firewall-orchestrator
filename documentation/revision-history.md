@@ -199,3 +199,4 @@ adding report template format fk and permissions
 
 ### 5.6.6 - 2022
 - allow for users in rule destination (CP)
+- monitoring

@@ -1,0 +1,6 @@
+﻿subscription subscribeAutodiscoveryConfigChanges {
+  config (where: {config_key: {_eq: "autoDiscoverSleepTime"}}, limit: 1){
+    config_key
+    config_value
+  }
+}

@@ -1,0 +1,47 @@
+﻿@using FWO.Config.Api
+
+@inject APIConnection apiConnection
+@inject UserConfig userConfig
+
+@page "/monitoring/alerts"
+
+<h3>@(userConfig.GetText("alerts"))</h3>
+@(userConfig.GetText("U7101"))
+<hr />
+
+<Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="Alert" Items="alertEntrys" PageSize="0">
+    <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" />
+    <Column TableItem="Alert" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" />
+    <Column TableItem="Alert" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" />
+    <Column TableItem="Alert" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" />
+    <Column TableItem="Alert" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" />
+    <Column TableItem="Alert" Title="@(userConfig.GetText("acknowledged_by"))" Field="@(x => x.AcknowledgedBy)" >
+        <Template>
+            @(uiUsers.FirstOrDefault(x => x.DbId == context.AcknowledgedBy)?.Name)
+        </Template>
+    </Column>
+    <Column TableItem="Alert" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.AckTimestamp)" />
+</Table>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+
+    private List<Alert> alertEntrys = new List<Alert>();
+    private List<UiUser> uiUsers = new List<UiUser>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            alertEntrys = await apiConnection.SendQueryAsync<List<Alert>>(MonitorQueries.getAlerts);
+            uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.ApiClient.Queries.AuthQueries.getUsers);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_alerts"), "", true);
+        }
+    }
+}

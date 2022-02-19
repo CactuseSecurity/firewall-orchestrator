@@ -1,0 +1,15 @@
+query getOpenAlerts {
+  alert (where: {ack_by: {_is_null: true}} order_by: { alert_id: desc }, limit: 100){
+    alert_id
+    ref_log_id
+    ref_alert_id
+    source
+    title
+    description
+    alert_mgm_id
+    alert_dev_id
+    alert_timestamp
+    user_id
+    json_data
+  }
+}

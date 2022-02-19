@@ -782,7 +782,26 @@ Create table "log_data_issue"
 	"severity" INTEGER NOT NULL DEFAULT 1,
 	"source" VARCHAR NOT NULL DEFAULT 'import',
 	"issue_timestamp" TIMESTAMP DEFAULT NOW(),
+	"user_id" INTEGER DEFAULT 0,
  primary key ("data_issue_id")
+);
+
+Create table "alert"
+(
+	"alert_id" BIGSERIAL,
+	"ref_log_id" BIGINT,
+	"ref_alert_id" BIGINT,
+	"source" VARCHAR NOT NULL,
+	"title" VARCHAR,
+	"description" VARCHAR,
+	"alert_mgm_id" INTEGER,
+	"alert_dev_id" INTEGER,
+	"alert_timestamp" TIMESTAMP DEFAULT NOW(),
+	"user_id" INTEGER DEFAULT 0,
+	"ack_by" INTEGER,
+	"ack_timestamp" TIMESTAMP,
+	"json_data" json,
+ primary key ("alert_id")
 );
 
 Create table "import_changelog"

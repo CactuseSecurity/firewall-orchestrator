@@ -1,0 +1,531 @@
+﻿@using BlazorTable
+@using FWO.Config.Api
+@using FWO.Api.Data
+@using FWO.ApiClient
+@using System.Text.Json;
+@using FWO.ApiClient.Queries
+
+@inject APIConnection apiConnection
+@inject UserConfig userConfig
+
+<PopUp Title="@(userConfig.GetText("autodiscovery") + headerText)" Show="@Display" Large="true"  OnClose="() => {Display = false; DisplayChanged.InvokeAsync(Display);}">
+    <Body>
+        @if (Display)
+        {
+            foreach(var management in managementsToDisplay)
+            {
+                <h6>@(userConfig.GetText("management"))</h6>
+                <Table class="table table-bordered table-responsive" TableItem="Management" Items="managementsToDisplay.Where(x => x.Id == management.Id)" PageSize="0" ColumnReorder="true">
+                    <Column TableItem="Management" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)">
+                        <Template>
+                            @if(!management.Ignore)
+                            {
+                                @if(management.Delete)
+                                {
+                                    @if(management.AwaitDevice)
+                                    {
+                                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                                    }
+                                    else
+                                    {
+                                        <AuthorizeView Roles="admin, fw-admin">
+                                            <Authorized Context="ctx">
+                                                <button class="btn btn-sm btn-danger" @onclick="() => DeleteManagement(context)">@(userConfig.GetText("delete"))</button>
+                                            </Authorized>
+                                            <NotAuthorized Context="ctx">
+                                                <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                                            </NotAuthorized> 
+                                        </AuthorizeView>
+                                    }
+                                }
+                                else
+                                {
+                                    <AuthorizeView Roles="admin, fw-admin">
+                                        <Authorized Context="ctx">
+                                            <button class="btn btn-sm btn-success" @onclick="() => ConfirmManagement(context)">@(userConfig.GetText("add"))</button>
+                                        </Authorized>
+                                        <NotAuthorized Context="ctx">
+                                            <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("add"))</button>
+                                        </NotAuthorized> 
+                                    </AuthorizeView>
+                                }
+                            }
+                        </Template>
+                    </Column>
+                    <Column TableItem="Management" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" />
+                    <Column TableItem="Management" Title="@(userConfig.GetText("name"))" Field="(x => x.Name)" />
+                    <Column TableItem="Management" Title="@(userConfig.GetText("type"))" Field="@(x => x.DeviceType.Id)">
+                        <Template>
+                            @(context.DeviceType.NameVersion())
+                        </Template>
+                    </Column>
+                </Table>
+                @if(management.Devices.Count() > 0)
+                {
+                    <div class="row">
+                        <div class="col-sm-2"/>
+                        <div class="col-sm-offset-2">
+                            <h6>@(userConfig.GetText("devices"))</h6>
+                            <Table class="table table-bordered table-responsive" TableItem="Device" Items="management.Devices" PageSize="0" ColumnReorder="true">
+                                <Column TableItem="Device" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)">
+                                    <Template>
+                                        @if(context.Relevant)
+                                        {
+                                            @if(context.Delete)
+                                            {
+                                                <AuthorizeView Roles="admin, fw-admin">
+                                                    <Authorized Context="ctx">
+                                                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteDevice(context)">@(userConfig.GetText("delete"))</button>
+                                                    </Authorized>
+                                                    <NotAuthorized Context="ctx">
+                                                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                                                    </NotAuthorized> 
+                                                </AuthorizeView>
+                                            }
+                                            else
+                                            {
+                                                @if(context.AwaitMgmt)
+                                                {
+                                                    <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("add"))</button>
+                                                }
+                                                else
+                                                {                    
+                                                    <AuthorizeView Roles="admin, fw-admin">
+                                                        <Authorized Context="ctx">
+                                                            <button class="btn btn-sm btn-success" @onclick="() => ConfirmDevice(context)">@(userConfig.GetText("add"))</button>
+                                                        </Authorized>
+                                                        <NotAuthorized Context="ctx">
+                                                            <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("add"))</button>
+                                                        </NotAuthorized> 
+                                                    </AuthorizeView>
+                                                }
+                                            }
+                                        }
+                                    </Template>
+                                </Column>
+                                <Column TableItem="Device" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" />
+                                <Column TableItem="Device" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" />
+                            </Table>
+                        </div>
+                    </div>
+                }
+            }
+
+            @if(Actions.Count == 0)
+            {
+                @(userConfig.GetText("nothing_more_to_change"))
+            }
+            @if(createMgmtFirstText != "")
+            {
+                @(createMgmtFirstText)
+            } 
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button class="btn btn-sm btn-secondary" @onclick="() => {Display = false; DisplayChanged.InvokeAsync(Display);}">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+
+    [Parameter]
+    public List<ActionItem> Actions { get; set; } = new List<ActionItem>();
+
+    [Parameter]
+    public bool Display { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    private List<Management> managementsToDisplay { get; set; } = new List<Management>();
+    private List<Management> existingManagements { get; set; } = new List<Management>();
+    private List<Device> existingDevices { get; set; } = new List<Device>();
+    private string headerText = "";
+    private string createMgmtFirstText = "";
+      
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // existingManagements = await apiConnection.SendQueryAsync<List<Management>>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails);
+            existingDevices = await apiConnection.SendQueryAsync<List<Device>>(FWO.ApiClient.Queries.DeviceQueries.getDeviceDetails);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("autodiscovery"), "", true);
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Display)
+        {
+            await AnalyzeActions();
+        }
+    }
+
+    private async Task AnalyzeActions()
+    {
+        try
+        {
+            existingManagements = await apiConnection.SendQueryAsync<List<Management>>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails);
+            managementsToDisplay = new List<Management>();
+            headerText = "";
+            createMgmtFirstText = "";
+
+            foreach(var action in Actions)
+            {
+                ActionCode code = (ActionCode)Enum.Parse(typeof(ActionCode), action.ActionType ?? throw new Exception($"Missing Action Type!"));
+                if(Actions.Count() == 1 && action.Id > 0)
+                {
+                    headerText = $"  {userConfig.GetText("alert")}: {action.Id}  {userConfig.GetText("action")}: {code.ToString()}";
+                }
+                switch(code)
+                {
+                    case ActionCode.AddManagement:
+                        Management newMgmt = JsonSerializer.Deserialize<Management>(action.JsonData ?? throw new Exception($"Missing Management Data!")) ?? throw new Exception($"Management Data not converted!");
+                        newMgmt.ActionId = action.Id;
+                        newMgmt.Ignore = false;
+                        managementsToDisplay.Add(newMgmt);
+                        break;
+                    case ActionCode.DeleteManagement:
+                        Management? mgmtToDelete = existingManagements.FirstOrDefault(x => x.Id == action.ManagementId);
+                        if(mgmtToDelete != null)
+                        {
+                            mgmtToDelete.ActionId = action.Id;
+                            mgmtToDelete.Delete = true;
+                            mgmtToDelete.Ignore = false;
+                            if(mgmtToDelete.Devices.Count() > 0)
+                            {
+                                mgmtToDelete.AwaitDevice = true;
+                            }
+                            managementsToDisplay.Add(mgmtToDelete);
+                        }
+                        else
+                        {
+                            // already deleted
+                        }
+                        break;
+                    case ActionCode.AddGatewayToNewManagement:
+                        Device newGateway = JsonSerializer.Deserialize<Device>(action.JsonData ?? throw new Exception($"Missing Gateway Data!")) ?? throw new Exception($"Gateway Data not converted!");
+                        newGateway.Delete = false;
+                        newGateway.Relevant = true;
+                        newGateway.ActionId = action.Id;
+                        newGateway.AwaitMgmt = true;
+                        Management? lastMgmt = managementsToDisplay.LastOrDefault();
+                        if(lastMgmt != null)
+                        {
+                            List<Device> exDevs = lastMgmt.Devices.ToList();
+                            exDevs.Add(newGateway);
+                            managementsToDisplay.LastOrDefault().Devices = exDevs.ToArray();
+                        }
+                        else
+                        {
+                            int mgmtId = getResultFromAlert(action.RefAlertId);
+                            if(mgmtId != 0)
+                            {
+                                Management? exMgmt = existingManagements.FirstOrDefault(x => x.Id == mgmtId);
+                                if (exMgmt != null)
+                                {
+                                    List<Device> exDevs = exMgmt.Devices.ToList();
+                                    exDevs.Add(newGateway);
+                                    exMgmt.Devices = exDevs.ToArray();
+                                    exMgmt.Ignore = true;
+                                    managementsToDisplay.Add(exMgmt);
+                                }
+                            }
+                            else
+                            {
+                                createMgmtFirstText = userConfig.GetText("xxx") + action.ManagementId;
+                                // "please apply action.ManagementId first"
+                            }
+                        }
+                        break;
+                    case ActionCode.AddGatewayToExistingManagement:
+                        Device newGatewayToEx = JsonSerializer.Deserialize<Device>(action.JsonData ?? throw new Exception($"Missing Gateway Data!")) ?? throw new Exception($"Gateway Data not converted!");
+                        newGatewayToEx.Delete = false;
+                        newGatewayToEx.Relevant = true;
+                        newGatewayToEx.ActionId = action.Id;
+                        Management? mgmtToExpand = managementsToDisplay.FirstOrDefault(x => x.Id == action.ManagementId);
+                        if(mgmtToExpand != null)
+                        {
+                            List<Device> exDevs = mgmtToExpand.Devices.ToList();
+                            exDevs.Add(newGatewayToEx);
+                            managementsToDisplay[managementsToDisplay.FindIndex(x => x.Id == action.ManagementId)].Devices = exDevs.ToArray();
+                        }
+                        else
+                        {
+                            mgmtToExpand = existingManagements.FirstOrDefault(x => x.Id == action.ManagementId);
+                            if(mgmtToExpand != null)
+                            {
+                                List<Device> exDevs = mgmtToExpand.Devices.ToList();
+                                exDevs.Add(newGatewayToEx);
+                                mgmtToExpand.Devices = exDevs.ToArray();
+                                mgmtToExpand.Ignore = true;
+                                managementsToDisplay.Add(mgmtToExpand);
+                            }
+                        }
+                        break;
+                    case ActionCode.DeleteGateway:
+                        Management? mgmtToCut = managementsToDisplay.FirstOrDefault(x => x.Id == action.ManagementId);
+                        if(mgmtToCut != null)
+                        {
+                            markDeviceForDelete(ref mgmtToCut, action);
+                            managementsToDisplay[managementsToDisplay.FindIndex(x => x.Id == action.ManagementId)] = mgmtToCut;
+                        }
+                        else
+                        {
+                            mgmtToCut = existingManagements.FirstOrDefault(x => x.Id == action.ManagementId);
+                            if(mgmtToCut != null)
+                            {
+                                markDeviceForDelete(ref mgmtToCut, action);
+                                mgmtToCut.Ignore = true;
+                                managementsToDisplay.Add(mgmtToCut);
+                            }
+                        }
+                        break;
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("analyze_actions"), "", true);
+        }
+    }
+
+    private int getResultFromAlert(long? alertId)
+    {
+        return 0;
+    }
+
+    private void markDeviceForDelete(ref Management mgmtToCut, ActionItem action)
+    {
+        List<Device> exDevs = mgmtToCut.Devices.ToList();
+        Device? devToDelete = exDevs.FirstOrDefault(x => x.Id == action.DeviceId);
+        if(devToDelete != null)
+        {
+            exDevs[exDevs.FindIndex(x => x.Id == action.DeviceId)].Delete = true;
+            exDevs[exDevs.FindIndex(x => x.Id == action.DeviceId)].Relevant = true;
+            exDevs[exDevs.FindIndex(x => x.Id == action.DeviceId)].ActionId = action.Id;
+            exDevs[exDevs.FindIndex(x => x.Id == action.DeviceId)].Management.Id = mgmtToCut.Id;
+            mgmtToCut.Devices = exDevs.ToArray();
+        }
+        else
+        {
+            // already deleted
+        }
+    }
+
+    private async Task ConfirmManagement(Management discMgmt)
+    {
+        try
+        {
+            if (existingManagements.FirstOrDefault(exMgmt => exMgmt.Name == discMgmt.Name && exMgmt.ConfigPath == discMgmt.ConfigPath 
+                && exMgmt.SuperManagerId == discMgmt.SuperManagerId) != null)
+            {
+                DisplayMessageInUi!(null, "AutoDiscovery", userConfig.GetText("E5106"), true);
+            }
+            else
+            {
+                var Variables = new
+                {
+                    name = discMgmt.Name,
+                    devTypeId = discMgmt.DeviceType.Id,
+                    hostname = discMgmt.Hostname,
+                    importUser = discMgmt.ImportUser,
+                    importUserSecret = (discMgmt.DeviceType.IsLegacyDevType() ? discMgmt.PrivateKey : discMgmt.Password),
+                    port = discMgmt.Port,
+                    sshPublicKey = discMgmt.PublicKey,
+                    importDisabled = discMgmt.ImportDisabled,
+                    forceInitialImport = discMgmt.ForceInitialImport,
+                    hideInUi = discMgmt.HideInUi,
+                    configPath = discMgmt.ConfigPath,
+                    superManager = discMgmt.SuperManagerId,
+                    importerHostname = discMgmt.ImporterHostname,
+                    debugLevel = discMgmt.DebugLevel,
+                    comment = discMgmt.Comment
+                };
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newManagement, Variables)).ReturnIds;
+                if (returnIds != null)
+                {
+                    discMgmt.Id = returnIds[0].NewId;
+                    discMgmt.Ignore = true;
+                    // As we know now the ManagementId we can activate following device inserts
+                    bool goAhead = true;
+                    foreach(ActionItem act in Actions.Where(x => x.Id > discMgmt.ActionId))
+                    {
+                        if(goAhead && act.ActionType == ActionCode.AddGatewayToNewManagement.ToString())
+                        {
+                            act.ManagementId = discMgmt.Id;
+                            act.ActionType = ActionCode.AddGatewayToExistingManagement.ToString();
+                        }
+                        else
+                        {
+                            goAhead = false;
+                        }
+                    }
+                    existingManagements.Add(discMgmt);
+                    await AcknowledgeAction(discMgmt.ActionId);
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("save_management"), "", true);
+        }
+    }
+
+    private async Task ConfirmDevice(Device discoveredDevice)
+    {
+        try
+        {
+            if (existingDevices.FirstOrDefault(existingDevice => existingDevice.Name == discoveredDevice.Name 
+                && existingDevice.Management.Id == discoveredDevice.Management.Id 
+                && existingDevice.LocalRulebase == discoveredDevice.LocalRulebase) != null)
+            {
+                DisplayMessageInUi!(null, "AutoDiscovery", userConfig.GetText("E5107"), true);
+            }
+            else
+            {    
+                // insert new device
+                var Variables = new
+                {
+                    name = discoveredDevice.Name,
+                    devTypeId = discoveredDevice.DeviceType.Id,
+                    managementId = discoveredDevice.Management.Id,
+                    localRulebase = discoveredDevice.LocalRulebase,
+                    globalRulebase = discoveredDevice.GlobalRulebase,
+                    package = discoveredDevice.Package,
+                    importDisabled = discoveredDevice.ImportDisabled,
+                    hideInUi = discoveredDevice.HideInUi,
+                    comment = discoveredDevice.Comment
+                };
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newDevice, Variables)).ReturnIds;
+                if (returnIds == null)
+                {
+                    DisplayMessageInUi!(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5112"), true);
+                }
+                else
+                {
+                    discoveredDevice.Id = returnIds[0].NewId;
+                    discoveredDevice.Relevant = false;
+                    existingDevices.Add(discoveredDevice);
+                    await addDeviceToTenant0(discoveredDevice.Id);
+                    await AcknowledgeAction(discoveredDevice.ActionId);
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("save_gateway"), "", true);
+        }
+    }
+
+    private async Task DeleteManagement(Management disappearedManagement)
+    {
+        try
+        {
+            if (disappearedManagement.Devices != null && disappearedManagement.Devices.Length > 0)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("delete_management"), userConfig.GetText("E5101"), true);
+            }
+            else
+            {
+                var Variables = new { id = disappearedManagement.Id };
+                int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.deleteManagement, Variables)).DeletedId;
+                if (delId == disappearedManagement.Id)
+                {
+                    // existingManagements = await apiConnection.SendQueryAsync<List<Management>>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails);
+                    existingManagements.Remove(disappearedManagement);
+                    await AcknowledgeAction(disappearedManagement.ActionId);
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_management"), "", true);
+        }
+
+    }
+
+    private async Task DeleteDevice(Device disappearedDevice)
+    {
+        try
+        {
+            var Variables = new { id = disappearedDevice.Id };
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.deleteDevice, Variables)).DeletedId;
+            if (delId == disappearedDevice.Id)
+            {
+                // remove device from existing management
+                Management? hostMgmt = existingManagements.FirstOrDefault(x => x.Id == disappearedDevice.Management.Id);
+                if(hostMgmt != null)
+                {
+                    List<Device> devs = hostMgmt.Devices.ToList();
+                    Device? dev = devs.FirstOrDefault(x => x.Id == disappearedDevice.Id);
+                    if(dev != null)
+                    {
+                        devs.Remove(dev);
+                    }
+                    existingManagements[existingManagements.FindIndex(x => x.Id == disappearedDevice.Management.Id)].Devices = devs.ToArray();
+                    if(devs.Count() == 0)
+                    {
+                        existingManagements[existingManagements.FindIndex(x => x.Id == disappearedDevice.Management.Id)].AwaitDevice = false;
+                    }
+                }
+                existingDevices.Remove(disappearedDevice);
+                await AcknowledgeAction(disappearedDevice.ActionId);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_gateway"), "", true);
+        }
+    }
+
+    public async Task AcknowledgeAction(long actionId)
+    {
+        try
+        {
+            ActionItem? actToDelete = Actions.FirstOrDefault(x => x.Id == actionId);
+            if (actToDelete != null)
+            {
+                Actions.Remove(actToDelete);
+            }
+        
+            if(actionId > 0)
+            {
+                var Variables = new 
+                { 
+                    id = actionId,
+                    ackUser = userConfig.User.DbId,
+                    ackTime = DateTime.Now
+                };
+                await apiConnection.SendQueryAsync<ReturnId>(MonitorQueries.acknowledgeAlert, Variables);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("acknowledged_alert"), "", true);
+        }
+    }
+
+    private async Task addDeviceToTenant0(int deviceId)
+    {
+        try
+        {
+            var Variables = new { tenantId = 1, deviceId = deviceId };
+            await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addDeviceToTenant, Variables);
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("add_device_to_tenant0"), "", false);
+        }
+    }
+}

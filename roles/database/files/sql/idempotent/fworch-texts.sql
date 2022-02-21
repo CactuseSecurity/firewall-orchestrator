@@ -394,7 +394,7 @@ INSERT INTO txt VALUES ('group_members_flat',	'German', 	'Gruppenmitglieder (geg
 INSERT INTO txt VALUES ('group_members_flat',	'English', 	'Group Members (flattened)');
 INSERT INTO txt VALUES ('object_fetch',         'German', 	'Abholen der Objekte');
 INSERT INTO txt VALUES ('object_fetch',         'English', 	'Object Fetch');
-INSERT INTO txt VALUES ('object_fetch_warning', 'German', 	'Aufgrund des gewählten Limits konnten nicht alle Objekte in die rechte Randleiste geladen werden');
+INSERT INTO txt VALUES ('object_fetch_warning', 'German', 	'Aufgrund des gew&auml;hlten Limits konnten nicht alle Objekte in die rechte Randleiste geladen werden');
 INSERT INTO txt VALUES ('object_fetch_warning', 'English', 	'Because of the set fetch limit, not all objects could be loaded into the right side bar');
 INSERT INTO txt VALUES ('template_fetch',       'German', 	'Abholen der Vorlagen');
 INSERT INTO txt VALUES ('template_fetch',       'English', 	'Report Template Fetch');

@@ -10,7 +10,7 @@
 	changelog_rule/svc/nwobj tables
 		record all changes - should also contain unreferenced changes?! then we can use these tables for reporting ref issues
 
-	new: changelog_data_issue for storing broken references etc. but not rolling back the import
+	new: log_data_issue for storing broken references etc. but not rolling back the import
 
 
  (error handling) structure:
@@ -86,7 +86,7 @@
 					all broken refs are returned as a string
 	}  */
 
-DROP FUNCTION IF EXISTS public.import_all_main;
+DROP FUNCTION IF EXISTS public.import_all_main(BIGINT);
 CREATE OR REPLACE FUNCTION public.import_all_main(BIGINT)
   RETURNS VARCHAR AS
 $BODY$
@@ -102,6 +102,10 @@ DECLARE
 	v_err_str_refs VARCHAR;
 	b_result BOOLEAN;
 	r_obj RECORD;
+	v_exception_message VARCHAR;
+	v_exception_details VARCHAR;
+	v_exception_hint VARCHAR;
+	v_exception VARCHAR;
 	
 BEGIN
 	BEGIN -- catch exception block
@@ -160,19 +164,23 @@ BEGIN
 		PERFORM import_changelog_sync (i_current_import_id, i_mgm_id); -- Abgleich zwischen import_changelog und changelog_xxx	
 	EXCEPTION
 		WHEN OTHERS THEN -- read error from import_control and rollback
+			GET STACKED DIAGNOSTICS v_exception_message = MESSAGE_TEXT,
+                          v_exception_details = PG_EXCEPTION_DETAIL,
+                          v_exception_hint = PG_EXCEPTION_HINT;
+			v_exception := v_exception_message || v_exception_details || v_exception_hint;
 			v_err_pos := 'ERR-ImpMain@' || v_err_pos;
 			RAISE DEBUG 'import_all_main - Exception block entered with v_err_pos=%', v_err_pos;
 			SELECT INTO v_err_str import_errors FROM import_control WHERE control_id=i_current_import_id;
 			IF v_err_str IS NULL THEN
-				UPDATE import_control SET import_errors = v_err_pos WHERE control_id=i_current_import_id;
+				UPDATE import_control SET import_errors = v_err_pos || v_exception WHERE control_id=i_current_import_id;
 			ELSE 
-				UPDATE import_control SET import_errors = v_err_str || v_err_pos WHERE control_id=i_current_import_id;				
+				UPDATE import_control SET import_errors = v_err_str || v_err_pos || v_exception WHERE control_id=i_current_import_id;				
 			END IF;
 			IF NOT v_err_str_refs IS NULL THEN
 				SELECT INTO v_err_str import_errors FROM import_control WHERE control_id=i_current_import_id;
 				UPDATE import_control SET import_errors = v_err_str || ';' || v_err_str_refs WHERE control_id=i_current_import_id;
 			END IF;
-			RAISE NOTICE 'ERROR:  import_all_main failed';
+			RAISE NOTICE 'ERROR: import_all_main failed';
 			RETURN v_err_str;
 			-- RETURN FALSE;
 	END;

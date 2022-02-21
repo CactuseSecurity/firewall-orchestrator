@@ -39,6 +39,8 @@ def call(url, jwt, query, query_variables="", role="reporter", ssl_verification=
         r.raise_for_status()
     except requests.exceptions.RequestException:
         logging.error(showApiCallInfo(url, full_query, request_headers, type='error') + ":\n" + str(traceback.format_exc()))
+        if r.status_code == 503:
+            raise common.FwoApiTServiceUnavailable("FWO API HTTP error 503 (FWO API died?)" )
         if r.status_code == 502:
             raise common.FwoApiTimeout("FWO API HTTP error 502 (might have reached timeout of " + str(int(common.fwo_api_http_import_timeout)/60) + " minutes)" )
         else:
@@ -334,24 +336,43 @@ def get_error_string_from_imp_control(fwo_api_base_url, jwt, query_variables):
     return call(fwo_api_base_url, jwt, error_query, query_variables=query_variables, role='importer')['data']['import_control']
 
 
-def create_data_issue(fwo_api_base_url, jwt, import_id, obj_name, role='importer', rule_uid=None, object_type=None):
+def create_data_issue(fwo_api_base_url, jwt, import_id=None, obj_name=None, mgm_id=None, dev_id=None, severity=1, role='importer',
+        rule_uid=None, object_type=None, description=None, source='import'):
     if obj_name=='all' or obj_name=='Original': 
-        return 0 # ignore resolve errors for enriched objects that are not in the native config
+        return True # ignore resolve errors for enriched objects that are not in the native config
     else:
         create_data_issue_mutation = """
-            mutation createDataIssue($importId: bigint!, $objectName: String!, $objectType:String!, $ruleUid: String) {
-                insert_changelog_data_issue(objects: {import_id: $importId, object_name: $objectName, rule_uid: $ruleUid, object_type:$objectType}) {
+            mutation createDataIssue($source: String!, $severity: Int!, $importId: bigint, $objectName: String, 
+                    $objectType:String, $ruleUid: String, $description: String,
+                    $mgmId: Int, $devId: Int) {
+                insert_log_data_issue(objects: {source: $source, severity: $severity, import_id: $importId, 
+                    object_name: $objectName, rule_uid: $ruleUid,
+                    object_type:$objectType, description: $description, issue_dev_id: $devId, issue_mgm_id: $mgmId }) {
                     affected_rows
                 }
             }
         """
 
-        query_variables = { "importId": import_id, "objectName": obj_name, "ruleUid": rule_uid, "objectType": object_type }
+        query_variables = {"source": source, "severity": severity }
+ 
+        if dev_id is not None:
+            query_variables.update({"devId": dev_id})
+        if mgm_id is not None:
+            query_variables.update({"mgmId": mgm_id})
+        if obj_name is not None:
+            query_variables.update({"objName": obj_name})
+        if object_type is not None:
+            query_variables.update({"objectType": object_type})
+        if import_id is not None:
+            query_variables.update({"importId": import_id})
+        if rule_uid is not None:
+            query_variables.update({"ruleUid": rule_uid})
+        if description is not None:
+            query_variables.update({"description": description})
         try:
-            import_result = call(fwo_api_base_url, jwt, create_data_issue_mutation,
-                                query_variables=query_variables, role=role)
-            changes = import_result['data']['insert_changelog_data_issue']['affected_rows']
+            import_result = call(fwo_api_base_url, jwt, create_data_issue_mutation, query_variables=query_variables, role=role)
+            changes = import_result['data']['insert_log_data_issue']['affected_rows']
         except:
-            logging.exception("fwo_api: failed to create a changelog_data_issue " + str(obj_name))
-            return 2  # indicating 1 error because we are expecting exactly one change
+            logging.error("fwo_api: failed to create log_data_issue: " + json.dumps(query_variables))
+            return False
         return changes==1

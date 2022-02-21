@@ -45,6 +45,10 @@ namespace FWO.Api.Data
         public ObjectStatistics RuleStatistics { get; set; } = new ObjectStatistics();
 
         public bool Selected { get; set; } = false;
+        public bool Relevant { get; set; }
+        public bool AwaitMgmt { get; set; }
+        public bool Delete { get; set; }
+        public long ActionId { get; set; }
 
         public Device()
         { }
@@ -61,6 +65,10 @@ namespace FWO.Api.Data
             ImportDisabled = device.ImportDisabled;
             HideInUi = device.HideInUi;
             Comment = device.Comment;
+            Relevant = device.Relevant;
+            AwaitMgmt = device.AwaitMgmt;
+            Delete = device.Delete;
+            ActionId = device.ActionId;
         }
 
         public void AssignRuleNumbers()
@@ -71,7 +79,7 @@ namespace FWO.Api.Data
 
                 foreach (Rule rule in Rules)
                 {
-                    if (string.IsNullOrEmpty(rule.SectionHeader))
+                    if (string.IsNullOrEmpty(rule.SectionHeader)) // Not a section header
                     {
                         rule.DisplayOrderNumber = ruleNumber++;
                     }

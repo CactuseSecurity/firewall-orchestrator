@@ -42,7 +42,7 @@ namespace FWO.Ui.Display
             return (rule.SourceZone != null ? rule.SourceZone.Name : "");
         }
 
-        public string DisplaySource(Rule rule, string style = "", bool recert = false)
+        public string DisplaySource(Rule rule, string style = "", string location = "report")
         {
             result = new StringBuilder();
 
@@ -58,14 +58,20 @@ namespace FWO.Ui.Display
                     symbol = "oi oi-list-rich";
                 else if (source.Object.Type.Name == "network")
                     symbol = "oi oi-rss";
+                else if (source.Object.Type.Name == "ip_range")
+                    symbol = "oi oi-resize-width";
                 else
                     symbol = "oi oi-monitor";
+                
+                string userLink = location == "" ? $"user{source.User?.Id}"
+                                                 : $"goto-report-m{rule.MgmtId}-user{source.User?.Id}";
 
-                string page = recert ? "certification" : "report";
+                string nwobjLink = location == "" ? $"nwobj{source.Object.Id}"
+                                                  : $"goto-report-m{rule.MgmtId}-nwobj{source.Object.Id}";
 
                 if (source.User != null)
-                    result.AppendLine($"<span class=\"oi oi-people\">&nbsp;</span><a href=\"{ page }#goto-report-m{rule.MgmtId}-user{source.User.Id}\" target=\"_top\" style=\"{style}\">{source.User.Name}</a>@");
-                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"{ page }#goto-report-m{rule.MgmtId}-nwobj{source.Object.Id}\" target=\"_top\" style=\"{style}\">{source.Object.Name}</a>");
+                    result.AppendLine($"<span class=\"oi oi-people\">&nbsp;</span><a href=\"{location}#{userLink}\" target=\"_top\" style=\"{style}\">{source.User.Name}</a>@");
+                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"{location}#{nwobjLink}\" target=\"_top\" style=\"{style}\">{source.Object.Name}</a>");
                 result.Append((source.Object.IP != null ? $" ({source.Object.IP})" : ""));
                 result.AppendLine("<br>");
             }
@@ -80,7 +86,7 @@ namespace FWO.Ui.Display
             return (rule.DestinationZone != null ? rule.DestinationZone.Name : "");
         }
 
-        public string DisplayDestination(Rule rule, string style = "", bool recert = false)
+        public string DisplayDestination(Rule rule, string style = "", string location = "report")
         {
             result = new StringBuilder();
 
@@ -98,12 +104,25 @@ namespace FWO.Ui.Display
                     symbol = "oi oi-list-rich";
                 else if (destination.Object.Type.Name == "network")
                     symbol = "oi oi-rss";
+                else if (destination.Object.Type.Name == "ip_range")
+                    symbol = "oi oi-resize-width";
                 else
                     symbol = "oi oi-monitor";
 
-                string page = recert ? "certification" : "report";
 
-                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"{ page }#goto-report-m{rule.MgmtId}-nwobj{destination.Object.Id}\" target=\"_top\" style=\"{style}\">{destination.Object.Name}</a>");
+                string userLink = location == "" ? $"user{destination.User?.Id}"
+                                                 : $"goto-report-m{rule.MgmtId}-user{destination.User?.Id}";
+
+                string nwobjLink = location == "" ? $"nwobj{destination.Object.Id}"
+                                                  : $"goto-report-m{rule.MgmtId}-nwobj{destination.Object.Id}";
+
+                if (destination.User != null)
+                    result.AppendLine($"<span class=\"oi oi-people\">&nbsp;</span><a href=\"{location}#{userLink}\" target=\"_top\" style=\"{style}\">{destination.User.Name}</a>@");
+
+                // string link = location == "" ? $"nwobj{destination.Object.Id}"
+                //                              : $"goto-report-m{rule.MgmtId}-nwobj{destination.Object.Id}";
+
+                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"{location}#{nwobjLink}\" target=\"_top\" style=\"{style}\">{destination.Object.Name}</a>");
                 result.Append(destination.Object.IP != null ? $" ({destination.Object.IP})" : "");
                 result.AppendLine("<br>");
             }
@@ -113,7 +132,7 @@ namespace FWO.Ui.Display
             return result.ToString();
         }
 
-        public string DisplayService(Rule rule, string style = "", bool recert = false)
+        public string DisplayService(Rule rule, string style = "", string location = "report")
         {
             result = new StringBuilder();
 
@@ -132,9 +151,10 @@ namespace FWO.Ui.Display
                 else
                     symbol = "oi oi-wrench";
 
-                string page = recert ? "certification" : "report";
+                string link = location == "" ? $"svc{service.Content.Id}"
+                                             : $"goto-report-m{rule.MgmtId}-svc{service.Content.Id}";
 
-                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"{ page }#goto-report-m{rule.MgmtId}-svc{service.Content.Id}\" target=\"_top\" style=\"{style}\">{service.Content.Name}</a>");
+                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"{location}#{link}\" target=\"_top\" style=\"{style}\">{service.Content.Name}</a>");
 
                 if (service.Content.DestinationPort != null)
                     result.Append(service.Content.DestinationPort == service.Content.DestinationPortEnd ? $" ({service.Content.DestinationPort}/{service.Content.Protocol?.Name})"

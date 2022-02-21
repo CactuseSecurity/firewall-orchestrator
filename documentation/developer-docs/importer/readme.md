@@ -8,13 +8,16 @@ It does not need to be changed when adding new import modules.
 Within this file we have the following calls which deal with firewall product specific stuff:
 ```python
  # import product-specific importer module:
-fw_module_name = mgm_details['deviceType']['name'].lower().replace(
-    ' ', '') + mgm_details['deviceType']['version']+'.fwcommon'
-fw_module = importlib.import_module(fw_module_name)
+fw_module = importlib.import_module("." + fw_module_name, pkg_name)
 
-# get config from FW API and write it into config2import
-fw_module.get_config(
-    config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level)
+# get config from FW API and write it into config2import if it has changed:
+
+    config_changed_since_last_import = fw_module.has_config_changed(mgm_details, debug_level=debug_level, ssl_verification=ssl, proxy=proxy, force=force)
+
+    if config_changed_since_last_import:
+        get_config_response = fw_module.get_config( 
+                        config2import, full_config_json,  current_import_id, mgm_details, debug_level=debug_level, 
+                        ssl_verification=ssl, proxy=proxy, limit=limit, force=force, jwt=jwt)
 
 # now we import config2import via the FWO API:
 error_count += fwo_api.import_json_config(fwo_api_base_url, jwt, args.mgm_id, {

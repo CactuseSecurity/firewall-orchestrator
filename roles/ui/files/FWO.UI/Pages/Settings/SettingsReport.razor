@@ -1,9 +1,5 @@
-﻿@using BlazorTable
-@using FWO.ApiClient
+﻿@using FWO.ApiClient
 @using FWO.Config.Api
-@using FWO.Config.Api.Data;
-@using FWO.Api.Data
-@using FWO.Ui.Services
 
 @page "/settings/report"
 @attribute [Authorize(Roles = "admin, reporter, reporter-viewall, recertifier, workflow-user, workflow-admin, auditor, fw-admin")]
@@ -16,13 +12,25 @@
 <hr />
 
 <form class="form-inline" onsubmit="return false">
-    <label for="elementsPerFetch" class="col-form-label mr-2">@(userConfig.GetText("elementsPerFetch")):</label>
+    <label for="elementsPerFetch" class="col-form-label col-sm-4">@(userConfig.GetText("elementsPerFetch")):</label>
     <div class="col-sm-2">
         <input id="elementsPerFetch" type="number" class="form-control form-control-sm" @bind="elementsPerFetch" />
     </div>
 </form>
+<form class="form-inline" onsubmit="return false">
+    <label for="minCollapseAllDevices" class="col-form-label col-sm-4">@(userConfig.GetText("minCollapseAllDevices")):</label>
+    <div class="col-sm-2">
+        <input id="minCollapseAllDevices" type="number" class="form-control form-control-sm" @bind="minCollapseAllDevices">
+    </div>
+</form>
+<form class="form-inline" onsubmit="return false">
+    <label for="messageViewTime" class="col-form-label col-sm-4">@(userConfig.GetText("messageViewTime")):</label>
+    <div class="col-sm-2">
+        <input id="messageViewTime" type="number" class="form-control form-control-sm" @bind="messageViewTime">
+    </div>
+</form>
 <hr />
-<button class="btn btn-sm btn-primary" @onclick="SaveElementsPerFetch">@(userConfig.GetText("save"))</button>
+<button class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
 
 
 @code
@@ -30,33 +38,22 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
-    [CascadingParameter]
-    private Task<AuthenticationState>? authenticationStateTask { get; set; }
-
     ConfigDbAccess? config;
-    int elementsPerFetch = 100;
+    ConfigDbAccess? defaultConfig;
+    int elementsPerFetch = GlobalConfig.kDefaultInitElementsPerFetch;
+    int minCollapseAllDevices = GlobalConfig.kDefaultInitCollapseFrom;
+    int messageViewTime = GlobalConfig.kDefaultInitMessageViewTime;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        AuthenticationState authState = await authenticationStateTask!;
         try
         {
             config = new ConfigDbAccess(apiConnection, userConfig);
-            string settingsValue = config.Get<string>(GlobalConfig.kElementsPerFetch);
-            if (settingsValue != "")
-            {
-                elementsPerFetch = Int32.Parse(settingsValue);
-            }
-            else
-            {
-                // get default value
-                ConfigDbAccess defaultConfig = new ConfigDbAccess(apiConnection);
-                settingsValue = defaultConfig.Get<string>(GlobalConfig.kElementsPerFetch);
-                if (settingsValue != "")
-                {
-                    elementsPerFetch = Int32.Parse(settingsValue);
-                }
-            }
+            defaultConfig = new ConfigDbAccess(apiConnection);
+
+            elementsPerFetch = GetIntSetting(elementsPerFetch, GlobalConfig.kElementsPerFetch);
+            minCollapseAllDevices = GetIntSetting(minCollapseAllDevices, GlobalConfig.kMinCollapseAllDevices);
+            messageViewTime = GetIntSetting(messageViewTime, GlobalConfig.kMessageViewTime);
         }
         catch (KeyNotFoundException) { }
         catch (Exception exception)
@@ -65,12 +62,44 @@
         }
     }
 
-    private async Task SaveElementsPerFetch()
+    private int GetIntSetting(int value, string setting)
     {
-        string elementsPerFetchString = elementsPerFetch.ToString();
+        string settingsValue = GetStringSetting(setting);
+        return (settingsValue != "" ? Int32.Parse(settingsValue) : value);
+    }
+
+//    private bool GetBoolSetting(bool value, string setting)
+//    {
+//        string settingsValue = GetStringSetting(setting);
+//        return (settingsValue != "" ? (settingsValue == "True" ? true : false) : value);
+//    }
+
+    private string GetStringSetting(string setting)
+    {
+        string settingsValue ="";
         try
         {
-            await userConfig.ChangeConfigValue(GlobalConfig.kElementsPerFetch, elementsPerFetchString, apiConnection);
+            settingsValue = (config != null ? config.Get<string>(setting) : "");
+            if (settingsValue == "")
+            {
+                settingsValue = (defaultConfig != null ? defaultConfig.Get<string>(setting) : "");
+            }
+        }
+        catch (KeyNotFoundException) { }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("report_settings"), userConfig.GetText("E5302") + userConfig.GetText(setting) + ":" + settingsValue, false);
+        }
+        return settingsValue;
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            await userConfig.ChangeConfigValue(GlobalConfig.kElementsPerFetch, elementsPerFetch.ToString(), apiConnection);
+            await userConfig.ChangeConfigValue(GlobalConfig.kMinCollapseAllDevices, minCollapseAllDevices.ToString(), apiConnection);
+            await userConfig.ChangeConfigValue(GlobalConfig.kMessageViewTime, messageViewTime.ToString(), apiConnection);            
             DisplayMessageInUi!(null, userConfig.GetText("report_settings"), userConfig.GetText("U5301"), false);
         }
         catch (Exception exception)

@@ -1,18 +1,23 @@
 ﻿using System.Net;
 using RestSharp;
 using FWO.Api.Data;
+using FWO.ApiClient;
 using FWO.Logging;
 using FWO.Rest.Client;
+
 
 namespace FWO.DeviceAutoDiscovery
 {
     public class AutoDiscoveryFortiManager : AutoDiscoveryBase
     {
-        public AutoDiscoveryFortiManager(Management superManagement) : base(superManagement) { }
+        public AutoDiscoveryFortiManager(Management superManagement, APIConnection apiConn) : base(superManagement, apiConn) { }
         public override async Task<List<Management>> Run()
         {
             List<Management> discoveredDevices = new List<Management>();
             Log.WriteAudit("Autodiscovery", $"starting discovery for {superManagement.Name} (id={superManagement.Id})");
+#if DEBUG
+            discoveredDevices = fillTestDevices();
+#else
             if (superManagement.DeviceType.Name == "FortiManager")
             {
                 List<Adom> customAdoms = new List<Adom>();
@@ -23,13 +28,13 @@ namespace FWO.DeviceAutoDiscovery
                 Log.WriteDebug("Autodiscovery", $"discovering FortiManager adoms, vdoms, devices");
                 FortiManagerClient restClientFM = new FortiManagerClient(superManagement);
 
-                IRestResponse<SessionAuthInfo> sessionResponse = await restClientFM.AuthenticateUser(superManagement.ImportUser, superManagement.Password);
+                RestResponse<SessionAuthInfo> sessionResponse = await restClientFM.AuthenticateUser(superManagement.ImportUser, superManagement.Password);
                 if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && sessionResponse.Data.SessionId !="")
                 {
                     string sessionId = sessionResponse.Data.SessionId;
                     Log.WriteDebug("Autodiscovery", $"successful FortiManager login, got SessionID: {sessionId}");
                     // need to use @ verbatim identifier for special chars in sessionId
-                    IRestResponse<FmApiTopLevelHelper> adomResponse = await restClientFM.GetAdoms(@sessionId);
+                    RestResponse<FmApiTopLevelHelper> adomResponse = await restClientFM.GetAdoms(@sessionId);
                     if (adomResponse.StatusCode == HttpStatusCode.OK && adomResponse.IsSuccessful)
                     {
                         List<Adom> adomList = adomResponse.Data.Result[0].AdomList;
@@ -51,7 +56,7 @@ namespace FWO.DeviceAutoDiscovery
                     else
                         Log.WriteWarning("AutoDiscovery", $"error while getting ADOM list: {adomResponse.ErrorMessage}");
 
-                    IRestResponse<FmApiTopLevelHelperDev> deviceResponse = await restClientFM.GetDevices(@sessionId);
+                    RestResponse<FmApiTopLevelHelperDev> deviceResponse = await restClientFM.GetDevices(@sessionId);
                     if (deviceResponse.StatusCode == HttpStatusCode.OK && deviceResponse.IsSuccessful)
                     {
                         List<FortiGate> fortigateList = deviceResponse.Data.Result[0].DeviceList;
@@ -85,7 +90,7 @@ namespace FWO.DeviceAutoDiscovery
                                 Devices = new Device[] { }
                             };
 
-                            IRestResponse<FmApiTopLevelHelperAssign> assignResponse = await restClientFM.GetPackageAssignmentsPerAdom(@sessionId, adom.Name);
+                            RestResponse<FmApiTopLevelHelperAssign> assignResponse = await restClientFM.GetPackageAssignmentsPerAdom(@sessionId, adom.Name);
                             if (assignResponse.StatusCode == HttpStatusCode.OK && assignResponse.IsSuccessful)
                             {
                                 List<Assignment> assignmentList = assignResponse.Data.Result[0].AssignmentList;
@@ -141,7 +146,51 @@ namespace FWO.DeviceAutoDiscovery
                     throw new Exception(errorTxt);
                 }
             }
-            return discoveredDevices;
+#endif
+            return await GetDeltas(discoveredDevices);
         }
+
+#if DEBUG
+        List<Management> fillTestDevices()
+        {
+            List<Management> testDevices = new List<Management>();
+            Management currentManagement = new Management
+            {
+                Name = superManagement.Name + "__TestAdom",
+                ImporterHostname = superManagement.ImporterHostname,
+                Hostname = superManagement.Hostname,
+                ImportUser = superManagement.ImportUser,
+                PrivateKey = superManagement.PrivateKey,
+                Password = superManagement.Password,
+                Port = superManagement.Port,
+                ImportDisabled = false,
+                ForceInitialImport = true,
+                HideInUi = false,
+                ConfigPath = "TestAdom",
+                DebugLevel = superManagement.DebugLevel,
+                SuperManagerId = superManagement.Id,
+                DeviceType = new DeviceType { Id = 11 },
+                Devices = new Device[] { }
+            };
+            Device dev1 = new Device
+            {
+                Name = "TestGateway1",
+                LocalRulebase = "Package1",
+                Package = "Package1",
+                DeviceType = new DeviceType { Id = 10 } // fortiGate
+            };
+            currentManagement.Devices = currentManagement.Devices.Append(dev1).ToArray();
+            Device dev2 = new Device
+            {
+                Name = "TestGateway2",
+                LocalRulebase = "Package2",
+                Package = "Package2",
+                DeviceType = new DeviceType { Id = 10 } // fortiGate
+            };
+            currentManagement.Devices = currentManagement.Devices.Append(dev2).ToArray();
+            testDevices.Add(currentManagement);
+            return testDevices;
+        }
+#endif
     }
 }

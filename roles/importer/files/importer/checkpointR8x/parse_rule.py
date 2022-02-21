@@ -1,6 +1,6 @@
 import logging
 import json
-import common, fwcommon
+import common, cpcommon
 
 
 def add_section_header_rule_in_json (rulebase, section_name, layer_name, import_id, rule_uid, rule_num, section_header_uids, parent_uid):
@@ -13,13 +13,13 @@ def add_section_header_rule_in_json (rulebase, section_name, layer_name, import_
         "rule_disabled":    False,
         "rule_src_neg":     False,
         "rule_src":         "Any",
-        "rule_src_refs":    common.sanitize(fwcommon.any_obj_uid),
+        "rule_src_refs":    common.sanitize(cpcommon.any_obj_uid),
         "rule_dst_neg":     False,
         "rule_dst":         "Any",
-        "rule_dst_refs":    common.sanitize(fwcommon.any_obj_uid),
+        "rule_dst_refs":    common.sanitize(cpcommon.any_obj_uid),
         "rule_svc_neg":     False,
         "rule_svc":         "Any",
-        "rule_svc_refs":    common.sanitize(fwcommon.any_obj_uid),
+        "rule_svc_refs":    common.sanitize(cpcommon.any_obj_uid),
         "rule_action":      "Accept",
         "rule_track":       "Log",
         "rule_installon":   "Policy Targets",
@@ -42,8 +42,6 @@ def add_domain_rule_header_rule_in_json(rulebase, section_name, layer_name, impo
 
 
 def parse_single_rule_to_json (src_rule, rulebase, layer_name, import_id, rule_num, parent_uid):
-    dst_rule = {}
-
     # reference to domain rule layer, filling up basic fields
     if 'type' in src_rule and src_rule['type'] != 'place-holder':
         if 'rule-number' in src_rule:  # standard rule, no section header
@@ -76,7 +74,7 @@ def parse_single_rule_to_json (src_rule, rulebase, layer_name, import_id, rule_n
                 elif src['type'] == 'access-role':
                     if isinstance(src['networks'], str):  # just a single source
                         if src['networks'] == 'any':
-                            rule_src_ref += src['uid'] + '@' + fwcommon.any_obj_uid + common.list_delimiter
+                            rule_src_ref += src['uid'] + '@' + cpcommon.any_obj_uid + common.list_delimiter
                         else:
                             rule_src_ref += src['uid'] + '@' + src['networks'] + common.list_delimiter
                     else:  # more than one source
@@ -89,12 +87,38 @@ def parse_single_rule_to_json (src_rule, rulebase, layer_name, import_id, rule_n
             # rule_dst...
             rule_dst_name = ''
             for dst in src_rule["destination"]:
-                rule_dst_name += dst["name"] + common.list_delimiter
+                if dst['type'] == 'LegacyUserAtLocation':
+                    rule_dst_name += dst['name'] + common.list_delimiter
+                elif dst['type'] == 'access-role':
+                    if isinstance(dst['networks'], str):  # just a single source
+                        if dst['networks'] == 'any':
+                            rule_dst_name += dst["name"] + '@' + 'Any' + common.list_delimiter
+                        else:
+                            rule_dst_name += dst["name"] + '@' + dst['networks'] + common.list_delimiter
+                    else:  # more than one source
+                        for nw in dst['networks']:
+                            rule_dst_name += dst[
+                                                # TODO: this is not correct --> need to reverse resolve name from given UID
+                                                "name"] + '@' + nw + common.list_delimiter
+                else:  # standard network objects as destination
+                    rule_dst_name += dst["name"] + common.list_delimiter
             rule_dst_name = rule_dst_name[:-1]
 
             rule_dst_ref = ''
             for dst in src_rule["destination"]:
-                rule_dst_ref += dst["uid"] + common.list_delimiter
+                if dst['type'] == 'LegacyUserAtLocation':
+                    rule_dst_ref += dst["userGroup"] + '@' + dst["location"] + common.list_delimiter
+                elif dst['type'] == 'access-role':
+                    if isinstance(dst['networks'], str):  # just a single source
+                        if dst['networks'] == 'any':
+                            rule_dst_ref += dst['uid'] + '@' + cpcommon.any_obj_uid + common.list_delimiter
+                        else:
+                            rule_dst_ref += dst['uid'] + '@' + dst['networks'] + common.list_delimiter
+                    else:  # more than one source
+                        for nw in dst['networks']:
+                            rule_dst_ref += dst['uid'] + '@' + nw + common.list_delimiter
+                else:  # standard network objects as source
+                    rule_dst_ref += dst["uid"] + common.list_delimiter
             rule_dst_ref = rule_dst_ref[:-1]
 
             # rule_svc...

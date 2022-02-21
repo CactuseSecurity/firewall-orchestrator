@@ -13,6 +13,8 @@ namespace FWO.Api.Data
 
         [JsonProperty("devices"), JsonPropertyName("devices")]
         public List<DeviceSelect> Devices { get; set; } = new List<DeviceSelect>();
+
+        public bool Selected { get; set; } = false;
     }
 
     public class DeviceSelect
@@ -66,8 +68,13 @@ namespace FWO.Api.Data
         public void applyFullDeviceSelection(bool selectAll)
         {
             foreach (ManagementSelect management in Managements)
+            {
+                management.Selected = selectAll;
                 foreach (DeviceSelect device in management.Devices)
+                {
                     device.Selected = selectAll;
+                }
+            }
         }
 
         public static bool IsSelectedManagement(ManagementSelect management)
@@ -142,6 +149,40 @@ namespace FWO.Api.Data
                     }
                 }
             }
+            SynchronizeMgmtFilter();
+        }
+
+        public void SynchronizeMgmtFilter()
+        {
+            foreach (ManagementSelect management in Managements)
+            {
+                management.Selected = false;
+                if(management.Devices.Count > 0)
+                {
+                    management.Selected = true;
+                }
+                foreach (DeviceSelect device in management.Devices)
+                {
+                    if (!device.Selected)
+                    {
+                        management.Selected = false;
+                    }
+                }
+            }
+        }
+
+        public int NumberMgmtDev()
+        {
+            int counter = 0;
+            foreach (ManagementSelect management in Managements)
+            {
+                counter ++;
+                foreach (DeviceSelect device in management.Devices)
+                {
+                    counter ++;
+                }
+            }
+            return counter;
         }
     }
 }

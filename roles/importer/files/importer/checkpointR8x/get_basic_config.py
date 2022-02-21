@@ -4,7 +4,7 @@ import argparse, requests, requests.packages
 import time, sys, logging
 from common import importer_base_dir
 sys.path.append(importer_base_dir)
-import common, getter, fwcommon
+import common, getter, cpcommon
 
 requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
@@ -22,7 +22,6 @@ parser.add_argument('-i', '--limit', metavar='api_limit', default='150', help='T
 parser.add_argument('-d', '--debug', metavar='debug_level', default='0', help='Debug Level: 0(off) 4(DEBUG Console) 41(DEBUG File); default=0') 
 parser.add_argument('-t', '--testing', metavar='version_testing', default='off', help='Version test, [off|<version number>]; default=off') 
 parser.add_argument('-o', '--out', metavar='output_file', required=True, help='filename to write output in json format to')
-parser.add_argument('-f', '--fromdate', metavar='from_date', help='date to start from, e.g. last successful import')
 parser.add_argument('-F', '--force', action='store_true', default=False, help='if set the import will be attempted without checking for changes before')
 
 args = parser.parse_args()
@@ -57,7 +56,7 @@ mgm_details = {
     ]
 }
 
-fwcommon.get_basic_config (full_config_json, mgm_details, last_import_time=args.fromdate, config_filename=args.out,
+cpcommon.get_basic_config (full_config_json, mgm_details, config_filename=args.out,
     force=args.force, proxy=args.proxy, limit=args.limit, details_level=details_level, test_version=args.testing, debug_level=debug_level, ssl_verification=getter.set_ssl_verification(args.ssl))
 
 duration = int(time.time()) - starttime

@@ -216,6 +216,7 @@ DECLARE
 	i_mgm_id	INTEGER;
 	i_zone_id	INTEGER;
 	i_rule_created BIGINT;
+	i_count		INTEGER;
 	i_rule_last_seen BIGINT;
 	r_obj	RECORD;
 	r_rule	RECORD;
@@ -224,6 +225,8 @@ DECLARE
 	v_current_obj	VARCHAR;
 	v_result VARCHAR;
 	v_result_single VARCHAR;
+	v_user_group VARCHAR;
+	i_user_id BIGINT;
 BEGIN
 	v_result := '';
 	FOR r_rule IN SELECT rule_id,rule_src, rule_dst, rule_svc, rule_src_refs, rule_dst_refs, rule_svc_refs, 
@@ -234,8 +237,47 @@ BEGIN
 		SELECT INTO i_rule_created rule_create FROM rule WHERE rule_id=r_rule.rule_id;
 		SELECT INTO i_rule_last_seen rule_last_seen FROM rule WHERE rule_id=r_rule.rule_id;
 		SELECT INTO i_zone_id rule_to_zone FROM rule WHERE rule_id=r_rule.rule_id;
-		FOR v_current_obj IN SELECT obj FROM regexp_split_to_table(r_rule.rule_dst_refs, E'\\' || v_delimiter) AS obj LOOP
-			IF NOT (v_current_obj IS NULL OR v_current_obj='') THEN 
+
+		FOR v_current_obj IN SELECT obj FROM regexp_split_to_table(r_rule.rule_dst_refs, E'\\' || v_delimiter) AS obj 
+		LOOP
+			SELECT INTO i_count count(*) FROM regexp_split_to_table(v_current_obj, '@');
+			v_user_group := '';
+			IF i_count=2 THEN	-- AT in string
+				SELECT INTO v_user_group regexp_replace(v_current_obj, '@.*$', '');
+				SELECT INTO v_current_obj regexp_replace(v_current_obj, '^.+@', '');
+				SELECT INTO i_user_id user_id FROM usr WHERE user_uid=v_user_group AND mgm_id=i_mgm_id AND active;
+--					checking user refs
+				SELECT INTO r_obj user_id FROM usr WHERE user_uid=v_user_group AND mgm_id=i_mgm_id AND active;
+				IF NOT FOUND THEN
+					v_result_single := 'mgmt ' || CAST(i_mgm_id AS VARCHAR) || ', dev ' || CAST(i_dev_id AS VARCHAR) || ', fail 1 (dst user_id not found at all): ' || v_user_group;
+					v_result := v_result || v_result_single || '; ';
+					-- --                        1                    2         3         4               5              6           7
+					-- PERFORM add_data_issue(i_rule_last_seen,  v_user_group, NULL, r_rule.rule_uid, r_rule.rule_id, i_dev_id, 'user in rule', 
+					-- 	'non-existant user obj "' || v_user_group || '" referenced in rule dst with UID ' || r_rule.rule_uid, NULL);
+					RAISE NOTICE '%', v_result_single;
+				ELSE		-- check if exactly one object is returned
+					IF (NOT COUNT(r_obj)=1) THEN 
+						v_result_single := 'mgmt ' || CAST(i_mgm_id AS VARCHAR) || ', dev ' || CAST(i_dev_id AS VARCHAR) || ', fail 2 (not exactly one dst obj found): ' || CAST(r_obj.user_id AS VARCHAR) || ', COUNT=' || CAST(count(r_obj) AS VARCHAR);
+						v_result := v_result || v_result_single || '; ';
+						RAISE NOTICE '%', v_result_single;
+						-- --                        1                    2         3         4               5              6           7
+						-- PERFORM add_data_issue(i_rule_last_seen,  v_user_group, NULL, r_rule.rule_uid, r_rule.rule_id, i_dev_id, 'user in rule', 
+						-- 	'more than one matching user obj "' || v_user_group || '" found in rule dst with UID ' || r_rule.rule_uid, NULL);
+					ELSE
+						SELECT INTO r_debug rule_id,user_id FROM rule_to WHERE rule_id=r_rule.rule_id AND user_id=r_obj.user_id AND active;
+						IF NOT FOUND THEN
+							v_result_single := 'mgmt ' || CAST(i_mgm_id AS VARCHAR) || ', dev ' || CAST(i_dev_id AS VARCHAR) || ', fail 3 (dst user not found in rule_from), id=' || CAST(r_obj.user_id AS VARCHAR) || ', uid=' || v_current_obj;
+							v_result := v_result || v_result_single || '; ';
+							RAISE NOTICE '%', v_result_single;
+							-- --                        1                    2         3         4               5              6           7
+							-- PERFORM add_data_issue(i_rule_last_seen,  v_user_group, NULL, r_rule.rule_uid, r_rule.rule_id, i_dev_id, 'user in rule', 
+							-- 	'user in rule undefined', 'user "' || v_user_group || '" found in rule with UID ' || r_rule.rule_uid || ' could not be found');
+						END IF;
+					END IF;
+				END IF;
+	-- 					end of user checks, no fixes here because they are done below 
+			END IF;
+				IF NOT (v_current_obj IS NULL OR v_current_obj='') THEN 
 					IF r_rule.rule_to_zone IS NULL THEN
 						SELECT INTO r_obj obj_id FROM object WHERE obj_uid=v_current_obj AND mgm_id=i_mgm_id AND active;
 					ELSE
@@ -269,8 +311,14 @@ BEGIN
 							v_result := v_result || v_result_single || '; ';
 							RAISE NOTICE '%', v_result_single;
 							IF b_heal THEN	-- healing:
-								INSERT INTO rule_to (rule_id, obj_id, rt_create, rt_last_seen) 
-									VALUES (r_rule.rule_id, r_obj.obj_id, r_rule.rule_create, r_rule.rule_last_seen);
+
+								IF v_user_group='' THEN -- no auth rule with user group
+									INSERT INTO rule_to (rule_id, obj_id, rt_create, rt_last_seen) 
+										VALUES (r_rule.rule_id, r_obj.obj_id, r_rule.rule_create, r_rule.rule_last_seen);
+								ELSE -- auth rule with user group
+									INSERT INTO rule_from (rule_id, user_id, obj_id, rt_create, rt_last_seen) 
+										VALUES (r_rule.rule_id, i_user_id, r_obj.obj_id, r_rule.rule_create, r_rule.rule_last_seen);
+								END IF;
 							END IF;
 						END IF;
 					END IF;

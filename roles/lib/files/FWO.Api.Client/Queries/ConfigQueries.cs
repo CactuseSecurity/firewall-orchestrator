@@ -16,6 +16,7 @@ namespace FWO.ApiClient.Queries
         public static readonly string updateConfigItem;
         public static readonly string upsertConfigItem;
         public static readonly string getConfigItemsByUser;
+        public static readonly string subscribeAutodiscoveryConfigChanges;
 
         static ConfigQueries()
         {
@@ -28,6 +29,7 @@ namespace FWO.ApiClient.Queries
                 updateConfigItem = File.ReadAllText(QueryPath + "config/updateConfigItem.graphql");
                 getConfigItemsByUser = File.ReadAllText(QueryPath + "config/getConfigItemsByUser.graphql");
                 upsertConfigItem = File.ReadAllText(QueryPath + "config/upsertConfigItem.graphql");
+                subscribeAutodiscoveryConfigChanges = File.ReadAllText(QueryPath + "config/subscribeAutodiscoveryConfigChanges.graphql");
             }
             catch (Exception exception)
             {

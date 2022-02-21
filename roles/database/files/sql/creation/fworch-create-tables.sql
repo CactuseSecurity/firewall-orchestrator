@@ -225,16 +225,16 @@ Create table "rule_user_resolved"
 );
 
 Create table "rule_from"
+-- needs separate primary key as user_id can be null
 (
-	"rule_from_id" BIGSERIAL,
-	"rf_create" BIGINT NOT NULL,
-	"rf_last_seen" BIGINT NOT NULL,
+	"rule_from_id" BIGSERIAL PRIMARY KEY,
 	"rule_id" BIGINT NOT NULL,
 	"obj_id" BIGINT NOT NULL,
 	"user_id" BIGINT,
 	"active" Boolean NOT NULL Default TRUE,
 	"negated" Boolean NOT NULL Default FALSE,
- primary key ("rule_from_id")
+	"rf_create" BIGINT NOT NULL,
+	"rf_last_seen" BIGINT NOT NULL
 );
 
 
@@ -263,14 +263,16 @@ Create table "rule_service"
 );
 
 Create table "rule_to"
+-- needs separate primary key as user_id can be null
 (
+	"rule_to_id" BIGSERIAL PRIMARY KEY,
 	"rule_id" BIGINT NOT NULL,
 	"obj_id" BIGINT NOT NULL,
+	"user_id" BIGINT,
 	"rt_create" BIGINT NOT NULL,
 	"rt_last_seen" BIGINT NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
-	"negated" Boolean NOT NULL Default FALSE,
- primary key ("rule_id","obj_id")
+	"negated" Boolean NOT NULL Default FALSE
 );
 
 Create table "service"
@@ -762,24 +764,45 @@ Create table "import_zone"
 	"last_change_time" Timestamp
 );
 
--- changelog tables -------------------------------------
+-- (change)log tables -------------------------------------
 
-
-Create table "changelog_data_issue"
+Create table "log_data_issue"
 (
 	"data_issue_id" BIGSERIAL,
-	"import_id" BIGINT NOT NULL,
+	"import_id" BIGINT,
 	"object_name" Varchar,
 	"object_uid" Varchar,
 	"rule_uid" Varchar,				-- if a rule ref is broken
 	"rule_id" BIGINT,				-- if a rule ref is broken
-	"dev_id" BIGINT,
 	"object_type" Varchar,
 	"suspected_cause" VARCHAR,
 	"description" VARCHAR,
+	"issue_mgm_id" INTEGER,
+	"issue_dev_id" INTEGER,
+	"severity" INTEGER NOT NULL DEFAULT 1,
+	"source" VARCHAR NOT NULL DEFAULT 'import',
+	"issue_timestamp" TIMESTAMP DEFAULT NOW(),
+	"user_id" INTEGER DEFAULT 0,
  primary key ("data_issue_id")
 );
 
+Create table "alert"
+(
+	"alert_id" BIGSERIAL,
+	"ref_log_id" BIGINT,
+	"ref_alert_id" BIGINT,
+	"source" VARCHAR NOT NULL,
+	"title" VARCHAR,
+	"description" VARCHAR,
+	"alert_mgm_id" INTEGER,
+	"alert_dev_id" INTEGER,
+	"alert_timestamp" TIMESTAMP DEFAULT NOW(),
+	"user_id" INTEGER DEFAULT 0,
+	"ack_by" INTEGER,
+	"ack_timestamp" TIMESTAMP,
+	"json_data" json,
+ primary key ("alert_id")
+);
 
 Create table "import_changelog"
 (

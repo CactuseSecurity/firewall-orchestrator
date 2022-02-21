@@ -38,7 +38,7 @@
         AuthenticationState authState = await authenticationStateTask!;
         try
         {
-            config = new ConfigDbAccess(apiConnection, userConfig);
+            config = await ConfigDbAccess.ConstructAsync(apiConnection, userConfig);
             string settingsValue = config.Get<string>(GlobalConfig.kRecertificationDisplayPeriod);
             if (settingsValue != "")
             {
@@ -47,7 +47,7 @@
             else
             {
                 // get default value
-                ConfigDbAccess defaultConfig = new ConfigDbAccess(apiConnection);
+                ConfigDbAccess defaultConfig = await ConfigDbAccess.ConstructAsync(apiConnection);
                 settingsValue = defaultConfig.Get<string>(GlobalConfig.kRecertificationDisplayPeriod);
                 if (settingsValue != "")
                 {

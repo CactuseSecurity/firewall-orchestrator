@@ -45,8 +45,8 @@
         AuthenticationState authState = await authenticationStateTask!;
         try
         {
-            config = new ConfigDbAccess(apiConnection, userConfig);
-            defaultConfig = new ConfigDbAccess(apiConnection);
+            config = await ConfigDbAccess.ConstructAsync(apiConnection, userConfig);
+            defaultConfig = await ConfigDbAccess.ConstructAsync(apiConnection);
 
             elementsPerFetch = GetIntSetting(elementsPerFetch, GlobalConfig.kElementsPerFetch);
             minCollapseAllDevices = GetIntSetting(minCollapseAllDevices, GlobalConfig.kMinCollapseAllDevices);

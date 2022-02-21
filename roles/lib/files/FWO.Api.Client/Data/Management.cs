@@ -84,6 +84,9 @@ namespace FWO.Api.Data
 
         public long? RelevantImportId { get; set; }
         public bool Ignore { get; set; }
+        public bool AwaitDevice { get; set; }
+        public bool Delete { get; set; }
+        public long ActionId { get; set; }
 
         //[JsonProperty("rule_id"), JsonPropertyName("rule_id")]
         public List<long> ReportedRuleIds { get; set; } = new List<long>();
@@ -132,6 +135,9 @@ namespace FWO.Api.Data
             DeviceType = management.DeviceType;
             Import = management.Import;
             Ignore = management.Ignore;
+            AwaitDevice = management.AwaitDevice;
+            Delete = management.Delete;
+            ActionId = management.ActionId;
             ReportedRuleIds = management.ReportedRuleIds;
             SuperManagerId = management.SuperManagerId;
             ReportedNetworkServiceIds = management.ReportedNetworkServiceIds;

@@ -246,7 +246,7 @@ def get_config_sub(mgm_details, full_config_json, config2import, jwt, current_im
             logging.debug ( "has_config_changed: no new changes found")
 
         if config_changed_since_last_import:
-            get_config_response = fw_module.get_config( # get config from product-specific FW API
+            fw_module.get_config( # get config from product-specific FW API
                 config2import, full_config_json,  current_import_id, mgm_details, debug_level=debug_level, 
                 ssl_verification=ssl, proxy=proxy, limit=limit, force=force, jwt=jwt)
     except FwLoginFailed as e:

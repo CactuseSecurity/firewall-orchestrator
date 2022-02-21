@@ -62,8 +62,7 @@ def get_basic_config (config_json, mgm_details, force=False, config_filename=Non
     config_json.update({'rulebases': [], 'nat_rulebases': [] })
     show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary,'details-level':details_level}
 
-    # read all rulebases:
-    # handle per device details
+    # read all rulebases: handle per device details
     for device in mgm_details['devices']:
         if device['global_rulebase_name'] != None and device['global_rulebase_name']!='':
             # logging.debug ( "get_config - layer contains global and domain part separated by slash, parsing individually: " + layer )
@@ -81,7 +80,6 @@ def get_basic_config (config_json, mgm_details, force=False, config_filename=Non
             if current_layer_json is None:
                 return 1
 
-            # logging.debug ("found domain rules: " + str(domain_rules) + "\n\n")
             # now handling possible reference to domain rules within global rules
             # if we find the reference, replace it with the domain rules
             if 'layerchunks' in current_layer_json:
@@ -102,6 +100,7 @@ def get_basic_config (config_json, mgm_details, force=False, config_filename=Non
 
         # getting NAT rules - need package name for nat rule retrieval
         # todo: each gateway/layer should have its own package name (pass management details instead of single data?)
+        config_json['nat_rulebases'].append({ "nat_rule_chunks": [] })
         if device['package_name'] != None and device['package_name'] != '':
             show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary,'details-level':details_level, 'package': device['package_name'] }
             logging.debug ( "get_config - getting nat rules for package: " + device['package_name'] )
@@ -110,7 +109,9 @@ def get_basic_config (config_json, mgm_details, force=False, config_filename=Non
                 config_json['nat_rulebases'].append(nat_rules)
             else:
                 config_json['nat_rulebases'].append({ "nat_rule_chunks": [] })
-
+        else: # always making sure we have an (even empty) nat rulebase per device 
+            config_json['nat_rulebases'].append({ "nat_rule_chunks": [] })
+    
     # leaving rules, moving on to objects
     config_json["object_tables"] = []
     show_params_objs = {'limit':limit,'details-level': details_level}
@@ -268,9 +269,10 @@ def enrich_config (config, mgm_details, proxy=None, limit=150, details_level='fu
                     } ] } ] }
                 config['object_tables'].append(json_obj)
                 logging.debug ('missing obj: ' + obj['name'] + obj['type'])
+            elif (obj['type'] == 'access-role'):
+                pass # ignorning user objects
             else:
                 logging.warning ( "checkpointR8x/enrich_config - missing nw obj of unexpected type '" + obj['type'] + "': " + missing_obj )
-                # print ("WARNING - enrich_config - missing nw obj of unexpected type: '" + obj['type'] + "': " + missing_obj)
 
         logging.debug ( "enrich_config - missing nw obj: " + missing_obj + " added" )
 

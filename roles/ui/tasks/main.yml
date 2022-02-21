@@ -31,9 +31,9 @@
         name: "{{ item }}"
         state: present
       loop:
-        - libjpeg62
         - libgdiplus
-      # - wkhtmltopdf
+        - libc6-dev
+        - libjpeg62
       
     - name: create ui dir
       file:

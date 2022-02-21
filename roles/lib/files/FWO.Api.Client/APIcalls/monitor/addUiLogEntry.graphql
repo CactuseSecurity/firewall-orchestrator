@@ -1,0 +1,20 @@
+mutation addUiLog(
+  $user: Int!
+  $severity: Int!
+  $suspectedCause: String
+  $description: String
+) {
+  insert_log_data_issue(
+    objects: {
+      source: "ui"
+      user_id: $user
+      severity: $severity
+      suspected_cause: $suspectedCause
+      description: $description
+    }
+  ) {
+    returning {
+       newId: data_issue_id
+    }
+  }
+}

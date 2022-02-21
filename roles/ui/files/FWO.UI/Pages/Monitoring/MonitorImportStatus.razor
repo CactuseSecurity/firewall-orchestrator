@@ -3,13 +3,13 @@
 @using FWO.ApiClient
 @using FWO.Config.Api
 
-@page "/settings/import"
+@page "/monitoring/import_status"
 @attribute [Authorize(Roles = "admin, importer, auditor, fw-admin")]
 
 @inject APIConnection apiConnection
 @inject UserConfig userConfig
 
-<h3 class="m-2">@(userConfig.GetText("import_status"))</h3>
+<h3>@(userConfig.GetText("import_status"))</h3>
 @(userConfig.GetText("U5113"))
 <hr />
 

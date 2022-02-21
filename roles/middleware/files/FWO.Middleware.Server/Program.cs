@@ -12,6 +12,7 @@ object changesLock = new object(); // LOCK
 int jwtMinutesValid = 240;  // TODO: MOVE TO API/Config    
 
 ReportScheduler reportScheduler;
+AutoDiscoverScheduler autoDiscoverScheduler;
 
 // Create new config file
 ConfigFile configFile = new ConfigFile();
@@ -52,6 +53,12 @@ Log.WriteInfo("Found ldap connection to server", string.Join("\n", connectedLdap
 Task.Factory.StartNew(() =>
 {
     reportScheduler = new ReportScheduler(apiConnection, jwtWriter, connectedLdapsSubscription);
+}, TaskCreationOptions.LongRunning);
+
+// Create and start auto disovery scheduler
+Task.Factory.StartNew(() =>
+{
+    autoDiscoverScheduler = new AutoDiscoverScheduler(apiConnection);
 }, TaskCreationOptions.LongRunning);
 
 // Add services to the container.

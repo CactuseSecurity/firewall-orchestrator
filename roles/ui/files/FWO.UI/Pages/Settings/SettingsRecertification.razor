@@ -27,15 +27,11 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
-    [CascadingParameter]
-    private Task<AuthenticationState>? authenticationStateTask { get; set; }
-
     ConfigDbAccess? config;
     int recertificationDisplayPeriod = GlobalConfig.kDefaultInitRecertificationDisplayPeriod;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        AuthenticationState authState = await authenticationStateTask!;
         try
         {
             config = new ConfigDbAccess(apiConnection, userConfig);

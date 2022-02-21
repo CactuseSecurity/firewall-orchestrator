@@ -1,0 +1,48 @@
+﻿@using FWO.Config.Api
+
+@inject APIConnection apiConnection
+@inject UserConfig userConfig
+
+@page "/monitoring/autodiscovery_logs"
+
+<h3>@(userConfig.GetText("autodiscovery_logs"))</h3>
+@(userConfig.GetText("U7401"))
+<hr />
+
+<Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys" PageSize="0">
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("severity"))" Field="@(x => x.Severity)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("suspected_cause"))" Field="@(x => x.SuspectedCause)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("device"))" Field="@(x => x.DeviceId)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("found_by"))" Field="@(x => x.UserId)" >
+        <Template>
+            @(uiUsers.FirstOrDefault(x => x.DbId == context.UserId)?.Name)
+        </Template>
+    </Column>
+</Table>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+
+    private List<LogEntry> logEntrys = new List<LogEntry>();
+    private List<UiUser> uiUsers = new List<UiUser>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            logEntrys = await apiConnection.SendQueryAsync<List<LogEntry>>(MonitorQueries.getAutodiscoveryLogEntrys);
+            uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.ApiClient.Queries.AuthQueries.getUsers);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_log_entrys"), "", true);
+        }
+    }
+}

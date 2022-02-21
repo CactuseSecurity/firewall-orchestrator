@@ -1,0 +1,96 @@
+﻿@using FWO.Config.Api
+@using FWO.Api.Data
+
+@page "/monitoring"
+@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, recertifier, workflow-user, workflow-admin, auditor, fw-admin")]
+
+@inject APIConnection apiConnection
+@inject UserConfig userConfig
+
+<h3>@(userConfig.GetText("monitoring"))</h3>
+@(userConfig.GetText("U7001"))
+<hr />
+
+<AuthorizeView Roles="admin, fw-admin, auditor">
+    <h5>@(userConfig.GetText("open_alerts"))</h5>
+    @if(alertEntrys.Count == 0)
+    {
+        @(userConfig.GetText("no_open_alerts"))
+    }
+    else
+    {
+        <Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="Alert" Items="alertEntrys" PageSize="0">
+            <Column Context="alert" TableItem="Alert" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)">
+                <Template>
+                    <button class="btn btn-sm btn-primary" @onclick="() => Show(alert)">@(userConfig.GetText("details"))</button>
+                    <AuthorizeView Roles="admin, fw-admin">
+                        <Authorized Context="ctx">
+                            <button class="btn btn-sm btn-secondary" @onclick="() => Acknowledge(alert)">@(userConfig.GetText("acknowledge"))</button>
+                        </Authorized>
+                        <NotAuthorized Context="ctx">
+                            <button class="btn btn-sm btn-secondary" disabled>@(userConfig.GetText("acknowledge"))</button>
+                        </NotAuthorized> 
+                    </AuthorizeView>
+                </Template>
+            </Column>
+            <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" />
+            <Column TableItem="Alert" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" />
+            <Column TableItem="Alert" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" />
+            <Column TableItem="Alert" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" />
+            <Column TableItem="Alert" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" />
+        </Table>
+    }
+</AuthorizeView>
+
+<AutoDiscovery Actions="actActions" @bind-Display="AutoDiscoverMode"/>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+
+    private List<Alert> alertEntrys = new List<Alert>();
+    private List<ActionItem> actActions = new List<ActionItem>();
+    private bool AutoDiscoverMode = false;
+ 
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            alertEntrys = await apiConnection.SendQueryAsync<List<Alert>>(MonitorQueries.getOpenAlerts);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_log_entrys"), "", true);
+        }
+    }
+
+    private async Task Acknowledge(Alert alert)
+    {
+        try
+        {
+            var Variables = new 
+            { 
+                id = alert.Id,
+                ackUser = userConfig.User.DbId,
+                ackTime = DateTime.Now
+            };
+            await apiConnection.SendQueryAsync<ReturnId>(MonitorQueries.acknowledgeAlert, Variables);
+            alertEntrys.Remove(alert);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("acknowledged_alert"), "", true);
+        }
+    }
+
+    private void Show(Alert alert)
+    {
+        if(alert.Source == "autodiscovery")
+        {
+            actActions = new List<ActionItem>() { new ActionItem(alert) }; 
+            AutoDiscoverMode = true;
+        }
+    }
+}

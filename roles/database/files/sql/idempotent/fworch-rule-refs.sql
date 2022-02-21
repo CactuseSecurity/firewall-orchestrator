@@ -230,23 +230,47 @@ DECLARE
 	i_current_import_id ALIAS FOR $5;
 	r_obj      RECORD;
 	v_error_str VARCHAR;
+    i_usr      			BIGINT;
+    i_at_sign_pos 		INTEGER;
+    v_usergroup_name	VARCHAR;
+    v_dst_obj	VARCHAR;
 	r_debug RECORD;
 BEGIN
-	IF i_zone_id IS NULL THEN
-		SELECT INTO r_obj obj_id FROM object WHERE obj_uid=v_element AND mgm_id=i_mgm_id AND active;
-	ELSE
-		SELECT INTO r_obj obj_id FROM object WHERE obj_uid=v_element AND zone_id=i_zone_id AND mgm_id=i_mgm_id AND active;
+
+	i_at_sign_pos := instr(v_element,'@');
+	IF i_at_sign_pos > 0 THEN -- User-Gruppen enthalten
+		v_usergroup_name := substr(v_element,0,i_at_sign_pos);
+		v_dst_obj := substr(v_element,i_at_sign_pos+1);
+		SELECT INTO i_usr user_id FROM usr WHERE user_uid=v_usergroup_name AND mgm_id=i_mgm_id AND active;
 		IF NOT FOUND THEN
-			SELECT INTO r_obj obj_id FROM object WHERE obj_uid=v_element AND mgm_id=i_mgm_id AND active;
+			PERFORM error_handling('ERR_LST_EL_MISS', 'User: ' || v_usergroup_name);
+		END IF;
+	ELSE
+		v_dst_obj := v_element;
+		i_usr := NULL; -- auf 'nouser' gesetzt
+	END IF;
+
+	IF i_zone_id IS NULL THEN
+		SELECT INTO r_obj obj_id FROM object WHERE obj_uid=v_dst_obj AND mgm_id=i_mgm_id AND active;
+	ELSE
+		SELECT INTO r_obj obj_id FROM object WHERE obj_uid=v_dst_obj AND zone_id=i_zone_id AND mgm_id=i_mgm_id AND active;
+		IF NOT FOUND THEN
+			SELECT INTO r_obj obj_id FROM object WHERE obj_uid=v_dst_obj AND mgm_id=i_mgm_id AND active;
 		END IF;
 	END IF;
 	IF NOT FOUND THEN
-		PERFORM error_handling('ERR_LST_EL_MISS', v_element);
+		PERFORM error_handling('ERR_LST_EL_MISS', v_dst_obj);
 	ELSE
 -- 		TODO: check if exactly one hit found
 	END IF;
+	IF i_usr IS NULL THEN
+		SELECT INTO r_debug rule_id,obj_id,user_id FROM rule_to
+			WHERE rule_id=i_rule_id AND obj_id=r_obj.obj_id AND rt_create=i_current_import_id AND rt_last_seen=i_current_import_id;
+	ELSE
+		SELECT INTO r_debug rule_id,obj_id,user_id FROM rule_to
+			WHERE rule_id=i_rule_id AND obj_id=r_obj.obj_id AND user_id=i_usr AND rt_create=i_current_import_id AND rt_last_seen=i_current_import_id;
+	END IF;
 	
-	SELECT INTO r_debug rule_id,obj_id FROM rule_to WHERE rule_id=i_rule_id AND obj_id=r_obj.obj_id AND active;
 	IF FOUND THEN -- debug duplicate objects
 		SELECT INTO r_debug obj_name,obj_uid FROM object WHERE obj_id = r_debug.obj_id;
 		v_error_str := '';
@@ -263,9 +287,31 @@ BEGIN
 		END IF;
 		PERFORM error_handling('ERR_RULE_DBL_OBJ', v_error_str);
 	ELSE 
-		INSERT INTO rule_to (rule_id,obj_id,rt_create,rt_last_seen)
-			VALUES (i_rule_id,r_obj.obj_id,i_current_import_id,i_current_import_id);
-		PERFORM import_rule_resolved_nwobj(i_mgm_id, i_rule_id, NULL, r_obj.obj_id, i_current_import_id, 'I', 'R');
+		IF (NOT r_obj.obj_id IS NULL) THEN
+			IF i_usr IS NULL THEN
+					INSERT INTO rule_to (rule_id,obj_id,rt_create,rt_last_seen)
+						VALUES (i_rule_id,r_obj.obj_id,i_current_import_id,i_current_import_id);
+			ELSE
+				INSERT INTO rule_to (rule_id,obj_id,user_id,rt_create,rt_last_seen)
+					VALUES (i_rule_id,r_obj.obj_id,i_usr,i_current_import_id,i_current_import_id);
+				BEGIN
+					PERFORM import_rule_resolved_usr(i_mgm_id, i_rule_id, NULL, i_usr, i_current_import_id, 'I', 'R');
+				EXCEPTION
+					WHEN others THEN
+						raise notice 'f_add_single_rule_to_element - rule_to with user import_rule_resolved_usr - uncommittable state. Rolling back';
+						raise notice '% %', SQLERRM, SQLSTATE;    
+				END;
+
+			END IF;
+			BEGIN
+				PERFORM import_rule_resolved_nwobj(i_mgm_id, i_rule_id, NULL, r_obj.obj_id, i_current_import_id, 'I', 'R');
+			EXCEPTION
+				WHEN others THEN
+					raise notice 'f_add_single_rule_to_element - rule_to import_rule_resolved_nwobj - uncommittable state. Rolling back';
+					raise EXCEPTION '% %', SQLERRM, SQLSTATE;    
+			END;
+
+		END IF;
 	END IF;
 	RETURN;
 END;

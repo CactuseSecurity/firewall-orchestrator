@@ -1,0 +1,24 @@
+mutation addAutodiscoveryLog(
+  $discoverUser: Int!
+  $severity: Int!
+  $suspectedCause: String
+  $description: String
+  $mgmId: Int
+  $devId: Int
+) {
+  insert_log_data_issue(
+    objects: {
+      source: "autodiscovery"
+      user_id: $discoverUser
+      severity: $severity
+      suspected_cause: $suspectedCause
+      description: $description
+      issue_mgm_id: $mgmId
+      issue_dev_id: $devId
+    }
+  ) {
+    returning {
+       newId: data_issue_id
+    }
+  }
+}

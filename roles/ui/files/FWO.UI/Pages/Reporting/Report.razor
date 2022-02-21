@@ -385,7 +385,6 @@
     private string filterFeedbackEnd = "";
     private string filterInput = "";
 
-    private string reportGenerationTimeLine = "";
     private CollapseState collapseSidebarAll = new CollapseState();
     private CollapseState collapseSidebarReport = new CollapseState();
     private CollapseState collapseSidebarRule = new CollapseState();
@@ -738,16 +737,14 @@
             }
 
             processing = false;
-            if(NoRuleFound())
+            if((currentReport is ReportRules || currentReport is ReportNatRules) && NoRuleFound())
             {
                 DisplayMessageInUi!(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
             }
 
-            reportGenerationTimeLine = $"generation time: {DateTime.Now - startTime}.";
             Log.WriteDebug("Report Generation", $"Generation Time: {DateTime.Now - startTime}.");
             rsbTabset?.SetActiveTab(1);
             await InvokeAsync(StateHasChanged);
-            //StateHasChanged();
         }
         catch (Exception exception)
         {

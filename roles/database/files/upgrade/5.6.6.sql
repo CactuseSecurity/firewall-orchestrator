@@ -14,7 +14,7 @@ Alter table "rule_to" add constraint rule_to_user_id_usr_user_id FOREIGN KEY
 
 ALTER TABLE "log_data_issue" ADD COLUMN IF NOT EXISTS "user_id" INTEGER DEFAULT 0;
 
-ALTER TABLE "log_data_issue" DROP CONSTRAINT IF EXISTS "log_data_issue_uiuser_uiuser_id_fkey" CASCADE;
+ALTER TABLE "log_data_issue" DROP CONSTRAINT IF EXISTS log_data_issue_uiuser_uiuser_id_fkey CASCADE;
 Alter table "log_data_issue" add CONSTRAINT log_data_issue_uiuser_uiuser_id_fkey foreign key ("user_id") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
 
 ALTER TABLE "log_data_issue" DROP CONSTRAINT IF EXISTS log_data_issue_import_control_control_id_fkey;

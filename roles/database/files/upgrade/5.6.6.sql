@@ -33,3 +33,14 @@ Create table IF NOT EXISTS "alert"
 	"json_data" json,
  primary key ("alert_id")
 );
+
+ALTER TABLE "alert" DROP CONSTRAINT IF EXISTS "alert_ref_log_id_log_data_issue_data_issue_id_fkey" CASCADE;
+Alter table "alert" add CONSTRAINT alert_ref_log_id_log_data_issue_data_issue_id_fkey foreign key ("ref_log_id") references "log_data_issue" ("data_issue_id") on update restrict on delete cascade;
+ALTER TABLE "alert" DROP CONSTRAINT IF EXISTS "alert_user_id_uiuser_uiuser_id_fkey" CASCADE;
+Alter table "alert" add CONSTRAINT alert_user_id_uiuser_uiuser_id_fkey foreign key ("user_id") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
+ALTER TABLE "alert" DROP CONSTRAINT IF EXISTS "alert_ack_by_uiuser_uiuser_id_fkey" CASCADE;
+Alter table "alert" add CONSTRAINT alert_ack_by_uiuser_uiuser_id_fkey foreign key ("ack_by") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
+ALTER TABLE "alert" DROP CONSTRAINT IF EXISTS "alert_alert_mgm_id_management_mgm_id_fkey" CASCADE;
+Alter table "alert" add CONSTRAINT alert_alert_mgm_id_management_mgm_id_fkey foreign key ("alert_mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
+ALTER TABLE "alert" DROP CONSTRAINT IF EXISTS "alert_alert_dev_id_device_dev_id_fkey" CASCADE;
+Alter table "alert" add CONSTRAINT alert_alert_dev_id_device_dev_id_fkey foreign key ("alert_dev_id") references "device" ("dev_id") on update restrict on delete cascade;

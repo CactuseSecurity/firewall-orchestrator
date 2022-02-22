@@ -14,7 +14,9 @@ namespace FWO.Api.Data
 
     public class ActionItem
     {
-        public long Id { get; set; }
+        public int Number { get; set; }
+
+        public long? AlertId { get; set; }
 
         public long? RefAlertId { get; set; }
 
@@ -28,12 +30,15 @@ namespace FWO.Api.Data
 
         public String? JsonData { get; set; }
 
+        public bool Done { get; set; } = false;
+
         public ActionItem()
         {}
 
         public ActionItem(Alert alert)
         {
-            Id = alert.Id;
+            Number = 0;
+            AlertId = alert.Id;
             Supermanager = alert.Title;
             ActionType = alert.Description;
             ManagementId = alert.ManagementId;

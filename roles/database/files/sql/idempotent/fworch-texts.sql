@@ -906,14 +906,18 @@ INSERT INTO txt VALUES ('autodiscovery',        'German', 	'Autodiscovery');
 INSERT INTO txt VALUES ('autodiscovery',        'English', 	'Autodiscovery');
 INSERT INTO txt VALUES ('autodiscovery_logs',   'German', 	'Autodiscovery-Logs');
 INSERT INTO txt VALUES ('autodiscovery_logs',   'English', 	'Autodiscovery Logs');
+INSERT INTO txt VALUES ('alert',                'German', 	'Alarm');
+INSERT INTO txt VALUES ('alert',                'English', 	'Alert');
 INSERT INTO txt VALUES ('alerts',               'German', 	'Alarme');
 INSERT INTO txt VALUES ('alerts',               'English', 	'Alerts');
 INSERT INTO txt VALUES ('acknowledge',          'German', 	'Best&auml;tigen');
 INSERT INTO txt VALUES ('acknowledge',          'English', 	'Acknowledge');
 INSERT INTO txt VALUES ('acknowledged_by',      'German', 	'Best&auml;tigt von');
 INSERT INTO txt VALUES ('acknowledged_by',      'English', 	'Acknowledged by');
-INSERT INTO txt VALUES ('acknowledged_alert',   'German', 	'Alarm best&auml;tigen');
-INSERT INTO txt VALUES ('acknowledged_alert',   'English', 	'Acknowledge alert');
+INSERT INTO txt VALUES ('acknowledge_alert',    'German', 	'Alarm best&auml;tigen');
+INSERT INTO txt VALUES ('acknowledge_alert',    'English', 	'Acknowledge alert');
+INSERT INTO txt VALUES ('acknowledge_action',   'German', 	'Aktion best&auml;tigen');
+INSERT INTO txt VALUES ('acknowledge_action',   'English', 	'Acknowledge action');
 INSERT INTO txt VALUES ('confirm',              'German', 	'Best&auml;tigen');
 INSERT INTO txt VALUES ('confirm',              'English', 	'Confirm');
 INSERT INTO txt VALUES ('found_by',             'German', 	'Gefunden von');
@@ -932,6 +936,8 @@ INSERT INTO txt VALUES ('deleted_devices',      'German', 	'Gel&ounl;schte Gatew
 INSERT INTO txt VALUES ('deleted_devices',      'English', 	'Deleted Gateways');
 INSERT INTO txt VALUES ('analyze_actions',      'German', 	'Aktionen analysieren');
 INSERT INTO txt VALUES ('analyze_actions',      'English', 	'Analyze Actions');
+INSERT INTO txt VALUES ('do_all_changes',       'German', 	'Alle &Auml;nderungen ausf&uuml;hren');
+INSERT INTO txt VALUES ('do_all_changes',       'English', 	'Do all changes');
 
 
 -- help pages
@@ -1314,6 +1320,13 @@ INSERT INTO txt VALUES ('E5415', 'German',  'Passwort muss mindestens ein Sonder
 INSERT INTO txt VALUES ('E5415', 'English', 'Password must contain at least one special character (!?(){}=~$%&amp;#*-+.,_)');
 INSERT INTO txt VALUES ('E5421', 'German',  'Schl&uuml;ssel nicht gefunden oder Wert nicht konvertierbar: Wert wird gesetzt auf: ');
 INSERT INTO txt VALUES ('E5421', 'English', 'Key not found or could not convert value to int: taking value: ');
+
+INSERT INTO txt VALUES ('E7001', 'German',  'Aktion wurde bereits durchgef&uuml;hrt');
+INSERT INTO txt VALUES ('E7001', 'English', 'Action has already been processed');
+INSERT INTO txt VALUES ('E7002', 'German',  'Bitte zuerst Aktion ausf&uuml;hren von Alarm ');
+INSERT INTO txt VALUES ('E7002', 'English', 'Please apply first action of alert ');
+INSERT INTO txt VALUES ('E7003', 'German',  'Bitte zuerst zugeh&ouml;rige Gateways l&ouml;schen');
+INSERT INTO txt VALUES ('E7003', 'English', 'Please delete related gateways first');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');

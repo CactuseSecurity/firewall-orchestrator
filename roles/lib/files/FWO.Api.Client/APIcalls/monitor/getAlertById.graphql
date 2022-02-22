@@ -1,0 +1,15 @@
+query getAlertById ($alertId: bigint!) {
+  alert_by_pk(alert_id: $alertId) {
+    ack_by
+    ack_timestamp
+    alert_dev_id
+    alert_mgm_id
+    alert_timestamp
+    description
+    json_data
+    ref_alert_id
+    ref_log_id
+    title
+    user_id
+  }
+}

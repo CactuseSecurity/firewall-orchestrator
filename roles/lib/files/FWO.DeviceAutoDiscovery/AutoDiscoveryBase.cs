@@ -125,6 +125,7 @@ namespace FWO.DeviceAutoDiscovery
         public List<ActionItem> ConvertToActions(List<Management> diffList)
         {
             List<ActionItem> actions = new List<ActionItem>();
+            int counter = 0;
             try
             {
                 foreach(Management changedMgmt in diffList)
@@ -133,6 +134,7 @@ namespace FWO.DeviceAutoDiscovery
                     {
                         actions.Add(new ActionItem 
                         {
+                            Number = ++counter,
                             Supermanager = superManagement.Name, 
                             ActionType = ActionCode.DeleteManagement.ToString(), 
                             ManagementId = changedMgmt.Id, 
@@ -143,6 +145,7 @@ namespace FWO.DeviceAutoDiscovery
                         {
                             actions.Add(new ActionItem 
                             {
+                                Number = ++counter,
                                 Supermanager = superManagement.Name, 
                                 ActionType = ActionCode.DeleteGateway.ToString(), 
                                 ManagementId = changedMgmt.Id, 
@@ -172,6 +175,7 @@ namespace FWO.DeviceAutoDiscovery
                         };
                         actions.Add(new ActionItem 
                         {
+                            Number = ++counter,
                             Supermanager = superManagement.Name, 
                             ActionType = ActionCode.AddManagement.ToString(), 
                             ManagementId = null, 
@@ -185,6 +189,7 @@ namespace FWO.DeviceAutoDiscovery
                             dev.Management.Id = 0;
                             actions.Add(new ActionItem 
                             {
+                                Number = ++counter,
                                 Supermanager = superManagement.Name, 
                                 ActionType = ActionCode.AddGatewayToNewManagement.ToString(), 
                                 ManagementId = null, 
@@ -201,6 +206,7 @@ namespace FWO.DeviceAutoDiscovery
                             {
                                 actions.Add(new ActionItem 
                                 {
+                                    Number = ++counter,
                                     Supermanager = superManagement.Name, 
                                     ActionType = ActionCode.DeleteGateway.ToString(), 
                                     ManagementId = changedMgmt.Id, 
@@ -214,6 +220,7 @@ namespace FWO.DeviceAutoDiscovery
                                 dev.Management.Id = changedMgmt.Id;
                                 actions.Add(new ActionItem 
                                 {
+                                    Number = ++counter,
                                     Supermanager = superManagement.Name, 
                                     ActionType = ActionCode.AddGatewayToExistingManagement.ToString(), 
                                     ManagementId = changedMgmt.Id, 

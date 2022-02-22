@@ -16,6 +16,9 @@ ALTER TABLE "log_data_issue" ADD COLUMN IF NOT EXISTS "user_id" INTEGER DEFAULT 
 ALTER TABLE "log_data_issue" DROP CONSTRAINT IF EXISTS "log_data_issue_uiuser_uiuser_id_fkey" CASCADE;
 Alter table "log_data_issue" add CONSTRAINT log_data_issue_uiuser_uiuser_id_fkey foreign key ("user_id") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
 
+ALTER TABLE "log_data_issue" DROP CONSTRAINT IF EXISTS log_data_issue_import_control_control_id_fkey;
+ALTER TABLE "log_data_issue" ADD CONSTRAINT log_data_issue_import_control_control_id_fkey FOREIGN KEY ("import_id") REFERENCES "import_control" ("control_id") ON UPDATE RESTRICT ON DELETE CASCADE;
+
 Create table IF NOT EXISTS "alert"
 (
 	"alert_id" BIGSERIAL,

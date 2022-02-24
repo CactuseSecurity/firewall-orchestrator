@@ -30,7 +30,7 @@
     ConfigDbAccess? config;
     int recertificationDisplayPeriod = GlobalConfig.kDefaultInitRecertificationDisplayPeriod;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         try
         {

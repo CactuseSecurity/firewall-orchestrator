@@ -26,6 +26,7 @@ namespace FWO.DeviceAutoDiscovery
             {
                 "FortiManager" => new AutoDiscoveryFortiManager(superManagement, apiConnection).Run(),
                 "CheckPoint" => new AutoDiscoveryCpMds(superManagement, apiConnection).Run(),
+                "Check Point" => new AutoDiscoveryCpMds(superManagement, apiConnection).Run(),
                 _ => throw new NotSupportedException("SuperManager Type is not supported."),
             };
         } 

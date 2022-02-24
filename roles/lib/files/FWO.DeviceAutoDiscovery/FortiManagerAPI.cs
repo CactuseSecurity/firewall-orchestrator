@@ -19,7 +19,7 @@ namespace FWO.Rest.Client
         {
             RestClientOptions restClientOptions = new RestClientOptions();
             restClientOptions.RemoteCertificateValidationCallback += (_, _, _, _) => true;
-            restClientOptions.Encoding = Encoding.Latin1;
+            //restClientOptions.Encoding = Encoding.Latin1;
             restClientOptions.BaseUrl = new Uri("https://" + fortiManager.Hostname + ":" + fortiManager.Port + "/jsonrpc");
             restClient = new RestClient(restClientOptions);
 

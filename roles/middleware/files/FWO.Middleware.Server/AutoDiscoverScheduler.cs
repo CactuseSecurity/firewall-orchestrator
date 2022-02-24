@@ -103,7 +103,7 @@ namespace FWO.Middleware.Server
             try
             {
                 List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
-                foreach(Management superManagement in managements.Where(x => x.DeviceType.CanBeSupermanager()))
+                foreach(Management superManagement in managements.Where(x => x.DeviceType.CanBeSupermanager() || x.DeviceType.CanBeAutodiscovered(x)))
                 {
                     AutoDiscoveryBase autodiscovery = new AutoDiscoveryBase(superManagement, apiConnection);
                     List<ActionItem> actions = autodiscovery.ConvertToActions(await autodiscovery.Run());

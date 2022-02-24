@@ -14,10 +14,12 @@ namespace FWO.ApiClient.Queries
         public static readonly string getDeviceTypeDetails;
         public static readonly string newManagement;
         public static readonly string updateManagement;
+        public static readonly string changeManagementState;
         public static readonly string deleteManagement;
         public static readonly string getDeviceDetails;
         public static readonly string newDevice;
         public static readonly string updateDevice;
+        public static readonly string changeDeviceState;
         public static readonly string deleteDevice;
         public static readonly string getImportStatus;
         public static readonly string deleteImport;
@@ -32,11 +34,13 @@ namespace FWO.ApiClient.Queries
                 getDeviceTypeDetails = File.ReadAllText(QueryPath + "device/getDeviceTypeDetails.graphql");
                 newManagement = File.ReadAllText(QueryPath + "device/newManagement.graphql");
                 updateManagement = File.ReadAllText(QueryPath + "device/updateManagement.graphql");
+                changeManagementState = File.ReadAllText(QueryPath + "device/changeManagementState.graphql");
                 deleteManagement = File.ReadAllText(QueryPath + "device/deleteManagement.graphql");
                 getDeviceDetails = File.ReadAllText(QueryPath + "device/getDeviceDetails.graphql") + " " 
                                    + File.ReadAllText(QueryPath + "device/fragments/deviceDetails.graphql");
                 newDevice = File.ReadAllText(QueryPath + "device/newDevice.graphql");
                 updateDevice = File.ReadAllText(QueryPath + "device/updateDevice.graphql");
+                changeDeviceState = File.ReadAllText(QueryPath + "device/changeDeviceState.graphql");
                 deleteDevice = File.ReadAllText(QueryPath + "device/deleteDevice.graphql");
                 getImportStatus = File.ReadAllText(QueryPath + "device/getImportStatus.graphql");
                 deleteImport = File.ReadAllText(QueryPath + "device/deleteImport.graphql");

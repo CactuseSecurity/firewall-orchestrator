@@ -19,10 +19,18 @@
     }
     else
     {
-        <Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="Alert" Items="alertEntrys" PageSize="0">
+        <Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="Alert" Items="alertEntrys" PageSize="100">
             <Column Context="alert" TableItem="Alert" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)">
                 <Template>
-                    <button class="btn btn-sm btn-primary" @onclick="() => Show(alert)">@(userConfig.GetText("details"))</button>
+                    @if(alert.Source == GlobalConfig.kAutodiscovery)
+                    {
+                        <button class="btn btn-sm btn-primary" @onclick="() => ShowAutodiscDetails(alert)">@(userConfig.GetText("details"))</button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("details"))</button>
+                    }
+                    
                     <AuthorizeView Roles="admin, fw-admin">
                         <Authorized Context="ctx">
                             <button class="btn btn-sm btn-secondary" @onclick="() => Acknowledge(alert)">@(userConfig.GetText("acknowledge"))</button>
@@ -38,11 +46,12 @@
             <Column TableItem="Alert" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" />
             <Column TableItem="Alert" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" />
             <Column TableItem="Alert" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" />
+            <Pager ShowPageNumber="true" ShowTotalCount="true" />
         </Table>
     }
 </AuthorizeView>
 
-<AutoDiscovery Actions="actActions" @bind-Display="AutoDiscoverMode"/>
+<AutoDiscovery Actions="actActions" @bind-Display="AutoDiscoverMode" Closing="async () => {AutoDiscoverMode = false; await Refresh();}"/>
 
 
 @code
@@ -55,6 +64,11 @@
     private bool AutoDiscoverMode = false;
  
     protected override async Task OnInitializedAsync()
+    {
+        await Refresh();
+    }
+
+    private async Task Refresh()
     {
         try
         {
@@ -81,16 +95,13 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("acknowledged_alert"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("acknowledge_alert"), "", true);
         }
     }
 
-    private void Show(Alert alert)
+    private void ShowAutodiscDetails(Alert alert)
     {
-        if(alert.Source == "autodiscovery")
-        {
-            actActions = new List<ActionItem>() { new ActionItem(alert) }; 
-            AutoDiscoverMode = true;
-        }
+        actActions = new List<ActionItem>() { new ActionItem(alert) }; 
+        AutoDiscoverMode = true;
     }
 }

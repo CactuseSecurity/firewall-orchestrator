@@ -49,7 +49,7 @@ namespace FWO.Middleware.Server
                     startTime = Convert.ToDateTime(autoDiscoverStartAt);
                     while(startTime < DateTime.Now)
                     {
-                        startTime = startTime.AddMinutes(autoDiscoverSleepTime); // todo:hours!
+                        startTime = startTime.AddHours(autoDiscoverSleepTime);
                     }
                 }
                 catch (Exception exception)
@@ -59,6 +59,7 @@ namespace FWO.Middleware.Server
                 TimeSpan interval = startTime - DateTime.Now;
             
                 ScheduleTimer = new();
+                ScheduleTimer.Elapsed += AutoDiscover;
                 ScheduleTimer.Elapsed += StartAutoDiscoverTimer;
                 ScheduleTimer.Interval = interval.TotalMilliseconds;
                 ScheduleTimer.AutoReset = false;
@@ -80,17 +81,20 @@ namespace FWO.Middleware.Server
 
         private void OnConfigUpdate(List<ConfigItem> configItems)
         {
-            if(configItems.Count() > 0 && configItems[0] != null)
+            foreach (ConfigItem configItem in configItems)
             {
-                ConfigItem? confItem = configItems[0];
-                if (confItem.Value != null && confItem.Value != "")
+                if(configItem.Key == GlobalConfig.kAutoDiscoverSleepTime && configItem.Value != null && configItem.Value != "")
                 {
-                    autoDiscoverSleepTime = Int32.Parse(confItem.Value);
-                    AutoDiscoverTimer.Interval = autoDiscoverSleepTime * 3600000; // convert hours to milliseconds
-                    ScheduleTimer.Stop();
-                    startScheduleTimer();
+                    autoDiscoverSleepTime = Int32.Parse(configItem.Value);
+                }
+                if(configItem.Key == GlobalConfig.kAutoDiscoverStartAt && configItem.Value != null && configItem.Value != "")
+                {
+                    autoDiscoverStartAt = configItem.Value;
                 }
             }
+            AutoDiscoverTimer.Interval = autoDiscoverSleepTime * 3600000; // convert hours to milliseconds
+            ScheduleTimer.Stop();
+            startScheduleTimer();
         }
 
         private void ApiExceptionHandler(Exception exception)
@@ -116,7 +120,7 @@ namespace FWO.Middleware.Server
                         {
                             action.RefAlertId = lastMgmtAlertId;
                         }
-                        await setAlert(action);
+                        action.AlertId = await setAlert(action);
                         ChangeCounter++;
                     }
                     await AddAutoDiscoverLogEntry(0, "Scheduled Autodiscovery", superManagement.Name + (ChangeCounter > 0 ? $": found {ChangeCounter} changes" : ": found no change"));
@@ -125,16 +129,18 @@ namespace FWO.Middleware.Server
             catch(Exception exc)
             {
                 Log.WriteError("Autodiscovery", $"Ran into exception: ", exc);
+                await AddAutoDiscoverLogEntry(0, "Scheduled Autodiscovery", $"Ran into exception: " + exc.Message);
             }
         }
 
-        public async Task setAlert(ActionItem action)
+        public async Task<long?> setAlert(ActionItem action)
         {
+            long? alertId = null;
             try
             {
                 var Variables = new
                 {
-                    source = "autodiscovery",
+                    source = GlobalConfig.kAutodiscovery,
                     userId = 0,
                     title = action.Supermanager,
                     description = action.ActionType,
@@ -146,9 +152,10 @@ namespace FWO.Middleware.Server
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addAlert, Variables)).ReturnIds;
                 if (returnIds != null)
                 {
+                    alertId = returnIds[0].NewId;
                     if(action.ActionType == ActionCode.AddManagement.ToString())
                     {
-                        lastMgmtAlertId = returnIds[0].NewId;
+                        lastMgmtAlertId = alertId;
                     }
                 }
                 else
@@ -160,6 +167,7 @@ namespace FWO.Middleware.Server
             {
                 Log.WriteError("Write Alert", $"Could not write Alert for autodiscovery: ", exc);
             }
+            return alertId;
         }
 
         public async Task AddAutoDiscoverLogEntry(int severity, string cause, string description)

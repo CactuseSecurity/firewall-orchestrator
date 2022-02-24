@@ -1,5 +1,5 @@
 query getImportLogEntrys {
-  log_data_issue (where: {source: {_eq: "import"}} order_by: { data_issue_id: desc }, limit: 100){
+  log_data_issue (where: {source: {_eq: "import"}} order_by: { data_issue_id: desc }){
     data_issue_id
     severity
     issue_timestamp

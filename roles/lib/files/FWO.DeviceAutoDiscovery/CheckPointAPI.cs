@@ -45,8 +45,8 @@ namespace FWO.Rest.Client
         // }
         public async Task<RestResponse<CpSessionAuthInfo>> AuthenticateUser(string user, string pwd, string? domain)
         {
-            Dictionary<string,string> body = new Dictionary<string, string>();
-            body.Add( "user", user );
+            Dictionary<string, string> body = new Dictionary<string, string>();
+            body.Add("user", user);
             body.Add("password", pwd);
             if (domain != "")
                 body.Add("domain", domain);
@@ -71,7 +71,7 @@ namespace FWO.Rest.Client
             RestRequest request = new RestRequest("show-domains", Method.Post);
             request.AddHeader("X-chkp-sid", session);
             request.AddHeader("Content-Type", "application/json");
-            Dictionary<string,string> body = new Dictionary<string,string>();
+            Dictionary<string, string> body = new Dictionary<string, string>();
             body.Add("details-level", "full");
             request.AddJsonBody(body);
             return await restClient.ExecuteAsync<CpDomainHelper>(request);
@@ -82,7 +82,7 @@ namespace FWO.Rest.Client
             RestRequest request = new RestRequest("show-gateways-and-servers", Method.Post);
             request.AddHeader("X-chkp-sid", session);
             request.AddHeader("Content-Type", "application/json");
-            Dictionary<string,string> body = new Dictionary<string,string>();
+            Dictionary<string, string> body = new Dictionary<string, string>();
             body.Add("details-level", "full");
             request.AddJsonBody(body);
             Log.WriteDebug("Autodiscovery", $"using CP REST API call 'show-gateways-and-servers'");
@@ -98,45 +98,34 @@ namespace FWO.Rest.Client
                         RestRequest requestPackage = new RestRequest("show-package", Method.Post);
                         requestPackage.AddHeader("X-chkp-sid", session);
                         requestPackage.AddHeader("Content-Type", "application/json");
-                        Dictionary<string,string> packageBody = new Dictionary<string,string>();
+                        Dictionary<string, string> packageBody = new Dictionary<string, string>();
                         packageBody.Add("name", dev.Policy.AccessPolicyName);
                         packageBody.Add("details-level", "full");
                         requestPackage.AddJsonBody(packageBody);
-                        // Log.WriteDebug("Autodiscovery", $"using CP REST API call 'show-package'");
                         RestResponse<CpPackage> package = await restClient.ExecuteAsync<CpPackage>(requestPackage);
                         dev.Package = package.Data;
                         Log.WriteDebug("Autodiscovery", $"for gateway '{dev.Name}' we found a package '{dev.Package.Name}' with {dev.Package.CpAccessLayers.Count} layers");
-                        CpAccessLayer relevantLayer = new CpAccessLayer(); 
 
-                        if (dev.Package.CpAccessLayers.Count>0) // default: pick the first layer found (if any)
-                            relevantLayer = dev.Package.CpAccessLayers[0]; 
-
-                        if (dev.Package.CpAccessLayers.Count>1)
+                        // now getting rid of unneccessary layes (eg. url filtering, application, ...)
+                        List<CpAccessLayer> relevantLayers = new List<CpAccessLayer>();
+                        if (dev.Package.CpAccessLayers.Count == 1) // default: pick the first layer found (if any)
+                            relevantLayers.Add(dev.Package.CpAccessLayers[0]);
+                        else if (dev.Package.CpAccessLayers.Count > 1)
                         {
-                            Log.WriteWarning("Autodiscovery", $"for gateway '{dev.Name}'/ package '{dev.Package.Name}' we found multipe ({dev.Package.CpAccessLayers.Count}) layers");
+                            Log.WriteWarning("Autodiscovery", $"for gateway '{dev.Name}'/ package '{dev.Package.Name}' we found multiple ({dev.Package.CpAccessLayers.Count}) layers");
                             // for now: pick the layer which the most "firewall-ish" - TODO: deal with layer chaining
                             foreach (CpAccessLayer layer in dev.Package.CpAccessLayers)
                             {
                                 if (layer.IsFirewallEnabled && !layer.IsApplicationsAndUrlFilteringEnabled && !layer.IsContentAwarenessEnabled && !layer.IsMobileAccessEnabled)
-                                {
-                                    relevantLayer = layer;
-                                    break;
-                                }
+                                    relevantLayers.Add(layer);
                             }
-                            Log.WriteWarning("Autodiscovery", $"for gateway '{dev.Name}'/ package '{dev.Package.Name}': picking layer '{relevantLayer.Name}'");
                         }
-                        else if (dev.Package.CpAccessLayers.Count<1)
-                        {
-                            // Log.WriteWarning("Autodiscovery", $"for gateway '{dev.Name}'/ package '{dev.Package.Name}' we found no layers - ignoring");
-                            relevantLayer = null;
-                        }
+                        dev.Package.CpAccessLayers = relevantLayers;
+                        if (relevantLayers.Count == 0)
+                            Log.WriteWarning("Autodiscovery", $"found gateway '{dev.Name}' without access layers");
                     }
-                    else 
-                    {
+                    else
                         Log.WriteWarning("Autodiscovery", $"found gateway '{dev.Name}' without access policy");
-                    }
-                    // else:
-                    //     logging.warning ("Standalone WARNING: did not find any gateways in stand-alone management")
                 }
             }
             return devices.Data.DeviceList;
@@ -204,7 +193,7 @@ namespace FWO.Rest.Client
         [JsonProperty("policy"), JsonPropertyName("policy")]
         public CpPolicy Policy { get; set; } = new CpPolicy();
 
-        public CpPackage Package  { get; set; } = new CpPackage();
+        public CpPackage Package { get; set; } = new CpPackage();
     }
 
     public class DevObjectsHelper
@@ -236,7 +225,7 @@ namespace FWO.Rest.Client
         [JsonProperty("access-layers"), JsonPropertyName("access-layers")]
         public List<CpAccessLayer> CpAccessLayers { get; set; } = new List<CpAccessLayer>();
     }
-    
+
     public class CpAccessLayer
     {
         [JsonProperty("name"), JsonPropertyName("name")]

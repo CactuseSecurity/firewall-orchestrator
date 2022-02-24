@@ -71,11 +71,11 @@ namespace FWO.Rest.Client
             RestRequest request = new RestRequest("show-domains", Method.Post);
             request.AddHeader("X-chkp-sid", session);
             request.AddHeader("Content-Type", "application/json");
-            request.AddJsonBody(new { });
-            Log.WriteDebug("Autodiscovery", $"using CP REST API call 'show-domains' with empty body");
+            Dictionary<string,string> body = new Dictionary<string,string>();
+            body.Add("details-level", "full");
+            request.AddJsonBody(body);
             return await restClient.ExecuteAsync<CpDomainHelper>(request);
         }
-
 
         public async Task<List<CpDevice>> GetGateways(string session)
         {

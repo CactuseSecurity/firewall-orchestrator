@@ -34,7 +34,7 @@ namespace FWO.Api.Data
         {  
             // Mgmt -> Supermgmt
             { 11, 12 }, // FortiADOM 5ff -> FortiManager 5ff
-            { 9, 13 }   // Check Point R8x -> Check Point MDS R8x
+            { 9, 13 }  // Check Point R8x -> Check Point MDS R8x
         };
         public static Dictionary<int, int> SupermanagerGatewayMap = new Dictionary<int, int>
         {  
@@ -46,7 +46,7 @@ namespace FWO.Api.Data
 
         public static List<int> CheckPointManagers = new List<int>
         {  
-             13, 9   // Check Point MDS R8x and  Check Point R8x
+             13, 9   // Check Point MDS R8x and Check Point R8x
         };
 
 

@@ -215,7 +215,7 @@ namespace FWO.DeviceAutoDiscovery
                 {
                     // need to serialize here
                     string? sessionId = sessionResponse?.Data?.SessionId;
-                    Log.WriteDebug("Autodiscovery", $"successful FortiManager login, got SessionID: {sessionId}");
+                    Log.WriteDebug("Autodiscovery", $"successful CP Manager login, got SessionID: {sessionId}");
                     // need to use @ verbatim identifier for special chars in sessionId
                     RestResponse<CpDomainHelper> domainResponse = await restClientCP.GetDomains(@sessionId);
                     if (domainResponse.StatusCode == HttpStatusCode.OK && domainResponse.IsSuccessful)
@@ -223,7 +223,7 @@ namespace FWO.DeviceAutoDiscovery
                         List<Domain> domainList = domainResponse?.Data?.DomainList;
                         if (domainList.Count == 0)
                         {
-                            Log.WriteDebug("Autodiscovery", $"found no domains - so this is a standard management, adding dummy domain with empty name");
+                            Log.WriteDebug("Autodiscovery", $"found no domains - assuming this is a standard management, adding dummy domain with empty name");
                             domainList.Add(new Domain { Name = "" });
                             ManagementType = "stand-alone";
                         }

@@ -252,7 +252,7 @@ namespace FWO.DeviceAutoDiscovery
                                 DeviceType = new DeviceType { Id = 9 },
                                 Devices = new Device[] { }
                             };
-
+                            // string domainName
                             // now handling the original management (if it was just a simple management)
                             if (domain.Name == "") // set some settings identical to "superManager", so that no new manager is created
                             {
@@ -262,63 +262,74 @@ namespace FWO.DeviceAutoDiscovery
                                 //currentManagement.DeviceType = currentManagement.DeviceType;
                             }
 
-                            List<CpDevice> devList = await restClientCP.GetGateways(@sessionId);
+                            RestResponse<CpSessionAuthInfo> sessionResponsePerDomain =
+                                    await restClientCP.AuthenticateUser(superManagement.ImportUser, superManagement.Password, domain.Name);
 
-                            // add devices to currentManagement
-                            foreach (CpDevice cpDev in devList)
+                            if (sessionResponsePerDomain.StatusCode == HttpStatusCode.OK &&
+                                sessionResponsePerDomain.IsSuccessful &&
+                                sessionResponsePerDomain?.Data?.SessionId != "")
                             {
-                                if (cpDev.Package.CpAccessLayers.Count < 1)
-                                {
-                                    Log.WriteWarning("AutoDiscovery", $"did not find any layers");
-                                    continue;
-                                }
+                                // need to serialize here
+                                string? sessionIdPerDomain = sessionResponsePerDomain?.Data?.SessionId;
+                                Log.WriteDebug("Autodiscovery", $"successful CP manager login, got SessionID: {sessionId}");
+                                List<CpDevice> devList = await restClientCP.GetGateways(@sessionIdPerDomain);
 
-                                if (cpDev.CpDevType != "checkpoint-host")   // leave out the management host?!
+                                // add devices to currentManagement
+                                foreach (CpDevice cpDev in devList)
                                 {
-                                    string globalLayerName = "";
-                                    string localLayerName = "";
-                                    bool packageContainsDomainLayer = containsDomainLayer(cpDev.Package.CpAccessLayers);
-                                    foreach (CpAccessLayer layer in cpDev.Package.CpAccessLayers)
+                                    if (cpDev.Package.CpAccessLayers.Count < 1)
                                     {
-                                        if (layer.Type != "access-layer") // only dealing with access layers, ignore the rest
-                                            continue;
-
-                                        if (layer.ParentLayer != "")      // this is a domain layer
-                                        {
-                                            localLayerName = layer.Name;
-                                            layer.LayerType = "domain-layer";
-                                            Log.WriteDebug("Autodiscovery", $"found domain layer with link to parent layer '{layer.ParentLayer}'");
-                                        }
-                                        else if (ManagementType == "stand-alone")
-                                        {
-                                            localLayerName = layer.Name;
-                                            layer.LayerType = "local-layer";
-                                            Log.WriteDebug("Autodiscovery", $"found stand-alone layer '{layer.Name}'");
-                                        }
-                                        else if (packageContainsDomainLayer)
-                                        {   // this must the be global layer
-                                            layer.LayerType = "global-layer";
-                                            globalLayerName = layer.Name;
-                                            Log.WriteDebug("Autodiscovery", $"found global layer '{layer.Name}'");
-                                        }
-                                        else
-                                        { // in domain context, but no global layer exists
-                                            layer.LayerType = "stand-alone-layer";
-                                            Log.WriteDebug("Autodiscovery", $"found stand-alone layer in domain context '{layer.Name}'");
-                                        }
-                                        // TODO: this will contstantly overwrite local layer name if more than one exists 
+                                        // Log.WriteWarning("AutoDiscovery", $"did not find any layers");
+                                        continue;
                                     }
-                                    Device dev = new Device
-                                    {
-                                        Name = cpDev.Name,
-                                        LocalRulebase = localLayerName,
-                                        GlobalRulebase = globalLayerName,
-                                        Package = cpDev.Package.Name,
-                                        DeviceType = new DeviceType { Id = 9 } // CheckPoint GW
-                                    };
-                                    currentManagement.Devices = currentManagement.Devices.Append(dev).ToArray();
-                                }
 
+                                    if (cpDev.CpDevType != "checkpoint-host")   // leave out the management host?!
+                                    {
+                                        string globalLayerName = "";
+                                        string localLayerName = "";
+                                        bool packageContainsDomainLayer = containsDomainLayer(cpDev.Package.CpAccessLayers);
+                                        foreach (CpAccessLayer layer in cpDev.Package.CpAccessLayers)
+                                        {
+                                            if (layer.Type != "access-layer") // only dealing with access layers, ignore the rest
+                                                continue;
+
+                                            if (layer.ParentLayer != "")      // this is a domain layer
+                                            {
+                                                localLayerName = layer.Name;
+                                                layer.LayerType = "domain-layer";
+                                                Log.WriteDebug("Autodiscovery", $"found domain layer with link to parent layer '{layer.ParentLayer}'");
+                                            }
+                                            else if (ManagementType == "stand-alone")
+                                            {
+                                                localLayerName = layer.Name;
+                                                layer.LayerType = "local-layer";
+                                                Log.WriteDebug("Autodiscovery", $"found stand-alone layer '{layer.Name}'");
+                                            }
+                                            else if (packageContainsDomainLayer)
+                                            {   // this must the be global layer
+                                                layer.LayerType = "global-layer";
+                                                globalLayerName = layer.Name;
+                                                Log.WriteDebug("Autodiscovery", $"found global layer '{layer.Name}'");
+                                            }
+                                            else
+                                            { // in domain context, but no global layer exists
+                                                layer.LayerType = "stand-alone-layer";
+                                                Log.WriteDebug("Autodiscovery", $"found stand-alone layer in domain context '{layer.Name}'");
+                                            }
+                                            // TODO: this will contstantly overwrite local layer name if more than one exists, the last one wins!
+                                        }
+                                        Device dev = new Device
+                                        {
+                                            Name = cpDev.Name,
+                                            LocalRulebase = localLayerName,
+                                            GlobalRulebase = globalLayerName,
+                                            Package = cpDev.Package.Name,
+                                            DeviceType = new DeviceType { Id = 9 } // CheckPoint GW
+                                        };
+                                        currentManagement.Devices = currentManagement.Devices.Append(dev).ToArray();
+                                    }
+                                    sessionResponsePerDomain = await restClientCP.DeAuthenticateUser(@sessionIdPerDomain);
+                                }
                             }
                             discoveredDevices.Add(currentManagement);
                         }
@@ -327,7 +338,7 @@ namespace FWO.DeviceAutoDiscovery
                     else
                         Log.WriteWarning("AutoDiscovery", $"error while getting domain list: {domainResponse.ErrorMessage}");
 
-                    sessionResponse = await restClientCP.DeAuthenticateUser(sessionId);
+                    sessionResponse = await restClientCP.DeAuthenticateUser(@sessionId);
                     if (sessionResponse.StatusCode == HttpStatusCode.OK)
                         Log.WriteDebug("Autodiscovery", $"successful CP Manager logout");
                     else

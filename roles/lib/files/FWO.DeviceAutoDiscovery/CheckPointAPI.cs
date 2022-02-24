@@ -102,7 +102,7 @@ namespace FWO.Rest.Client
                         packageBody.Add("name", dev.Policy.AccessPolicyName);
                         packageBody.Add("details-level", "full");
                         requestPackage.AddJsonBody(packageBody);
-                        Log.WriteDebug("Autodiscovery", $"using CP REST API call 'show-package'");
+                        // Log.WriteDebug("Autodiscovery", $"using CP REST API call 'show-package'");
                         RestResponse<CpPackage> package = await restClient.ExecuteAsync<CpPackage>(requestPackage);
                         dev.Package = package.Data;
                         Log.WriteDebug("Autodiscovery", $"for gateway '{dev.Name}' we found a package '{dev.Package.Name}' with {dev.Package.CpAccessLayers.Count} layers");
@@ -127,7 +127,7 @@ namespace FWO.Rest.Client
                         }
                         else if (dev.Package.CpAccessLayers.Count<1)
                         {
-                            Log.WriteWarning("Autodiscovery", $"for gateway '{dev.Name}'/ package '{dev.Package.Name}' we found no layers - ignoring");
+                            // Log.WriteWarning("Autodiscovery", $"for gateway '{dev.Name}'/ package '{dev.Package.Name}' we found no layers - ignoring");
                             relevantLayer = null;
                         }
                     }

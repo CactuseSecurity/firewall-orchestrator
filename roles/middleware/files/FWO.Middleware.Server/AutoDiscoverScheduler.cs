@@ -129,6 +129,7 @@ namespace FWO.Middleware.Server
             catch(Exception exc)
             {
                 Log.WriteError("Autodiscovery", $"Ran into exception: ", exc);
+                await AddAutoDiscoverLogEntry(0, "Scheduled Autodiscovery", $"Ran into exception: " + exc.Message);
             }
         }
 

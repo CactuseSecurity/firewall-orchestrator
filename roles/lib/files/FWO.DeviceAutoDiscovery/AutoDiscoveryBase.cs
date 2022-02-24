@@ -155,9 +155,14 @@ namespace FWO.DeviceAutoDiscovery
                             });
                         }
                     }
-                    else if (changedMgmt.Id == 0)
+                    else if (changedMgmt.Id == 0)   // adding new management
                     {
-                        DeviceType devtype = new DeviceType(){ Id = superManagement.DeviceType.GetManagementTypeId() };
+                        DeviceType devtype = new DeviceType();
+                        if (changedMgmt.DeviceType.Id != null)
+                            devtype = changedMgmt.DeviceType;
+                        else
+                            devtype = new DeviceType(){ Id = superManagement.DeviceType.GetManagementTypeId() };
+                            
                         Management MgtVariables = new Management
                         {
                             Hostname = superManagement.Hostname,

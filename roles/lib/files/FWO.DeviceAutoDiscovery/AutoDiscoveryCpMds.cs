@@ -76,7 +76,7 @@ namespace FWO.DeviceAutoDiscovery
                                 DeviceType = new DeviceType { Id = 9 },
                                 Devices = new Device[] { }
                             };
-                            Log.WriteDebug("Autodiscovery", $"DeviceTypeId of freshly created management={currentManagement.DeviceType.Id}");
+                            // Log.WriteDebug("Autodiscovery", $"DeviceTypeId of freshly created management={currentManagement.DeviceType.Id}");
                             // if super manager is just a simple management
                             if (domain.Name == "") // set some settings identical to "superManager", so that no new manager is created
                             {
@@ -154,7 +154,6 @@ namespace FWO.DeviceAutoDiscovery
                                 }
                             }
                             discoveredDevices.Add(currentManagement);
-                            Log.WriteDebug("Autodiscovery", $"DeviceTypeId of discovered management={currentManagement.DeviceType.Id}");
                         }
                         Log.WriteDebug("Autodiscovery", $"found a total of {domainList.Count} domains");
                     }

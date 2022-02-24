@@ -9,7 +9,7 @@
 @(userConfig.GetText("U7101"))
 <hr />
 
-<Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="Alert" Items="alertEntrys" PageSize="0">
+<Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="Alert" Items="alertEntrys" PageSize="100">
     <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" />
     <Column TableItem="Alert" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" />
     <Column TableItem="Alert" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" />
@@ -21,6 +21,7 @@
         </Template>
     </Column>
     <Column TableItem="Alert" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.AckTimestamp)" />
+    <Pager ShowPageNumber="true" ShowTotalCount="true" />
 </Table>
 
 

@@ -55,7 +55,7 @@ namespace FWO.DeviceAutoDiscovery
                         // new devices in existing management
                         foreach (Device discoveredDev in discoveredMgmt.Devices)
                         {
-                            if (checkDeviceNotInMgmt(discoveredDev, existMgmt))
+                            if (checkDeviceNotInMgmt(discoveredDev, existMgmt) || discoveredDev.ImportDisabled)
                             {
                                 discoveredDev.Delete = false;
                                 newDevs.Add(discoveredDev);
@@ -66,7 +66,7 @@ namespace FWO.DeviceAutoDiscovery
                         // deleted devices in existing management
                         foreach(Device existDev in existMgmt.Devices)
                         {
-                            if (checkDeviceNotInMgmt(existDev, discoveredMgmt))
+                            if (checkDeviceNotInMgmt(existDev, discoveredMgmt) && !existDev.ImportDisabled)
                             {
                                 existDev.Delete = true;
                                 newDevs.Add(existDev);
@@ -75,7 +75,7 @@ namespace FWO.DeviceAutoDiscovery
                         }
                         changedMgmt.Devices = newDevs.ToArray();
 
-                        if(foundChange)
+                        if(foundChange || changedMgmt.ImportDisabled)
                         {
                             deltaManagements.Add(changedMgmt);
                         }
@@ -85,7 +85,7 @@ namespace FWO.DeviceAutoDiscovery
                 foreach (Management existMgmt in existingManagements.Where(mgt => mgt.SuperManagerId == superManagement.Id && mgt.ConfigPath != "global"))
                 {
                     Management? foundMgmt = FindManagementIfExist(existMgmt, discoveredManagements);
-                    if(foundMgmt == null)
+                    if(foundMgmt == null && !existMgmt.ImportDisabled)
                     {
                         existMgmt.Delete = true;
                         deltaManagements.Add(existMgmt);
@@ -125,6 +125,7 @@ namespace FWO.DeviceAutoDiscovery
         public List<ActionItem> ConvertToActions(List<Management> diffList)
         {
             List<ActionItem> actions = new List<ActionItem>();
+            int counter = 0;
             try
             {
                 foreach(Management changedMgmt in diffList)
@@ -133,6 +134,7 @@ namespace FWO.DeviceAutoDiscovery
                     {
                         actions.Add(new ActionItem 
                         {
+                            Number = ++counter,
                             Supermanager = superManagement.Name, 
                             ActionType = ActionCode.DeleteManagement.ToString(), 
                             ManagementId = changedMgmt.Id, 
@@ -143,6 +145,7 @@ namespace FWO.DeviceAutoDiscovery
                         {
                             actions.Add(new ActionItem 
                             {
+                                Number = ++counter,
                                 Supermanager = superManagement.Name, 
                                 ActionType = ActionCode.DeleteGateway.ToString(), 
                                 ManagementId = changedMgmt.Id, 
@@ -158,7 +161,8 @@ namespace FWO.DeviceAutoDiscovery
                         {
                             Hostname = superManagement.Hostname,
                             ImportUser = superManagement.ImportUser,
-                            Password = superManagement.Password, // no legacy managements are supermanager
+                            Password = superManagement.Password,
+                            PrivateKey = superManagement.PrivateKey,
                             ImporterHostname = superManagement.ImporterHostname,
                             DebugLevel = superManagement.DebugLevel,
                             Port = superManagement.Port,
@@ -172,6 +176,7 @@ namespace FWO.DeviceAutoDiscovery
                         };
                         actions.Add(new ActionItem 
                         {
+                            Number = ++counter,
                             Supermanager = superManagement.Name, 
                             ActionType = ActionCode.AddManagement.ToString(), 
                             ManagementId = null, 
@@ -185,6 +190,7 @@ namespace FWO.DeviceAutoDiscovery
                             dev.Management.Id = 0;
                             actions.Add(new ActionItem 
                             {
+                                Number = ++counter,
                                 Supermanager = superManagement.Name, 
                                 ActionType = ActionCode.AddGatewayToNewManagement.ToString(), 
                                 ManagementId = null, 
@@ -195,16 +201,41 @@ namespace FWO.DeviceAutoDiscovery
                     }
                     else
                     {
+                        if (changedMgmt.ImportDisabled)
+                        {
+                            actions.Add(new ActionItem 
+                            {
+                                Number = ++counter,
+                                Supermanager = superManagement.Name, 
+                                ActionType = ActionCode.ReactivateManagement.ToString(), 
+                                ManagementId = changedMgmt.Id, 
+                                DeviceId = null, 
+                                JsonData = null
+                            });
+                        }
                         foreach(Device dev in changedMgmt.Devices)
                         {
                             if(dev.Delete)
                             {
                                 actions.Add(new ActionItem 
                                 {
+                                    Number = ++counter,
                                     Supermanager = superManagement.Name, 
                                     ActionType = ActionCode.DeleteGateway.ToString(), 
                                     ManagementId = changedMgmt.Id, 
                                     DeviceId = dev?.Id, 
+                                    JsonData = null
+                                });
+                            }
+                            else if (dev.ImportDisabled)
+                            {
+                                actions.Add(new ActionItem 
+                                {
+                                    Number = ++counter,
+                                    Supermanager = superManagement.Name, 
+                                    ActionType = ActionCode.ReactivateGateway.ToString(), 
+                                    ManagementId = changedMgmt.Id, 
+                                    DeviceId = dev.Id, 
                                     JsonData = null
                                 });
                             }
@@ -214,6 +245,7 @@ namespace FWO.DeviceAutoDiscovery
                                 dev.Management.Id = changedMgmt.Id;
                                 actions.Add(new ActionItem 
                                 {
+                                    Number = ++counter,
                                     Supermanager = superManagement.Name, 
                                     ActionType = ActionCode.AddGatewayToExistingManagement.ToString(), 
                                     ManagementId = changedMgmt.Id, 

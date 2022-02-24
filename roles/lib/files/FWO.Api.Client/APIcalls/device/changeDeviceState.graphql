@@ -1,0 +1,13 @@
+mutation changeDeviceState(
+  $id: Int!
+  $importDisabled: Boolean!
+) {
+  update_device_by_pk(
+    pk_columns: { dev_id: $id }
+    _set: {
+      do_not_import: $importDisabled
+    }
+  ) {
+    UpdatedId: dev_id
+  }
+}

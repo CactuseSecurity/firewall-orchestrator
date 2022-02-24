@@ -9,7 +9,7 @@
 @(userConfig.GetText("U7401"))
 <hr />
 
-<Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys" PageSize="0">
+<Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys" PageSize="100">
     <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" />
     <Column TableItem="LogEntry" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" />
     <Column TableItem="LogEntry" Title="@(userConfig.GetText("severity"))" Field="@(x => x.Severity)" />
@@ -22,6 +22,7 @@
             @(uiUsers.FirstOrDefault(x => x.DbId == context.UserId)?.Name)
         </Template>
     </Column>
+    <Pager ShowPageNumber="true" ShowTotalCount="true" />
 </Table>
 
 

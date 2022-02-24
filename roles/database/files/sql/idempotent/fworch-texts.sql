@@ -938,6 +938,12 @@ INSERT INTO txt VALUES ('analyze_actions',      'German', 	'Aktionen analysieren
 INSERT INTO txt VALUES ('analyze_actions',      'English', 	'Analyze Actions');
 INSERT INTO txt VALUES ('do_all_changes',       'German', 	'Alle &Auml;nderungen ausf&uuml;hren');
 INSERT INTO txt VALUES ('do_all_changes',       'English', 	'Do all changes');
+INSERT INTO txt VALUES ('change_management_state','German', 'Mamagement-Status &auml;ndern');
+INSERT INTO txt VALUES ('change_management_state','English','Change management state');
+INSERT INTO txt VALUES ('change_device_state',  'German',   'Gateway-Status &auml;ndern');
+INSERT INTO txt VALUES ('change_device_state',  'English',  'Change gateway state');
+INSERT INTO txt VALUES ('disable',				'German', 	'Deaktivieren');
+INSERT INTO txt VALUES ('disable',				'English', 	'Disable');
 
 
 -- help pages
@@ -1125,6 +1131,8 @@ INSERT INTO txt VALUES ('U5414', 'English', 'Adapt your personal recertification
 
 INSERT INTO txt VALUES ('U7001', 'German',  '&Uuml;berblick, was im Firewall Orchestrator passiert');
 INSERT INTO txt VALUES ('U7001', 'English', 'View what is going on in Firewall Orchestrator');
+INSERT INTO txt VALUES ('U7002', 'German',  'Daten sind dann verloren. Erw&auml;gen Sie eine Deaktivierung.');
+INSERT INTO txt VALUES ('U7002', 'English', 'Data will be lost. Consider deactivation.');
 INSERT INTO txt VALUES ('U7101', 'German',  'Archiv der Alarme mit Best&auml;tigungen');
 INSERT INTO txt VALUES ('U7101', 'English', 'View the past alerts with acknowledgements');
 INSERT INTO txt VALUES ('U7201', 'German',  'Archiv der Importer-Nachrichten');

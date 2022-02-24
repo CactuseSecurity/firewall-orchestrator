@@ -9,7 +9,9 @@ namespace FWO.Api.Data
         DeleteGateway,
         AddManagement,
         AddGatewayToNewManagement,
-        AddGatewayToExistingManagement
+        AddGatewayToExistingManagement,
+        ReactivateManagement,
+        ReactivateGateway
     }
 
     public class ActionItem

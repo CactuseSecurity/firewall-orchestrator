@@ -1,5 +1,5 @@
 query getAutodiscoveryLogEntrys {
-  log_data_issue (where: {source: {_eq: "autodiscovery"}} order_by: { data_issue_id: desc }, limit: 100){
+  log_data_issue (where: {source: {_eq: "autodiscovery"}} order_by: { data_issue_id: desc }){
     data_issue_id
     user_id
     severity

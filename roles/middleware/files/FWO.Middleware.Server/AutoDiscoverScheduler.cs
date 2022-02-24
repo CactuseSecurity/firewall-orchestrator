@@ -139,7 +139,7 @@ namespace FWO.Middleware.Server
             {
                 var Variables = new
                 {
-                    source = "autodiscovery",
+                    source = GlobalConfig.kAutodiscovery,
                     userId = 0,
                     title = action.Supermanager,
                     description = action.ActionType,

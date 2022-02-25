@@ -134,8 +134,8 @@ namespace FWO.Middleware.Server
                     report.Owner.Tenant = await authHandler.GetTenantAsync(report.Owner);
                     string jwt = await jwtWriter.CreateJWT(report.Owner);
                     APIConnection apiConnectionUserContext = new APIConnection(apiServerUri, jwt);
-
-                    UserConfig userConfig = new UserConfig(new GlobalConfig(jwt));
+                    GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(jwt);
+                    UserConfig userConfig = new UserConfig(globalConfig);
 
                     if(!report.Template.ReportParams.DeviceFilter.isAnyDeviceFilterSet())
                     {

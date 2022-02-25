@@ -83,6 +83,7 @@ namespace FWO.DeviceAutoDiscovery
                                     currentManagement.SuperManagerId = null;
                                 }
 
+                                // session id pins this session to a specific domain (if domain is given during login) 
                                 RestResponse<CpSessionAuthInfo> sessionResponsePerDomain =
                                     await restClientCP.AuthenticateUser(superManagement.ImportUser, superManagement.Password, domain.Name);
 
@@ -93,6 +94,8 @@ namespace FWO.DeviceAutoDiscovery
                                 {
                                     string sessionIdPerDomain = sessionResponsePerDomain.Data!.SessionId;
                                     Log.WriteDebug("Autodiscovery", $"successful CP manager login, got SessionID: {sessionIdPerDomain}");
+
+                                    // now fetching per gateway information (including package and layer names)
                                     List<CpDevice> devList = await restClientCP.GetGateways(@sessionIdPerDomain, ManagementType);
 
                                     // add devices to currentManagement

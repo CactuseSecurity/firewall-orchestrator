@@ -81,7 +81,7 @@ namespace FWO.Rest.Client
         }
 
         public async Task<List<CpDevice>> GetGateways(string session, string ManagementType)
-        // session might pins this session to a specific domain 
+        // session id pins this session to a specific domain (if domain was given during login) 
         {
             RestRequest request = new RestRequest("show-gateways-and-servers", Method.Post);
             request.AddHeader("X-chkp-sid", session);

@@ -3,7 +3,6 @@ using FWO.ApiClient;
 using FWO.Logging;
 using System.Text.Json;
 
-
 namespace FWO.DeviceAutoDiscovery
 {
     public class AutoDiscoveryBase
@@ -14,7 +13,7 @@ namespace FWO.DeviceAutoDiscovery
         List<Management> existingManagements = new List<Management>();
 
 
-        public AutoDiscoveryBase (Management mgm, APIConnection apiConn) 
+        public AutoDiscoveryBase(Management mgm, APIConnection apiConn)
         {
             superManagement = mgm;
             apiConnection = apiConn;
@@ -26,9 +25,10 @@ namespace FWO.DeviceAutoDiscovery
             {
                 "FortiManager" => new AutoDiscoveryFortiManager(superManagement, apiConnection).Run(),
                 "CheckPoint" => new AutoDiscoveryCpMds(superManagement, apiConnection).Run(),
+                "Check Point" => new AutoDiscoveryCpMds(superManagement, apiConnection).Run(),
                 _ => throw new NotSupportedException("SuperManager Type is not supported."),
             };
-        } 
+        }
 
         public async Task<List<Management>> GetDeltas(List<Management> discoveredManagements)
         {
@@ -62,9 +62,9 @@ namespace FWO.DeviceAutoDiscovery
                                 foundChange = true;
                             }
                         }
-                        
+
                         // deleted devices in existing management
-                        foreach(Device existDev in existMgmt.Devices)
+                        foreach (Device existDev in existMgmt.Devices)
                         {
                             if (checkDeviceNotInMgmt(existDev, discoveredMgmt) && !existDev.ImportDisabled)
                             {
@@ -75,7 +75,7 @@ namespace FWO.DeviceAutoDiscovery
                         }
                         changedMgmt.Devices = newDevs.ToArray();
 
-                        if(foundChange || changedMgmt.ImportDisabled)
+                        if (foundChange || changedMgmt.ImportDisabled)
                         {
                             deltaManagements.Add(changedMgmt);
                         }
@@ -85,14 +85,14 @@ namespace FWO.DeviceAutoDiscovery
                 foreach (Management existMgmt in existingManagements.Where(mgt => mgt.SuperManagerId == superManagement.Id && mgt.ConfigPath != "global"))
                 {
                     Management? foundMgmt = FindManagementIfExist(existMgmt, discoveredManagements);
-                    if(foundMgmt == null && !existMgmt.ImportDisabled)
+                    if (foundMgmt == null && !existMgmt.ImportDisabled)
                     {
                         existMgmt.Delete = true;
                         deltaManagements.Add(existMgmt);
                     }
                 }
             }
-            catch(Exception exc)
+            catch (Exception exc)
             {
                 Log.WriteError("Autodiscovery", $"GetDeltas Ran into exception: ", exc);
             }
@@ -103,9 +103,9 @@ namespace FWO.DeviceAutoDiscovery
         {
             Management? existingManagement = mgmtList.FirstOrDefault(x =>
                 x.Name == mgm.Name
-                && x.ConfigPath == mgm.ConfigPath 
+                && x.ConfigPath == mgm.ConfigPath
                 && x.SuperManagerId == mgm.SuperManagerId);
-            if(existingManagement != null)
+            if (existingManagement != null)
             {
                 return existingManagement;
             }
@@ -114,7 +114,7 @@ namespace FWO.DeviceAutoDiscovery
 
         private bool checkDeviceNotInMgmt(Device dev, Management mgmt)
         {
-            if (mgmt.Devices.FirstOrDefault(devInMgt => 
+            if (mgmt.Devices.FirstOrDefault(devInMgt =>
                 devInMgt.Name == dev.Name && devInMgt.LocalRulebase == dev.LocalRulebase) != null)
             {
                 return false;
@@ -128,35 +128,40 @@ namespace FWO.DeviceAutoDiscovery
             int counter = 0;
             try
             {
-                foreach(Management changedMgmt in diffList)
+                foreach (Management changedMgmt in diffList)
                 {
-                    if(changedMgmt.Delete)
+                    if (changedMgmt.Delete)
                     {
-                        actions.Add(new ActionItem 
+                        actions.Add(new ActionItem
                         {
                             Number = ++counter,
-                            Supermanager = superManagement.Name, 
-                            ActionType = ActionCode.DeleteManagement.ToString(), 
-                            ManagementId = changedMgmt.Id, 
-                            DeviceId = null, 
+                            Supermanager = superManagement.Name,
+                            ActionType = ActionCode.DeleteManagement.ToString(),
+                            ManagementId = changedMgmt.Id,
+                            DeviceId = null,
                             JsonData = null
                         });
-                        foreach(Device dev in changedMgmt.Devices)
+                        foreach (Device dev in changedMgmt.Devices)
                         {
-                            actions.Add(new ActionItem 
+                            actions.Add(new ActionItem
                             {
                                 Number = ++counter,
-                                Supermanager = superManagement.Name, 
-                                ActionType = ActionCode.DeleteGateway.ToString(), 
-                                ManagementId = changedMgmt.Id, 
-                                DeviceId = dev?.Id, 
+                                Supermanager = superManagement.Name,
+                                ActionType = ActionCode.DeleteGateway.ToString(),
+                                ManagementId = changedMgmt.Id,
+                                DeviceId = dev?.Id,
                                 JsonData = null
                             });
                         }
                     }
-                    else if (changedMgmt.Id == 0)
+                    else if (changedMgmt.Id == 0)   // adding new management
                     {
-                        DeviceType devtype = new DeviceType(){ Id = superManagement.DeviceType.GetManagementTypeId() };
+                        DeviceType devtype = new DeviceType();
+                        if (changedMgmt.DeviceType != null || changedMgmt.DeviceType?.Id == 0)
+                            devtype = changedMgmt.DeviceType;
+                        else
+                            devtype = new DeviceType() { Id = superManagement.DeviceType.GetManagementTypeId() };
+
                         Management MgtVariables = new Management
                         {
                             Hostname = superManagement.Hostname,
@@ -174,27 +179,27 @@ namespace FWO.DeviceAutoDiscovery
                             DeviceType = devtype,
                             SuperManagerId = superManagement.Id
                         };
-                        actions.Add(new ActionItem 
+                        actions.Add(new ActionItem
                         {
                             Number = ++counter,
-                            Supermanager = superManagement.Name, 
-                            ActionType = ActionCode.AddManagement.ToString(), 
-                            ManagementId = null, 
-                            DeviceId = null, 
+                            Supermanager = superManagement.Name,
+                            ActionType = ActionCode.AddManagement.ToString(),
+                            ManagementId = null,
+                            DeviceId = null,
                             JsonData = JsonSerializer.Serialize(MgtVariables)
                         });
 
-                        foreach(Device dev in changedMgmt.Devices)
+                        foreach (Device dev in changedMgmt.Devices)
                         {
                             dev.DeviceType.Id = superManagement.DeviceType.GetGatewayTypeId();
                             dev.Management.Id = 0;
-                            actions.Add(new ActionItem 
+                            actions.Add(new ActionItem
                             {
                                 Number = ++counter,
-                                Supermanager = superManagement.Name, 
-                                ActionType = ActionCode.AddGatewayToNewManagement.ToString(), 
-                                ManagementId = null, 
-                                DeviceId = null, 
+                                Supermanager = superManagement.Name,
+                                ActionType = ActionCode.AddGatewayToNewManagement.ToString(),
+                                ManagementId = null,
+                                DeviceId = null,
                                 JsonData = JsonSerializer.Serialize(dev)
                             });
                         }
@@ -203,39 +208,39 @@ namespace FWO.DeviceAutoDiscovery
                     {
                         if (changedMgmt.ImportDisabled)
                         {
-                            actions.Add(new ActionItem 
+                            actions.Add(new ActionItem
                             {
                                 Number = ++counter,
-                                Supermanager = superManagement.Name, 
-                                ActionType = ActionCode.ReactivateManagement.ToString(), 
-                                ManagementId = changedMgmt.Id, 
-                                DeviceId = null, 
+                                Supermanager = superManagement.Name,
+                                ActionType = ActionCode.ReactivateManagement.ToString(),
+                                ManagementId = changedMgmt.Id,
+                                DeviceId = null,
                                 JsonData = null
                             });
                         }
-                        foreach(Device dev in changedMgmt.Devices)
+                        foreach (Device dev in changedMgmt.Devices)
                         {
-                            if(dev.Delete)
+                            if (dev.Delete)
                             {
-                                actions.Add(new ActionItem 
+                                actions.Add(new ActionItem
                                 {
                                     Number = ++counter,
-                                    Supermanager = superManagement.Name, 
-                                    ActionType = ActionCode.DeleteGateway.ToString(), 
-                                    ManagementId = changedMgmt.Id, 
-                                    DeviceId = dev?.Id, 
+                                    Supermanager = superManagement.Name,
+                                    ActionType = ActionCode.DeleteGateway.ToString(),
+                                    ManagementId = changedMgmt.Id,
+                                    DeviceId = dev?.Id,
                                     JsonData = null
                                 });
                             }
                             else if (dev.ImportDisabled)
                             {
-                                actions.Add(new ActionItem 
+                                actions.Add(new ActionItem
                                 {
                                     Number = ++counter,
-                                    Supermanager = superManagement.Name, 
-                                    ActionType = ActionCode.ReactivateGateway.ToString(), 
-                                    ManagementId = changedMgmt.Id, 
-                                    DeviceId = dev.Id, 
+                                    Supermanager = superManagement.Name,
+                                    ActionType = ActionCode.ReactivateGateway.ToString(),
+                                    ManagementId = changedMgmt.Id,
+                                    DeviceId = dev.Id,
                                     JsonData = null
                                 });
                             }
@@ -243,13 +248,13 @@ namespace FWO.DeviceAutoDiscovery
                             {
                                 dev.DeviceType.Id = superManagement.DeviceType.GetGatewayTypeId();
                                 dev.Management.Id = changedMgmt.Id;
-                                actions.Add(new ActionItem 
+                                actions.Add(new ActionItem
                                 {
                                     Number = ++counter,
-                                    Supermanager = superManagement.Name, 
-                                    ActionType = ActionCode.AddGatewayToExistingManagement.ToString(), 
-                                    ManagementId = changedMgmt.Id, 
-                                    DeviceId = null, 
+                                    Supermanager = superManagement.Name,
+                                    ActionType = ActionCode.AddGatewayToExistingManagement.ToString(),
+                                    ManagementId = changedMgmt.Id,
+                                    DeviceId = null,
                                     JsonData = JsonSerializer.Serialize(dev)
                                 });
                             }
@@ -257,11 +262,13 @@ namespace FWO.DeviceAutoDiscovery
                     }
                 }
             }
-            catch(Exception exc)
+            catch (Exception exc)
             {
                 Log.WriteError("Autodiscovery", $"ConvertToActions Ran into exception: ", exc);
             }
             return actions;
         }
+
     }
 }
+

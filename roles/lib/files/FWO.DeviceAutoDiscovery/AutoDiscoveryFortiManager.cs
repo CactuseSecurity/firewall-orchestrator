@@ -15,12 +15,12 @@ namespace FWO.DeviceAutoDiscovery
         {
             List<Management> discoveredDevices = new List<Management>();
             Log.WriteAudit("Autodiscovery", $"starting discovery for {superManagement.Name} (id={superManagement.Id})");
-// #if DEBUG
-//            discoveredDevices = fillTestDevices();
-// #endif
+            // #if DEBUG
+            //            discoveredDevices = fillTestDevices();
+            // #endif
             if (superManagement.DeviceType.Name == "FortiManager")
             {
-                List<Adom> customAdoms = new List<Adom>();
+                List<Adom> customAdoms = new List<Adom>() { };
                 List<string> predefinedAdoms = // TODO: move this to config file
                     new List<string> {"FortiAnalyzer", "FortiAuthenticator", "FortiCache", "FortiCarrier", "FortiClient",
                         "FortiDDoS", "FortiDeceptor", "FortiFirewall", "FortiMail", "FortiManager", "FortiNAC", "FortiProxy",
@@ -29,29 +29,31 @@ namespace FWO.DeviceAutoDiscovery
                 FortiManagerClient restClientFM = new FortiManagerClient(superManagement);
 
                 RestResponse<SessionAuthInfo> sessionResponse = await restClientFM.AuthenticateUser(superManagement.ImportUser, superManagement.Password);
-                if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && sessionResponse.Data.SessionId !="")
+                if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && sessionResponse?.Data?.SessionId != null && sessionResponse?.Data?.SessionId != "")
                 {
-                    string sessionId = sessionResponse.Data.SessionId;
+                    string sessionId = sessionResponse!.Data!.SessionId;
                     Log.WriteDebug("Autodiscovery", $"successful FortiManager login, got SessionID: {sessionId}");
                     // need to use @ verbatim identifier for special chars in sessionId
-                    RestResponse<FmApiTopLevelHelper> adomResponse = await restClientFM.GetAdoms(@sessionId);
+                    RestResponse<FmApiTopLevelHelper> adomResponse = await restClientFM.GetAdoms(@sessionId!);
                     if (adomResponse.StatusCode == HttpStatusCode.OK && adomResponse.IsSuccessful)
                     {
-                        List<Adom> adomList = adomResponse.Data.Result[0].AdomList;
-                        if (adomList.Count > 0)
+                        List<Adom>? adomList = adomResponse?.Data?.Result[0]?.AdomList;
+                        if (adomList?.Count > 0)
+                        {
                             Log.WriteDebug("Autodiscovery", $"found a total of {adomList.Count} adoms");
+                            foreach (Adom adom in adomList)
+                            {
+                                Log.WriteDebug("Autodiscovery", $"found adom {adom.Name}");
+                                if (!predefinedAdoms.Contains(adom.Name))
+                                {
+                                    Log.WriteDebug("Autodiscovery", $"found non-predefined adom {adom.Name}");
+                                    customAdoms.Add(adom);
+                                }
+                            }
+                            customAdoms.Add(new Adom { Name = "global" }); // adding global adom
+                        }
                         else
                             Log.WriteWarning("Autodiscovery", $"found no adoms at all!");
-                        foreach (Adom adom in adomList)
-                        {
-                            Log.WriteDebug("Autodiscovery", $"found adom {adom.Name}");
-                            if (!predefinedAdoms.Contains(adom.Name))
-                            {
-                                Log.WriteDebug("Autodiscovery", $"found non-predefined adom {adom.Name}");
-                                customAdoms.Add(adom);
-                            }
-                        }
-                        customAdoms.Add(new Adom { Name = "global" }); // adding global adom
                     }
                     else
                         Log.WriteWarning("AutoDiscovery", $"error while getting ADOM list: {adomResponse.ErrorMessage}");
@@ -149,47 +151,47 @@ namespace FWO.DeviceAutoDiscovery
             return await GetDeltas(discoveredDevices);
         }
 
-// #if DEBUG
-//         List<Management> fillTestDevices()
-//         {
-//             List<Management> testDevices = new List<Management>();
-//             Management currentManagement = new Management
-//             {
-//                 Name = superManagement.Name + "__TestAdom",
-//                 ImporterHostname = superManagement.ImporterHostname,
-//                 Hostname = superManagement.Hostname,
-//                 ImportUser = superManagement.ImportUser,
-//                 PrivateKey = superManagement.PrivateKey,
-//                 Password = superManagement.Password,
-//                 Port = superManagement.Port,
-//                 ImportDisabled = false,
-//                 ForceInitialImport = true,
-//                 HideInUi = false,
-//                 ConfigPath = "TestAdom",
-//                 DebugLevel = superManagement.DebugLevel,
-//                 SuperManagerId = superManagement.Id,
-//                 DeviceType = new DeviceType { Id = 11 },
-//                 Devices = new Device[] { }
-//             };
-//             Device dev1 = new Device
-//             {
-//                 Name = "TestGateway1",
-//                 LocalRulebase = "Package1",
-//                 Package = "Package1",
-//                 DeviceType = new DeviceType { Id = 10 } // fortiGate
-//             };
-//             currentManagement.Devices = currentManagement.Devices.Append(dev1).ToArray();
-//             Device dev2 = new Device
-//             {
-//                 Name = "TestGateway2",
-//                 LocalRulebase = "Package2",
-//                 Package = "Package2",
-//                 DeviceType = new DeviceType { Id = 10 } // fortiGate
-//             };
-//             currentManagement.Devices = currentManagement.Devices.Append(dev2).ToArray();
-//             testDevices.Add(currentManagement);
-//             return testDevices;
-//         }
-// #endif
+        // #if DEBUG
+        //         List<Management> fillTestDevices()
+        //         {
+        //             List<Management> testDevices = new List<Management>();
+        //             Management currentManagement = new Management
+        //             {
+        //                 Name = superManagement.Name + "__TestAdom",
+        //                 ImporterHostname = superManagement.ImporterHostname,
+        //                 Hostname = superManagement.Hostname,
+        //                 ImportUser = superManagement.ImportUser,
+        //                 PrivateKey = superManagement.PrivateKey,
+        //                 Password = superManagement.Password,
+        //                 Port = superManagement.Port,
+        //                 ImportDisabled = false,
+        //                 ForceInitialImport = true,
+        //                 HideInUi = false,
+        //                 ConfigPath = "TestAdom",
+        //                 DebugLevel = superManagement.DebugLevel,
+        //                 SuperManagerId = superManagement.Id,
+        //                 DeviceType = new DeviceType { Id = 11 },
+        //                 Devices = new Device[] { }
+        //             };
+        //             Device dev1 = new Device
+        //             {
+        //                 Name = "TestGateway1",
+        //                 LocalRulebase = "Package1",
+        //                 Package = "Package1",
+        //                 DeviceType = new DeviceType { Id = 10 } // fortiGate
+        //             };
+        //             currentManagement.Devices = currentManagement.Devices.Append(dev1).ToArray();
+        //             Device dev2 = new Device
+        //             {
+        //                 Name = "TestGateway2",
+        //                 LocalRulebase = "Package2",
+        //                 Package = "Package2",
+        //                 DeviceType = new DeviceType { Id = 10 } // fortiGate
+        //             };
+        //             currentManagement.Devices = currentManagement.Devices.Append(dev2).ToArray();
+        //             testDevices.Add(currentManagement);
+        //             return testDevices;
+        //         }
+        // #endif
     }
 }

@@ -29,8 +29,8 @@ INSERT INTO txt VALUES ('set', 				    'German',	'Setzen');
 INSERT INTO txt VALUES ('set', 				    'English',	'Set');
 INSERT INTO txt VALUES ('add', 				    'German',	'Hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add', 				    'English',	'Add');
-INSERT INTO txt VALUES ('autodiscover', 	    'German',	'Auto Discovery');
-INSERT INTO txt VALUES ('autodiscover', 	    'English',	'Auto Discovery');
+INSERT INTO txt VALUES ('autodiscover', 	    'German',	'Sync');
+INSERT INTO txt VALUES ('autodiscover', 	    'English',	'Sync');
 INSERT INTO txt VALUES ('assign', 				'German',	'Zuordnen');
 INSERT INTO txt VALUES ('assign', 				'English',	'Assign');
 INSERT INTO txt VALUES ('search', 				'German',	'Suchen');
@@ -115,8 +115,16 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
         Der Quellcode kann auf <a href="https://github.com/CactuseSecurity/firewall-orchestrator" target="_blank">GitHub</a> eingesehen und heruntergeladen werden.</li>
     <li>GraphQL API f&uuml;r Automatisierungen</li>
     <li>Firewall-Regel Rezertifizierungsworkflow - beseitigen Sie ihre Altlasten und erf&uuml;llen Sie aktuelle regulatorische Anforderungen.</li>
-    <li>Import via FortiManager wird ab sofort unterst&uuml;tzt.</li>
-    <li>F&uuml;r FortiManager ist eine Auto Discovery Funktion enthalten, die ausgehend vom Fortimanager alle definierten ADOMs und Devices automatisch anlegt.</li>
+    <li>F&uuml;r FortiManager und CheckPoint (Stand-Alone & MDS Manager) ist eine Auto Discovery Funktion enthalten, die ausgehend 
+    vom Mnagement-System alle definierten Domains/SubManager sowie Devices automatisch anlegt sowie &Auml;nderungen erkennt 
+    und diese zur automatischen Konfigurationsänderung anbietet.</li>
+    <li>Einf&uuml;rung Monitoring und Alerting Modul - folgende Ereignisse werden protokolliert, in eine Log-Datei geschrieben (zur ggf. weiteren Auswertung per SIEM)
+     und dem Nutzer in der Oberfl&auml;che zur Erinnerung angezeigt:
+     <ul>
+        <li>&Auml;nderungen an angebundenen Firewall-Systemen, die im regelm&auml;&szlig; laufenden Hintergrund-Auto-Discovery-Prozess erkannt werden</li>
+        <li>Beim Import auftretende Fehler</li>
+        <li>Warnungen & Fehler, die in der Nutzeroberfl&auml;che angezeigt werden</li>
+     </ul>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
@@ -125,8 +133,15 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
         The code can be viewed/downloaded from <a href="https://github.com/CactuseSecurity/firewall-orchestrator" target="_blank">GitHub</a></li>
     <li>GraphQL API for automation</li>
     <li>Firewall rule recertification workflow - remove unnecessary rules and meet current regulatory requirements.</li>
-    <li>Support for direct import via FortiManager</li>
-    <li>FortiManager Auto Discovery functionality - only specify the FortiManager details, everything else (ADOMs, devices) will be auto discovered.</li>
+    <li>Device Auto Discovery functionality - only specify the Super Manager (FortiManager, MDS) details, everything else (ADOMs, Domains, devices) 
+    will be auto-discovered. Also changes in devices/managers will be detected and offered for auto-configuration.</li>
+    <li>Introduction of Monitoring and Alerting module - the following events will be logged internally as well as written into a log file 
+    (for further processing by a SIEM system) and will also be displayed in the UI as reminders to the relevant users:
+     <ul>
+        <li>Changes of the integrated firewall systems, which are detected by the background auto discovery process</li>
+        <li>import errors</li>
+        <li>all warnings and errors shown in the UI</li>
+     </ul>
 </ul>
 ');
 

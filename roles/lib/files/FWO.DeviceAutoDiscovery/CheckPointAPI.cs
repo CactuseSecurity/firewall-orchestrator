@@ -5,6 +5,8 @@ using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using FWO.Logging;
 using RestSharp.Serializers.NewtonsoftJson;
+using System.Text.Encodings.Web;
+using System.Text;
 
 namespace FWO.Rest.Client
 {
@@ -16,7 +18,7 @@ namespace FWO.Rest.Client
         {
             RestClientOptions restClientOptions = new RestClientOptions();
             restClientOptions.RemoteCertificateValidationCallback += (_, _, _, _) => true;
-            // restClientOptions.Encoding = Encoding.Latin1;
+            restClientOptions.Encoding = Encoding.Latin1;
             restClientOptions.BaseUrl = new Uri("https://" + manager.Hostname + ":" + manager.Port + "/web_api/");
             restClient = new RestClient(restClientOptions);
             // restClient.AddDefaultHeader("Content-Type", "application/json");
@@ -28,7 +30,7 @@ namespace FWO.Rest.Client
 
         public async Task<RestResponse<CpSessionAuthInfo>> AuthenticateUser(string? user, string? pwd, string? domain)
         {
-            if (user==null || user=="")
+            if (user == null || user == "")
             {
                 Log.WriteWarning("Autodiscovery", $"GetDomains got empty user string, aborting");
                 return new RestResponse<CpSessionAuthInfo>();
@@ -68,7 +70,17 @@ namespace FWO.Rest.Client
             return await restClient.ExecuteAsync<CpDomainHelper>(request);
         }
 
-        public async Task<List<CpDevice>> GetGateways(string session)  
+        private static bool containsDomainLayer(List<CpAccessLayer> layers)
+        {
+            foreach (CpAccessLayer layer in layers)
+            {
+                if (layer.ParentLayer != "")
+                    return true;
+            }
+            return false;
+        }
+
+        public async Task<List<CpDevice>> GetGateways(string session, string ManagementType)
         // session might pins this session to a specific domain 
         {
             RestRequest request = new RestRequest("show-gateways-and-servers", Method.Post);
@@ -79,7 +91,7 @@ namespace FWO.Rest.Client
             request.AddJsonBody(body);
             Log.WriteDebug("Autodiscovery", $"using CP REST API call 'show-gateways-and-servers'");
             List<String> gwTypes = new List<string> { "simple-gateway", "simple-cluster", "CpmiVsClusterNetobj", "CpmiGatewayPlain", "CpmiGatewayCluster", "CpmiVsxClusterNetobj" };
-            
+
             // getting all gateways of this management 
             RestResponse<CpDeviceHelper> devices = await restClient.ExecuteAsync<CpDeviceHelper>(request);
             foreach (CpDevice dev in devices?.Data?.DeviceList)
@@ -102,23 +114,9 @@ namespace FWO.Rest.Client
                             dev.Package = package.Data;
                             Log.WriteDebug("Autodiscovery", $"for gateway '{dev.Name}' we found a package '{dev?.Package?.Name}' with {dev?.Package?.CpAccessLayers.Count} layers");
 
-                            // now getting rid of unneccessary layes (eg. url filtering, application, ...)
-                            List<CpAccessLayer> relevantLayers = new List<CpAccessLayer>();
-                            if (dev?.Package?.CpAccessLayers.Count == 1) // default: pick the first layer found (if any)
-                                relevantLayers.Add(dev.Package.CpAccessLayers[0]);
-                            else if (dev?.Package?.CpAccessLayers.Count > 1)
-                            {
-                                Log.WriteWarning("Autodiscovery", $"for gateway '{dev.Name}'/ package '{dev.Package.Name}' we found multiple ({dev.Package.CpAccessLayers.Count}) layers");
-                                // for now: pick the layer which the most "firewall-ish" - TODO: deal with layer chaining
-                                foreach (CpAccessLayer layer in dev.Package.CpAccessLayers)
-                                {
-                                    if (layer.IsFirewallEnabled && !layer.IsApplicationsAndUrlFilteringEnabled && !layer.IsContentAwarenessEnabled && !layer.IsMobileAccessEnabled)
-                                        relevantLayers.Add(layer);
-                                }
-                            }
-                            dev.Package.CpAccessLayers = relevantLayers;
-                            if (relevantLayers.Count == 0)
-                                Log.WriteWarning("Autodiscovery", $"found gateway '{dev.Name}' without access layers");
+                            extractLayerNames(dev.Package, dev.Name, ManagementType, out string localLayerName, out string globalLayerName);
+                            dev.LocalLayerName = localLayerName;
+                            dev.GlobalLayerName = globalLayerName;
                         }
                     }
                     else
@@ -127,7 +125,64 @@ namespace FWO.Rest.Client
             }
             return devices.Data.DeviceList;
         }
+
+        private void extractLayerNames(CpPackage package, string devName, string managementType, out string localLayerName, out string globalLayerName)
+        {
+            localLayerName = "";
+            globalLayerName = "";
+            // getting rid of unneccessary layers (eg. url filtering, application, ...)
+            List<CpAccessLayer> relevantLayers = new List<CpAccessLayer>();
+            if (package.CpAccessLayers.Count == 1) // default: pick the first layer found (if any)
+                relevantLayers.Add(package.CpAccessLayers[0]);
+            else if (package.CpAccessLayers.Count > 1)
+            {
+                Log.WriteWarning("Autodiscovery", $"for gateway '{devName}'/ package '{package.Name}' we found multiple ({package.CpAccessLayers.Count}) layers");
+                // for now: pick the layer which the most "firewall-ish" - TODO: deal with layer chaining
+                foreach (CpAccessLayer layer in package.CpAccessLayers)
+                {
+                    if (layer.IsFirewallEnabled && !layer.IsApplicationsAndUrlFilteringEnabled && !layer.IsContentAwarenessEnabled && !layer.IsMobileAccessEnabled)
+                        relevantLayers.Add(layer);
+                }
+            }
+
+            foreach (CpAccessLayer layer in relevantLayers)
+            {
+                if (layer.Type != "access-layer") // only dealing with access layers, ignore the rest
+                    continue;
+
+                if (layer.ParentLayer != "")      // this is a domain layer
+                {
+                    localLayerName = layer.Name;
+                    layer.LayerType = "domain-layer";
+                    Log.WriteDebug("Autodiscovery", $"found domain layer with link to parent layer '{layer.ParentLayer}'");
+                }
+                else if (managementType == "stand-alone")
+                {
+                    localLayerName = layer.Name;
+                    layer.LayerType = "local-layer";
+                    Log.WriteDebug("Autodiscovery", $"found stand-alone layer '{layer.Name}'");
+                }
+                else if (containsDomainLayer(package.CpAccessLayers))
+                {   // this must the be global layer
+                    layer.LayerType = "global-layer";
+                    globalLayerName = layer.Name;
+                    Log.WriteDebug("Autodiscovery", $"found global layer '{layer.Name}'");
+                }
+                else
+                { // in domain context, but no global layer exists
+                    layer.LayerType = "stand-alone-layer";
+                    localLayerName = layer.Name;
+                    Log.WriteDebug("Autodiscovery", $"found stand-alone layer in domain context '{layer.Name}'");
+                }
+                // TODO: this will contstantly overwrite local layer name if more than one exists, the last one wins!
+            }
+
+            package.CpAccessLayers = relevantLayers;
+            if (relevantLayers.Count == 0)
+                Log.WriteWarning("Autodiscovery", $"found gateway '{devName}' without access layers");
+        }
     }
+
     public class CpSessionAuthInfo
     {
         [JsonProperty("sid"), JsonPropertyName("sid")]
@@ -191,6 +246,10 @@ namespace FWO.Rest.Client
         public CpPolicy Policy { get; set; } = new CpPolicy();
 
         public CpPackage Package { get; set; } = new CpPackage();
+
+        public string LocalLayerName { get; set; } = "";
+        public string GlobalLayerName { get; set; } = "";
+
     }
 
     public class DevObjectsHelper

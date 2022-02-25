@@ -5,7 +5,6 @@ using FWO.ApiClient;
 using FWO.Logging;
 using FWO.Rest.Client;
 
-
 namespace FWO.DeviceAutoDiscovery
 {
     public class AutoDiscoveryFortiManager : AutoDiscoveryBase

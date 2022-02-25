@@ -21,12 +21,17 @@ namespace FWO.Middleware.Server
         private System.Timers.Timer ScheduleTimer = new();
         private System.Timers.Timer AutoDiscoverTimer = new();
 
-
-        public AutoDiscoverScheduler(APIConnection apiConnection)
+        public static async Task<AutoDiscoverScheduler> CreateAsync(APIConnection apiConnection)
+        {
+            ConfigDbAccess config = await ConfigDbAccess.ConstructAsync(apiConnection);
+            return new AutoDiscoverScheduler(apiConnection, config);
+        }
+    
+        private AutoDiscoverScheduler(APIConnection apiConnection, ConfigDbAccess config)
         {
             this.apiConnection = apiConnection;
+            this.config = config;
 
-            config = new ConfigDbAccess(apiConnection);
             try
             {
                 autoDiscoverSleepTime = config.Get<int>(GlobalConfig.kAutoDiscoverSleepTime);

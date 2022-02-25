@@ -22,7 +22,7 @@ namespace FWO.Ui
 
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
-        public void ConfigureServices(IServiceCollection services)
+        public async void ConfigureServices(IServiceCollection services)
         {
             services.AddRazorPages();
             services.AddServerSideBlazor();
@@ -62,9 +62,9 @@ namespace FWO.Ui
             string jwt = createJWTResponse.Data;
             apiConn.SetAuthHeader(jwt);
             //((AuthStateProvider)AuthService).AuthenticateUser(jwt);
-            
+
             // get all non-confidential configuration settings and add to a global service (for all users)
-            GlobalConfig globalConfig = new GlobalConfig(jwt);
+            GlobalConfig globalConfig = Task.Run(async() => await GlobalConfig.ConstructAsync(jwt)).Result;
             services.AddSingleton<GlobalConfig>(_ => globalConfig);
             
             services.AddScoped<UserConfig>(_ => new UserConfig(globalConfig));

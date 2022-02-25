@@ -56,9 +56,9 @@ Task.Factory.StartNew(() =>
 }, TaskCreationOptions.LongRunning);
 
 // Create and start auto disovery scheduler
-Task.Factory.StartNew(() =>
+Task.Factory.StartNew(async() =>
 {
-    autoDiscoverScheduler = new AutoDiscoverScheduler(apiConnection);
+    autoDiscoverScheduler = await AutoDiscoverScheduler.CreateAsync(apiConnection);
 }, TaskCreationOptions.LongRunning);
 
 // Add services to the container.

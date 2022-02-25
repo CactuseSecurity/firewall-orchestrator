@@ -1,10 +1,7 @@
 using RestSharp;
-using RestSharp.Serializers.SystemTextJson;
 using System.Text.Json;
 using FWO.Api.Data;
-using System.Text;
 using System.Text.Json.Serialization;
-using System.Text.Encodings.Web;
 using Newtonsoft.Json;
 using FWO.Logging;
 using RestSharp.Serializers.NewtonsoftJson;
@@ -21,30 +18,25 @@ namespace FWO.Rest.Client
             restClientOptions.RemoteCertificateValidationCallback += (_, _, _, _) => true;
             // restClientOptions.Encoding = Encoding.Latin1;
             restClientOptions.BaseUrl = new Uri("https://" + manager.Hostname + ":" + manager.Port + "/web_api/");
-
             restClient = new RestClient(restClientOptions);
             // restClient.AddDefaultHeader("Content-Type", "application/json");
-
-            // string xsid = getter.login(args.user, apiuser_pwd, args.hostname, args.port, args.domain, ssl_verification, proxy_string, debug=args.debug)
-
-            // api_versions = getter.api_call(base_url, 'show-api-versions', {}, xsid, ssl_verification, proxy_string)
-            // api_version = api_versions["current-version"]
-            // api_supported = api_versions["supported-versions"]
-            // v_url = getter.set_api_url(base_url,args.version,api_supported,args.hostname)
-
 
             JsonNetSerializer serializer = new JsonNetSerializer(); // Case insensivitive is enabled by default
             restClient.UseDefaultSerializers();
             restClient.UseSerializer(() => serializer);
         }
 
-        // protected class JsonDefaultHeader
-        // {
-        //     [JsonProperty("Content-Type"), JsonPropertyName("ContentType")]
-        //     const string ContentType = "application/json";
-        // }
-        public async Task<RestResponse<CpSessionAuthInfo>> AuthenticateUser(string user, string pwd, string? domain)
+        public async Task<RestResponse<CpSessionAuthInfo>> AuthenticateUser(string? user, string? pwd, string? domain)
         {
+            if (user==null || user=="")
+            {
+                Log.WriteWarning("Autodiscovery", $"GetDomains got empty user string, aborting");
+                return new RestResponse<CpSessionAuthInfo>();
+            }
+            if (pwd == null)
+                pwd = "";
+            if (domain == null)
+                domain = "";
             Dictionary<string, string> body = new Dictionary<string, string>();
             body.Add("user", user);
             body.Add("password", pwd);
@@ -65,7 +57,6 @@ namespace FWO.Rest.Client
             return await restClient.ExecuteAsync<CpSessionAuthInfo>(request);
         }
 
-
         public async Task<RestResponse<CpDomainHelper>> GetDomains(string session)
         {
             RestRequest request = new RestRequest("show-domains", Method.Post);
@@ -77,7 +68,8 @@ namespace FWO.Rest.Client
             return await restClient.ExecuteAsync<CpDomainHelper>(request);
         }
 
-        public async Task<List<CpDevice>> GetGateways(string session)
+        public async Task<List<CpDevice>> GetGateways(string session)  
+        // session might pins this session to a specific domain 
         {
             RestRequest request = new RestRequest("show-gateways-and-servers", Method.Post);
             request.AddHeader("X-chkp-sid", session);
@@ -86,9 +78,11 @@ namespace FWO.Rest.Client
             body.Add("details-level", "full");
             request.AddJsonBody(body);
             Log.WriteDebug("Autodiscovery", $"using CP REST API call 'show-gateways-and-servers'");
-            RestResponse<CpDeviceHelper> devices = await restClient.ExecuteAsync<CpDeviceHelper>(request);
             List<String> gwTypes = new List<string> { "simple-gateway", "simple-cluster", "CpmiVsClusterNetobj", "CpmiGatewayPlain", "CpmiGatewayCluster", "CpmiVsxClusterNetobj" };
-            foreach (CpDevice dev in devices.Data.DeviceList)
+            
+            // getting all gateways of this management 
+            RestResponse<CpDeviceHelper> devices = await restClient.ExecuteAsync<CpDeviceHelper>(request);
+            foreach (CpDevice dev in devices?.Data?.DeviceList)
             {
                 if (gwTypes.Contains(dev.CpDevType))
                 {
@@ -103,26 +97,29 @@ namespace FWO.Rest.Client
                         packageBody.Add("details-level", "full");
                         requestPackage.AddJsonBody(packageBody);
                         RestResponse<CpPackage> package = await restClient.ExecuteAsync<CpPackage>(requestPackage);
-                        dev.Package = package.Data;
-                        Log.WriteDebug("Autodiscovery", $"for gateway '{dev.Name}' we found a package '{dev.Package.Name}' with {dev.Package.CpAccessLayers.Count} layers");
-
-                        // now getting rid of unneccessary layes (eg. url filtering, application, ...)
-                        List<CpAccessLayer> relevantLayers = new List<CpAccessLayer>();
-                        if (dev.Package.CpAccessLayers.Count == 1) // default: pick the first layer found (if any)
-                            relevantLayers.Add(dev.Package.CpAccessLayers[0]);
-                        else if (dev.Package.CpAccessLayers.Count > 1)
+                        if (dev != null && package != null && package.Data != null)
                         {
-                            Log.WriteWarning("Autodiscovery", $"for gateway '{dev.Name}'/ package '{dev.Package.Name}' we found multiple ({dev.Package.CpAccessLayers.Count}) layers");
-                            // for now: pick the layer which the most "firewall-ish" - TODO: deal with layer chaining
-                            foreach (CpAccessLayer layer in dev.Package.CpAccessLayers)
+                            dev.Package = package.Data;
+                            Log.WriteDebug("Autodiscovery", $"for gateway '{dev.Name}' we found a package '{dev?.Package?.Name}' with {dev?.Package?.CpAccessLayers.Count} layers");
+
+                            // now getting rid of unneccessary layes (eg. url filtering, application, ...)
+                            List<CpAccessLayer> relevantLayers = new List<CpAccessLayer>();
+                            if (dev?.Package?.CpAccessLayers.Count == 1) // default: pick the first layer found (if any)
+                                relevantLayers.Add(dev.Package.CpAccessLayers[0]);
+                            else if (dev?.Package?.CpAccessLayers.Count > 1)
                             {
-                                if (layer.IsFirewallEnabled && !layer.IsApplicationsAndUrlFilteringEnabled && !layer.IsContentAwarenessEnabled && !layer.IsMobileAccessEnabled)
-                                    relevantLayers.Add(layer);
+                                Log.WriteWarning("Autodiscovery", $"for gateway '{dev.Name}'/ package '{dev.Package.Name}' we found multiple ({dev.Package.CpAccessLayers.Count}) layers");
+                                // for now: pick the layer which the most "firewall-ish" - TODO: deal with layer chaining
+                                foreach (CpAccessLayer layer in dev.Package.CpAccessLayers)
+                                {
+                                    if (layer.IsFirewallEnabled && !layer.IsApplicationsAndUrlFilteringEnabled && !layer.IsContentAwarenessEnabled && !layer.IsMobileAccessEnabled)
+                                        relevantLayers.Add(layer);
+                                }
                             }
+                            dev.Package.CpAccessLayers = relevantLayers;
+                            if (relevantLayers.Count == 0)
+                                Log.WriteWarning("Autodiscovery", $"found gateway '{dev.Name}' without access layers");
                         }
-                        dev.Package.CpAccessLayers = relevantLayers;
-                        if (relevantLayers.Count == 0)
-                            Log.WriteWarning("Autodiscovery", $"found gateway '{dev.Name}' without access layers");
                     }
                     else
                         Log.WriteWarning("Autodiscovery", $"found gateway '{dev.Name}' without access policy");

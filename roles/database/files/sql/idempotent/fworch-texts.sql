@@ -29,8 +29,8 @@ INSERT INTO txt VALUES ('set', 				    'German',	'Setzen');
 INSERT INTO txt VALUES ('set', 				    'English',	'Set');
 INSERT INTO txt VALUES ('add', 				    'German',	'Hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add', 				    'English',	'Add');
-INSERT INTO txt VALUES ('autodiscover', 	    'German',	'Auto Discovery');
-INSERT INTO txt VALUES ('autodiscover', 	    'English',	'Auto Discovery');
+INSERT INTO txt VALUES ('autodiscover', 	    'German',	'Sync');
+INSERT INTO txt VALUES ('autodiscover', 	    'English',	'Sync');
 INSERT INTO txt VALUES ('assign', 				'German',	'Zuordnen');
 INSERT INTO txt VALUES ('assign', 				'English',	'Assign');
 INSERT INTO txt VALUES ('search', 				'German',	'Suchen');
@@ -115,8 +115,16 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
         Der Quellcode kann auf <a href="https://github.com/CactuseSecurity/firewall-orchestrator" target="_blank">GitHub</a> eingesehen und heruntergeladen werden.</li>
     <li>GraphQL API f&uuml;r Automatisierungen</li>
     <li>Firewall-Regel Rezertifizierungsworkflow - beseitigen Sie ihre Altlasten und erf&uuml;llen Sie aktuelle regulatorische Anforderungen.</li>
-    <li>Import via FortiManager wird ab sofort unterst&uuml;tzt.</li>
-    <li>F&uuml;r FortiManager ist eine Auto Discovery Funktion enthalten, die ausgehend vom Fortimanager alle definierten ADOMs und Devices automatisch anlegt.</li>
+    <li>F&uuml;r FortiManager und CheckPoint (Stand-Alone & MDS Manager) ist eine Auto Discovery Funktion enthalten, die ausgehend 
+    vom Mnagement-System alle definierten Domains/SubManager sowie Devices automatisch anlegt sowie &Auml;nderungen erkennt 
+    und diese zur automatischen Konfigurationsänderung anbietet.</li>
+    <li>Einf&uuml;rung Monitoring und Alerting Modul - folgende Ereignisse werden protokolliert, in eine Log-Datei geschrieben (zur ggf. weiteren Auswertung per SIEM)
+     und dem Nutzer in der Oberfl&auml;che zur Erinnerung angezeigt:
+     <ul>
+        <li>&Auml;nderungen an angebundenen Firewall-Systemen, die im regelm&auml;&szlig; laufenden Hintergrund-Auto-Discovery-Prozess erkannt werden</li>
+        <li>Beim Import auftretende Fehler</li>
+        <li>Warnungen & Fehler, die in der Nutzeroberfl&auml;che angezeigt werden</li>
+     </ul>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
@@ -125,8 +133,15 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
         The code can be viewed/downloaded from <a href="https://github.com/CactuseSecurity/firewall-orchestrator" target="_blank">GitHub</a></li>
     <li>GraphQL API for automation</li>
     <li>Firewall rule recertification workflow - remove unnecessary rules and meet current regulatory requirements.</li>
-    <li>Support for direct import via FortiManager</li>
-    <li>FortiManager Auto Discovery functionality - only specify the FortiManager details, everything else (ADOMs, devices) will be auto discovered.</li>
+    <li>Device Auto Discovery functionality - only specify the Super Manager (FortiManager, MDS) details, everything else (ADOMs, Domains, devices) 
+    will be auto-discovered. Also changes in devices/managers will be detected and offered for auto-configuration.</li>
+    <li>Introduction of Monitoring and Alerting module - the following events will be logged internally as well as written into a log file 
+    (for further processing by a SIEM system) and will also be displayed in the UI as reminders to the relevant users:
+     <ul>
+        <li>Changes of the integrated firewall systems, which are detected by the background auto discovery process</li>
+        <li>import errors</li>
+        <li>all warnings and errors shown in the UI</li>
+     </ul>
 </ul>
 ');
 
@@ -908,14 +923,18 @@ INSERT INTO txt VALUES ('autodiscovery',        'German', 	'Autodiscovery');
 INSERT INTO txt VALUES ('autodiscovery',        'English', 	'Autodiscovery');
 INSERT INTO txt VALUES ('autodiscovery_logs',   'German', 	'Autodiscovery-Logs');
 INSERT INTO txt VALUES ('autodiscovery_logs',   'English', 	'Autodiscovery Logs');
+INSERT INTO txt VALUES ('alert',                'German', 	'Alarm');
+INSERT INTO txt VALUES ('alert',                'English', 	'Alert');
 INSERT INTO txt VALUES ('alerts',               'German', 	'Alarme');
 INSERT INTO txt VALUES ('alerts',               'English', 	'Alerts');
 INSERT INTO txt VALUES ('acknowledge',          'German', 	'Best&auml;tigen');
 INSERT INTO txt VALUES ('acknowledge',          'English', 	'Acknowledge');
 INSERT INTO txt VALUES ('acknowledged_by',      'German', 	'Best&auml;tigt von');
 INSERT INTO txt VALUES ('acknowledged_by',      'English', 	'Acknowledged by');
-INSERT INTO txt VALUES ('acknowledged_alert',   'German', 	'Alarm best&auml;tigen');
-INSERT INTO txt VALUES ('acknowledged_alert',   'English', 	'Acknowledge alert');
+INSERT INTO txt VALUES ('acknowledge_alert',    'German', 	'Alarm best&auml;tigen');
+INSERT INTO txt VALUES ('acknowledge_alert',    'English', 	'Acknowledge alert');
+INSERT INTO txt VALUES ('acknowledge_action',   'German', 	'Aktion best&auml;tigen');
+INSERT INTO txt VALUES ('acknowledge_action',   'English', 	'Acknowledge action');
 INSERT INTO txt VALUES ('confirm',              'German', 	'Best&auml;tigen');
 INSERT INTO txt VALUES ('confirm',              'English', 	'Confirm');
 INSERT INTO txt VALUES ('found_by',             'German', 	'Gefunden von');
@@ -934,6 +953,14 @@ INSERT INTO txt VALUES ('deleted_devices',      'German', 	'Gel&ounl;schte Gatew
 INSERT INTO txt VALUES ('deleted_devices',      'English', 	'Deleted Gateways');
 INSERT INTO txt VALUES ('analyze_actions',      'German', 	'Aktionen analysieren');
 INSERT INTO txt VALUES ('analyze_actions',      'English', 	'Analyze Actions');
+INSERT INTO txt VALUES ('do_all_changes',       'German', 	'Alle &Auml;nderungen ausf&uuml;hren');
+INSERT INTO txt VALUES ('do_all_changes',       'English', 	'Do all changes');
+INSERT INTO txt VALUES ('change_management_state','German', 'Mamagement-Status &auml;ndern');
+INSERT INTO txt VALUES ('change_management_state','English','Change management state');
+INSERT INTO txt VALUES ('change_device_state',  'German',   'Gateway-Status &auml;ndern');
+INSERT INTO txt VALUES ('change_device_state',  'English',  'Change gateway state');
+INSERT INTO txt VALUES ('disable',				'German', 	'Deaktivieren');
+INSERT INTO txt VALUES ('disable',				'English', 	'Disable');
 
 
 -- help pages
@@ -1121,6 +1148,8 @@ INSERT INTO txt VALUES ('U5414', 'English', 'Adapt your personal recertification
 
 INSERT INTO txt VALUES ('U7001', 'German',  '&Uuml;berblick, was im Firewall Orchestrator passiert');
 INSERT INTO txt VALUES ('U7001', 'English', 'View what is going on in Firewall Orchestrator');
+INSERT INTO txt VALUES ('U7002', 'German',  'Daten sind dann verloren. Erw&auml;gen Sie eine Deaktivierung.');
+INSERT INTO txt VALUES ('U7002', 'English', 'Data will be lost. Consider deactivation.');
 INSERT INTO txt VALUES ('U7101', 'German',  'Archiv der Alarme mit Best&auml;tigungen');
 INSERT INTO txt VALUES ('U7101', 'English', 'View the past alerts with acknowledgements');
 INSERT INTO txt VALUES ('U7201', 'German',  'Archiv der Importer-Nachrichten');
@@ -1318,6 +1347,13 @@ INSERT INTO txt VALUES ('E5415', 'German',  'Passwort muss mindestens ein Sonder
 INSERT INTO txt VALUES ('E5415', 'English', 'Password must contain at least one special character (!?(){}=~$%&amp;#*-+.,_)');
 INSERT INTO txt VALUES ('E5421', 'German',  'Schl&uuml;ssel nicht gefunden oder Wert nicht konvertierbar: Wert wird gesetzt auf: ');
 INSERT INTO txt VALUES ('E5421', 'English', 'Key not found or could not convert value to int: taking value: ');
+
+INSERT INTO txt VALUES ('E7001', 'German',  'Aktion wurde bereits durchgef&uuml;hrt');
+INSERT INTO txt VALUES ('E7001', 'English', 'Action has already been processed');
+INSERT INTO txt VALUES ('E7002', 'German',  'Bitte zuerst Aktion ausf&uuml;hren von Alarm ');
+INSERT INTO txt VALUES ('E7002', 'English', 'Please apply first action of alert ');
+INSERT INTO txt VALUES ('E7003', 'German',  'Bitte zuerst zugeh&ouml;rige Gateways l&ouml;schen');
+INSERT INTO txt VALUES ('E7003', 'English', 'Please delete related gateways first');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');

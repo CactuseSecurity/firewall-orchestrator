@@ -36,7 +36,7 @@
                     <AuthorizeView Roles="admin, auditor" Context="ctx">
                         <Authorized>
                             <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
-                            @if (context.DeviceType.CanBeSupermanager())
+                            @if (context.DeviceType.CanBeSupermanager() || context.DeviceType.CanBeAutodiscovered(context))
                             {
                                 <button class="btn btn-sm btn-secondary" @onclick="() => AutoDiscover(context)">@(userConfig.GetText("autodiscover"))</button>
                             }
@@ -256,7 +256,7 @@
     </Footer>
 </PopUp>
 
-<AutoDiscovery Actions="actActions" @bind-Display="AutoDiscoverMode"/>
+<AutoDiscovery Actions="actActions" @bind-Display="AutoDiscoverMode" Closing="async () => {AutoDiscoverMode = false; await Refresh();}"/>
 
 
 @code
@@ -288,6 +288,11 @@
     private string cleanupMessage = "";
 
     protected override async Task OnInitializedAsync()
+    {
+        await Refresh();
+    }
+
+    protected async Task Refresh()
     {
         try
         {
@@ -506,11 +511,11 @@
     {
         actSuperManagement = superManagement;
 
-        if (superManagement.DeviceType.Id == 13)
+        @* if (superManagement.DeviceType.Id == 13)
         {
             DisplayMessageInUi!(null, userConfig.GetText("U5114"), "", true);
             return;
-        }
+        } *@
 
         try
         {

@@ -1,5 +1,5 @@
 query getAlerts {
-  alert (order_by: { alert_id: desc }, limit: 100){
+  alert (order_by: { alert_id: desc }){
     alert_id
     source
     title

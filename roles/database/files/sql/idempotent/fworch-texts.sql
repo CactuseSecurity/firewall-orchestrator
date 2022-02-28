@@ -736,6 +736,8 @@ INSERT INTO txt VALUES ('messageViewTime',      'German', 	'Nachrichten-Anzeiged
 INSERT INTO txt VALUES ('messageViewTime',      'English', 	'Message view time (in seconds)');
 INSERT INTO txt VALUES ('dataRetentionTime',    'German', 	'Datenaufbewahrungszeit (in Tagen)');
 INSERT INTO txt VALUES ('dataRetentionTime',    'English', 	'Data retention time (in days)');
+INSERT INTO txt VALUES ('dailyCheckStartAt',    'German', 	'Startzeit t&auml;glicher Check');
+INSERT INTO txt VALUES ('dailyCheckStartAt',    'English', 	'Daily check start at');
 INSERT INTO txt VALUES ('importSleepTime',      'German', 	'Importintervall (in Sekunden)');
 INSERT INTO txt VALUES ('importSleepTime',      'English', 	'Import sleep time (in seconds)');
 INSERT INTO txt VALUES ('fwApiElementsPerFetch','German', 	'FW API - Pro Abruf geholte Elemente');
@@ -926,6 +928,8 @@ INSERT INTO txt VALUES ('nothing_more_to_change','German', 	'Keine weiteren &Aum
 INSERT INTO txt VALUES ('nothing_more_to_change','English', 'Nothing more to change');
 INSERT INTO txt VALUES ('no_open_alerts',       'German', 	'Keine offenen Alarme');
 INSERT INTO txt VALUES ('no_open_alerts',       'English', 	'Currently no open alerts');
+INSERT INTO txt VALUES ('handle_alert',         'German', 	'Alarm bearbeiten');
+INSERT INTO txt VALUES ('handle_alert',         'English', 	'Handle alert');
 INSERT INTO txt VALUES ('new_managements',      'German', 	'Neue Managements');
 INSERT INTO txt VALUES ('new_managements',      'English', 	'New Managements');
 INSERT INTO txt VALUES ('new_devices',          'German', 	'Neue Gateways');

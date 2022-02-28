@@ -53,19 +53,20 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "ack_by",
+                      "ack_timestamp",
+                      "alert_code",
+                      "alert_dev_id",
                       "alert_id",
+                      "alert_mgm_id",
+                      "alert_timestamp",
+                      "description",
+                      "json_data",
                       "ref_alert_id",
                       "ref_log_id",
-                      "description",
                       "source",
                       "title",
-                      "ack_by",
-                      "alert_dev_id",
-                      "alert_mgm_id",
-                      "user_id",
-                      "json_data",
-                      "ack_timestamp",
-                      "alert_timestamp"
+                      "user_id"
                     ],
                     "backend_only": false
                   }
@@ -75,20 +76,22 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "ack_by",
+                      "ack_timestamp",
+                      "alert_code",
+                      "alert_dev_id",
                       "alert_id",
+                      "alert_mgm_id",
+                      "alert_timestamp",
+                      "description",
+                      "json_data",
                       "ref_alert_id",
                       "ref_log_id",
-                      "description",
                       "source",
                       "title",
-                      "ack_by",
-                      "alert_dev_id",
-                      "alert_mgm_id",
-                      "user_id",
-                      "json_data",
-                      "ack_timestamp",
-                      "alert_timestamp"
-                    ]
+                      "user_id"
+                    ],
+                    "backend_only": false
                   }
                 },
                 {
@@ -96,20 +99,22 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "ack_by",
+                      "ack_timestamp",
+                      "alert_code",
+                      "alert_dev_id",
                       "alert_id",
+                      "alert_mgm_id",
+                      "alert_timestamp",
+                      "description",
+                      "json_data",
                       "ref_alert_id",
                       "ref_log_id",
-                      "description",
                       "source",
                       "title",
-                      "ack_by",
-                      "alert_dev_id",
-                      "alert_mgm_id",
-                      "user_id",
-                      "json_data",
-                      "ack_timestamp",
-                      "alert_timestamp"
-                    ]
+                      "user_id"
+                    ],
+                    "backend_only": false
                   }
                 },
                 {
@@ -117,20 +122,22 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "ack_by",
+                      "ack_timestamp",
+                      "alert_code",
+                      "alert_dev_id",
                       "alert_id",
+                      "alert_mgm_id",
+                      "alert_timestamp",
+                      "description",
+                      "json_data",
                       "ref_alert_id",
                       "ref_log_id",
-                      "description",
                       "source",
                       "title",
-                      "ack_by",
-                      "alert_dev_id",
-                      "alert_mgm_id",
-                      "user_id",
-                      "json_data",
-                      "ack_timestamp",
-                      "alert_timestamp"
-                    ]
+                      "user_id"
+                    ],
+                    "backend_only": false
                   }
                 },
                 {
@@ -138,20 +145,22 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "ack_by",
+                      "ack_timestamp",
+                      "alert_code",
+                      "alert_dev_id",
                       "alert_id",
+                      "alert_mgm_id",
+                      "alert_timestamp",
+                      "description",
+                      "json_data",
                       "ref_alert_id",
                       "ref_log_id",
-                      "description",
                       "source",
                       "title",
-                      "ack_by",
-                      "alert_dev_id",
-                      "alert_mgm_id",
-                      "user_id",
-                      "json_data",
-                      "ack_timestamp",
-                      "alert_timestamp"
-                    ]
+                      "user_id"
+                    ],
+                    "backend_only": false
                   }
                 },
                 {
@@ -159,20 +168,22 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "ack_by",
+                      "ack_timestamp",
+                      "alert_code",
+                      "alert_dev_id",
                       "alert_id",
+                      "alert_mgm_id",
+                      "alert_timestamp",
+                      "description",
+                      "json_data",
                       "ref_alert_id",
                       "ref_log_id",
-                      "description",
                       "source",
                       "title",
-                      "ack_by",
-                      "alert_dev_id",
-                      "alert_mgm_id",
-                      "user_id",
-                      "json_data",
-                      "ack_timestamp",
-                      "alert_timestamp"
-                    ]
+                      "user_id"
+                    ],
+                    "backend_only": false
                   }
                 }
               ],
@@ -181,19 +192,20 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "alert_id",
-                      "ref_log_id",
-                      "ref_alert_id",
-                      "source",
-                      "title",
-                      "description",
-                      "alert_mgm_id",
-                      "alert_dev_id",
-                      "alert_timestamp",
-                      "user_id",
                       "ack_by",
                       "ack_timestamp",
-                      "json_data"
+                      "alert_code",
+                      "alert_dev_id",
+                      "alert_id",
+                      "alert_mgm_id",
+                      "alert_timestamp",
+                      "description",
+                      "json_data",
+                      "ref_alert_id",
+                      "ref_log_id",
+                      "source",
+                      "title",
+                      "user_id"
                     ],
                     "filter": {}
                   }
@@ -202,19 +214,20 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
+                      "ack_by",
+                      "ack_timestamp",
+                      "alert_code",
+                      "alert_dev_id",
                       "alert_id",
+                      "alert_mgm_id",
+                      "alert_timestamp",
+                      "description",
+                      "json_data",
                       "ref_alert_id",
                       "ref_log_id",
-                      "description",
                       "source",
                       "title",
-                      "ack_by",
-                      "alert_dev_id",
-                      "alert_mgm_id",
-                      "user_id",
-                      "json_data",
-                      "ack_timestamp",
-                      "alert_timestamp"
+                      "user_id"
                     ],
                     "filter": {}
                   }
@@ -223,19 +236,20 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "ack_by",
+                      "ack_timestamp",
+                      "alert_code",
+                      "alert_dev_id",
                       "alert_id",
+                      "alert_mgm_id",
+                      "alert_timestamp",
+                      "description",
+                      "json_data",
                       "ref_alert_id",
                       "ref_log_id",
-                      "description",
                       "source",
                       "title",
-                      "ack_by",
-                      "alert_dev_id",
-                      "alert_mgm_id",
-                      "user_id",
-                      "json_data",
-                      "ack_timestamp",
-                      "alert_timestamp"
+                      "user_id"
                     ],
                     "filter": {}
                   }
@@ -246,6 +260,29 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
+                      "ack_by",
+                      "ack_timestamp",
+                      "alert_code",
+                      "alert_dev_id",
+                      "alert_id",
+                      "alert_mgm_id",
+                      "alert_timestamp",
+                      "description",
+                      "json_data",
+                      "ref_alert_id",
+                      "ref_log_id",
+                      "source",
+                      "title",
+                      "user_id"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
                       "alert_id",
                       "ref_alert_id",
                       "ref_log_id",
@@ -253,6 +290,7 @@
                       "source",
                       "title",
                       "ack_by",
+                      "alert_code",
                       "alert_dev_id",
                       "alert_mgm_id",
                       "user_id",
@@ -2366,6 +2404,27 @@
                     ],
                     "filter": {},
                     "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "control_id",
+                      "changes_found",
+                      "is_initial_import",
+                      "successful_import",
+                      "delimiter_group",
+                      "delimiter_list",
+                      "delimiter_user",
+                      "delimiter_zone",
+                      "import_errors",
+                      "mgm_id",
+                      "last_change_in_config",
+                      "start_time",
+                      "stop_time"
+                    ],
+                    "filter": {}
                   }
                 },
                 {

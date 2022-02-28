@@ -1,0 +1,85 @@
+﻿@using FWO.Config.Api
+@using FWO.Api.Data
+@using FWO.ApiClient
+
+@inject APIConnection apiConnection
+@inject UserConfig userConfig
+
+<PopUp Title="@(userConfig.GetText("rollback_import") + ": " + ManagementId)" Show="@RollbackMode" OnClose="() => RollbackMode = false">
+    <Body>
+        @if (RollbackMode)
+        {
+            if(LastIncompleteImport != null && LastIncompleteImport.Length > 0)
+            {
+                <p>@(userConfig.GetText("U5104") + (LastIncompleteImport[0].StartTime != null ? Math.Round(((TimeSpan)(DateTime.Now - LastIncompleteImport[0].StartTime!)).TotalMinutes).ToString() : "?") + userConfig.GetText("U5105"))</p>
+            }
+            else
+            {
+                <p>@(userConfig.GetText("U5106"))</p>
+            }
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="admin, importer" Context="xxx">
+                <Authorized>
+                    <button class="btn btn-sm btn-danger" @onclick="async () => {await Rollback(); RollbackMode = false; await Closing.InvokeAsync(RollbackMode);}">@(userConfig.GetText("rollback"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("rollback"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+
+    [Parameter]
+    public int ManagementId { get; set; }
+
+    [Parameter]
+    public ImportControl[]? LastIncompleteImport { get; set; }
+
+    [Parameter]
+    public bool RollbackMode { get; set; }
+   
+    [Parameter]
+    public EventCallback<bool> RollbackModeChanged { get; set; }
+    
+    [Parameter]
+    public EventCallback<bool> Closing { get; set; }
+
+
+    private void Cancel()
+    {
+        RollbackMode = false;
+    }
+
+    private async Task Rollback()
+    {
+        try
+        {
+            RollbackMode = false;
+            var Variables = new { mgmId = ManagementId };
+            int affectedRows = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.deleteImport, Variables)).AffectedRows;
+            if (affectedRows > 0)
+            {
+                Log.WriteDebug("Delete Import", $"deleted {affectedRows} rows from Management Id {ManagementId}");
+                DisplayMessageInUi!(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5107"), false);
+            }
+            else
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5106"), false);
+            }
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("rollback_import"), "", true);
+        }
+    }
+}

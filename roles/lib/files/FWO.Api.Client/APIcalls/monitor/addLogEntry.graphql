@@ -1,0 +1,38 @@
+mutation addLogEntry(
+  $source: String!
+  $discoverUser: Int!
+  $severity: Int!
+  $suspectedCause: String
+  $description: String
+  $mgmId: Int
+  $devId: Int
+  $importId: bigint
+  $objectType: String
+  $objectName: String
+  $objectUid: String
+  $ruleUid: String
+  $ruleId: bigint
+) {
+  insert_log_data_issue(
+    objects: {
+      source: $source
+      user_id: $discoverUser
+      severity: $severity
+      suspected_cause: $suspectedCause
+      description: $description
+      issue_mgm_id: $mgmId
+      issue_dev_id: $devId
+      import_id: $importId
+      object_type: $objectType
+      object_name: $objectName
+      object_uid: $objectUid
+      rule_uid: $ruleUid
+      rule_id: $ruleId
+    }
+  ) {
+    returning {
+       newId: data_issue_id
+    }
+  }
+}
+

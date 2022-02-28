@@ -8,5 +8,6 @@ query getAlerts {
     user_id
     ack_by
     ack_timestamp
+    alert_code
   }
 }

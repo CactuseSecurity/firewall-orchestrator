@@ -64,6 +64,12 @@
 </form>
 <hr />
 <form class="form-inline" onsubmit="return false">
+    <label for="dailyCheckStartAt" class="col-form-label col-sm-4">@(userConfig.GetText("dailyCheckStartAt")):</label>
+    <div class="col-sm-2">
+        <input id="dailyCheckStartAt" type="time" step="60" class="form-control form-control-sm w-100" @bind="dailyCheckStartAtTime" />
+    </div>
+</form>
+<form class="form-inline" onsubmit="return false">
     <label for="importSleepTime" class="col-form-label col-sm-4">@(userConfig.GetText("importSleepTime")):</label>
     <div class="col-sm-2">
         <input id="importSleepTime" type="number" class="form-control form-control-sm w-100" @bind="importSleepTime" />
@@ -143,6 +149,7 @@
     int messageViewTime = GlobalConfig.kDefaultInitMessageViewTime;
     string selectedDefaultLanguage = GlobalConfig.kEnglish;
     int dataRetentionTime = GlobalConfig.kDefaultInitDataRetentionTime;
+    string dailyCheckStartAt = DateTime.Now.TimeOfDay.ToString();
     int importSleepTime = GlobalConfig.kDefaultInitImportSleepTime;
     int fwApiElementsPerFetch = GlobalConfig.kDefaultInitFwApiElementsPerFetch;
     int autoDiscoverSleepTime = GlobalConfig.kDefaultInitAutoDiscoverSleepTime;
@@ -156,6 +163,8 @@
     int oldAutoDiscoverSleepTime = GlobalConfig.kDefaultInitAutoDiscoverSleepTime;
     string oldAutoDiscoverStartAt = DateTime.Now.TimeOfDay.ToString();
     private DateTime autoDiscoverStartAtTime = DateTime.Now;
+    string oldDailyCheckStartAt = DateTime.Now.TimeOfDay.ToString();
+    private DateTime dailyCheckStartAtTime = DateTime.Now;
 
     protected override void OnInitialized()
     {
@@ -171,6 +180,7 @@
             minCollapseAllDevices = GetIntSetting(minCollapseAllDevices, GlobalConfig.kMinCollapseAllDevices);
             messageViewTime = GetIntSetting(messageViewTime, GlobalConfig.kMessageViewTime);
             dataRetentionTime = GetIntSetting(dataRetentionTime, GlobalConfig.kDataRetentionTime);
+            dailyCheckStartAt = config.Get<string>(GlobalConfig.kDailyCheckStartAt);
             importSleepTime = GetIntSetting(importSleepTime, GlobalConfig.kImportSleepTime);
             fwApiElementsPerFetch = GetIntSetting(fwApiElementsPerFetch, GlobalConfig.kFwApiElementsPerFetch);
             autoDiscoverSleepTime = GetIntSetting(autoDiscoverSleepTime, GlobalConfig.kAutoDiscoverSleepTime);
@@ -184,6 +194,8 @@
             oldAutoDiscoverSleepTime = autoDiscoverSleepTime;
             oldAutoDiscoverStartAt = autoDiscoverStartAt;
             autoDiscoverStartAtTime = Convert.ToDateTime(autoDiscoverStartAt);
+            oldDailyCheckStartAt = dailyCheckStartAt;
+            dailyCheckStartAtTime = Convert.ToDateTime(dailyCheckStartAt);
         }
         catch (Exception exception)
         {
@@ -232,6 +244,13 @@
                 await config.Set(GlobalConfig.kMinCollapseAllDevices, minCollapseAllDevices.ToString());
                 await config.Set(GlobalConfig.kMessageViewTime, messageViewTime.ToString());
                 await config.Set(GlobalConfig.kDataRetentionTime, dataRetentionTime.ToString());
+                dailyCheckStartAt = dailyCheckStartAtTime.TimeOfDay.ToString();
+                if(oldDailyCheckStartAt != dailyCheckStartAt)
+                {
+                    // only update if really changed because of subscription
+                    await config.Set(GlobalConfig.kDailyCheckStartAt, dailyCheckStartAt);
+                    oldDailyCheckStartAt = dailyCheckStartAt;
+                }
                 await config.Set(GlobalConfig.kImportSleepTime, importSleepTime.ToString());
                 await config.Set(GlobalConfig.kFwApiElementsPerFetch, fwApiElementsPerFetch.ToString());
                 if(oldAutoDiscoverSleepTime != autoDiscoverSleepTime)

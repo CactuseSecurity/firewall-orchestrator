@@ -13,6 +13,7 @@ int jwtMinutesValid = 240;  // TODO: MOVE TO API/Config
 
 ReportScheduler reportScheduler;
 AutoDiscoverScheduler autoDiscoverScheduler;
+DailyCheckScheduler dailyCheckScheduler;
 
 // Create new config file
 ConfigFile configFile = new ConfigFile();
@@ -59,6 +60,12 @@ Task.Factory.StartNew(() =>
 Task.Factory.StartNew(() =>
 {
     autoDiscoverScheduler = new AutoDiscoverScheduler(apiConnection);
+}, TaskCreationOptions.LongRunning);
+
+// Create and start daily check scheduler
+Task.Factory.StartNew(() =>
+{
+    dailyCheckScheduler = new DailyCheckScheduler(apiConnection);
 }, TaskCreationOptions.LongRunning);
 
 // Add services to the container.

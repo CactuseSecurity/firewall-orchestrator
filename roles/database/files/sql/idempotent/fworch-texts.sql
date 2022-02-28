@@ -409,6 +409,8 @@ INSERT INTO txt VALUES ('group_members_flat',	'German', 	'Gruppenmitglieder (geg
 INSERT INTO txt VALUES ('group_members_flat',	'English', 	'Group Members (flattened)');
 INSERT INTO txt VALUES ('object_fetch',         'German', 	'Abholen der Objekte');
 INSERT INTO txt VALUES ('object_fetch',         'English', 	'Object Fetch');
+INSERT INTO txt VALUES ('object_fetch_warning', 'German', 	'Aufgrund des gew&auml;hlten Limits konnten nicht alle Objekte in die rechte Randleiste geladen werden');
+INSERT INTO txt VALUES ('object_fetch_warning', 'English', 	'Because of the set fetch limit, not all objects could be loaded into the right side bar');
 INSERT INTO txt VALUES ('template_fetch',       'German', 	'Abholen der Vorlagen');
 INSERT INTO txt VALUES ('template_fetch',       'English', 	'Report Template Fetch');
 INSERT INTO txt VALUES ('save_template',        'German', 	'Speichern der Vorlage');
@@ -1170,6 +1172,8 @@ INSERT INTO txt VALUES ('E0011', 'German',  'G&uuml;ltiger Nutzer aber keine Rol
 INSERT INTO txt VALUES ('E0011', 'English', 'Valid user but no role assigned. Please contact administrator');
 INSERT INTO txt VALUES ('E0012', 'German',  'M&ouml;glicherweise ist das Backend (API oder Datenbank) nicht erreichbar. Bitte Administrator kontaktieren');
 INSERT INTO txt VALUES ('E0012', 'English', 'Maybe backend (API or database) is unreachable. Please contact administrator');
+INSERT INTO txt VALUES ('E0021', 'German',  'Bitte &uuml;berpr&uuml;fen Sie ihre Einstellungen');
+INSERT INTO txt VALUES ('E0021', 'English', 'Please check your settings');
 
 INSERT INTO txt VALUES ('E1001', 'German',  'Vor dem Generieren des Reports bitte mindestens ein Device auf der linken Seite ausw&auml;hlen');
 INSERT INTO txt VALUES ('E1001', 'English', 'Please select at least one device in the left side-bar before generating a report');

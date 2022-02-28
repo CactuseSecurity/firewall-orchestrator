@@ -11,16 +11,6 @@ namespace FWO.DeviceAutoDiscovery
     {
         public AutoDiscoveryCpMds(Management mgm, APIConnection apiConn) : base(mgm, apiConn) { }
 
-        private static bool containsDomainLayer(List<CpAccessLayer> layers)
-        {
-            foreach (CpAccessLayer layer in layers)
-            {
-                if (layer.ParentLayer != "")
-                    return true;
-            }
-            return false;
-        }
-
         public override async Task<List<Management>> Run()
         {
             if (superManagement == null)
@@ -33,9 +23,7 @@ namespace FWO.DeviceAutoDiscovery
 
                 if (superManagement.DeviceType.Name == "Check Point")
                 {
-                    // List<Domain> customDomains = new List<Domain>();
                     Log.WriteDebug("Autodiscovery", $"discovering CP domains & gateways");
-
                     CheckPointClient restClientCP = new CheckPointClient(superManagement);
 
                     RestResponse<CpSessionAuthInfo> sessionResponse = await restClientCP.AuthenticateUser(superManagement.ImportUser, superManagement.Password, superManagement.ConfigPath);
@@ -87,7 +75,6 @@ namespace FWO.DeviceAutoDiscovery
                                     DeviceType = new DeviceType { Id = 9 },
                                     Devices = new Device[] { }
                                 };
-                                // Log.WriteDebug("Autodiscovery", $"DeviceTypeId of freshly created management={currentManagement.DeviceType.Id}");
                                 // if super manager is just a simple management
                                 if (domain.Name == "") // set some settings identical to "superManager", so that no new manager is created
                                 {
@@ -96,6 +83,7 @@ namespace FWO.DeviceAutoDiscovery
                                     currentManagement.SuperManagerId = null;
                                 }
 
+                                // session id pins this session to a specific domain (if domain is given during login) 
                                 RestResponse<CpSessionAuthInfo> sessionResponsePerDomain =
                                     await restClientCP.AuthenticateUser(superManagement.ImportUser, superManagement.Password, domain.Name);
 
@@ -104,11 +92,11 @@ namespace FWO.DeviceAutoDiscovery
                                     sessionResponsePerDomain.Data?.SessionId != null &&
                                     sessionResponsePerDomain.Data?.SessionId != "")
                                 {
-                                    // if (sessionResponsePerDomain?.Data?.SessionId == null)
-                                    //     continue;
                                     string sessionIdPerDomain = sessionResponsePerDomain.Data!.SessionId;
                                     Log.WriteDebug("Autodiscovery", $"successful CP manager login, got SessionID: {sessionIdPerDomain}");
-                                    List<CpDevice> devList = await restClientCP.GetGateways(@sessionIdPerDomain);
+
+                                    // now fetching per gateway information (including package and layer names)
+                                    List<CpDevice> devList = await restClientCP.GetGateways(@sessionIdPerDomain, ManagementType);
 
                                     // add devices to currentManagement
                                     foreach (CpDevice cpDev in devList)
@@ -121,44 +109,11 @@ namespace FWO.DeviceAutoDiscovery
 
                                         if (cpDev.CpDevType != "checkpoint-host")   // leave out the management host?!
                                         {
-                                            string globalLayerName = "";
-                                            string localLayerName = "";
-                                            bool packageContainsDomainLayer = containsDomainLayer(cpDev.Package.CpAccessLayers);
-                                            foreach (CpAccessLayer layer in cpDev.Package.CpAccessLayers)
-                                            {
-                                                if (layer.Type != "access-layer") // only dealing with access layers, ignore the rest
-                                                    continue;
-
-                                                if (layer.ParentLayer != "")      // this is a domain layer
-                                                {
-                                                    localLayerName = layer.Name;
-                                                    layer.LayerType = "domain-layer";
-                                                    Log.WriteDebug("Autodiscovery", $"found domain layer with link to parent layer '{layer.ParentLayer}'");
-                                                }
-                                                else if (ManagementType == "stand-alone")
-                                                {
-                                                    localLayerName = layer.Name;
-                                                    layer.LayerType = "local-layer";
-                                                    Log.WriteDebug("Autodiscovery", $"found stand-alone layer '{layer.Name}'");
-                                                }
-                                                else if (packageContainsDomainLayer)
-                                                {   // this must the be global layer
-                                                    layer.LayerType = "global-layer";
-                                                    globalLayerName = layer.Name;
-                                                    Log.WriteDebug("Autodiscovery", $"found global layer '{layer.Name}'");
-                                                }
-                                                else
-                                                { // in domain context, but no global layer exists
-                                                    layer.LayerType = "stand-alone-layer";
-                                                    Log.WriteDebug("Autodiscovery", $"found stand-alone layer in domain context '{layer.Name}'");
-                                                }
-                                                // TODO: this will contstantly overwrite local layer name if more than one exists, the last one wins!
-                                            }
                                             Device dev = new Device
                                             {
                                                 Name = cpDev.Name,
-                                                LocalRulebase = localLayerName,
-                                                GlobalRulebase = globalLayerName,
+                                                LocalRulebase = cpDev.LocalLayerName,
+                                                GlobalRulebase = cpDev.GlobalLayerName,
                                                 Package = cpDev.Package.Name,
                                                 DeviceType = new DeviceType { Id = 9 } // CheckPoint GW
                                             };

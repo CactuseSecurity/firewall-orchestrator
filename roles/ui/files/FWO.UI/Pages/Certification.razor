@@ -1,4 +1,4 @@
-﻿@using System
+@using System
 @using System.Threading
 @using System.Text.RegularExpressions
 @using FWO.Ui.Data
@@ -328,6 +328,8 @@
             bool newObjects = true;
             int fetchCount = 0;
 
+            bool gotAllObjects = true;
+
             switch (contentType)
             {
                 case all:
@@ -373,7 +375,10 @@
                     };
 
                     if (currentReport != null)
-                        await currentReport.GetObjectsForManagementInReport(queryVars, (byte)(contentType - report), autoFillRightSidebar ? int.MaxValue : maxInitFetchRightSidebar, apiConnection, callback);
+                        gotAllObjects = await currentReport.GetObjectsForManagementInReport(queryVars, (byte)(contentType - report), autoFillRightSidebar ? int.MaxValue : maxInitFetchRightSidebar, apiConnection, callback);
+                        
+                    if (!gotAllObjects)
+                        DisplayMessageInUi!(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);
 
                     return;
 
@@ -408,13 +413,15 @@
             }
 
             Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount - 1} cycle(s) ({elementsPerFetch} at a time)");
+            
+            if (fetchCount > maxInitFetchRightSidebar && !autoFillRightSidebar)
+                DisplayMessageInUi!(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);
         }
         catch (Exception exception)
         {
             DisplayMessageInUi!(exception, userConfig.GetText("object_fetch"), "", true);
             // TODO: Error Interface for all Components, that enables displaying a message in the ui
         }
-
     }
 
     private void RequestExecuteSelected()

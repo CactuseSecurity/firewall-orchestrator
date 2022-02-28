@@ -166,11 +166,11 @@
     string oldDailyCheckStartAt = DateTime.Now.TimeOfDay.ToString();
     private DateTime dailyCheckStartAtTime = DateTime.Now;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         try
         {
-            config = new ConfigDbAccess(apiConnection);
+            config = await ConfigDbAccess.ConstructAsync(apiConnection);
             selectedDefaultLanguage = config.Get<string>(GlobalConfig.kDefaultLanguage);
             Log.WriteDebug("Default language", $"got language: {selectedDefaultLanguage}");
 

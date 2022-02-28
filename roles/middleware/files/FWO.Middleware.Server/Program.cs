@@ -57,9 +57,9 @@ Task.Factory.StartNew(() =>
 }, TaskCreationOptions.LongRunning);
 
 // Create and start auto disovery scheduler
-Task.Factory.StartNew(() =>
+Task.Factory.StartNew(async() =>
 {
-    autoDiscoverScheduler = new AutoDiscoverScheduler(apiConnection);
+    autoDiscoverScheduler = await AutoDiscoverScheduler.CreateAsync(apiConnection);
 }, TaskCreationOptions.LongRunning);
 
 // Create and start daily check scheduler

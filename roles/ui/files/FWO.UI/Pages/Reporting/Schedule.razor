@@ -145,8 +145,8 @@
 {
     List<ScheduledReport> scheduledReports = new List<ScheduledReport>();
     ScheduledReport scheduledReportInEdit = new ScheduledReport();
-    private DateTime actDate = DateTime.Now;
-    private DateTime actTime = DateTime.Now;
+    private DateTime actDate = DateTime.Today;
+    private DateTime actTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
 
     private bool ShowSaveScheduledReportDialog = false;
     private bool ShowEditScheduledReportDialog = false;

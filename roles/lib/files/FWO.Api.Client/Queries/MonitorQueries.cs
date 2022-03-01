@@ -1,14 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using System.IO;
-using FWO.Logging;
+﻿using FWO.Logging;
 
 namespace FWO.ApiClient.Queries
 {
     public class MonitorQueries : Queries
     {
+        public static readonly string addLogEntry;
         public static readonly string getLogEntrys;
         public static readonly string addUiLogEntry;
         public static readonly string getUiLogEntrys;
@@ -27,6 +23,7 @@ namespace FWO.ApiClient.Queries
         {
             try
             {
+                addLogEntry = File.ReadAllText(QueryPath + "monitor/addLogEntry.graphql");
                 getLogEntrys = File.ReadAllText(QueryPath + "monitor/getLogEntrys.graphql");
 
                 addUiLogEntry = File.ReadAllText(QueryPath + "monitor/addUiLogEntry.graphql");

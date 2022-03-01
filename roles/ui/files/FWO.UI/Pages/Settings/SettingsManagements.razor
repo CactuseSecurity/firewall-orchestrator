@@ -296,7 +296,7 @@
     {
         try
         {
-            managements = (await apiConnection.SendQueryAsync<Management[]>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails)).ToList();
+            managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails);
             foreach (var management in managements)
             {
                 if(!management.DeviceType.IsLegacyDevType())
@@ -312,7 +312,7 @@
             }
             showCleanupButton = (sampleManagements.Count > 0);
 
-            deviceTypes = (await apiConnection.SendQueryAsync<DeviceType[]>(FWO.ApiClient.Queries.DeviceQueries.getDeviceTypeDetails)).ToList();
+            deviceTypes = await apiConnection.SendQueryAsync<List<DeviceType>>(FWO.ApiClient.Queries.DeviceQueries.getDeviceTypeDetails);
         }
         catch (System.Exception exception)
         {

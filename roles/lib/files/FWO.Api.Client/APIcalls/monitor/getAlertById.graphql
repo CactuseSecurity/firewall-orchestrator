@@ -11,5 +11,6 @@ query getAlertById ($alertId: bigint!) {
     ref_log_id
     title
     user_id
+    alert_code
   }
 }

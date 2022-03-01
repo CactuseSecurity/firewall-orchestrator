@@ -267,11 +267,11 @@
             }
 
             // get users
-            uiUsers = (await apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUsers)).ToList();
+            uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.ApiClient.Queries.AuthQueries.getUsers);
             uiUsers = uiUsers.FindAll(x => x.DbId != 0);
 
             // get ldap connections
-            connectedLdaps = (await apiConnection.SendQueryAsync<UiLdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections)).ToList();
+            connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections);
 
             // get groups from internal LDAP
             RestResponse<List<GroupGetReturnParameters>> middlewareServerGroupsResponse = await middlewareClient.GetInternalGroups();

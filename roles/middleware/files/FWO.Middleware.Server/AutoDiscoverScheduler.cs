@@ -69,7 +69,7 @@ namespace FWO.Middleware.Server
                 ScheduleTimer.Interval = interval.TotalMilliseconds;
                 ScheduleTimer.AutoReset = false;
                 ScheduleTimer.Start();
-                Log.WriteDebug("Autodiscover scheduler", "ScheduleTimer started.");
+                Log.WriteDebug("Autodiscover scheduler", "AutodiscoverScheduleTimer started.");
             }
         }
 
@@ -152,7 +152,8 @@ namespace FWO.Middleware.Server
                     mgmId = action.ManagementId,
                     devId = action.DeviceId,
                     jsonData = action.JsonData,
-                    refAlert = action.RefAlertId
+                    refAlert = action.RefAlertId,
+                    alertCode = (int)AlertCode.Autodiscovery
                 };
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addAlert, Variables)).ReturnIds;
                 if (returnIds != null)

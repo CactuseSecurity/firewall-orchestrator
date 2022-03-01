@@ -1,5 +1,6 @@
 ﻿@using FWO.Config.Api
 @using FWO.Api.Data
+@using System.Text.Json;
 
 @page "/monitoring"
 @attribute [Authorize(Roles = "admin, reporter, reporter-viewall, recertifier, workflow-user, workflow-admin, auditor, fw-admin")]
@@ -26,6 +27,14 @@
                     {
                         <button class="btn btn-sm btn-primary" @onclick="() => ShowAutodiscDetails(alert)">@(userConfig.GetText("details"))</button>
                     }
+                    else if(alert.AlertCode == AlertCode.NoImport || alert.AlertCode == AlertCode.SuccessfulImportOverdue)
+                    {
+                        <button class="btn btn-sm btn-primary" @onclick="() => ShowImportDetails(alert)">@(userConfig.GetText("details"))</button>
+                    }
+                    else if(alert.AlertCode == AlertCode.ImportRunningTooLong)
+                    {
+                        <button class="btn btn-sm btn-primary" @onclick="() => ShowImportRollback(alert)">@(userConfig.GetText("details"))</button>
+                    }
                     else
                     {
                         <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("details"))</button>
@@ -45,6 +54,8 @@
             <Column TableItem="Alert" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" />
             <Column TableItem="Alert" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" />
             <Column TableItem="Alert" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" />
+            <Column TableItem="Alert" Title="@(userConfig.GetText("code"))" Field="@(x => x.AlertCode)" />
+            <Column TableItem="Alert" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" />
             <Column TableItem="Alert" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" />
             <Pager ShowPageNumber="true" ShowTotalCount="true" />
         </Table>
@@ -52,6 +63,8 @@
 </AuthorizeView>
 
 <AutoDiscovery Actions="actActions" @bind-Display="AutoDiscoverMode" Closing="async () => {AutoDiscoverMode = false; await Refresh();}"/>
+<ImportDetails ImportStatus="actStatus" @bind-DetailsMode="DetailsMode"/>
+<ImportRollback ManagementId="actMgmtId" LastIncompleteImport="LastIncompleteImport" @bind-RollbackMode="RollbackMode" Closing="async () => {RollbackMode = false; await Refresh();}"/>
 
 
 @code
@@ -62,6 +75,11 @@
     private List<Alert> alertEntrys = new List<Alert>();
     private List<ActionItem> actActions = new List<ActionItem>();
     private bool AutoDiscoverMode = false;
+    private int actMgmtId = 0;
+    private ImportControl[]? LastIncompleteImport { get; set; }
+    private bool RollbackMode = false;
+    private ImportStatus actStatus = new ImportStatus();
+    private bool DetailsMode = false;
  
     protected override async Task OnInitializedAsync()
     {
@@ -101,7 +119,41 @@
 
     private void ShowAutodiscDetails(Alert alert)
     {
-        actActions = new List<ActionItem>() { new ActionItem(alert) }; 
-        AutoDiscoverMode = true;
+        try
+        {
+            actActions = new List<ActionItem>() { new ActionItem(alert) }; 
+            AutoDiscoverMode = true;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("handle_alert"), "", true);
+        }
+    }
+
+    private void ShowImportRollback(Alert alert)
+    {
+        try
+        {
+            actMgmtId = alert.ManagementId ?? throw new Exception($"Missing ManagementId!");
+            LastIncompleteImport = JsonSerializer.Deserialize<ImportControl[]?>(alert.JsonData ?? throw new Exception($"Missing Import Data!"));
+            RollbackMode = true;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("handle_alert"), "", true);
+        }
+    }
+
+    private void ShowImportDetails(Alert alert)
+    {
+        try
+        {
+            actStatus = JsonSerializer.Deserialize<ImportStatus>(alert.JsonData ?? throw new Exception($"Missing Import Data!")) ?? throw new Exception($"Import Data not converted!");
+            DetailsMode = true;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("handle_alert"), "", true);
+        }
     }
 }

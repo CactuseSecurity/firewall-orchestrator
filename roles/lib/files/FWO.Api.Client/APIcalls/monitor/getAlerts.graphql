@@ -4,9 +4,12 @@ query getAlerts {
     source
     title
     description
+    alert_mgm_id
+    alert_dev_id
     alert_timestamp
     user_id
     ack_by
     ack_timestamp
+    alert_code
   }
 }

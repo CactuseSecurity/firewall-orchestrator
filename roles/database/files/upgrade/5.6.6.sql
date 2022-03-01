@@ -44,3 +44,16 @@ ALTER TABLE "alert" DROP CONSTRAINT IF EXISTS "alert_alert_mgm_id_management_mgm
 Alter table "alert" add CONSTRAINT alert_alert_mgm_id_management_mgm_id_fkey foreign key ("alert_mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
 ALTER TABLE "alert" DROP CONSTRAINT IF EXISTS "alert_alert_dev_id_device_dev_id_fkey" CASCADE;
 Alter table "alert" add CONSTRAINT alert_alert_dev_id_device_dev_id_fkey foreign key ("alert_dev_id") references "device" ("dev_id") on update restrict on delete cascade;
+
+ALTER TABLE "alert" ADD COLUMN IF NOT EXISTS "alert_code" INTEGER;
+
+insert into config (config_key, config_value, config_user) VALUES ('messageViewTime', '7', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('dailyCheckStartAt', '00:00:00', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('autoDiscoverStartAt', '00:00:00', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('autoDiscoverSleepTime', '24', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('minCollapseAllDevices', '15', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('pwMinLength', '10', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('pwUpperCaseRequired', 'False', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('pwLowerCaseRequired', 'False', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('pwNumberRequired', 'False', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('pwSpecialCharactersRequired', 'False', 0) ON CONFLICT DO NOTHING;

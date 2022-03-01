@@ -1,0 +1,6 @@
+﻿subscription subscribeDailyCheckConfigChanges {
+  config (where: { config_key: {_eq: "dailyCheckStartAt"}}, limit: 1){
+    config_key
+    config_value
+  }
+}

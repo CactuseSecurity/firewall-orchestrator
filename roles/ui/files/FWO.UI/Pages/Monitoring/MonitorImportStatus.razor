@@ -80,136 +80,9 @@
     </Table>
 </div>
 
-<PopUp Title="@(userConfig.GetText("import_status_details") + actStatus.MgmName)" Show="@DetailsMode" Large="true" OnClose="() => DetailsMode = false">
-    <Body>
-        @if (DetailsMode)
-        {
-            <form>
-                <div class="row">
-                    <div class="col-sm-3">@(userConfig.GetText("id")):</div>
-                    <div class="col-sm-2">@actStatus.MgmId</div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-3">@(userConfig.GetText("management")):</div>
-                    <div class="col-sm-9">@actStatus.MgmName</div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-3">@(userConfig.GetText("type")):</div>
-                    <div class="col-sm-9">@actStatus.DeviceType.NameVersion()</div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-3">@(userConfig.GetText("import_enabled")):</div>
-                    <div class="col-sm-2">@GlobalConfig.ShowBool(!actStatus.ImportDisabled)</div>
-                </div>
-                <br>
+<ImportDetails ImportStatus="actStatus" @bind-DetailsMode="DetailsMode"/>
+<ImportRollback ManagementId="actStatus.MgmId" LastIncompleteImport="actStatus.LastIncompleteImport" @bind-RollbackMode="rollbackMode" Closing="async () => {rollbackMode = false; await fetchImportStati();}"/>
 
-                <h6>@(userConfig.GetText("first_import"))</h6>
-                <div class="row">
-                    <div class="col-sm-1"/>
-                    <div class="col-sm-2">@(userConfig.GetText("import_id")):</div>
-                    <div class="col-sm-2">@(actStatus.FirstImport != null && actStatus.FirstImport.Length > 0 ? actStatus.FirstImport[0].ControlId : "")</div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-1"/>
-                    <div class="col-sm-1">@(userConfig.GetText("start")):</div>
-                    <div class="col-sm-3">@(actStatus.FirstImport != null && actStatus.FirstImport.Length > 0 ? actStatus.FirstImport[0].StartTime : "")</div>
-                    <div class="col-sm-1">@(userConfig.GetText("stop")):</div>
-                    <div class="col-sm-3">@(actStatus.FirstImport != null && actStatus.FirstImport.Length > 0 ? actStatus.FirstImport[0].StopTime : "")</div>
-                    <div class="col-sm-2">@(userConfig.GetText("duration")):</div>
-                    <div class="col-sm-1">@(actStatus.FirstImport != null && actStatus.FirstImport.Length > 0 && actStatus.FirstImport[0].StartTime != null
-                        && actStatus.FirstImport[0].StopTime != null ? ((TimeSpan)(actStatus.FirstImport[0].StopTime - actStatus.FirstImport[0].StartTime)).TotalSeconds.ToString("f2") : "")</div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-1"/>
-                    <div class="col-sm-1">@(userConfig.GetText("success")):</div>
-                    <div class="col-sm-1">@(actStatus.FirstImport != null && actStatus.FirstImport.Length > 0 ? GlobalConfig.ShowBool(actStatus.FirstImport[0].SuccessfulImport) : "")</div>
-                    <div class="col-sm-1">@(userConfig.GetText("errors")):</div>
-                    <div class="col-sm-8">@(actStatus.FirstImport != null && actStatus.FirstImport.Length > 0 ? actStatus.FirstImport[0].ImportErrors : "")</div>
-                </div>
-                <br>
-                <h6>@(userConfig.GetText("last_successful_import"))</h6>
-                <div class="row">
-                    <div class="col-sm-1"/>
-                    <div class="col-sm-2">@(userConfig.GetText("import_id")):</div>
-                    <div class="col-sm-2">@(actStatus.LastSuccessfulImport != null && actStatus.LastSuccessfulImport.Length > 0 ? actStatus.LastSuccessfulImport[0].ControlId : "")</div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-1"/>
-                    <div class="col-sm-1">@(userConfig.GetText("start")):</div>
-                    <div class="col-sm-3">@(actStatus.LastSuccessfulImport != null && actStatus.LastSuccessfulImport.Length > 0 ? actStatus.LastSuccessfulImport[0].StartTime : "")</div>
-                    <div class="col-sm-1">@(userConfig.GetText("stop")):</div>
-                    <div class="col-sm-3">@(actStatus.LastSuccessfulImport != null && actStatus.LastSuccessfulImport.Length > 0 ? actStatus.LastSuccessfulImport[0].StopTime : "")</div>
-                    <div class="col-sm-2">@(userConfig.GetText("duration")):</div>
-                    <div class="col-sm-1">@(actStatus.LastSuccessfulImport != null && actStatus.LastSuccessfulImport.Length > 0 && actStatus.LastSuccessfulImport[0].StartTime != null 
-                        && actStatus.LastSuccessfulImport[0].StopTime != null ? ((TimeSpan)(actStatus.LastSuccessfulImport[0].StopTime - actStatus.LastSuccessfulImport[0].StartTime)).TotalSeconds.ToString("f2") : "")</div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-1"/>
-                    <div class="col-sm-5">@(userConfig.GetText("err_since_last_succ")):</div>
-                    <div class="col-sm-2">@(actStatus.ErrorCount)</div>
-                </div>
-                <br>
-                <h6>@(userConfig.GetText("last_import"))</h6>
-                <div class="row">
-                    <div class="col-sm-1"/>
-                    <div class="col-sm-2">@(userConfig.GetText("import_id")):</div>
-                    <div class="col-sm-2">@(actStatus.LastImport != null && actStatus.LastImport.Length > 0 ? actStatus.LastImport[0].ControlId : "")</div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-1"/>
-                    <div class="col-sm-1">@(userConfig.GetText("start")):</div>
-                    <div class="col-sm-3">@(actStatus.LastImport != null && actStatus.LastImport.Length > 0 ? actStatus.LastImport[0].StartTime : "")</div>
-                    <div class="col-sm-1">@(userConfig.GetText("stop")):</div>
-                    <div class="col-sm-3">@(actStatus.LastImport != null && actStatus.LastImport.Length > 0 ? actStatus.LastImport[0].StopTime : "")</div>
-                    <div class="col-sm-2">@(userConfig.GetText("duration")):</div>
-                    <div class="col-sm-1">@(actStatus.LastImport != null && actStatus.LastImport.Length > 0 && actStatus.LastImport[0].StartTime != null
-                        && actStatus.LastImport[0].StopTime != null ? ((TimeSpan)(actStatus.LastImport[0].StopTime - actStatus.LastImport[0].StartTime)).TotalSeconds.ToString("f2") : "")</div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-1"/>
-                    <div class="col-sm-1">@(userConfig.GetText("success")):</div>
-                    <div class="col-sm-1">@(actStatus.LastImport != null && actStatus.LastImport.Length > 0 ? GlobalConfig.ShowBool(actStatus.LastImport[0].SuccessfulImport) : "")</div>
-                    <div class="col-sm-1">@(userConfig.GetText("errors")):</div>
-                    <div class="col-sm-8">@(actStatus.LastImport != null && actStatus.LastImport.Length > 0 ? actStatus.LastImport[0].ImportErrors : "")</div>
-                </div>
-            </form>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <button class="btn btn-sm btn-secondary" @onclick="CloseDetails">@(userConfig.GetText("ok"))</button>
-        </div>
-    </Footer>
-</PopUp>
-
-<PopUp Title="@(userConfig.GetText("rollback_import") + ": " + actStatus.MgmName)" Show="@RollbackMode" OnClose="() => RollbackMode = false">
-    <Body>
-        @if (RollbackMode)
-        {
-            if(actStatus.LastIncompleteImport != null && actStatus.LastIncompleteImport.Length > 0)
-            {
-                <p>@(userConfig.GetText("U5104") + (actStatus.LastIncompleteImport[0].StartTime != null ? Math.Round(((TimeSpan)(DateTime.Now - actStatus.LastIncompleteImport[0].StartTime!)).TotalMinutes).ToString() : "?") + userConfig.GetText("U5105"))</p>
-            }
-            else
-            {
-                <p>@(userConfig.GetText("U5106"))</p>
-            }
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <AuthorizeView Roles="admin, importer" Context="xxx">
-                <Authorized>
-                    <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => Rollback()">@(userConfig.GetText("rollback"))</button>
-                </Authorized>
-                <NotAuthorized>
-                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("rollback"))</button>
-                </NotAuthorized> 
-            </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
 
 @code
 {
@@ -218,7 +91,7 @@
     private List<ImportStatus> importStati = new List<ImportStatus>();
     private List<ImportStatus> sortedImportStati = new List<ImportStatus>();
     private bool DetailsMode = false;
-    private bool RollbackMode = false;
+    private bool rollbackMode = false;
     private ImportStatus actStatus = new ImportStatus();
 
     protected override async Task OnInitializedAsync()
@@ -230,7 +103,7 @@
     {
         try
         {
-            importStati = (await apiConnection.SendQueryAsync<ImportStatus[]>(FWO.ApiClient.Queries.DeviceQueries.getImportStatus)).ToList();
+            importStati = await apiConnection.SendQueryAsync<List<ImportStatus>>(FWO.ApiClient.Queries.DeviceQueries.getImportStatus);
             countErrors();
             setSortPrio();
             sortedImportStati = importStati.OrderByDescending(stat=>stat.SortPrio).ToList();
@@ -255,42 +128,11 @@
     private void RequestRollback(ImportStatus status)
     {
         actStatus = status;
-        RollbackMode = true;
-    }
-
-    private async Task Rollback()
-    {
-        try
-        {
-            RollbackMode = false;
-            var Variables = new { mgmId = actStatus.MgmId };
-            int affectedRows = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.deleteImport, Variables)).AffectedRows;
-            if (affectedRows > 0)
-            {
-                Log.WriteDebug("Delete Import", $"deleted {affectedRows} rows from Management Id {actStatus.MgmId}");
-                DisplayMessageInUi!(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5107"), false);
-            }
-            else
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5106"), false);
-            }
-            await fetchImportStati();
-        }
-        catch (System.Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("rollback_import"), "", true);
-        }
+        rollbackMode = true;
     }
 
     private async Task Refresh()
     {
-        await fetchImportStati();
-    }
-
-    private async Task Cancel()
-    {
-        DetailsMode = false;
-        RollbackMode = false;
         await fetchImportStati();
     }
 

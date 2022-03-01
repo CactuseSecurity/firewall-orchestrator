@@ -23,12 +23,17 @@ namespace FWO.Middleware.Server
 
         private List<Alert> openAlerts = new List<Alert>();
 
-    
-        public DailyCheckScheduler(APIConnection apiConnection)
+        public static async Task<DailyCheckScheduler> CreateAsync(APIConnection apiConnection)
+        {
+            ConfigDbAccess config = await ConfigDbAccess.ConstructAsync(apiConnection);
+            return new DailyCheckScheduler(apiConnection, config);
+        }
+
+        private DailyCheckScheduler(APIConnection apiConnection, ConfigDbAccess config)
         {
             this.apiConnection = apiConnection;
+            this.config = config;
     
-            config = new ConfigDbAccess(apiConnection);
             try
             {
                 DailyCheckStartAt = config.Get<string>(GlobalConfig.kDailyCheckStartAt);

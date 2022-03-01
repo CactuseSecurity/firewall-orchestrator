@@ -63,9 +63,9 @@ Task.Factory.StartNew(async() =>
 }, TaskCreationOptions.LongRunning);
 
 // Create and start daily check scheduler
-Task.Factory.StartNew(() =>
+Task.Factory.StartNew(async() =>
 {
-    dailyCheckScheduler = new DailyCheckScheduler(apiConnection);
+    dailyCheckScheduler = await DailyCheckScheduler.CreateAsync(apiConnection);
 }, TaskCreationOptions.LongRunning);
 
 // Add services to the container.

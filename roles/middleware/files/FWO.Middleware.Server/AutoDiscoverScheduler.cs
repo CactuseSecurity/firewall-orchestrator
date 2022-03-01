@@ -17,6 +17,7 @@ namespace FWO.Middleware.Server
         private string autoDiscoverStartAt = DateTime.Now.TimeOfDay.ToString();
         private long? lastMgmtAlertId;
         private readonly ApiSubscription<List<ConfigItem>> configChangeSubscription;
+        private List<Alert> openAlerts = new List<Alert>();
 
         private System.Timers.Timer ScheduleTimer = new();
         private System.Timers.Timer AutoDiscoverTimer = new();
@@ -111,6 +112,7 @@ namespace FWO.Middleware.Server
         {
             try
             {
+                openAlerts = await apiConnection.SendQueryAsync<List<Alert>>(MonitorQueries.getOpenAlerts);
                 List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
                 foreach (Management superManagement in managements.Where(x => x.DeviceType.CanBeSupermanager() || x.DeviceType.CanBeAutodiscovered(x)))
                 {
@@ -163,6 +165,13 @@ namespace FWO.Middleware.Server
                     {
                         lastMgmtAlertId = alertId;
                     }
+                    // Acknowledge older alert for same problem
+                    Alert? existingAlert = openAlerts.FirstOrDefault(x => x.AlertCode == AlertCode.Autodiscovery 
+                                && x.Description == action.ActionType && x.ManagementId == action.ManagementId && x.DeviceId == action.DeviceId);
+                    if(existingAlert != null)
+                    {
+                        await AcknowledgeAlert(existingAlert.Id);
+                    }
                 }
                 else
                 {
@@ -176,6 +185,24 @@ namespace FWO.Middleware.Server
                 Log.WriteError("Write Alert", $"Could not write Alert for autodiscovery: ", exc);
             }
             return alertId;
+        }
+
+        public async Task AcknowledgeAlert(long alertId)
+        {
+            try
+            {
+                var Variables = new 
+                { 
+                    id = alertId,
+                    ackUser = 0,
+                    ackTime = DateTime.Now
+                };
+                await apiConnection.SendQueryAsync<ReturnId>(MonitorQueries.acknowledgeAlert, Variables);
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Acknowledge Alert", $"Could not acknowledge alert for autodiscovery: ", exception);
+            }
         }
 
         public async Task AddAutoDiscoverLogEntry(int severity, string cause, string description)

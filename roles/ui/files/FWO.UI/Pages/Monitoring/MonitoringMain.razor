@@ -64,7 +64,12 @@
             <Column TableItem="Alert" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" />
             <Column TableItem="Alert" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" />
             <Column TableItem="Alert" Title="@(userConfig.GetText("code"))" Field="@(x => x.AlertCode)" />
-            <Column TableItem="Alert" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" />
+            <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.ManagementId)" />
+            <Column Context="alert" TableItem="Alert" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" >
+                <Template>
+                    @(managements.FirstOrDefault(x => x.Id == alert.ManagementId)?.Name)
+                </Template>
+            </Column>
             <Column TableItem="Alert" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" />
             <Pager ShowPageNumber="true" ShowTotalCount="true" />
         </Table>
@@ -104,6 +109,7 @@
 
     private List<Alert> alertEntrys = new List<Alert>();
     private List<ActionItem> actActions = new List<ActionItem>();
+    private List<Management> managements = new List<Management>();
     private bool AutoDiscoverMode = false;
     private int actMgmtId = 0;
     private ImportControl[]? LastIncompleteImport { get; set; }
@@ -115,6 +121,7 @@
  
     protected override async Task OnInitializedAsync()
     {
+        managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails);
         await Refresh();
     }
 

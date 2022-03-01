@@ -130,13 +130,13 @@ namespace FWO.Middleware.Server
                         action.AlertId = await setAlert(action);
                         ChangeCounter++;
                     }
-                    await AddAutoDiscoverLogEntry(0, "Scheduled Autodiscovery", superManagement.Name + (ChangeCounter > 0 ? $": found {ChangeCounter} changes" : ": found no change"));
+                    await AddAutoDiscoverLogEntry(0, "Scheduled Autodiscovery", (ChangeCounter > 0 ? $"Found {ChangeCounter} changes" : "Found no change"), superManagement.Id);
                 }
             }
             catch (Exception exc)
             {
                 Log.WriteError("Autodiscovery", $"Ran into exception: ", exc);
-                await AddAutoDiscoverLogEntry(0, "Scheduled Autodiscovery", $"Ran into exception: " + exc.Message);
+                await AddAutoDiscoverLogEntry(1, "Scheduled Autodiscovery", $"Ran into exception: " + exc.Message);
             }
         }
 
@@ -205,7 +205,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        public async Task AddAutoDiscoverLogEntry(int severity, string cause, string description)
+        public async Task AddAutoDiscoverLogEntry(int severity, string cause, string description, int? mgmtId = null)
         {
             try
             {
@@ -215,6 +215,7 @@ namespace FWO.Middleware.Server
                     severity = severity,
                     suspectedCause = cause,
                     description = description,
+                    mgmId = mgmtId
                 };
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addAutodiscoveryLogEntry, Variables)).ReturnIds;
                 if (returnIds == null)

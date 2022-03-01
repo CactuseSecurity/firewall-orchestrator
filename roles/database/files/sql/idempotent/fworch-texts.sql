@@ -117,7 +117,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Firewall-Regel Rezertifizierungsworkflow - beseitigen Sie ihre Altlasten und erf&uuml;llen Sie aktuelle regulatorische Anforderungen.</li>
     <li>F&uuml;r FortiManager und CheckPoint (Stand-Alone & MDS Manager) ist eine Auto Discovery Funktion enthalten, die ausgehend 
     vom Mnagement-System alle definierten Domains/SubManager sowie Devices automatisch anlegt sowie &Auml;nderungen erkennt 
-    und diese zur automatischen Konfigurationsänderung anbietet.</li>
+    und diese zur automatischen Konfigurations&auml;nderung anbietet.</li>
     <li>Einf&uuml;rung Monitoring und Alerting Modul - folgende Ereignisse werden protokolliert, in eine Log-Datei geschrieben (zur ggf. weiteren Auswertung per SIEM)
      und dem Nutzer in der Oberfl&auml;che zur Erinnerung angezeigt:
      <ul>
@@ -889,6 +889,8 @@ INSERT INTO txt VALUES ('recert_settings',      'English', 	'Recertification Set
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
 INSERT INTO txt VALUES ('open_alerts',          'English', 	'Open Alerts');
+INSERT INTO txt VALUES ('all_alerts',           'German', 	'Alle Alarme');
+INSERT INTO txt VALUES ('all_alerts',           'English', 	'All Alerts');
 INSERT INTO txt VALUES ('fetch_alerts',         'German', 	'Abholen Alarme');
 INSERT INTO txt VALUES ('fetch_alerts',         'English', 	'Fetch Alerts');
 INSERT INTO txt VALUES ('fetch_log_entrys',     'German', 	'Abholen Log-Eintr&auml;ge');

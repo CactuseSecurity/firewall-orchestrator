@@ -18,9 +18,13 @@
         </Template>
     </Column>
     <Column TableItem="LogEntry" Title="@(userConfig.GetText("title"))" Field="@(x => x.SuspectedCause)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.ManagementId)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" >
+        <Template>
+            @(managements.FirstOrDefault(x => x.Id == context.ManagementId)?.Name)
+        </Template>
+    </Column>
     <Column TableItem="LogEntry" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" />
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" />
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("device"))" Field="@(x => x.DeviceId)" />
     <Pager ShowPageNumber="true" ShowTotalCount="true" />
 </Table>
 
@@ -32,6 +36,7 @@
 
     private List<LogEntry> logEntrys = new List<LogEntry>();
     private List<UiUser> uiUsers = new List<UiUser>();
+    private List<Management> managements = new List<Management>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -39,6 +44,8 @@
         {
             logEntrys = await apiConnection.SendQueryAsync<List<LogEntry>>(MonitorQueries.getAutodiscoveryLogEntrys);
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.ApiClient.Queries.AuthQueries.getUsers);
+            managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails);
+
         }
         catch (Exception exception)
         {

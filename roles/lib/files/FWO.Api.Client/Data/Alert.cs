@@ -3,6 +3,27 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
+    public enum AlertCode
+    {
+        SampleDataExisting = 1,
+
+        UiError = 2,
+
+        NoImport = 11,
+        SuccessfulImportOverdue = 12,
+        ImportRunningTooLong = 13,
+        ImportError = 14,
+
+        Autodiscovery = 21
+        // AutodiscoverDeleteManagement = 21,
+        // AutodiscoverDeleteGateway = 22,
+        // AutodiscoverAddManagement = 23,
+        // AutodiscoverAddGatewayToNewManagement = 24,
+        // AutodiscoverAddGatewayToExistingManagement = 25,
+        // AutodiscoverReactivateManagement = 26,
+        // AutodiscoverReactivateGateway = 27
+    }
+
     public class Alert
     {
         [JsonProperty("alert_id"), JsonPropertyName("alert_id")]
@@ -44,6 +65,10 @@ namespace FWO.Api.Data
         [JsonProperty("json_data"), JsonPropertyName("json_data")]
         public String? JsonData { get; set; }
 
+        [JsonProperty("alert_code"), JsonPropertyName("alert_code")]
+        public AlertCode? AlertCode { get; set; }
+
+        
         // public async Task<long?> setAlert(AlertInteractiveDiscovery discovery)
         // {
         //     long? alertId = null;

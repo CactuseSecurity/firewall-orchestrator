@@ -14,6 +14,8 @@
     <Column TableItem="Alert" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" />
     <Column TableItem="Alert" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" />
     <Column TableItem="Alert" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" />
+    <Column TableItem="Alert" Title="@(userConfig.GetText("code"))" Field="@(x => x.AlertCode)" />
+    <Column TableItem="Alert" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" />
     <Column TableItem="Alert" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" />
     <Column TableItem="Alert" Title="@(userConfig.GetText("acknowledged_by"))" Field="@(x => x.AcknowledgedBy)" >
         <Template>

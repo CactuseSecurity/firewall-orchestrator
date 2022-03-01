@@ -11,5 +11,6 @@ query getOpenAlerts {
     alert_timestamp
     user_id
     json_data
+    alert_code
   }
 }

@@ -254,7 +254,7 @@
                 }
             }
 
-            tenants = (await apiConnection.SendQueryAsync<Tenant[]>(FWO.ApiClient.Queries.AuthQueries.getTenants)).ToList();
+            tenants = await apiConnection.SendQueryAsync<List<Tenant>>(FWO.ApiClient.Queries.AuthQueries.getTenants);
         }
         catch (System.Exception exception)
         {

@@ -1,11 +1,16 @@
 ﻿@using FWO.Config.Api
 @using FWO.Api.Data
-@using System.Text.Json;
+@using System.Text.Json
+@using System.Net
+@using FWO.Middleware.Client
+@using FWO.Middleware.RequestParameters
+@using RestSharp
 
 @page "/monitoring"
 @attribute [Authorize(Roles = "admin, reporter, reporter-viewall, recertifier, workflow-user, workflow-admin, auditor, fw-admin")]
 
 @inject APIConnection apiConnection
+@inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 
 <h3>@(userConfig.GetText("monitoring"))</h3>
@@ -35,6 +40,10 @@
                     {
                         <button class="btn btn-sm btn-primary" @onclick="() => ShowImportRollback(alert)">@(userConfig.GetText("details"))</button>
                     }
+                    else if(alert.AlertCode == AlertCode.SampleDataExisting)
+                    {
+                        <button class="btn btn-sm btn-primary" @onclick="() => ShowRemoveSampleData(alert)">@(userConfig.GetText("details"))</button>
+                    }
                     else
                     {
                         <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("details"))</button>
@@ -55,7 +64,12 @@
             <Column TableItem="Alert" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" />
             <Column TableItem="Alert" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" />
             <Column TableItem="Alert" Title="@(userConfig.GetText("code"))" Field="@(x => x.AlertCode)" />
-            <Column TableItem="Alert" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" />
+            <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.ManagementId)" />
+            <Column Context="alert" TableItem="Alert" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" >
+                <Template>
+                    @(managements.FirstOrDefault(x => x.Id == alert.ManagementId)?.Name)
+                </Template>
+            </Column>
             <Column TableItem="Alert" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" />
             <Pager ShowPageNumber="true" ShowTotalCount="true" />
         </Table>
@@ -66,6 +80,27 @@
 <ImportDetails ImportStatus="actStatus" @bind-DetailsMode="DetailsMode"/>
 <ImportRollback ManagementId="actMgmtId" LastIncompleteImport="LastIncompleteImport" @bind-RollbackMode="RollbackMode" Closing="async () => {RollbackMode = false; await Refresh();}"/>
 
+<PopUp Title="@(userConfig.GetText("remove_sample_data"))" Show="@RemoveSampleDataMode" OnClose="() => RemoveSampleDataMode = false">
+    <Body>
+        @if (RemoveSampleDataMode)
+        {
+            <p>@(userConfig.GetText("U7003"))</p>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="admin">
+                <Authorized>
+                    <button class="btn btn-sm btn-danger" @onclick="() => RemoveSampleData()">@(userConfig.GetText("delete"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
 
 @code
 {
@@ -74,15 +109,19 @@
 
     private List<Alert> alertEntrys = new List<Alert>();
     private List<ActionItem> actActions = new List<ActionItem>();
+    private List<Management> managements = new List<Management>();
     private bool AutoDiscoverMode = false;
     private int actMgmtId = 0;
     private ImportControl[]? LastIncompleteImport { get; set; }
     private bool RollbackMode = false;
     private ImportStatus actStatus = new ImportStatus();
     private bool DetailsMode = false;
+    private bool RemoveSampleDataMode = false;
+    private Alert actAlert = new Alert();
  
     protected override async Task OnInitializedAsync()
     {
+        managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails);
         await Refresh();
     }
 
@@ -155,5 +194,202 @@
         {
             DisplayMessageInUi!(exception, userConfig.GetText("handle_alert"), "", true);
         }
+    }
+
+    private void ShowRemoveSampleData(Alert alert)
+    {
+        RemoveSampleDataMode = true;
+        actAlert = alert;
+    }
+
+    private async Task RemoveSampleData()
+    {
+        try
+        {
+            List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails);
+            int deletedSampleManagements = 0;
+            foreach (var management in managements)
+            {
+                if (management.Name.EndsWith("_demo"))
+                {
+                    if (await DeleteManagement(management))
+                    {
+                        deletedSampleManagements++;
+                    }
+                }
+            }
+
+            List<UiUser> users = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.ApiClient.Queries.AuthQueries.getUsers);
+            int deletedSampleUsers = 0;
+            foreach (var user in users)
+            {
+                if (user.Name.EndsWith("_demo"))
+                {
+                    if (await DeleteUser(user))
+                    {
+                        deletedSampleUsers++;
+                    }
+                }
+            }
+
+            List<Tenant> tenants = await apiConnection.SendQueryAsync<List<Tenant>>(FWO.ApiClient.Queries.AuthQueries.getTenants);
+            int deletedSampleTenants = 0;
+            foreach (var tenant in tenants)
+            {
+                if (tenant.Name.EndsWith("_demo"))
+                {
+                    if (await DeleteTenant(tenant))
+                    {
+                        deletedSampleTenants++;
+                    }
+                }
+            }
+
+            int deletedSampleGroups = 0;
+            RestResponse<List<GroupGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetInternalGroups();
+            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
+            }
+            else
+            {
+                foreach (var ldapUserGroup in middlewareServerResponse.Data)
+                {
+                    string groupName = (new DistName(ldapUserGroup.GroupDn)).Group;
+                    if (groupName.EndsWith("_demo"))
+                    {
+                        if (await DeleteGroup(groupName))
+                        {
+                            deletedSampleGroups++;
+                        }
+                    }
+                }
+            }
+
+            await Acknowledge(actAlert);
+
+            string text = "";
+            if(deletedSampleManagements > 0)
+            {
+                text += $"{deletedSampleManagements} " + userConfig.GetText("managements");
+            }
+            if(deletedSampleUsers > 0)
+            {
+                text += $" {deletedSampleUsers} " + userConfig.GetText("users");
+            }
+            if(deletedSampleTenants > 0)
+            {
+                text += $" {deletedSampleTenants} " + userConfig.GetText("tenants");
+            }
+            if(deletedSampleGroups > 0)
+            {
+                text += $" {deletedSampleGroups} " + userConfig.GetText("groups");
+            }
+            if(text == "")
+            {
+                text += userConfig.GetText("nothing");
+            }
+            text += " " + userConfig.GetText("deleted");
+            DisplayMessageInUi!(null, userConfig.GetText("remove_sample_data"), text, false);
+
+            RemoveSampleDataMode = false;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("remove_sample_data"), "", true);
+        }
+    }
+    
+    private async Task<bool> DeleteManagement(Management management)
+    {
+        try
+        {
+            var Variables = new { id = management.Id };
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.deleteManagement, Variables)).DeletedId;
+            if (delId == management.Id)
+            {
+                return true;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_management"), "", true);
+        }
+        return false;
+    }
+
+    private async Task<bool> DeleteUser(UiUser user)
+    {
+        try
+        {
+            UserDeleteParameters parameters = new UserDeleteParameters
+            { 
+                LdapId = user.LdapConnection.Id,
+                UserId = user.DbId
+            };
+            RestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteUser(parameters);
+            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("delete_user"), userConfig.GetText("E5216"), true);
+            }
+            else
+            {
+                return true;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_user"), "", true);
+        }
+        return false;
+    }
+
+    private async Task<bool> DeleteTenant(Tenant tenant)
+    {
+        try
+        {
+            TenantDeleteParameters deleteTenantParameters = new TenantDeleteParameters { Name = tenant.Name, Id = tenant.Id};
+            RestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteTenant(deleteTenantParameters);
+            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("delete_tenant"), userConfig.GetText("E5282"), true);
+            }
+            else
+            {
+                return true;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_tenant"), "", true);
+        }
+        return false;
+    }
+
+    private async Task<bool> DeleteGroup(string groupName)
+    {
+        try
+        {
+            GroupAddDeleteParameters groupDeleteParameters = new GroupAddDeleteParameters { GroupName = groupName };
+            RestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteGroup(groupDeleteParameters);
+            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("delete_group"), userConfig.GetText("E5239"), true);
+            }
+            else
+            {
+                return true;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_group"), "", true);
+        }
+        return false;
+    }
+
+    private void Cancel()
+    {
+        RemoveSampleDataMode = false;
     }
 }

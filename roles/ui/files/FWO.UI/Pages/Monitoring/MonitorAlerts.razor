@@ -5,7 +5,7 @@
 
 @page "/monitoring/alerts"
 
-<h3>@(userConfig.GetText("alerts"))</h3>
+<h3>@(userConfig.GetText("all_alerts"))</h3>
 @(userConfig.GetText("U7101"))
 <hr />
 
@@ -15,7 +15,12 @@
     <Column TableItem="Alert" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" />
     <Column TableItem="Alert" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" />
     <Column TableItem="Alert" Title="@(userConfig.GetText("code"))" Field="@(x => x.AlertCode)" />
-    <Column TableItem="Alert" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" />
+    <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.ManagementId)" />
+    <Column TableItem="Alert" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" >
+        <Template>
+            @(managements.FirstOrDefault(x => x.Id == context.ManagementId)?.Name)
+        </Template>
+    </Column>
     <Column TableItem="Alert" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" />
     <Column TableItem="Alert" Title="@(userConfig.GetText("acknowledged_by"))" Field="@(x => x.AcknowledgedBy)" >
         <Template>
@@ -34,6 +39,7 @@
 
     private List<Alert> alertEntrys = new List<Alert>();
     private List<UiUser> uiUsers = new List<UiUser>();
+    private List<Management> managements = new List<Management>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -41,6 +47,7 @@
         {
             alertEntrys = await apiConnection.SendQueryAsync<List<Alert>>(MonitorQueries.getAlerts);
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.ApiClient.Queries.AuthQueries.getUsers);
+            managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails);
         }
         catch (Exception exception)
         {

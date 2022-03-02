@@ -521,11 +521,38 @@
         {
             AutoDiscoveryBase autodiscovery = new AutoDiscoveryBase(superManagement, apiConnection);
             actActions = autodiscovery.ConvertToActions(await autodiscovery.Run());
+            int ChangeCounter = actActions.Count();
+            await AddAutoDiscoverLogEntry(0, "Manual Autodiscovery", (ChangeCounter > 0 ? $"Found {ChangeCounter} changes" : "Found no change"), superManagement.Id);
             AutoDiscoverMode = true;
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("autodiscover"), "", true);
-        } 
+            DisplayMessageInUi!(exception, userConfig.GetText("autodiscovery"), "", true);
+            await AddAutoDiscoverLogEntry(1, "Manual Autodiscovery", $"Ran into exception: " + exception.Message);
+        }
+    }
+
+    public async Task AddAutoDiscoverLogEntry(int severity, string cause, string description, int? mgmtId = null)
+    {
+        try
+        {
+            var Variables = new
+            {
+                discoverUser = userConfig.User.DbId,
+                severity = severity,
+                suspectedCause = cause,
+                description = description,
+                mgmId = mgmtId
+            };
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addAutodiscoveryLogEntry, Variables)).ReturnIds;
+            if (returnIds == null)
+            {
+                Log.WriteError("Write Log", "Log could not be written to database");
+            }
+        }
+        catch (Exception exc)
+        {
+            Log.WriteError("Write Log", $"Could not write log: ", exc);
+        }
     }
 }

@@ -225,7 +225,11 @@ namespace FWO.Middleware.Server
                     alertCode = (int)alertCode,
                     jsonData = JsonData,
                 };
+                Log.WriteAlert ($"source: \"{source}\"", 
+                    $"userId: \"0\", title: \"{title}\", description: \"{description}\", " +
+                    $"mgmId: \"{mgmtId}\", devId: \"{devId}\", jsonData: \"{JsonData}\", alertCode: \"{alertCode}\"");
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addAlert, Variables)).ReturnIds;
+
                 if (returnIds != null)
                 {
                     // Acknowledge older alert for same problem
@@ -292,7 +296,7 @@ namespace FWO.Middleware.Server
             }
             catch(Exception exc)
             {
-                Log.WriteError("Write Log", $"Could not write log: ", exc);
+                Log.WriteError("Write Log", $"Could not write daily check log to db: ", exc);
             }
         }
     }

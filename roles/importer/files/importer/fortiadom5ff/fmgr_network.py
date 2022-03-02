@@ -44,6 +44,8 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt
                     nat_obj.update({'obj_typ': 'host' })
                     nat_obj.update({'obj_color': 'black'})
                     nat_obj.update({'obj_comment': 'FWO-auto-generated nat object for VIP'})
+                    if 'obj_ip_end' in obj: # this obj is a range - include the end ip in name and uid as well to avoid akey conflicts
+                        nat_obj.update({'obj_ip_end': obj['obj_ip_end']})
 
                 # now dealing with the nat ip obj (mappedip)
                 if 'mappedip' not in obj_orig or len(obj_orig['mappedip'])==0:
@@ -54,7 +56,10 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt
                     nat_ip = obj_orig['mappedip'][0]
                     set_ip_in_obj(nat_obj, nat_ip)
                     obj.update({ 'obj_nat_ip': nat_obj['obj_ip'] }) # save nat ip in vip obj
-                    nat_obj.update({'obj_name': nat_obj['obj_ip'] + nat_postfix})
+                    if 'obj_ip_end' in nat_obj: # this nat obj is a range - include the end ip in name and uid as well to avoid akey conflicts
+                        nat_obj.update({'obj_name': nat_obj['obj_ip'] + '-' + nat_obj['obj_ip_end'] + nat_postfix})
+                    else:
+                        nat_obj.update({'obj_name': nat_obj['obj_ip'] + nat_postfix})
                     nat_obj.update({'obj_uid': nat_obj['obj_name']})                    
                     ###### range handling
 

@@ -63,14 +63,14 @@ namespace FWO.Logging
 
         public static void WriteAlert(string Title, string Text, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
         {
-            WriteLog("Alert", Title, Text, callerName, callerFile, callerLineNumber, ConsoleColor.Yellow);
+            WriteLog("FWORCHAlert", Title, Text, callerName, callerFile, callerLineNumber, ConsoleColor.Yellow);
         }
 
         private static void WriteLog(string LogType, string Title, string Text, string Method, string Path, int Line, ConsoleColor? ForegroundColor = null, ConsoleColor? BackgroundColor = null)
         {
             // do not show the full file path, just the basename
             string File = Path.Split('\\', '/').Last();
-            WriteInColor($"{DateTime.Now} {LogType} - {Title} ({File} in line {Line}): {Text}", ForegroundColor, BackgroundColor);
+            WriteInColor($"{DateTime.Now} {LogType} - {Title} ({File} in line {Line}), {Text}", ForegroundColor, BackgroundColor);
         }
 
         private static void WriteInColor(string Text, ConsoleColor? ForegroundColor = null, ConsoleColor? BackgroundColor = null)

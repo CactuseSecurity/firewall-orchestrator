@@ -157,10 +157,10 @@ namespace FWO.Middleware.Server
                     refAlert = action.RefAlertId,
                     alertCode = (int)AlertCode.Autodiscovery
                 };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addAlert, Variables)).ReturnIds;
                 Log.WriteAlert ($"source: \"{GlobalConfig.kAutodiscovery}\"", 
                     $"userId: \"0\", title: \"{action.Supermanager}\", description: \"{action.ActionType}\", " +
                     $"mgmId: \"{action.ManagementId}\", devId: \"{action.DeviceId}\", jsonData: \"{action.JsonData}\", refAlert: \"{action.RefAlertId}\", alertCode: \"{AlertCode.Autodiscovery}\"");
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addAlert, Variables)).ReturnIds;
                 if (returnIds != null)
                 {
                     alertId = returnIds[0].NewId;

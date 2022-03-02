@@ -224,10 +224,10 @@ namespace FWO.Middleware.Server
                     alertCode = (int)alertCode,
                     jsonData = JsonData,
                 };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addAlert, Variables)).ReturnIds;
                 Log.WriteAlert ($"source: \"{source}\"", 
                     $"userId: \"0\", title: \"{title}\", description: \"{description}\", " +
                     $"mgmId: \"{mgmtId}\", devId: \"{devId}\", jsonData: \"{JsonData}\", alertCode: \"{alertCode}\"");
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addAlert, Variables)).ReturnIds;
 
                 if (returnIds != null)
                 {

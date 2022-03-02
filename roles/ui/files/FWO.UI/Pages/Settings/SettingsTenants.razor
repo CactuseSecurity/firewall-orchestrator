@@ -300,8 +300,8 @@
             }
             showCleanupButton = (sampleTenants.Count > 0);
 
-            devices = (await apiConnection.SendQueryAsync<Device[]>(FWO.ApiClient.Queries.DeviceQueries.getDeviceDetails)).ToList();
-            uiUsers = (await apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUsers)).ToList();
+            devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.ApiClient.Queries.DeviceQueries.getDeviceDetails);
+            uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.ApiClient.Queries.AuthQueries.getUsers);
                         
         }
         catch (Exception exception)
@@ -404,7 +404,7 @@
         try
         {
             // delete tenant from Ldap
-            TenantDeleteParameters deleteTenantParameters = new TenantDeleteParameters { Name = actTenant.Name, Id = actTenant.Id};
+            TenantDeleteParameters deleteTenantParameters = new TenantDeleteParameters { Name = tenant.Name, Id = tenant.Id};
             RestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteTenant(deleteTenantParameters);
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
             {

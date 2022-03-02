@@ -8,7 +8,7 @@
 
 <h3>@(userConfig.GetText("monitoring"))</h3>
 
-<Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys" PageSize="0">
+<Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys" PageSize="100">
     <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" />
     <Column TableItem="LogEntry" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" />
     <Column TableItem="LogEntry" Title="@(userConfig.GetText("severity"))" Field="@(x => x.Severity)" />
@@ -24,6 +24,7 @@
     <Column TableItem="LogEntry" Title="@(userConfig.GetText("rule_id"))" Field="@(x => x.RuleId)" />
     <Column TableItem="LogEntry" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" />
     <Column TableItem="LogEntry" Title="@(userConfig.GetText("user"))" Field="@(x => x.UserId)" />
+    <Pager ShowPageNumber="true" ShowTotalCount="true" />
 </Table>
 
 

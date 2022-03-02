@@ -12,14 +12,15 @@ namespace FWO.Report
     {
         public ReportChanges(DynGraphqlQuery query, UserConfig userConfig) : base(query, userConfig) { }
 
-        public override async Task GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback)
+        public override async Task<bool> GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback)
         {
             await callback(Managements);
             // currently no further objects to be fetched
             GotObjectsInReport = true;
+            return true;
         }
 
-        public override Task GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, int maxFetchCycles, APIConnection apiConnection, Func<Management[], Task> callback)
+        public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, int maxFetchCycles, APIConnection apiConnection, Func<Management[], Task> callback)
         {
             throw new NotImplementedException();
         }

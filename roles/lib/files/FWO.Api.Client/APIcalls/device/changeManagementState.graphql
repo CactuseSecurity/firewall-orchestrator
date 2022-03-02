@@ -1,0 +1,13 @@
+mutation changeManagementState(
+  $id: Int!
+  $importDisabled: Boolean!
+) {
+  update_management_by_pk(
+    pk_columns: { mgm_id: $id }
+    _set: {
+      do_not_import: $importDisabled
+    }
+  ) {
+    UpdatedId: mgm_id
+  }
+}

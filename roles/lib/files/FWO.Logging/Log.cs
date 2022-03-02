@@ -70,7 +70,7 @@ namespace FWO.Logging
         {
             // do not show the full file path, just the basename
             string File = Path.Split('\\', '/').Last();
-            WriteInColor($"{DateTime.Now} {LogType} - {Title} ({File} in line {Line}): {Text}", ForegroundColor, BackgroundColor);
+            WriteInColor($"{DateTime.Now} {LogType} - {Title} ({File} in line {Line}), {Text}", ForegroundColor, BackgroundColor);
         }
 
         private static void WriteInColor(string Text, ConsoleColor? ForegroundColor = null, ConsoleColor? BackgroundColor = null)

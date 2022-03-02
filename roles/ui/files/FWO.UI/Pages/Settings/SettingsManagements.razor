@@ -1,4 +1,4 @@
-﻿@using BlazorTable
+﻿﻿@using BlazorTable
 @using FWO.Api.Data
 @using FWO.ApiClient
 @using FWO.Config.Api
@@ -33,7 +33,6 @@
                 <div class="btn-group">
                     <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">@(userConfig.GetText("clone"))</button>
                     <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">@(userConfig.GetText("edit"))</button>
-                    @* <AuthorizeView Roles="admin, auditor, fw-admin" Context="ctx"> *@
                     <AuthorizeView Roles="admin, auditor" Context="ctx">
                         <Authorized>
                             <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
@@ -257,7 +256,8 @@
     </Footer>
 </PopUp>
 
-<AutoDiscovery Actions="actActions" @bind-Display="AutoDiscoverMode" Closing="async () => {AutoDiscoverMode = false; await Refresh();}"/>
+<AutoDiscovery @ref="autoDiscovery" Actions="actActions" @bind-Display="AutoDiscoverMode" Closing="async () => {AutoDiscoverMode = false; await Refresh();}"/>
+
 
 @code
 {
@@ -283,6 +283,8 @@
     private Management newManagement = new Management();
     private Management actManagement = new Management();
     private Management actSuperManagement = new Management();
+
+    private AutoDiscovery autoDiscovery;
 
     private string deleteMessage = "";
     private string cleanupMessage = "";
@@ -513,15 +515,14 @@
 
         try
         {
-            @* actActions = new List<ActionItem>(); *@
-            @* AutoDiscoverMode = true;  // to display popup immediately *@
-            @* <div class="spinner-border text-primary align-self-center" role="status"></div> *@
+            AutoDiscoverMode = true;
+            actActions =  new List<ActionItem>();
             AutoDiscoveryBase autodiscovery = new AutoDiscoveryBase(superManagement, apiConnection);
             actActions = autodiscovery.ConvertToActions(await autodiscovery.Run());
             int ChangeCounter = actActions.Count();
             await AddAutoDiscoverLogEntry(0, "Manual Autodiscovery", (ChangeCounter > 0 ? $"Found {ChangeCounter} changes" : "Found no change"), superManagement.Id);
-            AutoDiscoverMode = true;
-            // need a refresh here to re-display the auto discovery popup
+            StateHasChanged();
+            await autoDiscovery.ShowAutoDiscoveryResults();
         }
         catch (Exception exception)
         {

@@ -927,6 +927,10 @@ INSERT INTO txt VALUES ('autodiscovery',        'German', 	'Autodiscovery');
 INSERT INTO txt VALUES ('autodiscovery',        'English', 	'Autodiscovery');
 INSERT INTO txt VALUES ('autodiscovery_logs',   'German', 	'Autodiscovery-Logs');
 INSERT INTO txt VALUES ('autodiscovery_logs',   'English', 	'Autodiscovery Logs');
+INSERT INTO txt VALUES ('background_checks',    'German', 	'Hintergrund-Checks');
+INSERT INTO txt VALUES ('background_checks',    'English', 	'Background Checks');
+INSERT INTO txt VALUES ('daily_checks',         'German', 	'T&auml;gliche Checks');
+INSERT INTO txt VALUES ('daily_checks',         'English', 	'Daily Checks');
 INSERT INTO txt VALUES ('alert',                'German', 	'Alarm');
 INSERT INTO txt VALUES ('alert',                'English', 	'Alert');
 INSERT INTO txt VALUES ('alerts',               'German', 	'Alarme');
@@ -1168,6 +1172,8 @@ INSERT INTO txt VALUES ('U7301', 'German',  'Archiv der eigenen Nutzernachrichte
 INSERT INTO txt VALUES ('U7301', 'English', 'View the past own UI user messages');
 INSERT INTO txt VALUES ('U7401', 'German',  'Archiv der Autodiscovery-Nachrichten');
 INSERT INTO txt VALUES ('U7401', 'English', 'View the past autodiscovery messages');
+INSERT INTO txt VALUES ('U7501', 'German',  'Archiv der Nachrichten der t&auml;glichen Checks');
+INSERT INTO txt VALUES ('U7501', 'English', 'View the past daily check messages');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');

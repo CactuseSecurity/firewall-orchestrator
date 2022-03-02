@@ -526,7 +526,7 @@
         catch (Exception exception)
         {
             DisplayMessageInUi!(exception, userConfig.GetText("autodiscovery"), "", true);
-            await AddAutoDiscoverLogEntry(1, "Manual Autodiscovery", $"Ran into exception: " + exception.Message);
+            await AddAutoDiscoverLogEntry(1, "Manual Autodiscovery", $"Ran into exception: " + exception.Message, superManagement.Id);
         }
     }
 

@@ -15,25 +15,58 @@
                 "schema": "public",
                 "name": "alert"
               },
+              "object_relationships": [
+                {
+                  "name": "device",
+                  "using": {
+                    "foreign_key_constraint_on": "alert_dev_id"
+                  }
+                },
+                {
+                  "name": "log_data_issue",
+                  "using": {
+                    "foreign_key_constraint_on": "ref_log_id"
+                  }
+                },
+                {
+                  "name": "management",
+                  "using": {
+                    "foreign_key_constraint_on": "alert_mgm_id"
+                  }
+                },
+                {
+                  "name": "uiuser",
+                  "using": {
+                    "foreign_key_constraint_on": "ack_by"
+                  }
+                },
+                {
+                  "name": "uiuserByUserId",
+                  "using": {
+                    "foreign_key_constraint_on": "user_id"
+                  }
+                }
+              ],
               "insert_permissions": [
                 {
                   "role": "fw-admin",
                   "permission": {
                     "check": {},
                     "columns": [
+                      "ack_by",
+                      "ack_timestamp",
+                      "alert_code",
+                      "alert_dev_id",
                       "alert_id",
+                      "alert_mgm_id",
+                      "alert_timestamp",
+                      "description",
+                      "json_data",
                       "ref_alert_id",
                       "ref_log_id",
-                      "description",
                       "source",
                       "title",
-                      "ack_by",
-                      "alert_dev_id",
-                      "alert_mgm_id",
-                      "user_id",
-                      "json_data",
-                      "ack_timestamp",
-                      "alert_timestamp"
+                      "user_id"
                     ],
                     "backend_only": false
                   }
@@ -43,20 +76,22 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "ack_by",
+                      "ack_timestamp",
+                      "alert_code",
+                      "alert_dev_id",
                       "alert_id",
+                      "alert_mgm_id",
+                      "alert_timestamp",
+                      "description",
+                      "json_data",
                       "ref_alert_id",
                       "ref_log_id",
-                      "description",
                       "source",
                       "title",
-                      "ack_by",
-                      "alert_dev_id",
-                      "alert_mgm_id",
-                      "user_id",
-                      "json_data",
-                      "ack_timestamp",
-                      "alert_timestamp"
-                    ]
+                      "user_id"
+                    ],
+                    "backend_only": false
                   }
                 },
                 {
@@ -64,20 +99,22 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "ack_by",
+                      "ack_timestamp",
+                      "alert_code",
+                      "alert_dev_id",
                       "alert_id",
+                      "alert_mgm_id",
+                      "alert_timestamp",
+                      "description",
+                      "json_data",
                       "ref_alert_id",
                       "ref_log_id",
-                      "description",
                       "source",
                       "title",
-                      "ack_by",
-                      "alert_dev_id",
-                      "alert_mgm_id",
-                      "user_id",
-                      "json_data",
-                      "ack_timestamp",
-                      "alert_timestamp"
-                    ]
+                      "user_id"
+                    ],
+                    "backend_only": false
                   }
                 },
                 {
@@ -85,20 +122,22 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "ack_by",
+                      "ack_timestamp",
+                      "alert_code",
+                      "alert_dev_id",
                       "alert_id",
+                      "alert_mgm_id",
+                      "alert_timestamp",
+                      "description",
+                      "json_data",
                       "ref_alert_id",
                       "ref_log_id",
-                      "description",
                       "source",
                       "title",
-                      "ack_by",
-                      "alert_dev_id",
-                      "alert_mgm_id",
-                      "user_id",
-                      "json_data",
-                      "ack_timestamp",
-                      "alert_timestamp"
-                    ]
+                      "user_id"
+                    ],
+                    "backend_only": false
                   }
                 },
                 {
@@ -106,20 +145,22 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "ack_by",
+                      "ack_timestamp",
+                      "alert_code",
+                      "alert_dev_id",
                       "alert_id",
+                      "alert_mgm_id",
+                      "alert_timestamp",
+                      "description",
+                      "json_data",
                       "ref_alert_id",
                       "ref_log_id",
-                      "description",
                       "source",
                       "title",
-                      "ack_by",
-                      "alert_dev_id",
-                      "alert_mgm_id",
-                      "user_id",
-                      "json_data",
-                      "ack_timestamp",
-                      "alert_timestamp"
-                    ]
+                      "user_id"
+                    ],
+                    "backend_only": false
                   }
                 },
                 {
@@ -127,20 +168,22 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "ack_by",
+                      "ack_timestamp",
+                      "alert_code",
+                      "alert_dev_id",
                       "alert_id",
+                      "alert_mgm_id",
+                      "alert_timestamp",
+                      "description",
+                      "json_data",
                       "ref_alert_id",
                       "ref_log_id",
-                      "description",
                       "source",
                       "title",
-                      "ack_by",
-                      "alert_dev_id",
-                      "alert_mgm_id",
-                      "user_id",
-                      "json_data",
-                      "ack_timestamp",
-                      "alert_timestamp"
-                    ]
+                      "user_id"
+                    ],
+                    "backend_only": false
                   }
                 }
               ],
@@ -149,19 +192,20 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "alert_id",
-                      "ref_log_id",
-                      "ref_alert_id",
-                      "source",
-                      "title",
-                      "description",
-                      "alert_mgm_id",
-                      "alert_dev_id",
-                      "alert_timestamp",
-                      "user_id",
                       "ack_by",
                       "ack_timestamp",
-                      "json_data"
+                      "alert_code",
+                      "alert_dev_id",
+                      "alert_id",
+                      "alert_mgm_id",
+                      "alert_timestamp",
+                      "description",
+                      "json_data",
+                      "ref_alert_id",
+                      "ref_log_id",
+                      "source",
+                      "title",
+                      "user_id"
                     ],
                     "filter": {}
                   }
@@ -170,19 +214,20 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
+                      "ack_by",
+                      "ack_timestamp",
+                      "alert_code",
+                      "alert_dev_id",
                       "alert_id",
+                      "alert_mgm_id",
+                      "alert_timestamp",
+                      "description",
+                      "json_data",
                       "ref_alert_id",
                       "ref_log_id",
-                      "description",
                       "source",
                       "title",
-                      "ack_by",
-                      "alert_dev_id",
-                      "alert_mgm_id",
-                      "user_id",
-                      "json_data",
-                      "ack_timestamp",
-                      "alert_timestamp"
+                      "user_id"
                     ],
                     "filter": {}
                   }
@@ -191,19 +236,20 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "ack_by",
+                      "ack_timestamp",
+                      "alert_code",
+                      "alert_dev_id",
                       "alert_id",
+                      "alert_mgm_id",
+                      "alert_timestamp",
+                      "description",
+                      "json_data",
                       "ref_alert_id",
                       "ref_log_id",
-                      "description",
                       "source",
                       "title",
-                      "ack_by",
-                      "alert_dev_id",
-                      "alert_mgm_id",
-                      "user_id",
-                      "json_data",
-                      "ack_timestamp",
-                      "alert_timestamp"
+                      "user_id"
                     ],
                     "filter": {}
                   }
@@ -214,6 +260,29 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
+                      "ack_by",
+                      "ack_timestamp",
+                      "alert_code",
+                      "alert_dev_id",
+                      "alert_id",
+                      "alert_mgm_id",
+                      "alert_timestamp",
+                      "description",
+                      "json_data",
+                      "ref_alert_id",
+                      "ref_log_id",
+                      "source",
+                      "title",
+                      "user_id"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
                       "alert_id",
                       "ref_alert_id",
                       "ref_log_id",
@@ -221,6 +290,7 @@
                       "source",
                       "title",
                       "ack_by",
+                      "alert_code",
                       "alert_dev_id",
                       "alert_mgm_id",
                       "user_id",
@@ -1120,6 +1190,18 @@
               ],
               "array_relationships": [
                 {
+                  "name": "alerts",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "alert_dev_id",
+                      "table": {
+                        "schema": "public",
+                        "name": "alert"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "changelog_rules",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -1813,6 +1895,18 @@
                   }
                 },
                 {
+                  "name": "log_data_issues",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "import_id",
+                      "table": {
+                        "schema": "public",
+                        "name": "log_data_issue"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "objects",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -2310,6 +2404,27 @@
                     ],
                     "filter": {},
                     "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "control_id",
+                      "changes_found",
+                      "is_initial_import",
+                      "successful_import",
+                      "delimiter_group",
+                      "delimiter_list",
+                      "delimiter_user",
+                      "delimiter_zone",
+                      "import_errors",
+                      "mgm_id",
+                      "last_change_in_config",
+                      "start_time",
+                      "stop_time"
+                    ],
+                    "filter": {}
                   }
                 },
                 {
@@ -2990,6 +3105,20 @@
                   }
                 }
               ],
+              "array_relationships": [
+                {
+                  "name": "alerts",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "ref_log_id",
+                      "table": {
+                        "schema": "public",
+                        "name": "alert"
+                      }
+                    }
+                  }
+                }
+              ],
               "insert_permissions": [
                 {
                   "role": "importer",
@@ -3165,6 +3294,18 @@
                 }
               ],
               "array_relationships": [
+                {
+                  "name": "alerts",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "alert_mgm_id",
+                      "table": {
+                        "schema": "public",
+                        "name": "alert"
+                      }
+                    }
+                  }
+                },
                 {
                   "name": "changelog_objects",
                   "using": {
@@ -9784,6 +9925,30 @@
                 }
               ],
               "array_relationships": [
+                {
+                  "name": "alerts",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "ack_by",
+                      "table": {
+                        "schema": "public",
+                        "name": "alert"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "alertsByUserId",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "user_id",
+                      "table": {
+                        "schema": "public",
+                        "name": "alert"
+                      }
+                    }
+                  }
+                },
                 {
                   "name": "changelogObjectsByImportAdmin",
                   "using": {

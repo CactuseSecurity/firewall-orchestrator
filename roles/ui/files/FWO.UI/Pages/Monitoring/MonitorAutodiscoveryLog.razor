@@ -9,19 +9,23 @@
 @(userConfig.GetText("U7401"))
 <hr />
 
-<Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys" PageSize="0">
+<Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys" PageSize="100">
     <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" />
     <Column TableItem="LogEntry" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" />
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("severity"))" Field="@(x => x.Severity)" />
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" />
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("suspected_cause"))" Field="@(x => x.SuspectedCause)" />
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" />
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("device"))" Field="@(x => x.DeviceId)" />
     <Column TableItem="LogEntry" Title="@(userConfig.GetText("found_by"))" Field="@(x => x.UserId)" >
         <Template>
             @(uiUsers.FirstOrDefault(x => x.DbId == context.UserId)?.Name)
         </Template>
     </Column>
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("title"))" Field="@(x => x.SuspectedCause)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.ManagementId)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" >
+        <Template>
+            @(managements.FirstOrDefault(x => x.Id == context.ManagementId)?.Name)
+        </Template>
+    </Column>
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" />
+    <Pager ShowPageNumber="true" ShowTotalCount="true" />
 </Table>
 
 
@@ -32,6 +36,7 @@
 
     private List<LogEntry> logEntrys = new List<LogEntry>();
     private List<UiUser> uiUsers = new List<UiUser>();
+    private List<Management> managements = new List<Management>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -39,6 +44,8 @@
         {
             logEntrys = await apiConnection.SendQueryAsync<List<LogEntry>>(MonitorQueries.getAutodiscoveryLogEntrys);
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.ApiClient.Queries.AuthQueries.getUsers);
+            managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails);
+
         }
         catch (Exception exception)
         {

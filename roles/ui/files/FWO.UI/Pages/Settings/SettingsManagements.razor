@@ -259,6 +259,17 @@
 
 <AutoDiscovery Actions="actActions" @bind-Display="AutoDiscoverMode" Closing="async () => {AutoDiscoverMode = false; await Refresh();}"/>
 
+<PopUp Title="@(userConfig.GetText("in_process"))" Small="true" Show="@workInProgress">
+    <Body>
+        @if (workInProgress)
+        {
+            <div class="row">
+                <div class="spinner-border mx-auto align-self-center" role="status"></div>
+            </div>
+        }
+    </Body>
+</PopUp>
+
 @code
 {
     [CascadingParameter]
@@ -279,6 +290,7 @@
     private bool AddMode = false;
     private bool AutoDiscoverMode = false;
     private bool showCleanupButton = false;
+    private bool workInProgress = false;
 
     private Management newManagement = new Management();
     private Management actManagement = new Management();
@@ -513,18 +525,19 @@
 
         try
         {
-            @* actActions = new List<ActionItem>(); *@
-            @* AutoDiscoverMode = true;  // to display popup immediately *@
-            @* <div class="spinner-border text-primary align-self-center" role="status"></div> *@
+            workInProgress = true;
+            StateHasChanged();
             AutoDiscoveryBase autodiscovery = new AutoDiscoveryBase(superManagement, apiConnection);
             actActions = autodiscovery.ConvertToActions(await autodiscovery.Run());
             int ChangeCounter = actActions.Count();
             await AddAutoDiscoverLogEntry(0, "Manual Autodiscovery", (ChangeCounter > 0 ? $"Found {ChangeCounter} changes" : "Found no change"), superManagement.Id);
+            workInProgress = false;
             AutoDiscoverMode = true;
             // need a refresh here to re-display the auto discovery popup
         }
         catch (Exception exception)
         {
+            workInProgress = false;
             DisplayMessageInUi!(exception, userConfig.GetText("autodiscovery"), "", true);
             await AddAutoDiscoverLogEntry(1, "Manual Autodiscovery", $"Ran into exception: " + exception.Message, superManagement.Id);
         }

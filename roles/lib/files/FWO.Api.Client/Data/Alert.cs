@@ -15,13 +15,6 @@ namespace FWO.Api.Data
         ImportError = 14,
 
         Autodiscovery = 21
-        // AutodiscoverDeleteManagement = 21,
-        // AutodiscoverDeleteGateway = 22,
-        // AutodiscoverAddManagement = 23,
-        // AutodiscoverAddGatewayToNewManagement = 24,
-        // AutodiscoverAddGatewayToExistingManagement = 25,
-        // AutodiscoverReactivateManagement = 26,
-        // AutodiscoverReactivateGateway = 27
     }
 
     public class Alert
@@ -68,7 +61,7 @@ namespace FWO.Api.Data
         [JsonProperty("alert_code"), JsonPropertyName("alert_code")]
         public AlertCode? AlertCode { get; set; }
 
-        
+
         // public async Task<long?> setAlert(AlertInteractiveDiscovery discovery)
         // {
         //     long? alertId = null;

@@ -69,7 +69,9 @@ namespace FWO.Config.Api
         public static readonly int kSidebarRightWidth = 300;
 
         public static readonly string kAutodiscovery = "autodiscovery";
-
+        public static readonly string kDailyCheck = "dailycheck";
+        public static readonly string kUi = "ui";
+    
         public string productVersion { get; set; }
 
         public Language[] uiLanguages { get; set; }

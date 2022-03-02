@@ -7,6 +7,7 @@
 @using RestSharp
 
 @page "/monitoring"
+@page "/monitoring/main"
 @attribute [Authorize(Roles = "admin, reporter, reporter-viewall, recertifier, workflow-user, workflow-admin, auditor, fw-admin")]
 
 @inject APIConnection apiConnection

@@ -13,8 +13,13 @@
                     <h5>@(userConfig.GetText("alerts"))</h5>
                 </li>
                 <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="monitoring">
+                        <span class="oi oi-bell"></span> @(userConfig.GetText("open_alerts"))
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
                     <NavLink class="nav-link" href="monitoring/alerts">
-                        <span class="oi oi-bell"></span> @(userConfig.GetText("alerts"))
+                        <span class="oi oi-bell"></span> @(userConfig.GetText("all_alerts"))
                     </NavLink>
                 </li>
                 <hr />

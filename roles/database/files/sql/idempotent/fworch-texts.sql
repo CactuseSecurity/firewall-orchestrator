@@ -117,7 +117,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Firewall-Regel Rezertifizierungsworkflow - beseitigen Sie ihre Altlasten und erf&uuml;llen Sie aktuelle regulatorische Anforderungen.</li>
     <li>F&uuml;r FortiManager und CheckPoint (Stand-Alone & MDS Manager) ist eine Auto Discovery Funktion enthalten, die ausgehend 
     vom Mnagement-System alle definierten Domains/SubManager sowie Devices automatisch anlegt sowie &Auml;nderungen erkennt 
-    und diese zur automatischen Konfigurationsänderung anbietet.</li>
+    und diese zur automatischen Konfigurations&auml;nderung anbietet.</li>
     <li>Einf&uuml;rung Monitoring und Alerting Modul - folgende Ereignisse werden protokolliert, in eine Log-Datei geschrieben (zur ggf. weiteren Auswertung per SIEM)
      und dem Nutzer in der Oberfl&auml;che zur Erinnerung angezeigt:
      <ul>
@@ -889,6 +889,8 @@ INSERT INTO txt VALUES ('recert_settings',      'English', 	'Recertification Set
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
 INSERT INTO txt VALUES ('open_alerts',          'English', 	'Open Alerts');
+INSERT INTO txt VALUES ('all_alerts',           'German', 	'Alle Alarme');
+INSERT INTO txt VALUES ('all_alerts',           'English', 	'All Alerts');
 INSERT INTO txt VALUES ('fetch_alerts',         'German', 	'Abholen Alarme');
 INSERT INTO txt VALUES ('fetch_alerts',         'English', 	'Fetch Alerts');
 INSERT INTO txt VALUES ('fetch_log_entrys',     'German', 	'Abholen Log-Eintr&auml;ge');
@@ -965,6 +967,8 @@ INSERT INTO txt VALUES ('change_device_state',  'German',   'Gateway-Status &aum
 INSERT INTO txt VALUES ('change_device_state',  'English',  'Change gateway state');
 INSERT INTO txt VALUES ('disable',				'German', 	'Deaktivieren');
 INSERT INTO txt VALUES ('disable',				'English', 	'Disable');
+INSERT INTO txt VALUES ('nothing',              'German', 	'Nichts');
+INSERT INTO txt VALUES ('nothing',              'English',  'Nothing');
 
 
 -- help pages
@@ -1154,6 +1158,8 @@ INSERT INTO txt VALUES ('U7001', 'German',  '&Uuml;berblick, was im Firewall Orc
 INSERT INTO txt VALUES ('U7001', 'English', 'View what is going on in Firewall Orchestrator');
 INSERT INTO txt VALUES ('U7002', 'German',  'Daten sind dann verloren. Erw&auml;gen Sie eine Deaktivierung.');
 INSERT INTO txt VALUES ('U7002', 'English', 'Data will be lost. Consider deactivation.');
+INSERT INTO txt VALUES ('U7003', 'German',  'L&ouml;scht alle Beispieldaten (auf "_demo" endend): Managements, Gateways, Nutzer, Mandanten, Gruppen');
+INSERT INTO txt VALUES ('U7003', 'English', 'Deletes all sample data (ending with "_demo"): managements, gateways, users, tenants, groups');
 INSERT INTO txt VALUES ('U7101', 'German',  'Archiv der Alarme mit Best&auml;tigungen');
 INSERT INTO txt VALUES ('U7101', 'English', 'View the past alerts with acknowledgements');
 INSERT INTO txt VALUES ('U7201', 'German',  'Archiv der Importer-Nachrichten');

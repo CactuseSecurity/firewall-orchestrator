@@ -63,7 +63,7 @@ namespace FWO.Logging
 
         public static void WriteAlert(string Title, string Text, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
         {
-            WriteLog("Alert", Title, Text, callerName, callerFile, callerLineNumber, ConsoleColor.Yellow);
+            WriteLog("FWORCHAlert", Title, Text, callerName, callerFile, callerLineNumber, ConsoleColor.Yellow);
         }
 
         private static void WriteLog(string LogType, string Title, string Text, string Method, string Path, int Line, ConsoleColor? ForegroundColor = null, ConsoleColor? BackgroundColor = null)

@@ -62,7 +62,7 @@
       if $programname startswith '{{ product_name }}-importer-legacy' then /var/log/{{ product_name }}/importer-legacy.log
       if $programname startswith '{{ product_name }}-importer-api' then /var/log/{{ product_name }}/importer-api.log
       if $programname startswith '{{ product_name }}-' and $msg contains "Audit" then /var/log/{{ product_name }}/audit.log
-      if $programname startswith '{{ product_name }}-' and $msg contains "Alert" then /var/log/{{ product_name }}/alert.log
+      if $programname startswith '{{ product_name }}-' and $msg contains "FWORCHAlert" then /var/log/{{ product_name }}/alert.log
       # only for devsrv:
       if $programname == '{{ product_name }}-webhook' then /var/log/{{ product_name }}/webhook.log
   become: yes

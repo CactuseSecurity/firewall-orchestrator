@@ -9,6 +9,7 @@ namespace FWO.Api.Data
 
         UiError = 2,
 
+        DailyCheckError = 10,
         NoImport = 11,
         SuccessfulImportOverdue = 12,
         ImportRunningTooLong = 13,

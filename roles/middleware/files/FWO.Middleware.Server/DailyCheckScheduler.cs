@@ -112,7 +112,8 @@ namespace FWO.Middleware.Server
             catch(Exception exc)
             {
                 Log.WriteError("DailyCheck", $"Ran into exception: ", exc);
-                await AddDailyCheckLogEntry(2, "Scheduled Daily Check", $"Ran into exception: " + exc.Message);
+                await AddDailyCheckLogEntry(2, "Scheduled Daily Check", "Ran into exception: " + exc.Message);
+                await setAlert(GlobalConfig.kDailyCheck, AlertCode.DailyCheckError, "Daily Check", "Ran into exception: " + exc.Message);
             }
         }
 

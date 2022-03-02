@@ -77,7 +77,7 @@
 </AuthorizeView>
 
 <AutoDiscovery Actions="actActions" @bind-Display="AutoDiscoverMode" Closing="async () => {AutoDiscoverMode = false; await Refresh();}"/>
-<ImportDetails ImportStatus="actStatus" @bind-DetailsMode="DetailsMode"/>
+<ImportDetails ImportStatus="actStatus" @bind-DetailsMode="DetailsMode" Closing="async () => {DetailsMode = false; await Refresh();}"/>
 <ImportRollback ManagementId="actMgmtId" LastIncompleteImport="LastIncompleteImport" @bind-RollbackMode="RollbackMode" Closing="async () => {RollbackMode = false; await Refresh();}"/>
 
 <PopUp Title="@(userConfig.GetText("remove_sample_data"))" Show="@RemoveSampleDataMode" OnClose="() => RemoveSampleDataMode = false">
@@ -391,5 +391,6 @@
     private void Cancel()
     {
         RemoveSampleDataMode = false;
+        DetailsMode = false;
     }
 }

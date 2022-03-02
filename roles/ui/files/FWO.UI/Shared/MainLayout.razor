@@ -231,8 +231,8 @@
                 description = message,
                 alertCode = (int)AlertCode.UiError
             };
-            Log.WriteAlert ($"source = ui", 
-                $"userId = {userConfig.User.DbId}, title = {title}, description = {message}, alertCode = {AlertCode.UiError}");
+            Log.WriteAlert ($"source: \"ui\"", 
+                $"userId: \"{userConfig.User.DbId}\", title: \"{title}\", description: \"{message}\", alertCode: \"{AlertCode.UiError}\"");
             ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.MonitorQueries.addAlert, Variables)).ReturnIds;
             if (returnIds == null)
             {

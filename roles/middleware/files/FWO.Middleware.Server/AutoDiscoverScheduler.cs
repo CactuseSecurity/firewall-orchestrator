@@ -180,7 +180,7 @@ namespace FWO.Middleware.Server
                 {
                     Log.WriteError("Write Alert", "Log could not be written to database");
                 }
-                Log.WriteAlert($"source = \"{GlobalConfig.kAutodiscovery}\"", 
+                Log.WriteAlert($"source: \"{GlobalConfig.kAutodiscovery}\"", 
                     $"action: \"{action.Supermanager}\", type: \"{action.ActionType}\", mgmId: \"{action.ManagementId}\", devId: \"{action.DeviceId}\", details: \"{action.JsonData}\", altertId: \"{action.RefAlertId}\"");
             }
             catch (Exception exc)

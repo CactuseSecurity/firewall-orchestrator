@@ -33,8 +33,6 @@ namespace FWO.DeviceAutoDiscovery
                         if (sessionResponse?.Data?.SessionId == null || sessionResponse.Data.SessionId == "")
                         {
                             Log.WriteWarning("Autodiscovery", $"Did not receive a correct session ID when trying to login to manager {superManagement.Name} (id={superManagement.Id})");
-                            // InteractiveDiscovery discovery = new InteractiveDiscovery() new { ... };
-                            // setAlert(discovery);
                             return new List<Management>() { };
                         }
                         string sessionId = sessionResponse.Data.SessionId;

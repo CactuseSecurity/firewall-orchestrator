@@ -9,19 +9,13 @@ namespace FWO.Api.Data
 
         UiError = 2,
 
+        DailyCheckError = 10,
         NoImport = 11,
         SuccessfulImportOverdue = 12,
         ImportRunningTooLong = 13,
         ImportError = 14,
 
         Autodiscovery = 21
-        // AutodiscoverDeleteManagement = 21,
-        // AutodiscoverDeleteGateway = 22,
-        // AutodiscoverAddManagement = 23,
-        // AutodiscoverAddGatewayToNewManagement = 24,
-        // AutodiscoverAddGatewayToExistingManagement = 25,
-        // AutodiscoverReactivateManagement = 26,
-        // AutodiscoverReactivateGateway = 27
     }
 
     public class Alert
@@ -66,7 +60,8 @@ namespace FWO.Api.Data
         public String? JsonData { get; set; }
 
         [JsonProperty("alert_code"), JsonPropertyName("alert_code")]
-        public AlertCode? AlertCode { get; set; }        
+        public AlertCode? AlertCode { get; set; }
+
     }
     public class AlertInteractiveDiscovery
     {

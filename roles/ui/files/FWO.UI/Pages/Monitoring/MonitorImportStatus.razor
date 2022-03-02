@@ -80,7 +80,7 @@
     </Table>
 </div>
 
-<ImportDetails ImportStatus="actStatus" @bind-DetailsMode="DetailsMode"/>
+<ImportDetails ImportStatus="actStatus" @bind-DetailsMode="DetailsMode" Closing="async () => {DetailsMode = false; await Refresh();}"/>
 <ImportRollback ManagementId="actStatus.MgmId" LastIncompleteImport="actStatus.LastIncompleteImport" @bind-RollbackMode="rollbackMode" Closing="async () => {rollbackMode = false; await fetchImportStati();}"/>
 
 

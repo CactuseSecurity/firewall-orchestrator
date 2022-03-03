@@ -369,6 +369,10 @@ def create_data_issue(fwo_api_base_url, jwt, import_id=None, obj_name=None, mgm_
             query_variables.update({"ruleUid": rule_uid})
         if description is not None:
             query_variables.update({"description": description})
+
+        # write data issue to alert.log file as well
+        logging.info("FWORCHAlert: " + json.dumps(query_variables))
+        
         try:
             import_result = call(fwo_api_base_url, jwt, create_data_issue_mutation, query_variables=query_variables, role=role)
             changes = import_result['data']['insert_log_data_issue']['affected_rows']

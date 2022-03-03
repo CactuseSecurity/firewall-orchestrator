@@ -38,6 +38,7 @@ class FwLoginFailed(Exception):
 
     def __init__(self, message="Login to FW management failed"):
             self.message = message
+            logging.info("FWORCHAlert: " + message)
             super().__init__(self.message)
 
 class FwoApiLoginFailed(Exception):
@@ -45,6 +46,7 @@ class FwoApiLoginFailed(Exception):
 
     def __init__(self, message="Login to FWO API failed"):
             self.message = message
+            logging.info("FWORCHAlert: " + message)
             super().__init__(self.message)
 
 class FwoApiFailedLockImport(Exception):
@@ -52,6 +54,7 @@ class FwoApiFailedLockImport(Exception):
 
     def __init__(self, message="Locking import failed - already running?"):
             self.message = message
+            logging.info("FWORCHAlert: " + message)
             super().__init__(self.message)
 
 class FwoApiFailure(Exception):
@@ -59,6 +62,7 @@ class FwoApiFailure(Exception):
 
     def __init__(self, message="There was an unclassified error while executing an FWO API call"):
             self.message = message
+            logging.info("FWORCHAlert: " + message)
             super().__init__(self.message)
 
 class FwoApiTimeout(Exception):
@@ -66,6 +70,7 @@ class FwoApiTimeout(Exception):
 
     def __init__(self, message="reverse proxy timeout error during FWO API call - try increasing the reverse proxy timeout"):
             self.message = message
+            logging.info("FWORCHAlert: " + message)
             super().__init__(self.message)
 
 class FwoApiTServiceUnavailable(Exception):
@@ -73,6 +78,7 @@ class FwoApiTServiceUnavailable(Exception):
 
     def __init__(self, message="FWO API Hasura container died"):
             self.message = message
+            logging.info("FWORCHAlert: " + message)
             super().__init__(self.message)
 
 
@@ -307,6 +313,7 @@ def complete_import(current_import_id, error_string, start_time, mgm_details, ch
     import_result += ", ERRORS: " + error_string if len(error_string) > 0 else ""
     if error_count>0:
         fwo_api.create_data_issue(fwo_api_base_url, jwt, import_id=current_import_id, severity=1, description=error_string)
+        # logging.info("FWORCHAlert main: " + import_result)
 
     logging.info(import_result)
 

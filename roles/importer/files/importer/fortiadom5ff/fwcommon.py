@@ -94,7 +94,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
         fmgr_user.normalize_users(
             full_config, config2import, current_import_id, user_scope)
         fmgr_network.normalize_nwobjects(
-            full_config, config2import, current_import_id, nw_obj_scope, jwt=jwt)
+            full_config, config2import, current_import_id, nw_obj_scope, jwt=jwt, mgm_id=mgm_details['id'])
         fmgr_service.normalize_svcobjects(
             full_config, config2import, current_import_id, svc_obj_scope)
         fmgr_rule.normalize_access_rules(

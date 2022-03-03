@@ -4,7 +4,6 @@ import logging, re
 import requests, requests.packages
 import time
 from common import FwLoginFailed, fwo_api_base_url
-from fwo_api import create_data_issue
 
 requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 

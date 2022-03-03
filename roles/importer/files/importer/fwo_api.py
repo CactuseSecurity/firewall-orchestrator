@@ -360,7 +360,7 @@ def create_data_issue(fwo_api_base_url, jwt, import_id=None, obj_name=None, mgm_
         if mgm_id is not None:
             query_variables.update({"mgmId": mgm_id})
         if obj_name is not None:
-            query_variables.update({"objName": obj_name})
+            query_variables.update({"objectName": obj_name})
         if object_type is not None:
             query_variables.update({"objectType": object_type})
         if import_id is not None:

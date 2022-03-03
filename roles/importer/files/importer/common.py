@@ -442,12 +442,12 @@ def extend_string_list(list_string, src_dict, key, delimiter, jwt=None, import_i
     return result
 
 
-def resolve_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type=None, jwt=None, import_id=None):
+def resolve_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type=None, jwt=None, import_id=None, mgm_id=None):
     # guessing ipv4 and adom (to also search global objects)
-    return resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type='v4_adom', obj_type='network', jwt=jwt, import_id=import_id)
+    return resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type='v4_adom', obj_type='network', jwt=jwt, import_id=import_id, mgm_id=mgm_id)
 
 
-def resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type=None, obj_type='network', jwt=None, import_id=None, rule_uid=None, object_type=None):
+def resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type=None, obj_type='network', jwt=None, import_id=None, rule_uid=None, object_type=None, mgm_id=None):
     ref_list = []
     objects_not_found = []
     for el in obj_name_string_list.split(delimiter):
@@ -489,6 +489,6 @@ def resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, ui
         if not found:
             objects_not_found.append(el)
     for obj in objects_not_found:
-        if not fwo_api.create_data_issue(fwo_api_base_url, jwt, import_id=import_id, obj_name=obj, severity=2, rule_uid=rule_uid, object_type=object_type):
+        if not fwo_api.create_data_issue(fwo_api_base_url, jwt, import_id=import_id, obj_name=obj, severity=2, rule_uid=rule_uid, mgm_id=mgm_id, object_type=object_type):
             logging.warning("resolve_raw_objects: encountered error while trying to log an import data issue using create_data_issue")
     return delimiter.join(ref_list)

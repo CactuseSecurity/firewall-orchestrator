@@ -388,10 +388,13 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, im
         for nat_obj in nat_object_list:
             if 'obj_ip_end' in nat_obj: # this nat obj is a range - include the end ip in name and uid as well to avoid akey conflicts
                 xlate_dst.append(nat_obj['obj_nat_ip'] + '-' + nat_obj['obj_ip_end'] + nat_postfix)
-                xlate_dst_refs.append(nat_obj['obj_nat_ip'] + '-' + nat_obj['obj_nat_ip_end'] + nat_postfix)
+                nat_ref = nat_obj['obj_nat_ip']
+                if 'obj_nat_ip_end' in nat_obj:
+                    nat_ref += '-' + nat_obj['obj_nat_ip_end'] + nat_postfix
+                xlate_dst_refs.append(nat_ref)
             else:
                 xlate_dst.append(nat_obj['obj_nat_ip'] + nat_postfix)
-                xlate_dst_refs.append(nat_obj['obj_nat_ip'] + '-' + nat_obj['obj_ip_end'] + nat_postfix)
+                xlate_dst_refs.append(nat_obj['obj_nat_ip']  + nat_postfix)
         xlate_rule['rule_dst'] = list_delimiter.join(xlate_dst)
         xlate_rule['rule_dst_refs'] = list_delimiter.join(xlate_dst_refs)
     # else: (no nat object found) no dnatting involved, dst stays "Original"

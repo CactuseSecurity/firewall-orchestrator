@@ -158,6 +158,8 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
         if current_import_id == -1:
             fwo_api.create_data_issue(fwo_api_base_url, jwt, mgm_id=int(mgm_id), severity=1, 
                 description="failed to get import lock for management id " + str(mgm_id))
+            fwo_api.setAlert(fwo_api_base_url, jwt, import_id=current_import_id, title="import error", mgm_id=str(mgm_id), severity=1, role='importer', \
+                description="fwo_api: failed to get import lock", source='import', alertCode=15)
             raise FwoApiFailedLockImport("fwo_api: failed to get import lock for management id " + str(mgm_id)) from None
 
         logging.info("starting import of management " + mgm_details['name'] + '(' + str(mgm_id) + "), import_id=" + str(current_import_id))
@@ -313,7 +315,8 @@ def complete_import(current_import_id, error_string, start_time, mgm_details, ch
     import_result += ", ERRORS: " + error_string if len(error_string) > 0 else ""
     if error_count>0:
         fwo_api.create_data_issue(fwo_api_base_url, jwt, import_id=current_import_id, severity=1, description=error_string)
-        # logging.info("FWORCHAlert main: " + import_result)
+        fwo_api.setAlert(fwo_api_base_url, jwt, import_id=current_import_id, title="import error", mgm_id=mgm_details['id'], severity=2, role='importer', \
+            description=error_string, source='import', alertCode=14)
 
     logging.info(import_result)
 
@@ -489,6 +492,16 @@ def resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, ui
         if not found:
             objects_not_found.append(el)
     for obj in objects_not_found:
-        if not fwo_api.create_data_issue(fwo_api_base_url, jwt, import_id=import_id, obj_name=obj, severity=2, rule_uid=rule_uid, mgm_id=mgm_id, object_type=object_type):
-            logging.warning("resolve_raw_objects: encountered error while trying to log an import data issue using create_data_issue")
+
+        if obj != 'all' and obj != 'Original':
+            if not fwo_api.create_data_issue(fwo_api_base_url, jwt, import_id=import_id, obj_name=obj, severity=1, rule_uid=rule_uid, mgm_id=mgm_id, object_type=object_type):
+                logging.warning("resolve_raw_objects: encountered error while trying to log an import data issue using create_data_issue")
+
+            desc = "found a broken network object reference '" + obj + "' "
+            if object_type is not None:
+                desc +=  "(type=" + object_type + ") "
+            desc += "in rule with UID '" + rule_uid + "'"
+            fwo_api.setAlert(fwo_api_base_url, jwt, import_id=import_id, title="object reference error", mgm_id=mgm_id, severity=1, role='importer', \
+                description=desc, source='import', alertCode=16)
+
     return delimiter.join(ref_list)

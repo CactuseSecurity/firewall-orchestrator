@@ -13,8 +13,9 @@ namespace FWO.Api.Data
         NoImport = 11,
         SuccessfulImportOverdue = 12,
         ImportRunningTooLong = 13,
-        ImportError = 14,
-
+        ImportErrorUnspecific = 14,
+        ImportLocked = 15,
+        ImportBrokenObjectReferences = 16,
         Autodiscovery = 21
     }
 

@@ -57,6 +57,7 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt
                     set_ip_in_obj(nat_obj, nat_ip)
                     obj.update({ 'obj_nat_ip': nat_obj['obj_ip'] }) # save nat ip in vip obj
                     if 'obj_ip_end' in nat_obj: # this nat obj is a range - include the end ip in name and uid as well to avoid akey conflicts
+                        obj.update({ 'obj_nat_ip_end': nat_obj['obj_ip_end'] }) # save nat ip in vip obj
                         nat_obj.update({'obj_name': nat_obj['obj_ip'] + '-' + nat_obj['obj_ip_end'] + nat_postfix})
                     else:
                         nat_obj.update({'obj_name': nat_obj['obj_ip'] + nat_postfix})

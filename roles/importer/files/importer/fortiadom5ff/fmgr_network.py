@@ -161,6 +161,8 @@ def get_nw_obj(nat_obj_name, nwobjects):
     return None
 
 
+# this removes all obj_nat_ip entries from all network objects
+# these were used during import but might cause issues if imported into db
 def remove_nat_ip_entries(config2import):
     for obj in config2import['network_objects']:
         if 'obj_nat_ip' in obj:

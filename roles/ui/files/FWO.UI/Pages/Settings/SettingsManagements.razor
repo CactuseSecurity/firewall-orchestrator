@@ -259,7 +259,7 @@
 
 <AutoDiscovery Actions="actActions" @bind-Display="AutoDiscoverMode" Closing="async () => {AutoDiscoverMode = false; await Refresh();}"/>
 
-<PopUp Title="@(userConfig.GetText("in_process"))" Small="true" Show="@workInProgress">
+<PopUp Title="@(userConfig.GetText("in_progress"))" Small="true" Show="@workInProgress">
     <Body>
         @if (workInProgress)
         {
@@ -357,16 +357,19 @@
     {
         try
         {
+            DeleteMode = false;
+            workInProgress = true;
             var Variables = new { id = management.Id };
             int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.deleteManagement, Variables)).DeletedId;
             if (delId == management.Id)
             {
                 managements.Remove(management);
-                DeleteMode = false;
             }
+            workInProgress = false;
         }
         catch (Exception exception)
         {
+            workInProgress = false;
             DisplayMessageInUi!(exception, userConfig.GetText("delete_management"), "", true);
         }
     }
@@ -533,7 +536,6 @@
             await AddAutoDiscoverLogEntry(0, "Manual Autodiscovery", (ChangeCounter > 0 ? $"Found {ChangeCounter} changes" : "Found no change"), superManagement.Id);
             workInProgress = false;
             AutoDiscoverMode = true;
-            // need a refresh here to re-display the auto discovery popup
         }
         catch (Exception exception)
         {

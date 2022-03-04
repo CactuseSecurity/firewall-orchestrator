@@ -2,7 +2,6 @@
   "type": "replace_metadata",
   "version": 2,
   "args": {
-    "allow_inconsistent_metadata": false,
     "metadata": {
       "version": 3,
       "sources": [
@@ -230,6 +229,29 @@
                       "user_id"
                     ],
                     "filter": {}
+                  }
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "alert_id",
+                      "ref_alert_id",
+                      "ref_log_id",
+                      "description",
+                      "source",
+                      "title",
+                      "ack_by",
+                      "alert_code",
+                      "alert_dev_id",
+                      "alert_mgm_id",
+                      "user_id",
+                      "json_data",
+                      "ack_timestamp",
+                      "alert_timestamp"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 },
                 {

@@ -360,7 +360,7 @@ def create_data_issue(fwo_api_base_url, jwt, import_id=None, obj_name=None, mgm_
         if mgm_id is not None:
             query_variables.update({"mgmId": mgm_id})
         if obj_name is not None:
-            query_variables.update({"objName": obj_name})
+            query_variables.update({"objectName": obj_name})
         if object_type is not None:
             query_variables.update({"objectType": object_type})
         if import_id is not None:
@@ -369,6 +369,10 @@ def create_data_issue(fwo_api_base_url, jwt, import_id=None, obj_name=None, mgm_
             query_variables.update({"ruleUid": rule_uid})
         if description is not None:
             query_variables.update({"description": description})
+
+        # write data issue to alert.log file as well
+        logging.info("FWORCHAlert: " + json.dumps(query_variables))
+        
         try:
             import_result = call(fwo_api_base_url, jwt, create_data_issue_mutation, query_variables=query_variables, role=role)
             changes = import_result['data']['insert_log_data_issue']['affected_rows']
@@ -376,3 +380,73 @@ def create_data_issue(fwo_api_base_url, jwt, import_id=None, obj_name=None, mgm_
             logging.error("fwo_api: failed to create log_data_issue: " + json.dumps(query_variables))
             return False
         return changes==1
+
+
+def setAlert(fwo_api_base_url, jwt, import_id=None, title=None, mgm_id=None, dev_id=None, severity=1, role='importer',
+        jsonData=None, description=None, source='import', user_id=None, refAlert=None, alertCode=None):
+    addAlert_mutation = """
+        mutation addAlert(
+        $source: String!
+        $userId: Int
+        $title: String
+        $description: String
+        $mgmId: Int
+        $devId: Int
+        $jsonData: json
+        $refAlert: bigint
+        $alertCode: Int
+        ) {
+            insert_alert(
+                objects: {
+                    source: $source
+                    user_id: $userId
+                    title: $title
+                    description: $description
+                    alert_mgm_id: $mgmId
+                    alert_dev_id: $devId
+                    json_data: $jsonData
+                    ref_alert_id: $refAlert
+                    alert_code: $alertCode
+                }
+            ) 
+            {
+                returning { newId: alert_id }
+            }
+        }
+    """
+
+    query_variables = {"source": source }
+
+    if dev_id is not None:
+        query_variables.update({"devId": dev_id})
+    if user_id is not None:
+        query_variables.update({"userId": user_id})
+    if mgm_id is not None:
+        query_variables.update({"mgmId": mgm_id})
+    if refAlert is not None:
+        query_variables.update({"refAlert": refAlert})
+    if title is not None:
+        query_variables.update({"title": title})
+    if description is not None:
+        query_variables.update({"description": description})
+    if alertCode is not None:
+        query_variables.update({"alertCode": alertCode})
+
+    if jsonData is None:
+        jsonData = {}
+    if severity != None:
+        jsonData.update({"severity": severity})
+    if import_id != None:
+        jsonData.update({"import_id": import_id})
+    query_variables.update({"jsonData": json.dumps(jsonData)})
+
+    # write data issue to alert.log file as well
+    logging.info("FWORCHAlert: " + json.dumps(query_variables))
+    
+    try:
+        import_result = call(fwo_api_base_url, jwt, addAlert_mutation, query_variables=query_variables, role=role)
+        newAlertId = import_result['data']['insert_alert']['returning'][0]['newId']
+    except:
+        logging.error("fwo_api: failed to create alert entry: " + json.dumps(query_variables))
+        return False
+    return True

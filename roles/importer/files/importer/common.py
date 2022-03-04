@@ -159,7 +159,7 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
             fwo_api.create_data_issue(fwo_api_base_url, jwt, mgm_id=int(mgm_id), severity=1, 
                 description="failed to get import lock for management id " + str(mgm_id))
             fwo_api.setAlert(fwo_api_base_url, jwt, import_id=current_import_id, title="import error", mgm_id=str(mgm_id), severity=1, role='importer', \
-                description="fwo_api: failed to get import lock", source='import', alertCode=15)
+                description="fwo_api: failed to get import lock", source='import', alertCode=15, mgm_details=mgm_details)
             raise FwoApiFailedLockImport("fwo_api: failed to get import lock for management id " + str(mgm_id)) from None
 
         logging.info("starting import of management " + mgm_details['name'] + '(' + str(mgm_id) + "), import_id=" + str(current_import_id))
@@ -316,7 +316,7 @@ def complete_import(current_import_id, error_string, start_time, mgm_details, ch
     if error_count>0:
         fwo_api.create_data_issue(fwo_api_base_url, jwt, import_id=current_import_id, severity=1, description=error_string)
         fwo_api.setAlert(fwo_api_base_url, jwt, import_id=current_import_id, title="import error", mgm_id=mgm_details['id'], severity=2, role='importer', \
-            description=error_string, source='import', alertCode=14)
+            description=error_string, source='import', alertCode=14, mgm_details=mgm_details)
 
     logging.info(import_result)
 

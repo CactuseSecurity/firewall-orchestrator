@@ -384,7 +384,7 @@ def create_data_issue(fwo_api_base_url, jwt, import_id=None, obj_name=None, mgm_
 
 
 def setAlert(fwo_api_base_url, jwt, import_id=None, title=None, mgm_id=None, dev_id=None, severity=1, role='importer',
-        jsonData=None, description=None, source='import', user_id=None, refAlert=None, alertCode=None):
+        jsonData=None, description=None, source='import', user_id=None, refAlert=None, alertCode=None, mgm_details = None):
     addAlert_mutation = """
         mutation addAlert(
             $source: String!
@@ -458,7 +458,10 @@ def setAlert(fwo_api_base_url, jwt, import_id=None, title=None, mgm_id=None, dev
         jsonData.update({"severity": severity})
     if import_id != None:
         jsonData.update({"import_id": import_id})
+    if mgm_details != None and 'name' in mgm_details:
+        jsonData.update({"mgm_name": mgm_details['name']})
     query_variables.update({"jsonData": json.dumps(jsonData)})
+
 
     # write data issue to alert.log file as well
     logging.info("FWORCHAlert: " + json.dumps(query_variables))

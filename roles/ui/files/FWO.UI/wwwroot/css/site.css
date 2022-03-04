@@ -172,11 +172,41 @@ app {
   }
 
 .vheight75 {
-    height: 75vh
+    height: 75vh;
+    height: calc(100vh - 100px);
 }
 
 .vheight100 {
     height: 100vh
+}
+
+.dynamic-height-1 {
+    height: 200px;
+    max-height: calc(100vh - 100px);
+}
+.dynamic-height-2 {
+    height: 250px;
+    max-height: calc(100vh - 100px);
+}
+.dynamic-height-3 {
+    height: 300px;
+    max-height: calc(100vh - 100px);
+}
+.dynamic-height-4 {
+    height: 350px;
+    max-height: calc(100vh - 100px);
+}
+.dynamic-height-5 {
+    height: 400px;
+    max-height: calc(100vh - 100px);
+}
+.dynamic-height-6 {
+    height: 450px;
+    max-height: calc(100vh - 100px);
+}
+.dynamic-height-7 {
+    height: 500px;
+    max-height: calc(100vh - 100px);
 }
 
 .background-upcoming {

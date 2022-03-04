@@ -38,7 +38,7 @@ class FwLoginFailed(Exception):
 
     def __init__(self, message="Login to FW management failed"):
             self.message = message
-            logging.info("FWORCHAlert: " + message)
+            # logging.info("FWORCHAlert: " + message)
             super().__init__(self.message)
 
 class FwoApiLoginFailed(Exception):
@@ -62,7 +62,7 @@ class FwoApiFailure(Exception):
 
     def __init__(self, message="There was an unclassified error while executing an FWO API call"):
             self.message = message
-            logging.info("FWORCHAlert: " + message)
+            # logging.info("FWORCHAlert: " + message)
             super().__init__(self.message)
 
 class FwoApiTimeout(Exception):

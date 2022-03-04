@@ -46,7 +46,7 @@ class FwoApiLoginFailed(Exception):
 
     def __init__(self, message="Login to FWO API failed"):
             self.message = message
-            logging.info("FWORCHAlert: " + message)
+            # logging.info("FWORCHAlert: " + message)
             super().__init__(self.message)
 
 class FwoApiFailedLockImport(Exception):
@@ -54,7 +54,7 @@ class FwoApiFailedLockImport(Exception):
 
     def __init__(self, message="Locking import failed - already running?"):
             self.message = message
-            logging.info("FWORCHAlert: " + message)
+            # logging.info("FWORCHAlert: " + message)
             super().__init__(self.message)
 
 class FwoApiFailure(Exception):

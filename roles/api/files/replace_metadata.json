@@ -302,7 +302,7 @@
                   }
                 },
                 {
-                  "role": "middleware-server",
+                  "role": "importer",
                   "permission": {
                     "columns": [
                       "alert_id",
@@ -322,6 +322,17 @@
                     ],
                     "filter": {},
                     "check": null
+                  }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "ack_by",
+                      "ack_timestamp"
+                    ],
+                    "filter": {},
+                    "check": {}
                   }
                 }
               ]
@@ -11356,7 +11367,10 @@
       ],
       "allowlist": [
         {
-          "collection": "allowed-queries"
+          "collection": "allowed-queries",
+          "scope": {
+            "global": true
+          }
         }
       ],
       "rest_endpoints": [
@@ -11390,5 +11404,6 @@
         }
       ]
     }
+  
   }
 }

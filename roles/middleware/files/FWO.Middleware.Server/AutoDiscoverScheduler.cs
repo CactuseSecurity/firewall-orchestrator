@@ -136,6 +136,8 @@ namespace FWO.Middleware.Server
             catch (Exception exc)
             {
                 Log.WriteError("Autodiscovery", $"Ran into exception: ", exc);
+                Log.WriteAlert ($"source: \"{GlobalConfig.kAutodiscovery}\"", 
+                    $"userId: \"0\", title: \"Error encountered while trying to autodiscover\", description: \"{exc}\", alertCode: \"{AlertCode.Autodiscovery}\"");
                 await AddAutoDiscoverLogEntry(1, "Scheduled Autodiscovery", $"Ran into exception: " + exc.Message);
             }
         }

@@ -29,15 +29,15 @@ app {
         justify-content: flex-end;
     }
 
-        .main .top-row > a, .main .top-row .btn-link {
-            white-space: nowrap;
-            margin-left: 1.5rem;
-        }
+    .main .top-row > a, .main .top-row .btn-link {
+        white-space: nowrap;
+        margin-left: 1.5rem;
+    }
 
-.main .top-row a:first-child {
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
+    .main .top-row a:first-child {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 
 .sidebar-main {
     position: fixed;
@@ -145,68 +145,39 @@ app {
     position: sticky;
     top: -1px; /* looks better in chrome */
     z-index: 1;
-  }
+}
 
 .sticky-group .sticky-marker {
     position: sticky;
     top: 5px;
     z-index: 2;
-  }
+}
 
 .sticky-group-35 .sticky-marker-35 {
     position: sticky;
     top: 35px;
     z-index: 2;
-  }
+}
 
 .sticky-group-40 .sticky-marker-45 {
     position: sticky;
     top: 45px;
     z-index: 2;
-  }
+}
 
 .sticky-group-60 .sticky-marker-60 {
     position: sticky;
     top: 60px;
     z-index: 2;
-  }
+}
 
 .vheight75 {
-    height: 75vh;
-    height: calc(100vh - 100px);
+    max-height: 75vh;
+    max-height: calc(100vh - 100px);
 }
 
 .vheight100 {
     height: 100vh
-}
-
-.dynamic-height-1 {
-    height: 200px;
-    max-height: calc(100vh - 100px);
-}
-.dynamic-height-2 {
-    height: 250px;
-    max-height: calc(100vh - 100px);
-}
-.dynamic-height-3 {
-    height: 300px;
-    max-height: calc(100vh - 100px);
-}
-.dynamic-height-4 {
-    height: 350px;
-    max-height: calc(100vh - 100px);
-}
-.dynamic-height-5 {
-    height: 400px;
-    max-height: calc(100vh - 100px);
-}
-.dynamic-height-6 {
-    height: 450px;
-    max-height: calc(100vh - 100px);
-}
-.dynamic-height-7 {
-    height: 500px;
-    max-height: calc(100vh - 100px);
 }
 
 .background-upcoming {

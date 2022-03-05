@@ -1,0 +1,24 @@
+﻿@page "/help/monitoring/open_alerts"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpMonitoringSidebar.cshtml"); 
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("open_alerts")</h3>
+    @(Html.Raw(userConfig.GetText("H7101")))
+    <br><br>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H7102")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H7103")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H7104")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H7105")))</li>
+    </ul>
+</div>

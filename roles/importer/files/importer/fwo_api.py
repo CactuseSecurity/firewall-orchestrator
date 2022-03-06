@@ -1,6 +1,7 @@
 # library for FWORCH API calls
 import re
 import logging, traceback
+from sqlite3 import Timestamp
 from textwrap import indent
 import requests.packages
 import requests
@@ -383,19 +384,20 @@ def create_data_issue(fwo_api_base_url, jwt, import_id=None, obj_name=None, mgm_
 
 
 def setAlert(fwo_api_base_url, jwt, import_id=None, title=None, mgm_id=None, dev_id=None, severity=1, role='importer',
-        jsonData=None, description=None, source='import', user_id=None, refAlert=None, alertCode=None):
+        jsonData=None, description=None, source='import', user_id=None, refAlert=None, alertCode=None, mgm_details = None):
     addAlert_mutation = """
         mutation addAlert(
-        $source: String!
-        $userId: Int
-        $title: String
-        $description: String
-        $mgmId: Int
-        $devId: Int
-        $jsonData: json
-        $refAlert: bigint
-        $alertCode: Int
-        ) {
+            $source: String!
+            $userId: Int
+            $title: String
+            $description: String
+            $mgmId: Int
+            $devId: Int
+            $jsonData: json
+            $refAlert: bigint
+            $alertCode: Int
+        ) 
+        {
             insert_alert(
                 objects: {
                     source: $source
@@ -411,6 +413,24 @@ def setAlert(fwo_api_base_url, jwt, import_id=None, title=None, mgm_id=None, dev
             ) 
             {
                 returning { newId: alert_id }
+            }
+        }
+    """
+    getAlert_query = """
+        query getAlerts($mgmId: Int!, $alertCode: Int!, $currentAlertId: bigint!) {
+            alert(where: {
+                alert_mgm_id: {_eq: $mgmId}, alert_code: {_eq: $alertCode}
+                ack_timestamp: {_is_null: true}
+                alert_id: {_neq: $currentAlertId}}) 
+            {
+                alert_id
+            }
+        }
+    """
+    ackAlert_mutation = """
+        mutation ackAlert($userId: Int, $alertId: bigint, $ackTimeStamp: timestamp) {
+            update_alert(where: {alert_id: {_eq: $alertId}}, _set: {ack_by: $userId, ack_timestamp: $ackTimeStamp}) {
+                affected_rows
             }
         }
     """
@@ -438,7 +458,10 @@ def setAlert(fwo_api_base_url, jwt, import_id=None, title=None, mgm_id=None, dev
         jsonData.update({"severity": severity})
     if import_id != None:
         jsonData.update({"import_id": import_id})
+    if mgm_details != None and 'name' in mgm_details:
+        jsonData.update({"mgm_name": mgm_details['name']})
     query_variables.update({"jsonData": json.dumps(jsonData)})
+
 
     # write data issue to alert.log file as well
     logging.info("FWORCHAlert: " + json.dumps(query_variables))
@@ -446,7 +469,19 @@ def setAlert(fwo_api_base_url, jwt, import_id=None, title=None, mgm_id=None, dev
     try:
         import_result = call(fwo_api_base_url, jwt, addAlert_mutation, query_variables=query_variables, role=role)
         newAlertId = import_result['data']['insert_alert']['returning'][0]['newId']
+        if alertCode is not None and mgm_id is not None:
+            # Acknowledge older alert for same problem on same management
+            query_variables = { "mgmId": mgm_id, "alertCode": alertCode, "currentAlertId": newAlertId }
+            existingUnacknowledgedAlerts = call(fwo_api_base_url, jwt, getAlert_query, query_variables=query_variables, role=role)
+            if 'data' in existingUnacknowledgedAlerts and 'alert' in existingUnacknowledgedAlerts['data']:
+                for alert in existingUnacknowledgedAlerts['data']['alert']:
+                    if 'alert_id' in alert:
+                        import datetime
+                        now = datetime.datetime.now().isoformat()
+                        query_variables = { "userId": 0, "alertId": alert['alert_id'], "ackTimeStamp": now }
+                        updateResult = call(fwo_api_base_url, jwt, ackAlert_mutation, query_variables=query_variables, role=role)
     except:
         logging.error("fwo_api: failed to create alert entry: " + json.dumps(query_variables))
         return False
     return True
+

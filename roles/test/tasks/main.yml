@@ -40,6 +40,7 @@
     sample_fortigate_name: "{{ test_fortigate_name }}"
     sample_config_user: fworchtest
     sample_config_user_home: "/home/{{ sample_config_user }}"
+    sample_do_not_import: "yes"
   when: "'sampleserver' in group_names"
 
 - name: include test auth data

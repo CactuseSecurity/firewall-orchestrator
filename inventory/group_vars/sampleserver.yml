@@ -8,6 +8,7 @@ sample_data_rate: medium
 sample_role_purpose: demo
 sample_fortigate_name: fortigate_demo
 sample_postfix: _demo
+sample_do_not_import: "no"
 
 # sample openldap server
 second_ldap_db: no

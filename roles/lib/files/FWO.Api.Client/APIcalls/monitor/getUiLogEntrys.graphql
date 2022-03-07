@@ -1,0 +1,9 @@
+query getUiLogEntrys ($user: Int!){
+  log_data_issue (where: {source: {_eq: "ui"}, user_id: {_eq: $user}} order_by: { data_issue_id: desc }){
+    data_issue_id
+    severity
+    issue_timestamp
+    suspected_cause
+    description
+  }
+}

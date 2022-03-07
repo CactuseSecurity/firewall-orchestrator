@@ -52,8 +52,14 @@
 
         <ul class="navbar-nav">
             <li class="nav-item px-2">
-                <NavLink class="nav-link" @onclick="@(async () => await jsRuntime.InvokeAsync<object>("newWindow", args: $"/help/?lang={userConfig.GetUserLanguage()}"))">
-                    <span class="oi oi-info"></span> @(userConfig.GetText("help"))
+                <NavLink class="nav-link" href="/monitoring">
+                    <AuthorizeView Roles="admin, fw-admin, auditor">
+                        @if(ShowAlert)
+                        {
+                            <span class="oi oi-bell" style="color: red"></span>
+                        }
+                    </AuthorizeView>
+                    <span class="oi oi-monitor"></span> @(userConfig.GetText("monitoring"))
                 </NavLink>
             </li>
             <li class="nav-item px-2">
@@ -67,6 +73,11 @@
                 </NavLink>
             </li>
             <li class="nav-item px-2">
+                <NavLink class="nav-link" @onclick="@(async () => await jsRuntime.InvokeAsync<object>("newWindow", args: $"/help/?lang={userConfig.GetUserLanguage()}"))">
+                    <span class="oi oi-info"></span> @(userConfig.GetText("help"))
+                </NavLink>
+            </li>
+            <li class="nav-item px-2">
                 <NavLink class="nav-link" href="/logout">
                     <span class="oi oi-account-logout"></span> @(userConfig.GetText("logout"))
                 </NavLink>
@@ -77,6 +88,12 @@
 
 @code
 {
+    [Parameter]
+    public bool ShowAlert { get; set; }
+    
+    [Parameter]
+    public EventCallback<bool> ShowAlertChanged { get; set; }
+
     bool collapseNavMenu = true;
 
     string NavMenuCollapseClass => (collapseNavMenu ? " collapse" : "");

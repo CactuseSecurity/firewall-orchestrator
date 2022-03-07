@@ -12,24 +12,21 @@ namespace FWO.Config.Api
         private readonly APIConnection apiConnection;
         private readonly int userId;
 
-        public ConfigDbAccess(APIConnection apiConnection, UserConfig? userConfig = null)
-        {
-            this.apiConnection = apiConnection;
-            userId = userConfig == null ? 0 : userConfig.User.DbId;
-
+        public static async Task<ConfigDbAccess> ConstructAsync(APIConnection apiConnection, UserConfig? userConfig = null)
+        {          
+            int userId = userConfig == null ? 0 : userConfig.User.DbId;
             var Variables = new
             {
                 user = userId,
             };
-
-            // As we are calling async from sync, new task needed, else the confItems are not filled in time
-            ConfigItem[] confItems = Task.Run(async () => await apiConnection.SendQueryAsync<ConfigItem[]>(ConfigQueries.getConfigItemsByUser, Variables)).Result;
-            foreach (ConfigItem confItem in confItems)
+            ConfigItem[] configItemsDb = await apiConnection.SendQueryAsync<ConfigItem[]>(ConfigQueries.getConfigItemsByUser, Variables);
+            Dictionary<string, string> configItems = new Dictionary<string, string>();
+            foreach (ConfigItem configItem in configItemsDb)
             {
                 try
                 {
-                    string key = confItem.Key;
-                    string value = confItem.Value ?? throw new Exception($"Error importing config item (key: {confItem.Key}) for user (id: {confItem.User}): Value is null");
+                    string key = configItem.Key;
+                    string value = configItem.Value ?? throw new Exception($"Error importing config item (key: {configItem.Key}) for user (id: {configItem.User}): Value is null");
                     configItems.Add(key, value);
                 }
                 catch (Exception ex)
@@ -37,6 +34,15 @@ namespace FWO.Config.Api
                     Log.WriteError("Reading Config", "Config item could not be read, skipping it.", ex);
                 }
             }
+
+            return new ConfigDbAccess(apiConnection, userId, configItems);
+        }
+
+        private ConfigDbAccess(APIConnection apiConnection, int userId, Dictionary<string, string> configItems)
+        {
+            this.apiConnection = apiConnection;
+            this.userId = userId;
+            this.configItems = configItems;
         }
 
         public ConfigValueType Get<ConfigValueType>(string key)

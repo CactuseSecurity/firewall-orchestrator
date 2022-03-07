@@ -27,18 +27,14 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
-    [CascadingParameter]
-    private Task<AuthenticationState>? authenticationStateTask { get; set; }
-
     ConfigDbAccess? config;
     int recertificationDisplayPeriod = GlobalConfig.kDefaultInitRecertificationDisplayPeriod;
 
     protected override async Task OnInitializedAsync()
     {
-        AuthenticationState authState = await authenticationStateTask!;
         try
         {
-            config = new ConfigDbAccess(apiConnection, userConfig);
+            config = await ConfigDbAccess.ConstructAsync(apiConnection, userConfig);
             string settingsValue = config.Get<string>(GlobalConfig.kRecertificationDisplayPeriod);
             if (settingsValue != "")
             {
@@ -47,7 +43,7 @@
             else
             {
                 // get default value
-                ConfigDbAccess defaultConfig = new ConfigDbAccess(apiConnection);
+                ConfigDbAccess defaultConfig = await ConfigDbAccess.ConstructAsync(apiConnection);
                 settingsValue = defaultConfig.Get<string>(GlobalConfig.kRecertificationDisplayPeriod);
                 if (settingsValue != "")
                 {

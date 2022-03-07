@@ -1,0 +1,15 @@
+mutation acknowledgeAlert(
+  $id: bigint!
+  $ackUser: Int!
+  $ackTime: timestamp!
+) {
+  update_alert_by_pk(
+    pk_columns: { alert_id: $id }
+    _set: {
+      ack_by: $ackUser
+      ack_timestamp: $ackTime
+    }
+  ) {
+    UpdatedId: alert_id
+  }
+}

@@ -23,6 +23,12 @@
         <input id="minCollapseAllDevices" type="number" class="form-control form-control-sm" @bind="minCollapseAllDevices">
     </div>
 </form>
+<form class="form-inline" onsubmit="return false">
+    <label for="messageViewTime" class="col-form-label col-sm-4">@(userConfig.GetText("messageViewTime")):</label>
+    <div class="col-sm-2">
+        <input id="messageViewTime" type="number" class="form-control form-control-sm" @bind="messageViewTime">
+    </div>
+</form>
 <hr />
 <button class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
 
@@ -32,24 +38,22 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
-    [CascadingParameter]
-    private Task<AuthenticationState>? authenticationStateTask { get; set; }
-
     ConfigDbAccess? config;
     ConfigDbAccess? defaultConfig;
     int elementsPerFetch = GlobalConfig.kDefaultInitElementsPerFetch;
     int minCollapseAllDevices = GlobalConfig.kDefaultInitCollapseFrom;
+    int messageViewTime = GlobalConfig.kDefaultInitMessageViewTime;
 
     protected override async Task OnInitializedAsync()
     {
-        AuthenticationState authState = await authenticationStateTask!;
         try
         {
-            config = new ConfigDbAccess(apiConnection, userConfig);
-            defaultConfig = new ConfigDbAccess(apiConnection);
+            config = await ConfigDbAccess.ConstructAsync(apiConnection, userConfig);
+            defaultConfig = await ConfigDbAccess.ConstructAsync(apiConnection);
 
             elementsPerFetch = GetIntSetting(elementsPerFetch, GlobalConfig.kElementsPerFetch);
             minCollapseAllDevices = GetIntSetting(minCollapseAllDevices, GlobalConfig.kMinCollapseAllDevices);
+            messageViewTime = GetIntSetting(messageViewTime, GlobalConfig.kMessageViewTime);
         }
         catch (KeyNotFoundException) { }
         catch (Exception exception)
@@ -76,7 +80,7 @@
         try
         {
             settingsValue = (config != null ? config.Get<string>(setting) : "");
-            if (settingsValue != "")
+            if (settingsValue == "")
             {
                 settingsValue = (defaultConfig != null ? defaultConfig.Get<string>(setting) : "");
             }
@@ -95,6 +99,7 @@
         {
             await userConfig.ChangeConfigValue(GlobalConfig.kElementsPerFetch, elementsPerFetch.ToString(), apiConnection);
             await userConfig.ChangeConfigValue(GlobalConfig.kMinCollapseAllDevices, minCollapseAllDevices.ToString(), apiConnection);
+            await userConfig.ChangeConfigValue(GlobalConfig.kMessageViewTime, messageViewTime.ToString(), apiConnection);            
             DisplayMessageInUi!(null, userConfig.GetText("report_settings"), userConfig.GetText("U5301"), false);
         }
         catch (Exception exception)

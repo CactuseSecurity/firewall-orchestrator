@@ -92,8 +92,8 @@ def normalize_access_rules(full_config, config2import, import_id, routing_table=
     src_ref_all = ""
     dst_ref_all = ""
     for rule_table in rule_access_scope:
-        src_ref_all = resolve_raw_objects("all", list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id)
-        dst_ref_all = resolve_raw_objects("all", list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id)
+        src_ref_all = resolve_raw_objects("all", list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id, mgm_id=mgm_details['id'])
+        dst_ref_all = resolve_raw_objects("all", list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id, mgm_id=mgm_details['id'])
         for localPkgName in full_config[rule_table]:
             device_name = get_device_from_package(localPkgName, mgm_details)
             if device_name is None:
@@ -151,8 +151,10 @@ def normalize_access_rules(full_config, config2import, import_id, routing_table=
                     rule.update({ 'rule_dst_neg': rule_orig['dstaddr-negate']=='disable'})
                     rule.update({ 'rule_svc_neg': rule_orig['service-negate']=='disable'})
 
-                    rule.update({ 'rule_src_refs': resolve_raw_objects(rule['rule_src'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object') })
-                    rule.update({ 'rule_dst_refs': resolve_raw_objects(rule['rule_dst'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object') })
+                    rule.update({ 'rule_src_refs': resolve_raw_objects(rule['rule_src'], list_delimiter, full_config, 'name', 'uuid', \
+                        rule_type=rule_table, jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object', mgm_id=mgm_details['id']) })
+                    rule.update({ 'rule_dst_refs': resolve_raw_objects(rule['rule_dst'], list_delimiter, full_config, 'name', 'uuid', \
+                        rule_type=rule_table, jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object', mgm_id=mgm_details['id']) })
                     rule.update({ 'rule_svc_refs': rule['rule_svc'] }) # services do not have uids, so using name instead
 
                     xlate_rule = handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, import_id, localPkgName, device_name)
@@ -212,8 +214,10 @@ def normalize_nat_rules(full_config, config2import, import_id, jwt=None):
                     rule.update({ 'rule_src_neg': False})
                     rule.update({ 'rule_dst_neg': False})
                     rule.update({ 'rule_svc_neg': False})
-                    rule.update({ 'rule_src_refs': resolve_raw_objects(rule['rule_src'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table) }, jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object')
-                    rule.update({ 'rule_dst_refs': resolve_raw_objects(rule['rule_dst'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table) }, jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object')
+                    rule.update({ 'rule_src_refs': resolve_raw_objects(rule['rule_src'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table) }, \
+                        jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object')
+                    rule.update({ 'rule_dst_refs': resolve_raw_objects(rule['rule_dst'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table) }, \
+                        jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object')
                     # services do not have uids, so using name instead
                     rule.update({ 'rule_svc_refs': rule['rule_svc'] })
                     rule.update({ 'rule_type': 'original' })
@@ -326,43 +330,33 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, im
         xlate_rule = create_xlate_rule(rule)
         if 'ippool' in rule_orig:
             if rule_orig['ippool']==0:  # hiding behind outbound interface
-                # logging.debug("found outbound interface hide nat rule") # needs to be checked
-                
+                interface_name = 'unknownIF'
+                destination_interface_ip = '0.0.0.0'
                 destination_ip = get_first_ip_of_destination(rule['rule_dst_refs'], config2import) # get an ip of destination
                 if destination_ip is None:
-                    logging.warning('src nat behind interface: found no valid destination ip in rule')
-                    destination_interface_ip = '0.0.0.0'
+                    logging.warning('src nat behind interface: found no valid destination ip in rule with UID ' + rule['rule_uid'])
                 else:
                     matching_route = get_matching_route(destination_ip, config2import['networking'][device_name]['routingv4'])
                     if matching_route is None:
-                        logging.warning('src nat behind interface: found no matching route')
-                        destination_interface_ip = '0.0.0.0'
+                        logging.warning('src nat behind interface: found no matching route in rule with UID '
+                            + rule['rule_uid'] + ', dest_ip: ' + destination_ip)
                     else:
                         destination_interface_ip = get_ip_of_interface(matching_route['interface'], config2import['networking'][device_name]['interfaces'])
                         interface_name = matching_route['interface'] # ['name']
+                        hideInterface=interface_name
                         if destination_interface_ip is None:
-                            logging.warning('src nat behind interface: found no matching interface IP')
-                            destination_interface_ip = '0.0.0.0'
-
-                if 'dstintf' in rule_orig:
-                    # plan: lookup in routing table, which interface the dst-ip is routed out of and use this interface's IP as new src
-                    if len(rule_orig['dstintf'])==0:
-                        logging.warning("found empty nat hiding interface list")
-                    elif len(rule_orig['dstintf'])>1:
-                        logging.warning("found more than one nat hiding interface")
-                    hideInterface=interface_name
-                    
-                    # add dummy object "outbound-interface"
-                    obj_name = 'hide_IF_ip_' + hideInterface + '_' + destination_interface_ip
-                    obj_comment = 'FWO auto-generated dummy object for source nat'
-                    obj = create_network_object(import_id, obj_name, 'host', destination_interface_ip + '/32', obj_name, 'black', obj_comment, 'global')
-                    
-                    if obj not in config2import['network_objects']:
-                        config2import['network_objects'].append(obj)
-                    xlate_rule['rule_src'] = obj_name
-                    xlate_rule['rule_src_refs'] = obj_name
-
-                    #logging.warning("hide nat behind outgoing interface not implemented yet; hide interface: " + hideInterface)
+                            logging.warning('src nat behind interface: found no matching interface IP in rule with UID '
+                            + rule['rule_uid'] + ', dest_ip: ' + destination_ip)
+        
+                # add dummy object "outbound-interface"
+                obj_name = 'hide_IF_ip_' + hideInterface + '_' + destination_interface_ip
+                obj_comment = 'FWO auto-generated dummy object for source nat'
+                obj = create_network_object(import_id, obj_name, 'host', destination_interface_ip + '/32', obj_name, 'black', obj_comment, 'global')
+                
+                if obj not in config2import['network_objects']:
+                    config2import['network_objects'].append(obj)
+                xlate_rule['rule_src'] = obj_name
+                xlate_rule['rule_src_refs'] = obj_name
 
             elif rule_orig['ippool']==1: # hiding behind one ip of an ip pool
                 poolNameArray = rule_orig['poolname']
@@ -396,8 +390,15 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, im
         xlate_dst = []
         xlate_dst_refs = []
         for nat_obj in nat_object_list:
-            xlate_dst.append(nat_obj['obj_nat_ip'] + nat_postfix)
-            xlate_dst_refs.append(nat_obj['obj_nat_ip'] + nat_postfix)
+            if 'obj_ip_end' in nat_obj: # this nat obj is a range - include the end ip in name and uid as well to avoid akey conflicts
+                xlate_dst.append(nat_obj['obj_nat_ip'] + '-' + nat_obj['obj_ip_end'] + nat_postfix)
+                nat_ref = nat_obj['obj_nat_ip']
+                if 'obj_nat_ip_end' in nat_obj:
+                    nat_ref += '-' + nat_obj['obj_nat_ip_end'] + nat_postfix
+                xlate_dst_refs.append(nat_ref)
+            else:
+                xlate_dst.append(nat_obj['obj_nat_ip'] + nat_postfix)
+                xlate_dst_refs.append(nat_obj['obj_nat_ip']  + nat_postfix)
         xlate_rule['rule_dst'] = list_delimiter.join(xlate_dst)
         xlate_rule['rule_dst_refs'] = list_delimiter.join(xlate_dst_refs)
     # else: (no nat object found) no dnatting involved, dst stays "Original"

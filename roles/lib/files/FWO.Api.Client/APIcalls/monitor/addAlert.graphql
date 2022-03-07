@@ -1,0 +1,29 @@
+mutation addAlert(
+  $source: String!
+  $userId: Int
+  $title: String
+  $description: String
+  $mgmId: Int
+  $devId: Int
+  $jsonData: json
+  $refAlert: bigint
+  $alertCode: Int
+) {
+  insert_alert(
+    objects: {
+      source: $source
+      user_id: $userId
+      title: $title
+      description: $description
+      alert_mgm_id: $mgmId
+      alert_dev_id: $devId
+      json_data: $jsonData
+      ref_alert_id: $refAlert
+      alert_code: $alertCode
+    }
+  ) {
+    returning {
+       newId: alert_id
+    }
+  }
+}

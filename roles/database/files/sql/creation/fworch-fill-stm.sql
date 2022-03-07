@@ -7,7 +7,7 @@ insert into uiuser (uiuser_id, uiuser_username, uuid) VALUES (0,'default', 'defa
 insert into config (config_key, config_value, config_user) VALUES ('DefaultLanguage', 'English', 0);
 insert into config (config_key, config_value, config_user) VALUES ('elementsPerFetch', '100', 0);
 insert into config (config_key, config_value, config_user) VALUES ('maxInitialFetchesRightSidebar', '10', 0);
-insert into config (config_key, config_value, config_user) VALUES ('autoFillRightSidebar', 'False', 0);
+insert into config (config_key, config_value, config_user) VALUES ('autoFillRightSidebar', 'True', 0);
 insert into config (config_key, config_value, config_user) VALUES ('dataRetentionTime', '731', 0);
 insert into config (config_key, config_value, config_user) VALUES ('importSleepTime', '40', 0);
 insert into config (config_key, config_value, config_user) VALUES ('fwApiElementsPerFetch', '150', 0);
@@ -16,6 +16,16 @@ insert into config (config_key, config_value, config_user) VALUES ('recertificat
 insert into config (config_key, config_value, config_user) VALUES ('recertificationDisplayPeriod', '30', 0);
 insert into config (config_key, config_value, config_user) VALUES ('ruleRemovalGracePeriod', '60', 0);
 insert into config (config_key, config_value, config_user) VALUES ('commentRequired', 'False', 0);
+insert into config (config_key, config_value, config_user) VALUES ('messageViewTime', '7', 0);
+insert into config (config_key, config_value, config_user) VALUES ('dailyCheckStartAt', '00:00:00', 0);
+insert into config (config_key, config_value, config_user) VALUES ('autoDiscoverStartAt', '00:00:00', 0);
+insert into config (config_key, config_value, config_user) VALUES ('autoDiscoverSleepTime', '24', 0);
+insert into config (config_key, config_value, config_user) VALUES ('minCollapseAllDevices', '15', 0);
+insert into config (config_key, config_value, config_user) VALUES ('pwMinLength', '10', 0);
+insert into config (config_key, config_value, config_user) VALUES ('pwUpperCaseRequired', 'False', 0);
+insert into config (config_key, config_value, config_user) VALUES ('pwLowerCaseRequired', 'False', 0);
+insert into config (config_key, config_value, config_user) VALUES ('pwNumberRequired', 'False', 0);
+insert into config (config_key, config_value, config_user) VALUES ('pwSpecialCharactersRequired', 'False', 0);
 
 INSERT INTO "report_format" ("report_format_name") VALUES ('json');
 INSERT INTO "report_format" ("report_format_name") VALUES ('pdf');

@@ -1,0 +1,6 @@
+﻿subscription subscribeAutodiscoveryConfigChanges {
+  config (where: { _or: [{config_key: {_eq: "autoDiscoverSleepTime"}}, {config_key: {_eq: "autoDiscoverStartAt"}} ]}, limit: 2){
+    config_key
+    config_value
+  }
+}

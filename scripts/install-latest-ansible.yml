@@ -3,88 +3,89 @@
 ---
 - hosts: localhost
   tasks: 
+    - name: "Set version variables"
+      set_fact:
+        minimal_ansible_version: "2.8"
 
-    ### ubuntu 18.04
-    - block:
-      - name: install software-properties-common
-        package:
-          name: software-properties-common
-          state: present
+    - name: all good regarding version
+      debug:
+        msg: your ansible version is sufficient - no need to install another one 
+      when: ansible_version.full is version(minimal_ansible_version, '>=')
 
-      - name: apt-add-repository ppa/ansible
-        command: apt-add-repository --yes --update ppa:ansible/ansible
+    - block: # only run if ansible version is sufficient
 
-      - name: update operating system package cache .deb based
-        apt:
-          update_cache: yes
-          upgrade: yes
+      ### ubuntu 18.04
+      - block:
+        - name: install software-properties-common
+          package:
+            name: software-properties-common
+            state: present
 
-      # - name: information regarding error
-      #   debug:
-      #     msg: the next (and final) task will throw an error which can be ignored. This is caused by the running ansible being replaced.
+        - name: apt-add-repository ppa/ansible
+          command: apt-add-repository --yes --update ppa:ansible/ansible
 
-      - name: install latest ansible (might throw error due to ansible updating itself)
-        package:
-          name: ansible
-          state: present
-        ignore_errors: yes
+        - name: update operating system package cache .deb based
+          apt:
+            update_cache: yes
+            upgrade: yes
 
-      # - name: install community general (for postgresql_db)
-      #   command: ansible-galaxy collection install community.general
+        - name: install latest ansible (might throw error due to ansible updating itself)
+          package:
+            name: ansible
+            state: present
+          ignore_errors: yes
 
-      become: yes
-      #delegate_to: localhost
-      when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_version'] == '18.04'
-      environment: "{{ proxy_env }}"
+        become: yes
+        when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_version'] == '18.04'
+        environment: "{{ proxy_env }}"
 
-    ############################################
+      ############################################
 
-    ### ubuntu 20.04 (already ansible 2.9 installed)
-    ### the community.general is already part of that version
+      ### ubuntu 20.04 (already ansible 2.9 installed)
+      ### the community.general is already part of that version
 
-    ############################################
+      ############################################
 
-    ### debian 10
-    - block:
-      - name: add keyserver ubuntu
-        command: apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 93C4A3FD7BB9C367
+      ### debian 10
+      - block:
+        - name: add keyserver ubuntu
+          command: apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 93C4A3FD7BB9C367
 
-      - name: add ppa repo for debian
-        lineinfile:
-          path: /etc/apt/sources.list
-          line: deb http://ppa.launchpad.net/ansible/ansible/ubuntu trusty main
+        - name: add ppa repo for debian
+          lineinfile:
+            path: /etc/apt/sources.list
+            line: deb http://ppa.launchpad.net/ansible/ansible/ubuntu trusty main
 
-      - name: update operating system package cache .deb based
-        apt:
-          update_cache: yes
-          upgrade: yes
+        - name: update operating system package cache .deb based
+          apt:
+            update_cache: yes
+            upgrade: yes
 
-      - name: install latest ansible package
-        package:
-          name: ansible
+        - name: install latest ansible package
+          package:
+            name: ansible
 
-      - name: information regarding error
-        debug:
-          msg: the next (and final) task will throw an error which can be ignored. This is caused by the running ansible being replaced.
+        - name: information regarding error
+          debug:
+            msg: the next (and final) task will throw an error which can be ignored. This is caused by the running ansible being replaced.
 
-      - name: install community general (for postgresql_db)
-        command: ansible-galaxy collection install community.general
-        ignore_errors: yes
+        - name: install community general (for postgresql_db)
+          command: ansible-galaxy collection install community.general
+          ignore_errors: yes
 
-      become: yes
-      #delegate_to: localhost
-      when: ansible_facts['distribution'] == "Debian"
-      environment: "{{ proxy_env }}"
-
-
-    ############################################
-
-    ### red hat (for future use)
-
-      # - name: update operating system packages .rpm based (untested)
-      #   yum:
-      #     upgrade: dist
-      #   when: ansible_facts['distribution'] == "Red Hat" or ansible_facts['distribution'] == "CentOS"
-      #   environment: "{{ proxy_env }}"
+        become: yes
+        when: ansible_facts['distribution'] == "Debian"
+        environment: "{{ proxy_env }}"
 
 
+      ############################################
+
+      ### red hat (for future use)
+
+        # - name: update operating system packages .rpm based (untested)
+        #   yum:
+        #     upgrade: dist
+        #   when: ansible_facts['distribution'] == "Red Hat" or ansible_facts['distribution'] == "CentOS"
+        #   environment: "{{ proxy_env }}"
+
+      when: ansible_version.full is version(minimal_ansible_version, '<')

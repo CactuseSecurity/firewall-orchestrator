@@ -1,0 +1,133 @@
+﻿@using FWO.Config.Api
+@using FWO.Api.Data
+@using FWO.ApiClient
+
+@inject APIConnection apiConnection
+@inject UserConfig userConfig
+
+<PopUp Title="@(userConfig.GetText("import_status_details") + ImportStatus.MgmName)" Show="@DetailsMode" Large="true" OnClose="async () => await CloseDetails()">
+    <Body>
+        @if (DetailsMode)
+        {
+            <form>
+                <div class="row">
+                    <div class="col-sm-3">@(userConfig.GetText("id")):</div>
+                    <div class="col-sm-2">@ImportStatus.MgmId</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-3">@(userConfig.GetText("management")):</div>
+                    <div class="col-sm-9">@ImportStatus.MgmName</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-3">@(userConfig.GetText("type")):</div>
+                    <div class="col-sm-9">@ImportStatus.DeviceType.NameVersion()</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-3">@(userConfig.GetText("import_enabled")):</div>
+                    <div class="col-sm-2">@GlobalConfig.ShowBool(!ImportStatus.ImportDisabled)</div>
+                </div>
+                <br>
+
+                <h6>@(userConfig.GetText("first_import"))</h6>
+                <div class="row">
+                    <div class="col-sm-1"/>
+                    <div class="col-sm-2">@(userConfig.GetText("import_id")):</div>
+                    <div class="col-sm-2">@(ImportStatus.FirstImport != null && ImportStatus.FirstImport.Length > 0 ? ImportStatus.FirstImport[0].ControlId : "")</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-1"/>
+                    <div class="col-sm-1">@(userConfig.GetText("start")):</div>
+                    <div class="col-sm-3">@(ImportStatus.FirstImport != null && ImportStatus.FirstImport.Length > 0 ? ImportStatus.FirstImport[0].StartTime : "")</div>
+                    <div class="col-sm-1">@(userConfig.GetText("stop")):</div>
+                    <div class="col-sm-3">@(ImportStatus.FirstImport != null && ImportStatus.FirstImport.Length > 0 ? ImportStatus.FirstImport[0].StopTime : "")</div>
+                    <div class="col-sm-2">@(userConfig.GetText("duration")):</div>
+                    <div class="col-sm-1">@(ImportStatus.FirstImport != null && ImportStatus.FirstImport.Length > 0 && ImportStatus.FirstImport[0].StartTime != null
+                        && ImportStatus.FirstImport[0].StopTime != null ? ((TimeSpan)(ImportStatus.FirstImport[0].StopTime - ImportStatus.FirstImport[0].StartTime)).TotalSeconds.ToString("f2") : "")</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-1"/>
+                    <div class="col-sm-1">@(userConfig.GetText("success")):</div>
+                    <div class="col-sm-1">@(ImportStatus.FirstImport != null && ImportStatus.FirstImport.Length > 0 ? GlobalConfig.ShowBool(ImportStatus.FirstImport[0].SuccessfulImport) : "")</div>
+                    <div class="col-sm-1">@(userConfig.GetText("errors")):</div>
+                    <div class="col-sm-8">@(ImportStatus.FirstImport != null && ImportStatus.FirstImport.Length > 0 ? ImportStatus.FirstImport[0].ImportErrors : "")</div>
+                </div>
+                <br>
+                <h6>@(userConfig.GetText("last_successful_import"))</h6>
+                <div class="row">
+                    <div class="col-sm-1"/>
+                    <div class="col-sm-2">@(userConfig.GetText("import_id")):</div>
+                    <div class="col-sm-2">@(ImportStatus.LastSuccessfulImport != null && ImportStatus.LastSuccessfulImport.Length > 0 ? ImportStatus.LastSuccessfulImport[0].ControlId : "")</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-1"/>
+                    <div class="col-sm-1">@(userConfig.GetText("start")):</div>
+                    <div class="col-sm-3">@(ImportStatus.LastSuccessfulImport != null && ImportStatus.LastSuccessfulImport.Length > 0 ? ImportStatus.LastSuccessfulImport[0].StartTime : "")</div>
+                    <div class="col-sm-1">@(userConfig.GetText("stop")):</div>
+                    <div class="col-sm-3">@(ImportStatus.LastSuccessfulImport != null && ImportStatus.LastSuccessfulImport.Length > 0 ? ImportStatus.LastSuccessfulImport[0].StopTime : "")</div>
+                    <div class="col-sm-2">@(userConfig.GetText("duration")):</div>
+                    <div class="col-sm-1">@(ImportStatus.LastSuccessfulImport != null && ImportStatus.LastSuccessfulImport.Length > 0 && ImportStatus.LastSuccessfulImport[0].StartTime != null 
+                        && ImportStatus.LastSuccessfulImport[0].StopTime != null ? ((TimeSpan)(ImportStatus.LastSuccessfulImport[0].StopTime - ImportStatus.LastSuccessfulImport[0].StartTime)).TotalSeconds.ToString("f2") : "")</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-1"/>
+                    <div class="col-sm-5">@(userConfig.GetText("err_since_last_succ")):</div>
+                    <div class="col-sm-2">@(ImportStatus.ErrorCount)</div>
+                </div>
+                <br>
+                <h6>@(userConfig.GetText("last_import"))</h6>
+                <div class="row">
+                    <div class="col-sm-1"/>
+                    <div class="col-sm-2">@(userConfig.GetText("import_id")):</div>
+                    <div class="col-sm-2">@(ImportStatus.LastImport != null && ImportStatus.LastImport.Length > 0 ? ImportStatus.LastImport[0].ControlId : "")</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-1"/>
+                    <div class="col-sm-1">@(userConfig.GetText("start")):</div>
+                    <div class="col-sm-3">@(ImportStatus.LastImport != null && ImportStatus.LastImport.Length > 0 ? ImportStatus.LastImport[0].StartTime : "")</div>
+                    <div class="col-sm-1">@(userConfig.GetText("stop")):</div>
+                    <div class="col-sm-3">@(ImportStatus.LastImport != null && ImportStatus.LastImport.Length > 0 ? ImportStatus.LastImport[0].StopTime : "")</div>
+                    <div class="col-sm-2">@(userConfig.GetText("duration")):</div>
+                    <div class="col-sm-1">@(ImportStatus.LastImport != null && ImportStatus.LastImport.Length > 0 && ImportStatus.LastImport[0].StartTime != null
+                        && ImportStatus.LastImport[0].StopTime != null ? ((TimeSpan)(ImportStatus.LastImport[0].StopTime - ImportStatus.LastImport[0].StartTime)).TotalSeconds.ToString("f2") : "")</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-1"/>
+                    <div class="col-sm-1">@(userConfig.GetText("success")):</div>
+                    <div class="col-sm-1">@(ImportStatus.LastImport != null && ImportStatus.LastImport.Length > 0 ? GlobalConfig.ShowBool(ImportStatus.LastImport[0].SuccessfulImport) : "")</div>
+                    <div class="col-sm-1">@(userConfig.GetText("errors")):</div>
+                    <div class="col-sm-8">@(ImportStatus.LastImport != null && ImportStatus.LastImport.Length > 0 ? ImportStatus.LastImport[0].ImportErrors : "")</div>
+                </div>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button class="btn btn-sm btn-secondary" @onclick="CloseDetails">@(userConfig.GetText("ok"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+
+    [Parameter]
+    public ImportStatus ImportStatus { get; set; } = new ImportStatus();
+
+    [Parameter]
+    public bool DetailsMode { get; set; }
+   
+    [Parameter]
+    public EventCallback<bool> DetailsModeChanged { get; set; }
+    
+    [Parameter]
+    public EventCallback<bool> Closing { get; set; }
+
+
+    private async Task CloseDetails()
+    {
+        await Closing.InvokeAsync(DetailsMode);
+        DetailsMode = false;
+    }
+}

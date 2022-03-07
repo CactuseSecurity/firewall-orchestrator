@@ -15,7 +15,7 @@
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 
-<h3 class="m-2">@(userConfig.GetText("tenants"))</h3>
+<h3>@(userConfig.GetText("tenants"))</h3>
 @(userConfig.GetText("U5212"))
 <hr />
 
@@ -248,6 +248,16 @@
     </Footer>
 </PopUp>
 
+<PopUp Title="@(userConfig.GetText("in_progress"))" Small="true" Show="@workInProgress">
+    <Body>
+        @if (workInProgress)
+        {
+            <div class="row">
+                <div class="spinner-border mx-auto align-self-center" role="status"></div>
+            </div>
+        }
+    </Body>
+</PopUp>
 
 @code
 {
@@ -275,6 +285,7 @@
     private bool showCleanupButton = false;
     private bool SampleRemoveAllowed = false;
     private string sampleRemoveMessage = "";
+    private bool workInProgress = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -300,8 +311,8 @@
             }
             showCleanupButton = (sampleTenants.Count > 0);
 
-            devices = (await apiConnection.SendQueryAsync<Device[]>(FWO.ApiClient.Queries.DeviceQueries.getDeviceDetails)).ToList();
-            uiUsers = (await apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUsers)).ToList();
+            devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.ApiClient.Queries.DeviceQueries.getDeviceDetails);
+            uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.ApiClient.Queries.AuthQueries.getUsers);
                         
         }
         catch (Exception exception)
@@ -404,7 +415,7 @@
         try
         {
             // delete tenant from Ldap
-            TenantDeleteParameters deleteTenantParameters = new TenantDeleteParameters { Name = actTenant.Name, Id = actTenant.Id};
+            TenantDeleteParameters deleteTenantParameters = new TenantDeleteParameters { Name = tenant.Name, Id = tenant.Id};
             RestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteTenant(deleteTenantParameters);
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
             {
@@ -447,6 +458,7 @@
     private async Task RemoveSampleData()
     {
         SampleRemoveMode = false;
+        workInProgress = true;
         try
         {
             foreach (var tenant in sampleTenants)
@@ -454,9 +466,11 @@
                 await DeleteTenant(tenant);
             }
             showCleanupButton = false;
+            workInProgress = false; 
         }
         catch (System.Exception exception)
         {
+            workInProgress = false; 
             DisplayMessageInUi!(exception, userConfig.GetText("remove_sample_data"), "", false);
         }
     }

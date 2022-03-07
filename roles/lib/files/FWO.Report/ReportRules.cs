@@ -36,11 +36,13 @@ namespace FWO.Report
             GotReportedRuleIds = true;
         }
 
-        public override async Task GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback) // to be called when exporting
+        public override async Task<bool> GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback) // to be called when exporting
         {
             // get rule ids per import (= management)
             if (!GotReportedRuleIds)
                 await GetReportedRuleIds(apiConnection);
+
+            bool gotAllObjects = true; //whether the fetch count limit was reached during fetching
 
             if (!GotObjectsInReport)
             {
@@ -58,14 +60,16 @@ namespace FWO.Report
                         };
 
                         // get objects for this management in the current report
-                        await GetObjectsForManagementInReport(objQueryVariables, all, int.MaxValue, apiConnection, callback);
+                        gotAllObjects &= await GetObjectsForManagementInReport(objQueryVariables, all, int.MaxValue, apiConnection, callback);
                     }
                 }
                 GotObjectsInReport = true;
             }
+
+            return gotAllObjects;
         }
 
-        public override async Task GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, int maxFetchCycles, APIConnection apiConnection, Func<Management[], Task> callback)
+        public override async Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, int maxFetchCycles, APIConnection apiConnection, Func<Management[], Task> callback)
         {
             if (!objQueryVariables.ContainsKey("mgmIds") || !objQueryVariables.ContainsKey("limit") || !objQueryVariables.ContainsKey("offset"))
                 throw new ArgumentException("Given objQueryVariables dictionary does not contain variable for management id, limit or offset");
@@ -122,6 +126,8 @@ namespace FWO.Report
             }
 
             Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount - 1} cycle(s) ({elementsPerFetch} at a time)");
+
+            return fetchCount <= maxFetchCycles;
         }
 
         public override async Task Generate(int rulesPerFetch, APIConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)

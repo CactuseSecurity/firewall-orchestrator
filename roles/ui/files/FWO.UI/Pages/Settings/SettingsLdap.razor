@@ -15,7 +15,7 @@
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 
-<h3 class="m-2">@(userConfig.GetText("ldap_conns"))</h3>
+<h3>@(userConfig.GetText("ldap_conns"))</h3>
 @(userConfig.GetText("U5211"))
 <hr />
 
@@ -254,7 +254,7 @@
                 }
             }
 
-            tenants = (await apiConnection.SendQueryAsync<Tenant[]>(FWO.ApiClient.Queries.AuthQueries.getTenants)).ToList();
+            tenants = await apiConnection.SendQueryAsync<List<Tenant>>(FWO.ApiClient.Queries.AuthQueries.getTenants);
         }
         catch (System.Exception exception)
         {

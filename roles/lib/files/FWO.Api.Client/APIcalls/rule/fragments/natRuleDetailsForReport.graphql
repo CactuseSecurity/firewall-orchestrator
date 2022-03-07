@@ -19,6 +19,9 @@
       }
     }
     rule_tos(where: {object:{obj_create:{_lte:$relevantImportId}, obj_last_seen:{_gte:$relevantImportId}}}) {
+      usr {
+        ...userDetails
+      }
       object {
         ...networkObjectDetails
       }

@@ -1,0 +1,28 @@
+﻿@page "/help/monitoring/import_logs"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpMonitoringSidebar.cshtml"); 
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("import_logs")</h3>
+    @(Html.Raw(userConfig.GetText("H7301")))
+    <br><br>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H7302")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H7303")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H7304")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H7305")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H7306")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H7307")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H7308")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H7309")))</li>
+    </ul>
+</div>

@@ -70,9 +70,9 @@ namespace FWO.Report
 
         public bool GotObjectsInReport { get; protected set; } = false;
 
-        public abstract Task GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback); // to be called when exporting
+        public abstract Task<bool> GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback); // to be called when exporting
 
-        public abstract Task GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, int maxFetchCycles, APIConnection apiConnection, Func<Management[], Task> callback);
+        public abstract Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, int maxFetchCycles, APIConnection apiConnection, Func<Management[], Task> callback);
 
         public abstract string ExportToCsv();
 

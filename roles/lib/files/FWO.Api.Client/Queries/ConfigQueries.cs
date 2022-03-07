@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using System.IO;
-using FWO.Logging;
+﻿using FWO.Logging;
 
 namespace FWO.ApiClient.Queries
 {
@@ -16,6 +11,8 @@ namespace FWO.ApiClient.Queries
         public static readonly string updateConfigItem;
         public static readonly string upsertConfigItem;
         public static readonly string getConfigItemsByUser;
+        public static readonly string subscribeAutodiscoveryConfigChanges;
+        public static readonly string subscribeDailyCheckConfigChanges;
 
         static ConfigQueries()
         {
@@ -28,6 +25,8 @@ namespace FWO.ApiClient.Queries
                 updateConfigItem = File.ReadAllText(QueryPath + "config/updateConfigItem.graphql");
                 getConfigItemsByUser = File.ReadAllText(QueryPath + "config/getConfigItemsByUser.graphql");
                 upsertConfigItem = File.ReadAllText(QueryPath + "config/upsertConfigItem.graphql");
+                subscribeAutodiscoveryConfigChanges = File.ReadAllText(QueryPath + "config/subscribeAutodiscoveryConfigChanges.graphql");
+                subscribeDailyCheckConfigChanges = File.ReadAllText(QueryPath + "config/subscribeDailyCheckConfigChanges.graphql");
             }
             catch (Exception exception)
             {

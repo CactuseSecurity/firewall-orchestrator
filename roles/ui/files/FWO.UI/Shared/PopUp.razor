@@ -2,7 +2,7 @@
 {
     <div class="modal-backdrop" style="background-color:rgba(0,0,0,0.5);">
         <div class="modal-open" tabindex="-1">
-            <div class="modal-dialog @(Large ? "modal-lg" : "") @(Scrollable ? "modal-dialog-scrollable" : "")">
+            <div class="modal-dialog @(XLarge ? "modal-xl" : (Large ? "modal-lg" : (Small ? "modal-sm" : ""))) @(Scrollable ? "modal-dialog-scrollable" : "")">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title">@Title</h5>
@@ -37,7 +37,13 @@
     public bool Show { get; set; } = false;
 
     [Parameter]
+    public bool Small { get; set; } = false;
+
+    [Parameter]
     public bool Large { get; set; } = false;
+
+    [Parameter]
+    public bool XLarge { get; set; } = false;
 
     [Parameter]
     public bool Scrollable { get; set; } = true;

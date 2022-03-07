@@ -38,6 +38,7 @@ class FwLoginFailed(Exception):
 
     def __init__(self, message="Login to FW management failed"):
             self.message = message
+            # logging.info("FWORCHAlert: " + message)
             super().__init__(self.message)
 
 class FwoApiLoginFailed(Exception):
@@ -45,6 +46,7 @@ class FwoApiLoginFailed(Exception):
 
     def __init__(self, message="Login to FWO API failed"):
             self.message = message
+            # logging.info("FWORCHAlert: " + message)
             super().__init__(self.message)
 
 class FwoApiFailedLockImport(Exception):
@@ -52,6 +54,7 @@ class FwoApiFailedLockImport(Exception):
 
     def __init__(self, message="Locking import failed - already running?"):
             self.message = message
+            # logging.info("FWORCHAlert: " + message)
             super().__init__(self.message)
 
 class FwoApiFailure(Exception):
@@ -59,6 +62,7 @@ class FwoApiFailure(Exception):
 
     def __init__(self, message="There was an unclassified error while executing an FWO API call"):
             self.message = message
+            # logging.info("FWORCHAlert: " + message)
             super().__init__(self.message)
 
 class FwoApiTimeout(Exception):
@@ -66,6 +70,7 @@ class FwoApiTimeout(Exception):
 
     def __init__(self, message="reverse proxy timeout error during FWO API call - try increasing the reverse proxy timeout"):
             self.message = message
+            logging.info("FWORCHAlert: " + message)
             super().__init__(self.message)
 
 class FwoApiTServiceUnavailable(Exception):
@@ -73,6 +78,7 @@ class FwoApiTServiceUnavailable(Exception):
 
     def __init__(self, message="FWO API Hasura container died"):
             self.message = message
+            logging.info("FWORCHAlert: " + message)
             super().__init__(self.message)
 
 
@@ -152,6 +158,8 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
         if current_import_id == -1:
             fwo_api.create_data_issue(fwo_api_base_url, jwt, mgm_id=int(mgm_id), severity=1, 
                 description="failed to get import lock for management id " + str(mgm_id))
+            fwo_api.setAlert(fwo_api_base_url, jwt, import_id=current_import_id, title="import error", mgm_id=str(mgm_id), severity=1, role='importer', \
+                description="fwo_api: failed to get import lock", source='import', alertCode=15, mgm_details=mgm_details)
             raise FwoApiFailedLockImport("fwo_api: failed to get import lock for management id " + str(mgm_id)) from None
 
         logging.info("starting import of management " + mgm_details['name'] + '(' + str(mgm_id) + "), import_id=" + str(current_import_id))
@@ -246,7 +254,7 @@ def get_config_sub(mgm_details, full_config_json, config2import, jwt, current_im
             logging.debug ( "has_config_changed: no new changes found")
 
         if config_changed_since_last_import:
-            get_config_response = fw_module.get_config( # get config from product-specific FW API
+            fw_module.get_config( # get config from product-specific FW API
                 config2import, full_config_json,  current_import_id, mgm_details, debug_level=debug_level, 
                 ssl_verification=ssl, proxy=proxy, limit=limit, force=force, jwt=jwt)
     except FwLoginFailed as e:
@@ -307,6 +315,8 @@ def complete_import(current_import_id, error_string, start_time, mgm_details, ch
     import_result += ", ERRORS: " + error_string if len(error_string) > 0 else ""
     if error_count>0:
         fwo_api.create_data_issue(fwo_api_base_url, jwt, import_id=current_import_id, severity=1, description=error_string)
+        fwo_api.setAlert(fwo_api_base_url, jwt, import_id=current_import_id, title="import error", mgm_id=mgm_details['id'], severity=2, role='importer', \
+            description=error_string, source='import', alertCode=14, mgm_details=mgm_details)
 
     logging.info(import_result)
 
@@ -435,12 +445,12 @@ def extend_string_list(list_string, src_dict, key, delimiter, jwt=None, import_i
     return result
 
 
-def resolve_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type=None, jwt=None, import_id=None):
+def resolve_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type=None, jwt=None, import_id=None, mgm_id=None):
     # guessing ipv4 and adom (to also search global objects)
-    return resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type='v4_adom', obj_type='network', jwt=jwt, import_id=import_id)
+    return resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type='v4_adom', obj_type='network', jwt=jwt, import_id=import_id, mgm_id=mgm_id)
 
 
-def resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type=None, obj_type='network', jwt=None, import_id=None, rule_uid=None, object_type=None):
+def resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type=None, obj_type='network', jwt=None, import_id=None, rule_uid=None, object_type=None, mgm_id=None):
     ref_list = []
     objects_not_found = []
     for el in obj_name_string_list.split(delimiter):
@@ -482,6 +492,16 @@ def resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, ui
         if not found:
             objects_not_found.append(el)
     for obj in objects_not_found:
-        if not fwo_api.create_data_issue(fwo_api_base_url, jwt, import_id=import_id, obj_name=obj, severity=2, rule_uid=rule_uid, object_type=object_type):
-            logging.warning("resolve_raw_objects: encountered error while trying to log an import data issue using create_data_issue")
+
+        if obj != 'all' and obj != 'Original':
+            if not fwo_api.create_data_issue(fwo_api_base_url, jwt, import_id=import_id, obj_name=obj, severity=1, rule_uid=rule_uid, mgm_id=mgm_id, object_type=object_type):
+                logging.warning("resolve_raw_objects: encountered error while trying to log an import data issue using create_data_issue")
+
+            desc = "found a broken network object reference '" + obj + "' "
+            if object_type is not None:
+                desc +=  "(type=" + object_type + ") "
+            desc += "in rule with UID '" + rule_uid + "'"
+            fwo_api.setAlert(fwo_api_base_url, jwt, import_id=import_id, title="object reference error", mgm_id=mgm_id, severity=1, role='importer', \
+                description=desc, source='import', alertCode=16)
+
     return delimiter.join(ref_list)

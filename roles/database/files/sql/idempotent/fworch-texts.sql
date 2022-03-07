@@ -1585,11 +1585,13 @@ INSERT INTO txt VALUES ('H1502', 'German', 'Anzeige aller zur Verf&uuml;gung ste
 INSERT INTO txt VALUES ('H1502', 'English', 'Selection of all available report types. Please select one.');
 INSERT INTO txt VALUES ('H1503', 'German',  'Auflistung aller verf&uuml;gbaren Devices.
     Die Ansicht kann f&uuml;r unterschiedliche Nutzer entsprechend der <a href="/help/settings/tenants">Mandantenzuordnung</a> variieren.
-    F&uuml;r eine Reporterstellung muss hier eine Auswahl getroffen werden.
+    F&uuml;r eine Reporterstellung muss hier eine Auswahl getroffen werden. Die dargestellten Devices k&ouml;nnen ein- oder ausgeklappt werden.
+    Ab welcher Mindestanzahl die Darstellung zu Beginn eingeklappt ist, kann individuell in den <a href="/help/settings/report">Reporting-Einstellungen</a> definiert werden.
 ');
 INSERT INTO txt VALUES ('H1503', 'English', 'Display of all available devices.
     This view may differ for the different users according to the <a href="/help/settings/tenants">tenant assignments</a>.
-    For the creation of a report a selection out of them has to be done.
+    For the creation of a report a selection out of them has to be done. The displayed devices can be collapsed or expanded.
+    In the <a href="/help/settings/report">Report Settings</a> it is possible to define the minimum number, where the display starts collapsed.
 ');
 INSERT INTO txt VALUES ('H1504', 'German',  'Anzeige der gew&auml;hlten Reportzeit bzw. des gew&auml;hlten Reportzeitraums in Abh&auml;ngigkeit vom gew&auml;hlten Report-Typ.
     Vorgabewerte sind "jetzt" bzw. "dieses Jahr". &Uuml;ber die "&Auml;ndern"-Schaltfl&auml;che kann dies in einem entsprechenden Popup-Fenster angepasst werden:
@@ -1721,12 +1723,10 @@ INSERT INTO txt VALUES ('H5001', 'English', 'In the settings section the setup a
     The auditor is able to see the settings, but as he has no write permissions all buttons leading to changes are disabled.
 ');
 INSERT INTO txt VALUES ('H5011', 'German',  'Im ersten Kapitel "Ger&auml;te" wird das Setup der Datenquellen behandelt: 
-    Die Abschnitte <a href="/help/settings/managements">Managements</a> und <a href="/help/settings/gateways">Gateways</a> dienen der Definition der verbundenen Hardware,
-    der <a href="/help/settings/import">Importstatus</a> -Abschnitt unterst&uuml;tzt das Monitoring des Datenimports.
+    Die Abschnitte <a href="/help/settings/managements">Managements</a> und <a href="/help/settings/gateways">Gateways</a> dienen der Definition der verbundenen Hardware.
 ');
 INSERT INTO txt VALUES ('H5011', 'English', 'In the first chapter "Devices" the setup of the report data sources is done:
-    The sections <a href="/help/settings/managements">Managements</a> and <a href="/help/settings/gateways">Gateways</a> are for the definition of the connected hardware,
-    the <a href="/help/settings/import">Import Status</a> section allows the monitoring of the data import.
+    The sections <a href="/help/settings/managements">Managements</a> and <a href="/help/settings/gateways">Gateways</a> are for the definition of the connected hardware.
 ');
 INSERT INTO txt VALUES ('H5012', 'German',  'Das Kapitel "Berechtigungen" bietet die Funktionalit&auml;t f&uuml;r die Nutzerverwaltung:
     In <a href="/help/settings/ldap">LDAP-Verbindungen</a> k&ouml;nnen externe Verbindungen zus&auml;tzlich zum internen LDAP definiert werden.
@@ -2165,6 +2165,28 @@ INSERT INTO txt VALUES ('H5420', 'German',  'Frist zum L&ouml;schen der Regeln (
 INSERT INTO txt VALUES ('H5420', 'English', 'Rule Removal Grace Period (in days): Maximum time the fwadmin has to remove the decertified rules.');
 INSERT INTO txt VALUES ('H5421', 'German',  'Kommentar Pflichtfeld: Legt fest, dass das Kommentarfeld f&uuml;r Re- und Dezertifizierungen gef&uuml;llt sein muss.');
 INSERT INTO txt VALUES ('H5421', 'English', 'Comment Required: A non-empty comment for the re- or decertification is required.');
+INSERT INTO txt VALUES ('H5422', 'German',  'Devices zu Beginn eingeklappt ab: Legt fest, ab wievielen Devices (Managements + Gateways) diese in der linken Randleiste zun&auml;chst eingeklappt dargestellt werden.');
+INSERT INTO txt VALUES ('H5422', 'English', 'Devices collapsed at beginning from: defines from which number of devices (managements + gateways) they are displayed collapsed in the left sidebar at beginning.');
+INSERT INTO txt VALUES ('H5423', 'German',  'Nachrichten-Anzeigedauer (in Sekunden): legt fest, wie lange Erfolgs-Nachrichten dargestellt werden, bis sie automatisch ausgeblendet werden.
+    Fehler-Nachrichten erscheinen dreimal so lange. Beim Wert 0 werden die Nachrichten nicht automatisch ausgeblendet.
+    Die Nutzer-Meldungen k&ouml;nnen auch danach noch unter <a href="/help/monitoring/ui_messages">UI-Nachrichten</a> eingesehen werden.
+');
+INSERT INTO txt VALUES ('H5423', 'English', 'Message view time (in seconds): defines how long success messages are displayed, until they fade out automatically.
+    Error messages are displayed 3 times as long. Value 0 means that the messages do not fade out.
+    All user messages can still be reviewed at <a href="/help/monitoring/ui_messages">UI Messages</a>.
+');
+INSERT INTO txt VALUES ('H5424', 'German',  'Startzeit t&auml;glicher Check: legt die Zeit fest, wann der t&auml;gliche Check durchgef&uuml;hrt werden soll.');
+INSERT INTO txt VALUES ('H5424', 'English', 'Daily check start at: defines the time when the daily check should happen.');
+INSERT INTO txt VALUES ('H5425', 'German',  'FW API - Pro Abruf geholte Elemente: Definiert die (maximale) Anzahl der Objekte, die beim Import &uuml;ber die FWO-API in einem Schritt geholt werden.
+    Dies kann genutzt werden, um die Performanz zu optimieren, wenn n&ouml;tig.
+');
+INSERT INTO txt VALUES ('H5425', 'English', 'FW API - Elements per fetch: Defines the (maximum) number of objects which are fetched in one step during import via the FWO-API.
+    This can be used to optimize performance if necessary.
+');
+INSERT INTO txt VALUES ('H5426', 'German',  'Autodiscover-Intervall (in Stunden): legt das Intervall fest, in dem die Autodiscovery durchgef&uuml;hrt werden soll.');
+INSERT INTO txt VALUES ('H5426', 'English', 'Auto-discovery sleep time (in hours): defines the interval in which the autodiscovery should be performed.');
+INSERT INTO txt VALUES ('H5427', 'German',  'Autodiscover-Start: legt eine Bezugszeit fest, ab dem die Intervalle f&uuml;r die Autodiscovery gerechnet werden.');
+INSERT INTO txt VALUES ('H5427', 'English', 'Auto-discovery start at: defines a referential time from which the autodiscovery intervals are calculated.');
 INSERT INTO txt VALUES ('H5431', 'German',  'Der Administrator kann Vorgaben f&uuml;r Passw&ouml;rter definieren, gegen die alle neuen Passw&ouml;rter aller (internen) Nutzer gepr&uuml;ft werden.');
 INSERT INTO txt VALUES ('H5431', 'English', 'The admin user can define a password policy, against which all new passwords of all (internal) users are checked.');
 INSERT INTO txt VALUES ('H5441', 'German',  'Mindestl&auml;nge: Minimale L&auml;nge des Passworts');
@@ -2299,3 +2321,156 @@ INSERT INTO txt VALUES ('H6906', 'German',  'Anmelden zur Generierung eines g&uu
 INSERT INTO txt VALUES ('H6906', 'English', 'Login to get a JWT for the steps further below');
 INSERT INTO txt VALUES ('H6907', 'German',  'Auflisten bereits vorhandener Reports im Archiv (hier der letzte generierte zum Schedule)');
 INSERT INTO txt VALUES ('H6907', 'English', 'List generated reports in archive (here we get the last one generated for the respective schedule)');
+
+INSERT INTO txt VALUES ('H7001', 'German', 'Im diesem Reiter werden die Monitoringwerkzeuge zur Verf&uuml;gung gestellt.
+    Die meisten Abschnitte k&ouml;nnen nur von Nutzern mit den verschiedenen Administrator-Rollen gesehen und genutzt werden.
+    Der Auditor kann zwar die Einstellungen sehen, da er aber keine Schreibrechte hat, sind alle Schaltfl&auml;chen, die zu &Auml;nderungen f&uuml;hren w&uuml;rden, deaktiviert.
+');
+INSERT INTO txt VALUES ('H7001', 'English', 'In this tab monitoring tools are provided.
+    Most sections can only be seen and used by users with the different administrator roles.
+    The auditor is able to see the monitoring tools, but as he has no write permissions all buttons leading to changes are disabled.
+');
+INSERT INTO txt VALUES ('H7011', 'German', 'Im ersten Kapitel "Alarme" werden alle Ereignisse behandelt, die eine &Uuml;berpr&uuml;fung oder ein Eingreifen eines Administrators erfordern: 
+    Der Abschnitt <a href="/help/monitoring/open_alerts">Offene Alarme</a> dient als &Uuml;bersicht &uuml;ber alle noch zu behandelnden Ereignisse, w&auml;hrend in <a href="/help/monitoring/all_alerts">Alle Alarme</a> 
+    auch die bereits bearbeiteten Alarme mitsamt dem jeweiligen Bearbeiter eingesehen werden k&ouml;nnen.
+');
+INSERT INTO txt VALUES ('H7011', 'English', 'In the first chapter "Alerts" all events that need a check or intervention by an administrator are handled:
+    The section <a href="/help/monitoring/open_alerts">Open Alerts</a> gives a dashboard for all events to be handled, whereas in <a href="/help/monitoring/all_alerts">All Alerts</a>
+    also the already handled alerts and the respective acknowledger can be viewed.
+');
+INSERT INTO txt VALUES ('H7012', 'German', 'Das Kapitel "Hintergrund-Checks" zeigt die Ausgaben der regelm&auml;ssigen automatischen Pr&uuml;fungen:
+    In <a href="/help/monitoring/autodiscovery">Autodiscovery</a> wird die Konfiguration der Managements und Gateways mit dem aktuellen Stand im Quellsystem abgeglichen.
+    Die <a href="/help/monitoring/daily_checks">T&auml;glichen Checks</a> &uuml;berpr&uuml;fen sonstige Systemzust&auml;nde, insbesondere den Import-Status der einzelnen Managements.
+');
+INSERT INTO txt VALUES ('H7012', 'English', 'The chapter "Background Checks" displays the outcome of regular automatic checks:
+    In <a href="/help/monitoring/autodiscovery">Autodiscovery</a> the management and gateway configuration is compared to the actual state in the source system.
+    <a href="/help/monitoring/daily_checks">Daily Checks</a> inspect other system conditions, especially the import status of the different managements.
+');
+INSERT INTO txt VALUES ('H7013', 'German', 'Im Kapitel "Import" wird der Datenimport &uuml;berwacht:
+    <a href="/help/monitoring/import_status">Import-Status</a> erlaubt einen &Uuml;berblick &uuml;ber einige Parameter der verschiedenen importierenden systeme,
+    w&auml;hrend <a href="/help/monitoring/import_logs">Import-Logs</a> die wichtigen Ausgaben der Datenimporte festh&auml;lt.
+');
+INSERT INTO txt VALUES ('H7013', 'English', 'In the "Import" chapter the data import is monitored: 
+    <a href="/help/monitoring/import_status">Import Status</a> allows a view on several parameters of the different importing systems, 
+    whereas <a href="/help/monitoring/import_logs">Import Logs</a> records noteworthy outcomes of the data imports.
+');
+INSERT INTO txt VALUES ('H7014', 'German', 'Das Kapitel "Pers&ouml;nlich" ist f&uuml;r alle Nutzer zug&auml;nglich. 
+    Unter <a href="/help/monitoring/ui_messages">UI-Nachrichten</a> werden alle Fehler- und Erfolgsmeldungen des jeweiligen Nutzers festgehalten.
+');
+INSERT INTO txt VALUES ('H7014', 'English', 'The "Personal" chapter is accessible by all users.
+    <a href="/help/monitoring/ui_messages">Ui Messages</a> records all error and success messages of the actual user.
+');
+INSERT INTO txt VALUES ('H7101', 'German', 'Verschiedene Komponenten des Firewall Orchestrator k&ouml;nnen Alarme ausl&ouml;sen, wenn eine &Uuml;berpr&uuml;fung oder ein Eingreifen durch einen Administrator erforderich ist.
+    Je nach Alarmtyp werden unter "Details" weitere Informationen oder Handlungsoptionen angeboten. Durch Auswahl der "Best&auml;tigen"-Schaltfl&auml;che verschwindet der Alarm aus der &Uuml;bersicht, der Best&auml;tigende wird mit Zeitstempel im Alarm protokolliert.
+    Der Alarm kann dann weiterhin unter "Alle Alarme" eingesehen werden, die Details sind dann aber nicht mehr verf&uuml;gbar. Wird ein Alarm wiederholt ausgel&ouml;st (z.B. bei der <a href="/help/monitoring/autodiscovery">Autodiscovery</a> 
+    oder beim <a href="/help/monitoring/daily_checks">T&auml;glichen Check</a>), so wird der bereits existierende, soweit zuzuordnen, automatisch best&auml;tigt.
+');
+INSERT INTO txt VALUES ('H7101', 'English', 'Several components of Firewall Orchestrator can raise alerts, if a check or intervention by an administrator is necessary.
+    Depending on the alert type "Details" offers further information or options for actions. By using the "Acknowledge"-button the alert is removed from the open alerts list, the acknowledger is protocolled with timestamp in the alert.
+    The alert can still be viewed in "All Alerts", but the details are not available anymore. If an alert is raised again (e.g. from <a href="/help/monitoring/autodiscovery">Autodiscovery</a>
+    or <a href="/help/monitoring/daily_checks">Daily Check</a>), the already existing alert is acknowledged automatically as far as possible.
+');
+INSERT INTO txt VALUES ('H7102', 'German', 'Wenn vom <a href="/help/monitoring/daily_checks">T&auml;glichen Check</a> Beispieldaten gefunden werden, gibt es hier die M&ouml;glichkeit, sie in einem Schritt komplett zu l&ouml;schen.
+    Besteht Unsicherheit, ob noch einzelne Daten ben&ouml;tigt werden, k&ouml;nnen diese auch in den einzelnen Rubriken <a href="/help/settings/managements">Managements</a>, <a href="/help/settings/tenants">Mandanten</a>,
+    <a href="/help/settings/users">Nutzer</a> und <a href="/help/settings/groups">Gruppen</a> getrennt gel&ouml;scht werden.
+');
+INSERT INTO txt VALUES ('H7102', 'English', 'If sample data is found by the <a href="/help/monitoring/daily_checks">Daily Check</a>, here the option is offered to delete then in one step.
+    If there is uncertainity about data still to be needed, they can also be handled separately in the different settings chapters <a href="/help/settings/managements">Managements</a>, <a href="/help/settings/tenants">Tenants</a>,
+    <a href="/help/settings/users">Users</a>, and <a href="/help/settings/groups">Groups</a>.
+');
+INSERT INTO txt VALUES ('H7103', 'German', 'Alle auf der UI auftretenden Systemfehler (aber keine Benutzerfehler) werden als Alarm protokolliert.');
+INSERT INTO txt VALUES ('H7103', 'English', 'All system errors (but not user errors) occuring on the UI are recorded as alert.');
+INSERT INTO txt VALUES ('H7104', 'German', 'Werden beim <a href="/help/monitoring/daily_checks">T&auml;glichen Check</a> beim Import einzelner Managements Unregelm&auml;ssigkeiten festgestellt (langlaufende, &uuml;berf&auml;llige oder ganz ausgebliebene Importe), 
+    wird im Alarm eine detailliertere &Uuml;bersicht &uuml;ber den Import-Status bzw. die M&ouml;glichkeit des Rollbacks (im Falle eines langlaufenden Imports) des jeweiligen Managements angeboten.
+');
+INSERT INTO txt VALUES ('H7104', 'English', 'When the <a href="/help/monitoring/daily_checks">Daily Check</a> finds irregularities in the import of a management (long-running, overdue or completely missing imports),
+    a detailled overview of the import status, resp. a possibility to rollback (in case of a long-running import) is offered in the alert.
+');
+INSERT INTO txt VALUES ('H7105', 'German', 'Wenn der automatische Lauf der <a href="/help/monitoring/autodiscovery">Autodiscovery</a> &Auml;nderungen in der Device-Konfiguration feststellt (hinzugekommene oder verschwundene Ger&auml;te),
+    wird f&uuml;r jede einzelne &Auml;nderung ein Alarm ausgel&ouml;st. Unter "Details" wird dann die jeweilige Aktion zur Anpassung im Firewall Orchestrator zur Ausf&uuml;hrung angeboten. 
+    Dabei ist zu ber&uuml;cksichtigen, dass Managements zuerst angelegt werden m&uuml;ssen, bevor Gateways zugeordnet werden k&ouml;nnen, 
+    bzw. dass Gateways gel&ouml;scht oder deaktiviert sein m&uuml;ssen bevor die entsprechende Aktion mit dem &uuml;bergeordneten Management erfolgen kann.
+    Deshalb k&ouml;nnen vorgeschlagene Aktionen deaktiviert sein, dann bitte zuerst die vorausgesetzten Aktionen durchf&uuml;hren. 
+    Beim Anlegen eines Managements oder Gateways wird automatisch gepr&uuml;ft, ob dieses schon vorhanden ist, und dann nur reaktiviert zu werden braucht.
+    Bei nicht mehr vorhandenen Managements oder Gateways werden die Alternativen Deaktivieren oder vollst&auml;ndiges L&ouml;schen angeboten (bei letzterem werden auch alle importierten Daten entfernt!).
+');
+INSERT INTO txt VALUES ('H7105', 'English', 'Whenever an automatic run of the <a href="/help/monitoring/autodiscovery">Autodiscovery</a> finds changes in the device configuration (new or disappeared devices),
+    an alert is raised for each single change. In "Details" the respective action to adapt Firewall Orchestrator configuration is offered.
+    It has to be taken into account, that managements have to be created before gateways can be assigned to them,
+    resp. that gateways have to be deleted or deactivated before the resp. action can be performed with the parent management.
+    That is why the proposed actions may be deactivated, then perform the presumed actions first.
+    When creating a new management or gateway there is an automatic check, if it is already existing and only to be reactivated.
+    For disappeared managements or gateways the alternatives deactivation or complete deletion is offered (the latter also removes all imported data!).
+');
+INSERT INTO txt VALUES ('H7151', 'German', 'Hier sind alle jemals ausgel&ouml;sten Alarme mit Zeitstempel und Information zur Best&auml;tigung protokolliert. 
+    Die jeweiligen Details sind aber nicht mehr verf&uuml;gbar, um das Ausf&uuml;hren nicht mehr aktueller Aktionen zu vermeiden.
+');
+INSERT INTO txt VALUES ('H7151', 'English', 'All evert raised alerts are recorded here with timestamp and information about the acknowledgement.
+    The respective details are not available any more to avoid the perfomance of actions not up-to-date.
+');
+INSERT INTO txt VALUES ('H7152', 'German', 'Quelle, Code und Management-Id sind wesentlich zur Identifizierung wiederkehrender Alarme.');
+INSERT INTO txt VALUES ('H7152', 'English', 'Source, Code and Management Id are relevant to identify recurring alerts.');
+INSERT INTO txt VALUES ('H7153', 'German', 'Der Best&auml;tigende wird mit der Zeit der Best&auml;tigung protokolliert. 
+    Ist dort "System" eingetragen, weist das auf die automatische Best&auml;tigung bei wiederkehrenden Alarmen hin.
+');
+INSERT INTO txt VALUES ('H7153', 'English', 'The acknowledger is recorded together with the time of acknowledgement.
+    "System" as acknowledger indicates the automatic Acknowledgement at recurring alerts.
+');
+INSERT INTO txt VALUES ('H7201', 'German', 'Autodiscovery
+');
+INSERT INTO txt VALUES ('H7201', 'English', 'Autodiscovery
+');
+INSERT INTO txt VALUES ('H7251', 'German', 'T&auml;gliche Checks
+');
+INSERT INTO txt VALUES ('H7251', 'English', 'Daily checks
+');
+INSERT INTO txt VALUES ('H7252', 'German', 'Beispieldaten
+');
+INSERT INTO txt VALUES ('H7252', 'English', 'Sample data
+');
+INSERT INTO txt VALUES ('H7253', 'German', 'Import-Status
+');
+INSERT INTO txt VALUES ('H7253', 'English', 'Import status
+');
+INSERT INTO txt VALUES ('H7301', 'German', 'Import-Logs
+');
+INSERT INTO txt VALUES ('H7301', 'English', 'Import logs
+');
+INSERT INTO txt VALUES ('H7302', 'German', 'Schwere
+');
+INSERT INTO txt VALUES ('H7302', 'English', 'Severity
+');
+INSERT INTO txt VALUES ('H7303', 'German', 'Beschreibung
+');
+INSERT INTO txt VALUES ('H7303', 'English', 'Description
+');
+INSERT INTO txt VALUES ('H7304', 'German', 'ImportId
+');
+INSERT INTO txt VALUES ('H7304', 'English', 'ImportId
+');
+INSERT INTO txt VALUES ('H7305', 'German', 'Vermutliche Ursache
+');
+INSERT INTO txt VALUES ('H7305', 'English', 'Suspected Cause
+');
+INSERT INTO txt VALUES ('H7306', 'German', 'Management
+');
+INSERT INTO txt VALUES ('H7306', 'English', 'Management
+');
+INSERT INTO txt VALUES ('H7307', 'German', 'Gateway
+');
+INSERT INTO txt VALUES ('H7307', 'English', 'Gateway
+');
+INSERT INTO txt VALUES ('H7308', 'German', 'Regel
+');
+INSERT INTO txt VALUES ('H7308', 'English', 'Rule
+');
+INSERT INTO txt VALUES ('H7309', 'German', 'Objekt
+');
+INSERT INTO txt VALUES ('H7309', 'English', 'Object
+');
+INSERT INTO txt VALUES ('H7401', 'German', 'Hier werden alle Nachrichten, die als Erfolgs- oder Fehlermeldungen beim jeweiligen Nutzer erschienen sind, aufgelistet.
+    Die Meldungen k&ouml;nnen nur vom Nutzer selbst eingesehen werden, mit Ausnahme der Systemfehler, die als Alarm bei den Administratoren gemeldet werden.
+');
+INSERT INTO txt VALUES ('H7401', 'English', 'All messages are listed here, which have been displayed for the respective user.
+    The messages can be seen only by the user itself, except system errors which have raised an alert to be handled by the administrators.
+');

@@ -38,6 +38,11 @@
                     </a>
                 </li>
                 <li class="nav-item px-2">
+                    <a class="nav-link" href="/help/monitoring/?lang=@($"{userConfig.GetUserLanguage()}")">
+                        <span class="oi oi-monitor"></span> @userConfig.GetText("monitoring")
+                    </a>
+                </li>
+                <li class="nav-item px-2">
                     <a class="nav-link" href="/help/settings/?lang=@($"{userConfig.GetUserLanguage()}")">
                         <span class="oi oi-cog"></span> @userConfig.GetText("settings")
                     </a>

@@ -33,6 +33,7 @@ namespace FWO.Config.Api
         public static readonly string kAutoFillRightSidebar = "autoFillRightSidebar";
         public static readonly string kDataRetentionTime = "dataRetentionTime";
         public static readonly string kImportSleepTime = "importSleepTime";
+        public static readonly string kDailyCheckStartAt = "dailyCheckStartAt";
         public static readonly string kAutoDiscoverSleepTime = "autoDiscoverSleepTime";
         public static readonly string kAutoDiscoverStartAt = "autoDiscoverStartAt";
         public static readonly string kFwApiElementsPerFetch = "fwApiElementsPerFetch";
@@ -67,6 +68,10 @@ namespace FWO.Config.Api
         public static readonly int kSidebarLeftWidth = 300;
         public static readonly int kSidebarRightWidth = 300;
 
+        public static readonly string kAutodiscovery = "autodiscovery";
+        public static readonly string kDailyCheck = "dailycheck";
+        public static readonly string kUi = "ui";
+    
         public string productVersion { get; set; }
 
         public Language[] uiLanguages { get; set; }
@@ -74,33 +79,32 @@ namespace FWO.Config.Api
         public Dictionary<string, Dictionary<string, string>> langDict { get; set; }
         public string defaultLanguage { get; set; }
 
-        /// <summary>
-        /// create a config collection (used centrally once in a UI server for all users)
-        /// </summary>
-        public GlobalConfig(string jwt)
+        public static async Task<GlobalConfig> ConstructAsync(string jwt)
         {
             ConfigFile config = new ConfigFile();
-            productVersion = config.ProductVersion;
+            string productVersion = config.ProductVersion;
 
             //authClient = new MiddlewareClient(config.MiddlewareServerUri);
-            apiConnection = new APIConnection(config.ApiServerUri);
+            APIConnection apiConnection = new APIConnection(config.ApiServerUri);
             apiConnection.SetAuthHeader(jwt);
-            
-            ConfigDbAccess configTable = new ConfigDbAccess(apiConnection);
+
+            ConfigDbAccess configTable = await ConfigDbAccess.ConstructAsync(apiConnection);
+            string defaultLanguage;
             try
             {
                 defaultLanguage = configTable.Get<string>(kDefaultLanguage);
             }
-            catch(Exception exception)
+            catch (Exception exception)
             {
                 Log.WriteError("Read Config table", $"Key not found: taking English ", exception);
                 defaultLanguage = kEnglish;
             }
 
             // get languages defined 
+            Language[] uiLanguages = Array.Empty<Language>();
             try
             {
-                uiLanguages = apiConnection.SendQueryAsync<Language[]>(ConfigQueries.getLanguages).Result;
+                uiLanguages = await apiConnection.SendQueryAsync<Language[]>(ConfigQueries.getLanguages);
             }
             catch (Exception exception)
             {
@@ -108,7 +112,7 @@ namespace FWO.Config.Api
                 Environment.Exit(1); // Exit with error
             }
 
-            langDict = new Dictionary<string, Dictionary<string, string>>();
+            Dictionary<string, Dictionary<string, string>> langDict = new Dictionary<string, Dictionary<string, string>>();
 
             try
             {
@@ -129,6 +133,20 @@ namespace FWO.Config.Api
                 Log.WriteError("ApiConfig connection", $"Could not connect to API server.", exception);
                 Environment.Exit(1); // Exit with error
             }
+
+            return new GlobalConfig(apiConnection, productVersion, defaultLanguage, uiLanguages, langDict);
+        }
+
+        /// <summary>
+        /// create a config collection (used centrally once in a UI server for all users)
+        /// </summary>
+        private GlobalConfig(APIConnection apiConnection, string productVersion, string defaultLanguage, Language[] uiLanguages, Dictionary<string, Dictionary<string, string>> langDict)
+        {
+            this.apiConnection = apiConnection;
+            this.productVersion = productVersion;
+            this.defaultLanguage = defaultLanguage;
+            this.uiLanguages = uiLanguages;
+            this.langDict = langDict;
         }
 
         public static string ShowBool(bool boolVal)

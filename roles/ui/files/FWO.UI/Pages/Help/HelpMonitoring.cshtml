@@ -1,0 +1,32 @@
+﻿@page "/help/monitoring"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpMonitoringSidebar.cshtml"); 
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("monitoring")</h3>
+    @userConfig.GetText("H7001")
+    <br><br>
+    <ul>
+        <li>
+            @(Html.Raw(userConfig.GetText("H7011")))
+        </li>
+        <li>
+            @(Html.Raw(userConfig.GetText("H7012")))
+        </li>
+        <li>
+            @(Html.Raw(userConfig.GetText("H7013")))
+        </li>
+        <li>
+            @(Html.Raw(userConfig.GetText("H7014")))
+        </li>
+    </ul>
+</div>

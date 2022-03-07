@@ -189,6 +189,17 @@
     </Footer>
 </PopUp>
 
+<PopUp Title="@(userConfig.GetText("in_progress"))" Small="true" Show="@workInProgress">
+    <Body>
+        @if (workInProgress)
+        {
+            <div class="row">
+                <div class="spinner-border mx-auto align-self-center" role="status"></div>
+            </div>
+        }
+    </Body>
+</PopUp>
+
 @code
 {
     [CascadingParameter]
@@ -203,14 +214,15 @@
 
     private Device newDevice = new Device();
     private Device actDevice = new Device();
+    private bool workInProgress = false;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            devices = (await apiConnection.SendQueryAsync<Device[]>(FWO.ApiClient.Queries.DeviceQueries.getDeviceDetails)).ToList();
-            deviceTypes = (await apiConnection.SendQueryAsync<DeviceType[]>(FWO.ApiClient.Queries.DeviceQueries.getDeviceTypeDetails)).ToList();
-            managements = (await apiConnection.SendQueryAsync<Management[]>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails)).ToList();
+            devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.ApiClient.Queries.DeviceQueries.getDeviceDetails);
+            deviceTypes = await apiConnection.SendQueryAsync<List<DeviceType>>(FWO.ApiClient.Queries.DeviceQueries.getDeviceTypeDetails);
+            managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails);
         }
         catch (Exception exception)
         {
@@ -235,18 +247,21 @@
         try
         {
             // Todo: checks if delete possible. Else set e.g. an archive flag?
+            DeleteMode = false;
+            workInProgress = true;
             var Variables = new { id = device.Id };
             int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.deleteDevice, Variables)).DeletedId;
             if (delId == device.Id)
             {
                 devices.Remove(device);
-                DeleteMode = false;
             }
+            workInProgress = false;
         }
         catch (Exception exception)
         {
+            workInProgress = false;
             DisplayMessageInUi!(exception, userConfig.GetText("delete_gateway"), "", true);
-        }
+        } 
     }
 
     private void Add()

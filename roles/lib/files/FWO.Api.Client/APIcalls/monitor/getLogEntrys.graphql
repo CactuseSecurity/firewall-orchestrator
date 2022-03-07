@@ -1,5 +1,5 @@
 query getLogEntrys {
-  log_data_issue (order_by: { data_issue_id: desc }, limit: 100){
+  log_data_issue (order_by: { data_issue_id: desc }){
     data_issue_id
     source
     severity

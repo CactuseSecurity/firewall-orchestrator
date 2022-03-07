@@ -3,7 +3,7 @@ from common import list_delimiter, resolve_objects, nat_postfix
 from fmgr_zone import add_zone_if_missing
 
 
-def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt=None):
+def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt=None, mgm_id=None):
     nw_objects = []
     for obj_type in nw_obj_types:
         for obj_orig in full_config[obj_type]:
@@ -27,7 +27,7 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt
             elif 'member' in obj_orig: # addrgrp4 / addrgrp6
                 obj.update({ 'obj_typ': 'group' })
                 obj.update({ 'obj_member_names' : list_delimiter.join(obj_orig['member']) })
-                obj.update({ 'obj_member_refs' : resolve_objects(obj['obj_member_names'], list_delimiter, full_config, 'name', 'uuid', jwt=jwt, import_id=import_id)})
+                obj.update({ 'obj_member_refs' : resolve_objects(obj['obj_member_names'], list_delimiter, full_config, 'name', 'uuid', jwt=jwt, import_id=import_id)}, mgm_id=mgm_id)
             elif 'startip' in obj_orig: # ippool object
                 obj.update({ 'obj_typ': 'ip_range' })
                 obj.update({ 'obj_ip': obj_orig['startip'] })
@@ -44,6 +44,8 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt
                     nat_obj.update({'obj_typ': 'host' })
                     nat_obj.update({'obj_color': 'black'})
                     nat_obj.update({'obj_comment': 'FWO-auto-generated nat object for VIP'})
+                    if 'obj_ip_end' in obj: # this obj is a range - include the end ip in name and uid as well to avoid akey conflicts
+                        nat_obj.update({'obj_ip_end': obj['obj_ip_end']})
 
                 # now dealing with the nat ip obj (mappedip)
                 if 'mappedip' not in obj_orig or len(obj_orig['mappedip'])==0:
@@ -54,7 +56,11 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt
                     nat_ip = obj_orig['mappedip'][0]
                     set_ip_in_obj(nat_obj, nat_ip)
                     obj.update({ 'obj_nat_ip': nat_obj['obj_ip'] }) # save nat ip in vip obj
-                    nat_obj.update({'obj_name': nat_obj['obj_ip'] + nat_postfix})
+                    if 'obj_ip_end' in nat_obj: # this nat obj is a range - include the end ip in name and uid as well to avoid akey conflicts
+                        obj.update({ 'obj_nat_ip_end': nat_obj['obj_ip_end'] }) # save nat ip in vip obj
+                        nat_obj.update({'obj_name': nat_obj['obj_ip'] + '-' + nat_obj['obj_ip_end'] + nat_postfix})
+                    else:
+                        nat_obj.update({'obj_name': nat_obj['obj_ip'] + nat_postfix})
                     nat_obj.update({'obj_uid': nat_obj['obj_name']})                    
                     ###### range handling
 
@@ -156,6 +162,8 @@ def get_nw_obj(nat_obj_name, nwobjects):
     return None
 
 
+# this removes all obj_nat_ip entries from all network objects
+# these were used during import but might cause issues if imported into db
 def remove_nat_ip_entries(config2import):
     for obj in config2import['network_objects']:
         if 'obj_nat_ip' in obj:

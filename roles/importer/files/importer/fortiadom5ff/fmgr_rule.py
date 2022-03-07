@@ -92,8 +92,8 @@ def normalize_access_rules(full_config, config2import, import_id, routing_table=
     src_ref_all = ""
     dst_ref_all = ""
     for rule_table in rule_access_scope:
-        src_ref_all = resolve_raw_objects("all", list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id)
-        dst_ref_all = resolve_raw_objects("all", list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id)
+        src_ref_all = resolve_raw_objects("all", list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id, mgm_id=mgm_details['id'])
+        dst_ref_all = resolve_raw_objects("all", list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id, mgm_id=mgm_details['id'])
         for localPkgName in full_config[rule_table]:
             device_name = get_device_from_package(localPkgName, mgm_details)
             if device_name is None:
@@ -151,8 +151,10 @@ def normalize_access_rules(full_config, config2import, import_id, routing_table=
                     rule.update({ 'rule_dst_neg': rule_orig['dstaddr-negate']=='disable'})
                     rule.update({ 'rule_svc_neg': rule_orig['service-negate']=='disable'})
 
-                    rule.update({ 'rule_src_refs': resolve_raw_objects(rule['rule_src'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object') })
-                    rule.update({ 'rule_dst_refs': resolve_raw_objects(rule['rule_dst'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object') })
+                    rule.update({ 'rule_src_refs': resolve_raw_objects(rule['rule_src'], list_delimiter, full_config, 'name', 'uuid', \
+                        rule_type=rule_table, jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object', mgm_id=mgm_details['id']) })
+                    rule.update({ 'rule_dst_refs': resolve_raw_objects(rule['rule_dst'], list_delimiter, full_config, 'name', 'uuid', \
+                        rule_type=rule_table, jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object', mgm_id=mgm_details['id']) })
                     rule.update({ 'rule_svc_refs': rule['rule_svc'] }) # services do not have uids, so using name instead
 
                     xlate_rule = handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, import_id, localPkgName, device_name)
@@ -212,8 +214,10 @@ def normalize_nat_rules(full_config, config2import, import_id, jwt=None):
                     rule.update({ 'rule_src_neg': False})
                     rule.update({ 'rule_dst_neg': False})
                     rule.update({ 'rule_svc_neg': False})
-                    rule.update({ 'rule_src_refs': resolve_raw_objects(rule['rule_src'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table) }, jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object')
-                    rule.update({ 'rule_dst_refs': resolve_raw_objects(rule['rule_dst'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table) }, jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object')
+                    rule.update({ 'rule_src_refs': resolve_raw_objects(rule['rule_src'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table) }, \
+                        jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object')
+                    rule.update({ 'rule_dst_refs': resolve_raw_objects(rule['rule_dst'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table) }, \
+                        jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object')
                     # services do not have uids, so using name instead
                     rule.update({ 'rule_svc_refs': rule['rule_svc'] })
                     rule.update({ 'rule_type': 'original' })
@@ -386,8 +390,15 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, im
         xlate_dst = []
         xlate_dst_refs = []
         for nat_obj in nat_object_list:
-            xlate_dst.append(nat_obj['obj_nat_ip'] + nat_postfix)
-            xlate_dst_refs.append(nat_obj['obj_nat_ip'] + nat_postfix)
+            if 'obj_ip_end' in nat_obj: # this nat obj is a range - include the end ip in name and uid as well to avoid akey conflicts
+                xlate_dst.append(nat_obj['obj_nat_ip'] + '-' + nat_obj['obj_ip_end'] + nat_postfix)
+                nat_ref = nat_obj['obj_nat_ip']
+                if 'obj_nat_ip_end' in nat_obj:
+                    nat_ref += '-' + nat_obj['obj_nat_ip_end'] + nat_postfix
+                xlate_dst_refs.append(nat_ref)
+            else:
+                xlate_dst.append(nat_obj['obj_nat_ip'] + nat_postfix)
+                xlate_dst_refs.append(nat_obj['obj_nat_ip']  + nat_postfix)
         xlate_rule['rule_dst'] = list_delimiter.join(xlate_dst)
         xlate_rule['rule_dst_refs'] = list_delimiter.join(xlate_dst_refs)
     # else: (no nat object found) no dnatting involved, dst stays "Original"

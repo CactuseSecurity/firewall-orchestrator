@@ -801,6 +801,7 @@ Create table "alert"
 	"ack_by" INTEGER,
 	"ack_timestamp" TIMESTAMP,
 	"json_data" json,
+	"alert_code" INTEGER,
  primary key ("alert_id")
 );
 

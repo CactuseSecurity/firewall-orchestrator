@@ -1,11 +1,11 @@
-﻿@page "/help/settings/import"
+﻿@page "/help/monitoring/import_status"
 @model FWO.Ui.Pages.Help.MainModel
 @{
     Layout = "HelpLayout";
 }
 @section sidebar{
     @{ 
-        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
+        await Html.RenderPartialAsync("HelpMonitoringSidebar.cshtml"); 
     }
 }
 @using FWO.Config.Api

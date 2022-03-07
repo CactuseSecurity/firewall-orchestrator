@@ -64,12 +64,6 @@
 </form>
 <hr />
 <form class="form-inline" onsubmit="return false">
-    <label for="dailyCheckStartAt" class="col-form-label col-sm-4">@(userConfig.GetText("dailyCheckStartAt")):</label>
-    <div class="col-sm-2">
-        <input id="dailyCheckStartAt" type="time" step="60" class="form-control form-control-sm w-100" @bind="dailyCheckStartAtTime" />
-    </div>
-</form>
-<form class="form-inline" onsubmit="return false">
     <label for="importSleepTime" class="col-form-label col-sm-4">@(userConfig.GetText("importSleepTime")):</label>
     <div class="col-sm-2">
         <input id="importSleepTime" type="number" class="form-control form-control-sm w-100" @bind="importSleepTime" />
@@ -91,6 +85,12 @@
     <label for="autoDiscoverStartAt" class="col-form-label col-sm-4">@(userConfig.GetText("autoDiscoverStartAt")):</label>
     <div class="col-sm-2">
         <input id="autoDiscoverStartAt" type="time" step="60" class="form-control form-control-sm w-100" @bind="autoDiscoverStartAtTime" />
+    </div>
+</form>
+<form class="form-inline" onsubmit="return false">
+    <label for="dailyCheckStartAt" class="col-form-label col-sm-4">@(userConfig.GetText("dailyCheckStartAt")):</label>
+    <div class="col-sm-2">
+        <input id="dailyCheckStartAt" type="time" step="60" class="form-control form-control-sm w-100" @bind="dailyCheckStartAtTime" />
     </div>
 </form>
 <hr />

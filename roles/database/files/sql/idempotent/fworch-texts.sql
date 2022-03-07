@@ -2374,17 +2374,17 @@ INSERT INTO txt VALUES ('H7102', 'German', 'Wenn vom <a href="/help/monitoring/d
     Besteht Unsicherheit, ob noch einzelne Daten ben&ouml;tigt werden, k&ouml;nnen diese auch in den einzelnen Rubriken <a href="/help/settings/managements">Managements</a>, <a href="/help/settings/tenants">Mandanten</a>,
     <a href="/help/settings/users">Nutzer</a> und <a href="/help/settings/groups">Gruppen</a> getrennt gel&ouml;scht werden.
 ');
-INSERT INTO txt VALUES ('H7102', 'English', 'If sample data is found by the <a href="/help/monitoring/daily_checks">Daily Check</a>, here the option is offered to delete then in one step.
+INSERT INTO txt VALUES ('H7102', 'English', 'If sample data is found by the <a href="/help/monitoring/daily_checks">Daily Check</a>, here the user has the option to delete all sample data in one step.
     If there is uncertainity about data still to be needed, they can also be handled separately in the different settings chapters <a href="/help/settings/managements">Managements</a>, <a href="/help/settings/tenants">Tenants</a>,
     <a href="/help/settings/users">Users</a>, and <a href="/help/settings/groups">Groups</a>.
 ');
 INSERT INTO txt VALUES ('H7103', 'German', 'Alle auf der UI auftretenden Systemfehler (aber keine Benutzerfehler) werden als Alarm protokolliert.');
-INSERT INTO txt VALUES ('H7103', 'English', 'All system errors (but not user errors) occuring on the UI are recorded as alert.');
+INSERT INTO txt VALUES ('H7103', 'English', 'All system errors (but not user errors) occuring on the UI are recorded as alerts.');
 INSERT INTO txt VALUES ('H7104', 'German', 'Werden beim <a href="/help/monitoring/daily_checks">T&auml;glichen Check</a> beim Import einzelner Managements Unregelm&auml;ssigkeiten festgestellt (langlaufende, &uuml;berf&auml;llige oder ganz ausgebliebene Importe), 
     wird im Alarm eine detailliertere &Uuml;bersicht &uuml;ber den Import-Status bzw. die M&ouml;glichkeit des Rollbacks (im Falle eines langlaufenden Imports) des jeweiligen Managements angeboten.
 ');
 INSERT INTO txt VALUES ('H7104', 'English', 'When the <a href="/help/monitoring/daily_checks">Daily Check</a> finds irregularities in the import of a management (long-running, overdue or completely missing imports),
-    a detailled overview of the import status, resp. a possibility to rollback (in case of a long-running import) is offered in the alert.
+    a detailled overview of the import status, resp. an option to rollback the import (in case of a long-running import) is offered in the alert.
 ');
 INSERT INTO txt VALUES ('H7105', 'German', 'Wenn der automatische Lauf der <a href="/help/monitoring/autodiscovery">Autodiscovery</a> &Auml;nderungen in der Device-Konfiguration feststellt (hinzugekommene oder verschwundene Ger&auml;te),
     wird f&uuml;r jede einzelne &Auml;nderung ein Alarm ausgel&ouml;st. Unter "Details" wird dann die jeweilige Aktion zur Anpassung im Firewall Orchestrator zur Ausf&uuml;hrung angeboten. 
@@ -2394,19 +2394,19 @@ INSERT INTO txt VALUES ('H7105', 'German', 'Wenn der automatische Lauf der <a hr
     Beim Anlegen eines Managements oder Gateways wird automatisch gepr&uuml;ft, ob dieses schon vorhanden ist, und dann nur reaktiviert zu werden braucht.
     Bei nicht mehr vorhandenen Managements oder Gateways werden die Alternativen Deaktivieren oder vollst&auml;ndiges L&ouml;schen angeboten (bei letzterem werden auch alle importierten Daten entfernt!).
 ');
-INSERT INTO txt VALUES ('H7105', 'English', 'Whenever an automatic run of the <a href="/help/monitoring/autodiscovery">Autodiscovery</a> finds changes in the device configuration (new or disappeared devices),
+INSERT INTO txt VALUES ('H7105', 'English', 'Whenever an <a href="/help/monitoring/autodiscovery">Autodiscovery</a> background job finds changes in the device configuration (newly added or removed devices),
     an alert is raised for each single change. In "Details" the respective action to adapt Firewall Orchestrator configuration is offered.
     It has to be taken into account, that managements have to be created before gateways can be assigned to them,
     resp. that gateways have to be deleted or deactivated before the resp. action can be performed with the parent management.
     That is why the proposed actions may be deactivated, then perform the presumed actions first.
-    When creating a new management or gateway there is an automatic check, if it is already existing and only to be reactivated.
-    For disappeared managements or gateways the alternatives deactivation or complete deletion is offered (the latter also removes all imported data!).
+    When creating a new management or gateway there is an automatic check, if it already exists and only needs to be reactivated.
+    For removed managements or gateways the alternatives "deactivation" or "complete deletion" are offered (the latter also removes all imported data!).
 ');
 INSERT INTO txt VALUES ('H7151', 'German', 'Hier sind alle jemals ausgel&ouml;sten Alarme mit Zeitstempel und Information zur Best&auml;tigung protokolliert. 
     Die jeweiligen Details sind aber nicht mehr verf&uuml;gbar, um das Ausf&uuml;hren nicht mehr aktueller Aktionen zu vermeiden.
 ');
-INSERT INTO txt VALUES ('H7151', 'English', 'All evert raised alerts are recorded here with timestamp and information about the acknowledgement.
-    The respective details are not available any more to avoid the perfomance of actions not up-to-date.
+INSERT INTO txt VALUES ('H7151', 'English', 'All alerts ever raised are recorded here with timestamp and information about the acknowledgement.
+    The respective details are not available any more to avoid re-execution of out-dated actions.
 ');
 INSERT INTO txt VALUES ('H7152', 'German', 'Quelle, Code und Management-Id sind wesentlich zur Identifizierung wiederkehrender Alarme.');
 INSERT INTO txt VALUES ('H7152', 'English', 'Source, Code and Management Id are relevant to identify recurring alerts.');

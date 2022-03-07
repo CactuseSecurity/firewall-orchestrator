@@ -2416,17 +2416,33 @@ INSERT INTO txt VALUES ('H7153', 'German', 'Der Best&auml;tigende wird mit der Z
 INSERT INTO txt VALUES ('H7153', 'English', 'The acknowledger is recorded together with the time of acknowledgement.
     "System" as acknowledger indicates the automatic Acknowledgement at recurring alerts.
 ');
-INSERT INTO txt VALUES ('H7201', 'German', 'Autodiscovery
+INSERT INTO txt VALUES ('H7201', 'German', 'Hier werden die Ergebnisse der automatischen und der manuell angestossenen Autodiscovery protokolliert.
+    Zu jedem Lauf werden die Anzahl der gefundenen &Auml;nderungen bzw. die Fehlermeldungen dargestellt.
+    Angegebene Management-Ids und -Namen beziehen sich auf den jeweiligen Multi Domain Manager.
+    Die gegebenenfalls erforderlichen Anpassungen der Konfiguration im Firewall Orchestrator werden &uuml;ber die <a href="/help/monitoring/open_alerts">Offenen Alarme</a> (bei der automatischen Autodiscovery)
+    oder den Dialog in den <a href="/help/settings/managements">Management-Einstellungen</a> (bei der manuell angestossenen Autodiscovery) abgewickelt.
+    Startzeit und Zeitabstand der automatischen Autodiscovery-L&auml;ufe k&ouml;nnen (vom Administrator) in den <a href="/help/settings/defaults">Standardeinstellungen</a> festgelegt werden.
 ');
-INSERT INTO txt VALUES ('H7201', 'English', 'Autodiscovery
+INSERT INTO txt VALUES ('H7201', 'English', 'Results of the automatic and the manual Autodiscovery are recorded here.
+    For each run, number of found changes resp. error messages are displayed.
+    Management Ids and Names refer to the respective Multi Domain Manager.
+    The required changes in the configuration of the Firewall Orchestrator are handled in <a href="/help/monitoring/open_alerts">Open Alerts</a> (for the automatic Autodiscovery)
+    or in the Dialogue of the <a href="/help/settings/managements">Management settings</a> (in case of the manually initialized Autodiscovery).
+    Start time and time interval of the automatic Autodiscovery can be defined in the <a href="/help/settings/defaults">Default settings</a> (by the administrator).
 ');
-INSERT INTO txt VALUES ('H7251', 'German', 'T&auml;gliche Checks
+INSERT INTO txt VALUES ('H7251', 'German', 'In den T&auml;glichen Checks werden allgemeine Parameter des Firewall Orchestrator-Systems gepr&uuml;ft.
+    Der t&auml;gliche Startzeitpunkt kann (vom Administrator) in den <a href="/help/settings/defaults">Standardeinstellungen</a> festgelegt werden.
 ');
-INSERT INTO txt VALUES ('H7251', 'English', 'Daily checks
+INSERT INTO txt VALUES ('H7251', 'English', 'In the daily checks general parameters of the Firewall Orchestrator system are checked.
+    The daily start time can be defined in the <a href="/help/settings/defaults">Default settings</a> (by the administrator).
 ');
-INSERT INTO txt VALUES ('H7252', 'German', 'Beispieldaten
+INSERT INTO txt VALUES ('H7252', 'German', 'Beispieldaten (erkennbar an den Endungen auf "_demo") sollten nur in einer initialen Kennenlernphase des Firewall Orchestrator-Systems genutzt werden.
+    In Produktivumgebung sollten sie nicht mehr vorkommen. Deshalb wird das System darauf gepr&uuml;ft und gegebenenfalls ein Alarm ausgel&ouml;st. Im Protokoll wird aufgef&uuml;hrt, in welchen Datenbereichen 
+    (Managements, Mandanten, Nutzer oder Gruppen) Beispieldaten gefunden wurden.
 ');
-INSERT INTO txt VALUES ('H7252', 'English', 'Sample data
+INSERT INTO txt VALUES ('H7252', 'English', 'Sample data (defined by the ending "_demo") should only be used in an initial learning phase of the Firewall Orchestrator system.
+    In productive environments they should not be present. Therefore the system is checked and if necessary an alert is raised. The record contains information about the data domain
+    (managements, tenants, users or groups), where sample data were found.
 ');
 INSERT INTO txt VALUES ('H7253', 'German', 'Import-Status
 ');

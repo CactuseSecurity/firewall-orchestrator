@@ -70,6 +70,7 @@
     private void Cancel()
     {
         RollbackMode = false;
+        Closing.InvokeAsync(RollbackMode);
     }
 
     private async Task Rollback()

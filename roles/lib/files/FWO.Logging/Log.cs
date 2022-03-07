@@ -64,9 +64,8 @@ namespace FWO.Logging
         public static void WriteAlert(string Title, string Text, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
         {
             string File = callerFile.Split('\\', '/').Last();
-            // simply write to file via syslog, no coloring, testing without lock
-            Console.Out.WriteLine($"{DateTime.Now} {"FWORCHAlert"} - {Title} ({File} in line {callerLineNumber}), {Text}");
-            // WriteLog("FWORCHAlert", Title, Text, callerName, callerFile, callerLineNumber);
+            // Console.Out.WriteLine($"{DateTime.Now} {"FWORCHAlert"} - {Title} ({File} in line {callerLineNumber}), {Text}");
+            WriteLog("FWORCHAlert", Title, Text, callerName, callerFile, callerLineNumber);
         }
 
         private static void WriteLog(string LogType, string Title, string Text, string Method, string Path, int Line, ConsoleColor? ForegroundColor = null, ConsoleColor? BackgroundColor = null)

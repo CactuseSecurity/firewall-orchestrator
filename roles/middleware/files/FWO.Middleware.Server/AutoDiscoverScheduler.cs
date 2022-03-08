@@ -137,9 +137,15 @@ namespace FWO.Middleware.Server
                     catch (Exception excMgm)
                     {
                         Log.WriteError("Autodiscovery", $"Ran into exception while auto-discovering management {superManagement.Name} (id: {superManagement.Id}) ", excMgm);
-                        Log.WriteAlert($"source: \"{GlobalConfig.kAutodiscovery}\"",
-                            $"userId: \"0\", title: \"Error encountered while trying to autodiscover management {superManagement.Name} (id: {superManagement.Id}\", description: \"{excMgm}\", alertCode: \"{AlertCode.Autodiscovery}\"");
-                        await AddAutoDiscoverLogEntry(1, "Scheduled Autodiscovery", $"Ran into exception while handling management {superManagement.Name} (id: {superManagement.Id}: " + excMgm.Message);
+                        ActionItem actionException = new ActionItem();
+                        actionException.ManagementId = superManagement.Id;
+                        actionException.Supermanager = superManagement.Name;
+                        actionException.JsonData = excMgm.Message;
+                        await setAlert(actionException); // GlobalConfig.kAutodiscovery, AlertCode.NoImport, "AutoDiscovery", "Exception during autodiscovery", superManagement.Id, excMgm);
+
+                        // Log.WriteAlert($"source: \"{GlobalConfig.kAutodiscovery}\"",
+                        //     $"userId: \"0\", title: \"Error encountered while trying to autodiscover management {superManagement.Name} (id: {superManagement.Id})\", description: \"{excMgm}\", alertCode: \"{AlertCode.Autodiscovery}\"");
+                        await AddAutoDiscoverLogEntry(1, "Scheduled Autodiscovery", $"Ran into exception while handling management {superManagement.Name} (id: {superManagement.Id}): " + excMgm.Message, superManagement.Id);
                     }
                 }
             }

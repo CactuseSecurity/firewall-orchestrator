@@ -292,7 +292,7 @@
         try
         {
             RestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
-            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
+            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
             {
                 DisplayMessageInUi!(null, userConfig.GetText("get_tenant_data"), userConfig.GetText("E5284"), true);
             }

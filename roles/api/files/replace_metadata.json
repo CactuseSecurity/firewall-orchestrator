@@ -276,6 +276,28 @@
                     ],
                     "filter": {}
                   }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "alert_id",
+                      "ref_alert_id",
+                      "ref_log_id",
+                      "description",
+                      "source",
+                      "title",
+                      "ack_by",
+                      "alert_code",
+                      "alert_dev_id",
+                      "alert_mgm_id",
+                      "user_id",
+                      "json_data",
+                      "ack_timestamp",
+                      "alert_timestamp"
+                    ],
+                    "filter": {}
+                  }
                 }
               ],
               "update_permissions": [
@@ -3009,22 +3031,23 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "active",
                       "ldap_connection_id",
-                      "ldap_tls",
                       "ldap_global_tenant_name",
                       "ldap_name",
+                      "ldap_pattern_length",
+                      "ldap_port",
+                      "ldap_search_user",
+                      "ldap_search_user_pwd",
                       "ldap_searchpath_for_groups",
                       "ldap_searchpath_for_roles",
                       "ldap_searchpath_for_users",
-                      "ldap_search_user",
-                      "ldap_search_user_pwd",
                       "ldap_server",
+                      "ldap_tenant_level",
+                      "ldap_tls",
+                      "ldap_type",
                       "ldap_write_user",
                       "ldap_write_user_pwd",
-                      "ldap_pattern_length",
-                      "ldap_port",
-                      "ldap_tenant_level",
-                      "ldap_type",
                       "tenant_id"
                     ],
                     "backend_only": false
@@ -3036,22 +3059,23 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
+                      "active",
                       "ldap_connection_id",
-                      "ldap_tls",
                       "ldap_global_tenant_name",
                       "ldap_name",
+                      "ldap_pattern_length",
+                      "ldap_port",
+                      "ldap_search_user",
+                      "ldap_search_user_pwd",
                       "ldap_searchpath_for_groups",
                       "ldap_searchpath_for_roles",
                       "ldap_searchpath_for_users",
-                      "ldap_search_user",
-                      "ldap_search_user_pwd",
                       "ldap_server",
+                      "ldap_tenant_level",
+                      "ldap_tls",
+                      "ldap_type",
                       "ldap_write_user",
                       "ldap_write_user_pwd",
-                      "ldap_pattern_length",
-                      "ldap_port",
-                      "ldap_tenant_level",
-                      "ldap_type",
                       "tenant_id"
                     ],
                     "filter": {}
@@ -3061,22 +3085,23 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "active",
                       "ldap_connection_id",
-                      "ldap_tls",
                       "ldap_global_tenant_name",
                       "ldap_name",
+                      "ldap_pattern_length",
+                      "ldap_port",
+                      "ldap_search_user",
+                      "ldap_search_user_pwd",
                       "ldap_searchpath_for_groups",
                       "ldap_searchpath_for_roles",
                       "ldap_searchpath_for_users",
-                      "ldap_search_user",
-                      "ldap_search_user_pwd",
                       "ldap_server",
+                      "ldap_tenant_level",
+                      "ldap_tls",
+                      "ldap_type",
                       "ldap_write_user",
                       "ldap_write_user_pwd",
-                      "ldap_pattern_length",
-                      "ldap_port",
-                      "ldap_tenant_level",
-                      "ldap_type",
                       "tenant_id"
                     ],
                     "filter": {}
@@ -3088,23 +3113,24 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "active",
                       "ldap_connection_id",
-                      "ldap_server",
+                      "ldap_global_tenant_name",
+                      "ldap_name",
+                      "ldap_pattern_length",
                       "ldap_port",
-                      "ldap_tls",
-                      "ldap_searchpath_for_users",
-                      "ldap_searchpath_for_roles",
-                      "ldap_tenant_level",
                       "ldap_search_user",
                       "ldap_search_user_pwd",
-                      "ldap_write_user",
-                      "tenant_id",
-                      "ldap_write_user_pwd",
                       "ldap_searchpath_for_groups",
+                      "ldap_searchpath_for_roles",
+                      "ldap_searchpath_for_users",
+                      "ldap_server",
+                      "ldap_tenant_level",
+                      "ldap_tls",
                       "ldap_type",
-                      "ldap_pattern_length",
-                      "ldap_name",
-                      "ldap_global_tenant_name"
+                      "ldap_write_user",
+                      "ldap_write_user_pwd",
+                      "tenant_id"
                     ],
                     "filter": {},
                     "check": null
@@ -3201,6 +3227,78 @@
                     ],
                     "backend_only": false
                   }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "data_issue_id",
+                      "import_id",
+                      "rule_id",
+                      "description",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_uid",
+                      "source",
+                      "suspected_cause",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "severity",
+                      "user_id",
+                      "issue_timestamp"
+                    ],
+                    "backend_only": false
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "data_issue_id",
+                      "import_id",
+                      "rule_id",
+                      "description",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_uid",
+                      "source",
+                      "suspected_cause",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "severity",
+                      "user_id",
+                      "issue_timestamp"
+                    ],
+                    "backend_only": false
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "data_issue_id",
+                      "import_id",
+                      "rule_id",
+                      "description",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_uid",
+                      "source",
+                      "suspected_cause",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "severity",
+                      "user_id",
+                      "issue_timestamp"
+                    ],
+                    "backend_only": false
+                  }
                 }
               ],
               "select_permissions": [
@@ -3278,6 +3376,78 @@
                 },
                 {
                   "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "data_issue_id",
+                      "description",
+                      "import_id",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "issue_timestamp",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_id",
+                      "rule_uid",
+                      "severity",
+                      "source",
+                      "suspected_cause",
+                      "user_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "data_issue_id",
+                      "description",
+                      "import_id",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "issue_timestamp",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_id",
+                      "rule_uid",
+                      "severity",
+                      "source",
+                      "suspected_cause",
+                      "user_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "data_issue_id",
+                      "description",
+                      "import_id",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "issue_timestamp",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_id",
+                      "rule_uid",
+                      "severity",
+                      "source",
+                      "suspected_cause",
+                      "user_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
                   "permission": {
                     "columns": [
                       "data_issue_id",
@@ -3717,17 +3887,28 @@
                   "permission": {
                     "columns": [
                       "clearing_import_ran",
-                      "tenant_id",
-                      "config_path",
-                      "dev_typ_id",
                       "do_not_import",
                       "force_initial_import",
                       "hide_in_gui",
+                      "config_path",
                       "importer_hostname",
-                      "mgm_comment",
-                      "mgm_create",
-                      "mgm_id",
+                      "last_import_md5_complete_config",
+                      "last_import_md5_objects",
+                      "last_import_md5_rules",
+                      "last_import_md5_users",
                       "mgm_name",
+                      "ssh_hostname",
+                      "ssh_user",
+                      "debug_level",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "multi_device_manager_id",
+                      "ssh_port",
+                      "tenant_id",
+                      "mgm_comment",
+                      "ssh_private_key",
+                      "ssh_public_key",
+                      "mgm_create",
                       "mgm_update"
                     ],
                     "filter": {
@@ -3743,17 +3924,28 @@
                   "permission": {
                     "columns": [
                       "clearing_import_ran",
-                      "tenant_id",
-                      "config_path",
-                      "dev_typ_id",
                       "do_not_import",
                       "force_initial_import",
                       "hide_in_gui",
+                      "config_path",
                       "importer_hostname",
-                      "mgm_comment",
-                      "mgm_create",
-                      "mgm_id",
+                      "last_import_md5_complete_config",
+                      "last_import_md5_objects",
+                      "last_import_md5_rules",
+                      "last_import_md5_users",
                       "mgm_name",
+                      "ssh_hostname",
+                      "ssh_user",
+                      "debug_level",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "multi_device_manager_id",
+                      "ssh_port",
+                      "tenant_id",
+                      "mgm_comment",
+                      "ssh_private_key",
+                      "ssh_public_key",
+                      "mgm_create",
                       "mgm_update"
                     ],
                     "filter": {

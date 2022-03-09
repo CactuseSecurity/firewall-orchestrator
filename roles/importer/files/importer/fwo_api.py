@@ -372,7 +372,8 @@ def create_data_issue(fwo_api_base_url, jwt, import_id=None, obj_name=None, mgm_
             query_variables.update({"description": description})
 
         # write data issue to alert.log file as well
-        logging.info("FWORCHAlert: " + json.dumps(query_variables))
+        # if severity>0:
+        #     common.writeAlertToLogFile(query_variables)
         
         try:
             import_result = call(fwo_api_base_url, jwt, create_data_issue_mutation, query_variables=query_variables, role=role)
@@ -464,7 +465,8 @@ def setAlert(fwo_api_base_url, jwt, import_id=None, title=None, mgm_id=None, dev
 
 
     # write data issue to alert.log file as well
-    logging.info("FWORCHAlert: " + json.dumps(query_variables))
+    if severity>0:
+        common.writeAlertToLogFile(query_variables)
     
     try:
         import_result = call(fwo_api_base_url, jwt, addAlert_mutation, query_variables=query_variables, role=role)
@@ -484,4 +486,3 @@ def setAlert(fwo_api_base_url, jwt, import_id=None, title=None, mgm_id=None, dev
         logging.error("fwo_api: failed to create alert entry: " + json.dumps(query_variables))
         return False
     return True
-

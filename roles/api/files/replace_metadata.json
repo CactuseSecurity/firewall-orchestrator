@@ -2,6 +2,7 @@
   "type": "replace_metadata",
   "version": 2,
   "args": {
+
     "metadata": {
       "version": 3,
       "sources": [
@@ -7234,6 +7235,93 @@
                     "foreign_key_constraint_on": "user_id"
                   }
                 }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "rf_create",
+                      "rf_last_seen",
+                      "rule_from_id",
+                      "rule_id",
+                      "user_id",
+                      "active",
+                      "negated"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "rf_create",
+                      "rf_last_seen",
+                      "rule_from_id",
+                      "rule_id",
+                      "user_id",
+                      "active",
+                      "negated"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "rf_create",
+                      "rf_last_seen",
+                      "rule_from_id",
+                      "rule_id",
+                      "user_id",
+                      "active",
+                      "negated"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "rf_create",
+                      "rf_last_seen",
+                      "rule_from_id",
+                      "rule_id",
+                      "user_id",
+                      "active",
+                      "negated"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "rf_create",
+                      "rf_last_seen",
+                      "rule_from_id",
+                      "rule_id",
+                      "user_id",
+                      "active",
+                      "negated"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                }
               ]
             },
             {
@@ -7936,13 +8024,14 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
+                      "active",
+                      "negated",
                       "obj_id",
                       "rt_create",
                       "rt_last_seen",
                       "rule_id",
-                      "user_id",
-                      "active",
-                      "negated"
+                      "rule_to_id",
+                      "user_id"
                     ],
                     "filter": {}
                   }
@@ -7951,13 +8040,14 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
+                      "active",
+                      "negated",
                       "obj_id",
                       "rt_create",
                       "rt_last_seen",
                       "rule_id",
-                      "user_id",
-                      "active",
-                      "negated"
+                      "rule_to_id",
+                      "user_id"
                     ],
                     "filter": {}
                   }
@@ -7966,13 +8056,14 @@
                   "role": "recertifier",
                   "permission": {
                     "columns": [
+                      "active",
+                      "negated",
                       "obj_id",
                       "rt_create",
                       "rt_last_seen",
                       "rule_id",
-                      "user_id",
-                      "active",
-                      "negated"
+                      "rule_to_id",
+                      "user_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -7982,13 +8073,14 @@
                   "role": "reporter",
                   "permission": {
                     "columns": [
+                      "active",
+                      "negated",
                       "obj_id",
                       "rt_create",
                       "rt_last_seen",
                       "rule_id",
-                      "user_id",
-                      "active",
-                      "negated"
+                      "rule_to_id",
+                      "user_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -7998,13 +8090,14 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
+                      "active",
+                      "negated",
                       "obj_id",
                       "rt_create",
                       "rt_last_seen",
                       "rule_id",
-                      "user_id",
-                      "active",
-                      "negated"
+                      "rule_to_id",
+                      "user_id"
                     ],
                     "filter": {}
                   }
@@ -11595,6 +11688,6 @@
           "comment": null
         }
       ]
-    }
+    }  
   }
 }

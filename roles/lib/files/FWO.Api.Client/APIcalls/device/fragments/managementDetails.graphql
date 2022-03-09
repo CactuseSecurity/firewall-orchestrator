@@ -26,6 +26,7 @@ fragment ManagementDetails on management {
   devices {
     id: dev_id
     name: dev_name
+    importDisabled: do_not_import
     local_rulebase_name: local_rulebase_name
   }
 }

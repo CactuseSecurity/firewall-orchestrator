@@ -262,11 +262,7 @@
 
             int deletedSampleGroups = 0;
             RestResponse<List<GroupGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetInternalGroups();
-            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
-            }
-            else
+            if (middlewareServerResponse.StatusCode == HttpStatusCode.OK && middlewareServerResponse.Data != null)
             {
                 foreach (var ldapUserGroup in middlewareServerResponse.Data)
                 {

@@ -48,6 +48,13 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<string>(request);
         }
 
+        public async Task<RestResponse<bool>> TestConnection(LdapGetUpdateParameters parameters)
+        {
+            RestRequest request = new RestRequest("AuthenticationServer/TestConnection", Method.Get);
+            request.AddJsonBody(parameters);
+            return await restClient.ExecuteAsync<bool>(request);
+        }
+
         public async Task<RestResponse<List<LdapGetUpdateParameters>>> GetLdaps()
         {
             RestRequest request = new RestRequest("AuthenticationServer", Method.Get);

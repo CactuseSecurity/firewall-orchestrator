@@ -20,11 +20,11 @@
             </div>
         </Template>
     </Column>
-    <Column TableItem="ReportFile" Title="@(userConfig.GetText("name"))" Field="@(reportFile => reportFile.Name)" />
-    <Column TableItem="ReportFile" Title="@(userConfig.GetText("generation_date"))" Field="@(reportFile => reportFile.GenerationDateStart)" />
+    <Column TableItem="ReportFile" Title="@(userConfig.GetText("name"))" Field="@(reportFile => reportFile.Name)" Sortable="true" Filterable="true"/>
+    <Column TableItem="ReportFile" Title="@(userConfig.GetText("generation_date"))" Field="@(reportFile => reportFile.GenerationDateStart)" Sortable="true" Filterable="true"/>
     @*<Column TableItem="ReportFile" Title="Output Format" Field="@(reportFile => reportFile.Type)" /> TODO: ADD TYPE*@
     @*<Column TableItem="ReportFile" Title="Template" Field="@(reportFile => reportFile.Template.Name)" /> TODO: Template (is not always defined - report export)*@
-    <Column TableItem="ReportFile" Title="@(userConfig.GetText("owner"))" Field="@(reportFile => reportFile.Owner.Name)" />
+    <Column TableItem="ReportFile" Title="@(userConfig.GetText("owner"))" Field="@(reportFile => reportFile.Owner.Name)" Sortable="true" Filterable="true"/>
 </Table>
 
 <PopUp Show="ShowDeleteReportFileDialog" Title="@(userConfig.GetText("generated_report"))">

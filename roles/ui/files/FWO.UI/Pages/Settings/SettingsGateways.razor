@@ -32,17 +32,17 @@
         </Column>
         <Column TableItem="Device" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
         <Column TableItem="Device" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-        <Column TableItem="Device" Title="@(userConfig.GetText("type"))" Field="@(x => x.DeviceType.Id)" Sortable="true" Filterable="true">
+        <Column TableItem="Device" Title="@(userConfig.GetText("type"))" Field="@(x => x.DeviceType.Id)" Sortable="true">
             <Template>
                 @context.DeviceType.NameVersion()
             </Template>
         </Column>
-        <Column TableItem="Device" Title="@(userConfig.GetText("management"))" Field="@(x => x.Management.Id)" Sortable="true" Filterable="true">
+        <Column TableItem="Device" Title="@(userConfig.GetText("management"))" Field="@(x => x.Management.Id)" Sortable="true">
             <Template>
                 @context.Management.Name
             </Template>
         </Column>
-        <Column TableItem="Device" Title="@(userConfig.GetText("import_enabled"))" Field="@(x => x.ImportDisabled)" Sortable="true" Filterable="true" >
+        <Column TableItem="Device" Title="@(userConfig.GetText("import_enabled"))" Field="@(x => x.ImportDisabled)" Sortable="true">
             <Template>
                 @(GlobalConfig.ShowBool(!context.ImportDisabled))
             </Template>

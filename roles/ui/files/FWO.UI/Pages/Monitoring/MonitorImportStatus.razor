@@ -26,17 +26,17 @@
         </Column>
         <Column TableItem="ImportStatus" Title="@(userConfig.GetText("id"))" Field="@(x => x.MgmId)" Sortable="true" Filterable="true" />
         <Column TableItem="ImportStatus" Title="@(userConfig.GetText("management"))" Field="@(x => x.MgmName)" Sortable="true" Filterable="true" />
-        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("type"))" Field="@(x => x.DeviceType.Id)" Sortable="true" Filterable="true">
+        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("type"))" Field="@(x => x.DeviceType.Id)" Sortable="true">
             <Template>
                 @(context.DeviceType.NameVersion())
             </Template>
         </Column>
-        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("last_incomplete"))" Field="@(x => x.LastIncompleteImport)" Sortable="true" Filterable="true">
+        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("last_incomplete"))" Field="@(x => x.LastIncompleteImport)">
             <Template>
                 @if (context.LastIncompleteImport != null && context.LastIncompleteImport.Length > 0)
                 {
                     <div class="btn-group">
-                        @if(context.LastIncompleteImport[0].StartTime < DateTime.Now.AddMinutes(-5))
+                        @if(context.LastIncompleteImport[0].StartTime < DateTime.Now.AddMinutes(0))
                         {
                             <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => RequestRollback(context)">@(userConfig.GetText("rollback"))</button>
                         }
@@ -45,7 +45,7 @@
                 }
             </Template>
         </Column>
-        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("last_success"))" Field="@(x => x.LastSuccessfulImport)" Sortable="true" Filterable="true">
+        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("last_success"))" Field="@(x => x.LastSuccessfulImport)">
             <Template>
                 @if (context.LastSuccessfulImport != null && context.LastSuccessfulImport.Length > 0)
                 {
@@ -53,7 +53,7 @@
                 }
             </Template>
         </Column>
-        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("last_import"))" Field="@(x => x.LastImport)" Sortable="true" Filterable="true">
+        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("last_import"))" Field="@(x => x.LastImport)">
             <Template>
                 @if (context.LastImport != null && context.LastImport.Length > 0)
                 {
@@ -61,7 +61,7 @@
                 }
             </Template>
         </Column>
-        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("success"))" Field="@(x => x.LastImport)" Sortable="true" Filterable="true">
+        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("success"))" Field="@(x => x.LastImport)">
             <Template>
                 @if (context.LastImport != null && context.LastImport.Length > 0)
                 {
@@ -69,7 +69,7 @@
                 }
             </Template>
         </Column>
-        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("errors"))" Field="@(x => x.LastImport)" Sortable="true" Filterable="true">
+        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("errors"))" Field="@(x => x.LastImport)">
             <Template>
                 @if (context.LastImport != null && context.LastImport.Length > 0)
                 {

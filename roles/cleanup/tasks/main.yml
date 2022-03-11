@@ -75,12 +75,17 @@
   when: demo_data_present.query_result == []
   become: yes
 
-- name: restart importer service to make sure it works correctly with sample data
-  ansible.builtin.systemd:
-    name: "{{ product_name }}-importer-legacy"
-    state: restarted
+- name: start importer service
+  systemd:
+    name: "{{ item }}"
+    state: started
+    daemon_reload: yes
+    enabled: yes
   become: yes
   when: "'importers' in group_names"
+  loop:
+    - "{{ product_name }}-importer-legacy"
+    - "{{ product_name }}-importer-api"
 
 - name: show listener status
   import_tasks: scripts/show-fworch-listeners.yml

@@ -10247,6 +10247,28 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "language",
+                      "txt"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "language",
+                      "txt"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "reporter",
                   "permission": {
                     "columns": [

@@ -5307,6 +5307,7 @@
                       "report_schedule_owner",
                       "report_schedule_repeat",
                       "report_schedule_start_time",
+                      "report_schedule_counter",
                       "report_template_id"
                     ],
                     "backend_only": false
@@ -5325,6 +5326,7 @@
                       "report_schedule_repeat",
                       "report_schedule_repetitions",
                       "report_schedule_start_time",
+                      "report_schedule_counter",
                       "report_template_id"
                     ],
                     "backend_only": false
@@ -5343,6 +5345,7 @@
                       "report_schedule_repeat",
                       "report_schedule_repetitions",
                       "report_schedule_start_time",
+                      "report_schedule_counter",
                       "report_template_id"
                     ],
                     "backend_only": false
@@ -5361,6 +5364,7 @@
                       "report_schedule_repeat",
                       "report_schedule_repetitions",
                       "report_schedule_start_time",
+                      "report_schedule_counter",
                       "report_template_id"
                     ],
                     "backend_only": false
@@ -5379,6 +5383,7 @@
                       "report_schedule_repeat",
                       "report_schedule_repetitions",
                       "report_schedule_start_time",
+                      "report_schedule_counter",
                       "report_template_id"
                     ],
                     "backend_only": false
@@ -5398,6 +5403,7 @@
                       "report_schedule_repeat",
                       "report_schedule_every",
                       "report_schedule_active",
+                      "report_schedule_counter",
                       "report_schedule_repetitions"
                     ],
                     "filter": {}
@@ -5415,6 +5421,7 @@
                       "report_schedule_repeat",
                       "report_schedule_repetitions",
                       "report_schedule_start_time",
+                      "report_schedule_counter",
                       "report_template_id"
                     ],
                     "filter": {
@@ -5466,6 +5473,7 @@
                       "report_schedule_repeat",
                       "report_schedule_every",
                       "report_schedule_active",
+                      "report_schedule_counter",
                       "report_schedule_repetitions"
                     ],
                     "filter": {},
@@ -5484,6 +5492,7 @@
                       "report_schedule_repeat",
                       "report_schedule_repetitions",
                       "report_schedule_start_time",
+                      "report_schedule_counter",
                       "report_template_id"
                     ],
                     "filter": {
@@ -5505,6 +5514,7 @@
                       "report_schedule_repeat",
                       "report_schedule_repetitions",
                       "report_schedule_start_time",
+                      "report_schedule_counter",
                       "report_template_id"
                     ],
                     "filter": {
@@ -5526,6 +5536,7 @@
                       "report_schedule_repeat",
                       "report_schedule_repetitions",
                       "report_schedule_start_time",
+                      "report_schedule_counter",
                       "report_template_id"
                     ],
                     "filter": {
@@ -5578,6 +5589,7 @@
                       "report_schedule_owner",
                       "report_schedule_repeat",
                       "report_schedule_start_time",
+                      "report_schedule_counter",
                       "report_template_id"
                     ],
                     "filter": {
@@ -5600,6 +5612,7 @@
                       "report_schedule_repeat",
                       "report_schedule_repetitions",
                       "report_schedule_start_time",
+                      "report_schedule_counter",
                       "report_template_id"
                     ],
                     "filter": {
@@ -5622,6 +5635,7 @@
                       "report_schedule_repeat",
                       "report_schedule_repetitions",
                       "report_schedule_start_time",
+                      "report_schedule_counter",
                       "report_template_id"
                     ],
                     "filter": {
@@ -5644,6 +5658,7 @@
                       "report_schedule_repeat",
                       "report_schedule_repetitions",
                       "report_schedule_start_time",
+                      "report_schedule_counter",
                       "report_template_id"
                     ],
                     "filter": {
@@ -5666,6 +5681,7 @@
                       "report_schedule_repeat",
                       "report_schedule_repetitions",
                       "report_schedule_start_time",
+                      "report_schedule_counter",
                       "report_template_id"
                     ],
                     "filter": {

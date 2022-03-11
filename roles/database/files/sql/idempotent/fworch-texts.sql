@@ -118,12 +118,12 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>GraphQL API f&uuml;r Automatisierungen</li>
     <li>Firewall-Regel Rezertifizierungsworkflow - beseitigen Sie ihre Altlasten und erf&uuml;llen Sie aktuelle regulatorische Anforderungen.</li>
     <li>F&uuml;r FortiManager und CheckPoint (Stand-Alone & MDS Manager) ist eine Auto Discovery Funktion enthalten, die ausgehend 
-    vom Mnagement-System alle definierten Domains/SubManager sowie Devices automatisch anlegt sowie &Auml;nderungen erkennt 
+    vom Management-System alle definierten Domains/SubManager sowie Devices automatisch anlegt sowie &Auml;nderungen erkennt 
     und diese zur automatischen Konfigurations&auml;nderung anbietet.</li>
-    <li>Einf&uuml;rung Monitoring und Alerting Modul - folgende Ereignisse werden protokolliert, in eine Log-Datei geschrieben (zur ggf. weiteren Auswertung per SIEM)
+    <li>Einf&uuml;hrung Monitoring und Alerting Modul - folgende Ereignisse werden protokolliert, in eine Log-Datei geschrieben (zur ggf. weiteren Auswertung per SIEM)
      und dem Nutzer in der Oberfl&auml;che zur Erinnerung angezeigt:
      <ul>
-        <li>&Auml;nderungen an angebundenen Firewall-Systemen, die im regelm&auml;&szlig; laufenden Hintergrund-Auto-Discovery-Prozess erkannt werden</li>
+        <li>&Auml;nderungen an angebundenen Firewall-Systemen, die im regelm&auml;&szlig;ig laufenden Hintergrund-Auto-Discovery-Prozess erkannt werden</li>
         <li>Beim Import auftretende Fehler</li>
         <li>Warnungen & Fehler, die in der Nutzeroberfl&auml;che angezeigt werden</li>
      </ul>
@@ -447,6 +447,8 @@ INSERT INTO txt VALUES ('owner',				'German', 	'Eigent&uuml;mer');
 INSERT INTO txt VALUES ('owner',				'English', 	'Owner');
 INSERT INTO txt VALUES ('active', 			    'German',	'Aktiv');
 INSERT INTO txt VALUES ('active', 			    'English',	'Active');
+INSERT INTO txt VALUES ('count', 			    'German',	'Z&auml;hler');
+INSERT INTO txt VALUES ('count', 			    'English',	'Count');
 INSERT INTO txt VALUES ('output_format', 		'German',	'Ausgabeformat');
 INSERT INTO txt VALUES ('output_format', 		'English',	'Output Format');
 INSERT INTO txt VALUES ('report_schedule', 		'German',	'Reporttermin');

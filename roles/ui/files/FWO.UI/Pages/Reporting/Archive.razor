@@ -21,10 +21,15 @@
         </Template>
     </Column>
     <Column TableItem="ReportFile" Title="@(userConfig.GetText("name"))" Field="@(reportFile => reportFile.Name)" Sortable="true" Filterable="true"/>
+    <Column TableItem="ReportFile" Title="@(userConfig.GetText("report_type"))" Field="@(reportFile => reportFile.Type)" Sortable="true">
+        <Template>
+            @(userConfig.GetText(((FWO.Report.Filter.ReportType)((int)(context.Type ?? 0))).ToString()?.ToLower() ?? "none"))
+        </Template>
+    </Column>
+    <Column TableItem="ReportFile" Title="@(userConfig.GetText("template"))" Field="@(reportFile => reportFile.Template.Name)" Filterable="true"/>
     <Column TableItem="ReportFile" Title="@(userConfig.GetText("generation_date"))" Field="@(reportFile => reportFile.GenerationDateStart)" Sortable="true" Filterable="true"/>
-    @*<Column TableItem="ReportFile" Title="Output Format" Field="@(reportFile => reportFile.Type)" /> TODO: ADD TYPE*@
-    @*<Column TableItem="ReportFile" Title="Template" Field="@(reportFile => reportFile.Template.Name)" /> TODO: Template (is not always defined - report export)*@
     <Column TableItem="ReportFile" Title="@(userConfig.GetText("owner"))" Field="@(reportFile => reportFile.Owner.Name)" Sortable="true" Filterable="true"/>
+    <Column TableItem="ReportFile" Title="@(userConfig.GetText("description"))" Field="@(reportFile => reportFile.Description)" Sortable="true" Filterable="true"/>
 </Table>
 
 <PopUp Show="ShowDeleteReportFileDialog" Title="@(userConfig.GetText("generated_report"))">

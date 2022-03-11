@@ -115,7 +115,7 @@ namespace FWO.Middleware.Controllers
                 List<Task> ldapDnRequests = new List<Task>();
                 object dnLock = new object();
 
-                foreach (Ldap currentLdap in ldaps)
+                foreach (Ldap currentLdap in ldaps.Where(x => x.Active))
                 {
                     ldapDnRequests.Add(Task.Run(() =>
                     {

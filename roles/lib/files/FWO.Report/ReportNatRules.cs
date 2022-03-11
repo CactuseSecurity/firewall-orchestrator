@@ -8,7 +8,7 @@ namespace FWO.Report
 {
     public class ReportNatRules : ReportRules
     {
-        public ReportNatRules(DynGraphqlQuery query, UserConfig userConfig) : base(query, userConfig) { }
+        public ReportNatRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
 
         private const int ColumnCount = 12;
 

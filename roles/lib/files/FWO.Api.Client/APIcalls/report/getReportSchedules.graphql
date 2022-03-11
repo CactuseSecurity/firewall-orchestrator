@@ -19,5 +19,6 @@ query getReportSchedules {
     report_schedule_formats{
       report_schedule_format_name
     }
+    report_schedule_counter
   }
 }

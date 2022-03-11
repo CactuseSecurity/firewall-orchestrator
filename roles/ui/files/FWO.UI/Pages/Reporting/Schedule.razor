@@ -35,6 +35,7 @@
                 @(GlobalConfig.ShowBool(context.Active))
             </Template>
     </Column>
+    <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("count"))" Field="@(scheduledReport => scheduledReport.Counter)" Sortable="true" Filterable="true"/>
     <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("output_format"))" Field="@(scheduledReport => scheduledReport.OutputFormat)">
         <Template>
             @String.Join(", ", context.OutputFormat.ConvertAll(format => format.Name.ToUpperInvariant()))

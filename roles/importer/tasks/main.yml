@@ -81,13 +81,6 @@
       owner: "root"
     become: yes
 
-  - name: make importer run at host startup
-    ansible.builtin.systemd:
-      name: "{{ product_name }}-importer-legacy"
-      state: started
-      daemon_reload: yes
-      enabled: yes
-
   - name: copy api-importer systemd service script
     template:
       src: "{{ product_name }}-importer-api.service.j2"
@@ -96,13 +89,6 @@
       mode: "0644"
       owner: "root"
     become: yes
-
-  - name: make api-importer run at host startup
-    ansible.builtin.systemd:
-      name: "{{ product_name }}-importer-api"
-      state: started
-      daemon_reload: yes
-      enabled: yes
 
   - name: include upgrade script
     import_tasks: run-upgrades.yml

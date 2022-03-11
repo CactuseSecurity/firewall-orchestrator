@@ -36,7 +36,7 @@
                 @if (context.LastIncompleteImport != null && context.LastIncompleteImport.Length > 0)
                 {
                     <div class="btn-group">
-                        @if(context.LastIncompleteImport[0].StartTime < DateTime.Now.AddMinutes(0))
+                        @if(context.LastIncompleteImport[0].StartTime < DateTime.Now.AddMinutes(-5))
                         {
                             <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => RequestRollback(context)">@(userConfig.GetText("rollback"))</button>
                         }

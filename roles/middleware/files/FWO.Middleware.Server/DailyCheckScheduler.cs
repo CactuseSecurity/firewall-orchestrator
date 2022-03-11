@@ -239,12 +239,16 @@ namespace FWO.Middleware.Server
                 {
                     Log.WriteError("Write Alert", "Log could not be written to database");
                 }
-                string mgmtIdString = ""; 
+                string? mgmtIdString = ""; 
                 if (mgmtId != null)
+                {
                     mgmtIdString = mgmtId.ToString();
-                string devIdString = ""; 
+                }
+                string? devIdString = ""; 
                 if (devId != null)
+                {
                     devIdString = devId.ToString();
+                }
                 string jsonString = ""; 
                 if (JsonData != null)
                     jsonString = JsonSerializer.Serialize(JsonData);

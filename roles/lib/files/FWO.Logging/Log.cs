@@ -31,7 +31,7 @@ namespace FWO.Logging
                 (Text != null ?
                 $"{Text}"
                 : "") +
-                (Error != null ? 
+                (Error != null ?
                 "\n ---\n" +
                 $"Exception thrown: \n {Error?.GetType().Name} \n" +
                 $"Message: \n {Error?.Message.TrimStart()} \n" +
@@ -63,13 +63,14 @@ namespace FWO.Logging
 
         public static void WriteAlert(string Title, string Text, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
         {
-            WriteLog("FWORCHAlert", Title, Text, callerName, callerFile, callerLineNumber, ConsoleColor.Yellow);
+            string File = callerFile.Split('\\', '/').Last();
+            // Console.Out.WriteLine($"{DateTime.Now} {"FWORCHAlert"} - {Title} ({File} in line {callerLineNumber}), {Text}");
+            WriteLog("FWORCHAlert", Title, Text, callerName, callerFile, callerLineNumber);
         }
 
         private static void WriteLog(string LogType, string Title, string Text, string Method, string Path, int Line, ConsoleColor? ForegroundColor = null, ConsoleColor? BackgroundColor = null)
         {
-            // do not show the full file path, just the basename
-            string File = Path.Split('\\', '/').Last();
+            string File = Path.Split('\\', '/').Last(); // do not show the full file path, just the basename
             WriteInColor($"{DateTime.Now} {LogType} - {Title} ({File} in line {Line}), {Text}", ForegroundColor, BackgroundColor);
         }
 

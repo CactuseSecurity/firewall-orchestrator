@@ -200,3 +200,6 @@ adding report template format fk and permissions
 ### 5.6.6 - 2022
 - allow for users in rule destination (CP)
 - monitoring
+
+### 5.6.7 - 2022
+- allow deactivation of ldap connection

@@ -16,6 +16,7 @@ mutation updateLdapConnection(
   $writeUserPwd: String
   $tenantId: Int
   $globalTenantName: String
+  $active: Boolean!
 ) {
   update_ldap_connection_by_pk(
     pk_columns: { ldap_connection_id: $id }
@@ -36,6 +37,7 @@ mutation updateLdapConnection(
       ldap_write_user_pwd: $writeUserPwd
       tenant_id: $tenantId
       ldap_global_tenant_name: $globalTenantName
+      active: $active
     }
   ) {
     UpdatedId: ldap_connection_id

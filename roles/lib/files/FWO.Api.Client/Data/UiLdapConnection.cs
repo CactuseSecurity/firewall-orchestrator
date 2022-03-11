@@ -55,6 +55,7 @@ namespace FWO.Api.Data
             WriteUserPwd = ldapConnection.WriteUserPwd;
             TenantId = ldapConnection.TenantId;
             GlobalTenantName = ldapConnection.GlobalTenantName;
+            Active = ldapConnection.Active;
         }
 
         public void Sanitize()
@@ -91,7 +92,8 @@ namespace FWO.Api.Data
                 WriteUser = this.WriteUser,
                 WriteUserPwd = this.WriteUserPwd,
                 TenantId = this.TenantId,
-                GlobalTenantName = this.GlobalTenantName
+                GlobalTenantName = this.GlobalTenantName,
+                Active = this.Active
             };
         }
     }

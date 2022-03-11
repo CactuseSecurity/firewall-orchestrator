@@ -1,3 +1,4 @@
+from copy import deepcopy
 import logging, traceback
 import sys, os, time, datetime
 import json, requests, requests.packages
@@ -38,7 +39,7 @@ class FwLoginFailed(Exception):
 
     def __init__(self, message="Login to FW management failed"):
             self.message = message
-            logging.info("FWORCHAlert: " + message)
+            # logging.info("FWORCHAlert: " + message)
             super().__init__(self.message)
 
 class FwoApiLoginFailed(Exception):
@@ -62,14 +63,14 @@ class FwoApiFailure(Exception):
 
     def __init__(self, message="There was an unclassified error while executing an FWO API call"):
             self.message = message
-            logging.info("FWORCHAlert: " + message)
+            # logging.info("FWORCHAlert: " + message)
             super().__init__(self.message)
 
 class FwoApiTimeout(Exception):
     """Raised for 502 http error with proxy due to timeout"""
 
     def __init__(self, message="reverse proxy timeout error during FWO API call - try increasing the reverse proxy timeout"):
-            self.message = message
+            # self.message = message
             logging.info("FWORCHAlert: " + message)
             super().__init__(self.message)
 
@@ -78,9 +79,16 @@ class FwoApiTServiceUnavailable(Exception):
 
     def __init__(self, message="FWO API Hasura container died"):
             self.message = message
-            logging.info("FWORCHAlert: " + message)
+            # logging.info("FWORCHAlert: " + message)
             super().__init__(self.message)
 
+class ConfigFileNotFound(Exception):
+    """can only happen when specifying config file with -i switch"""
+
+    def __init__(self, message="Could not read config file"):
+            self.message = message
+            # logging.info("FWORCHAlert: " + message)
+            super().__init__(self.message)
 
 #  import_management: import a single management (if no import for it is running)
 #     lock mgmt for import via FWORCH API call, generating new import_id y
@@ -174,8 +182,11 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
                     with open(in_file, 'r') as json_file:
                         full_config_json = json.load(json_file)
                 except:
-                    logging.exception("import_management - error while reading json import from file", traceback.format_exc())        
-                    raise
+                    # logging.exception("import_management - error while reading json import from file", traceback.format_exc())
+                    error_string = "Could not read config file " + in_file
+                    error_count += 1
+                    error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)
+                    raise ConfigFileNotFound(error_string) from None
             # note: we need to run get_config in any case (even when importing from a file) as this function 
             # also contains the conversion from native to config2import (parsing)
             
@@ -505,3 +516,33 @@ def resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, ui
                 description=desc, source='import', alertCode=16)
 
     return delimiter.join(ref_list)
+
+
+def jsonToLogFormat(jsonData):
+    if type(jsonData) is dict:
+        jsonString = json.dumps(jsonData)
+    elif isinstance(jsonData, str):
+        jsonString = jsonData
+    else:
+        jsonString = str(jsonData)
+    
+    if jsonString[0] == '{' and jsonString[-1] == '}':
+        jsonString = jsonString[1:len(jsonString)-1]
+    return jsonString
+
+
+def writeAlertToLogFile(jsonData):
+    jsonDataCopy = deepcopy(jsonData)   # make sure the original alert is not changed
+    if type(jsonDataCopy) is dict and 'jsonData' in jsonDataCopy:
+        subDict = json.loads(jsonDataCopy.pop('jsonData'))
+        jsonDataCopy.update(subDict)
+    #     logging.info("FWORCHAlert: " + jsonToLogFormat(jsonDataCopy) + ", " + jsonToLogFormat(subDict))
+    alertText = "FWORCHAlert - " + jsonToLogFormat(jsonDataCopy)
+    if 'severity' in jsonDataCopy:
+        if int(jsonDataCopy['severity'])>=2:
+            if int(jsonDataCopy['severity'])<=3:
+                logging.warning(alertText)
+            else:
+                logging.error(alertText)
+            return
+    logging.info(alertText)

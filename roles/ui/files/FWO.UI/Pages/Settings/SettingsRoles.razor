@@ -241,7 +241,7 @@
         {
             // get roles from LDAP
             RestResponse<List<RoleGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetAllRoles();
-            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
+            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
             {
                 DisplayMessageInUi!(null, userConfig.GetText("fetch_roles"), userConfig.GetText("E5251"), true);
             }
@@ -275,7 +275,7 @@
 
             // get groups from internal LDAP
             RestResponse<List<GroupGetReturnParameters>> middlewareServerGroupsResponse = await middlewareClient.GetInternalGroups();
-            if (middlewareServerGroupsResponse.StatusCode != HttpStatusCode.OK)
+            if (middlewareServerGroupsResponse.StatusCode != HttpStatusCode.OK || middlewareServerGroupsResponse.Data == null)
             {
                 DisplayMessageInUi!(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
             }
@@ -334,7 +334,7 @@
                 searchedGroupList.Clear();
                 LdapUserGetParameters userGetParameters = new LdapUserGetParameters { LdapId = selectedLdap.Id, SearchPattern = searchPattern };
                 RestResponse<List<LdapUserGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetLdapUsers(userGetParameters);
-                if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
+                if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
                 {
                     DisplayMessageInUi!(null, userConfig.GetText("fetch_users"), userConfig.GetText("E5208"), true);
                 }
@@ -351,7 +351,7 @@
                 {
                     GroupGetParameters groupGetParameters = new GroupGetParameters { LdapId = selectedLdap.Id, SearchPattern = searchPattern };
                     RestResponse<List<string>> groupMiddlewareServerResponse = await middlewareClient.GetGroups(groupGetParameters);
-                    if (groupMiddlewareServerResponse.StatusCode != HttpStatusCode.OK)
+                    if (groupMiddlewareServerResponse.StatusCode != HttpStatusCode.OK || groupMiddlewareServerResponse.Data == null)
                     {
                         DisplayMessageInUi!(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
                     }

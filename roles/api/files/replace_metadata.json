@@ -8238,7 +8238,13 @@
                 {
                   "role": "reporter",
                   "permission": {
-                    "columns": [],
+                    "columns": [
+                      "mgm_id",
+                      "rule_id",
+                      "user_id",
+                      "created",
+                      "removed"
+                    ],
                     "filter": {
                       "mgm_id": {
                         "_in": "X-Hasura-visible-managements"

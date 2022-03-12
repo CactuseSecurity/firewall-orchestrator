@@ -2986,6 +2986,36 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "culture_info",
+                      "name"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "culture_info",
+                      "name"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "culture_info",
+                      "name"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
@@ -3081,6 +3111,16 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "ldap_connection_id",
+                      "ldap_tenant_level"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
@@ -3102,6 +3142,36 @@
                       "ldap_write_user",
                       "ldap_write_user_pwd",
                       "tenant_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "ldap_connection_id",
+                      "ldap_tenant_level"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "ldap_connection_id",
+                      "ldap_tenant_level"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "ldap_connection_id",
+                      "ldap_tenant_level"
                     ],
                     "filter": {}
                   }

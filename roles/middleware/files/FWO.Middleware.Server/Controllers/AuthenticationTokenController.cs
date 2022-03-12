@@ -207,6 +207,15 @@ namespace FWO.Middleware.Controllers
         public async Task<Tenant?> GetTenantAsync(UiUser user)
         {
             Tenant tenant = new Tenant();
+            if(loggedInLdap.Id == 0 && user.LdapConnection != null) // user is already assigned to ldap (scheduled reports)
+            {
+                Ldap? existingLdap = ldaps.FirstOrDefault(x => x.Id == user.LdapConnection.Id);
+                if (existingLdap != null)
+                {
+                    loggedInLdap = existingLdap;
+                }
+            }
+
             if (loggedInLdap.TenantId != null)
             {
                 Log.WriteDebug("Get Tenant", $"This LDAP has the fixed tenant {loggedInLdap.TenantId.Value}");

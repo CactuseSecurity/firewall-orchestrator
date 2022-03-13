@@ -4,6 +4,8 @@
     report_name
     report_start_time
     report_end_time
+    report_type
+    description
     uiuser {
       uiuser_username
     }

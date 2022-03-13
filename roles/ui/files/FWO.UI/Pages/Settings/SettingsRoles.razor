@@ -36,12 +36,12 @@
             </Template>
         </Column>
         <Column TableItem="Role" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-        <Column TableItem="Role" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" Sortable="true" Filterable="true" >
+        <Column TableItem="Role" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" Sortable="true">
             <Template>
                 @(userConfig.GetText(context.Description))
             </Template>
         </Column>
-        <Column TableItem="Role" Title="@(userConfig.GetText("users_groups"))" Field="@(x => x.Users)" Sortable="false" Filterable="false">
+        <Column TableItem="Role" Title="@(userConfig.GetText("users_groups"))" Field="@(x => x.Users)" Sortable="false">
             <Template>
                 @(context.UserList())
             </Template>

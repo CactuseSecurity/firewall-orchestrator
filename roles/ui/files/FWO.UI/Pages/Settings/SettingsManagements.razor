@@ -48,25 +48,25 @@
         </Column>
         <Column TableItem="Management" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
         <Column TableItem="Management" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-        <Column TableItem="Management" Title="@(userConfig.GetText("type"))" Field="@(x => x.DeviceType.Id)" Sortable="true" Filterable="true">
+        <Column TableItem="Management" Title="@(userConfig.GetText("type"))" Field="@(x => x.DeviceType.Id)" Sortable="true">
             <Template>
                 @(context.DeviceType.NameVersion())
             </Template>
         </Column>
-        <Column TableItem="Management" Title="@(userConfig.GetText("host"))" Field="@(x => x.Hostname)" Sortable="true" Filterable="true">
+        <Column TableItem="Management" Title="@(userConfig.GetText("host"))" Field="@(x => x.Hostname)" Sortable="true">
             <Template>
                 @(context.Host())
             </Template>
         </Column>
         <Column TableItem="Management" Title="@(userConfig.GetText("config_path"))" Field="@(x => x.ConfigPath)" Sortable="true" Filterable="true" />
-        <Column TableItem="Management" Title="@(userConfig.GetText("super_manager"))" Field="@(x => x.SuperManagerId)" Sortable="true" Filterable="true">
+        <Column TableItem="Management" Title="@(userConfig.GetText("super_manager"))" Field="@(x => x.SuperManagerId)" Sortable="true">
             <Template>
                 @(((context.SuperManagerId != null) ? managements.Find(x => x.Id == context.SuperManagerId)?.Name : ""))
             </Template>
         </Column>
 
         <Column TableItem="Management" Title="@(userConfig.GetText("importer_host"))" Field="@(x => x.ImporterHostname)" Sortable="true" Filterable="true" />
-        <Column TableItem="Management" Title="@(userConfig.GetText("import_enabled"))" Field="@(x => x.ImportDisabled)" Sortable="true" Filterable="true" >
+        <Column TableItem="Management" Title="@(userConfig.GetText("import_enabled"))" Field="@(x => x.ImportDisabled)" Sortable="true">
             <Template>
                 @(GlobalConfig.ShowBool(!context.ImportDisabled))
             </Template>

@@ -38,42 +38,42 @@
             </Template>
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("host"))" Field="@(x => x.Address)" Sortable="true" Filterable="true">
+        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("host"))" Field="@(x => x.Address)" Sortable="true">
             <Template>
                 @(context.Host())
             </Template>
         </Column>
-        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("type"))" Field="@(x => x.Type)" Sortable="true" Filterable="true">
+        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("type"))" Field="@(x => x.Type)" Sortable="true">
             <Template>
                 @(Enum.GetName(typeof(LdapType), context.Type))
             </Template>
         </Column>
-        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("search_user"))" Field="@(x => x.SearchUser)" Sortable="true" Filterable="true">
+        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("search_user"))" Field="@(x => x.SearchUser)" Sortable="true">
             <Template>
                 @(GlobalConfig.ShowBool(context.SearchUser != null && context.SearchUser != ""))
             </Template>
         </Column>
-        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("write_user"))" Field="@(x => x.WriteUser)" Sortable="true" Filterable="true">
+        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("write_user"))" Field="@(x => x.WriteUser)" Sortable="true">
             <Template>
                 @(GlobalConfig.ShowBool(context.IsWritable()))
             </Template>
         </Column>
-        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("role_handling"))" Field="@(x => x.RoleSearchPath)" Sortable="true" Filterable="true">
+        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("role_handling"))" Field="@(x => x.RoleSearchPath)" Sortable="true">
             <Template>
                 @(GlobalConfig.ShowBool(context.HasRoleHandling()))
             </Template>
         </Column>
-        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("group_handling"))" Field="@(x => (x.GroupSearchPath))" Sortable="true" Filterable="true">
+        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("group_handling"))" Field="@(x => (x.GroupSearchPath))" Sortable="true">
             <Template>
                 @(GlobalConfig.ShowBool(context.HasGroupHandling()))
             </Template>
         </Column>
-        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.TenantId)" Sortable="true" Filterable="true">
+        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.TenantId)" Sortable="true">
             <Template>
                 @(context.TenantId != null ? tenants.FirstOrDefault(x => x.Id == context.TenantId)?.Name ?? "" : "" )
             </Template>
         </Column>
-        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("global_tenant_name"))" Field="@(x => x.GlobalTenantName)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("global_tenant_name"))" Field="@(x => x.GlobalTenantName)" Sortable="true"/>
     </Table>
 </div>
 

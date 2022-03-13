@@ -9,6 +9,9 @@
       uiuser_id
       uiuser_username
       uuid
+      ldap_connection: ldap_connection {
+        ldap_connection_id
+      }
     }
     report_schedule_active
     report_schedule_template: report_template {

@@ -8,6 +8,8 @@
   $report_html: String
   $report_json: json
   $report_template_id: Int
+  $report_type: Int
+  $description: String
 ) {
     insert_report(
       objects: {
@@ -20,6 +22,8 @@
         report_html: $report_html
         report_json: $report_json
         report_template_id : $report_template_id
+        report_type: $report_type
+        description: $description
   }
   ) {
         returning {

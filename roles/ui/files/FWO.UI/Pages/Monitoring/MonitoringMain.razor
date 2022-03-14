@@ -60,18 +60,18 @@
                     </AuthorizeView>
                 </Template>
             </Column>
-            <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" />
-            <Column TableItem="Alert" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" />
-            <Column TableItem="Alert" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" />
-            <Column TableItem="Alert" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" />
-            <Column TableItem="Alert" Title="@(userConfig.GetText("code"))" Field="@(x => x.AlertCode)" />
-            <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.ManagementId)" />
-            <Column Context="alert" TableItem="Alert" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" >
+            <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true"/>
+            <Column TableItem="Alert" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" Sortable="true" Filterable="true"/>
+            <Column TableItem="Alert" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" Sortable="true" Filterable="true"/>
+            <Column TableItem="Alert" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true"/>
+            <Column TableItem="Alert" Title="@(userConfig.GetText("code"))" Field="@(x => x.AlertCode)" Sortable="true" Filterable="true"/>
+            <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.ManagementId)" Sortable="true" Filterable="true"/>
+            <Column Context="alert" TableItem="Alert" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" Sortable="true">
                 <Template>
                     @(managements.FirstOrDefault(x => x.Id == alert.ManagementId)?.Name)
                 </Template>
             </Column>
-            <Column TableItem="Alert" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" />
+            <Column TableItem="Alert" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" Sortable="true" Filterable="true"/>
             <Pager ShowPageNumber="true" ShowTotalCount="true" />
         </Table>
     }

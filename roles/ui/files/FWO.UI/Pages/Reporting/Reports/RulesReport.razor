@@ -33,7 +33,7 @@
 
                             @if(Recertification)
                             {
-                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("next_recert"))" Field="@(rule => rule.Metadata.NextRecert)" Sortable="true" Filterable="true" />
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("next_recert"))" Field="@(rule => rule.Metadata.NextRecert)" Sortable="true" Filterable="false" />
                                 <Column TableItem="Rule" Title="@(userConfig.GetText("last_recertifier"))" Field="@(rule => rule.Metadata.LastCertifierName)" Sortable="true" Filterable="true" />
                                 <Column TableItem="Rule" Title="@(userConfig.GetText("action"))" Field="@(rule => rule.OrderNumber)">
                                     <Template>

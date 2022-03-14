@@ -1009,6 +1009,8 @@ Create table "report"
 	"report_name" varchar NOT NULL,
 	"report_owner_id" Integer NOT NULL, --FK to uiuser
 	"tenant_wide_visible" Integer,
+	"report_type" Integer,
+	"description" varchar,
  	primary key ("report_id")
 );
 
@@ -1023,6 +1025,7 @@ Create table if not exists "report_schedule"
 	"report_schedule_every" Integer Not NULL Default 1, -- x - every x days/weeks/months/years
 	"report_schedule_active" Boolean Default TRUE,
 	"report_schedule_repetitions" Integer,
+	"report_schedule_counter" Integer Not NULL Default 0,
  	primary key ("report_schedule_id")
 );
 

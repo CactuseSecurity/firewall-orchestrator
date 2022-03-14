@@ -55,7 +55,7 @@
         </Column>
         <Column TableItem="UiUser" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
         <Column TableItem="UiUser" Title="@(userConfig.GetText("from_ldap"))" Field="@(x => x.LdapConnection.Name)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiUser" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.Tenant)" Sortable="true" Filterable="true" >
+        <Column TableItem="UiUser" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.Tenant)" Sortable="true">
             <Template>
                 @(context.Tenant != null ? (context.Tenant.Id == 1 && context.LdapConnection.GlobalTenantName != null && context.LdapConnection.GlobalTenantName != "" ? context.LdapConnection.GlobalTenantName : context.Tenant.Name) : "" )
             </Template>       

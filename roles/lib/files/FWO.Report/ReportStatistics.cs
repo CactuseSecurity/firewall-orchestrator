@@ -14,7 +14,7 @@ namespace FWO.Report
         // TODO: Currently generated in Report.razor as well as here, because of export. Remove dupliacte.
         private Management globalStatisticsManagement = new Management();
 
-        public ReportStatistics(DynGraphqlQuery query, UserConfig userConfig) : base(query, userConfig) { }
+        public ReportStatistics(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
 
         public override async Task<bool> GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback)
         {

@@ -39,7 +39,10 @@ namespace FWO.Api.Data
             Number = 0;
             AlertId = alert.Id;
             Supermanager = alert.Title;
-            ActionType = alert.Description;
+            if (alert.Description == null)
+                ActionType = "";
+            else
+                ActionType = alert.Description;
             ManagementId = alert.ManagementId;
             DeviceId = alert.DeviceId;
             JsonData = alert.JsonData;

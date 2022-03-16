@@ -50,8 +50,8 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m32",
-                "-d4",
+                "-m58",
+                "-d0",
                 //"-f",
                 //"-c",
                 //  41 - lab fortimanager
@@ -67,9 +67,10 @@
                 //"-i/home/tim/tmp/configs/mgm_id_12_config_native.json",
                 // "-i/home/tim/tmp/configs/m56_1sthalf.json", // half of 30k rules, local mgm_id 45
                 //"-i/home/tim/tmp/configs/mgm_id_1176_config_native.json.anon_error_in_fprs100-s999-rz99-xxx-PolicyNetwork.anon",
-                //"-i/home/tim/tmp/configs/mgm_id_60_config_native.json.anon",
+                "-i/home/tim/tmp/configs/mgm_id_60_config_native.json.anon",
                 //"-i/home/tim/tmp/configs/mgm_id_60_config_native-with-error.json.anon",
                 //"-i/home/tim/tmp/configs/mgm_id_54_config_native.json.anon",
+                //"-i/home/tim/tmp/configs/mgm_id_106_config_native.json.anon",
                 //"-i/home/tim/tmp/configs/mgm_id_1176_config_native.json.anon_error_in_fprs100-s999-rz99-xxx-PolicyNetwork.anon-with-broken-svc",
                 "-l250"
             ]

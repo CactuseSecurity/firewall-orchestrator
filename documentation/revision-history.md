@@ -204,3 +204,4 @@ adding report template format fk and permissions
 
 ### 5.6.7
 - allow deactivation of ldap connection
+- rework of python logging

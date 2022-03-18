@@ -8,7 +8,8 @@ namespace FWO.Api.Data
         AddGatewayToNewManagement,
         AddGatewayToExistingManagement,
         ReactivateManagement,
-        ReactivateGateway
+        ReactivateGateway,
+        WaitForTempLoginFailureToPass
     }
 
     public class ActionItem

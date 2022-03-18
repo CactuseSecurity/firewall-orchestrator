@@ -27,7 +27,7 @@ import json, requests, requests.packages, argparse
 base_dir = "/usr/local/fworch"
 importer_base_dir = base_dir + '/importer'
 sys.path.append(importer_base_dir)
-import roles.api.files.scripts.common_scripts as common_scripts, fwo_api
+import common_scripts as common_scripts, fwo_api
 
 parser = argparse.ArgumentParser(
     description="Export fworch configuration into encrypted json file\nsample; synopsis for ex- and import: fwo-export-config.py -o/tmp/fworch-config.graphql; <move to freshly installed FWO system without demo data>; fwo-execute-graphql.py -i/tmp/fworch-config.graphql")

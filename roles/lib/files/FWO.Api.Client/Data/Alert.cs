@@ -16,7 +16,8 @@ namespace FWO.Api.Data
         ImportErrorUnspecific = 14,
         ImportLocked = 15,
         ImportBrokenObjectReferences = 16,
-        Autodiscovery = 21
+        Autodiscovery = 21,
+        AutoDiscoveryErrorUnspecific = 22
     }
 
     public class Alert

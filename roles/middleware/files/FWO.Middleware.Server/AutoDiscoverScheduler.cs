@@ -142,7 +142,7 @@ namespace FWO.Middleware.Server
                         Log.WriteError("Autodiscovery", $"Ran into exception while auto-discovering management {superManagement.Name} (id: {superManagement.Id}) ", excMgm);
                         ActionItem actionException = new ActionItem();
                         actionException.Number = 0;
-                        actionException.ActionType = ActionCode.DeleteManagement.ToString();
+                        actionException.ActionType = ActionCode.WaitForTempLoginFailureToPass.ToString();
                         actionException.ManagementId = superManagement.Id;
                         actionException.Supermanager = superManagement.Name;
                         actionException.JsonData = excMgm.Message;

@@ -1,4 +1,5 @@
-import logging
+from asyncio.log import logger
+from fwo_log import getFwoLogger
 from netaddr import IPAddress, IPNetwork
 from functools import cmp_to_key
 import traceback
@@ -6,7 +7,7 @@ import json
 import fmgr_getter
 
 
-def normalize_network_data(native_config, normalized_config, mgm_details):
+def normalize_network_data(native_config, normalized_config, mgm_details, debug_level=0):
 
     # currently only a single IP (v4+v6) per interface ;-)
 
@@ -38,6 +39,8 @@ def normalize_network_data(native_config, normalized_config, mgm_details):
     #     "maskv6": 48
     # }
 
+    logger = getFwoLogger(debug_level=debug_level)
+
     normalized_config.update({'networking': {}})
 
     for plain_dev_name, plain_vdom_name, full_vdom_name in get_all_dev_names(mgm_details['devices']):
@@ -48,8 +51,8 @@ def normalize_network_data(native_config, normalized_config, mgm_details):
         }})
 
         if 'routing-table-ipv4/' + full_vdom_name not in native_config:
-            logging.warning('normalize_network_data: could not find routing data routing-table-ipv4/' + full_vdom_name)
-            logging.warning('native configs contains the following keys ' + str(native_config.keys()))
+            logger.warning('could not find routing data routing-table-ipv4/' + full_vdom_name)
+            logger.warning('native configs contains the following keys ' + str(native_config.keys()))
             normalized_config['networking'][full_vdom_name]['routingv4'] = []
         else:
             for route in native_config['routing-table-ipv4/' + full_vdom_name]:
@@ -65,11 +68,12 @@ def normalize_network_data(native_config, normalized_config, mgm_details):
             normalized_config['networking'][full_vdom_name]['routingv4'] = sort_reverse(normalized_config['networking'][full_vdom_name]['routingv4'], 'destination')
 
         if not test_if_default_route_exists(normalized_config['networking'][full_vdom_name]['routingv4']):
-            logging.warning('found no default route in ipv4 table of device ' + full_vdom_name )
+            logger.warning('found no default route in ipv4 table of device ' + full_vdom_name )
 
         if 'routing-table-ipv6/' + full_vdom_name not in native_config:
-            logging.warning('normalize_network_data: could not find routing data routing-table-ipv6/' + full_vdom_name)
-            # logging.warning('native configs contains the following keys ' + str(native_config.keys()))
+            logger.warning('could not find routing data routing-table-ipv6/' + full_vdom_name)
+            if debug_level>5:
+                logger.warning('native configs contains the following keys ' + str(native_config.keys()))
             normalized_config['networking'][full_vdom_name]['routingv6'] = []
         else:
             for route in native_config['routing-table-ipv6/' + full_vdom_name]:
@@ -85,7 +89,7 @@ def normalize_network_data(native_config, normalized_config, mgm_details):
             normalized_config['networking'][full_vdom_name]['routingv6'] = sort_reverse(normalized_config['networking'][full_vdom_name]['routingv6'], 'destination')
 
         if test_if_default_route_exists(normalized_config['networking'][full_vdom_name]['routingv6']):
-            logging.warning('found no default route in ipv6 table of device ' + full_vdom_name )
+            logger.warning('found no default route in ipv6 table of device ' + full_vdom_name )
 
         for interface in native_config['interfaces_per_device/' + full_vdom_name]:
             ipv6, ipv6mask = interface['ipv6']['ip6-address'].split('/')
@@ -107,8 +111,9 @@ def normalize_network_data(native_config, normalized_config, mgm_details):
             })
 
 
-def get_matching_route(destination_ip, routing_table):
+def get_matching_route(destination_ip, routing_table, debug_level=0):
 
+    logger = getFwoLogger(debug_level=debug_level)
 
     def route_matches(ip, destination):
         ip_n = IPNetwork(ip).cidr
@@ -117,14 +122,14 @@ def get_matching_route(destination_ip, routing_table):
 
 
     if len(routing_table)==0:
-        logging.error('src nat behind interface: encountered empty routing table')
+        logger.error('src nat behind interface: encountered empty routing table')
         return None
 
     for route in routing_table:
         if route_matches(destination_ip, route['destination']):
             return route 
 
-    logging.error('src nat behind interface: found no matching route in routing table - no default route?!')
+    logger.error('src nat behind interface: found no matching route in routing table - no default route?!')
     return None
 
 
@@ -211,13 +216,14 @@ def get_all_dev_names(devices):
 
 
 # get network information (currently only used for source nat)
-def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, limit, debug_level):
+def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, limit, debug_level=0):
 
+    logger = getFwoLogger(debug_level=debug_level)
     # strip off vdom names, just deal with the plain device
     device_array = get_all_dev_names(devices)
 
     for plain_dev_name, plain_vdom_name, full_vdom_name in device_array:
-        logging.info("dev_name: " + plain_dev_name + ", full vdom_name: " + full_vdom_name)
+        logger.info("dev_name: " + plain_dev_name + ", full vdom_name: " + full_vdom_name)
 
         # getting interfaces of device
         all_interfaces_payload = {
@@ -277,22 +283,22 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
                 }
             ]
         }
-        get_interfaces_payload = {
-            "id": 1,
-            "params": [
-                {
-                    "fields": [ "name", "ip" ],
-                    "filter": [ "vdom", "==", plain_vdom_name ],
-                    "option": [ "no loadsub" ],
-                }
-            ]
-        }
+        # get_interfaces_payload = {
+        #     "id": 1,
+        #     "params": [
+        #         {
+        #             "fields": [ "name", "ip" ],
+        #             "filter": [ "vdom", "==", plain_vdom_name ],
+        #             "option": [ "no loadsub" ],
+        #         }
+        #     ]
+        # }
         try:    # get interfaces from top level device (not vdom)
             fmgr_getter.update_config_with_fortinet_api_call(
                 raw_config, sid, fm_api_url, "/pm/config/device/" + plain_dev_name + "/global/system/interface",
                 "interfaces_per_device/" + full_vdom_name, payload=all_interfaces_payload, debug=debug_level, limit=limit, method="get")
         except:
-            logging.warning("import_management - error while getting interfaces of device " + plain_vdom_name + ", vdom=" + plain_vdom_name + ", ignoring, traceback: " + str(traceback.format_exc()))
+            logger.warning("error while getting interfaces of device " + plain_vdom_name + ", vdom=" + plain_vdom_name + ", ignoring, traceback: " + str(traceback.format_exc()))
 
         # now getting routing information
         for ip_version in ["ipv4", "ipv6"]:
@@ -307,39 +313,32 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
                     routing_helper, sid, fm_api_url, "/sys/proxy/json",
                     "routing-table-" + ip_version + '/' + full_vdom_name,
                     payload=payload, debug=debug_level, limit=limit, method="exec")
-                # logging.info("routing helper 1st dump: " + str(routing_helper))
                 
                 if "routing-table-" + ip_version + '/' + full_vdom_name in routing_helper:
                     routing_helper = routing_helper["routing-table-" + ip_version + '/' + full_vdom_name]
-                    # logging.info("routing helper 2nd dump: " + str(routing_helper))
                     if len(routing_helper)>0 and 'response' in routing_helper[0] and 'results' in routing_helper[0]['response']:
                         routing_table = routing_helper[0]['response']['results']
-                        # logging.info("routing_table dump: " + str(routing_table))
                     else:
-                        logging.warning("import_management - error while getting routing table of device " + full_vdom_name + ", ignoring")
-                        logging.info("got the following response: " + json.dumps(routing_helper))
+                        logger.warning("got empty " + ip_version + " routing table from device " + full_vdom_name + ", ignoring")
                         routing_table = []
             except:
-                logging.warning(
-                    "import_management - error while getting routing table of device " + full_vdom_name + ", ignoring exception " + str(traceback.format_exc()))
+                logger.warning("error while getting routing table of device " + full_vdom_name + ", ignoring exception " + str(traceback.format_exc()))
                 routing_table = []
 
             # now storing the routing table:
             raw_config.update({"routing-table-" + ip_version + '/' + full_vdom_name: routing_table})
 
 
-def get_device_from_package(package_name, mgm_details):
-    
+def get_device_from_package(package_name, mgm_details, debug_level=0):
+    logger = getFwoLogger(debug_level=debug_level)
     for dev in mgm_details['devices']:
         if dev['local_rulebase_name'] == package_name:
             return dev['name']
-    logging.debug('get_device_from_package - could not find device for package "' + package_name +  '"')
+    logger.debug('get_device_from_package - could not find device for package "' + package_name +  '"')
     return None
 
 
 def test_if_default_route_exists(routing_table):
-    # for r in routing_table:
-    #     logging.info(r['destination'])
     default_route_v4 = list(filter(lambda default_route: default_route['destination'] == '0.0.0.0/0', routing_table))
     default_route_v6 =  list(filter(lambda default_route: default_route['destination'] == '::/0', routing_table))
     if default_route_v4 == [] and default_route_v6 == []:

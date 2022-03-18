@@ -5,7 +5,7 @@ sys.path.append('..')
 import logging, logging.config
 import getter
 import json, argparse, sys
-
+import fwo_log
 logging.config.fileConfig(fname='discovery_logging.conf', disable_existing_loggers=False)
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ proxy_string = { "http"  : args.proxy, "https" : args.proxy }
 offset = 0
 use_object_dictionary = 'false'
 base_url = 'https://' + args.hostname + ':' + args.port + '/web_api/'
-ssl_verification = getter.set_ssl_verification(args.ssl)
+ssl_verification = fwo_log.set_ssl_verification(args.ssl, debug_level=args.debug)
 
 with open(args.password_file, 'r') as file:
     apiuser_pwd = file.read().replace('\n', '')

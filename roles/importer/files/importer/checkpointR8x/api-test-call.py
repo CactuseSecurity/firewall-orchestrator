@@ -2,7 +2,7 @@
 import logging, logging.config
 import json, argparse
 import sys
-from common import importer_base_dir
+from common import importer_base_dir, set_ssl_verification
 sys.path.append(importer_base_dir)
 import getter
 
@@ -55,7 +55,7 @@ proxy_string = { "http"  : args.proxy, "https" : args.proxy }
 offset = 0
 use_object_dictionary = 'false'
 base_url = 'https://' + args.hostname + ':' + args.port + '/web_api/'
-ssl_verification = getter.set_ssl_verification(args.ssl)
+ssl_verification = set_ssl_verification(args.ssl)
 logger = logging.getLogger(__name__)
 
 xsid = getter.login(args.user, args.password, args.hostname, args.port, domain, ssl_verification, proxy_string)

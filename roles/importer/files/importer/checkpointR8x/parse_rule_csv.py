@@ -1,4 +1,4 @@
-import logging
+from fwo_log import getFwoLogger
 import json
 import common, cpcommon, parse_rule
 
@@ -39,7 +39,8 @@ def create_domain_rule_header(section_name, layer_name, import_id, rule_uid, rul
     return create_section_header(section_name, layer_name, import_id, rule_uid, rule_num, section_header_uids, parent_uid)
 
 
-def csv_dump_rule(rule, layer_name, import_id, rule_num, parent_uid):
+def csv_dump_rule(rule, layer_name, import_id, rule_num, parent_uid, debug_level=0):
+    logger = getFwoLogger(debug_level=debug_level)
     rule_csv = ''
 
     # reference to domain rule layer, filling up basic fields
@@ -159,29 +160,28 @@ def csv_dump_rule(rule, layer_name, import_id, rule_num, parent_uid):
             rule_csv += common.csv_add_field(rule_meta_info['last-modifier'])
             # new in v5.1.17:
             if 'parent_rule_uid' in rule:
-                logging.debug('csv_dump_rule: found rule (uid=' + rule['uid'] + ') with parent_rule_uid set: ' + rule['parent_rule_uid'])
+                logger.debug('found rule (uid=' + rule['uid'] + ') with parent_rule_uid set: ' + rule['parent_rule_uid'])
                 parent_rule_uid = rule['parent_rule_uid']
             else:
                 parent_rule_uid = parent_uid
             if (parent_rule_uid!=''):
                 rule_csv += common.csv_add_field(parent_rule_uid,no_csv_delimiter=True)
-            # else:
-            #     rule_csv += common.csv_delimiter
             rule_csv += common.line_delimiter
     return rule_csv
 
 
-def csv_dump_rules(rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid):
+def csv_dump_rules(rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, debug_level=0):
+    logger = getFwoLogger(debug_level=debug_level)
     result = ''
 
     if 'layerchunks' in rulebase:
         for chunk in rulebase['layerchunks']:
             if 'rulebase' in chunk:
                 for rules_chunk in chunk['rulebase']:
-                    rule_num, rules_in_csv = csv_dump_rules(rules_chunk, layer_name, import_id, rule_num, section_header_uids, parent_uid)
+                    rule_num, rules_in_csv = csv_dump_rules(rules_chunk, layer_name, import_id, rule_num, section_header_uids, parent_uid, debug_level=debug_level)
                     result += rules_in_csv
             else:
-                logging.warning("parse_rule: found no rulebase in chunk:\n" + json.dumps(chunk, indent=2))
+                logger.warning("found no rulebase in chunk:\n" + json.dumps(chunk, indent=2))
     else:
         if 'rulebase' in rulebase:
             if rulebase['type'] == 'access-section' and not rulebase['uid'] in section_header_uids: # add section header, but only if it does not exist yet (can happen by chunking a section)
@@ -203,16 +203,16 @@ def csv_dump_rules(rulebase, layer_name, import_id, rule_num, section_header_uid
                         section_name = rule['name']
                     result += parse_rule.create_domain_rule_header(section_name, layer_name, import_id, rule['uid'], rule_num, section_header_uids, parent_uid)
                 else: # parse standard sections
-                   rule_num, rules_in_layer = csv_dump_rules(rule, layer_name, import_id, rule_num, section_header_uids, parent_uid)
+                   rule_num, rules_in_layer = csv_dump_rules(rule, layer_name, import_id, rule_num, section_header_uids, parent_uid, debug_level=debug_level)
                    result += rules_in_layer
         if rulebase['type'] == 'place-holder':  # add domain rules
-            logging.debug('csv_dump_rules: found domain rule ref: ' + rulebase['uid'])
+            logger.debug('found domain rule ref: ' + rulebase['uid'])
             section_name = ""
             if 'name' in rulebase:
                 section_name = rulebase['name']
             result += parse_rule.create_domain_rule_header(section_name, layer_name, import_id, rulebase['uid'], rule_num, section_header_uids, parent_uid)
             rule_num += 1
         if 'rule-number' in rulebase:
-            result += csv_dump_rule(rulebase, layer_name, import_id, rule_num, parent_uid)
+            result += csv_dump_rule(rulebase, layer_name, import_id, rule_num, parent_uid, debug_level=debug_level)
             rule_num += 1
     return rule_num, result

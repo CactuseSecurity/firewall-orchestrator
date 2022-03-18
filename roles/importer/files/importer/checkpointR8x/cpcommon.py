@@ -126,7 +126,7 @@ def get_basic_config (config_json, mgm_details, force=False, config_filename=Non
             logger.debug ( "obj_type: "+ obj_type )
         while (current<total) :
             show_params_objs['offset']=current
-            objects = getter.api_call(v_url, show_cmd, show_params_objs, sid, ssl_verification, proxy)
+            objects = getter.cp_api_call(v_url, show_cmd, show_params_objs, sid, ssl_verification, proxy)
             object_table["object_chunks"].append(objects)
             if 'total' in objects  and 'to' in objects:
                 total=objects['total']
@@ -138,7 +138,7 @@ def get_basic_config (config_json, mgm_details, force=False, config_filename=Non
                 if debug_level>5:
                     logger.debug ( obj_type +" total:"+ str(total) )
         config_json["object_tables"].append(object_table)
-    logout_result = getter.api_call(v_url, 'logout', {}, sid, ssl_verification, proxy)
+    logout_result = getter.cp_api_call(v_url, 'logout', {}, sid, ssl_verification, proxy)
 
     # only write config to file if config_filename is given
     if config_filename != None and len(config_filename)>1:
@@ -217,17 +217,17 @@ def enrich_config (config, mgm_details, proxy=None, limit=150, details_level='fu
         logger.debug ( "found missing svc objects: '" + ",".join(missing_svc_object_uids) + "'" )
 
     if noapi == False:
+        # if sid is None:
+        # TODO: why is the re-genereation of a new sid necessary here?
         sid = getter.login(mgm_details['user'],mgm_details['secret'],mgm_details['hostname'],mgm_details['port'],mgm_details['configPath'],ssl_verification, proxy)
-        #v_url = getter.get_api_url (sid, mgm_details['hostname'], mgm_details['port'], mgm_details['user'], base_url, limit, test_version,ssl_verification, proxy)
-        logger.debug ( "enrich_config - logged into api" )
+        logger.debug ( "re-logged into api" )
 
-    # if an object is not there:
-    #   make api call: show object details-level full uid "<uid>" and add object to respective json
-    for missing_obj in missing_nw_object_uids:
-        if noapi == False:
+        # if an object is not there:
+        #   make api call: show object details-level full uid "<uid>" and add object to respective json
+        for missing_obj in missing_nw_object_uids:
             show_params_host = {'details-level':details_level,'uid':missing_obj}
-            logger.debug ( "checkpointR8x/enrich_config - fetching obj with uid: " + missing_obj)
-            obj = getter.api_call(base_url, 'show-object', show_params_host, sid, ssl_verification, proxy)
+            logger.debug ( "fetching obj with uid: " + missing_obj)
+            obj = getter.cp_api_call(base_url, 'show-object', show_params_host, sid, ssl_verification, proxy)
             obj = obj['object']
             if (obj['type'] == 'CpmiAnyObject'):
                 json_obj = {"object_type": "hosts", "object_chunks": [ {
@@ -245,7 +245,7 @@ def enrich_config (config, mgm_details, proxy=None, limit=150, details_level='fu
                     } ] } ] }
                 config['object_tables'].append(json_obj)
             elif obj['type'] == 'multicast-address-range':
-                logger.debug("enrich_config - found multicast-address-range: " + obj['name'] + " (uid:" + obj['uid']+ ")")
+                logger.debug("found multicast-address-range: " + obj['name'] + " (uid:" + obj['uid']+ ")")
                 json_obj = {"object_type": "hosts", "object_chunks": [ {
                     "objects": [ {
                     'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
@@ -271,14 +271,13 @@ def enrich_config (config, mgm_details, proxy=None, limit=150, details_level='fu
             elif (obj['type'] == 'access-role'):
                 pass # ignorning user objects
             else:
-                logger.warning ( "checkpointR8x/enrich_config - missing nw obj of unexpected type '" + obj['type'] + "': " + missing_obj )
+                logger.warning ( "missing nw obj of unexpected type '" + obj['type'] + "': " + missing_obj )
 
-        logger.debug ( "enrich_config - missing nw obj: " + missing_obj + " added" )
+            logger.debug ( "missing nw obj: " + missing_obj + " added" )
 
-    for missing_obj in missing_svc_object_uids:
-        if noapi == False:
+        for missing_obj in missing_svc_object_uids:
             show_params_host = {'details-level':details_level,'uid':missing_obj}
-            obj = getter.api_call(base_url, 'show-object', show_params_host, sid, ssl_verification, proxy)
+            obj = getter.cp_api_call(base_url, 'show-object', show_params_host, sid, ssl_verification, proxy)
             obj = obj['object']
             if (obj['type'] == 'CpmiAnyObject'):
                 json_obj = {"object_type": "services-other", "object_chunks": [ {
@@ -297,12 +296,12 @@ def enrich_config (config, mgm_details, proxy=None, limit=150, details_level='fu
                             } ] } ] }
                 config['object_tables'].append(json_obj)
             else:
-                logger.warning ( "checkpointR8x/enrich_config - missing svc obj of unexpected type: " + missing_obj )
+                logger.warning ( "missing svc obj of unexpected type: " + missing_obj )
                 # print ("WARNING - enrich_config - missing svc obj of unexpected type: '" + obj['type'] + "': " + missing_obj)
-        logger.debug ( "enrich_config - missing svc obj: " + missing_obj + " added")
+            logger.debug ( "missing svc obj: " + missing_obj + " added")
 
-    if noapi == False:
-        logout_result = getter.api_call(base_url, 'logout', {}, sid, ssl_verification, proxy)
+        logout_result = getter.cp_api_call(base_url, 'logout', {}, sid, ssl_verification, proxy)
+    
     logger.debug ( "checkpointR8x/enrich_config - duration: " + str(int(time.time()) - starttime) + "s" )
 
     return 0

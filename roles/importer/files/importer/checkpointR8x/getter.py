@@ -6,7 +6,7 @@ import re
 import requests, requests.packages
 import time
 from common import FwLoginFailed
-from roles.importer.files.importer.fwo_log import getFwoLogger
+from fwo_log import getFwoLogger
 
 requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
@@ -23,13 +23,16 @@ svc_obj_table_names = ['services-tcp', 'services-udp', 'service-groups', 'servic
 # usr_obj_table_names : do not exist yet - not fetchable via API
 
 
-def api_call(url, command, json_payload, sid, ssl_verification, proxy, show_progress=False):
+def cp_api_call(url, command, json_payload, sid, ssl_verification, proxy, show_progress=False, debug_level=0):
     url += command
     if not ssl_verification:
         verify=''
     request_headers = {'Content-Type' : 'application/json'}
     if sid != '': # only not set for login
         request_headers.update({'X-chkp-sid' : sid})
+
+    if debug_level>4:
+        logger.debug("using sid: " + sid )
 
     try:
          r = requests.post(url, json=json_payload, headers=request_headers, verify=verify, proxies=proxy)
@@ -61,7 +64,7 @@ def login(user, password, api_host, api_port, domain, ssl_verification, proxy, d
     base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
     if int(debug)>2:
         logger.debug("auto-discover - login to url " + base_url + " with user " + user)
-    response = api_call(base_url, 'login', payload, '', ssl_verification, proxy)
+    response = cp_api_call(base_url, 'login', payload, '', ssl_verification, proxy, debug_level=debug)
     if "sid" not in response:
         exception_text = "\ngetter ERROR: did not receive a sid during login, " + \
             "api call: api_host: " + str(api_host) + ", api_port: " + str(api_port) + ", base_url: " + str(base_url) + \
@@ -72,7 +75,7 @@ def login(user, password, api_host, api_port, domain, ssl_verification, proxy, d
 
 def get_api_url(sid, api_host, api_port, user, base_url, limit, test_version, ssl_verification, proxy_string, debug_level=0):
     logger = getFwoLogger(debug_level=debug_level)
-    api_versions = api_call(base_url, 'show-api-versions', {}, sid, ssl_verification, proxy_string)
+    api_versions = cp_api_call(base_url, 'show-api-versions', {}, sid, ssl_verification, proxy_string)
     api_version = api_versions["current-version"]
     api_supported = api_versions["supported-versions"]
 
@@ -118,14 +121,14 @@ def get_changes(sid,api_host,api_port,fromdate,ssl_verification, proxy_string, d
     payload = {'from-date' : fromdate, 'details-level' : 'uid'}
     logger.debug ("payload: " + json.dumps(payload))
     base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
-    task_id = api_call(base_url, 'show-changes', payload, sid, ssl_verification, proxy_string)
+    task_id = cp_api_call(base_url, 'show-changes', payload, sid, ssl_verification, proxy_string)
 
     logger.debug ("task_id: " + json.dumps(task_id))
     sleeptime = 1
     status = 'in progress'
     while (status == 'in progress'):
         time.sleep(sleeptime)
-        tasks = api_call(base_url, 'show-task', task_id, sid, ssl_verification, proxy_string)
+        tasks = cp_api_call(base_url, 'show-task', task_id, sid, ssl_verification, proxy_string)
         if 'tasks' in tasks:
             for task in tasks['tasks']:
                 if debug_level>5:
@@ -248,7 +251,7 @@ def get_layer_from_api_as_dict (api_host, api_port, api_v_url, sid, ssl_verifica
     while (current<total) :
         show_params_rules['offset']=current
         try:
-            rulebase = api_call(api_v_url, 'show-access-rulebase', show_params_rules, sid, ssl_verification, proxy_string)
+            rulebase = cp_api_call(api_v_url, 'show-access-rulebase', show_params_rules, sid, ssl_verification, proxy_string)
             current_layer_json['layerchunks'].append(rulebase)
         except:
             logger.error("could not find layer " + layername)
@@ -283,7 +286,7 @@ def get_nat_rules_from_api_as_dict (api_host, api_port, api_v_url, sid, ssl_veri
     while (current<total) :
         show_params_rules['offset']=current
         logger.debug ("get_nat_rules_from_api_as_dict params: " + str(show_params_rules))
-        rulebase = api_call(api_v_url, 'show-nat-rulebase', show_params_rules, sid, ssl_verification, proxy_string)
+        rulebase = cp_api_call(api_v_url, 'show-nat-rulebase', show_params_rules, sid, ssl_verification, proxy_string)
         nat_rules['nat_rule_chunks'].append(rulebase)
         if 'total' in rulebase:
             total=rulebase['total']

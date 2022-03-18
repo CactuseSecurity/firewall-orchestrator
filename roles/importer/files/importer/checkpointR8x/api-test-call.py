@@ -59,7 +59,7 @@ ssl_verification = set_ssl_verification(args.ssl)
 logger = logging.getLogger(__name__)
 
 xsid = getter.login(args.user, args.password, args.hostname, args.port, domain, ssl_verification, proxy_string)
-api_versions = getter.api_call(args.hostname, args.port, base_url, 'show-api-versions', {}, xsid, ssl_verification, proxy_string)
+api_versions = getter.cp_api_call(args.hostname, args.port, base_url, 'show-api-versions', {}, xsid, ssl_verification, proxy_string)
 
 api_version = api_versions["current-version"]
 api_supported = api_versions["supported-versions"]
@@ -88,7 +88,7 @@ if args.mode == 'generic': # need to divide command string into command and payl
         payload.update({cmd_parts[idx]: cmd_parts[idx+1]})
         idx += 2
 
-result = getter.api_call(args.hostname, args.port, v_url, api_command, payload, xsid, ssl_verification, proxy_string)
+result = getter.cp_api_call(args.hostname, args.port, v_url, api_command, payload, xsid, ssl_verification, proxy_string)
 
 if args.debug == "1" or args.debug == "3":
     print ("\ndump of result:\n" + json.dumps(result, indent=4))
@@ -114,4 +114,4 @@ if args.mode == 'layers':
 if args.mode == 'generic':
     print (json.dumps(result, indent=3))
 
-logout_result = getter.api_call(args.hostname, args.port, v_url, 'logout', {}, xsid, ssl_verification, proxy_string)
+logout_result = getter.cp_api_call(args.hostname, args.port, v_url, 'logout', {}, xsid, ssl_verification, proxy_string)

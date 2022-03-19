@@ -21,6 +21,9 @@ namespace FWO.DeviceAutoDiscovery
 
         public virtual Task<List<Management>> Run()
         {
+            // crude workaround until issue #1632 "code re-design around "secret" field(s)" gets implemented 
+            if (superManagement.Password == null || superManagement.Password == "")
+                superManagement.Password = superManagement.PrivateKey;
             return superManagement.DeviceType.Name switch
             {
                 "FortiManager" => new AutoDiscoveryFortiManager(superManagement, apiConnection).Run(),

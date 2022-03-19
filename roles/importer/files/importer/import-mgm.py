@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-import sys, logging, traceback
+import sys, fwo_log, traceback
 import argparse
 from common import importer_base_dir, import_management
 sys.path.append(importer_base_dir)
@@ -29,12 +29,14 @@ if len(sys.argv) == 1:
     parser.print_help(sys.stderr)
     sys.exit(1)
 
+logger = fwo_log.getFwoLogger(debug_level=args.debug)
+
 try:
     error_count = import_management(
         mgm_id=args.mgm_id, in_file=args.in_file, debug_level=args.debug, ssl=args.ssl, proxy=args.proxy, \
         force=args.force, limit=args.limit, clearManagementData=args.clear)
 except:
-    logging.error("import-mgm - error while importing mgm_id=" + str(args.mgm_id) + ": " + str(traceback.format_exc()))
+    logger.error("import-mgm - error while importing mgm_id=" + str(args.mgm_id) + ": " + str(traceback.format_exc()))
     error_count = 1
 
 sys.exit(error_count)

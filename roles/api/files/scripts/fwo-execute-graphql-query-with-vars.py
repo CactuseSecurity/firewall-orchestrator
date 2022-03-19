@@ -1,13 +1,12 @@
 #!/usr/bin/python3
 # fwo-execute-graphql.py: run a graphql query/mutation with variables against the FWO API
 # 
-
 import sys
 import json, requests, requests.packages, argparse
 base_dir = "/usr/local/fworch"
 importer_base_dir = base_dir + '/importer'
 sys.path.append(importer_base_dir)
-import common, fwo_api
+import common_scripts, fwo_api
 
 parser = argparse.ArgumentParser(
     description='Export fworch configuration into encrypted json file')
@@ -30,7 +29,7 @@ fwo_config_filename = base_dir + '/etc/fworch.json'
 if args.ssl == '' or args.ssl == 'off':
     requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 debug_level = int(args.debug)
-common.set_log_level(log_level=debug_level, debug_level=debug_level)
+common_scripts.set_log_level(log_level=debug_level, debug_level=debug_level)
 
 # read fwo config (API URLs)
 with open(fwo_config_filename, "r") as fwo_config:

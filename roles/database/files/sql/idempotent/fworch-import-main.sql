@@ -196,7 +196,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION public.import_all_main(BIGINT,BOOLEAN) OWNER TO fworch;
+ALTER FUNCTION public.import_all_main(BIGINT, BOOLEAN) OWNER TO fworch;
 
 ----------------------------------------------------
 -- FUNCTION:  import_global_refhandler_main

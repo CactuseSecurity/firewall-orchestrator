@@ -20,5 +20,8 @@ def set_log_level(log_level, debug_level):
     elif debug_level == 3:
         logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
         logging.basicConfig(filename='/var/fworch/api.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
+    logger.getLogger('requests').setLevel(logging.WARNING)
     logger.debug ("debug_level: "+ str(debug_level) )
+    return logger
 

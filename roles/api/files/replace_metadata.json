@@ -1747,6 +1747,7 @@
                     "check": {},
                     "columns": [
                       "config",
+                      "debug_mode",
                       "import_id",
                       "mgm_id",
                       "start_import_flag"
@@ -1761,6 +1762,7 @@
                   "permission": {
                     "columns": [
                       "config",
+                      "debug_mode",
                       "import_id",
                       "mgm_id",
                       "start_import_flag"
@@ -11834,5 +11836,5 @@
         }
       ]
     }
-  }
+    }
 }

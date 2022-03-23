@@ -27,7 +27,7 @@ def call(url, jwt, query, query_variables="", role="reporter", ssl_verification=
     try:
         r = requests.post(url, data=json.dumps(
             full_query), headers=request_headers, verify=ssl_verification, proxies=proxy_string)
-        r.raise_for_status()
+        # r.raise_for_status()
     except requests.exceptions.RequestException as e:
         logging.exception("\nerror while sending api_call to url " + str(url) + " with payload \n" +
                           json.dumps(full_query, indent=2) + "\n and  headers: \n" + json.dumps(request_headers, indent=2))
@@ -48,7 +48,7 @@ def login(user, password, user_management_api_base_url, method, ssl_verification
     try:
         response = requests.post(user_management_api_base_url + method, data=json.dumps(
             payload), headers=request_headers, verify=ssl_verification, proxies=proxy_string)
-        response.raise_for_status()
+        # response.raise_for_status()
         #content = response.content
     except requests.exceptions.RequestException as e:
         logging.exception("fwo_api: error while sending api_call to url " + str(user_management_api_base_url) + " with payload \n" +
@@ -63,16 +63,6 @@ def login(user, password, user_management_api_base_url, method, ssl_verification
                         ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy_string))
         sys.exit(1)
 
-
-def set_ssl_verification(ssl_verification_mode):
-    logger = logging.getLogger(__name__)
-    if ssl_verification_mode == '' or ssl_verification_mode == 'off':
-        ssl_verification = False
-        logger.debug("ssl_verification: False")
-    else:
-        ssl_verification = ssl_verification_mode
-        logger.debug("ssl_verification: [ca]certfile=" + ssl_verification)
-    return ssl_verification
 
 
 def get_api_url(sid, api_host, api_port, user, base_url, limit, test_version, ssl_verification, proxy_string):

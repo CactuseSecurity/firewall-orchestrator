@@ -3810,7 +3810,7 @@
                       "ssh_port",
                       "tenant_id",
                       "mgm_comment",
-                      "ssh_private_key",
+                      "secret",
                       "ssh_public_key",
                       "mgm_create",
                       "mgm_update"
@@ -3844,7 +3844,7 @@
                       "multi_device_manager_id",
                       "ssh_hostname",
                       "ssh_port",
-                      "ssh_private_key",
+                      "secret",
                       "ssh_public_key",
                       "ssh_user",
                       "tenant_id"
@@ -3877,7 +3877,7 @@
                       "ssh_port",
                       "tenant_id",
                       "mgm_comment",
-                      "ssh_private_key",
+                      "secret",
                       "ssh_public_key",
                       "mgm_create",
                       "mgm_update"
@@ -3910,7 +3910,7 @@
                       "multi_device_manager_id",
                       "ssh_hostname",
                       "ssh_port",
-                      "ssh_private_key",
+                      "secret",
                       "ssh_public_key",
                       "ssh_user",
                       "tenant_id"
@@ -3943,7 +3943,7 @@
                       "ssh_port",
                       "tenant_id",
                       "mgm_comment",
-                      "ssh_private_key",
+                      "secret",
                       "ssh_public_key",
                       "mgm_create",
                       "mgm_update"
@@ -3975,7 +3975,7 @@
                       "ssh_port",
                       "tenant_id",
                       "mgm_comment",
-                      "ssh_private_key",
+                      "secret",
                       "ssh_public_key",
                       "mgm_create",
                       "mgm_update"
@@ -4012,7 +4012,7 @@
                       "ssh_port",
                       "tenant_id",
                       "mgm_comment",
-                      "ssh_private_key",
+                      "secret",
                       "ssh_public_key",
                       "mgm_create",
                       "mgm_update"
@@ -4049,7 +4049,7 @@
                       "multi_device_manager_id",
                       "ssh_hostname",
                       "ssh_port",
-                      "ssh_private_key",
+                      "secret",
                       "ssh_public_key",
                       "ssh_user",
                       "tenant_id"
@@ -4084,7 +4084,7 @@
                       "ssh_port",
                       "tenant_id",
                       "mgm_comment",
-                      "ssh_private_key",
+                      "secret",
                       "ssh_public_key",
                       "mgm_create",
                       "mgm_update"

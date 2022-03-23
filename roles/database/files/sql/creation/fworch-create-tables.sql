@@ -62,7 +62,7 @@ Create table "management" -- contains an entry for each firewall management syst
 	"mgm_create" Timestamp NOT NULL Default now(),
 	"mgm_update" Timestamp NOT NULL Default now(),
 	"ssh_public_key" Text,
-	"ssh_private_key" Text NOT NULL,
+	"secret" Text NOT NULL,
 	"ssh_hostname" Varchar NOT NULL,
 	"ssh_port" Integer NOT NULL Default 22,
 	"ssh_user" Varchar NOT NULL Default 'fworch',

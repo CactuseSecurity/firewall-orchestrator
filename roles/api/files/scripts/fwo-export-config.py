@@ -102,7 +102,7 @@ mgm_query = """
             mgm_name
             ssh_hostname
             ssh_port
-            ssh_private_key
+            secret
             ssh_public_key
             ssh_user
             dev_typ_id

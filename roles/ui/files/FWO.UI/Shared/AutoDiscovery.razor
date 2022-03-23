@@ -258,7 +258,7 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task Cancel()
+    private void Cancel()
     {
         DeleteManagementMode = false;
         DeleteDeviceMode = false;
@@ -288,7 +288,7 @@
                 {
                     case ActionCode.AddManagement:
                         Management newMgmt = JsonSerializer.Deserialize<Management>(action.JsonData ?? throw new Exception($"Missing Management Data!")) ?? throw new Exception($"Management Data not converted!");
-                        if(await checkManagementCreateToBeDone(newMgmt))
+                        if(checkManagementCreateToBeDone(newMgmt))
                         {
                             newMgmt.ActionId = action.Number;
                             newMgmt.Ignore = false;
@@ -365,7 +365,7 @@
                         break;
                     case ActionCode.AddGatewayToExistingManagement:
                         Device newGatewayToEx = JsonSerializer.Deserialize<Device>(action.JsonData ?? throw new Exception($"Missing Gateway Data!")) ?? throw new Exception($"Gateway Data not converted!");
-                        if (await checkGatewayCreateToBeDone(newGatewayToEx))
+                        if (checkGatewayCreateToBeDone(newGatewayToEx))
                         {
                             appendToRightManagement(newGatewayToEx, action);
                         }
@@ -466,7 +466,7 @@
         return mgmtId;
     }
 
-    private async Task<bool> checkManagementCreateToBeDone(Management management)
+    private bool checkManagementCreateToBeDone(Management management)
     {
         if (existingManagements.FirstOrDefault(exMgmt => exMgmt.Name == management.Name && exMgmt.ConfigPath == management.ConfigPath 
             && exMgmt.SuperManagerId == management.SuperManagerId) != null)
@@ -478,7 +478,7 @@
         return true;
     }
 
-    private async Task<bool> checkGatewayCreateToBeDone(Device device)
+    private bool checkGatewayCreateToBeDone(Device device)
     {
         if (existingDevices.FirstOrDefault(existingDevice => existingDevice.Name == device.Name 
             && existingDevice.Management.Id == device.Management.Id 
@@ -535,7 +535,7 @@
                     devTypeId = discMgmt.DeviceType.Id,
                     hostname = discMgmt.Hostname,
                     importUser = discMgmt.ImportUser,
-                    importUserSecret = (discMgmt.DeviceType.IsLegacyDevType() ? discMgmt.PrivateKey : discMgmt.Password),
+                    importUserSecret = discMgmt.Secret,
                     port = discMgmt.Port,
                     sshPublicKey = discMgmt.PublicKey,
                     importDisabled = discMgmt.ImportDisabled,

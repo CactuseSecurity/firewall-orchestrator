@@ -37,6 +37,11 @@
       - libexpect-perl
       - libcgi-pm-perl
 
+  - name: Install importer python modules
+    package: name={{ item }} state=present
+    loop:
+      - python3-netaddr
+
   - name: copy importer files
     copy:
       src: "importer"

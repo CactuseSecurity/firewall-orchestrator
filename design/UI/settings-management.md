@@ -9,7 +9,7 @@ query getManagement {
     mgm_comment
     ssh_hostname
     ssh_port
-    ssh_private_key
+    secret
     ssh_public_key
     ssh_user
     hide_in_gui
@@ -27,7 +27,7 @@ mutation newManagement(
   $sshHostname: String!,
   $sshPort: Int!,
   $sshPublicKey: String,
-  $sshPrivateKey: String!,
+  $secret: String!,
   $sshUser: String,
   $hideInGui: Boolean!,
   $forceInitialImport: Boolean!,
@@ -43,7 +43,7 @@ mutation newManagement(
   ssh_hostname: $sshHostname,
   ssh_port: $sshPort,
   ssh_public_key: $sshPublicKey,
-  ssh_private_key: $sshPrivateKey,
+  secret: $secret,
   ssh_user: $sshUser,
   hide_in_gui: $hideInGui,
   force_initial_import: $forceInitialImport,
@@ -60,15 +60,15 @@ mutation newManagement(
   "importerHostname": "fworch-srv",
   "sshHostname": "fworch-srv",
   "sshPort": 22,
-  "sshPrivateKey": "private-key",
+  "secret": "private-key",
   "sshUser": "fworch-import-user",
   "hideInGui": false,
   "doNotImport": false,
   "forceInitialImport": false
 }
 
-mutation setManagement($devTypId: Int!, $mgm_name: String!, $ssh_private_key: String!) {
-  insert_management(objects: {config_path: "", dev_typ_id: 10, importer_hostname: "", mgm_name: "$mgm_name", ssh_hostname: "", ssh_private_key: "", ssh_user: ""}) {
+mutation setManagement($devTypId: Int!, $mgm_name: String!, $secret: String!) {
+  insert_management(objects: {config_path: "", dev_typ_id: 10, importer_hostname: "", mgm_name: "$mgm_name", ssh_hostname: "", secret: "", ssh_user: ""}) {
     affected_rows
   }
 }

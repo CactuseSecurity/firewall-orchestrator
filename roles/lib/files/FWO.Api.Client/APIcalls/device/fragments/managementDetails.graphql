@@ -3,7 +3,7 @@ fragment ManagementDetails on management {
   name: mgm_name
   hostname: ssh_hostname
   port: ssh_port
-  secret: ssh_private_key
+  secret: secret
   sshPublicKey: ssh_public_key
   user: ssh_user
   deviceType: stm_dev_typ {

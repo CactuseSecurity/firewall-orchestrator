@@ -66,7 +66,8 @@ DECLARE
 	t_import_start ALIAS FOR $2; -- start time of the import
 BEGIN
 
-    RAISE NOTICE '% duration: %s', v_event, CAST(now()- t_import_start AS VARCHAR);
+    RAISE NOTICE '% duration: %s', v_event, now()- t_import_start;
+--    RAISE NOTICE '% duration: %s', v_event, CAST((now()- t_import_start) AS VARCHAR);
 --    RAISE NOTICE 'duration of last step: %s', CAST(now()- t_import_start AS VARCHAR);
     RETURN now();
 END;

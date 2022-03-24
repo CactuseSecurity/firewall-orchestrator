@@ -186,3 +186,13 @@ $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
 ALTER FUNCTION public.import_all_main(BIGINT, BOOLEAN) OWNER TO fworch;
+
+DO $$
+BEGIN
+IF EXISTS(SELECT *
+    FROM information_schema.columns
+    WHERE table_name='management' and column_name='ssh_private_key')
+THEN
+    ALTER TABLE "management" RENAME COLUMN "ssh_private_key" TO "secret";
+END IF;
+END $$;

@@ -132,7 +132,7 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables, debug_level=0):
                 name: mgm_name
                 hostname: ssh_hostname
                 port: ssh_port
-                secret: ssh_private_key
+                secret: secret
                 sshPublicKey: ssh_public_key
                 user: ssh_user
                 deviceType: stm_dev_typ {

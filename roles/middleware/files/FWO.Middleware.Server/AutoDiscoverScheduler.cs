@@ -119,7 +119,10 @@ namespace FWO.Middleware.Server
                     try
                     {
                         AutoDiscoveryBase autodiscovery = new AutoDiscoveryBase(superManagement, apiConnection);
-                        List<ActionItem> actions = autodiscovery.ConvertToActions(await autodiscovery.Run());
+
+                        List<Management> diffList = await autodiscovery.Run();
+                        List<ActionItem> actions = autodiscovery.ConvertToActions(diffList);
+                        // List<ActionItem> actions = autodiscovery.ConvertToActions(await autodiscovery.Run());
 
                         int ChangeCounter = 0;
 
@@ -138,6 +141,8 @@ namespace FWO.Middleware.Server
                     {
                         Log.WriteError("Autodiscovery", $"Ran into exception while auto-discovering management {superManagement.Name} (id: {superManagement.Id}) ", excMgm);
                         ActionItem actionException = new ActionItem();
+                        actionException.Number = 0;
+                        actionException.ActionType = ActionCode.WaitForTempLoginFailureToPass.ToString();
                         actionException.ManagementId = superManagement.Id;
                         actionException.Supermanager = superManagement.Name;
                         actionException.JsonData = excMgm.Message;

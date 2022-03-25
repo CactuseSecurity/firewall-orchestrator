@@ -1,4 +1,5 @@
-import logging
+from asyncio.log import logger
+from fwo_log import getFwoLogger
 import json
 import common, cpcommon
 
@@ -41,7 +42,8 @@ def add_domain_rule_header_rule_in_json(rulebase, section_name, layer_name, impo
     add_section_header_rule_in_json(rulebase, section_name, layer_name, import_id, rule_uid, rule_num, section_header_uids, parent_uid)
 
 
-def parse_single_rule_to_json (src_rule, rulebase, layer_name, import_id, rule_num, parent_uid):
+def parse_single_rule_to_json (src_rule, rulebase, layer_name, import_id, rule_num, parent_uid, debug_level=0):
+    logger = getFwoLogger(debug_level=debug_level)
     # reference to domain rule layer, filling up basic fields
     if 'type' in src_rule and src_rule['type'] != 'place-holder':
         if 'rule-number' in src_rule:  # standard rule, no section header
@@ -144,7 +146,7 @@ def parse_single_rule_to_json (src_rule, rulebase, layer_name, import_id, rule_n
 
             # new in v5.1.17:
             if 'parent_rule_uid' in src_rule:
-                logging.debug('csv_dump_rule: found rule (uid=' + src_rule['uid'] + ') with parent_rule_uid set: ' + src_rule['parent_rule_uid'])
+                logger.debug('found rule (uid=' + src_rule['uid'] + ') with parent_rule_uid set: ' + src_rule['parent_rule_uid'])
                 parent_rule_uid = src_rule['parent_rule_uid']
             else:
                 parent_rule_uid = parent_uid
@@ -198,15 +200,16 @@ def parse_single_rule_to_json (src_rule, rulebase, layer_name, import_id, rule_n
             rulebase.append(rule)
 
 
-def parse_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid):
+def parse_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, debug_level=0):
 
+    logger = getFwoLogger(debug_level=debug_level)
     if 'layerchunks' in src_rulebase:
         for chunk in src_rulebase['layerchunks']:
             if 'rulebase' in chunk:
                 for rules_chunk in chunk['rulebase']:
-                    rule_num  = parse_rulebase_json(rules_chunk, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid)
+                    rule_num  = parse_rulebase_json(rules_chunk, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, debug_level=debug_level)
             else:
-                logging.warning("parse_rule: found no rulebase in chunk:\n" + json.dumps(chunk, indent=2))
+                logger.warning("found no rulebase in chunk:\n" + json.dumps(chunk, indent=2))
     else:
         if 'rulebase' in src_rulebase:
             if src_rulebase['type'] == 'access-section' and not src_rulebase['uid'] in section_header_uids: # add section header, but only if it does not exist yet (can happen by chunking a section)
@@ -227,11 +230,11 @@ def parse_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, ru
                         section_name = rule['name']
                     add_domain_rule_header_rule_in_json(target_rulebase, section_name, layer_name, import_id, rule['uid'], rule_num, section_header_uids, parent_uid)
                 else: # parse standard sections
-                    parse_single_rule_to_json(rule, target_rulebase, layer_name, import_id, rule_num, parent_uid)
+                    parse_single_rule_to_json(rule, target_rulebase, layer_name, import_id, rule_num, parent_uid, debug_level=debug_level)
                     rule_num += 1
                    
         if src_rulebase['type'] == 'place-holder':  # add domain rules
-            logging.debug('parse_rules_json: found domain rule ref: ' + src_rulebase['uid'])
+            logger.debug('found domain rule ref: ' + src_rulebase['uid'])
             section_name = ""
             if 'name' in src_rulebase:
                 section_name = src_rulebase['name']
@@ -243,14 +246,16 @@ def parse_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, ru
     return rule_num
 
 
-def parse_nat_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid):
+def parse_nat_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, debug_level=0):
+
+    logger = getFwoLogger(debug_level=debug_level)
     if 'nat_rule_chunks' in src_rulebase:
         for chunk in src_rulebase['nat_rule_chunks']:
             if 'rulebase' in chunk:
                 for rules_chunk in chunk['rulebase']:
-                    rule_num  = parse_nat_rulebase_json(rules_chunk, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid)
+                    rule_num  = parse_nat_rulebase_json(rules_chunk, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, debug_level=debug_level)
             else:
-                logging.warning("parse_rule: found no rulebase in chunk:\n" + json.dumps(chunk, indent=2))
+                logger.warning("parse_rule: found no rulebase in chunk:\n" + json.dumps(chunk, indent=2))
     else:
         if 'rulebase' in src_rulebase:
             if src_rulebase['type'] == 'access-section' and not src_rulebase['uid'] in section_header_uids: # add section header, but only if it does not exist yet (can happen by chunking a section)

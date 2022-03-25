@@ -8,9 +8,9 @@ import argparse
 import sys
 import time
 import json
-import logging
 import requests
 import fwo_api, common  # from current working dir
+from fwo_log import getFwoLogger
 
 
 # https://stackoverflow.com/questions/18499497/how-to-process-sigterm-signal-gracefully
@@ -41,9 +41,9 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     debug_level = int(args.debug)
-    common.set_log_level(log_level=debug_level, debug_level=debug_level)
+    logger = getFwoLogger(debug_level=debug_level)
 
-    logging.info("importer-main-loop starting ...")
+    logger.info("importer-main-loop starting ...")
     sys.path.append(common.importer_base_dir)
     importer_user_name = 'importer'  # todo: move to config file?
     fwo_config_filename = common.base_dir + '/etc/fworch.json'
@@ -61,7 +61,7 @@ if __name__ == '__main__':
         user_management_api_base_url = fwo_config['middleware_uri']
         fwo_api_base_url = fwo_config['api_uri']
     except:
-        logging.error("import-main-loop - error while reading FWO config file")        
+        logger.error("import-main-loop - error while reading FWO config file")        
         raise
 
     killer = GracefulKiller()
@@ -72,24 +72,24 @@ if __name__ == '__main__':
             with open(importer_pwd_file, 'r') as file:
                 importer_pwd = file.read().replace('\n', '')
         except:
-            logging.error("import-main-loop - error while reading importer pwd file")
+            logger.error("import-main-loop - error while reading importer pwd file")
             raise
 
         try:
             jwt = fwo_api.login(importer_user_name, importer_pwd,
                                 user_management_api_base_url, ssl_verification=args.ssl, proxy=args.proxy)
         except common.FwoApiLoginFailed as e:
-            logging.error(e.message)
+            logger.error(e.message)
             skipping = True
         except:
-            logging.error("import-main-loop - Unspecified error while logging into FWO API: " + str(traceback.format_exc()))
+            logger.error("import-main-loop - Unspecified error while logging into FWO API: " + str(traceback.format_exc()))
             skipping = True
 
         if not skipping:
             try:
                 mgm_ids = fwo_api.get_mgm_ids(fwo_api_base_url, jwt, {})
             except:
-                logging.error("import-main-loop - error while getting FW management ids: " + str(traceback.format_exc()))
+                logger.error("import-main-loop - error while getting FW management ids: " + str(traceback.format_exc()))
                 skipping = True
 
             try:
@@ -100,14 +100,14 @@ if __name__ == '__main__':
                 if sleep_timer == None:
                     sleep_timer = 90
             except:
-                logging.debug("import-main-loop - could not get config values from FWO API - using default values")
+                logger.debug("import-main-loop - could not get config values from FWO API - using default values")
 
             if not skipping:
                 for mgm_id in mgm_ids:
                     if killer.kill_now:
                         break
                     if 'id' not in mgm_id:
-                        logging.error("import-main-loop - did not get mgm_id: " + str(traceback.format_exc()))
+                        logger.error("import-main-loop - did not get mgm_id: " + str(traceback.format_exc()))
                     else:
                         id = str(mgm_id['id'])
                         # getting a new JWT in case the old one is not valid anymore after a long previous import
@@ -115,33 +115,33 @@ if __name__ == '__main__':
                             jwt = fwo_api.login(importer_user_name, importer_pwd,
                                                 user_management_api_base_url, ssl_verification=args.ssl, proxy=args.proxy)
                         except common.FwoApiLoginFailed as e:
-                            logging.error(e.message)
+                            logger.error(e.message)
                             skipping = True
                         except:
-                            logging.error("import-main-loop - unspecified error during FWO API login - skipping: " + str(traceback.format_exc()))
+                            logger.error("import-main-loop - unspecified error during FWO API login - skipping: " + str(traceback.format_exc()))
                             skipping = True
                         if not skipping:
                             try:
-                                mgm_details = fwo_api.get_mgm_details(fwo_api_base_url, jwt, {"mgmId": id})
+                                mgm_details = fwo_api.get_mgm_details(fwo_api_base_url, jwt, {"mgmId": id}, debug_level)
                             except:
-                                logging.error("import-main-loop - error while getting FW management details for mgm_id=" + str(id) + " - skipping: " + str(traceback.format_exc()))
+                                logger.error("import-main-loop - error while getting FW management details for mgm_id=" + str(id) + " - skipping: " + str(traceback.format_exc()))
                                 skipping = True
                             if not skipping and mgm_details["deviceType"]["id"] in (9, 11):  # only handle CPR8x and fortiManager
-                                logging.debug("import-main-loop: starting import of mgm_id=" + id)
+                                logger.debug("import-main-loop: starting import of mgm_id=" + id)
                                 try:
                                     import_result = common.import_management(mgm_id=id, ssl=args.ssl, debug_level=debug_level, 
                                         clearManagementData=args.clear, force=args.force, limit=str(api_fetch_limit), proxy=args.proxy)
                                 except (common.FwoApiFailedLockImport, common.FwLoginFailed):
-                                    pass # minor errors for a single mgm, go to next one # logging.debug("Login to firewall failed for mgm_id: " + id)
+                                    pass # minor errors for a single mgm, go to next one
                                 except: # all other exceptions are logged here
-                                    logging.error("import-main-loop - unspecific error while importing mgm_id=" + str(id) + ", " +  str(traceback.format_exc()))
+                                    logger.error("import-main-loop - unspecific error while importing mgm_id=" + str(id) + ", " +  str(traceback.format_exc()))
         if args.clear:
             break # while loop                                    
         if not killer.kill_now:
-            logging.info("import-main-loop.py: sleeping between loops for " + str(sleep_timer) + " seconds")
+            logger.info("import-main-loop.py: sleeping between loops for " + str(sleep_timer) + " seconds")
         counter=0
         while counter < int(sleep_timer) and not killer.kill_now:
             time.sleep(1)
             counter += 1
 
-    logging.info("importer-main-loop exited gracefully.")
+    logger.info("importer-main-loop exited gracefully.")

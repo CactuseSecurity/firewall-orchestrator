@@ -62,7 +62,7 @@ Create table "management" -- contains an entry for each firewall management syst
 	"mgm_create" Timestamp NOT NULL Default now(),
 	"mgm_update" Timestamp NOT NULL Default now(),
 	"ssh_public_key" Text,
-	"ssh_private_key" Text NOT NULL,
+	"secret" Text NOT NULL,
 	"ssh_hostname" Varchar NOT NULL,
 	"ssh_port" Integer NOT NULL Default 22,
 	"ssh_user" Varchar NOT NULL Default 'fworch',
@@ -632,7 +632,8 @@ CREATE TABLE IF NOT EXISTS "import_config" (
     "import_id" bigint NOT NULL,
     "mgm_id" integer NOT NULL,
     "config" jsonb NOT NULL,
-	"start_import_flag" Boolean NOT NULL Default FALSE
+	"start_import_flag" Boolean NOT NULL Default FALSE,
+	"debug_mode" Boolean Default FALSE
 );
 
 -- todo: move this to git instead

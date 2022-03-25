@@ -52,28 +52,34 @@
     mode: "0640"
   become: yes
 
-- name: edit rsyslog
+- name: edit rsyslog to include fworch file logging
   blockinfile:
     path: "/etc/rsyslog.d/30-{{ product_name }}.conf"
     create: yes
     block: |
-      # syslog for {{ product_name }}
-      # Log {{ product_name }} log messages to file
-      local6.warning                 /var/log/{{ product_name }}/error.log
-      local6.=info                   /var/log/{{ product_name }}/login_info.log
-      local6.debug                   /var/log/{{ product_name }}/debug.log
+      # syslog for {{ product_name }}; Log {{ product_name }} log messages to file
 
-      if $programname == '{{ product_name }}-database' then /var/log/{{ product_name }}/database.log
-      if $programname == '{{ middleware_server_syslog_id }}' then /var/log/{{ product_name }}/middleware.log
-      if $programname == '{{ ui_syslog_id }}' then /var/log/{{ product_name }}/ui.log
-      if $programname == '{{ ldap_syslog_id }}' then /var/log/{{ product_name }}/ldap.log
-      if $programname == '{{ product_name }}-api' then /var/log/{{ product_name }}/api.log
-      if $programname startswith '{{ product_name }}-importer-legacy' then /var/log/{{ product_name }}/importer-legacy.log
-      if $programname startswith '{{ product_name }}-importer-api' then /var/log/{{ product_name }}/importer-api.log
-      if $programname startswith '{{ product_name }}' and $msg contains "Audit" then /var/log/{{ product_name }}/audit.log
-      if $programname startswith '{{ product_name }}' and $msg contains "FWORCHAlert" then /var/log/{{ product_name }}/alert.log
-      # only for devsrv:
-      if $programname == '{{ product_name }}-webhook' then /var/log/{{ product_name }}/webhook.log
+      # change date format to ISO and contain timezone and remove process id
+      template(name="fworch" type="list") {
+        property(name="timereported" dateFormat="rfc3339")
+        constant(value=" ") property(name="hostname")
+        constant(value=" ") property(name="programname")
+        constant(value=": ")
+        property(name="msg" spifno1stsp="on")
+        property(name="msg" droplastlf="on")
+        constant(value="\n")
+      }
+
+      if $programname == '{{ product_name }}-database' then action(type="omfile" file="/var/log/{{ product_name }}/database.log" template="fworch")
+      if $programname == '{{ middleware_server_syslog_id }}' then action(type="omfile" file="/var/log/{{ product_name }}/middleware.log" template="fworch")
+      if $programname == '{{ ui_syslog_id }}' then action(type="omfile" file="/var/log/{{ product_name }}/ui.log" template="fworch")
+      if $programname == '{{ ldap_syslog_id }}' then action(type="omfile" file="/var/log/{{ product_name }}/ldap.log" template="fworch")
+      if $programname == '{{ product_name }}-api' then action(type="omfile" file="/var/log/{{ product_name }}/api.log" template="fworch")
+      if $programname startswith '{{ product_name }}-importer-legacy' then action(type="omfile" file="/var/log/{{ product_name }}/importer-legacy.log" template="fworch")
+      if $programname startswith '{{ product_name }}-importer-api' then action(type="omfile" file="/var/log/{{ product_name }}/importer-api.log" template="fworch")
+      if $programname startswith '{{ product_name }}' and $msg contains "Audit" then action(type="omfile" file="/var/log/{{ product_name }}/audit.log" template="fworch")
+      if $programname startswith '{{ product_name }}' and $msg contains "FWORCHAlert" then action(type="omfile" file="/var/log/{{ product_name }}/alert.log" template="fworch")
+      if $programname == '{{ product_name }}-webhook' then action(type="omfile" file="/var/log/{{ product_name }}/webhook.log" template="fworch")
   become: yes
 
 - name: edit logrotate

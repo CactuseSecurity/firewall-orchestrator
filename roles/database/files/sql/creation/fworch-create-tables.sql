@@ -435,15 +435,6 @@ Create table "error"
  primary key ("error_id")
 );
 
-Create table "error_log"
-(
-	"error_log_id" BIGSERIAL,
-	"error_id" Varchar NOT NULL,
-	"error_txt" Text,
-	"error_time" Timestamp NOT NULL Default now(),
- primary key ("error_log_id")
-);
-
 -- tenant -------------------------------------
 Create table "tenant"
 (

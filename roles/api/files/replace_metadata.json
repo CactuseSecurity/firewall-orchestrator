@@ -1620,40 +1620,6 @@
             {
               "table": {
                 "schema": "public",
-                "name": "error"
-              },
-              "array_relationships": [
-                {
-                  "name": "error_logs",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "error_id",
-                      "table": {
-                        "schema": "public",
-                        "name": "error_log"
-                      }
-                    }
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
-                "schema": "public",
-                "name": "error_log"
-              },
-              "object_relationships": [
-                {
-                  "name": "error",
-                  "using": {
-                    "foreign_key_constraint_on": "error_id"
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
-                "schema": "public",
                 "name": "import_changelog"
               },
               "object_relationships": [

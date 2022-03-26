@@ -118,7 +118,6 @@ Create index "IX_Relationship159" on "object" ("last_change_admin");
 Create index "IX_Relationship161" on "rule" ("last_change_admin");
 Create index "IX_Relationship162" on "service" ("last_change_admin");
 Create index "IX_Relationship163" on "usr" ("last_change_admin");
-Create index "IX_Relationship81" on "error_log" ("error_id");
 Create index "IX_Relationship93" on "usr" ("usr_typ_id");
 Create index "IX_Relationship155" on "changelog_object" ("change_type_id");
 Create index "IX_Relationship156" on "changelog_service" ("change_type_id");

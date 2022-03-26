@@ -63,7 +63,6 @@ Grant insert on "changelog_object" to group "configimporters";
 Grant insert on "changelog_service" to group "configimporters";
 Grant insert on "changelog_user" to group "configimporters";
 Grant insert on "changelog_rule" to group "configimporters";
-Grant insert on "error_log" to group "configimporters";
 Grant insert,update on "rule_nwobj_resolved" to group "configimporters";
 Grant insert,update on "rule_svc_resolved" to group "configimporters";
 Grant insert,update on "rule_user_resolved" to group "configimporters";
@@ -74,11 +73,9 @@ Grant update,insert on "changelog_object" to group "secuadmins";
 Grant update,insert on "changelog_service" to group "secuadmins";
 Grant update,insert on "changelog_user" to group "secuadmins";
 Grant update,insert on "changelog_rule" to group "secuadmins";
-Grant update,insert on "error_log" to group "secuadmins";
 Grant insert on "report" to group "secuadmins";
 
 -- reporters:
 Grant update on "uiuser" to group "reporters";
-Grant insert on "error_log" to group "reporters";
 Grant insert on "report" to group "reporters";
 Grant insert on "report_template" to group "reporters";

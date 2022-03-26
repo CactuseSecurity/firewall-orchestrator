@@ -207,7 +207,7 @@ END $$;
 -- DROP index IF EXISTS "rule_review_rule_metadata_id"; -- on "rule_review" ("rule_metadata_id");
 DROP TABLE IF EXISTS rule_review; 
 
--- Alter table "object" DELETE  foreign key ("nattyp_id") references "stm_nattyp" ("nattyp_id") on update restrict on delete cascade;
+Alter table "object" DELETE  foreign key ("nattyp_id"); -- references "stm_nattyp" ("nattyp_id") on update restrict on delete cascade;
 -- DROP index "stm_nattypes_akey"; -- on "stm_nattyp" using btree ("nattyp_name");
 DROP table IF EXISTS "stm_nattyp";
 

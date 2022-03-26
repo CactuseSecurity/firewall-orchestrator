@@ -62,8 +62,6 @@ Alter table "rule_from" ALTER COLUMN "rule_id" TYPE BIGINT;
 Alter table "rule_from" ALTER COLUMN "obj_id" TYPE BIGINT;
 Alter table "rule_from" ALTER COLUMN "user_id" TYPE BIGINT;
 
-Alter table "rule_review" ALTER COLUMN "rule_id" TYPE BIGINT;
-
 Alter table "rule_service" ALTER COLUMN "rule_id" TYPE BIGINT;
 Alter table "rule_service" ALTER COLUMN "svc_id" TYPE BIGINT;
 Alter table "rule_service" ALTER COLUMN "rs_create" TYPE BIGINT;

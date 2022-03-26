@@ -237,20 +237,6 @@ Create table "rule_from"
 	"rf_last_seen" BIGINT NOT NULL
 );
 
-
--- reference rule_metatdata intead?
-Create table "rule_review"
-(
-	"rule_metadata_id" BIGINT NOT NULL,
-	"tenant_id" Integer NOT NULL,
-	"rr_comment" Text,
-	"rr_approved" Boolean NOT NULL Default true,
-	"rr_visible" Boolean NOT NULL Default true,
-	"rr_create" Timestamp NOT NULL Default now(),
-	"rr_update" Timestamp NOT NULL Default now(),
- primary key ("rule_metadata_id","tenant_id")
-);
-
 Create table "rule_service"
 (
 	"rule_id" BIGINT NOT NULL,
@@ -498,25 +484,6 @@ Create table "tenant_network"
  primary key ("tenant_net_id")
 );
 
--- unused in 5.0, moved to ldap
-Create table "tenant_user"
-(
-	"user_id" BIGSERIAL,
-	"tenant_id" BIGSERIAL,
- primary key ("user_id","tenant_id")
-);
-
--- unused in 5.0, moved to ldap
-Create table "tenant_username"
-(
-	"tenant_username_id" BIGSERIAL,
-	"tenant_id" Integer,
-	"tenant_username_pattern" Varchar,
-	"tenant_username_comment" Text,
-	"tenant_username_create" Timestamp NOT NULL Default now(),
- primary key ("tenant_username_id")
-);
-
 -- basic static data -------------------------------------
 
 Create table "parent_rule_type"
@@ -557,14 +524,6 @@ Create table "stm_dev_typ"
 	"dev_typ_config_file_users" Varchar,
 	"dev_typ_is_multi_mgmt" Boolean Default FALSE,
  primary key ("dev_typ_id")
-);
-
-Create table "stm_nattyp"
-(
-	"nattyp_id" SERIAL,
-	"nattyp_name" Varchar NOT NULL,
-	"nattyp_comment" Text,
- primary key ("nattyp_id")
 );
 
 Create table "stm_obj_typ"

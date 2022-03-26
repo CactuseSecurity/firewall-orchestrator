@@ -197,3 +197,20 @@ THEN
     ALTER TABLE "management" RENAME COLUMN "ssh_private_key" TO "secret";
 END IF;
 END $$;
+
+
+--------- remove unused tables --------------- 
+
+-- Alter table "rule_review" DROP foreign key ("rule_metadata_id"); -- references "rule_metadata" ("rule_metadata_id") on update restrict on delete cascade;
+-- Alter table "rule_review" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete cascade;
+-- DROP index IF EXISTS "IX_relationship32"; -- on "rule_review" ("tenant_id");
+-- DROP index IF EXISTS "rule_review_rule_metadata_id"; -- on "rule_review" ("rule_metadata_id");
+DROP TABLE IF EXISTS rule_review; 
+
+-- Alter table "object" DELETE  foreign key ("nattyp_id") references "stm_nattyp" ("nattyp_id") on update restrict on delete cascade;
+-- DROP index "stm_nattypes_akey"; -- on "stm_nattyp" using btree ("nattyp_name");
+DROP table IF EXISTS "stm_nattyp";
+
+DROP table IF EXISTS "tenant_user";
+
+DROP table IF EXISTS table "tenant_username";

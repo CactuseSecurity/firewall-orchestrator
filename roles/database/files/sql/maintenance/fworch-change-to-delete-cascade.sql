@@ -225,11 +225,6 @@ ALTER TABLE object
         REFERENCES public.management (mgm_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
-    DROP CONSTRAINT object_nattyp_id_fkey,
-    ADD CONSTRAINT object_nattyp_id_fkey FOREIGN KEY (nattyp_id)
-        REFERENCES public.stm_nattyp (nattyp_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE,
     DROP CONSTRAINT object_obj_color_id_fkey,
     ADD CONSTRAINT object_obj_color_id_fkey FOREIGN KEY (obj_color_id)
         REFERENCES public.stm_color (color_id) MATCH SIMPLE

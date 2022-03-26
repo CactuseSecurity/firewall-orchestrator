@@ -82,16 +82,6 @@ Alter table "report_template_viewable_by_tenant" add foreign key ("report_templa
 Alter table "report_template_viewable_by_tenant" add foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete cascade;
 Alter table "report_template_viewable_by_user" add foreign key ("report_template_id") references "report_template" ("report_template_id") on update restrict on delete cascade;
 Alter table "report_template_viewable_by_user" add foreign key ("uiuser_id") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
-Alter table "request" add  foreign key ("request_type_id") references "request_type" ("request_type_id") on update restrict on delete cascade;
-Alter table "request" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete cascade;
-Alter table "request_object_change" add  foreign key ("log_obj_id") references "changelog_object" ("log_obj_id") on update restrict on delete cascade;
-Alter table "request_object_change" add  foreign key ("request_id") references "request" ("request_id") on update restrict on delete cascade;
-Alter table "request_rule_change" add  foreign key ("log_rule_id") references "changelog_rule" ("log_rule_id") on update restrict on delete cascade;
-Alter table "request_rule_change" add  foreign key ("request_id") references "request" ("request_id") on update restrict on delete cascade;
-Alter table "request_service_change" add  foreign key ("log_svc_id") references "changelog_service" ("log_svc_id") on update restrict on delete cascade;
-Alter table "request_service_change" add  foreign key ("request_id") references "request" ("request_id") on update restrict on delete cascade;
-Alter table "request_user_change" add  foreign key ("log_usr_id") references "changelog_user" ("log_usr_id") on update restrict on delete cascade;
-Alter table "request_user_change" add  foreign key ("request_id") references "request" ("request_id") on update restrict on delete cascade;
 Alter table "rule" add  foreign key ("action_id") references "stm_action" ("action_id") on update restrict on delete cascade;
 Alter table "rule" add  foreign key ("dev_id") references "device" ("dev_id") on update restrict on delete cascade;
 Alter table "rule" add  foreign key ("last_change_admin") references "uiuser" ("uiuser_id") on update restrict on delete cascade;

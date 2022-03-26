@@ -69,12 +69,6 @@ Grant insert,update on "rule_svc_resolved" to group "configimporters";
 Grant insert,update on "rule_user_resolved" to group "configimporters";
 
 -- secuadmins:
-Grant ALL on "request" to group "secuadmins";
-Grant ALL on "request_object_change" to group "secuadmins";
-Grant ALL on "request_service_change" to group "secuadmins";
-Grant ALL on "request_rule_change" to group "secuadmins";
-Grant ALL on "request_user_change" to group "secuadmins";
-
 Grant update on "uiuser" to group "secuadmins";
 Grant update,insert on "changelog_object" to group "secuadmins";
 Grant update,insert on "changelog_service" to group "secuadmins";

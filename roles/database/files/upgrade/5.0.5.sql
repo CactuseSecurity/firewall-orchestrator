@@ -105,11 +105,6 @@ Alter table "svcgrp_flat" ALTER COLUMN "import_last_seen" TYPE BIGINT;
 
 Alter table "tenant_object" ALTER COLUMN "obj_id" TYPE BIGINT;
 
-Alter table "request_object_change" ALTER COLUMN "log_obj_id" TYPE BIGINT;
-Alter table "request_service_change" ALTER COLUMN "log_svc_id" TYPE BIGINT;
-Alter table "request_rule_change" ALTER COLUMN "log_rule_id" TYPE BIGINT;
-Alter table "request_user_change" ALTER COLUMN "log_usr_id" TYPE BIGINT;
-
 -- add some missing foreign keys
 
 Alter table "usr" add foreign key ("user_create") references "import_control" ("control_id") on update restrict on delete cascade;

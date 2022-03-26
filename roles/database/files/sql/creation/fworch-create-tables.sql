@@ -870,57 +870,6 @@ Create table "changelog_rule"
  primary key ("log_rule_id")
 );
 
--- request handling -------------------------------------------
-
-Create table "request"
-(
-	"request_id" BIGSERIAL,
-	"request_number" Varchar,
-	"request_time" Timestamp,
-	"request_received" Timestamp,
-	"request_submitter" Varchar,
-	"request_approver" Varchar,
-	"tenant_id" Integer,
-	"request_type_id" Integer,
- primary key ("request_id")
-);
-
-Create table "request_object_change"
-(
-	"log_obj_id" BIGINT NOT NULL,
-	"request_id" Integer NOT NULL,
- primary key ("log_obj_id","request_id")
-);
-
-Create table "request_service_change"
-(
-	"log_svc_id" BIGINT NOT NULL,
-	"request_id" Integer NOT NULL,
- primary key ("log_svc_id","request_id")
-);
-
-Create table "request_rule_change"
-(
-	"log_rule_id" BIGINT NOT NULL,
-	"request_id" Integer NOT NULL,
- primary key ("log_rule_id","request_id")
-);
-
-Create table "request_user_change"
-(
-	"log_usr_id" BIGINT NOT NULL,
-	"request_id" Integer NOT NULL,
- primary key ("log_usr_id","request_id")
-);
-
-Create table "request_type"
-(
-	"request_type_id" Integer NOT NULL UNIQUE,
-	"request_type_name" Varchar NOT NULL UNIQUE,
-	"request_type_comment" Varchar,
- primary key ("request_type_id")
-);
-
 Create table "stm_change_type"
 (
 	"change_type_id" SERIAL,

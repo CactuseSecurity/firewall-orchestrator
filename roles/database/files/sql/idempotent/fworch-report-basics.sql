@@ -16,16 +16,6 @@
 
 ------- advanced div ------------
 -- get_rule_action (rule_id) RETURNS RECORD (action_id, action_name)
--- get_request_str(changelog_table,log_id) RETURNS VARCHAR 
-
-----------------------------------------------------
--- FUNCTION:    get_request_str(changelog_table,log_id)
--- purpose:     return string with all requests leading to a change
--- Parameter1:  Name of the table (user|object|rule|service)
--- Parameter2:  log_Id of the change
--- RETURNS:     VARCHAR
---
-
 -- DROP FUNCTION get_request_str(VARCHAR,BIGINT);
 CREATE OR REPLACE FUNCTION get_request_str(VARCHAR,BIGINT) RETURNS VARCHAR AS $$
 DECLARE
@@ -38,27 +28,27 @@ DECLARE
 	v_sql_statement VARCHAR;
 BEGIN
 	v_result := '';
-	IF v_table='object' THEN v_tbl := 'obj'; END IF;
-	IF v_table='service' THEN v_tbl := 'svc'; END IF;
-	IF v_table='user' THEN v_tbl := 'usr'; END IF;
-	IF v_table='rule' THEN v_tbl := 'rule'; END IF;
-	v_id_name := 'log_' || v_tbl || '_id';
-	v_sql_statement := 'SELECT request_number, tenant_name, request_type_name FROM request_' ||
-		v_table || '_change LEFT JOIN request USING (request_id) LEFT JOIN tenant USING (tenant_id) ' ||
-		 ' LEFT JOIN request_type using (request_type_id) ' ||
-		' WHERE ' || v_id_name || '=' || CAST(i_id AS VARCHAR);
-	FOR r_request IN EXECUTE v_sql_statement
-	LOOP
-		IF v_result<>'' THEN v_result := v_result || '<br>'; END IF;
-		IF NOT r_request.tenant_name IS NULL THEN
-			v_result := v_result || r_request.tenant_name || ': ';
-		END IF;
-		IF NOT r_request.request_type_name IS NULL THEN
-			v_result := v_result || r_request.request_type_name || '-';
-		END IF;
-		v_result := v_result || r_request.request_number;
+	-- IF v_table='object' THEN v_tbl := 'obj'; END IF;
+	-- IF v_table='service' THEN v_tbl := 'svc'; END IF;
+	-- IF v_table='user' THEN v_tbl := 'usr'; END IF;
+	-- IF v_table='rule' THEN v_tbl := 'rule'; END IF;
+	-- v_id_name := 'log_' || v_tbl || '_id';
+	-- v_sql_statement := 'SELECT request_number, tenant_name, request_type_name FROM request_' ||
+	-- 	v_table || '_change LEFT JOIN request USING (request_id) LEFT JOIN tenant USING (tenant_id) ' ||
+	-- 	 ' LEFT JOIN request_type using (request_type_id) ' ||
+	-- 	' WHERE ' || v_id_name || '=' || CAST(i_id AS VARCHAR);
+	-- FOR r_request IN EXECUTE v_sql_statement
+	-- LOOP
+	-- 	IF v_result<>'' THEN v_result := v_result || '<br>'; END IF;
+	-- 	IF NOT r_request.tenant_name IS NULL THEN
+	-- 		v_result := v_result || r_request.tenant_name || ': ';
+	-- 	END IF;
+	-- 	IF NOT r_request.request_type_name IS NULL THEN
+	-- 		v_result := v_result || r_request.request_type_name || '-';
+	-- 	END IF;
+	-- 	v_result := v_result || r_request.request_number;
 		
-	END LOOP;
+	-- END LOOP;
 	RETURN v_result;
 END;
 $$ LANGUAGE plpgsql;

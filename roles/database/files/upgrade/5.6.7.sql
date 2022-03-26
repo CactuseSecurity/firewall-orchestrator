@@ -198,19 +198,86 @@ THEN
 END IF;
 END $$;
 
-
 --------- remove unused tables --------------- 
 
--- Alter table "rule_review" DROP foreign key ("rule_metadata_id"); -- references "rule_metadata" ("rule_metadata_id") on update restrict on delete cascade;
--- Alter table "rule_review" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete cascade;
--- DROP index IF EXISTS "IX_relationship32"; -- on "rule_review" ("tenant_id");
--- DROP index IF EXISTS "rule_review_rule_metadata_id"; -- on "rule_review" ("rule_metadata_id");
+CREATE OR REPLACE FUNCTION get_request_str(VARCHAR,BIGINT) RETURNS VARCHAR AS $$
+DECLARE
+	v_table	ALIAS FOR $1;
+	i_id	ALIAS FOR $2;
+	v_result VARCHAR;
+BEGIN
+	v_result := '';
+	RETURN 'v_result';
+END;
+$$ LANGUAGE plpgsql;
+
 DROP TABLE IF EXISTS rule_review; 
 
 Alter table "object" drop constraint if exists "object_nattyp_id_fkey"; 
--- DROP index "stm_nattypes_akey"; -- on "stm_nattyp" using btree ("nattyp_name");
 DROP table IF EXISTS "stm_nattyp";
 
 DROP table IF EXISTS "tenant_user";
 
 DROP table IF EXISTS "tenant_username";
+
+DO $$
+BEGIN
+IF EXISTS(SELECT *
+    FROM information_schema.columns
+    WHERE table_name='request')
+THEN
+	Alter table "request" drop constraint if exists "request_type_id_request_type_id";
+	Alter table "request" drop constraint if exists "tenant_id_tenant_tenant_id";
+	DROP table request;
+END IF;
+END $$;
+
+DO $$
+BEGIN
+IF EXISTS(SELECT *
+    FROM information_schema.columns
+    WHERE table_name='request_object_change')
+THEN
+	Alter table "request_object_change" drop constraint if exists "log_obj_id_changelog_object_log_obj_id";
+	Alter table "request_object_change" drop constraint if exists "request_object_change_request_id_fkey";
+	DROP table request_object_change;
+END IF;
+END $$;
+
+DO $$
+BEGIN
+IF EXISTS(SELECT *
+    FROM information_schema.columns
+    WHERE table_name='request_rule_change')
+THEN
+	Alter table "request_rule_change" drop constraint if exists "log_rule_id_changelog_rule_log_rule_id";
+	Alter table "request_rule_change" drop constraint if exists "request_rule_change_request_id_fkey";
+	DROP table request_rule_change;
+END IF;
+END $$;
+
+DO $$
+BEGIN
+IF EXISTS(SELECT *
+    FROM information_schema.columns
+    WHERE table_name='request_service_change')
+THEN
+	Alter table "request_service_change" drop constraint if exists "log_svc_id_changelog_service_log_svc_id";
+	Alter table "request_service_change" drop constraint if exists "request_service_change_request_id_fkey";
+	DROP table request_service_change;
+END IF;
+END $$;
+
+DO $$
+BEGIN
+IF EXISTS(SELECT *
+    FROM information_schema.columns
+    WHERE table_name='request_user_change')
+THEN
+	Alter table "request_user_change" drop constraint if exists "log_usr_id_changelog_user_log_usr_id";
+	Alter table "request_user_change" drop constraint if exists "request_user_change_request_id_fkey";
+	DROP table request_user_change;
+END IF;
+END $$;
+
+DROP table IF EXISTS request_type;

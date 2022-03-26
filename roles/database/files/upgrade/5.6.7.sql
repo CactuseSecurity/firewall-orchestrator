@@ -213,4 +213,4 @@ DROP table IF EXISTS "stm_nattyp";
 
 DROP table IF EXISTS "tenant_user";
 
-DROP table IF EXISTS table "tenant_username";
+DROP table IF EXISTS "tenant_username";

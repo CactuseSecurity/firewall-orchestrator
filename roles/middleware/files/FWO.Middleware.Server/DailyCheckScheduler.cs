@@ -254,7 +254,7 @@ namespace FWO.Middleware.Server
                     jsonString = JsonSerializer.Serialize(JsonData);
                 Log.WriteAlert ($"source: \"{source}\"", 
                     $"userId: \"0\", title: \"{title}\", description: \"{description}\", " +
-                    $"mgmId: \"{mgmtIdString}\", devId: \"{devIdString}\", jsonData: \"{jsonString}\", alertCode: \"{alertCode.ToString()}\"");
+                    $"mgmId: \"{mgmtIdString}\", devId: \"{devIdString}\", jsonData: {jsonString}, alertCode: \"{alertCode.ToString()}\"");
             }
             catch(Exception exc)
             {

@@ -168,6 +168,9 @@ namespace FWO.Middleware.Server
             long? alertId = null;
             try
             {
+                Log.WriteAlert($"source: \"{GlobalConfig.kAutodiscovery}\"",
+                    $"userId: \"0\", title: \"{action.Supermanager}\", description: \"{action.ActionType}\", " +
+                    $"mgmId: \"{action.ManagementId}\", devId: \"{action.DeviceId}\", jsonData: {action.JsonData}, refAlert: \"{action.RefAlertId}\", alertCode: \"{AlertCode.Autodiscovery}\"");
                 var Variables = new
                 {
                     source = GlobalConfig.kAutodiscovery,
@@ -180,9 +183,6 @@ namespace FWO.Middleware.Server
                     refAlert = action.RefAlertId,
                     alertCode = (int)AlertCode.Autodiscovery
                 };
-                Log.WriteAlert($"source: \"{GlobalConfig.kAutodiscovery}\"",
-                    $"userId: \"0\", title: \"{action.Supermanager}\", description: \"{action.ActionType}\", " +
-                    $"mgmId: \"{action.ManagementId}\", devId: \"{action.DeviceId}\", jsonData: \"{action.JsonData}\", refAlert: \"{action.RefAlertId}\", alertCode: \"{AlertCode.Autodiscovery}\"");
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addAlert, Variables)).ReturnIds;
                 if (returnIds != null)
                 {
@@ -193,7 +193,7 @@ namespace FWO.Middleware.Server
                     }
                     // Acknowledge older alert for same problem
                     Alert? existingAlert = openAlerts.FirstOrDefault(x => x.AlertCode == AlertCode.Autodiscovery
-                                && x.Description == action.ActionType && x.ManagementId == action.ManagementId && x.DeviceId == action.DeviceId);
+                                && x.Description == action.ActionType && x.ManagementId == action.ManagementId);
                     if (existingAlert != null)
                     {
                         await AcknowledgeAlert(existingAlert.Id);

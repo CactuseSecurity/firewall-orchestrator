@@ -281,3 +281,7 @@ END IF;
 END $$;
 
 DROP table IF EXISTS request_type;
+
+DROP table if exists "tenant_object";
+
+DROP table if exists "report_template_viewable_by_tenant";

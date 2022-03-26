@@ -465,13 +465,6 @@ Create table "tenant_to_device"
  primary key ("tenant_id", "device_id")
 );
 
-Create table "tenant_object"
-(
-	"tenant_id" Integer NOT NULL,
-	"obj_id" BIGINT NOT NULL,
- primary key ("tenant_id","obj_id")
-);
-
 Create table "tenant_network"
 (
 	"tenant_net_id" BIGSERIAL,
@@ -936,13 +929,6 @@ Create table if not exists "report_schedule"
 	"report_schedule_repetitions" Integer,
 	"report_schedule_counter" Integer Not NULL Default 0,
  	primary key ("report_schedule_id")
-);
-
-Create table "report_template_viewable_by_tenant"
-(
-	"report_template_id" Integer NOT NULL,
-	"tenant_id" Integer NOT NULL,
- 	primary key ("tenant_id","report_template_id")
 );
 
 Create table "report_template_viewable_by_user"

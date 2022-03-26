@@ -103,8 +103,6 @@ Alter table "svcgrp_flat" ALTER COLUMN "svcgrp_flat_member_id" TYPE BIGINT;
 Alter table "svcgrp_flat" ALTER COLUMN "import_created" TYPE BIGINT;
 Alter table "svcgrp_flat" ALTER COLUMN "import_last_seen" TYPE BIGINT;
 
-Alter table "tenant_object" ALTER COLUMN "obj_id" TYPE BIGINT;
-
 -- add some missing foreign keys
 
 Alter table "usr" add foreign key ("user_create") references "import_control" ("control_id") on update restrict on delete cascade;

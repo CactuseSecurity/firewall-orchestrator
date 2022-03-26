@@ -4204,18 +4204,6 @@
                       }
                     }
                   }
-                },
-                {
-                  "name": "tenant_objects",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "obj_id",
-                      "table": {
-                        "schema": "public",
-                        "name": "tenant_object"
-                      }
-                    }
-                  }
                 }
               ],
               "select_permissions": [
@@ -5453,19 +5441,6 @@
                               "name": "report_template_viewable_by_user"
                             }
                           }
-                        },
-                        {
-                          "_exists": {
-                            "_where": {
-                              "tenant_id": {
-                                "_eq": "X-Hasura-Tenant-Id"
-                              }
-                            },
-                            "_table": {
-                              "schema": "public",
-                              "name": "report_template_viewable_by_tenant"
-                            }
-                          }
                         }
                       ]
                     }
@@ -5566,19 +5541,6 @@
                             "_table": {
                               "schema": "public",
                               "name": "report_template_viewable_by_user"
-                            }
-                          }
-                        },
-                        {
-                          "_exists": {
-                            "_where": {
-                              "tenant_id": {
-                                "_eq": "X-Hasura-Tenant-Id"
-                              }
-                            },
-                            "_table": {
-                              "schema": "public",
-                              "name": "report_template_viewable_by_tenant"
                             }
                           }
                         }
@@ -6149,18 +6111,6 @@
                   }
                 },
                 {
-                  "name": "report_template_viewable_by_tenants",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "report_template_id",
-                      "table": {
-                        "schema": "public",
-                        "name": "report_template_viewable_by_tenant"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "report_template_viewable_by_users",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -6579,26 +6529,6 @@
                         "_eq": "X-Hasura-User-Id"
                       }
                     }
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
-                "schema": "public",
-                "name": "report_template_viewable_by_tenant"
-              },
-              "object_relationships": [
-                {
-                  "name": "report_template",
-                  "using": {
-                    "foreign_key_constraint_on": "report_template_id"
-                  }
-                },
-                {
-                  "name": "tenant",
-                  "using": {
-                    "foreign_key_constraint_on": "tenant_id"
                   }
                 }
               ]
@@ -9616,18 +9546,6 @@
                   }
                 },
                 {
-                  "name": "report_template_viewable_by_tenants",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "tenant_id",
-                      "table": {
-                        "schema": "public",
-                        "name": "report_template_viewable_by_tenant"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "reports",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -9647,18 +9565,6 @@
                       "table": {
                         "schema": "public",
                         "name": "tenant_network"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "tenant_objects",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "tenant_id",
-                      "table": {
-                        "schema": "public",
-                        "name": "tenant_object"
                       }
                     }
                   }
@@ -9788,26 +9694,6 @@
                 "name": "tenant_network"
               },
               "object_relationships": [
-                {
-                  "name": "tenant",
-                  "using": {
-                    "foreign_key_constraint_on": "tenant_id"
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
-                "schema": "public",
-                "name": "tenant_object"
-              },
-              "object_relationships": [
-                {
-                  "name": "object",
-                  "using": {
-                    "foreign_key_constraint_on": "obj_id"
-                  }
-                },
                 {
                   "name": "tenant",
                   "using": {

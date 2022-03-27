@@ -62,6 +62,8 @@ Alter table "rule_from" ALTER COLUMN "rule_id" TYPE BIGINT;
 Alter table "rule_from" ALTER COLUMN "obj_id" TYPE BIGINT;
 Alter table "rule_from" ALTER COLUMN "user_id" TYPE BIGINT;
 
+Alter table "rule_review" ALTER COLUMN "rule_id" TYPE BIGINT;
+
 Alter table "rule_service" ALTER COLUMN "rule_id" TYPE BIGINT;
 Alter table "rule_service" ALTER COLUMN "svc_id" TYPE BIGINT;
 Alter table "rule_service" ALTER COLUMN "rs_create" TYPE BIGINT;
@@ -102,6 +104,13 @@ Alter table "svcgrp_flat" ALTER COLUMN "svcgrp_flat_id" TYPE BIGINT;
 Alter table "svcgrp_flat" ALTER COLUMN "svcgrp_flat_member_id" TYPE BIGINT;
 Alter table "svcgrp_flat" ALTER COLUMN "import_created" TYPE BIGINT;
 Alter table "svcgrp_flat" ALTER COLUMN "import_last_seen" TYPE BIGINT;
+
+Alter table "tenant_object" ALTER COLUMN "obj_id" TYPE BIGINT;
+
+Alter table "request_object_change" ALTER COLUMN "log_obj_id" TYPE BIGINT;
+Alter table "request_service_change" ALTER COLUMN "log_svc_id" TYPE BIGINT;
+Alter table "request_rule_change" ALTER COLUMN "log_rule_id" TYPE BIGINT;
+Alter table "request_user_change" ALTER COLUMN "log_usr_id" TYPE BIGINT;
 
 -- add some missing foreign keys
 

@@ -52,3 +52,20 @@ DROP TABLE IF EXISTS "rule_order" CASCADE;
 DROP table IF EXISTS "temp_table_for_tenant_filtered_rule_ids" CASCADE;
 DROP table IF EXISTS "temp_filtered_rule_ids" CASCADE;
 DROP table IF EXISTS "temp_mgmid_importid_at_report_time" CASCADE;
+
+------------ rule_review
+
+Alter table "rule_review" ADD COLUMN IF NOT EXISTS "rr_approved" Boolean NOT NULL Default true;
+select concat('alter table "rule_review" DROP Constraint ', constraint_name) as my_query
+	from information_schema.table_constraints
+	where table_schema = 'public'
+    	and table_name = 'rule_review'
+      and constraint_type = 'PRIMARY KEY';
+Alter table "rule_review" drop column if exists "rule_id";
+Alter table "rule_review" Add column if not exists "rule_metadata_id" BIGINT NOT NULL;
+
+Alter table "rule_review" ADD Constraint rule_review_pk primary key ("rule_metadata_id","tenant_id");
+
+Alter table "rule_review" add constraint "rule_review_rule_metadata_id_f_key"
+    foreign key ("rule_metadata_id") references "rule_metadata" ("rule_metadata_id") on update restrict on delete cascade;
+Create index "rule_review_rule_metadata_id" on "rule_review" ("rule_metadata_id");

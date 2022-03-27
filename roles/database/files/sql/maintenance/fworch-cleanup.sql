@@ -111,7 +111,3 @@ DELETE FROM import_control WHERE control_id IN (
 	)
     )
 );
-
--- loesche alle (ab einem bestimmten Zeitpunkt) error_log Eintraege, die ueber einen nicht vorhandenen Admin-User informieren
--- 200703 erfolgte Umstellung: admins werden nur noch geprueft, wenn der Import auch stattfindet
--- delete from error_log where error_id='INFO_ADMIN_NOT_FOUND' and error_time<'2007-03-15';

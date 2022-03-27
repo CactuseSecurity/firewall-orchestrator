@@ -8,7 +8,7 @@
 - variables start with small letters
 - constants should start with "k"
 
-# Complexity Limits
+## Complexity Limits
 - lines per method <=100
 - method complexity: number of control elements (if/case/foreach/...)) <=10 
 - number of parameters per methods <= 7

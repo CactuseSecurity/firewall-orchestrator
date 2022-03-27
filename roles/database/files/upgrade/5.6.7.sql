@@ -307,18 +307,6 @@ DO $$
 BEGIN
 IF EXISTS(SELECT *
     FROM information_schema.columns
-    WHERE table_name='request')
-THEN
-	Alter table "request" drop constraint if exists "request_type_id_request_type_id";
-	Alter table "request" drop constraint if exists "tenant_id_tenant_tenant_id";
-	DROP table request;
-END IF;
-END $$;
-
-DO $$
-BEGIN
-IF EXISTS(SELECT *
-    FROM information_schema.columns
     WHERE table_name='request_object_change')
 THEN
 	Alter table "request_object_change" drop constraint if exists "log_obj_id_changelog_object_log_obj_id";
@@ -363,6 +351,19 @@ THEN
 END IF;
 END $$;
 
+
+DO $$
+BEGIN
+IF EXISTS(SELECT *
+    FROM information_schema.columns
+    WHERE table_name='request')
+THEN
+	Alter table "request" drop constraint if exists "request_type_id_request_type_id";
+	Alter table "request" drop constraint if exists "tenant_id_tenant_tenant_id";
+	DROP table request;
+END IF;
+END $$;
+
 DROP table IF EXISTS request_type;
 
 DROP table if exists "tenant_object";
@@ -371,3 +372,36 @@ DROP table if exists "report_template_viewable_by_tenant";
 
 -- Alter table "error_log" add  foreign key ("error_id") references "error" ("error_id") on update restrict on delete cascade;
 drop table if exists "error_log";
+
+-- index optimization
+Create index IF NOT EXISTS idx_import_rule01 on import_rule (rule_id);
+Create index IF NOT EXISTS idx_zone01 on zone (zone_name,mgm_id);
+Create index IF NOT EXISTS idx_rule01 on rule (rule_uid,mgm_id,dev_id,active,nat_rule,xlate_rule);
+drop index if exists "firewall_akey";
+drop index if exists "kunden_akey";
+drop index if exists "management_akey";
+drop index if exists "stm_color_akey";
+drop index if exists "stm_fw_typ_a2key"; 
+drop index if exists "stm_fw_typ_akey";
+drop index if exists "stm_obj_typ_akey";
+drop index if exists "IX_relationship4";
+drop index if exists "IX_relationship6";
+drop index if exists "IX_Relationship93";
+drop index if exists "IX_relationship11";
+drop index if exists "IX_relationship7";
+drop index if exists "IX_Relationship165";
+drop index if exists "IX_Relationship188";
+drop index if exists "IX_relationship10";
+drop index if exists "IX_Relationship52";
+drop index if exists "IX_Relationship63";
+drop index if exists "IX_Relationship69";
+drop index if exists "IX_Relationship70";
+drop index if exists "IX_Relationship71";
+drop index if exists "IX_Relationship109";
+drop index if exists "IX_Relationship110";
+drop index if exists "IX_Relationship111";
+drop index if exists "IX_Relationship112";
+drop index if exists "IX_Relationship159";
+drop index if exists "IX_Relationship161";
+drop index if exists "IX_Relationship162";
+drop index if exists "IX_Relationship163";

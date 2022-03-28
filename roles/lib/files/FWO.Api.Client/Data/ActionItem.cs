@@ -28,7 +28,7 @@ namespace FWO.Api.Data
 
         public int? DeviceId { get; set; }
 
-        public String? JsonData { get; set; }
+        public object? JsonData { get; set; }
 
         public bool Done { get; set; } = false;
 

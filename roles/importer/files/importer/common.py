@@ -9,11 +9,10 @@ importer_base_dir = base_dir + '/importer'
 from pathlib import Path
 sys.path.append(importer_base_dir) # adding absolute path here once
 import fwo_api
-from fwo_log import getFwoLogger
+from fwo_log import getFwoLogger, getFwoAlertLogger
 
 fw_module_name = 'fwcommon'  # the module start-point for product specific code
 full_config_size_limit = 5000000 # native configs greater than 5 MB will not be stored in DB
-config2import_size_limit = 2000000 # normalized configs greater than 2 MB will be deleted from import_config table after import
 csv_delimiter = '%'
 list_delimiter = '|'
 line_delimiter = "\n"
@@ -290,7 +289,6 @@ def get_config_sub(mgm_details, full_config_json, config2import, jwt, current_im
 
     if config_changed_since_last_import and debug_level>2:   # debugging: writing config to json file
         debug_start_time = int(time.time())
-        # logger.debug("import_management: get_config completed, now writing debug config json files")
         try:
             normalized_config_filename = import_tmp_path + '/mgm_id_' + \
                 str(mgm_details['id']) + '_config_normalized.json'
@@ -317,8 +315,6 @@ def complete_import(current_import_id, error_string, start_time, mgm_details, ch
     try: # CLEANUP: delete configs of imports (without changes) (if no error occured)
         if fwo_api.delete_json_config_in_import_table(fwo_api_base_url, jwt, {"importId": current_import_id})<0:
             error_count = +1
-        # if os.path.exists(secret_filename):
-        #     os.remove(secret_filename)
     except:
         logger.error("import_management - unspecified error cleaning up: " + str(traceback.format_exc()))
         raise
@@ -536,19 +532,12 @@ def jsonToLogFormat(jsonData):
 
 
 def writeAlertToLogFile(jsonData):
-    logger = getFwoLogger()
+    logger = getFwoAlertLogger()
     jsonDataCopy = deepcopy(jsonData)   # make sure the original alert is not changed
     if type(jsonDataCopy) is dict and 'jsonData' in jsonDataCopy:
         subDict = json.loads(jsonDataCopy.pop('jsonData'))
         jsonDataCopy.update(subDict)
     alertText = "FWORCHAlert - " + jsonToLogFormat(jsonDataCopy)
-    if 'severity' in jsonDataCopy:
-        if int(jsonDataCopy['severity'])>=2:
-            if int(jsonDataCopy['severity'])<=3:
-                logger.warning(alertText)
-            else:
-                logger.error(alertText)
-            return
     logger.info(alertText)
 
 

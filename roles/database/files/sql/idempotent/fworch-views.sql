@@ -491,15 +491,6 @@ CREATE OR REPLACE VIEW view_tenant_rules AS
 -- select rule_id,rule_create from view_tenant_rules where mgm_id=4 group by rule_id,rule_create
 */
 
----------------------------------------------------------------------------------------------
--- request views - not implemented yet
----------------------------------------------------------------------------------------------
-
-/*
-CREATE OR REPLACE VIEW view_requests AS
- 	SELECT request.*, FROM
- 	view_changes LEFT JOIN 
-*/
 
 CREATE OR REPLACE VIEW view_device_names AS
 	SELECT 'Management: ' || mgm_name || ', Device: ' || dev_name AS dev_string, dev_id, mgm_id, dev_name, mgm_name FROM device LEFT JOIN management USING (mgm_id);

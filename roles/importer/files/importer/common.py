@@ -9,7 +9,7 @@ importer_base_dir = base_dir + '/importer'
 from pathlib import Path
 sys.path.append(importer_base_dir) # adding absolute path here once
 import fwo_api
-from fwo_log import getFwoLogger
+from fwo_log import getFwoLogger, getFwoAlertLogger
 
 fw_module_name = 'fwcommon'  # the module start-point for product specific code
 full_config_size_limit = 5000000 # native configs greater than 5 MB will not be stored in DB
@@ -532,19 +532,12 @@ def jsonToLogFormat(jsonData):
 
 
 def writeAlertToLogFile(jsonData):
-    logger = getFwoLogger()
+    logger = getFwoAlertLogger()
     jsonDataCopy = deepcopy(jsonData)   # make sure the original alert is not changed
     if type(jsonDataCopy) is dict and 'jsonData' in jsonDataCopy:
         subDict = json.loads(jsonDataCopy.pop('jsonData'))
         jsonDataCopy.update(subDict)
     alertText = "FWORCHAlert - " + jsonToLogFormat(jsonDataCopy)
-    if 'severity' in jsonDataCopy:
-        if int(jsonDataCopy['severity'])>=2:
-            if int(jsonDataCopy['severity'])<=3:
-                logger.warning(alertText)
-            else:
-                logger.error(alertText)
-            return
     logger.info(alertText)
 
 

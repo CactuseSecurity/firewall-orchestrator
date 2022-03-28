@@ -147,5 +147,7 @@ namespace FWO.Config.Api
         {
             OnChange?.Invoke(config, configItems);
         }
+
+        public abstract string GetText(string key);
     }
 }

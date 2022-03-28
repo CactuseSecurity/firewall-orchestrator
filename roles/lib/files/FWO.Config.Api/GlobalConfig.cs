@@ -119,6 +119,8 @@ namespace FWO.Config.Api
             return await ConstructAsync(apiConnection, loadLanguageData, config);
         }
 
+        public override string GetText(string key) => langDict[DefaultLanguage][key];
+
 
         /// <summary>
         /// create a config collection (used centrally once in a UI server for all users)

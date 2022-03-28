@@ -102,7 +102,7 @@ namespace FWO.Config.Api
             }
         }
 
-        public string GetText(string key)
+        public override string GetText(string key)
         {
             if (Translate.ContainsKey(key))
             {

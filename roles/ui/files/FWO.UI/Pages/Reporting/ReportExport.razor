@@ -157,6 +157,8 @@
                             report_pdf = reportExportFile.Pdf,
                             report_html = reportExportFile.Html,
                             report_json = reportExportFile.Json,
+                            report_type = (int?)ReportToExport.ReportType,
+                            description = ReportToExport.SetDescription()
                         };
 
                         await apiConnection.SendQueryAsync<object>(ReportQueries.addGeneratedReport, queryVariables);

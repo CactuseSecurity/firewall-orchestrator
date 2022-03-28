@@ -112,7 +112,8 @@ namespace FWO.Middleware.Server
             catch(Exception exc)
             {
                 Log.WriteError("DailyCheck", $"Ran into exception: ", exc);
-                await AddDailyCheckLogEntry(1, "Scheduled Daily Check", $"Ran into exception: " + exc.Message);
+                await AddDailyCheckLogEntry(2, "Scheduled Daily Check", "Ran into exception: " + exc.Message);
+                await setAlert(GlobalConfig.kDailyCheck, AlertCode.DailyCheckError, "Daily Check", "Ran into exception: " + exc.Message);
             }
         }
 
@@ -172,44 +173,44 @@ namespace FWO.Middleware.Server
                                                         $"{(sampleUserExisting ? " Users" : "")}"+
                                                         $"{(sampleTenantExisting ? " Tenants" : "")}"+
                                                         $"{(sampleGroupExisting ? " Groups" : "")}";
-                await setAlert("daily check", AlertCode.SampleDataExisting, "Sample Data", description);
+                await setAlert(GlobalConfig.kDailyCheck, AlertCode.SampleDataExisting, "Sample Data", description);
             }
-            await AddDailyCheckLogEntry(0, "Scheduled Daily Sample Data Check", (description != "" ? description : "no sample data found"));
+            await AddDailyCheckLogEntry((description != "" ? 1 : 0), "Scheduled Daily Sample Data Check", (description != "" ? description : "no sample data found"));
         }
 
         private async Task CheckImports()
         {
             List<ImportStatus> importStati = await apiConnection.SendQueryAsync<List<ImportStatus>>(FWO.ApiClient.Queries.DeviceQueries.getImportStatus);
             int importIssues = 0;
-            string jsonData = "";
+            object jsonData;
             foreach(ImportStatus imp in importStati.Where(x => !x.ImportDisabled))
             {
                 if (imp.LastIncompleteImport != null && imp.LastIncompleteImport.Length > 0) // import running
                 {
                     if (imp.LastIncompleteImport[0].StartTime < DateTime.Now.AddHours(-4))  // too long
                     {
-                        jsonData = JsonSerializer.Serialize(imp.LastIncompleteImport);
-                        await setAlert("daily check", AlertCode.ImportRunningTooLong, "Import", "Import running too long", imp.MgmId, jsonData);
+                        jsonData = imp.LastIncompleteImport;
+                        await setAlert(GlobalConfig.kDailyCheck, AlertCode.ImportRunningTooLong, "Import", "Import running too long", imp.MgmId, jsonData);
                         importIssues++;
                     }
                 }
                 else if (imp.LastImport == null || imp.LastImport.Length == 0) // no import at all
                 {
-                    jsonData = JsonSerializer.Serialize(imp);
-                    await setAlert("daily check", AlertCode.NoImport, "Import", "No Import for active management", imp.MgmId, jsonData);
+                    jsonData = imp;
+                    await setAlert(GlobalConfig.kDailyCheck, AlertCode.NoImport, "Import", "No Import for active management", imp.MgmId, jsonData);
                     importIssues++;
                 }
                 else if (imp.LastSuccessfulImport != null && imp.LastSuccessfulImport.Length > 0 && imp.LastSuccessfulImport[0].StartTime < DateTime.Now.AddHours(-12)) // too long ago
                 {
-                    jsonData = JsonSerializer.Serialize(imp);
-                    await setAlert("daily check", AlertCode.SuccessfulImportOverdue, "Import", "Last successful import too long ago", imp.MgmId, jsonData);
+                    jsonData = imp;
+                    await setAlert(GlobalConfig.kDailyCheck, AlertCode.SuccessfulImportOverdue, "Import", "Last successful import too long ago", imp.MgmId, jsonData);
                     importIssues++;
                 }
             }
-            await AddDailyCheckLogEntry(0, "Scheduled Daily Importer Check", (importIssues != 0 ? $"found {importIssues} import issues" : "no import issues found"));
+            await AddDailyCheckLogEntry((importIssues != 0 ? 1 : 0), "Scheduled Daily Importer Check", (importIssues != 0 ? $"found {importIssues} import issues" : "no import issues found"));
         }
 
-        public async Task setAlert(string source, AlertCode alertCode, string title, string description, int? mgmtId = null, string? JsonData = null, int? devId = null)
+        public async Task setAlert(string source, AlertCode alertCode, string title, string description, int? mgmtId = null, object? JsonData = null, int? devId = null)
         {
             try
             {
@@ -238,6 +239,22 @@ namespace FWO.Middleware.Server
                 {
                     Log.WriteError("Write Alert", "Log could not be written to database");
                 }
+                string? mgmtIdString = ""; 
+                if (mgmtId != null)
+                {
+                    mgmtIdString = mgmtId.ToString();
+                }
+                string? devIdString = ""; 
+                if (devId != null)
+                {
+                    devIdString = devId.ToString();
+                }
+                string jsonString = ""; 
+                if (JsonData != null)
+                    jsonString = JsonSerializer.Serialize(JsonData);
+                Log.WriteAlert ($"source: \"{source}\"", 
+                    $"userId: \"0\", title: \"{title}\", description: \"{description}\", " +
+                    $"mgmId: \"{mgmtIdString}\", devId: \"{devIdString}\", jsonData: \"{jsonString}\", alertCode: \"{alertCode.ToString()}\"");
             }
             catch(Exception exc)
             {
@@ -269,7 +286,7 @@ namespace FWO.Middleware.Server
             {
                 var Variables = new
                 {
-                    source = "DailyCheck",
+                    source = GlobalConfig.kDailyCheck,
                     discoverUser = 0,
                     severity = severity,
                     suspectedCause = cause,
@@ -291,7 +308,7 @@ namespace FWO.Middleware.Server
             }
             catch(Exception exc)
             {
-                Log.WriteError("Write Log", $"Could not write log: ", exc);
+                Log.WriteError("Write Log", $"Could not write daily check log to db: ", exc);
             }
         }
     }

@@ -5,7 +5,7 @@
 @inject APIConnection apiConnection
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("import_status_details") + ImportStatus.MgmName)" Show="@DetailsMode" Large="true" OnClose="() => DetailsMode = false">
+<PopUp Title="@(userConfig.GetText("import_status_details") + ImportStatus.MgmName)" Show="@DetailsMode" Large="true" OnClose="async () => await CloseDetails()">
     <Body>
         @if (DetailsMode)
         {
@@ -121,9 +121,13 @@
     [Parameter]
     public EventCallback<bool> DetailsModeChanged { get; set; }
     
+    [Parameter]
+    public EventCallback<bool> Closing { get; set; }
 
-    private void CloseDetails()
+
+    private async Task CloseDetails()
     {
+        await Closing.InvokeAsync(DetailsMode);
         DetailsMode = false;
     }
 }

@@ -248,6 +248,16 @@
     </Footer>
 </PopUp>
 
+<PopUp Title="@(userConfig.GetText("in_progress"))" Small="true" Show="@workInProgress">
+    <Body>
+        @if (workInProgress)
+        {
+            <div class="row">
+                <div class="spinner-border mx-auto align-self-center" role="status"></div>
+            </div>
+        }
+    </Body>
+</PopUp>
 
 @code
 {
@@ -275,13 +285,14 @@
     private bool showCleanupButton = false;
     private bool SampleRemoveAllowed = false;
     private string sampleRemoveMessage = "";
+    private bool workInProgress = false;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             RestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
-            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
+            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
             {
                 DisplayMessageInUi!(null, userConfig.GetText("get_tenant_data"), userConfig.GetText("E5284"), true);
             }
@@ -447,6 +458,7 @@
     private async Task RemoveSampleData()
     {
         SampleRemoveMode = false;
+        workInProgress = true;
         try
         {
             foreach (var tenant in sampleTenants)
@@ -454,9 +466,11 @@
                 await DeleteTenant(tenant);
             }
             showCleanupButton = false;
+            workInProgress = false; 
         }
         catch (System.Exception exception)
         {
+            workInProgress = false; 
             DisplayMessageInUi!(exception, userConfig.GetText("remove_sample_data"), "", false);
         }
     }

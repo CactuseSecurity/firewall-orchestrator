@@ -34,6 +34,17 @@
     </Footer>
 </PopUp>
 
+<PopUp Title="@(userConfig.GetText("in_progress"))" Small="true" Show="@workInProgress">
+    <Body>
+        @if (workInProgress)
+        {
+            <div class="row">
+                <div class="spinner-border mx-auto align-self-center" role="status"></div>
+            </div>
+        }
+    </Body>
+</PopUp>
+
 @code
 {
     [CascadingParameter]
@@ -54,10 +65,12 @@
     [Parameter]
     public EventCallback<bool> Closing { get; set; }
 
+    private bool workInProgress = false;
 
     private void Cancel()
     {
         RollbackMode = false;
+        Closing.InvokeAsync(RollbackMode);
     }
 
     private async Task Rollback()
@@ -65,20 +78,24 @@
         try
         {
             RollbackMode = false;
+            workInProgress = false;
             var Variables = new { mgmId = ManagementId };
             int affectedRows = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.deleteImport, Variables)).AffectedRows;
             if (affectedRows > 0)
             {
                 Log.WriteDebug("Delete Import", $"deleted {affectedRows} rows from Management Id {ManagementId}");
+                workInProgress = false;
                 DisplayMessageInUi!(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5107"), false);
             }
             else
             {
+                workInProgress = false;
                 DisplayMessageInUi!(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5106"), false);
             }
         }
         catch (System.Exception exception)
         {
+            workInProgress = false;
             DisplayMessageInUi!(exception, userConfig.GetText("rollback_import"), "", true);
         }
     }

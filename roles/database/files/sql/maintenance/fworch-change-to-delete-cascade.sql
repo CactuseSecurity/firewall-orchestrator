@@ -225,11 +225,6 @@ ALTER TABLE object
         REFERENCES public.management (mgm_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
-    DROP CONSTRAINT object_nattyp_id_fkey,
-    ADD CONSTRAINT object_nattyp_id_fkey FOREIGN KEY (nattyp_id)
-        REFERENCES public.stm_nattyp (nattyp_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE,
     DROP CONSTRAINT object_obj_color_id_fkey,
     ADD CONSTRAINT object_obj_color_id_fkey FOREIGN KEY (obj_color_id)
         REFERENCES public.stm_color (color_id) MATCH SIMPLE
@@ -654,52 +649,4 @@ ALTER TABLE report
         REFERENCES public.import_control (control_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE; 
-        
-ALTER TABLE request_object_change        
-    DROP CONSTRAINT request_object_change_log_obj_id_fkey,
-    ADD CONSTRAINT request_object_change_log_obj_id_fkey FOREIGN KEY (log_obj_id)
-        REFERENCES public.changelog_object (log_obj_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE,
-    DROP CONSTRAINT request_object_change_request_id_fkey,
-    ADD CONSTRAINT request_object_change_request_id_fkey FOREIGN KEY (request_id)
-        REFERENCES public.request (request_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE;
-
-ALTER TABLE request_rule_change
-    DROP CONSTRAINT request_rule_change_log_rule_id_fkey,
-    ADD CONSTRAINT request_rule_change_log_rule_id_fkey FOREIGN KEY (log_rule_id)
-        REFERENCES public.changelog_rule (log_rule_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE,
-    DROP CONSTRAINT request_rule_change_request_id_fkey,
-    ADD CONSTRAINT request_rule_change_request_id_fkey FOREIGN KEY (request_id)
-        REFERENCES public.request (request_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE;
-
-ALTER TABLE request_user_change        
-    DROP CONSTRAINT request_user_change_log_usr_id_fkey,
-    ADD CONSTRAINT request_user_change_log_usr_id_fkey FOREIGN KEY (log_usr_id)
-        REFERENCES public.changelog_user (log_usr_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE,
-    DROP CONSTRAINT request_user_change_request_id_fkey,
-    ADD CONSTRAINT request_user_change_request_id_fkey FOREIGN KEY (request_id)
-        REFERENCES public.request (request_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE;
-        
-ALTER TABLE request_service_change
-    DROP CONSTRAINT request_service_change_log_svc_id_fkey,
-    ADD CONSTRAINT request_service_change_log_svc_id_fkey FOREIGN KEY (log_svc_id)
-        REFERENCES public.changelog_service (log_svc_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE,
-    DROP CONSTRAINT request_service_change_request_id_fkey,
-    ADD CONSTRAINT request_service_change_request_id_fkey FOREIGN KEY (request_id)
-        REFERENCES public.request (request_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE;
         

@@ -774,7 +774,7 @@
     {
         try
         {
-            filterInput = (changeArgs.Value ?? "").ToString() ?? "";
+            // filterInput = (changeArgs.Value ?? "").ToString() ?? "";
 
             DynGraphqlQuery query = Compiler.Compile(filterInput);
 
@@ -831,13 +831,16 @@
 
     private bool NoRuleFound()
     {
-        foreach(var mgmt in currentReport.Managements)
+        if(currentReport != null)
         {
-            foreach(var dev in mgmt.Devices)
+            foreach(var mgmt in currentReport.Managements)
             {
-                if(dev.Rules != null && dev.Rules.Count() > 0)
+                foreach(var dev in mgmt.Devices)
                 {
-                    return false;
+                    if(dev.Rules != null && dev.Rules.Count() > 0)
+                    {
+                        return false;
+                    }
                 }
             }
         }

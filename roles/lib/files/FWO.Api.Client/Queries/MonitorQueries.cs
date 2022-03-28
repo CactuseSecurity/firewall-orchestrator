@@ -17,6 +17,7 @@ namespace FWO.ApiClient.Queries
         public static readonly string subscribeAlertChanges;
         public static readonly string addAutodiscoveryLogEntry;
         public static readonly string getAutodiscoveryLogEntrys;
+        public static readonly string getDailyCheckLogEntrys;
 
 
         static MonitorQueries()
@@ -40,6 +41,7 @@ namespace FWO.ApiClient.Queries
 
                 addAutodiscoveryLogEntry = File.ReadAllText(QueryPath + "monitor/addAutodiscoveryLogEntry.graphql");
                 getAutodiscoveryLogEntrys = File.ReadAllText(QueryPath + "monitor/getAutodiscoveryLogEntrys.graphql");
+                getDailyCheckLogEntrys = File.ReadAllText(QueryPath + "monitor/getDailyCheckLogEntrys.graphql");
             }
             catch (Exception exception)
             {

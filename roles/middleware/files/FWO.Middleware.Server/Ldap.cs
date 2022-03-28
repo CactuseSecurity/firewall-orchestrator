@@ -42,6 +42,19 @@ namespace FWO.Middleware.Server
             }
         }
 
+        public bool TestConnection()
+        {
+            try
+            {
+                Connect();
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
         private string getUserSearchFilter(string searchPattern)
         {
             string userFilter;

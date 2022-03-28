@@ -32,43 +32,48 @@
                 </div>
             </Template>
         </Column>
+        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("active"))" Field="@(x => x.Active)" Sortable="true" Filterable="true">
+            <Template>
+                @(GlobalConfig.ShowBool(context.Active))
+            </Template>
+        </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("host"))" Field="@(x => x.Address)" Sortable="true" Filterable="true">
+        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("host"))" Field="@(x => x.Address)" Sortable="true">
             <Template>
                 @(context.Host())
             </Template>
         </Column>
-        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("type"))" Field="@(x => x.Type)" Sortable="true" Filterable="true">
+        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("type"))" Field="@(x => x.Type)" Sortable="true">
             <Template>
                 @(Enum.GetName(typeof(LdapType), context.Type))
             </Template>
         </Column>
-        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("search_user"))" Field="@(x => x.SearchUser)" Sortable="true" Filterable="true">
+        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("search_user"))" Field="@(x => x.SearchUser)" Sortable="true">
             <Template>
                 @(GlobalConfig.ShowBool(context.SearchUser != null && context.SearchUser != ""))
             </Template>
         </Column>
-        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("write_user"))" Field="@(x => x.WriteUser)" Sortable="true" Filterable="true">
+        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("write_user"))" Field="@(x => x.WriteUser)" Sortable="true">
             <Template>
                 @(GlobalConfig.ShowBool(context.IsWritable()))
             </Template>
         </Column>
-        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("role_handling"))" Field="@(x => x.RoleSearchPath)" Sortable="true" Filterable="true">
+        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("role_handling"))" Field="@(x => x.RoleSearchPath)" Sortable="true">
             <Template>
                 @(GlobalConfig.ShowBool(context.HasRoleHandling()))
             </Template>
         </Column>
-        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("group_handling"))" Field="@(x => (x.GroupSearchPath))" Sortable="true" Filterable="true">
+        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("group_handling"))" Field="@(x => (x.GroupSearchPath))" Sortable="true">
             <Template>
                 @(GlobalConfig.ShowBool(context.HasGroupHandling()))
             </Template>
         </Column>
-        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.TenantId)" Sortable="true" Filterable="true">
+        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.TenantId)" Sortable="true">
             <Template>
                 @(context.TenantId != null ? tenants.FirstOrDefault(x => x.Id == context.TenantId)?.Name ?? "" : "" )
             </Template>
         </Column>
-        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("global_tenant_name"))" Field="@(x => x.GlobalTenantName)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("global_tenant_name"))" Field="@(x => x.GlobalTenantName)" Sortable="true"/>
     </Table>
 </div>
 
@@ -178,6 +183,12 @@
                         <input id="ldapGlobTenName" type="text" class="form-control form-control-sm" @bind="actLdapConnection.GlobalTenantName" />
                     </div>
                 </div>
+                <div class="form-group row">
+                    <label for="ldapActive" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("active")):</label>
+                    <div class="col-sm-8">
+                        <input id="ldapActive" type="checkbox" @bind="actLdapConnection.Active">
+                    </div>
+                </div>
             </form>
         }
     </Body>
@@ -185,9 +196,11 @@
         <div class="btn-group">
             <AuthorizeView Roles="admin">
                 <Authorized>
+                    <button class="btn btn-sm btn-dark" @onclick="TestConnection">@(userConfig.GetText("test_connection"))</button>
                     <button class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
                 </Authorized>
                 <NotAuthorized>
+                    <button class="btn btn-sm btn-dark" disabled>@(userConfig.GetText("test_connection"))</button>
                     <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                 </NotAuthorized> 
             </AuthorizeView>
@@ -235,13 +248,14 @@
     private UiLdapConnection actLdapConnection = new UiLdapConnection();
 
     private string deleteMessage = "";
+    private bool wasActive = true;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             RestResponse<List<LdapGetUpdateParameters>> ldapMiddlewareServerResponse = await middlewareClient.GetLdaps();
-            if (ldapMiddlewareServerResponse.StatusCode != HttpStatusCode.OK)
+            if (ldapMiddlewareServerResponse.StatusCode != HttpStatusCode.OK || ldapMiddlewareServerResponse.Data == null)
             {
                 DisplayMessageInUi!(null, userConfig.GetText("fetch_ldap_conn"), userConfig.GetText("E5204"), true);
             }
@@ -265,6 +279,7 @@
     private void Edit(UiLdapConnection ldapConnection)
     {
         actLdapConnection = new UiLdapConnection(ldapConnection);
+        wasActive = ldapConnection.Active;
         EditMode = true;
     }
 
@@ -326,6 +341,31 @@
         newLdapConnection = new UiLdapConnection(ldapConnection);
         newLdapConnection.Id = 0;
         Edit(newLdapConnection);
+    }
+
+    private async Task TestConnection()
+    {
+        try
+        {
+            LdapGetUpdateParameters ldapParams = new LdapGetUpdateParameters()
+            {
+                Address = actLdapConnection.Address,
+                Port = actLdapConnection.Port
+            };
+            RestResponse<bool> middlewareServerResponse = await middlewareClient.TestConnection(ldapParams);
+            if (middlewareServerResponse.StatusCode == HttpStatusCode.OK && middlewareServerResponse.Data == true)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("test_connection"), userConfig.GetText("E5266"), false);
+            }
+            else
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("test_connection"), userConfig.GetText("E5267"), true);
+            }
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("test_connection"), "", true);
+        }
     }
 
     private async Task Save()
@@ -401,6 +441,11 @@
         if (actLdapConnection.HasRoleHandling() && !actLdapConnection.IsInternal())
         {
             DisplayMessageInUi!(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5265"), true);
+            return false;
+        }
+        if (!AddMode && wasActive && !actLdapConnection.Active && connectedLdaps.Where(x => x.Active).Count() == 1)
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5260"), true);
             return false;
         }
         return true;

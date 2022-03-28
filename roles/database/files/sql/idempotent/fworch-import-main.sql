@@ -87,11 +87,13 @@
 	}  */
 
 DROP FUNCTION IF EXISTS public.import_all_main(BIGINT);
-CREATE OR REPLACE FUNCTION public.import_all_main(BIGINT)
+DROP FUNCTION IF EXISTS public.import_all_main(BIGINT, BOOLEAN);
+CREATE OR REPLACE FUNCTION public.import_all_main(BIGINT, BOOLEAN)
   RETURNS VARCHAR AS
 $BODY$
 DECLARE
-	i_current_import_id ALIAS FOR $1; -- ID des aktiven Imports
+	i_current_import_id ALIAS FOR $1; -- ID of the current import
+	b_debug_mode ALIAS FOR $2; -- should we output debug info?
 	i_mgm_id INTEGER;
 	r_dev RECORD;
 	b_force_initial_import BOOLEAN;
@@ -106,9 +108,11 @@ DECLARE
 	v_exception_details VARCHAR;
 	v_exception_hint VARCHAR;
 	v_exception VARCHAR;
-	
+	t_import_start TIMESTAMP;
+	t_last_measured_timestamp TIMESTAMP;	
 BEGIN
 	BEGIN -- catch exception block
+		t_import_start := now();
 		v_err_pos := 'start';
 		SELECT INTO i_mgm_id mgm_id FROM import_control WHERE control_id=i_current_import_id;
 		SELECT INTO b_is_initial_import is_initial_import FROM import_control WHERE control_id=i_current_import_id;
@@ -128,7 +132,8 @@ BEGIN
 		PERFORM import_usr_main		(i_current_import_id, b_is_initial_import);
 		RAISE  DEBUG 'after usr_import';
 		v_err_pos := 'rulebase_import_start';
-	
+
+		t_last_measured_timestamp := debug_show_time('import of base objects', t_import_start);	
 		-- import rulebases
 		FOR r_dev IN
 			SELECT * FROM device WHERE mgm_id=i_mgm_id AND NOT do_not_import
@@ -144,7 +149,9 @@ BEGIN
 				END IF;
 			END IF;
 		END LOOP;
-		
+
+		t_last_measured_timestamp := debug_show_time('import of rules', t_last_measured_timestamp);	
+
 		v_err_pos := 'ImpGlobRef';
 		SELECT INTO b_result * FROM import_global_refhandler_main(i_current_import_id);
 		IF NOT b_result THEN --  alle Referenzen aendern (basiert nur auf Eintraegen in changelog_xxx	
@@ -189,7 +196,25 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION public.import_all_main(BIGINT) OWNER TO fworch;
+ALTER FUNCTION public.import_all_main(BIGINT, BOOLEAN) OWNER TO fworch;
+
+
+CREATE OR REPLACE FUNCTION debug_show_time (VARCHAR, TIMESTAMP)
+    RETURNS TIMESTAMP
+    AS $BODY$
+DECLARE
+	v_event ALIAS FOR $1; -- description of the processed time
+	t_import_start ALIAS FOR $2; -- start time of the import
+BEGIN
+
+    RAISE NOTICE '% duration: %s', v_event, CAST(now()- t_import_start AS VARCHAR);
+--    RAISE NOTICE 'duration of last step: %s', CAST(now()- t_import_start AS VARCHAR);
+    RETURN now();
+END;
+$BODY$
+LANGUAGE plpgsql
+VOLATILE
+COST 100;
 
 ----------------------------------------------------
 -- FUNCTION:  import_global_refhandler_main

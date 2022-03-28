@@ -18,7 +18,7 @@ namespace FWO.Rest.Client
         {
             RestClientOptions restClientOptions = new RestClientOptions();
             restClientOptions.RemoteCertificateValidationCallback += (_, _, _, _) => true;
-            restClientOptions.Encoding = Encoding.Latin1;
+            // restClientOptions.Encoding = Encoding.Latin1;
             restClientOptions.BaseUrl = new Uri("https://" + manager.Hostname + ":" + manager.Port + "/web_api/");
             restClient = new RestClient(restClientOptions);
             // restClient.AddDefaultHeader("Content-Type", "application/json");

@@ -1,11 +1,11 @@
 #!/usr/bin/python3
-import argparse, time, logging
+import argparse, time
 import json
 import sys, os
-from common import importer_base_dir
+from common import importer_base_dir, set_ssl_verification
 sys.path.append(importer_base_dir)
 sys.path.append(importer_base_dir + "/checkpointR8x")
-import cpcommon, common, getter
+import cpcommon, fwo_log, getter
 
 parser = argparse.ArgumentParser(description='Read configuration from Check Point R8x management via API calls')
 parser.add_argument('-a', '--apihost', metavar='api_host', required=True, help='Check Point R8x management server')
@@ -33,7 +33,7 @@ with open(args.password, "r") as password_file:
 details_level = "full"    # 'standard'
 use_object_dictionary = 'false'
 debug_level = int(args.debug)
-common.set_log_level(log_level=debug_level, debug_level=debug_level)
+logger = fwo_log.getFwoLogger(debug_level=debug_level)
 config = {}
 starttime = int(time.time())
 
@@ -55,10 +55,10 @@ mgm_details = {
 
 result = cpcommon.enrich_config (config, mgm_details, noapi=False,
     proxy=args.proxy, limit=args.limit, details_level=details_level,
-    debug_level=debug_level, ssl_verification=getter.set_ssl_verification(args.ssl))
+    debug_level=debug_level, ssl_verification=set_ssl_verification(args.ssl, debug_level=debug_level))
 
 duration = int(time.time()) - starttime
-logging.debug ( "checkpointR8x/enrich_config - duration: " + str(duration) + "s" )
+logger.debug ( "checkpointR8x/enrich_config - duration: " + str(duration) + "s" )
 
 # dump new json file if config_filename is set
 if args.config_filename != None and len(args.config_filename)>1:

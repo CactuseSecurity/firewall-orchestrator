@@ -55,7 +55,7 @@
         </Column>
         <Column TableItem="UiUser" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
         <Column TableItem="UiUser" Title="@(userConfig.GetText("from_ldap"))" Field="@(x => x.LdapConnection.Name)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiUser" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.Tenant)" Sortable="true" Filterable="true" >
+        <Column TableItem="UiUser" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.Tenant)" Sortable="true">
             <Template>
                 @(context.Tenant != null ? (context.Tenant.Id == 1 && context.LdapConnection.GlobalTenantName != null && context.LdapConnection.GlobalTenantName != "" ? context.LdapConnection.GlobalTenantName : context.Tenant.Name) : "" )
             </Template>       
@@ -285,6 +285,17 @@
     </Footer>
 </PopUp>
 
+<PopUp Title="@(userConfig.GetText("in_progress"))" Small="true" Show="@workInProgress">
+    <Body>
+        @if (workInProgress)
+        {
+            <div class="row">
+                <div class="spinner-border mx-auto align-self-center" role="status"></div>
+            </div>
+        }
+    </Body>
+</PopUp>
+
 @code
 {
     [CascadingParameter]
@@ -320,6 +331,7 @@
 
     private string deleteMessage = "";
     private string sampleRemoveMessage = "";
+    private bool workInProgress = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -340,7 +352,7 @@
 
             // Get users from uiusers table
             RestResponse<List<UserGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetUsers();
-            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
+            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
             {
                 DisplayMessageInUi!(null, userConfig.GetText("fetch_users_local"), userConfig.GetText("E5209"), true);
             }
@@ -483,7 +495,7 @@
             // get users from Ldap
             LdapUserGetParameters userGetParameters = new LdapUserGetParameters { LdapId = internalLdap.Id, SearchPattern = "" };
             RestResponse<List<LdapUserGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetLdapUsers(userGetParameters);
-            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
+            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
             {
                 DisplayMessageInUi!(null, userConfig.GetText("get_user_from_ldap"), userConfig.GetText("E5208"), true);
             }
@@ -520,7 +532,7 @@
         try
         {
             RestResponse<List<GroupGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetInternalGroups();
-            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
+            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
             {
                 DisplayMessageInUi!(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
             }
@@ -549,7 +561,7 @@
         try
         {
             RestResponse<List<RoleGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetAllRoles();
-            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
+            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
             {
                 DisplayMessageInUi!(null, userConfig.GetText("fetch_roles"), userConfig.GetText("E5251"), true);
             }
@@ -962,7 +974,7 @@
     {
         try
         {
-            string errorMsg;
+            string errorMsg = "";
             if (actUser.Password == null || actUser.Password == "")
             {
                 DisplayMessageInUi!(null, userConfig.GetText("reset_password"), userConfig.GetText("E5218"), true);
@@ -986,7 +998,10 @@
                 }
                 else
                 {
-                    errorMsg = middlewareServerResponse.Data;
+                    if (middlewareServerResponse.Data != null)
+                    {
+                        errorMsg = middlewareServerResponse.Data;
+                    }
                     if(errorMsg != "")
                     {
                         DisplayMessageInUi!(null, userConfig.GetText("reset_password"), errorMsg, true);
@@ -1019,6 +1034,8 @@
     private async Task RemoveSampleData()
     {
         showSampleRemoveButton = false;
+        SampleRemoveMode = false;
+        workInProgress = true;
         foreach (var user in sampleUsers)
         {
             try
@@ -1041,7 +1058,7 @@
                 DisplayMessageInUi!(exception, userConfig.GetText("remove_sample_data"), "", false);
             }
         }
-        SampleRemoveMode = false;
+        workInProgress = false; 
     }
 
     private void Cancel()

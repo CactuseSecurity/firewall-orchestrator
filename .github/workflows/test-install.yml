@@ -28,7 +28,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: do test install in case of merged pull request
-      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e 'run_on_github=yes' --skip-tags test site.yml -K
+      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e 'run_on_github=yes testkeys=yes' --skip-tags test site.yml -K
 
   review:
     name: Review code
@@ -36,4 +36,4 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: do test install in case of reviewable PR
-      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e 'run_on_github=yes' site.yml -K
+      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e 'run_on_github=yes testkeys=yes' site.yml -K

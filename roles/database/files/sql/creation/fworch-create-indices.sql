@@ -35,8 +35,6 @@ Create index "IX_Relationship77" on "changelog_user" ("control_id");
 Create index "IX_Relationship78" on "changelog_rule" ("control_id");
 
 -- tbd
-Create index "IX_Relationship178" on "zone" ("zone_create");
-Create index "IX_Relationship179" on "zone" ("zone_last_seen");
 Create unique index "kundennetze_akey" on "tenant_network" using btree ("tenant_net_id","tenant_id");
 Create unique index "rule_from_unique_index" on "rule_from" using btree ("rule_id","obj_id","user_id");
 Create index "import_control_start_time_idx" on "import_control" using btree ("start_time");
@@ -94,3 +92,5 @@ Create index "IX_Relationship174" on "object" ("obj_create");
 Create index "IX_Relationship175" on "object" ("obj_last_seen");
 Create index "IX_Relationship176" on "service" ("svc_create");
 Create index "IX_Relationship177" on "service" ("svc_last_seen");
+Create index "IX_Relationship178" on "zone" ("zone_create");
+Create index "IX_Relationship179" on "zone" ("zone_last_seen");

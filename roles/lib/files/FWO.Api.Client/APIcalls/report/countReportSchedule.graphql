@@ -1,0 +1,8 @@
+﻿mutation countReportSchedule($report_schedule_id: bigint!) {
+  update_report_schedule(
+    where: {report_schedule_id: {_eq: $report_schedule_id}},
+    _inc: {report_schedule_counter: 1}
+  ) {
+    affected_rows
+  }   
+}

@@ -10,19 +10,19 @@
 <hr />
 
 <Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys" PageSize="100">
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" />
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("severity"))" Field="@(x => x.Severity)" />
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" />
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("import_id"))" Field="@(x => x.ImportId)" />
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" />
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("suspected_cause"))" Field="@(x => x.SuspectedCause)" />
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" />
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("device"))" Field="@(x => x.DeviceId)" />
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("rule_uid"))" Field="@(x => x.RuleUid)" />
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("rule_id"))" Field="@(x => x.RuleId)" />
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("object_type"))" Field="@(x => x.ObjectType)" />
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("object_name"))" Field="@(x => x.ObjectName)" />
-    <Column TableItem="LogEntry" Title="@(userConfig.GetText("object_uid"))" Field="@(x => x.ObjectUid)" />
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true"/>
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("severity"))" Field="@(x => x.Severity)" Sortable="true" Filterable="true"/>
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" Sortable="true" Filterable="true"/>
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("import_id"))" Field="@(x => x.ImportId)" Sortable="true" Filterable="true"/>
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" Sortable="true" Filterable="true"/>
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("suspected_cause"))" Field="@(x => x.SuspectedCause)" Sortable="true" Filterable="true"/>
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" Sortable="true" Filterable="true"/>
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("device"))" Field="@(x => x.DeviceId)" Sortable="true" Filterable="true"/>
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("rule_uid"))" Field="@(x => x.RuleUid)" Sortable="true" Filterable="true"/>
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("rule_id"))" Field="@(x => x.RuleId)" Sortable="true" Filterable="true"/>
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("object_type"))" Field="@(x => x.ObjectType)" Sortable="true" Filterable="true"/>
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("object_name"))" Field="@(x => x.ObjectName)" Sortable="true" Filterable="true"/>
+    <Column TableItem="LogEntry" Title="@(userConfig.GetText("object_uid"))" Field="@(x => x.ObjectUid)" Sortable="true" Filterable="true"/>
     <Pager ShowPageNumber="true" ShowTotalCount="true" />
 </Table>
 

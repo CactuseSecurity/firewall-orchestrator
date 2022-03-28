@@ -1,6 +1,6 @@
 # library for API get functions
 import re
-import logging
+from fwo_log import getFwoLogger
 import requests.packages
 import requests
 import json
@@ -8,6 +8,7 @@ import common
 
 
 def api_call(url, command, json_payload, sid, ssl_verification='', proxy_string='', show_progress=False, method='', debug=0):
+    logger = getFwoLogger(debug_level=debug)
     request_headers = {'Content-Type': 'application/json'}
     if sid != '':
         json_payload.update({"session": sid})
@@ -38,12 +39,12 @@ def api_call(url, command, json_payload, sid, ssl_verification='', proxy_string=
                         json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2) + ', result=' + json.dumps(r.json()['result'][0], indent=2))
     if 'status' not in result_json['result'][0] or 'code' not in result_json['result'][0]['status'] or result_json['result'][0]['status']['code'] != 0:
         # trying to ignore empty results as valid
-        pass # logging.warning('received empty result')
+        pass # logger.warning('received empty result')
     if debug>2:
         if 'pass' in json.dumps(json_payload):
-            logging.debug("api_call containing credential information to url '" + str(url) + " - not logging query")
+            logger.debug("api_call containing credential information to url '" + str(url) + " - not logging query")
         else:
-            logging.debug("api_call to url '" + str(url) + "' with payload '" + json.dumps(
+            logger.debug("api_call to url '" + str(url) + "' with payload '" + json.dumps(
                 json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
 
         if show_progress:
@@ -68,31 +69,20 @@ def login(user, password, api_host, api_port, domain, ssl_verification, proxy_st
 
 
 def logout(v_url, sid, ssl_verification='', proxy_string='', debug=0, method='exec'):
+    logger = getFwoLogger(debug_level=debug)
     payload = {"params": [{}]}
 
     response = api_call(v_url, 'sys/logout', payload, sid, ssl_verification=ssl_verification,
                         proxy_string=proxy_string, method="exec", debug=debug)
     if "result" in response and "status" in response["result"][0] and "code" in response["result"][0]["status"] and response["result"][0]["status"]["code"] == 0:
-        logging.debug("successfully logged out")
+        logger.debug("successfully logged out")
     else:
         raise Exception( "fmgr_getter ERROR: did not get status code 0 when logging out, " + 
                             "api call: url: " + str(v_url) + ",  + payload: " + str(payload) + 
                             ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy_string))
 
 
-def set_ssl_verification(ssl_verification_mode):
-    logger = logging.getLogger(__name__)
-    if ssl_verification_mode == '' or ssl_verification_mode == 'off':
-        ssl_verification = False
-        logger.debug("ssl_verification: False")
-    else:
-        ssl_verification = ssl_verification_mode
-        logger.debug("ssl_verification: [ca]certfile=" + ssl_verification)
-    return ssl_verification
-
-
 def set_api_url(base_url, testmode, api_supported, hostname):
-    logger = logging.getLogger(__name__)
     url = ''
     if testmode == 'off':
         url = base_url
@@ -105,7 +95,6 @@ def set_api_url(base_url, testmode, api_supported, hostname):
                              " is not supported by the manager " + hostname + " - Import is canceled")
         else:
             raise Exception("\"" + testmode + "\" - not a valid version")
-    logger.debug("testmode: " + testmode + " - url: " + url)
     return url
 
 

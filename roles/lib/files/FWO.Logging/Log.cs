@@ -31,7 +31,7 @@ namespace FWO.Logging
                 (Text != null ?
                 $"{Text}"
                 : "") +
-                (Error != null ? 
+                (Error != null ?
                 "\n ---\n" +
                 $"Exception thrown: \n {Error?.GetType().Name} \n" +
                 $"Message: \n {Error?.Message.TrimStart()} \n" +
@@ -61,16 +61,16 @@ namespace FWO.Logging
             WriteLog("Audit", Title, Text, callerName, callerFile, callerLineNumber, ConsoleColor.Yellow);
         }
 
-        public static void WriteAlert(string Title, string Text, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
-        {
-            WriteLog("Alert", Title, Text, callerName, callerFile, callerLineNumber, ConsoleColor.Yellow);
-        }
-
         private static void WriteLog(string LogType, string Title, string Text, string Method, string Path, int Line, ConsoleColor? ForegroundColor = null, ConsoleColor? BackgroundColor = null)
         {
-            // do not show the full file path, just the basename
-            string File = Path.Split('\\', '/').Last();
-            WriteInColor($"{DateTime.Now} {LogType} - {Title} ({File} in line {Line}): {Text}", ForegroundColor, BackgroundColor);
+            string File = Path.Split('\\', '/').Last(); // do not show the full file path, just the basename
+            WriteInColor($"{DateTime.Now.ToString("yyyy-MM-ddTHH:mm:sszzz")} {LogType} - {Title} ({File} in line {Line}), {Text}", ForegroundColor, BackgroundColor);
+        }
+
+        public static void WriteAlert(string Title, string Text)
+        {
+            // fixed format to be further processed (e.g. splunk)
+            WriteInColor($"FWORCHAlert - {Title}, {Text}");
         }
 
         private static void WriteInColor(string Text, ConsoleColor? ForegroundColor = null, ConsoleColor? BackgroundColor = null)

@@ -10,7 +10,7 @@ namespace FWO.Report
 {
     public class ReportChanges : ReportBase
     {
-        public ReportChanges(DynGraphqlQuery query, UserConfig userConfig) : base(query, userConfig) { }
+        public ReportChanges(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
 
         public override async Task<bool> GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback)
         {
@@ -48,6 +48,24 @@ namespace FWO.Report
             }
         }
 
+        public override string SetDescription()
+        {
+            int managementCounter = 0;
+            int deviceCounter = 0;
+            int ruleChangeCounter = 0;
+            foreach (Management management in Managements.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+                    Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
+            {
+                managementCounter++;
+                foreach (Device device in management.Devices.Where(dev => dev.RuleChanges != null && dev.RuleChanges.Length > 0))
+                {
+                    deviceCounter++;
+                    ruleChangeCounter += device.RuleChanges.Length;
+                }
+            }
+            return $"{managementCounter} {userConfig.GetText("managements")}, {deviceCounter} {userConfig.GetText("gateways")}, {ruleChangeCounter} {userConfig.GetText("changes")}";
+        }
+
         public override string ExportToCsv()
         {
             StringBuilder csvBuilder = new StringBuilder();
@@ -71,7 +89,7 @@ namespace FWO.Report
             RuleChangeDisplay ruleChangeDisplay = new RuleChangeDisplay(userConfig);
 
             foreach (Management management in Managements.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
-            Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
+                    Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
             {
                 report.AppendLine($"<h3>{management.Name}</h3>");
                 report.AppendLine("<hr>");

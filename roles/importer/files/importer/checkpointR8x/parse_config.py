@@ -8,7 +8,7 @@ import parse_network_csv, parse_rule_csv, parse_service_csv, parse_user_csv
 import argparse
 import json
 import sys
-import logging
+import fwo_log
 
 parser = argparse.ArgumentParser(description='parse json configuration file from Check Point R8x management')
 parser.add_argument('-f', '--config_file', required=True, help='name of config file to parse (json format)')
@@ -29,9 +29,9 @@ svc_objects = []
 section_header_uids=[]
 result = ""
 
-# logging config
+# log config
 debug_level = int(args.debug)
-common.set_log_level(log_level=debug_level, debug_level=debug_level)
+logger = fwo_log.getFwoLogger(debug_level=debug_level)
 
 args = parser.parse_args()
 if len(sys.argv)==1:
@@ -44,15 +44,15 @@ use_object_dictionary = 'false'
 with open(args.config_file, "r") as json_data:
     config = json.load(json_data)
 
-logging.debug ("parse_config - args"+ "\nf:" +args.config_file +"\ni: "+ args.import_id +"\nm: "+ args.management_name +"\nr: "+ args.rulebase +"\nn: "+ str(args.network_objects) +"\ns: "+ str(args.service_objects) +"\nu: "+ str(args.users) +"\nd: "+ str(args.debug))
+logger.debug ("parse_config - args"+ "\nf:" +args.config_file +"\ni: "+ args.import_id +"\nm: "+ args.management_name +"\nr: "+ args.rulebase +"\nn: "+ str(args.network_objects) +"\ns: "+ str(args.service_objects) +"\nu: "+ str(args.users) +"\nd: "+ str(args.debug))
 
 if args.rulebase != '':
     for rulebase in config['rulebases']:
         current_layer_name = rulebase['layername']
         if current_layer_name == args.rulebase:
-            logging.debug("parse_config: found layer to parse: " + current_layer_name)
+            logger.debug("parse_config: found layer to parse: " + current_layer_name)
             found_rulebase = True
-            rule_num, result = parse_rule_csv.csv_dump_rules(rulebase, args.rulebase, args.import_id, rule_num=0, section_header_uids=[], parent_uid="")
+            rule_num, result = parse_rule_csv.csv_dump_rules(rulebase, args.rulebase, args.import_id, rule_num=0, section_header_uids=[], parent_uid="", debug_level=debug_level)
 
 if args.network_objects:
     result = ''
@@ -60,7 +60,7 @@ if args.network_objects:
 
     if args.network_objects != '':
         for obj_table in config['object_tables']:
-            parse_network.collect_nw_objects(obj_table, nw_objects)
+            parse_network.collect_nw_objects(obj_table, nw_objects, debug_level=debug_level)
         for idx in range(0, len(nw_objects)-1):
             if nw_objects[idx]['obj_typ'] == 'group':
                 parse_network.add_member_names_for_nw_group(idx, nw_objects)
@@ -93,7 +93,7 @@ if args.users:
         result += parse_user_csv.csv_dump_user(user_name, user_dict, args.import_id)
 
 if args.rulebase != '' and not found_rulebase:
-    logging.exception("PARSE ERROR: rulebase '" + args.rulebase + "' not found.")
+    logger.exception("PARSE ERROR: rulebase '" + args.rulebase + "' not found.")
 else:
     result = result[:-1]  # strip off final line break to avoid empty last line
     print(result)

@@ -178,7 +178,7 @@ insert into hdb_catalog.hdb_permission (table_schema, table_name, role_name, per
         "mgm_create",
         "mgm_update",
         "ssh_public_key",
-        "ssh_private_key",
+        "secret",
         "ssh_hostname",
         "ssh_port",
         "ssh_user",

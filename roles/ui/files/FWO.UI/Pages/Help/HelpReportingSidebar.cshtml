@@ -1,9 +1,9 @@
 ﻿@using FWO.Config.Api
 @inject UserConfig userConfig
 
-<nav class="sidebar sidebar-expand-sm sidebar-dark bg-dark shadow w-100">
-    <div class="sidebar-main d-flex flex-row" style="left: 0px;">
-        <div class="sidebar-dark bg-dark" style="width: 250px overflow-x: scroll">
+<nav class="sidebar fixed sidebar-dark bg-dark shadow">
+    <div class="sidebar-main d-flex flex-row" style="left:0px;">
+        <div class="sidebar-dark bg-dark" style="width:250px; overflow-x:scroll;">
             <ul class="sidebar-nav mr-auto">
                 <p></p>
                 <h5>@userConfig.GetText("reporting")</h5>

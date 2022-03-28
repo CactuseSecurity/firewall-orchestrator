@@ -11,7 +11,7 @@ namespace FWO.Report
 {
     public class ReportRules : ReportBase
     {
-        public ReportRules(DynGraphqlQuery query, UserConfig userConfig) : base(query, userConfig) { }
+        public ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
 
         private const byte all = 0, nobj = 1, nsrv = 2, user = 3;
         public bool GotReportedRuleIds { get; protected set; } = false;
@@ -168,6 +168,24 @@ namespace FWO.Report
             }
         }
 
+        public override string SetDescription()
+        {
+            int managementCounter = 0;
+            int deviceCounter = 0;
+            int ruleCounter = 0;
+            foreach (Management management in Managements.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+                    Array.Exists(mgt.Devices, device => device.Rules != null && device.Rules.Length > 0)))
+            {
+                managementCounter++;
+                foreach (Device device in management.Devices.Where(dev => dev.Rules != null && dev.Rules.Length > 0))
+                {
+                    deviceCounter++;
+                    ruleCounter += device.Rules.Length;
+                }
+            }
+            return $"{managementCounter} {userConfig.GetText("managements")}, {deviceCounter} {userConfig.GetText("gateways")}, {ruleCounter} {userConfig.GetText("rules")}";
+        }
+
         public override string ExportToCsv()
         {
             StringBuilder csvBuilder = new StringBuilder();
@@ -196,7 +214,7 @@ namespace FWO.Report
             RuleDisplay ruleDisplay = new RuleDisplay(userConfig);
 
             foreach (Management management in Managements.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
-            Array.Exists(mgt.Devices, device => device.Rules != null && device.Rules.Length > 0)))
+                    Array.Exists(mgt.Devices, device => device.Rules != null && device.Rules.Length > 0)))
             {
                 management.AssignRuleNumbers();
 

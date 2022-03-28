@@ -10,24 +10,24 @@
 <hr />
 
 <Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="Alert" Items="alertEntrys" PageSize="100">
-    <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" />
-    <Column TableItem="Alert" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" />
-    <Column TableItem="Alert" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" />
-    <Column TableItem="Alert" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" />
-    <Column TableItem="Alert" Title="@(userConfig.GetText("code"))" Field="@(x => x.AlertCode)" />
-    <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.ManagementId)" />
-    <Column TableItem="Alert" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" >
+    <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)"  Sortable="true" Filterable="true"/>
+    <Column TableItem="Alert" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)"  Sortable="true" Filterable="true"/>
+    <Column TableItem="Alert" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" Sortable="true" Filterable="true"/>
+    <Column TableItem="Alert" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true"/>
+    <Column TableItem="Alert" Title="@(userConfig.GetText("code"))" Field="@(x => x.AlertCode)" Sortable="true" Filterable="true"/>
+    <Column TableItem="Alert" Title="@(userConfig.GetText("id"))" Field="@(x => x.ManagementId)" Sortable="true" Filterable="true"/>
+    <Column TableItem="Alert" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" Sortable="true">
         <Template>
             @(managements.FirstOrDefault(x => x.Id == context.ManagementId)?.Name)
         </Template>
     </Column>
-    <Column TableItem="Alert" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" />
-    <Column TableItem="Alert" Title="@(userConfig.GetText("acknowledged_by"))" Field="@(x => x.AcknowledgedBy)" >
+    <Column TableItem="Alert" Title="@(userConfig.GetText("description"))" Field="@(x => x.Description)" Sortable="true" Filterable="true"/>
+    <Column TableItem="Alert" Title="@(userConfig.GetText("acknowledged_by"))" Field="@(x => x.AcknowledgedBy)" Sortable="true">
         <Template>
             @(uiUsers.FirstOrDefault(x => x.DbId == context.AcknowledgedBy)?.Name)
         </Template>
     </Column>
-    <Column TableItem="Alert" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.AckTimestamp)" />
+    <Column TableItem="Alert" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.AckTimestamp)" Sortable="true" Filterable="true"/>
     <Pager ShowPageNumber="true" ShowTotalCount="true" />
 </Table>
 

@@ -49,7 +49,6 @@ Grant update,insert on "objgrp" to group "configimporters";
 Grant update,insert on "rule" to group "configimporters";
 Grant update,insert on "rule_metadata" to group "configimporters";
 Grant update,insert on "rule_from" to group "configimporters";
-Grant update,insert on "rule_review" to group "configimporters";
 Grant update,insert on "rule_service" to group "configimporters";
 Grant update,insert on "rule_to" to group "configimporters";
 Grant update,insert on "service" to group "configimporters";
@@ -60,34 +59,23 @@ Grant update,insert on "usergrp" to group "configimporters";
 Grant update,insert on "usergrp_flat" to group "configimporters";
 Grant update,insert on "objgrp_flat" to group "configimporters";
 Grant update,insert on "svcgrp_flat" to group "configimporters";
-Grant update,insert on "tenant_user" to group "configimporters";
 Grant insert on "changelog_object" to group "configimporters";
 Grant insert on "changelog_service" to group "configimporters";
 Grant insert on "changelog_user" to group "configimporters";
 Grant insert on "changelog_rule" to group "configimporters";
-Grant insert on "error_log" to group "configimporters";
 Grant insert,update on "rule_nwobj_resolved" to group "configimporters";
 Grant insert,update on "rule_svc_resolved" to group "configimporters";
 Grant insert,update on "rule_user_resolved" to group "configimporters";
 
 -- secuadmins:
-Grant ALL on "request" to group "secuadmins";
-Grant ALL on "request_object_change" to group "secuadmins";
-Grant ALL on "request_service_change" to group "secuadmins";
-Grant ALL on "request_rule_change" to group "secuadmins";
-Grant ALL on "request_user_change" to group "secuadmins";
-Grant ALL on "tenant_username" to group "secuadmins";
-
 Grant update on "uiuser" to group "secuadmins";
 Grant update,insert on "changelog_object" to group "secuadmins";
 Grant update,insert on "changelog_service" to group "secuadmins";
 Grant update,insert on "changelog_user" to group "secuadmins";
 Grant update,insert on "changelog_rule" to group "secuadmins";
-Grant update,insert on "error_log" to group "secuadmins";
 Grant insert on "report" to group "secuadmins";
 
 -- reporters:
 Grant update on "uiuser" to group "reporters";
-Grant insert on "error_log" to group "reporters";
 Grant insert on "report" to group "reporters";
 Grant insert on "report_template" to group "reporters";

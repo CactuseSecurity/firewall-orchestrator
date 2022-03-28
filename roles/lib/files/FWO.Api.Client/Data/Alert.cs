@@ -9,19 +9,15 @@ namespace FWO.Api.Data
 
         UiError = 2,
 
+        DailyCheckError = 10,
         NoImport = 11,
         SuccessfulImportOverdue = 12,
         ImportRunningTooLong = 13,
-        ImportError = 14,
-
-        Autodiscovery = 21
-        // AutodiscoverDeleteManagement = 21,
-        // AutodiscoverDeleteGateway = 22,
-        // AutodiscoverAddManagement = 23,
-        // AutodiscoverAddGatewayToNewManagement = 24,
-        // AutodiscoverAddGatewayToExistingManagement = 25,
-        // AutodiscoverReactivateManagement = 26,
-        // AutodiscoverReactivateGateway = 27
+        ImportErrorUnspecific = 14,
+        ImportLocked = 15,
+        ImportBrokenObjectReferences = 16,
+        Autodiscovery = 21,
+        AutoDiscoveryErrorUnspecific = 22
     }
 
     public class Alert
@@ -63,59 +59,20 @@ namespace FWO.Api.Data
         public DateTime? AckTimestamp { get; set; }
 
         [JsonProperty("json_data"), JsonPropertyName("json_data")]
-        public String? JsonData { get; set; }
+        public object? JsonData { get; set; }
 
         [JsonProperty("alert_code"), JsonPropertyName("alert_code")]
         public AlertCode? AlertCode { get; set; }
 
-        
-        // public async Task<long?> setAlert(AlertInteractiveDiscovery discovery)
-        // {
-        //     long? alertId = null;
-        //     try
-        //     {
-        //         var Variables = new
-        //         {
-        //             source = GlobalConfig.kAutodiscovery,
-        //             userId = 0,
-        //             title = $"Manager {discovery.SuperManager.Name}: {discovery.Title}",
-        //             description = discovery.Description,
-        //             mgmId = discovery.SuperManager.Id,
-        //             devId = discovery.Device.Id,
-        //             jsonData = discovery.JsonData,
-        //             refAlert = discovery.RefAlertId
-        //         };
-        //         ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addAlert, Variables)).ReturnIds;
-        //         if (returnIds != null)
-        //         {
-        //             alertId = returnIds[0].NewId;
-        //             if (action.ActionType == ActionCode.AddManagement.ToString())
-        //             {
-        //                 lastMgmtAlertId = alertId;
-        //             }
-        //         }
-        //         else
-        //         {
-        //             Log.WriteError("Write Alert", "Log could not be written to database");
-        //         }
-        //         Log.WriteAlert($"source {GlobalConfig.kAutodiscovery}",
-        //             $"action: {action.Supermanager}, type: {action.ActionType}, mgmId: {action.ManagementId}, devId: {action.DeviceId}, details: {action.JsonData}, altertId: {action.RefAlertId}");
-        //     }
-        //     catch (Exception exc)
-        //     {
-        //         Log.WriteError("Write Alert", $"Could not write Alert for autodiscovery: ", exc);
-        //     }
-        //     return alertId;
-        // }
     }
-    public class AlertInteractiveDiscovery
-    {
-        public UiUser UiUser { get; set; } = new UiUser();
-        public string Title { get; set; } = "";
-        public string Description { get; set; } = "";
-        public Management SuperManager { get; set; } = new Management();
-        public Device Device { get; set; } = new Device();
-        public Dictionary<string, string> JsonData { get; set; } = new Dictionary<string, string>();
-        public int RefAlertId { get; set; }
-    }
+    // public class AlertInteractiveDiscovery
+    // {
+    //     public UiUser UiUser { get; set; } = new UiUser();
+    //     public string Title { get; set; } = "";
+    //     public string Description { get; set; } = "";
+    //     public Management SuperManager { get; set; } = new Management();
+    //     public Device Device { get; set; } = new Device();
+    //     public Dictionary<string, string> JsonData { get; set; } = new Dictionary<string, string>();
+    //     public int RefAlertId { get; set; }
+    // }
 }

@@ -8,6 +8,9 @@ query getReportSchedules {
     report_schedule_owner_user: uiuser {
       uiuser_id
       uiuser_username
+      ldap_connection: ldap_connection {
+        ldap_connection_id
+      }
     }
     report_schedule_active
     report_schedule_template: report_template {
@@ -19,5 +22,6 @@ query getReportSchedules {
     report_schedule_formats{
       report_schedule_format_name
     }
+    report_schedule_counter
   }
 }

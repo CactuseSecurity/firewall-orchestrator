@@ -8,7 +8,8 @@ namespace FWO.Api.Data
         AddGatewayToNewManagement,
         AddGatewayToExistingManagement,
         ReactivateManagement,
-        ReactivateGateway
+        ReactivateGateway,
+        WaitForTempLoginFailureToPass
     }
 
     public class ActionItem
@@ -27,7 +28,7 @@ namespace FWO.Api.Data
 
         public int? DeviceId { get; set; }
 
-        public String? JsonData { get; set; }
+        public object? JsonData { get; set; }
 
         public bool Done { get; set; } = false;
 
@@ -39,7 +40,10 @@ namespace FWO.Api.Data
             Number = 0;
             AlertId = alert.Id;
             Supermanager = alert.Title;
-            ActionType = alert.Description;
+            if (alert.Description == null)
+                ActionType = "";
+            else
+                ActionType = alert.Description;
             ManagementId = alert.ManagementId;
             DeviceId = alert.DeviceId;
             JsonData = alert.JsonData;

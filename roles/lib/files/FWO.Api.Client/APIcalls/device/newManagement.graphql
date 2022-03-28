@@ -22,7 +22,7 @@ mutation newManagement(
       dev_typ_id: $devTypeId
       ssh_hostname: $hostname
       ssh_user: $importUser
-      ssh_private_key: $importUserSecret
+      secret: $importUserSecret
       config_path: $configPath
       importer_hostname: $importerHostname
       ssh_port: $port

@@ -182,27 +182,27 @@ namespace FWO.Middleware.Server
         {
             List<ImportStatus> importStati = await apiConnection.SendQueryAsync<List<ImportStatus>>(FWO.ApiClient.Queries.DeviceQueries.getImportStatus);
             int importIssues = 0;
-            string jsonData = "";
+            object jsonData;
             foreach(ImportStatus imp in importStati.Where(x => !x.ImportDisabled))
             {
                 if (imp.LastIncompleteImport != null && imp.LastIncompleteImport.Length > 0) // import running
                 {
                     if (imp.LastIncompleteImport[0].StartTime < DateTime.Now.AddHours(-4))  // too long
                     {
-                        jsonData = JsonSerializer.Serialize(imp.LastIncompleteImport);
+                        jsonData = imp.LastIncompleteImport;
                         await setAlert(GlobalConfig.kDailyCheck, AlertCode.ImportRunningTooLong, "Import", "Import running too long", imp.MgmId, jsonData);
                         importIssues++;
                     }
                 }
                 else if (imp.LastImport == null || imp.LastImport.Length == 0) // no import at all
                 {
-                    jsonData = JsonSerializer.Serialize(imp);
+                    jsonData = imp;
                     await setAlert(GlobalConfig.kDailyCheck, AlertCode.NoImport, "Import", "No Import for active management", imp.MgmId, jsonData);
                     importIssues++;
                 }
                 else if (imp.LastSuccessfulImport != null && imp.LastSuccessfulImport.Length > 0 && imp.LastSuccessfulImport[0].StartTime < DateTime.Now.AddHours(-12)) // too long ago
                 {
-                    jsonData = JsonSerializer.Serialize(imp);
+                    jsonData = imp;
                     await setAlert(GlobalConfig.kDailyCheck, AlertCode.SuccessfulImportOverdue, "Import", "Last successful import too long ago", imp.MgmId, jsonData);
                     importIssues++;
                 }
@@ -210,7 +210,7 @@ namespace FWO.Middleware.Server
             await AddDailyCheckLogEntry((importIssues != 0 ? 1 : 0), "Scheduled Daily Importer Check", (importIssues != 0 ? $"found {importIssues} import issues" : "no import issues found"));
         }
 
-        public async Task setAlert(string source, AlertCode alertCode, string title, string description, int? mgmtId = null, string? JsonData = null, int? devId = null)
+        public async Task setAlert(string source, AlertCode alertCode, string title, string description, int? mgmtId = null, object? JsonData = null, int? devId = null)
         {
             try
             {
@@ -254,7 +254,7 @@ namespace FWO.Middleware.Server
                     jsonString = JsonSerializer.Serialize(JsonData);
                 Log.WriteAlert ($"source: \"{source}\"", 
                     $"userId: \"0\", title: \"{title}\", description: \"{description}\", " +
-                    $"mgmId: \"{mgmtIdString}\", devId: \"{devIdString}\", jsonData: {jsonString}, alertCode: \"{alertCode.ToString()}\"");
+                    $"mgmId: \"{mgmtIdString}\", devId: \"{devIdString}\", jsonData: \"{jsonString}\", alertCode: \"{alertCode.ToString()}\"");
             }
             catch(Exception exc)
             {

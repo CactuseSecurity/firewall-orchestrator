@@ -256,7 +256,7 @@
     </Footer>
 </PopUp>
 
-<AutoDiscovery Actions="actActions" @bind-Display="AutoDiscoverMode" Closing="async () => {AutoDiscoverMode = false; await Refresh();}"/>
+<AutoDiscovery @ref="autoDiscovery" Actions="actActions" @bind-Display="AutoDiscoverMode" Closing="async () => {AutoDiscoverMode = false; await Refresh();}"/>
 
 
 @code
@@ -283,6 +283,8 @@
     private Management newManagement = new Management();
     private Management actManagement = new Management();
     private Management actSuperManagement = new Management();
+
+    private AutoDiscovery autoDiscovery;
 
     private string deleteMessage = "";
     private string cleanupMessage = "";
@@ -519,11 +521,12 @@
 
         try
         {
+            AutoDiscoverMode = true;
             AutoDiscoveryBase autodiscovery = new AutoDiscoveryBase(superManagement, apiConnection);
             actActions = autodiscovery.ConvertToActions(await autodiscovery.Run());
             int ChangeCounter = actActions.Count();
             await AddAutoDiscoverLogEntry(0, "Manual Autodiscovery", (ChangeCounter > 0 ? $"Found {ChangeCounter} changes" : "Found no change"), superManagement.Id);
-            AutoDiscoverMode = true;
+            await autoDiscovery.Test();
         }
         catch (Exception exception)
         {

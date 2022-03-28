@@ -44,8 +44,6 @@
     private string dialogTitle = "";
     private string dialogMessage = "";
     private string cssClass = "";
-    private int messageViewTime = GlobalConfig.kDefaultInitMessageViewTime;
-
     private object errorLock = new object();
 
     public enum MessageType
@@ -63,12 +61,6 @@
         DisplayMessageInUiFunction = DisplayMessageInUi;
 
         alertSubscription = apiConnection.GetSubscription<List<Alert>>(ApiExceptionHandler, OnAlertUpdate, MonitorQueries.subscribeAlertChanges);
-
-        string settingsValue = userConfig.GetConfigValue(GlobalConfig.kMessageViewTime);
-        if (settingsValue != "")
-        {
-            messageViewTime = int.Parse(settingsValue);
-        }
     }
 
     private void OnAlertUpdate(List<Alert> alerts)
@@ -82,7 +74,7 @@
         // Needed so there is no chance an error is announced by 2 threads at the same time.
         lock (errorLock)
         {
-            int showtime = messageViewTime * 1000; // convert to milliseconds
+            int showtime = userConfig.MessageViewTime * 1000; // convert to milliseconds
             
             switch(type)
             {

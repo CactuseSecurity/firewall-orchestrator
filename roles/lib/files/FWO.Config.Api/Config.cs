@@ -18,33 +18,46 @@ namespace FWO.Config.Api
         /// <summary>
         /// Internal connection to api server. Used to get/edit config data.
         /// </summary>
-        protected readonly APIConnection apiConnection;
+        protected APIConnection apiConnection;
 
-        public readonly int UserId;
+        public int UserId { get; private set; }
+        public bool Initialized { get; private set; } = false;
 
         public event Action<Config, ConfigItem[]>? OnChange;
 
         protected SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
 
+        protected Config() { }
+
         protected Config(APIConnection apiConnection, int userId)
         {
-            UserId = userId;
+            SetUserId(apiConnection, userId).Wait();
+        }
+
+        public async Task SetUserId(APIConnection apiConnection, int userId, bool waitForFirstUpdate = true)
+        {
             this.apiConnection = apiConnection;
+            UserId = userId;
             apiConnection.GetSubscription<ConfigItem[]>(SubscriptionExceptionHandler, SubscriptionUpdateHandler, ConfigQueries.getConfigSubscription, new { UserId });
+            if (waitForFirstUpdate)
+            {
+                await Task.Run(async () => { while (!Initialized) { await Task.Delay(10); } });
+            }
         }
 
         protected void SubscriptionUpdateHandler(ConfigItem[] configItems)
         {
             semaphoreSlim.Wait();
-            try 
-            { 
+            try
+            {
                 Update(configItems);
                 OnChange?.Invoke(this, configItems);
+                Initialized = true;
             }
             finally { semaphoreSlim.Release(); }
         }
 
-        public void Update(ConfigItem[] configItems)
+        protected void Update(ConfigItem[] configItems)
         {
             foreach (PropertyInfo property in GetType().GetProperties())
             {
@@ -52,13 +65,14 @@ namespace FWO.Config.Api
                 if (property.GetCustomAttribute<JsonPropertyNameAttribute>() != null)
                 {
                     string key = property.GetCustomAttribute<JsonPropertyNameAttribute>()!.Name;
-                    ConfigItem? configItem = configItems.First(configItem => configItem.Key == key);
+                    ConfigItem? configItem = configItems.FirstOrDefault(configItem => configItem.Key == key);
 
                     if (configItem != null)
                     {
                         try
                         {
-                            TypeConverter converter = TypeDescriptor.GetConverter(property.GetType());
+                            Type propertyType = property.PropertyType;
+                            TypeConverter converter = TypeDescriptor.GetConverter(property.PropertyType);
                             property.SetValue(this, converter.ConvertFromString(configItem.Value
                             ?? throw new Exception($"Config value (with key: {configItem.Key}) is null."))
                             ?? throw new Exception($"Config value (with key: {configItem.Key}) is not convertible to {property.GetType()}."));
@@ -76,10 +90,10 @@ namespace FWO.Config.Api
             }
         }
 
-        protected async Task WriteToDatabase(ConfigData editedData)
+        public async Task WriteToDatabase(ConfigData editedData, APIConnection apiConnection)
         {
             await semaphoreSlim.WaitAsync();
-            try 
+            try
             {
                 foreach (PropertyInfo property in GetType().GetProperties())
                 {
@@ -87,7 +101,7 @@ namespace FWO.Config.Api
                     if (property.GetCustomAttribute<JsonPropertyNameAttribute>() != null)
                     {
                         // Was config value changed?
-                        if (property.GetValue(this) != property.GetValue(editedData))
+                        if (!Equals(property.GetValue(this), property.GetValue(editedData)))
                         {
                             string key = property.GetCustomAttribute<JsonPropertyNameAttribute>()!.Name;
 
@@ -111,10 +125,10 @@ namespace FWO.Config.Api
             finally { semaphoreSlim.Release(); }
         }
 
-        protected async Task<ConfigData> GetEditableConfig()
+        public async Task<ConfigData> GetEditableConfig()
         {
             await semaphoreSlim.WaitAsync();
-            try { return (ConfigData)Clone(); }
+            try { return (ConfigData)CloneEditable(); }
             finally { semaphoreSlim.Release(); }
         }
 

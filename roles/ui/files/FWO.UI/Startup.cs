@@ -65,9 +65,8 @@ namespace FWO.Ui
 
             // get all non-confidential configuration settings and add to a global service (for all users)
             GlobalConfig globalConfig = Task.Run(async() => await GlobalConfig.ConstructAsync(jwt)).Result;
-            services.AddSingleton<GlobalConfig>(_ => globalConfig);
-            
-            services.AddScoped<UserConfig>(_ => null);
+            services.AddSingleton<GlobalConfig>(_ => globalConfig);    
+            services.AddScoped<UserConfig>(_ => new UserConfig(globalConfig));
 
             services.AddBlazorTable();
         }

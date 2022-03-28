@@ -17,78 +17,91 @@ namespace FWO.Config.Api.Data
 
     public class ConfigData : ICloneable
     {
-        [JsonProperty("defaultLanguage"), JsonPropertyName("defaultLanguage")]
-        public virtual string DefaultLanguage { get; protected set; } = "English";
+        public readonly bool Editable;
+
+        [JsonProperty("DefaultLanguage"), JsonPropertyName("DefaultLanguage")]
+        public virtual string DefaultLanguage { get; set; } = "English";
 
         [JsonProperty("elementsPerFetch"), JsonPropertyName("elementsPerFetch"), UserConfigData]
-        public int ElementsPerFetch { get; protected set; } = 100;
+        public int ElementsPerFetch { get; set; } = 100;
 
         [JsonProperty("maxInitialFetchesRightSidebar"), JsonPropertyName("maxInitialFetchesRightSidebar")]
-        public int MaxInitialFetchesRightSidebar { get; protected set; } = 10;
+        public int MaxInitialFetchesRightSidebar { get; set; } = 10;
 
         [JsonProperty("autoFillRightSidebar"), JsonPropertyName("autoFillRightSidebar")]
-        public bool AutoFillRightSidebar { get; protected set; } = false;
+        public bool AutoFillRightSidebar { get; set; } = false;
 
         [JsonProperty("dataRetentionTime"), JsonPropertyName("dataRetentionTime")]
-        public int DataRetentionTime { get; protected set; } = 731;
+        public int DataRetentionTime { get; set; } = 731;
 
         [JsonProperty("importSleepTime"), JsonPropertyName("importSleepTime")]
-        public int ImportSleepTime { get; protected set; } = 40;
+        public int ImportSleepTime { get; set; } = 40;
 
         [JsonProperty("autoDiscoverSleepTime"), JsonPropertyName("autoDiscoverSleepTime")]
-        public int AutoDiscoverSleepTime { get; protected set; } = 24;
+        public int AutoDiscoverSleepTime { get; set; } = 24;
 
         [JsonProperty("autoDiscoverStartAt"), JsonPropertyName("autoDiscoverStartAt")]
-        public DateTime AutoDiscoverStartAt { get; protected set; } = DateTime.Now;
+        public DateTime AutoDiscoverStartAt { get; set; } = new DateTime();
 
         [JsonProperty("fwApiElementsPerFetch"), JsonPropertyName("fwApiElementsPerFetch")]
-        public int FwApiElementsPerFetch { get; protected set; } = 150;
+        public int FwApiElementsPerFetch { get; set; } = 150;
 
         [JsonProperty("recertificationPeriod"), JsonPropertyName("recertificationPeriod")]
-        public int RecertificationPeriod { get; protected set; } = 365;
+        public int RecertificationPeriod { get; set; } = 365;
 
         [JsonProperty("recertificationNoticePeriod"), JsonPropertyName("recertificationNoticePeriod")]
-        public int RecertificationNoticePeriod { get; protected set; } = 30;
+        public int RecertificationNoticePeriod { get; set; } = 30;
 
         [JsonProperty("recertificationDisplayPeriod"), JsonPropertyName("recertificationDisplayPeriod")]
-        public int RecertificationDisplayPeriod { get; protected set; } = 30;
+        public int RecertificationDisplayPeriod { get; set; } = 30;
 
         [JsonProperty("ruleRemovalGracePeriod"), JsonPropertyName("ruleRemovalGracePeriod")]
-        public int RuleRemovalGracePeriod { get; protected set; } = 60;
+        public int RuleRemovalGracePeriod { get; set; } = 60;
 
         [JsonProperty("commentRequired"), JsonPropertyName("commentRequired")]
-        public bool CommentRequired { get; protected set; } = false;
+        public bool CommentRequired { get; set; } = false;
 
         [JsonProperty("pwMinLength"), JsonPropertyName("pwMinLength")]
-        public int PwMinLength { get; protected set; } = 10;
+        public int PwMinLength { get; set; } = 10;
 
         [JsonProperty("pwUpperCaseRequired"), JsonPropertyName("pwUpperCaseRequired")]
-        public bool PwUpperCaseRequired { get; protected set; } = false;
+        public bool PwUpperCaseRequired { get; set; } = false;
 
         [JsonProperty("pwLowerCaseRequired"), JsonPropertyName("pwLowerCaseRequired")]
-        public bool PwLowerCaseRequired { get; protected set; } = false;
+        public bool PwLowerCaseRequired { get; set; } = false;
 
         [JsonProperty("pwNumberRequired"), JsonPropertyName("pwNumberRequired")]
-        public bool PwNumberRequired { get; protected set; } = false;
+        public bool PwNumberRequired { get; set; } = false;
 
         [JsonProperty("pwSpecialCharactersRequired"), JsonPropertyName("pwSpecialCharactersRequired")]
-        public bool PwSpecialCharactersRequired { get; protected set; } = false;
+        public bool PwSpecialCharactersRequired { get; set; } = false;
 
         [JsonProperty("minCollapseAllDevices"), JsonPropertyName("minCollapseAllDevices"), UserConfigData]
-        public int MinCollapseAllDevices { get; protected set; } = 15;
+        public int MinCollapseAllDevices { get; set; } = 15;
 
         [JsonProperty("messageViewTime"), JsonPropertyName("messageViewTime"), UserConfigData]
-        public int MessageViewTime { get; protected set; } = 7;
+        public int MessageViewTime { get; set; } = 7;
 
-        public ConfigData()
+        [JsonProperty("dailyCheckStartAt"), JsonPropertyName("dailyCheckStartAt")]
+        public DateTime DailyCheckStartAt { get; set; } = new DateTime();
+
+        public ConfigData(bool editable = false)
         {
-
+            Editable = editable;
         }
 
         public object Clone()
         {
-            return MemberwiseClone();
-            // Watch out for references they need to be deep cloned (currently no references present)
+            // Watch out for references they need to be deep cloned (currently none)
+            ConfigData configData = (ConfigData)MemberwiseClone();
+            return configData;
+        }
+
+        public object CloneEditable()
+        {
+            object clone = Clone();
+            typeof(ConfigData).GetProperty("Editable")?.SetValue(clone, true);
+            return clone;
         }
     }
 }

@@ -197,3 +197,177 @@ THEN
     ALTER TABLE "management" RENAME COLUMN "ssh_private_key" TO "secret";
 END IF;
 END $$;
+
+--------- remove unused tables --------------- 
+
+CREATE OR REPLACE FUNCTION get_request_str(VARCHAR,BIGINT) RETURNS VARCHAR AS $$
+DECLARE
+	v_table	ALIAS FOR $1;
+	i_id	ALIAS FOR $2;
+	v_result VARCHAR;
+BEGIN
+	v_result := '';
+	RETURN 'v_result';
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION error_handling (varchar, varchar)
+    RETURNS varchar
+    AS $$
+DECLARE
+    errid ALIAS FOR $1;
+    var_output_string ALIAS FOR $2;
+    err RECORD;
+    lang RECORD;
+    err_txt text;
+    err_prefix varchar;
+BEGIN
+    err_txt := '';
+    SELECT
+        INTO err *
+    FROM
+        error
+    WHERE
+        error_id = errid;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'errorid not found %', errid;
+    END IF;
+    SELECT
+        INTO lang config_value
+    FROM
+        config
+    WHERE
+        config_key = 'DefaultLanguage';
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'config not found, %', errid;
+    END IF;
+    IF lang.config_value = 'German' THEN
+        err_txt := err.error_txt_ger;
+        IF err.error_lvl = 1 THEN
+            err_prefix := 'FEHLER: ';
+        ELSIF err.error_lvl = 2 THEN
+            err_prefix := 'WARNUNG: ';
+        ELSIF err.error_lvl = 3 THEN
+            err_prefix := 'WARNUNG: ';
+        ELSIF err.error_lvl = 4 THEN
+            err_prefix := 'INFO: ';
+        ELSE
+            RAISE EXCEPTION 'Unbekannte Fehlerstufe %', err.error_lvl;
+        END IF;
+    ELSE
+        err_txt := err.error_txt_eng;
+        IF err.error_lvl = 1 THEN
+            err_prefix := 'ERROR: ';
+        ELSIF err.error_lvl = 2 THEN
+            err_prefix := 'WARNING: ';
+        ELSIF err.error_lvl = 3 THEN
+            err_prefix := 'WARNING: ';
+        ELSIF err.error_lvl = 4 THEN
+            err_prefix := 'INFO: ';
+        ELSE
+            RAISE EXCEPTION 'Unbekannte Fehlerstufe %', err.error_lvl;
+        END IF;
+    END IF;
+    err_prefix := err_prefix || errid || ': ';
+    IF var_output_string <> '' THEN
+        err_txt := err_txt || ': ' || var_output_string;
+    END IF;
+    err_txt := err_prefix || err_txt;
+    -- INSERT INTO error_log (error_id, error_txt)
+    --     VALUES (errid, err_txt);
+    IF err.error_lvl = 1 THEN
+        RAISE DEBUG 'sorry, encountered fatal error: %', err_txt;
+        RAISE EXCEPTION '%', err_txt;
+    ELSIF err.error_lvl = 2 THEN
+        RAISE NOTICE '%', err_txt;
+    ELSIF err.error_lvl = 3 THEN
+        RAISE NOTICE '%', err_txt;
+    ELSIF err.error_lvl = 4 THEN
+        RAISE DEBUG '%', err_txt;
+        --		NULL;
+    ELSE
+        RAISE EXCEPTION 'unknown errorlevel %', err.error_lvl;
+    END IF;
+    RETURN err_txt;
+END;
+$$
+LANGUAGE plpgsql;
+
+
+DROP TABLE IF EXISTS rule_review; 
+
+Alter table "object" drop constraint if exists "object_nattyp_id_fkey"; 
+DROP table IF EXISTS "stm_nattyp";
+
+DROP table IF EXISTS "tenant_user";
+
+DROP table IF EXISTS "tenant_username";
+
+DO $$
+BEGIN
+IF EXISTS(SELECT *
+    FROM information_schema.columns
+    WHERE table_name='request')
+THEN
+	Alter table "request" drop constraint if exists "request_type_id_request_type_id";
+	Alter table "request" drop constraint if exists "tenant_id_tenant_tenant_id";
+	DROP table request;
+END IF;
+END $$;
+
+DO $$
+BEGIN
+IF EXISTS(SELECT *
+    FROM information_schema.columns
+    WHERE table_name='request_object_change')
+THEN
+	Alter table "request_object_change" drop constraint if exists "log_obj_id_changelog_object_log_obj_id";
+	Alter table "request_object_change" drop constraint if exists "request_object_change_request_id_fkey";
+	DROP table request_object_change;
+END IF;
+END $$;
+
+DO $$
+BEGIN
+IF EXISTS(SELECT *
+    FROM information_schema.columns
+    WHERE table_name='request_rule_change')
+THEN
+	Alter table "request_rule_change" drop constraint if exists "log_rule_id_changelog_rule_log_rule_id";
+	Alter table "request_rule_change" drop constraint if exists "request_rule_change_request_id_fkey";
+	DROP table request_rule_change;
+END IF;
+END $$;
+
+DO $$
+BEGIN
+IF EXISTS(SELECT *
+    FROM information_schema.columns
+    WHERE table_name='request_service_change')
+THEN
+	Alter table "request_service_change" drop constraint if exists "log_svc_id_changelog_service_log_svc_id";
+	Alter table "request_service_change" drop constraint if exists "request_service_change_request_id_fkey";
+	DROP table request_service_change;
+END IF;
+END $$;
+
+DO $$
+BEGIN
+IF EXISTS(SELECT *
+    FROM information_schema.columns
+    WHERE table_name='request_user_change')
+THEN
+	Alter table "request_user_change" drop constraint if exists "log_usr_id_changelog_user_log_usr_id";
+	Alter table "request_user_change" drop constraint if exists "request_user_change_request_id_fkey";
+	DROP table request_user_change;
+END IF;
+END $$;
+
+DROP table IF EXISTS request_type;
+
+DROP table if exists "tenant_object";
+
+DROP table if exists "report_template_viewable_by_tenant";
+
+-- Alter table "error_log" add  foreign key ("error_id") references "error" ("error_id") on update restrict on delete cascade;
+drop table if exists "error_log";

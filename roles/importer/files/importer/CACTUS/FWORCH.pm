@@ -481,7 +481,7 @@ sub remove_literal_carriage_return {
 ############################################################
 # replace_special_chars_in_string(string)
 # ersetzt in string alle Sonderzeichen durch Standard ASCII-Zeichen
-# hier fehlt noch ein Mechanismus, der gefundene Ersetzungen protokolliert (idealerweise in der DB in error_log)
+# hier fehlt noch ein Mechanismus, der gefundene Ersetzungen protokolliert
 ############################################################
 sub replace_special_chars_in_str {
     my $str = $_[0];

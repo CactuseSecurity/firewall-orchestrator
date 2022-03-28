@@ -43,43 +43,9 @@ BEGIN
 	END IF;
 	RAISE DEBUG 'import_rules - importing rulebase: %', v_rulebase_name;
 
-	-- first handle xlate rules defining translation (rule_type = 'xlate')
-	-- we need these first to be able to set reference in original packet matching rule later
-	FOR r_rule IN -- check each rule if it was changed add add accordingly
-		SELECT rule_id FROM import_rule WHERE control_id = i_current_import_id AND rulebase_name = v_rulebase_name AND rule_type = 'xlate'
-		LOOP
-			i_added_rule_id := insert_single_rule(r_rule.rule_id,i_dev_id,i_mgm_id,i_current_import_id,b_is_initial_import);
-			IF NOT i_added_rule_id IS NULL THEN
-				b_rule_order_to_be_written := TRUE;
-			END IF;
-	END LOOP;
-
-	-- handle pure access rules:
-	FOR r_rule IN -- check each rule if it was changed add add accordingly
-		SELECT rule_id FROM import_rule WHERE control_id = i_current_import_id AND rulebase_name = v_rulebase_name AND (rule_type = 'access' OR rule_type IS NULL)
-		LOOP
-			i_added_rule_id := insert_single_rule(r_rule.rule_id,i_dev_id,i_mgm_id,i_current_import_id,b_is_initial_import);
-			IF NOT i_added_rule_id IS NULL THEN
-				b_rule_order_to_be_written := TRUE;
-			END IF;
-	END LOOP;
-
-	-- handle combined and original rules:
-	FOR r_rule IN -- check each rule if it was changed add add accordingly
-		SELECT rule_id FROM import_rule WHERE control_id = i_current_import_id AND rulebase_name = v_rulebase_name AND (rule_type = 'combined' OR rule_type = 'original')
-		LOOP
-			i_added_rule_id := insert_single_rule(r_rule.rule_id,i_dev_id,i_mgm_id,i_current_import_id,b_is_initial_import);
-			IF NOT i_added_rule_id IS NULL THEN
-				b_rule_order_to_be_written := TRUE;
-				-- here we need to set references to the xlate type rule
-				SELECT INTO v_uid rule_uid FROM rule WHERE rule_id=i_added_rule_id;
-				SELECT INTO i_xlate_rule_id rule_id FROM rule WHERE rule_uid = v_uid AND NOT rule_id=i_added_rule_id and active;
-				IF NOT FOUND THEN
-					RAISE NOTICE 'import_rules - issue: did not find corresponding xlate rule %', v_uid;
-				END IF;
-				UPDATE rule SET xlate_rule=i_xlate_rule_id WHERE rule_id=i_added_rule_id;
-			END IF;
-	END LOOP;
+	b_rule_order_to_be_written := import_rules_xlate(i_mgm_id, i_dev_id, i_current_import_id, v_rulebase_name, b_is_initial_import, b_rule_order_to_be_written) OR b_rule_order_to_be_written;
+	b_rule_order_to_be_written := import_rules_access(i_mgm_id, i_dev_id, i_current_import_id, v_rulebase_name, b_is_initial_import, b_rule_order_to_be_written) OR b_rule_order_to_be_written;
+	b_rule_order_to_be_written := import_rules_combined(i_mgm_id, i_dev_id, i_current_import_id, v_rulebase_name, b_is_initial_import, b_rule_order_to_be_written, v_uid) OR b_rule_order_to_be_written;
 
 	RAISE DEBUG 'import_rules - after insert loop';
 	IF NOT b_is_initial_import THEN	-- set active=false for the old version of rules that have been changed
@@ -101,6 +67,92 @@ BEGIN
 		RAISE DEBUG 'import_rules - after active=false update';
 	END IF;
 	RETURN TRUE;
+END; 
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION import_rules_xlate (INT,INT,BIGINT,VARCHAR,BOOLEAN,BOOLEAN) RETURNS BOOLEAN AS $$
+DECLARE
+	i_mgm_id ALIAS FOR $1;
+	i_dev_id ALIAS FOR $2;
+    i_current_import_id ALIAS FOR $3;
+    v_rulebase_name ALIAS FOR $4; -- name of the rulebase of the current device
+    b_is_initial_import ALIAS FOR $5;
+    b_rule_order_to_be_written ALIAS FOR $6;
+    r_rule RECORD; -- record with single rule_id from the import_rule table
+	i_added_rule_id BIGINT;
+BEGIN
+	-- first handle xlate rules defining translation (rule_type = 'xlate')
+	-- we need these first to be able to set reference in original packet matching rule later
+
+	FOR r_rule IN -- check each rule if it was changed add add accordingly
+		SELECT rule_id FROM import_rule WHERE control_id = i_current_import_id AND rulebase_name = v_rulebase_name AND rule_type = 'xlate'
+		LOOP
+			i_added_rule_id := insert_single_rule(r_rule.rule_id,i_dev_id,i_mgm_id,i_current_import_id,b_is_initial_import);
+			IF NOT i_added_rule_id IS NULL THEN
+				b_rule_order_to_be_written := TRUE;
+			END IF;
+	END LOOP;
+	RETURN b_rule_order_to_be_written;
+END; 
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION import_rules_access (INT,INT,BIGINT,VARCHAR,BOOLEAN,BOOLEAN) RETURNS BOOLEAN AS $$
+DECLARE
+	i_mgm_id ALIAS FOR $1;
+	i_dev_id ALIAS FOR $2;
+    i_current_import_id ALIAS FOR $3;
+    v_rulebase_name ALIAS FOR $4; -- name of the rulebase of the current device
+    b_is_initial_import ALIAS FOR $5;
+    b_rule_order_to_be_written ALIAS FOR $6;
+    r_rule RECORD; -- record with single rule_id from the import_rule table
+	i_added_rule_id BIGINT;
+BEGIN
+	-- handle pure access rules:
+	FOR r_rule IN -- check each rule if it was changed add add accordingly
+		SELECT rule_id FROM import_rule WHERE control_id = i_current_import_id AND rulebase_name = v_rulebase_name AND (rule_type = 'access' OR rule_type IS NULL)
+	LOOP
+		i_added_rule_id := insert_single_rule(r_rule.rule_id,i_dev_id,i_mgm_id,i_current_import_id,b_is_initial_import);
+		IF NOT i_added_rule_id IS NULL THEN
+			b_rule_order_to_be_written := TRUE;
+		END IF;
+	END LOOP;
+	RETURN b_rule_order_to_be_written;
+END; 
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION import_rules_combined (INT,INT,BIGINT,VARCHAR,BOOLEAN,BOOLEAN,VARCHAR) RETURNS BOOLEAN AS $$
+DECLARE
+	i_mgm_id ALIAS FOR $1;
+	i_dev_id ALIAS FOR $2;
+    i_current_import_id ALIAS FOR $3;
+    v_rulebase_name ALIAS FOR $4; -- name of the rulebase of the current device
+    b_is_initial_import ALIAS FOR $5;
+    b_rule_order_to_be_written ALIAS FOR $6;
+	v_uid ALIAS FOR $7;
+	i_xlate_rule_id BIGINT;
+    r_rule RECORD; -- record with single rule_id from the import_rule table
+	i_added_rule_id BIGINT;
+BEGIN
+	-- handle combined and original rules:
+	FOR r_rule IN -- check each rule if it was changed add add accordingly
+		SELECT rule_id FROM import_rule WHERE control_id = i_current_import_id AND rulebase_name = v_rulebase_name AND (rule_type = 'combined' OR rule_type = 'original')
+		LOOP
+			i_added_rule_id := insert_single_rule(r_rule.rule_id,i_dev_id,i_mgm_id,i_current_import_id,b_is_initial_import);
+			IF NOT i_added_rule_id IS NULL THEN
+				b_rule_order_to_be_written := TRUE;
+				-- here we need to set references to the xlate type rule
+				SELECT INTO v_uid rule_uid FROM rule WHERE rule_id=i_added_rule_id;
+				SELECT INTO i_xlate_rule_id rule_id FROM rule WHERE rule_uid = v_uid AND NOT rule_id=i_added_rule_id and active;
+				IF NOT FOUND THEN
+					RAISE NOTICE 'import_rules - issue: did not find corresponding xlate rule %', v_uid;
+				END IF;
+				UPDATE rule SET xlate_rule=i_xlate_rule_id WHERE rule_id=i_added_rule_id;
+			END IF;
+	END LOOP;
+	RETURN b_rule_order_to_be_written;
 END; 
 $$ LANGUAGE plpgsql;
 
@@ -175,7 +227,7 @@ $$ LANGUAGE plpgsql;
 -- Parameter3: mgm_id
 -- Parameter4: control_id
 -- Parameter5: b_is_initial_import
--- RETURNS:   b_rule_order_to_be_written (aka has anything been changed?)
+-- RETURNS:   new rule id
 
 -- dropping first due to change of return type in v5.5.1:
 DROP FUNCTION IF EXISTS insert_single_rule(bigint,integer,integer,bigint,boolean);
@@ -208,7 +260,6 @@ DECLARE
 	t_outtext	  TEXT; 
 	i_change_type INTEGER;
 	v_change_action VARCHAR;    
-    b_rule_order_to_be_written BOOLEAN;
 	i_parent_rule_id BIGINT;
 	i_parent_rule_type SMALLINT;
 	r_parent_rule RECORD;
@@ -219,7 +270,6 @@ DECLARE
 BEGIN
 	RAISE DEBUG 'insert_single_rule start, rule_id: %', id;
 
-	b_rule_order_to_be_written := FALSE; 
     b_insert := FALSE;    b_change := FALSE;    b_change_sr := FALSE;
     SELECT INTO r_to_import * FROM import_rule WHERE rule_id = id; -- get rule record from import_rule
 -- fetch zone id ------------------------------------------------------------------------------------------
@@ -333,7 +383,6 @@ BEGIN
 		v_change_id := 'INFO_RULE_INSERTED'; 
 	END IF;
 	IF (b_change OR b_insert) THEN
-		b_rule_order_to_be_written := TRUE; 
 		PERFORM error_handling(v_change_id, r_to_import.rule_uid);
 		i_admin_id := get_admin_id_from_name(r_to_import.last_change_admin);   
 		RAISE DEBUG 'rule_change_or_insert: %', r_to_import.rule_uid;
@@ -492,7 +541,6 @@ BEGIN
 				 t_outtext,i_mgm_id,i_dev_id,i_change_type,b_change_sr);
 		END IF;
 	END IF;
-	-- RETURN b_rule_order_to_be_written; 
 	RETURN i_new_rule_id;
 END;
 $$ LANGUAGE plpgsql;

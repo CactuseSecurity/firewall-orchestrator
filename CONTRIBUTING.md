@@ -19,7 +19,7 @@ can quickly merge or address your contributions will increase.
 
 [6. Commit messages ](#commit-messages)
 
-[7. Translations ](#translations)
+[7. Coding Guidelines ](#coding-guidelines)
 
 <a name="code-of-conduct"></a>
 
@@ -111,3 +111,8 @@ Our goal is to keep our Firewall Orchestrator stable and secure. If you would li
 
 (Credits: Some sections are adapted from https://github.com/PostgREST/postgrest/blob/master/.github/CONTRIBUTING.md and
  https://github.com/hasura/graphql-engine/blob/master/CONTRIBUTING.md)
+
+
+## 7. Coding Guidelines
+
+Whenever contributing code, please adhere to our [Coding Guidelines](CODING_GUIDELINES.md)

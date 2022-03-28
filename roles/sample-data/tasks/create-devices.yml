@@ -23,7 +23,7 @@
           DO $do$ BEGIN
           IF NOT EXISTS (SELECT * FROM management WHERE mgm_name='{{ sample_fortigate_name }}') THEN 
           insert into management 
-          (dev_typ_id,mgm_name,ssh_private_key,ssh_hostname,ssh_user,do_not_import,config_path,importer_hostname)
+          (dev_typ_id,mgm_name,secret,ssh_hostname,ssh_user,do_not_import,config_path,importer_hostname)
           VALUES (4,'{{ sample_fortigate_name }}','{{ sample_ssh_priv_key }}','{{ import_sample_server }}','{{ sample_config_user }}',false,'sample-configs/fortinet_demo/','{{ importer_hostname }}');
           END IF; END $do$ 
 
@@ -43,7 +43,7 @@
         query: >
           DO $do$ BEGIN 
           IF NOT EXISTS (SELECT * FROM management WHERE mgm_name='checkpoint_demo') THEN 
-          insert into management (dev_typ_id,mgm_name,ssh_private_key,ssh_hostname,ssh_user,do_not_import,config_path,importer_hostname) 
+          insert into management (dev_typ_id,mgm_name,secret,ssh_hostname,ssh_user,do_not_import,config_path,importer_hostname) 
           VALUES (7,'checkpoint_demo','{{ sample_ssh_priv_key }}','{{ import_sample_server }}','{{ sample_config_user }}',false, 'sample-configs/checkpoint_demo/','{{ importer_hostname }}'); 
           END IF; END $do$ 
       when: sample_role_purpose is not match('test')

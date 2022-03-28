@@ -963,14 +963,14 @@ INSERT INTO txt VALUES ('new_managements',      'German', 	'Neue Managements');
 INSERT INTO txt VALUES ('new_managements',      'English', 	'New Managements');
 INSERT INTO txt VALUES ('new_devices',          'German', 	'Neue Gateways');
 INSERT INTO txt VALUES ('new_devices',          'English', 	'New Gateways');
-INSERT INTO txt VALUES ('deleted_managements',  'German', 	'Gel&ounl;schte Managements');
+INSERT INTO txt VALUES ('deleted_managements',  'German', 	'Gel&ouml;schte Managements');
 INSERT INTO txt VALUES ('deleted_managements',  'English', 	'Deleted Managements');
-INSERT INTO txt VALUES ('deleted_devices',      'German', 	'Gel&ounl;schte Gateways');
+INSERT INTO txt VALUES ('deleted_devices',      'German', 	'Gel&ouml;schte Gateways');
 INSERT INTO txt VALUES ('deleted_devices',      'English', 	'Deleted Gateways');
 INSERT INTO txt VALUES ('analyze_actions',      'German', 	'Aktionen analysieren');
 INSERT INTO txt VALUES ('analyze_actions',      'English', 	'Analyze Actions');
 INSERT INTO txt VALUES ('do_all_changes',       'German', 	'Alle &Auml;nderungen ausf&uuml;hren');
-INSERT INTO txt VALUES ('do_all_changes',       'English', 	'Do all changes');
+INSERT INTO txt VALUES ('do_all_changes',       'English', 	'Make all changes');
 INSERT INTO txt VALUES ('change_management_state','German', 'Mamagement-Status &auml;ndern');
 INSERT INTO txt VALUES ('change_management_state','English','Change management state');
 INSERT INTO txt VALUES ('change_device_state',  'German',   'Gateway-Status &auml;ndern');
@@ -1164,8 +1164,8 @@ INSERT INTO txt VALUES ('U5413', 'English', 'Adapt your personal reporting setti
 INSERT INTO txt VALUES ('U5414', 'German',  'Anpassung der pers&ouml;nlichen Rezertifizierungseinstellungen');
 INSERT INTO txt VALUES ('U5414', 'English', 'Adapt your personal recertification settings');
 
-INSERT INTO txt VALUES ('U7001', 'German',  '&Uuml;berblick, was im Firewall Orchestrator passiert');
-INSERT INTO txt VALUES ('U7001', 'English', 'View what is going on in Firewall Orchestrator');
+INSERT INTO txt VALUES ('U7001', 'German',  '&Uuml;berblick der Ereignisse im Firewall Orchestrator');
+INSERT INTO txt VALUES ('U7001', 'English', 'Alerts and events inside Firewall Orchestrator');
 INSERT INTO txt VALUES ('U7002', 'German',  'Daten sind dann verloren. Erw&auml;gen Sie eine Deaktivierung.');
 INSERT INTO txt VALUES ('U7002', 'English', 'Data will be lost. Consider deactivation.');
 INSERT INTO txt VALUES ('U7003', 'German',  'L&ouml;scht alle Beispieldaten (auf "_demo" endend): Managements, Gateways, Nutzer, Mandanten, Gruppen');

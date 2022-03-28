@@ -1,9 +1,11 @@
-import logging, copy
+from asyncio.log import logger
+import copy
 from common import resolve_raw_objects, extend_string_list, list_delimiter, nat_postfix
 from fmgr_service import create_svc_object
 from fmgr_network import resolve_objects, create_network_object, get_first_ip_of_destination
 import fmgr_zone, fmgr_getter
 from fmgr_gw_networking import get_matching_route, get_ip_of_interface, get_device_from_package
+from fwo_log import getFwoLogger
 
 rule_access_scope_v4 = ['rules_global_header_v4', 'rules_adom_v4', 'rules_global_footer_v4']
 rule_access_scope_v6 = ['rules_global_header_v6', 'rules_adom_v6', 'rules_global_footer_v6']
@@ -34,8 +36,9 @@ def initializeRulebases(raw_config):
         raw_config.update({'rules_adom_nat': {}})
 
 
-def getAccessPolicy(sid, fm_api_url, raw_config, adom_name, device, limit, debug_level):
+def getAccessPolicy(sid, fm_api_url, raw_config, adom_name, device, limit, debug_level=0):
     consolidated = '' # '/consolidated'
+    logger = getFwoLogger(debug_level=debug_level)
 
     local_pkg_name = device['local_rulebase_name']
     global_pkg_name = device['global_rulebase_name']
@@ -44,7 +47,7 @@ def getAccessPolicy(sid, fm_api_url, raw_config, adom_name, device, limit, debug
 
     # get global header rulebase:
     if device['global_rulebase_name'] is None or device['global_rulebase_name'] == '':
-        logging.debug('no global rulebase name defined in fortimanager, ADOM=' + adom_name + ', local_package=' + local_pkg_name)
+        logger.debug('no global rulebase name defined in fortimanager, ADOM=' + adom_name + ', local_package=' + local_pkg_name)
     else:
         fmgr_getter.update_config_with_fortinet_api_call(
             raw_config['rules_global_header_v4'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/header" + consolidated + "/policy", local_pkg_name, debug=debug_level, limit=limit)
@@ -65,14 +68,13 @@ def getAccessPolicy(sid, fm_api_url, raw_config, adom_name, device, limit, debug
             raw_config['rules_global_footer_v6'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/footer" + consolidated + "/policy6", local_pkg_name, debug=debug_level, limit=limit)
 
 
-def getNatPolicy(sid, fm_api_url, raw_config, adom_name, device, limit, debug_level):
+def getNatPolicy(sid, fm_api_url, raw_config, adom_name, device, limit, debug_level=0):
     scope = 'global'
     pkg = device['global_rulebase_name']
     if pkg is not None and pkg != '':   # only read global rulebase if it exists
         for nat_type in ['central/dnat', 'central/dnat6', 'firewall/central-snat-map']:
             fmgr_getter.update_config_with_fortinet_api_call(
                 raw_config['rules_global_nat'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['local_rulebase_name'], debug=debug_level, limit=limit)
-                # raw_config['rules_global_nat'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['dev_name'], debug=debug_level, limit=limit)
 
     scope = 'adom/'+adom_name
     pkg = device['local_rulebase_name']
@@ -81,8 +83,8 @@ def getNatPolicy(sid, fm_api_url, raw_config, adom_name, device, limit, debug_le
             raw_config['rules_adom_nat'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['local_rulebase_name'], debug=debug_level, limit=limit)
 
 
-def normalize_access_rules(full_config, config2import, import_id, routing_table=[], interface_list=[], mgm_details={}, jwt=None):
-
+def normalize_access_rules(full_config, config2import, import_id, mgm_details={}, jwt=None, debug_level=0):
+    logger = getFwoLogger(debug_level=debug_level)
     rules = []
     # first_v4, first_v6 = check_headers_needed(full_config, rule_access_scope)
     first_v4 = True
@@ -95,9 +97,9 @@ def normalize_access_rules(full_config, config2import, import_id, routing_table=
         src_ref_all = resolve_raw_objects("all", list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id, mgm_id=mgm_details['id'])
         dst_ref_all = resolve_raw_objects("all", list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id, mgm_id=mgm_details['id'])
         for localPkgName in full_config[rule_table]:
-            device_name = get_device_from_package(localPkgName, mgm_details)
+            device_name = get_device_from_package(localPkgName, mgm_details, debug_level=debug_level)
             if device_name is None:
-                logging.info('normalize_access_rules - no matching device found for package "' + localPkgName + '" in rule_table ' + rule_table)
+                logger.info('normalize_access_rules - no matching device found for package "' + localPkgName + '" in rule_table ' + rule_table)
             else:
                 rule_number, first_v4, first_v6 = insert_headers(rule_table, first_v6, first_v4, full_config, rules, import_id, localPkgName,src_ref_all,dst_ref_all,rule_number)
 
@@ -157,7 +159,7 @@ def normalize_access_rules(full_config, config2import, import_id, routing_table=
                         rule_type=rule_table, jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object', mgm_id=mgm_details['id']) })
                     rule.update({ 'rule_svc_refs': rule['rule_svc'] }) # services do not have uids, so using name instead
 
-                    xlate_rule = handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, import_id, localPkgName, device_name)
+                    xlate_rule = handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, import_id, localPkgName, device_name, debug_level=debug_level)
                     rules.append(rule)
                     if xlate_rule is not None:
                         rules.append(xlate_rule)
@@ -319,33 +321,34 @@ def create_xlate_rule(rule):
     return xlate_rule
 
 
-def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, import_id, localPkgName, device_name):
+def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, import_id, localPkgName, device_name, debug_level=0):
     # now dealing with VIPs (dst NAT part) of combined rules
+    logger = getFwoLogger(debug_level=debug_level)
     xlate_rule = None
 
     # dealing with src NAT part of combined rules
     if "nat" in rule_orig and rule_orig["nat"]==1:
-        #logging.debug("found mixed Access/NAT rule no. " + str(nat_rule_number))
+        logger.debug("found mixed Access/NAT rule no. " + str(nat_rule_number))
         nat_rule_number += 1
         xlate_rule = create_xlate_rule(rule)
         if 'ippool' in rule_orig:
             if rule_orig['ippool']==0:  # hiding behind outbound interface
                 interface_name = 'unknownIF'
                 destination_interface_ip = '0.0.0.0'
-                destination_ip = get_first_ip_of_destination(rule['rule_dst_refs'], config2import) # get an ip of destination
+                destination_ip = get_first_ip_of_destination(rule['rule_dst_refs'], config2import, debug_level=debug_level) # get an ip of destination
                 if destination_ip is None:
-                    logging.warning('src nat behind interface: found no valid destination ip in rule with UID ' + rule['rule_uid'])
+                    logger.warning('src nat behind interface: found no valid destination ip in rule with UID ' + rule['rule_uid'])
                 else:
-                    matching_route = get_matching_route(destination_ip, config2import['networking'][device_name]['routingv4'])
+                    matching_route = get_matching_route(destination_ip, config2import['networking'][device_name]['routingv4'], debug_level=debug_level)
                     if matching_route is None:
-                        logging.warning('src nat behind interface: found no matching route in rule with UID '
+                        logger.warning('src nat behind interface: found no matching route in rule with UID '
                             + rule['rule_uid'] + ', dest_ip: ' + destination_ip)
                     else:
                         destination_interface_ip = get_ip_of_interface(matching_route['interface'], config2import['networking'][device_name]['interfaces'])
                         interface_name = matching_route['interface'] # ['name']
                         hideInterface=interface_name
                         if destination_interface_ip is None:
-                            logging.warning('src nat behind interface: found no matching interface IP in rule with UID '
+                            logger.warning('src nat behind interface: found no matching interface IP in rule with UID '
                             + rule['rule_uid'] + ', dest_ip: ' + destination_ip)
         
                 # add dummy object "outbound-interface"
@@ -362,22 +365,22 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, im
                 poolNameArray = rule_orig['poolname']
                 if len(poolNameArray)>0:
                     if len(poolNameArray)>1:
-                        logging.warning("found more than one ippool - ignoring all but first pool")
+                        logger.warning("found more than one ippool - ignoring all but first pool")
                     poolName = poolNameArray[0]
                     xlate_rule['rule_src'] = poolName
                     xlate_rule['rule_src_refs'] =  poolName
                 else:
-                    logging.warning("found ippool rule without ippool")
+                    logger.warning("found ippool rule without ippool: " + rule['rule_uid'])
             else:
-                logging.warning("found ippool rule with unexpected ippool value: " + rule_orig['ippool'])
+                logger.warning("found ippool rule with unexpected ippool value: " + rule_orig['ippool'])
         
         if 'natip' in rule_orig and rule_orig['natip']!=["0.0.0.0","0.0.0.0"]:
-            logging.warning("found explicit natip rule - ignoring for now")
+            logger.warning("found explicit natip rule - ignoring for now: " + rule['rule_uid'])
             # need example for interpretation of config
 
     # todo: find out how match-vip=1 influences natting (only set in a few vip-nat rules)
     # if "match-vip" in rule_orig and rule_orig["match-vip"]==1:
-    #     logging.warning("found VIP destination Access/NAT rule (but not parsing yet); no. " + str(vip_nat_rule_number))
+    #     logger.warning("found VIP destination Access/NAT rule (but not parsing yet); no. " + str(vip_nat_rule_number))
     #     vip_nat_rule_number += 1
 
     # deal with vip natting: check for each (dst) nw obj if it contains "obj_nat_ip"

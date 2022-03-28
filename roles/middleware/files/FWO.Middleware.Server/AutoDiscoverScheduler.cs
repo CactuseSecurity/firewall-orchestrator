@@ -119,7 +119,10 @@ namespace FWO.Middleware.Server
                     try
                     {
                         AutoDiscoveryBase autodiscovery = new AutoDiscoveryBase(superManagement, apiConnection);
-                        List<ActionItem> actions = autodiscovery.ConvertToActions(await autodiscovery.Run());
+
+                        List<Management> diffList = await autodiscovery.Run();
+                        List<ActionItem> actions = autodiscovery.ConvertToActions(diffList);
+                        // List<ActionItem> actions = autodiscovery.ConvertToActions(await autodiscovery.Run());
 
                         int ChangeCounter = 0;
 
@@ -138,13 +141,12 @@ namespace FWO.Middleware.Server
                     {
                         Log.WriteError("Autodiscovery", $"Ran into exception while auto-discovering management {superManagement.Name} (id: {superManagement.Id}) ", excMgm);
                         ActionItem actionException = new ActionItem();
+                        actionException.Number = 0;
+                        actionException.ActionType = ActionCode.WaitForTempLoginFailureToPass.ToString();
                         actionException.ManagementId = superManagement.Id;
                         actionException.Supermanager = superManagement.Name;
                         actionException.JsonData = excMgm.Message;
-                        await setAlert(actionException); // GlobalConfig.kAutodiscovery, AlertCode.NoImport, "AutoDiscovery", "Exception during autodiscovery", superManagement.Id, excMgm);
-
-                        // Log.WriteAlert($"source: \"{GlobalConfig.kAutodiscovery}\"",
-                        //     $"userId: \"0\", title: \"Error encountered while trying to autodiscover management {superManagement.Name} (id: {superManagement.Id})\", description: \"{excMgm}\", alertCode: \"{AlertCode.Autodiscovery}\"");
+                        await setAlert(actionException);
                         await AddAutoDiscoverLogEntry(1, "Scheduled Autodiscovery", $"Ran into exception while handling management {superManagement.Name} (id: {superManagement.Id}): " + excMgm.Message, superManagement.Id);
                     }
                 }
@@ -163,11 +165,15 @@ namespace FWO.Middleware.Server
             long? alertId = null;
             try
             {
+                string title = "Supermanagement: " + action.Supermanager;
+                Log.WriteAlert($"source: \"{GlobalConfig.kAutodiscovery}\"",
+                    $"userId: \"0\", title: \"{title}\", type: \"{action.ActionType}\", " +
+                    $"mgmId: \"{action.ManagementId}\", devId: \"{action.DeviceId}\", jsonData: \"{action.JsonData?.ToString()}\", refAlert: \"{action.RefAlertId}\", alertCode: \"{AlertCode.Autodiscovery}\"");
                 var Variables = new
                 {
                     source = GlobalConfig.kAutodiscovery,
                     userId = 0,
-                    title = action.Supermanager,
+                    title = title,
                     description = action.ActionType,
                     mgmId = action.ManagementId,
                     devId = action.DeviceId,
@@ -175,9 +181,6 @@ namespace FWO.Middleware.Server
                     refAlert = action.RefAlertId,
                     alertCode = (int)AlertCode.Autodiscovery
                 };
-                Log.WriteAlert($"source: \"{GlobalConfig.kAutodiscovery}\"",
-                    $"userId: \"0\", title: \"{action.Supermanager}\", description: \"{action.ActionType}\", " +
-                    $"mgmId: \"{action.ManagementId}\", devId: \"{action.DeviceId}\", jsonData: \"{action.JsonData}\", refAlert: \"{action.RefAlertId}\", alertCode: \"{AlertCode.Autodiscovery}\"");
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addAlert, Variables)).ReturnIds;
                 if (returnIds != null)
                 {
@@ -188,7 +191,7 @@ namespace FWO.Middleware.Server
                     }
                     // Acknowledge older alert for same problem
                     Alert? existingAlert = openAlerts.FirstOrDefault(x => x.AlertCode == AlertCode.Autodiscovery
-                                && x.Description == action.ActionType && x.ManagementId == action.ManagementId && x.DeviceId == action.DeviceId);
+                                && x.Description == action.ActionType && x.ManagementId == action.ManagementId);
                     if (existingAlert != null)
                     {
                         await AcknowledgeAlert(existingAlert.Id);
@@ -198,8 +201,6 @@ namespace FWO.Middleware.Server
                 {
                     Log.WriteError("Write Alert", "Log could not be written to database");
                 }
-                Log.WriteAlert($"source: \"{GlobalConfig.kAutodiscovery}\"",
-                    $"action: \"{action.Supermanager}\", type: \"{action.ActionType}\", mgmId: \"{action.ManagementId}\", devId: \"{action.DeviceId}\", details: \"{action.JsonData}\", alertId: \"{action.RefAlertId}\"");
             }
             catch (Exception exc)
             {

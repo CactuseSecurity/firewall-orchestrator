@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 
 import argparse, requests, requests.packages
-import time, sys, logging
-from common import importer_base_dir
+import time, sys
+from common import importer_base_dir, set_ssl_verification
 sys.path.append(importer_base_dir)
-import common, getter, cpcommon
+import getter, cpcommon, fwo_log
 
 requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
@@ -35,7 +35,7 @@ with open(args.password, "r") as password_file:
 details_level = "full"    # 'standard'
 use_object_dictionary = 'false'
 debug_level = int(args.debug)
-common.set_log_level(log_level=debug_level, debug_level=debug_level)
+logger = fwo_log.getFwoLogger(debug_level=debug_level)
 starttime = int(time.time())
 full_config_json = {}
 
@@ -57,9 +57,9 @@ mgm_details = {
 }
 
 cpcommon.get_basic_config (full_config_json, mgm_details, config_filename=args.out,
-    force=args.force, proxy=args.proxy, limit=args.limit, details_level=details_level, test_version=args.testing, debug_level=debug_level, ssl_verification=getter.set_ssl_verification(args.ssl))
+    force=args.force, proxy=args.proxy, limit=args.limit, details_level=details_level, test_version=args.testing, debug_level=debug_level, ssl_verification=set_ssl_verification(args.ssl, debug_level=debug_level))
 
 duration = int(time.time()) - starttime
-logging.debug ( "checkpointR8x/get_config - duration: " + str(duration) + "s" )
+logger.debug ( "checkpointR8x/get_config - duration: " + str(duration) + "s" )
 
 sys.exit(0)

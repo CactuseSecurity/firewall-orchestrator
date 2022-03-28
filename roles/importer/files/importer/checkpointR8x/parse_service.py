@@ -102,7 +102,7 @@ def add_member_names_for_svc_group(idx, svc_objects):
     svc_objects.insert(idx, group)
 
 
-def parse_service_objects_to_json(full_config, config2import, import_id):
+def parse_service_objects_to_json(full_config, config2import, import_id, debug_level=0):
     svc_objects = []
     for svc_table in full_config['object_tables']:
         collect_svc_objects(svc_table, svc_objects)

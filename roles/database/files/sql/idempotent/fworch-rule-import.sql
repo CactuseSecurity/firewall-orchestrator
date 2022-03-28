@@ -41,13 +41,13 @@ BEGIN
 		b_is_initial_import := TRUE;
 		b_rule_order_to_be_written := TRUE; 
 	END IF;
-	RAISE DEBUG 'import_rules - importing rulebase: %', v_rulebase_name;
+	-- RAISE DEBUG 'import_rules - importing rulebase: %', v_rulebase_name;
 
 	b_rule_order_to_be_written := import_rules_xlate(i_mgm_id, i_dev_id, i_current_import_id, v_rulebase_name, b_is_initial_import, b_rule_order_to_be_written) OR b_rule_order_to_be_written;
 	b_rule_order_to_be_written := import_rules_access(i_mgm_id, i_dev_id, i_current_import_id, v_rulebase_name, b_is_initial_import, b_rule_order_to_be_written) OR b_rule_order_to_be_written;
 	b_rule_order_to_be_written := import_rules_combined(i_mgm_id, i_dev_id, i_current_import_id, v_rulebase_name, b_is_initial_import, b_rule_order_to_be_written, v_uid) OR b_rule_order_to_be_written;
 
-	RAISE DEBUG 'import_rules - after insert loop';
+	-- RAISE DEBUG 'import_rules - after insert loop';
 	IF NOT b_is_initial_import THEN	-- set active=false for the old version of rules that have been changed
 		i_change_admin := get_last_change_admin_of_rulebase_change(i_current_import_id,i_dev_id);
 		FOR r_rule IN -- every deleted Regel is inserted in changelog_rule
@@ -66,7 +66,7 @@ BEGIN
 			  WHERE active AND dev_id=i_dev_id AND mgm_id=i_mgm_id AND rule_last_seen<i_current_import_id );
 		RAISE DEBUG 'import_rules - after active=false update';
 	END IF;
-	RETURN TRUE;
+	RETURN TRUE; -- we always enforce new rule number generation, b_rule_order_to_be_written not needed?
 END; 
 $$ LANGUAGE plpgsql;
 
@@ -84,7 +84,6 @@ DECLARE
 BEGIN
 	-- first handle xlate rules defining translation (rule_type = 'xlate')
 	-- we need these first to be able to set reference in original packet matching rule later
-
 	FOR r_rule IN -- check each rule if it was changed add add accordingly
 		SELECT rule_id FROM import_rule WHERE control_id = i_current_import_id AND rulebase_name = v_rulebase_name AND rule_type = 'xlate'
 		LOOP
@@ -219,6 +218,57 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION security_relevant_change(record, record, INT, INT, INT, INT) RETURNS BOOLEAN AS $$
+DECLARE
+    r_existing ALIAS FOR $1;
+    r_to_import ALIAS FOR $2;
+	i_fromzone ALIAS FOR $3;
+	i_tozone ALIAS FOR $4;
+	i_action_id ALIAS FOR $5;
+	i_track_id ALIAS FOR $6;
+BEGIN
+		RETURN NOT (
+			are_equal(r_existing.rule_uid, r_to_import.rule_uid) AND
+			are_equal(r_existing.rule_ruleid,r_to_import.rule_ruleid) AND
+			are_equal(r_existing.rule_from_zone, i_fromzone) AND
+			are_equal(r_existing.rule_to_zone, i_tozone) AND
+			are_equal(r_existing.rule_disabled, r_to_import.rule_disabled) AND
+			are_equal(r_existing.rule_src, r_to_import.rule_src) AND
+			are_equal(r_existing.rule_dst, r_to_import.rule_dst) AND
+			are_equal(r_existing.rule_svc, r_to_import.rule_svc) AND
+			are_equal(r_existing.rule_src_refs, r_to_import.rule_src_refs) AND
+			are_equal(r_existing.rule_dst_refs, r_to_import.rule_dst_refs) AND
+			are_equal(r_existing.rule_svc_refs, r_to_import.rule_svc_refs) AND
+			are_equal(r_existing.rule_src_neg, r_to_import.rule_src_neg) AND
+			are_equal(r_existing.rule_dst_neg, r_to_import.rule_dst_neg) AND
+			are_equal(r_existing.rule_svc_neg, r_to_import.rule_svc_neg) AND
+			are_equal(r_existing.action_id, i_action_id) AND
+			are_equal(r_existing.track_id, i_track_id) AND
+			are_equal(r_existing.rule_installon, r_to_import.rule_installon) AND
+			-- are_equal(r_existing.access_rule, r_to_import.access_rule) AND
+			-- cannot compare the following two as they are not part of import_rule:
+--			are_equal(r_existing.parent_rule_id, r_to_import.parent_rule_id) AND
+--			are_equal(r_existing.parent_rule_type, r_to_import.parent_rule_type) AND
+			are_equal(r_existing.rule_time, r_to_import.rule_time) 
+		);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION non_security_relevant_change(record, record) RETURNS BOOLEAN AS $$
+DECLARE
+    r_existing ALIAS FOR $1;
+    r_to_import ALIAS FOR $2;
+BEGIN
+		RETURN NOT (
+			are_equal(r_existing.rule_name,r_to_import.rule_name) AND 
+			are_equal(r_existing.rule_head_text, r_to_import.rule_head_text) AND
+			-- are_equal(r_existing.nat_rule, r_to_import.nat_rule) AND
+			are_equal(r_existing.rule_comment, r_to_import.rule_comment) 
+		);
+END;
+$$ LANGUAGE plpgsql;
+
+
 ----------------------------------------------------
 -- FUNCTION:   insert_single_rule
 -- Purpose     adds a single rule of the current import into the rule table
@@ -265,11 +315,7 @@ DECLARE
 	r_parent_rule RECORD;
 	b_access_rule BOOLEAN;
 	b_nat_rule BOOLEAN;
-	-- v_local_error VARCHAR;
-	-- v_error_str VARCHAR;
 BEGIN
-	RAISE DEBUG 'insert_single_rule start, rule_id: %', id;
-
     b_insert := FALSE;    b_change := FALSE;    b_change_sr := FALSE;
     SELECT INTO r_to_import * FROM import_rule WHERE rule_id = id; -- get rule record from import_rule
 -- fetch zone id ------------------------------------------------------------------------------------------
@@ -295,7 +341,6 @@ BEGIN
 		i_rule_num := CAST(r_to_import.rule_num AS INTEGER); 								-- cast text into integer (todo: add error handling)
     END IF;    
 -- which rule was changed? -----------------------------------------------------------------
-	RAISE DEBUG 'insert_single_rule 1, rule_id: %', id;
 	IF (r_to_import.rule_uid IS NULL) THEN -- removed char_length-check due to utf-8 problems
 		PERFORM error_handling('ERR_RULE_NOT_IDENTIFYABLE');
 	END IF;
@@ -312,9 +357,6 @@ BEGIN
 		b_nat_rule := FALSE;
 	END IF;
 
-	-- SELECT INTO r_existing * FROM rule WHERE
-	-- 	rule_uid=r_to_import.rule_uid AND rule.mgm_id=i_mgm_id AND rule.dev_id=i_dev_id AND rule.active AND rule.access_rule=b_access_rule AND rule.nat_rule=b_nat_rule;
-
 	IF r_to_import.rule_type = 'original' THEN
 		SELECT INTO r_existing * FROM rule WHERE
 			rule_uid=r_to_import.rule_uid AND rule.mgm_id=i_mgm_id AND rule.dev_id=i_dev_id AND rule.active AND rule.nat_rule AND NOT rule.xlate_rule IS NULL;
@@ -322,54 +364,19 @@ BEGIN
 		IF r_to_import.rule_type = 'xlate' THEN
 			SELECT INTO r_existing * FROM rule WHERE
 				rule_uid=r_to_import.rule_uid AND rule.mgm_id=i_mgm_id AND rule.dev_id=i_dev_id AND rule.active AND rule.nat_rule AND rule.xlate_rule IS NULL;
-
-			ELSE -- standard access rule or combined original rule 
-				SELECT INTO r_existing * FROM rule WHERE
-	--				rule_uid=r_to_import.rule_uid AND rule.mgm_id=i_mgm_id AND rule.dev_id=i_dev_id AND rule.active AND NOT rule.nat_rule AND rule.access_rule;
-					rule_uid=r_to_import.rule_uid AND rule.mgm_id=i_mgm_id AND rule.dev_id=i_dev_id AND rule.active AND rule.access_rule AND 
-					((rule.nat_rule AND rule.xlate_rule IS NOT NULL) OR NOT rule.nat_rule AND rule.xlate_rule IS NULL);
-			END IF;
+		ELSE -- standard access rule or combined original rule 
+			SELECT INTO r_existing * FROM rule WHERE
+				rule_uid=r_to_import.rule_uid AND rule.mgm_id=i_mgm_id AND rule.dev_id=i_dev_id AND rule.active AND rule.access_rule AND 
+				((rule.nat_rule AND rule.xlate_rule IS NOT NULL) OR NOT rule.nat_rule AND rule.xlate_rule IS NULL);
 		END IF;
+	END IF;
 
-
-	-- IF NOT SELECT COUNT(r_existing) == 1
-	RAISE DEBUG 'insert_single_rule 2, rule_id: %', id;
 	IF FOUND THEN  -- rule already exists
-		RAISE DEBUG 'insert_single_rule 3, rule_id: %', id;
-		IF ( NOT (
-			are_equal(r_existing.rule_uid, r_to_import.rule_uid) AND
-			are_equal(r_existing.rule_ruleid,r_to_import.rule_ruleid) AND
-			are_equal(r_existing.rule_from_zone,i_fromzone) AND
-			are_equal(r_existing.rule_to_zone,i_tozone) AND
-			are_equal(r_existing.rule_disabled, r_to_import.rule_disabled) AND
-			are_equal(r_existing.rule_src, r_to_import.rule_src) AND
-			are_equal(r_existing.rule_dst, r_to_import.rule_dst) AND
-			are_equal(r_existing.rule_svc, r_to_import.rule_svc) AND
-			are_equal(r_existing.rule_src_refs,r_to_import.rule_src_refs) AND
-			are_equal(r_existing.rule_dst_refs, r_to_import.rule_dst_refs) AND
-			are_equal(r_existing.rule_svc_refs, r_to_import.rule_svc_refs) AND
-			are_equal(r_existing.rule_src_neg, r_to_import.rule_src_neg) AND
-			are_equal(r_existing.rule_dst_neg, r_to_import.rule_dst_neg) AND
-			are_equal(r_existing.rule_svc_neg, r_to_import.rule_svc_neg) AND
-			are_equal(r_existing.action_id, i_action_id) AND
-			are_equal(r_existing.track_id, i_track_id) AND
-			are_equal(r_existing.rule_installon, r_to_import.rule_installon) AND
-			-- are_equal(r_existing.access_rule, r_to_import.access_rule) AND
-			-- cannot compare the following two as they are not part of import_rule:
---			are_equal(r_existing.parent_rule_id, r_to_import.parent_rule_id) AND
---			are_equal(r_existing.parent_rule_type, r_to_import.parent_rule_type) AND
-			are_equal(r_existing.rule_time, r_to_import.rule_time) ))
-		THEN
-			RAISE DEBUG 'insert_single_rule 4, rule_id: %', id;
+		IF security_relevant_change(r_existing, r_to_import, i_fromzone, i_tozone, i_action_id, i_track_id) THEN
 			b_change := TRUE;
 			b_change_sr := TRUE;
 		END IF;
-		IF ( NOT (		--	from here: non-security-relevant changes
-			are_equal(r_existing.rule_name,r_to_import.rule_name) AND 
-			are_equal(r_existing.rule_head_text, r_to_import.rule_head_text) AND
-			-- are_equal(r_existing.nat_rule, r_to_import.nat_rule) AND
-			are_equal(r_existing.rule_comment, r_to_import.rule_comment) ))
-		THEN
+		IF non_security_relevant_change(r_existing, r_to_import) THEN
 			b_change := TRUE;
 		END IF;
 		IF (b_change)
@@ -385,20 +392,16 @@ BEGIN
 	IF (b_change OR b_insert) THEN
 		PERFORM error_handling(v_change_id, r_to_import.rule_uid);
 		i_admin_id := get_admin_id_from_name(r_to_import.last_change_admin);   
-		RAISE DEBUG 'rule_change_or_insert: %', r_to_import.rule_uid;
 		-- execute INSERT statement
 		IF r_to_import.rule_svc IS NULL OR r_to_import.rule_src IS NULL OR r_to_import.rule_dst IS NULL THEN
 			RAISE NOTICE 'rule_change with svc, dst or svc = NULL: %', r_to_import.rule_uid;			
 		ELSE
-			RAISE DEBUG 'rule_change_or_insert_before_insert: %', r_to_import.rule_uid;
 			SELECT INTO r_meta rule_metadata_id FROM rule_metadata WHERE dev_id=i_dev_id AND rule_uid=r_to_import.rule_uid;
 			IF FOUND THEN
 				UPDATE rule_metadata SET rule_last_modified=now() WHERE dev_id=i_dev_id AND rule_uid=CAST(r_to_import.rule_uid AS TEXT);
 			ELSE
 				INSERT INTO rule_metadata (rule_uid, dev_id) VALUES(r_to_import.rule_uid, i_dev_id);
 			END IF;
-			RAISE DEBUG 'rule_change_after_rule_metadata change: %', r_to_import.rule_uid;
-
 			i_parent_rule_id := NULL;
 			i_parent_rule_type := NULL;
 			IF NOT r_to_import.parent_rule_uid IS NULL THEN
@@ -409,7 +412,6 @@ BEGIN
 					i_parent_rule_id := NULL;
 				ELSE
 					i_parent_rule_id := r_parent_rule.rule_id;
-					RAISE DEBUG 'rule_change_change setting parent rule type, uid: %', r_to_import.rule_uid;
 					IF r_parent_rule.action_name = 'inline-layer' THEN
 						i_parent_rule_type := 2; -- layer guard
 					ELSIF NOT r_parent_rule.rule_head_text IS NULL AND NOT r_parent_rule.rule_head_text='Placeholder for domain rules' THEN
@@ -434,17 +436,6 @@ BEGIN
 					i_control_id,i_control_id, i_dev_id, i_parent_rule_id, i_parent_rule_type, b_access_rule, b_nat_rule)
 				RETURNING rule_id INTO i_new_rule_id;
 			EXCEPTION WHEN OTHERS THEN
-				-- v_local_error := 'ERR-insert_single_rule@rule_uid: ' || CAST (r_to_import.rule_uid AS VARCHAR);
-				-- RAISE WARNING '%', v_local_error;
-				-- -- adding the error to potential other errors alread in import_control.import_errors
-				-- SELECT INTO v_error_str import_errors FROM import_control WHERE control_id=i_current_import_id;
-				-- IF NOT v_error_str IS NULL THEN
-				-- 	v_error_str := v_error_str || '\n' || v_local_error;
-				-- ELSE
-				-- 	v_error_str := v_local_error;
-				-- END IF;
-				-- UPDATE import_control SET import_errors = v_error_str WHERE control_id=i_current_import_id;
-				-- -- RETURN NULL;
 				RAISE EXCEPTION 'rule_change_change exception while inserting rule: 
 					mgm_id=%
 					rule_name=%
@@ -490,32 +481,23 @@ BEGIN
 			END;
 	
 			-- make changelog entry
-			RAISE DEBUG 'rule_change_or_insert_before_select_into: %', r_to_import.rule_uid;
-			-- SELECT INTO i_new_rule_id MAX(rule_id) FROM rule WHERE mgm_id=i_mgm_id; -- todo: dubious
 			IF (b_insert) THEN  -- rule was inserted and is no header rule
-				RAISE DEBUG 'rule_change_or_insert_insert_zweig: %', r_to_import.rule_uid;
 				IF b_is_initial_import
 				THEN	b_is_documented := TRUE; i_change_type := 2;
 				ELSE	b_is_documented := FALSE; t_outtext := NULL; i_change_type := 3;
 				END IF;
-				RAISE DEBUG 'rule_change_or_insert_insert_zweig_after_initial_import: %', r_to_import.rule_uid;
 				v_change_action := 'I';
 				i_old_rule_id := NULL;
 				IF r_to_import.rule_head_text IS NULL THEN
-					RAISE DEBUG 'rule_change_or_insert_insert_zweig_rule_head_text_is_null: %', r_to_import.rule_uid;
 					b_change_sr := TRUE;
 					t_outtext := NULL;
 					b_is_documented := FALSE;
 				ELSE
-					RAISE DEBUG 'rule_change_or_insert_insert_zweig_rule_head_text_is_not_null: %', r_to_import.rule_uid;
 					t_outtext := 'not sec relevant';
-					RAISE DEBUG 'rule_change_or_insert_insert_zweig_rule_head_text_is_not_null_after_NON_SECURITY_RELEVANT_CHANGE: %', r_to_import.rule_uid;
 					b_is_documented := TRUE;
 					b_change_sr := FALSE;
 				END IF;
-				RAISE DEBUG 'rule_change_or_insert_insert_zweig_END: %', r_to_import.rule_uid;
 			ELSE -- change
-				RAISE DEBUG 'rule_change_or_insert_change_zweig: %', r_to_import.rule_uid;
 				i_change_type := 3;
 				IF (b_change_sr) THEN
 					t_outtext := NULL;
@@ -527,12 +509,9 @@ BEGIN
 				-- todo: add test if it is only a rename, then we would not add a changelog_rule entry in the future
 				v_change_action := 'C';
 				i_old_rule_id := r_existing.rule_id;
-				RAISE DEBUG 'rule_change_or_insert_change_zweig_before_update_rule: %', r_to_import.rule_uid;
 				UPDATE rule SET active = FALSE WHERE rule_id = i_old_rule_id; -- change old rule version to non-active
-				RAISE DEBUG 'rule_change_or_insert_change_zweig_after_update_rule: %', r_to_import.rule_uid;
                 PERFORM import_rule_resolved_nwobj(i_mgm_id, i_old_rule_id, NULL, NULL, i_control_id, v_change_action, 'R');
 			END IF;
-			RAISE DEBUG 'rule_change_or_insert_before_changelog_rule_insert: %', r_to_import.rule_uid;
 			INSERT INTO changelog_rule
 				(control_id,new_rule_id,old_rule_id,change_action,import_admin,documented,changelog_rule_comment,
 				 mgm_id,dev_id,change_type_id,security_relevant)

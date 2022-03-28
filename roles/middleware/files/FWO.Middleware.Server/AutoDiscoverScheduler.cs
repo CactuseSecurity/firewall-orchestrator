@@ -146,10 +146,7 @@ namespace FWO.Middleware.Server
                         actionException.ManagementId = superManagement.Id;
                         actionException.Supermanager = superManagement.Name;
                         actionException.JsonData = excMgm.Message;
-                        await setAlert(actionException); // GlobalConfig.kAutodiscovery, AlertCode.NoImport, "AutoDiscovery", "Exception during autodiscovery", superManagement.Id, excMgm);
-
-                        // Log.WriteAlert($"source: \"{GlobalConfig.kAutodiscovery}\"",
-                        //     $"userId: \"0\", title: \"Error encountered while trying to autodiscover management {superManagement.Name} (id: {superManagement.Id})\", description: \"{excMgm}\", alertCode: \"{AlertCode.Autodiscovery}\"");
+                        await setAlert(actionException);
                         await AddAutoDiscoverLogEntry(1, "Scheduled Autodiscovery", $"Ran into exception while handling management {superManagement.Name} (id: {superManagement.Id}): " + excMgm.Message, superManagement.Id);
                     }
                 }
@@ -168,14 +165,15 @@ namespace FWO.Middleware.Server
             long? alertId = null;
             try
             {
+                string title = "Supermanagement: " + action.Supermanager;
                 Log.WriteAlert($"source: \"{GlobalConfig.kAutodiscovery}\"",
-                    $"userId: \"0\", title: \"{action.Supermanager}\", description: \"{action.ActionType}\", " +
-                    $"mgmId: \"{action.ManagementId}\", devId: \"{action.DeviceId}\", jsonData: {action.JsonData}, refAlert: \"{action.RefAlertId}\", alertCode: \"{AlertCode.Autodiscovery}\"");
+                    $"userId: \"0\", title: \"{title}\", type: \"{action.ActionType}\", " +
+                    $"mgmId: \"{action.ManagementId}\", devId: \"{action.DeviceId}\", jsonData: \"{action.JsonData?.ToString()}\", refAlert: \"{action.RefAlertId}\", alertCode: \"{AlertCode.Autodiscovery}\"");
                 var Variables = new
                 {
                     source = GlobalConfig.kAutodiscovery,
                     userId = 0,
-                    title = action.Supermanager,
+                    title = title,
                     description = action.ActionType,
                     mgmId = action.ManagementId,
                     devId = action.DeviceId,
@@ -203,8 +201,6 @@ namespace FWO.Middleware.Server
                 {
                     Log.WriteError("Write Alert", "Log could not be written to database");
                 }
-                Log.WriteAlert($"source: \"{GlobalConfig.kAutodiscovery}\"",
-                    $"action: \"{action.Supermanager}\", type: \"{action.ActionType}\", mgmId: \"{action.ManagementId}\", devId: \"{action.DeviceId}\", details: \"{action.JsonData}\", alertId: \"{action.RefAlertId}\"");
             }
             catch (Exception exc)
             {

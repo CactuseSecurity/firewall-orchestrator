@@ -495,6 +495,20 @@ CREATE OR REPLACE VIEW view_tenant_rules AS
 CREATE OR REPLACE VIEW view_device_names AS
 	SELECT 'Management: ' || mgm_name || ', Device: ' || dev_name AS dev_string, dev_id, mgm_id, dev_name, mgm_name FROM device LEFT JOIN management USING (mgm_id);
 
+-- view for ip address filtering
+DROP MATERIALIZED VIEW IF EXISTS nw_object_limits;
+CREATE MATERIALIZED VIEW nw_object_limits AS
+	select obj_id, mgm_id,
+		host ( object.obj_ip )::cidr as first_ip,
+		CASE 
+			WHEN object.obj_ip_end IS NULL
+			THEN host(broadcast(object.obj_ip))::cidr 
+			ELSE host(broadcast(object.obj_ip_end))::cidr 
+		END last_ip
+	from object;
+
+-- add indexes?
+
 ---------------------------------------------------------------------------------------------
 -- GRANTS on exportable Views
 ---------------------------------------------------------------------------------------------

@@ -20,9 +20,9 @@ fragment networkObjectDetails on object {
   obj_comment
   obj_member_names
   obj_member_refs
-  objgrps(order_by: { objgrp_member_id: asc }) {
+  objgrps(order_by: {objgrp_member_id: asc}) {
     id: objgrp_member_id
-    byId: objectByObjgrpMemberId {
+    byId: objectByObjgrpMemberId { 
       obj_id
       obj_name
       type: stm_obj_typ {
@@ -30,9 +30,13 @@ fragment networkObjectDetails on object {
       }
     }
   }
-  objgrp_flats(order_by: { objgrp_flat_member_id: asc }) {
+  objgrp_flats(order_by: {objgrp_flat_member_id: asc}) {
     id_flat: objgrp_flat_id
     byFlatId: objectByObjgrpFlatMemberId {
+      network_object_limits {
+        first_ip
+        last_ip
+      }
       obj_id
       obj_name
       type: stm_obj_typ {

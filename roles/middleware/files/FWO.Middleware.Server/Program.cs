@@ -35,7 +35,7 @@ while (true)
     // Repeat first api call in case graphql api is not started yet
     try
     {
-        connectedLdaps = apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections).Result;
+        connectedLdaps = apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getAllLdapConnections).Result;
         break;
     }
     catch (Exception ex)

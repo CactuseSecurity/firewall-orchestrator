@@ -1,5 +1,7 @@
 ﻿@using FWO.ApiClient
 @using FWO.Config.Api
+@using FWO.Config.Api.Data
+
 
 @page "/settings/report"
 @attribute [Authorize(Roles = "admin, reporter, reporter-viewall, recertifier, workflow-user, workflow-admin, auditor, fw-admin")]
@@ -11,26 +13,36 @@
 @(userConfig.GetText("U5413"))
 <hr />
 
-<form class="form-inline" onsubmit="return false">
-    <label for="elementsPerFetch" class="col-form-label col-sm-4">@(userConfig.GetText("elementsPerFetch")):</label>
-    <div class="col-sm-2">
-        <input id="elementsPerFetch" type="number" class="form-control form-control-sm" @bind="elementsPerFetch" />
+@if (configData != null)
+{
+    <form class="form-inline" onsubmit="return false">
+        <label for="elementsPerFetch" class="col-form-label col-sm-4">@(userConfig.GetText("elementsPerFetch")):</label>
+        <div class="col-sm-2">
+            <input id="elementsPerFetch" type="number" class="form-control form-control-sm" @bind="configData!.ElementsPerFetch" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="minCollapseAllDevices" class="col-form-label col-sm-4">@(userConfig.GetText("minCollapseAllDevices")):</label>
+        <div class="col-sm-2">
+            <input id="minCollapseAllDevices" type="number" class="form-control form-control-sm" @bind="configData!.MinCollapseAllDevices">
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="messageViewTime" class="col-form-label col-sm-4">@(userConfig.GetText("messageViewTime")):</label>
+        <div class="col-sm-2">
+            <input id="messageViewTime" type="number" class="form-control form-control-sm" @bind="configData!.MessageViewTime">
+        </div>
+    </form>
+    <hr />
+    <button class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
+}
+else
+{
+    <div class="spinner-border" role="status">
+        <span class="sr-only">Loading...</span>
     </div>
-</form>
-<form class="form-inline" onsubmit="return false">
-    <label for="minCollapseAllDevices" class="col-form-label col-sm-4">@(userConfig.GetText("minCollapseAllDevices")):</label>
-    <div class="col-sm-2">
-        <input id="minCollapseAllDevices" type="number" class="form-control form-control-sm" @bind="minCollapseAllDevices">
-    </div>
-</form>
-<form class="form-inline" onsubmit="return false">
-    <label for="messageViewTime" class="col-form-label col-sm-4">@(userConfig.GetText("messageViewTime")):</label>
-    <div class="col-sm-2">
-        <input id="messageViewTime" type="number" class="form-control form-control-sm" @bind="messageViewTime">
-    </div>
-</form>
-<hr />
-<button class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
+}
+
 
 
 @code
@@ -38,69 +50,33 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
-    ConfigDbAccess? config;
-    ConfigDbAccess? defaultConfig;
-    int elementsPerFetch = GlobalConfig.kDefaultInitElementsPerFetch;
-    int minCollapseAllDevices = GlobalConfig.kDefaultInitCollapseFrom;
-    int messageViewTime = GlobalConfig.kDefaultInitMessageViewTime;
+    ConfigData? configData;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            config = await ConfigDbAccess.ConstructAsync(apiConnection, userConfig);
-            defaultConfig = await ConfigDbAccess.ConstructAsync(apiConnection);
-
-            elementsPerFetch = GetIntSetting(elementsPerFetch, GlobalConfig.kElementsPerFetch);
-            minCollapseAllDevices = GetIntSetting(minCollapseAllDevices, GlobalConfig.kMinCollapseAllDevices);
-            messageViewTime = GetIntSetting(messageViewTime, GlobalConfig.kMessageViewTime);
+            configData = await userConfig.GetEditableConfig();
         }
-        catch (KeyNotFoundException) { }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("report_settings"), userConfig.GetText("E5421")+elementsPerFetch.ToString(), false);
+            DisplayMessageInUi!(exception, userConfig.GetText("report_settings"), userConfig.GetText("E5421"), false);
         }
-    }
-
-    private int GetIntSetting(int value, string setting)
-    {
-        string settingsValue = GetStringSetting(setting);
-        return (settingsValue != "" ? Int32.Parse(settingsValue) : value);
-    }
-
-//    private bool GetBoolSetting(bool value, string setting)
-//    {
-//        string settingsValue = GetStringSetting(setting);
-//        return (settingsValue != "" ? (settingsValue == "True" ? true : false) : value);
-//    }
-
-    private string GetStringSetting(string setting)
-    {
-        string settingsValue ="";
-        try
-        {
-            settingsValue = (config != null ? config.Get<string>(setting) : "");
-            if (settingsValue == "")
-            {
-                settingsValue = (defaultConfig != null ? defaultConfig.Get<string>(setting) : "");
-            }
-        }
-        catch (KeyNotFoundException) { }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("report_settings"), userConfig.GetText("E5302") + userConfig.GetText(setting) + ":" + settingsValue, false);
-        }
-        return settingsValue;
     }
 
     private async Task Save()
     {
         try
         {
-            await userConfig.ChangeConfigValue(GlobalConfig.kElementsPerFetch, elementsPerFetch.ToString(), apiConnection);
-            await userConfig.ChangeConfigValue(GlobalConfig.kMinCollapseAllDevices, minCollapseAllDevices.ToString(), apiConnection);
-            await userConfig.ChangeConfigValue(GlobalConfig.kMessageViewTime, messageViewTime.ToString(), apiConnection);            
-            DisplayMessageInUi!(null, userConfig.GetText("report_settings"), userConfig.GetText("U5301"), false);
+            if (configData != null)
+            {
+                await userConfig.WriteToDatabase(configData, apiConnection);
+                DisplayMessageInUi!(null, userConfig.GetText("report_settings"), userConfig.GetText("U5301"), false);             
+            }
+            else
+            {
+                throw new Exception("Data saved before loaded. This should be impossible.");
+            }
         }
         catch (Exception exception)
         {

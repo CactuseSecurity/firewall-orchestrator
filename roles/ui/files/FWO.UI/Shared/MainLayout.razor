@@ -44,8 +44,6 @@
     private string dialogTitle = "";
     private string dialogMessage = "";
     private string cssClass = "";
-    private int messageViewTime = GlobalConfig.kDefaultInitMessageViewTime;
-
     private object errorLock = new object();
 
     public enum MessageType
@@ -63,12 +61,6 @@
         DisplayMessageInUiFunction = DisplayMessageInUi;
 
         alertSubscription = apiConnection.GetSubscription<List<Alert>>(ApiExceptionHandler, OnAlertUpdate, MonitorQueries.subscribeAlertChanges);
-
-        string settingsValue = userConfig.GetConfigValue(GlobalConfig.kMessageViewTime);
-        if (settingsValue != "")
-        {
-            messageViewTime = int.Parse(settingsValue);
-        }
     }
 
     private void OnAlertUpdate(List<Alert> alerts)
@@ -82,7 +74,7 @@
         // Needed so there is no chance an error is announced by 2 threads at the same time.
         lock (errorLock)
         {
-            int showtime = messageViewTime * 1000; // convert to milliseconds
+            int showtime = userConfig.MessageViewTime * 1000; // convert to milliseconds
             
             switch(type)
             {
@@ -223,6 +215,11 @@
     {
         try
         {
+            Log.WriteAlert ($"source: \"{GlobalConfig.kUi}\"",
+                $"userId: \"{userConfig.User.DbId}\", title: \"{title}\", description: \"{message}\", alertCode: \"{AlertCode.UiError}\"");
+            
+            List<Alert> openAlerts = await apiConnection.SendQueryAsync<List<Alert>>(MonitorQueries.getOpenAlerts);
+            
             var Variables = new
             {
                 source = GlobalConfig.kUi,
@@ -231,17 +228,49 @@
                 description = message,
                 alertCode = (int)AlertCode.UiError
             };
-            Log.WriteAlert ($"source: \"ui\"", 
-                $"userId: \"{userConfig.User.DbId}\", title: \"{title}\", description: \"{message}\", alertCode: \"{AlertCode.UiError}\"");
             ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.MonitorQueries.addAlert, Variables)).ReturnIds;
-            if (returnIds == null)
+            if (returnIds != null)
+            {
+                try
+                {
+                    // Acknowledge older alert for same problem
+                    Alert? existingAlert = openAlerts.FirstOrDefault(x => x.AlertCode == AlertCode.UiError && x.UserId == userConfig.User.DbId && x.Title == title);
+                    if(existingAlert != null)
+                    {
+                        await AcknowledgeAlert(existingAlert.Id);
+                    }
+                }
+                catch(Exception exc)
+                {
+                    Log.WriteError("Acknowledge Alert", $"Could not auto acknowledge existing alert for user {userConfig.User.DbId}: ", exc);
+                }
+            }
+            else
             {
                 Log.WriteError("Write Alert", "Log could not be written to database");
             }
         }
         catch(Exception exc)
         {
-            Log.WriteError("Write Log", $"Could not write log for user {userConfig.User.DbId}: ", exc);
+            Log.WriteError("Write Alert", $"Could not write alert for user {userConfig.User.DbId}: ", exc);
+        }
+    }
+
+    public async Task AcknowledgeAlert(long alertId)
+    {
+        try
+        {
+            var Variables = new
+            {
+                id = alertId,
+                ackUser = 0,
+                ackTime = DateTime.Now
+            };
+            await apiConnection.SendQueryAsync<ReturnId>(MonitorQueries.acknowledgeAlert, Variables);
+        }
+        catch (Exception exception)
+        {
+            Log.WriteError("Acknowledge Alert", $"Could not acknowledge alert for ui: ", exception);
         }
     }
 }

@@ -49,21 +49,20 @@ namespace FWO.Report
 
         public Management[] Managements = new Management[]{};
         
-        // public Management[] ReportObjects = null;
-        
-
         public readonly DynGraphqlQuery Query;
         protected UserConfig userConfig;
+        public ReportType ReportType;
 
         private string htmlExport = "";
 
         // Pdf converter
         protected static readonly SynchronizedConverter converter = new SynchronizedConverter(new PdfTools());
 
-        public ReportBase(DynGraphqlQuery query, UserConfig UserConfig)
+        public ReportBase(DynGraphqlQuery query, UserConfig UserConfig, ReportType reportType)
         {
             Query = query;
             userConfig = UserConfig;
+            ReportType = reportType;
         }
 
         public abstract Task Generate(int rulesPerFetch, APIConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct);
@@ -82,6 +81,16 @@ namespace FWO.Report
         }
 
         public abstract string ExportToHtml();
+
+        public virtual string SetDescription()
+        {
+            int managementCounter = 0;
+            foreach (var management in Managements.Where(mgt => !mgt.Ignore))
+            {
+                managementCounter++;
+            }
+            return $"{managementCounter} {userConfig.GetText("managements")}";
+        }
 
         protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport)
         {
@@ -145,13 +154,13 @@ namespace FWO.Report
         public static ReportBase ConstructReport(string filterInput, DeviceFilter deviceFilter, TimeFilter timeFilter, ReportType reportType, UserConfig userConfig)
         {
             DynGraphqlQuery query = Compiler.Compile(filterInput, reportType, deviceFilter, timeFilter);
-
+ 
             return reportType switch
             {
-                ReportType.Statistics => new ReportStatistics(query, userConfig),
-                ReportType.Rules => new ReportRules(query, userConfig),
-                ReportType.Changes => new ReportChanges(query, userConfig),
-                ReportType.NatRules => new ReportNatRules(query, userConfig),
+                ReportType.Statistics => new ReportStatistics(query, userConfig, reportType),
+                ReportType.Rules => new ReportRules(query, userConfig, reportType),
+                ReportType.Changes => new ReportChanges(query, userConfig, reportType),
+                ReportType.NatRules => new ReportNatRules(query, userConfig, reportType),
                 _ => throw new NotSupportedException("Report Type is not supported."),
             };
         }

@@ -282,7 +282,7 @@ LANGUAGE plpgsql;
 
 ----------------------------------------------------
 -- FUNCTION:  error_handling (einmal mit und einmal ohne variablen Anteil)
--- Zweck:     gibt Fehlermeldung aus und traegt Fehler in error_log_Tabelle ein
+-- Zweck:     gibt Fehlermeldung aus
 -- Parameter: error-string (id), [wert einer variablen]
 -- RETURNS:   error string
 --
@@ -359,8 +359,8 @@ BEGIN
         err_txt := err_txt || ': ' || var_output_string;
     END IF;
     err_txt := err_prefix || err_txt;
-    INSERT INTO error_log (error_id, error_txt)
-        VALUES (errid, err_txt);
+    -- INSERT INTO error_log (error_id, error_txt)
+    --     VALUES (errid, err_txt);
     IF err.error_lvl = 1 THEN
         RAISE DEBUG 'sorry, encountered fatal error: %', err_txt;
         RAISE EXCEPTION '%', err_txt;

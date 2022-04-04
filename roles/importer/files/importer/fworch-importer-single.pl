@@ -217,11 +217,11 @@ if (!$error_count_global) {
 				# 4) wrapping up
 				if (!$error_count_global) {  # import ony when no previous errors occured
 					$error_count_local = 0;
-					my $imp_result_str = &exec_pgsql_cmd_return_value("SET client_min_messages TO NOTICE; SELECT import_all_main($current_import_id)");		
+					my $imp_result_str = &exec_pgsql_cmd_return_value("SET client_min_messages TO NOTICE; SELECT import_all_main($current_import_id, FALSE)");		
 					if ($imp_result_str ne '') {
 						$error_count_local = 1;
 						print("first import run found errors: " . $imp_result_str . ", re-running import with DEBUG option\n");
-						&exec_pgsql_cmd_return_value("SET client_min_messages TO DEBUG1; SELECT import_all_main($current_import_id)");
+						&exec_pgsql_cmd_return_value("SET client_min_messages TO DEBUG1; SELECT import_all_main($current_import_id, FALSE)");
 						print("second import run with debugging completed\n");
 					} else {
 						print("found no errors during import\n");

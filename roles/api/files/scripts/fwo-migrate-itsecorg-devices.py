@@ -13,7 +13,7 @@ create .pgpass with content (chmod 600)
 
 create exp-mgm.sql:
     COPY (
-        SELECT mgm_id, mgm_name, ssh_hostname, ssh_port, ssh_private_key, ssh_public_key,
+        SELECT mgm_id, mgm_name, ssh_hostname, ssh_port, secret, ssh_public_key,
             ssh_user, dev_typ_id, config_path, do_not_import, force_initial_import, hide_in_gui,
             importer_hostname, mgm_comment, mgm_create, mgm_update, last_import_md5_complete_config
         FROM management
@@ -157,7 +157,7 @@ if len(sys.argv) == 1:
     parser.print_help(sys.stderr)
     sys.exit(1)
 
-mgm_keys = ('mgm_id', 'mgm_name', 'ssh_hostname', 'ssh_port', 'ssh_private_key', 'ssh_public_key', 'ssh_user', 
+mgm_keys = ('mgm_id', 'mgm_name', 'ssh_hostname', 'ssh_port', 'secret', 'ssh_public_key', 'ssh_user', 
     'dev_typ_id', 'config_path', 'do_not_import', 'force_initial_import', 'hide_in_gui', 'importer_hostname', 'mgm_comment', 
     'mgm_create', 'mgm_update', 'last_import_md5_complete_config')
 mgm_types = ('int', 'string', 'string', 'int', 'string', 'string', 'string', 

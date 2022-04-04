@@ -16,6 +16,7 @@ WorkingDirectory={{ importer_home }}
 ExecStartPre=/bin/sleep 10
 ExecStart={{ importer_home }}/import-main-loop.py
 # ExecStop={{ importer_home }}/import-api-stop-helper
+TimeoutStopSec=300min
 StandardOutput=syslog
 StandardError=syslog
 SyslogIdentifier={{ product_name }}-importer-api

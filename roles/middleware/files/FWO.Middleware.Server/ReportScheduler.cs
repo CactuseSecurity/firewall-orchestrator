@@ -122,6 +122,7 @@ namespace FWO.Middleware.Server
                         GenerationDateStart = DateTime.Now,
                         TemplateId = report.Template.Id,
                         OwnerId = report.Owner.DbId,
+                        Type = report.Template.ReportParams.ReportType
                     };
 
                     DateTime reportGenerationStartDate = DateTime.Now;
@@ -135,7 +136,9 @@ namespace FWO.Middleware.Server
                     string jwt = await jwtWriter.CreateJWT(report.Owner);
                     APIConnection apiConnectionUserContext = new APIConnection(apiServerUri, jwt);
                     GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(jwt);
-                    UserConfig userConfig = new UserConfig(globalConfig);
+                    UserConfig userConfig = await UserConfig.ConstructAsync(globalConfig, apiConnection, report.Owner.DbId);
+
+                    await apiConnectionUserContext.SendQueryAsync<object>(ReportQueries.countReportSchedule, new { report_schedule_id = report.Id });
 
                     if(!report.Template.ReportParams.DeviceFilter.isAnyDeviceFilterSet())
                     {
@@ -198,6 +201,8 @@ namespace FWO.Middleware.Server
                         report_csv = reportFile.Csv,
                         report_html = reportFile.Html,
                         report_json = reportFile.Json,
+                        report_type = reportFile.Type,
+                        description = reportRules.SetDescription()
                     };
 
                     await apiConnectionUserContext.SendQueryAsync<object>(ReportQueries.addGeneratedReport, queryVariables);

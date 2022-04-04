@@ -2,7 +2,7 @@
 # the field ldap_searchpath_for_roles is not null only for the internal ldap
 
 query getLdapConnections {
-  ldap_connection(order_by: {ldap_connection_id: desc}) {
+  ldap_connection(where: {active: {_eq: true}} order_by: {ldap_connection_id: desc}) {
     ldap_name
     ldap_server
     ldap_port

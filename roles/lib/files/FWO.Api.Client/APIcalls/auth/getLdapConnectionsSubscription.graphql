@@ -1,5 +1,5 @@
 ﻿subscription getLdapConnections {
-  ldap_connection {
+  ldap_connection (where: {active: {_eq: true}}){
     ldap_name
     ldap_server
     ldap_port

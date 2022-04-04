@@ -1,0 +1,25 @@
+# returns a list of all available ldap connections
+# the field ldap_searchpath_for_roles is not null only for the internal ldap
+
+query getAllLdapConnections {
+  ldap_connection(order_by: {ldap_connection_id: desc}) {
+    ldap_name
+    ldap_server
+    ldap_port
+    ldap_type
+    ldap_pattern_length
+    ldap_search_user
+    ldap_tls
+    ldap_tenant_level
+    ldap_connection_id
+    ldap_search_user_pwd
+    ldap_searchpath_for_users
+    ldap_searchpath_for_roles
+    ldap_searchpath_for_groups
+    ldap_write_user
+    ldap_write_user_pwd
+    tenant_id
+    ldap_global_tenant_name
+    active
+  }
+}

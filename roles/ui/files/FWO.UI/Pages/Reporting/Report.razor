@@ -7,7 +7,6 @@
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.Reporting.Reports
 
-@* @page "/" *@
 @page "/report"
 
 @inject APIConnection Connection
@@ -349,7 +348,6 @@
 
     private DeviceFilter deviceFilter = new DeviceFilter();
     private bool selectAll = true;
-    private int minCollapseAllDevices = GlobalConfig.kDefaultInitCollapseFrom;
 
     private DateTime actDate = DateTime.Now;
     private DateTime actTime = DateTime.Now;
@@ -364,11 +362,8 @@
 
     private ScheduledReport[] scheduledReports = new ScheduledReport[0];
 
-    private int elementsPerFetch = GlobalConfig.kDefaultInitElementsPerFetch;
     private int rulesPerPage = 0;   // todo: remove - no pagination implemented?
 
-    private bool autoFillRightSidebar = false;
-    private int maxInitFetchRightSidebar = GlobalConfig.kDefaultInitMaxInitFetch;
     private int sidebarLeftWidth = GlobalConfig.kSidebarLeftWidth;
     private int sidebarRightWidth = GlobalConfig.kSidebarRightWidth;
 
@@ -396,12 +391,11 @@
         {
             try
             {
-                GetSettings();
                 displayedTimeSelection = userConfig.GetText("now");
 
                 deviceFilter.Managements = await Connection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
                 await InvokeAsync(StateHasChanged);
-                if (deviceFilter.NumberMgmtDev() > minCollapseAllDevices)
+                if (deviceFilter.NumberMgmtDev() > userConfig.MinCollapseAllDevices)
                 {
                     collapseDevices = true;
                     await InvokeAsync(StateHasChanged);
@@ -553,8 +547,6 @@
 
         try
         {
-            GetSettings();
-
             string query = "";
             Dictionary<String, object> queryVars = new Dictionary<string, object>();
 
@@ -591,7 +583,7 @@
 
                     queryVars = new Dictionary<string, object>()
                     {
-                        { "limit", elementsPerFetch },
+                        { "limit", userConfig.ElementsPerFetch },
                         { "offset", 0 },
                         { "management_id", (int) id }
                     };
@@ -602,13 +594,13 @@
 
                     queryVars = new Dictionary<string, object>()
                     {
-                        { "limit", elementsPerFetch },
+                        { "limit", userConfig.ElementsPerFetch },
                         { "offset", 0 },
                         { "mgmIds", (int) id }
                     };
 
                     if (currentReport != null)
-                        gotAllObjects = await currentReport.GetObjectsForManagementInReport(queryVars, (byte)(contentType - report), autoFillRightSidebar ? int.MaxValue : maxInitFetchRightSidebar, Connection, callback);
+                        gotAllObjects = await currentReport.GetObjectsForManagementInReport(queryVars, (byte)(contentType - report), userConfig.AutoFillRightSidebar ? int.MaxValue : userConfig.MaxInitialFetchesRightSidebar, Connection, callback);
 
                     if (!gotAllObjects)
                         DisplayMessageInUi!(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);
@@ -619,7 +611,7 @@
 
                     queryVars = new Dictionary<string, object>()
                     {
-                        { "limit", elementsPerFetch },
+                        { "limit", userConfig.ElementsPerFetch },
                         { "offset", (int)0 },
                         { "rule_id", id }
                     };
@@ -628,7 +620,7 @@
             }
 
             // lazy fetch all objects for right sidebar
-            while (newObjects && (++fetchCount <= maxInitFetchRightSidebar || autoFillRightSidebar))
+            while (newObjects && (++fetchCount <= userConfig.MaxInitialFetchesRightSidebar || userConfig.AutoFillRightSidebar))
             {
                 Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(query, queryVars);
                 if (fetchCount == 1)
@@ -641,13 +633,13 @@
                 }
 
                 if (queryVars.ContainsKey("offset"))
-                    queryVars["offset"] = (int)queryVars["offset"] + elementsPerFetch;
+                    queryVars["offset"] = (int)queryVars["offset"] + userConfig.ElementsPerFetch;
                 await callback(managements);
             }
 
-            Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount - 1} cycle(s) ({elementsPerFetch} at a time)");
+            Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount - 1} cycle(s) ({userConfig.ElementsPerFetch} at a time)");
             
-            if (fetchCount > maxInitFetchRightSidebar && !autoFillRightSidebar)
+            if (fetchCount > userConfig.MaxInitialFetchesRightSidebar && !userConfig.AutoFillRightSidebar)
                 DisplayMessageInUi!(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);
         }
         catch (Exception exception)
@@ -700,7 +692,7 @@
                     case ReportNatRules natRulesReport:
                     case ReportRules rulesReport:
                     case ReportChanges changesReport:
-                        await currentReport.Generate(elementsPerFetch, Connection,
+                        await currentReport.Generate(userConfig.ElementsPerFetch, Connection,
                             managementsReportIntermediate =>
                             {
                                 managementsReport = managementsReportIntermediate;
@@ -774,6 +766,7 @@
     {
         try
         {
+            // TODO: CHECK IF NEEDED
             // filterInput = (changeArgs.Value ?? "").ToString() ?? "";
 
             DynGraphqlQuery query = Compiler.Compile(filterInput);
@@ -799,45 +792,18 @@
         }
     }
 
-    private void GetSettings()
-    {
-        try
-        {
-            GetIntSetting(ref elementsPerFetch, GlobalConfig.kElementsPerFetch);
-            GetIntSetting(ref maxInitFetchRightSidebar, GlobalConfig.kMaxInitialFetchesRightSidebar);
-            GetBoolSetting(ref autoFillRightSidebar, GlobalConfig.kAutoFillRightSidebar);
-            GetIntSetting(ref minCollapseAllDevices, GlobalConfig.kMinCollapseAllDevices);
-        }
-        catch (Exception exception)
-        {
-            Log.WriteError("Read Config", $"Error reading config value", exception);
-        }
-    }
-
-    private void GetIntSetting(ref int value, string setting)
-    {
-        string settingsValue = userConfig.GetConfigValue(setting);
-        if (settingsValue != "")
-        {
-            value = Int32.Parse(settingsValue);
-        }
-    }
-
-    private void GetBoolSetting(ref bool value, string setting)
-    {
-        string settingsValue = userConfig.GetConfigValue(setting);
-        value = (settingsValue == "True" ? true : false);
-    }
-
     private bool NoRuleFound()
     {
-        foreach(var mgmt in currentReport.Managements)
+        if(currentReport != null)
         {
-            foreach(var dev in mgmt.Devices)
+            foreach(var mgmt in currentReport.Managements)
             {
-                if(dev.Rules != null && dev.Rules.Count() > 0)
+                foreach(var dev in mgmt.Devices)
                 {
-                    return false;
+                    if(dev.Rules != null && dev.Rules.Count() > 0)
+                    {
+                        return false;
+                    }
                 }
             }
         }

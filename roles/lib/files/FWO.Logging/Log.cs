@@ -61,17 +61,16 @@ namespace FWO.Logging
             WriteLog("Audit", Title, Text, callerName, callerFile, callerLineNumber, ConsoleColor.Yellow);
         }
 
-        public static void WriteAlert(string Title, string Text, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
-        {
-            string File = callerFile.Split('\\', '/').Last();
-            // Console.Out.WriteLine($"{DateTime.Now} {"FWORCHAlert"} - {Title} ({File} in line {callerLineNumber}), {Text}");
-            WriteLog("FWORCHAlert", Title, Text, callerName, callerFile, callerLineNumber);
-        }
-
         private static void WriteLog(string LogType, string Title, string Text, string Method, string Path, int Line, ConsoleColor? ForegroundColor = null, ConsoleColor? BackgroundColor = null)
         {
             string File = Path.Split('\\', '/').Last(); // do not show the full file path, just the basename
-            WriteInColor($"{DateTime.Now} {LogType} - {Title} ({File} in line {Line}), {Text}", ForegroundColor, BackgroundColor);
+            WriteInColor($"{DateTime.Now.ToString("yyyy-MM-ddTHH:mm:sszzz")} {LogType} - {Title} ({File} in line {Line}), {Text}", ForegroundColor, BackgroundColor);
+        }
+
+        public static void WriteAlert(string Title, string Text)
+        {
+            // fixed format to be further processed (e.g. splunk)
+            WriteInColor($"FWORCHAlert - {Title}, {Text}");
         }
 
         private static void WriteInColor(string Text, ConsoleColor? ForegroundColor = null, ConsoleColor? BackgroundColor = null)

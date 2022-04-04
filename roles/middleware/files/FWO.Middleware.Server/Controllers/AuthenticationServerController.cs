@@ -16,7 +16,7 @@ namespace FWO.Middleware.Controllers
     [ApiController]
     public class AuthenticationServerController : ControllerBase
     {
-        private List<Ldap> ldaps = new List<Ldap>();
+        private List<Ldap> ldaps;
         private readonly APIConnection apiConnection;
 
         public AuthenticationServerController(APIConnection apiConnection, List<Ldap> ldaps)
@@ -25,12 +25,21 @@ namespace FWO.Middleware.Controllers
             this.ldaps = ldaps;
         }
 
+        // GET: api/<LdapController>/TestConnection/5
+        [HttpGet("TestConnection")]
+        [Authorize(Roles = "admin, auditor")]
+        public bool TestConnection([FromBody] LdapGetUpdateParameters parameters)
+        {
+            FWO.Middleware.Server.Ldap ldapToTest = new FWO.Middleware.Server.Ldap(parameters);
+            return ldapToTest.TestConnection();
+        }
+
         // GET: api/<LdapController>
         [HttpGet]
         [Authorize(Roles = "admin, auditor")]
         public async Task<List<LdapGetUpdateParameters>> Get()
         {
-            UiLdapConnection[] ldapConnections = (await apiConnection.SendQueryAsync<UiLdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections));
+            UiLdapConnection[] ldapConnections = (await apiConnection.SendQueryAsync<UiLdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getAllLdapConnections));
             List<LdapGetUpdateParameters> ldapList = new List<LdapGetUpdateParameters>();
             foreach (UiLdapConnection conn in ldapConnections)
             {

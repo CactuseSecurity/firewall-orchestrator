@@ -1,4 +1,5 @@
 ﻿@using FWO.Config.Api
+@using FWO.Config.Api.Data
 
 @inherits LayoutComponentBase
 @layout MainLayout
@@ -113,9 +114,10 @@
     {
         userConfig.OnChange += OnChange;
     }
-    private async Task OnChange(UserConfig _)
+
+    private void OnChange(Config _, ConfigItem[] __)
     {
-        await InvokeAsync(StateHasChanged);
+        Task.Run(async() => await InvokeAsync(StateHasChanged));
     }
 }
 

@@ -16,7 +16,8 @@ namespace FWO.Api.Data
         ImportErrorUnspecific = 14,
         ImportLocked = 15,
         ImportBrokenObjectReferences = 16,
-        Autodiscovery = 21
+        Autodiscovery = 21,
+        AutoDiscoveryErrorUnspecific = 22
     }
 
     public class Alert
@@ -58,7 +59,7 @@ namespace FWO.Api.Data
         public DateTime? AckTimestamp { get; set; }
 
         [JsonProperty("json_data"), JsonPropertyName("json_data")]
-        public String? JsonData { get; set; }
+        public object? JsonData { get; set; }
 
         [JsonProperty("alert_code"), JsonPropertyName("alert_code")]
         public AlertCode? AlertCode { get; set; }

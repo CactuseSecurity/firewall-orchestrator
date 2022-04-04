@@ -12,11 +12,8 @@ namespace FWO.Middleware.Server
     public class AutoDiscoverScheduler
     {
         private readonly APIConnection apiConnection;
-        private ConfigDbAccess config;
-        private int autoDiscoverSleepTime = GlobalConfig.kDefaultInitAutoDiscoverSleepTime; // in hours
-        private string autoDiscoverStartAt = DateTime.Now.TimeOfDay.ToString();
+        private GlobalConfig globalConfig;
         private long? lastMgmtAlertId;
-        private readonly ApiSubscription<List<ConfigItem>> configChangeSubscription;
         private List<Alert> openAlerts = new List<Alert>();
 
         private System.Timers.Timer ScheduleTimer = new();
@@ -24,38 +21,37 @@ namespace FWO.Middleware.Server
 
         public static async Task<AutoDiscoverScheduler> CreateAsync(APIConnection apiConnection)
         {
-            ConfigDbAccess config = await ConfigDbAccess.ConstructAsync(apiConnection);
-            return new AutoDiscoverScheduler(apiConnection, config);
+            GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, false);
+            return new AutoDiscoverScheduler(apiConnection, globalConfig);
         }
     
-        private AutoDiscoverScheduler(APIConnection apiConnection, ConfigDbAccess config)
+        private AutoDiscoverScheduler(APIConnection apiConnection, GlobalConfig globalConfig)
         {
             this.apiConnection = apiConnection;
-            this.config = config;
+            this.globalConfig = globalConfig;
+            globalConfig.OnChange += GlobalConfig_OnChange;
 
-            try
-            {
-                autoDiscoverSleepTime = config.Get<int>(GlobalConfig.kAutoDiscoverSleepTime);
-                autoDiscoverStartAt = config.Get<string>(GlobalConfig.kAutoDiscoverStartAt);
-            }
-            catch (KeyNotFoundException) { }
+            startScheduleTimer();
+        }
 
-            configChangeSubscription = apiConnection.GetSubscription<List<ConfigItem>>(ApiExceptionHandler, OnConfigUpdate, ConfigQueries.subscribeAutodiscoveryConfigChanges);
-
+        private void GlobalConfig_OnChange(Config.Api.Config globalConfig, ConfigItem[] _)
+        {
+            AutoDiscoverTimer.Interval = globalConfig.AutoDiscoverSleepTime * 3600000; // convert hours to milliseconds
+            ScheduleTimer.Stop();
             startScheduleTimer();
         }
 
         public void startScheduleTimer()
         {
-            if (autoDiscoverSleepTime > 0)
+            if (globalConfig.AutoDiscoverSleepTime > 0)
             {
                 DateTime startTime = DateTime.Now;
                 try
                 {
-                    startTime = Convert.ToDateTime(autoDiscoverStartAt);
+                    startTime = globalConfig.AutoDiscoverStartAt;
                     while (startTime < DateTime.Now)
                     {
-                        startTime = startTime.AddHours(autoDiscoverSleepTime);
+                        startTime = startTime.AddHours(globalConfig.AutoDiscoverSleepTime);
                     }
                 }
                 catch (Exception exception)
@@ -79,33 +75,10 @@ namespace FWO.Middleware.Server
             AutoDiscoverTimer.Stop();
             AutoDiscoverTimer = new();
             AutoDiscoverTimer.Elapsed += AutoDiscover;
-            AutoDiscoverTimer.Interval = autoDiscoverSleepTime * 3600000;  // convert hours to milliseconds
+            AutoDiscoverTimer.Interval = globalConfig.AutoDiscoverSleepTime * 3600000;  // convert hours to milliseconds
             AutoDiscoverTimer.AutoReset = true;
             AutoDiscoverTimer.Start();
             Log.WriteDebug("Autodiscover scheduler", "AutoDiscoverTimer started.");
-        }
-
-        private void OnConfigUpdate(List<ConfigItem> configItems)
-        {
-            foreach (ConfigItem configItem in configItems)
-            {
-                if (configItem.Key == GlobalConfig.kAutoDiscoverSleepTime && configItem.Value != null && configItem.Value != "")
-                {
-                    autoDiscoverSleepTime = Int32.Parse(configItem.Value);
-                }
-                if (configItem.Key == GlobalConfig.kAutoDiscoverStartAt && configItem.Value != null && configItem.Value != "")
-                {
-                    autoDiscoverStartAt = configItem.Value;
-                }
-            }
-            AutoDiscoverTimer.Interval = autoDiscoverSleepTime * 3600000; // convert hours to milliseconds
-            ScheduleTimer.Stop();
-            startScheduleTimer();
-        }
-
-        private void ApiExceptionHandler(Exception exception)
-        {
-            Log.WriteError("Autodiscover scheduler", "Api subscription lead to exception. Retry subscription.", exception);
         }
 
         private async void AutoDiscover(object? _, ElapsedEventArgs __)
@@ -116,27 +89,45 @@ namespace FWO.Middleware.Server
                 List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
                 foreach (Management superManagement in managements.Where(x => x.DeviceType.CanBeSupermanager() || x.DeviceType.CanBeAutodiscovered(x)))
                 {
-                    AutoDiscoveryBase autodiscovery = new AutoDiscoveryBase(superManagement, apiConnection);
-                    List<ActionItem> actions = autodiscovery.ConvertToActions(await autodiscovery.Run());
-
-                    int ChangeCounter = 0;
-
-                    foreach (ActionItem action in actions)
+                    try
                     {
-                        if (action.ActionType == ActionCode.AddGatewayToNewManagement.ToString())
+                        AutoDiscoveryBase autodiscovery = new AutoDiscoveryBase(superManagement, apiConnection);
+
+                        List<Management> diffList = await autodiscovery.Run();
+                        List<ActionItem> actions = autodiscovery.ConvertToActions(diffList);
+                        // List<ActionItem> actions = autodiscovery.ConvertToActions(await autodiscovery.Run());
+
+                        int ChangeCounter = 0;
+
+                        foreach (ActionItem action in actions)
                         {
-                            action.RefAlertId = lastMgmtAlertId;
+                            if (action.ActionType == ActionCode.AddGatewayToNewManagement.ToString())
+                            {
+                                action.RefAlertId = lastMgmtAlertId;
+                            }
+                            action.AlertId = await setAlert(action);
+                            ChangeCounter++;
                         }
-                        action.AlertId = await setAlert(action);
-                        ChangeCounter++;
+                        await AddAutoDiscoverLogEntry(0, "Scheduled Autodiscovery", (ChangeCounter > 0 ? $"Found {ChangeCounter} changes" : "Found no change"), superManagement.Id);
                     }
-                    await AddAutoDiscoverLogEntry(0, "Scheduled Autodiscovery", (ChangeCounter > 0 ? $"Found {ChangeCounter} changes" : "Found no change"), superManagement.Id);
+                    catch (Exception excMgm)
+                    {
+                        Log.WriteError("Autodiscovery", $"Ran into exception while auto-discovering management {superManagement.Name} (id: {superManagement.Id}) ", excMgm);
+                        ActionItem actionException = new ActionItem();
+                        actionException.Number = 0;
+                        actionException.ActionType = ActionCode.WaitForTempLoginFailureToPass.ToString();
+                        actionException.ManagementId = superManagement.Id;
+                        actionException.Supermanager = superManagement.Name;
+                        actionException.JsonData = excMgm.Message;
+                        await setAlert(actionException);
+                        await AddAutoDiscoverLogEntry(1, "Scheduled Autodiscovery", $"Ran into exception while handling management {superManagement.Name} (id: {superManagement.Id}): " + excMgm.Message, superManagement.Id);
+                    }
                 }
             }
             catch (Exception exc)
             {
                 Log.WriteError("Autodiscovery", $"Ran into exception: ", exc);
-                Log.WriteAlert ($"source: \"{GlobalConfig.kAutodiscovery}\"", 
+                Log.WriteAlert($"source: \"{GlobalConfig.kAutodiscovery}\"",
                     $"userId: \"0\", title: \"Error encountered while trying to autodiscover\", description: \"{exc}\", alertCode: \"{AlertCode.Autodiscovery}\"");
                 await AddAutoDiscoverLogEntry(1, "Scheduled Autodiscovery", $"Ran into exception: " + exc.Message);
             }
@@ -147,11 +138,15 @@ namespace FWO.Middleware.Server
             long? alertId = null;
             try
             {
+                string title = "Supermanagement: " + action.Supermanager;
+                Log.WriteAlert($"source: \"{GlobalConfig.kAutodiscovery}\"",
+                    $"userId: \"0\", title: \"{title}\", type: \"{action.ActionType}\", " +
+                    $"mgmId: \"{action.ManagementId}\", devId: \"{action.DeviceId}\", jsonData: \"{action.JsonData?.ToString()}\", refAlert: \"{action.RefAlertId}\", alertCode: \"{AlertCode.Autodiscovery}\"");
                 var Variables = new
                 {
                     source = GlobalConfig.kAutodiscovery,
                     userId = 0,
-                    title = action.Supermanager,
+                    title = title,
                     description = action.ActionType,
                     mgmId = action.ManagementId,
                     devId = action.DeviceId,
@@ -159,9 +154,6 @@ namespace FWO.Middleware.Server
                     refAlert = action.RefAlertId,
                     alertCode = (int)AlertCode.Autodiscovery
                 };
-                Log.WriteAlert ($"source: \"{GlobalConfig.kAutodiscovery}\"", 
-                    $"userId: \"0\", title: \"{action.Supermanager}\", description: \"{action.ActionType}\", " +
-                    $"mgmId: \"{action.ManagementId}\", devId: \"{action.DeviceId}\", jsonData: \"{action.JsonData}\", refAlert: \"{action.RefAlertId}\", alertCode: \"{AlertCode.Autodiscovery}\"");
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addAlert, Variables)).ReturnIds;
                 if (returnIds != null)
                 {
@@ -171,9 +163,9 @@ namespace FWO.Middleware.Server
                         lastMgmtAlertId = alertId;
                     }
                     // Acknowledge older alert for same problem
-                    Alert? existingAlert = openAlerts.FirstOrDefault(x => x.AlertCode == AlertCode.Autodiscovery 
-                                && x.Description == action.ActionType && x.ManagementId == action.ManagementId && x.DeviceId == action.DeviceId);
-                    if(existingAlert != null)
+                    Alert? existingAlert = openAlerts.FirstOrDefault(x => x.AlertCode == AlertCode.Autodiscovery
+                                && x.Description == action.ActionType && x.ManagementId == action.ManagementId);
+                    if (existingAlert != null)
                     {
                         await AcknowledgeAlert(existingAlert.Id);
                     }
@@ -182,8 +174,6 @@ namespace FWO.Middleware.Server
                 {
                     Log.WriteError("Write Alert", "Log could not be written to database");
                 }
-                Log.WriteAlert($"source: \"{GlobalConfig.kAutodiscovery}\"", 
-                    $"action: \"{action.Supermanager}\", type: \"{action.ActionType}\", mgmId: \"{action.ManagementId}\", devId: \"{action.DeviceId}\", details: \"{action.JsonData}\", altertId: \"{action.RefAlertId}\"");
             }
             catch (Exception exc)
             {
@@ -196,8 +186,8 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                var Variables = new 
-                { 
+                var Variables = new
+                {
                     id = alertId,
                     ackUser = 0,
                     ackTime = DateTime.Now

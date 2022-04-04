@@ -1,7 +1,8 @@
+from distutils.log import debug
 import sys
 from common import importer_base_dir
+from fwo_log import getFwoLogger
 sys.path.append(importer_base_dir + '/checkpointR8x')
-import logging
 import copy, time
 import parse_network, parse_rule, parse_service, parse_user
 import common, getter
@@ -29,11 +30,11 @@ def has_config_changed (full_config, mgm_details, debug_level=0, force=False, pr
         return 1
     else:
         # otherwise search for any changes since last import
-        return (getter.get_changes(session_id, mgm_details['hostname'], str(mgm_details['port']),last_change_time,ssl_verification, proxy) != 0)
+        return (getter.get_changes(session_id, mgm_details['hostname'], str(mgm_details['port']),last_change_time,ssl_verification, proxy, debug_level=debug_level) != 0)
 
 
 def get_config(config2import, full_config, current_import_id, mgm_details, debug_level=0, proxy=None, limit=150, force=False, ssl_verification='', jwt=None):
-    common.set_log_level(log_level=debug_level, debug_level=debug_level)
+    logger = getFwoLogger(debug_level=debug_level)
     if full_config == {}:   # no native config was passed in, so getting it from FW-Manager
         parsing_config_only = False
     else:
@@ -44,25 +45,25 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
         sid = getter.login(mgm_details['user'], mgm_details['secret'], mgm_details['hostname'], str(mgm_details['port']), mgm_details['configPath'], ssl_verification, proxy)
 
         result_get_basic_config = get_basic_config (full_config, mgm_details, force=force, proxy=proxy, sid=sid,
-            limit=str(limit), details_level='full', test_version='off', debug_level=debug_level, ssl_verification=getter.set_ssl_verification(''))
+            limit=str(limit), details_level='full', test_version='off', debug_level=debug_level, ssl_verification=common.set_ssl_verification('', debug_level=debug_level))
 
         if result_get_basic_config>0:
             return result_get_basic_config
 
         result_enrich_config = enrich_config (full_config, mgm_details, proxy, 
-            str(limit), details_level='full', debug_level=debug_level, ssl_verification=getter.set_ssl_verification(''), sid=sid)
+            str(limit), details_level='full', debug_level=debug_level, ssl_verification=common.set_ssl_verification('', debug_level=debug_level), sid=sid)
 
         if result_enrich_config>0:
             return result_enrich_config
 
         duration = int(time.time()) - starttime
-        logging.debug ( "checkpointR8x/get_config - duration: " + str(duration) + "s" )
+        logger.debug ( "checkpointR8x/get_config - duration: " + str(duration) + "s" )
 
     if full_config == {}: # no changes
         return 0
     else:
-        parse_network.parse_network_objects_to_json(full_config, config2import, current_import_id)
-        parse_service.parse_service_objects_to_json(full_config, config2import, current_import_id)
+        parse_network.parse_network_objects_to_json(full_config, config2import, current_import_id, debug_level=debug_level)
+        parse_service.parse_service_objects_to_json(full_config, config2import, current_import_id, debug_level=debug_level)
         if 'users' not in full_config:
             full_config.update({'users': {}})
         target_rulebase = []
@@ -74,23 +75,24 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
             parse_user.parse_user_objects_from_rulebase(
                 full_config['rulebases'][rb_id], full_config['users'], current_import_id)
             # if current_layer_name == args.rulebase:
-            logging.debug("parsing layer " + full_config['rulebases'][rb_id]['layername'])
+            if debug_level>3:
+                logger.debug("parsing layer " + full_config['rulebases'][rb_id]['layername'])
 
             # parse access rules
             rule_num = parse_rule.parse_rulebase_json(
                 full_config['rulebases'][rb_id], target_rulebase, full_config['rulebases'][rb_id]['layername'], 
-                current_import_id, rule_num, section_header_uids, parent_uid)
+                current_import_id, rule_num, section_header_uids, parent_uid, debug_level=debug_level)
             # now parse the nat rulebase
 
             # parse nat rules
             if len(full_config['nat_rulebases'])>0:
                 if len(full_config['nat_rulebases']) != len(rb_range):
-                    logging.warning('get_config - found ' + str(len(full_config['nat_rulebases'])) +
+                    logger.warning('get_config - found ' + str(len(full_config['nat_rulebases'])) +
                         ' nat rulebases and ' +  str(len(rb_range)) + ' rulebases')
                 else:
                     rule_num = parse_rule.parse_nat_rulebase_json(
                         full_config['nat_rulebases'][rb_id], target_rulebase, full_config['rulebases'][rb_id]['layername'], 
-                        current_import_id, rule_num, section_header_uids, parent_uid)
+                        current_import_id, rule_num, section_header_uids, parent_uid, debug_level=debug_level)
         config2import.update({'rules': target_rulebase})
 
         # copy users from full_config to config2import

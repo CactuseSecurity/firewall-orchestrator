@@ -27,7 +27,7 @@ namespace FWO.Ui.Services
                     // Ldap call
                     UserChangePasswordParameters parameters = new UserChangePasswordParameters { LdapId = userConfig.User.LdapConnection.Id, NewPassword = newPassword1, OldPassword = oldPassword, UserId = userConfig.User.DbId };
                     RestResponse<string> middlewareServerResponse = await middlewareClient.ChangePassword(parameters);
-                    if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
+                    if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
                     {
                         errorMsg = "internal error";
                     }

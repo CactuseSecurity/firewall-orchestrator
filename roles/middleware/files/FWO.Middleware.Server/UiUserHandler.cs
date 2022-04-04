@@ -20,8 +20,7 @@ namespace FWO.Middleware.Server
             bool userSetInDb = false;
             try
             {
-                string test = AuthQueries.getUserByUuid;
-                UiUser[] existingUserFound = await apiConn.SendQueryAsync<UiUser[]>(AuthQueries.getUserByUuid, new { uuid = user.Dn });
+                UiUser[] existingUserFound = await apiConn.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = user.Dn });
 
                 if (existingUserFound.Length == 1)
                 {

@@ -20,13 +20,13 @@ namespace FWO.Config.Api
 
         public UiUser User { private set; get; }
 
-        public static async Task<UserConfig> ConstructAsync(GlobalConfig globalConfig, APIConnection apiConnection, int userDn)
+        public static async Task<UserConfig> ConstructAsync(GlobalConfig globalConfig, APIConnection apiConnection, int userId)
         {
-            UiUser[] users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = userDn });
+            UiUser[] users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDbId, new { userId = userId });
             UiUser? user = users.FirstOrDefault();
             if (user == null)
             {
-                Log.WriteError("Load user config", $"User with DN {userDn} could not be found in database.");
+                Log.WriteError("Load user config", $"User with id {userId} could not be found in database.");
                 throw new Exception();
             }
             return new UserConfig(globalConfig, apiConnection, user);

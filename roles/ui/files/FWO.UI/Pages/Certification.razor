@@ -28,7 +28,7 @@
     </div>
     <div class="p-3">
         <h5 class="text-left">@(userConfig.GetText("due_within")):</h5>
-        <input  type="text" class="form-control form-control-sm" @bind="userConfig.RecertificationNoticePeriod" />
+        <input  type="text" class="form-control form-control-sm" @bind="userConfig.RecertificationDisplayPeriod" />
     </div>
 
     <DeviceSelection Environment="Cert" @bind-DeviceFilter="deviceFilter" @bind-CollapseAll="collapseDevices" @bind-FilterInput="filterInput" @bind-SelectAll="selectAll" ></DeviceSelection>
@@ -249,7 +249,7 @@
 
     private void SyncFilterToDisplay()
     {
-        filterInput = Regex.Replace(filterInput, "recertdisplay=" + @"-?\d+", $"recertdisplay={(userConfig.RecertificationPeriod-userConfig.RecertificationNoticePeriod).ToString()}");
+        filterInput = Regex.Replace(filterInput, "recertdisplay=" + @"-?\d+", $"recertdisplay={(userConfig.RecertificationPeriod-userConfig.RecertificationDisplayPeriod).ToString()}");
     }
 
     private void PrepareMetadata()

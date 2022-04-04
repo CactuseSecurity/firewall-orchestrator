@@ -84,7 +84,11 @@ namespace FWO.Config.Api
                     }
                     else
                     {
-                        Log.WriteError("Load Config Items", $"Config item with key \"{key}\" could not be found. Using default value.");
+                        // If this is a global config or the config item is a user config item
+                        if (UserId == 0 || property.GetCustomAttribute<UserConfigDataAttribute>() != null) 
+                        {
+                            Log.WriteError("Load Config Items", $"Config item with key \"{key}\" could not be found. Using default value.");
+                        }
                     }
                 }
             }

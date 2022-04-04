@@ -1,0 +1,6 @@
+﻿subscription getConfigItemsByUser($userId: Int) {
+  config(where: {config_user: {_eq: $userId}}) {
+    config_key
+    config_value
+  }
+}

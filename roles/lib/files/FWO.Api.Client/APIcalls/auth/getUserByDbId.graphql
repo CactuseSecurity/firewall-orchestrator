@@ -1,0 +1,9 @@
+query getUserByDbId($userId: Int!) {
+  uiuser (where: {uiuser_id: {_eq: $userId}}) {
+    uiuser_id
+    uuid
+    uiuser_username
+    uiuser_language
+    uiuser_password_must_be_changed
+  }
+}

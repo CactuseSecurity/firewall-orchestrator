@@ -202,13 +202,11 @@ namespace FWO.Report.Filter
 
         private AstNode ParseAtom()
         {
-            switch (GetNextToken().Kind)
+            return GetNextToken().Kind switch
             {
-                case TokenKind.BL:
-                    return ParseBracket();
-                default:
-                    return ParseFilter();
-            }
+                TokenKind.BL => ParseBracket(),
+                _ => ParseFilter(),
+            };
         }
 
         private AstNode ParseBracket()

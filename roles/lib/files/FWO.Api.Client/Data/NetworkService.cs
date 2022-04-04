@@ -76,13 +76,11 @@ namespace FWO.Api.Data
 
         public override bool Equals(object? obj)
         {
-            switch (obj)
+            return obj switch
             {
-                case NetworkService nsrv:
-                    return Id == nsrv.Id;
-                default:
-                    return base.Equals(obj);
-            }
+                NetworkService nsrv => Id == nsrv.Id,
+                _ => base.Equals(obj),
+            };
         }
 
         public override int GetHashCode()

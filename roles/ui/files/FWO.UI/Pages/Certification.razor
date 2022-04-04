@@ -28,7 +28,7 @@
     </div>
     <div class="p-3">
         <h5 class="text-left">@(userConfig.GetText("due_within")):</h5>
-        <input  type="text" class="form-control form-control-sm" @bind="recertificationDisplayPeriod" />
+        <input  type="text" class="form-control form-control-sm" @bind="userConfig.RecertificationDisplayPeriod" />
     </div>
 
     <DeviceSelection Environment="Cert" @bind-DeviceFilter="deviceFilter" @bind-CollapseAll="collapseDevices" @bind-FilterInput="filterInput" @bind-SelectAll="selectAll" ></DeviceSelection>
@@ -65,7 +65,7 @@
         {
             <form onsubmit="return false">
                 <div class="form-group row">
-                    <label for="comment" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("comment") + (commentRequired ? "*:" : ":"))</label>
+                    <label for="comment" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("comment") + (userConfig.CommentRequired ? "*:" : ":"))</label>
                     <div class="col-sm-8">
                         <input id="comment" type="text" class="form-control form-control-sm" @bind="actComment" />
                     </div>
@@ -132,28 +132,18 @@
     private AnchorNavToRSB? anchorNavToRSB;
 
     private const int rulesPerPage = 0;
-    private int elementsPerFetch = GlobalConfig.kDefaultInitElementsPerFetch;
-    private int maxInitFetchRightSidebar = GlobalConfig.kDefaultInitMaxInitFetch;
-    private bool autoFillRightSidebar;
-
-    private int recertificationPeriod = GlobalConfig.kDefaultInitRecertificationPeriod;
-    private int recertificationNoticePeriod = GlobalConfig.kDefaultInitRecertificationNoticePeriod;
-    private int recertificationDisplayPeriod = GlobalConfig.kDefaultInitRecertificationDisplayPeriod;
-    private int ruleRemovalGracePeriod = GlobalConfig.kDefaultInitRuleRemovalGracePeriod;
-    private bool commentRequired = false;
 
     private int sidebarLeftWidth = GlobalConfig.kSidebarLeftWidth;
     private int sidebarRightWidth = GlobalConfig.kSidebarRightWidth;
     private bool selectAll = true;
-    private int minCollapseAllDevices = GlobalConfig.kDefaultInitCollapseFrom;
 
     private string filterInput = "remove=false and recertdisplay=0";
     private bool processing = false;
     private bool rulesFound = false;
     private CancellationTokenSource tokenSource = new CancellationTokenSource();
- 
+
     private Management[] managements = new Management[0];
-//    private Management[] managementsObjects = new Management[0];
+    //    private Management[] managementsObjects = new Management[0];
 
     private DeviceFilter deviceFilter = new DeviceFilter();
     private List<Rule> selectedRules = new List<Rule>();
@@ -174,20 +164,19 @@
         {
             try
             {
-                GetSettings();
+                await GetSettings();
                 rulesFound = false;
 
                 deviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
                 await InvokeAsync(StateHasChanged);
-                if (deviceFilter.NumberMgmtDev() > minCollapseAllDevices)
+                if (deviceFilter.NumberMgmtDev() > userConfig.MinCollapseAllDevices)
                 {
                     collapseDevices = true;
                     await InvokeAsync(StateHasChanged);
                 }
-
-//                PaginationVariables paginationVariables = new PaginationVariables() { Limit = 0, Offset = 0 };
-//                managementsObjects = await apiConnection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
-//                await InvokeAsync(StateHasChanged);
+                // PaginationVariables paginationVariables = new PaginationVariables() { Limit = 0, Offset = 0 };
+                // managementsObjects = await apiConnection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
+                // await InvokeAsync(StateHasChanged);
             }
             catch (Exception exception)
             {
@@ -223,7 +212,7 @@
 
             try
             {
-                await currentReport.Generate(elementsPerFetch, apiConnection,
+                await currentReport.Generate(userConfig.ElementsPerFetch, apiConnection,
                 managementsReportIntermediate =>
                 {
                     managements = managementsReportIntermediate;
@@ -260,7 +249,7 @@
 
     private void SyncFilterToDisplay()
     {
-        filterInput = Regex.Replace(filterInput, "recertdisplay=" + @"-?\d+", $"recertdisplay={(recertificationPeriod-recertificationDisplayPeriod).ToString()}");
+        filterInput = Regex.Replace(filterInput, "recertdisplay=" + @"-?\d+", $"recertdisplay={(userConfig.RecertificationPeriod-userConfig.RecertificationDisplayPeriod).ToString()}");
     }
 
     private void PrepareMetadata()
@@ -286,11 +275,11 @@
 
                         if (rule.Metadata.LastCertified != null)
                         {
-                            rule.Metadata.NextRecert = ((DateTime)rule.Metadata.LastCertified).AddDays(recertificationPeriod);
+                            rule.Metadata.NextRecert = ((DateTime)rule.Metadata.LastCertified).AddDays(userConfig.RecertificationPeriod);
                         }
                         else if (rule.Metadata.Created != null)
                         {
-                            rule.Metadata.NextRecert = ((DateTime)rule.Metadata.Created).AddDays(recertificationPeriod);
+                            rule.Metadata.NextRecert = ((DateTime)rule.Metadata.Created).AddDays(userConfig.RecertificationPeriod);
                         }
                         else
                         {
@@ -301,7 +290,7 @@
                         {
                             rule.Metadata.Style = "background-overdue";
                         }
-                        else if(rule.Metadata.NextRecert <= DateTime.Now.AddDays(recertificationNoticePeriod))
+                        else if(rule.Metadata.NextRecert <= DateTime.Now.AddDays(userConfig.RecertificationNoticePeriod))
                         {
                             rule.Metadata.Style = "background-upcoming";
                         }
@@ -320,7 +309,7 @@
 
         try
         {
-            GetSettings();
+            await GetSettings();
 
             string query = "";
             Dictionary<String, object> queryVars = new Dictionary<string, object>();
@@ -358,7 +347,7 @@
 
                     queryVars = new Dictionary<string, object>()
                     {
-                        { "limit", elementsPerFetch },
+                        { "limit", userConfig.ElementsPerFetch },
                         { "offset", 0 },
                         { "management_id", (int) id }
                     };
@@ -369,14 +358,14 @@
 
                     queryVars = new Dictionary<string, object>()
                     {
-                        { "limit", elementsPerFetch },
+                        { "limit", userConfig.ElementsPerFetch },
                         { "offset", 0 },
                         { "mgmIds", (int) id }
                     };
 
                     if (currentReport != null)
-                        gotAllObjects = await currentReport.GetObjectsForManagementInReport(queryVars, (byte)(contentType - report), autoFillRightSidebar ? int.MaxValue : maxInitFetchRightSidebar, apiConnection, callback);
-                        
+                        gotAllObjects = await currentReport.GetObjectsForManagementInReport(queryVars, (byte)(contentType - report), userConfig.AutoFillRightSidebar ? int.MaxValue : userConfig.MaxInitialFetchesRightSidebar, apiConnection, callback);
+
                     if (!gotAllObjects)
                         DisplayMessageInUi!(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);
 
@@ -386,7 +375,7 @@
 
                     queryVars = new Dictionary<string, object>()
                     {
-                        { "limit", elementsPerFetch },
+                        { "limit", userConfig.ElementsPerFetch },
                         { "offset", (int)0 },
                         { "rule_id", id }
                     };
@@ -395,7 +384,7 @@
             }
 
             // lazy fetch all objects for right sidebar
-            while (newObjects && (++fetchCount <= maxInitFetchRightSidebar || autoFillRightSidebar))
+            while (newObjects && (++fetchCount <= userConfig.MaxInitialFetchesRightSidebar || userConfig.AutoFillRightSidebar))
             {
                 Management[] managementsCurrentFetch = await apiConnection.SendQueryAsync<Management[]>(query, queryVars);
                 if (fetchCount == 1)
@@ -408,13 +397,13 @@
                 }
 
                 if (queryVars.ContainsKey("offset"))
-                    queryVars["offset"] = (int)queryVars["offset"] + elementsPerFetch;
+                    queryVars["offset"] = (int)queryVars["offset"] + userConfig.ElementsPerFetch;
                 await callback(managements);
             }
 
-            Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount - 1} cycle(s) ({elementsPerFetch} at a time)");
-            
-            if (fetchCount > maxInitFetchRightSidebar && !autoFillRightSidebar)
+            Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount - 1} cycle(s) ({userConfig.ElementsPerFetch} at a time)");
+
+            if (fetchCount > userConfig.MaxInitialFetchesRightSidebar && !userConfig.AutoFillRightSidebar)
                 DisplayMessageInUi!(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);
         }
         catch (Exception exception)
@@ -437,7 +426,7 @@
     private async Task ExecuteSelected()
     {
         actComment = Sanitizer.SanitizeMand(actComment);
-        if(commentRequired && actComment == "")
+        if(userConfig.CommentRequired && actComment == "")
         {
             DisplayMessageInUi!(null, userConfig.GetText("execute_selected"), userConfig.GetText("E4001"), true);
             return;
@@ -448,7 +437,7 @@
             // collect selected recerts + decerts
             List<long> RecertIds = new List<long>();
             List<long> DecertIds = new List<long>();
-            
+
             foreach (Management management in managements)
             {
                 foreach (Device device in management.Devices)
@@ -508,38 +497,15 @@
         }
     }
 
-    private void GetSettings()
+    private async Task GetSettings()
     {
         try
         {
-            GetBoolSetting(ref autoFillRightSidebar, GlobalConfig.kAutoFillRightSidebar);
-            GetIntSetting(ref elementsPerFetch, GlobalConfig.kElementsPerFetch);
-            GetIntSetting(ref maxInitFetchRightSidebar, GlobalConfig.kMaxInitialFetchesRightSidebar);
-            GetIntSetting(ref recertificationPeriod, GlobalConfig.kRecertificationPeriod);
-            GetIntSetting(ref recertificationNoticePeriod, GlobalConfig.kRecertificationNoticePeriod);
-            GetIntSetting(ref recertificationDisplayPeriod, GlobalConfig.kRecertificationDisplayPeriod);
-            GetIntSetting(ref ruleRemovalGracePeriod, GlobalConfig.kRuleRemovalGracePeriod);
-            GetBoolSetting(ref commentRequired, GlobalConfig.kCommentRequired);
-            GetIntSetting(ref minCollapseAllDevices, GlobalConfig.kMinCollapseAllDevices);
+            await userConfig.GetEditableConfig();
         }
         catch (Exception exception)
         {
             Log.WriteError("Read Config", $"Error reading config value", exception);
         }
-    }
-
-    private void GetIntSetting(ref int value, string setting)
-    {
-        string settingsValue = userConfig.GetConfigValue(setting);
-        if (settingsValue != "")
-        {
-            value = Int32.Parse(settingsValue);
-        }
-    }
-
-    private void GetBoolSetting(ref bool value, string setting)
-    {
-        string settingsValue = userConfig.GetConfigValue(setting);
-        value = (settingsValue == "True" ? true : false);
     }
 }

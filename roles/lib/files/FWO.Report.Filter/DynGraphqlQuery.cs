@@ -162,23 +162,14 @@ namespace FWO.Report.Filter
                     break;
 
                 case TimeRangeType.Interval:
-                    switch (timeFilter.Interval)
+                    start = timeFilter.Interval switch
                     {
-                        case Interval.Days:
-                            start = DateTime.Now.AddDays(-timeFilter.Offset).ToString(fullTimeFormat);
-                            break;
-                        case Interval.Weeks:
-                            start = DateTime.Now.AddDays(-7*timeFilter.Offset).ToString(fullTimeFormat);
-                            break;
-                        case Interval.Months:
-                            start = DateTime.Now.AddMonths(-timeFilter.Offset).ToString(fullTimeFormat);
-                            break;
-                        case Interval.Years:
-                            start = DateTime.Now.AddYears(-timeFilter.Offset).ToString(fullTimeFormat);
-                            break;
-                        default:
-                            throw new Exception($"Error: wrong time interval format:" + timeFilter.Interval.ToString());
-                    }
+                        Interval.Days => DateTime.Now.AddDays(-timeFilter.Offset).ToString(fullTimeFormat),
+                        Interval.Weeks => DateTime.Now.AddDays(-7 * timeFilter.Offset).ToString(fullTimeFormat),
+                        Interval.Months => DateTime.Now.AddMonths(-timeFilter.Offset).ToString(fullTimeFormat),
+                        Interval.Years => DateTime.Now.AddYears(-timeFilter.Offset).ToString(fullTimeFormat),
+                        _ => throw new Exception($"Error: wrong time interval format:" + timeFilter.Interval.ToString()),
+                    };
                     stop = DateTime.Now.ToString(fullTimeFormat);
                     break;
 

@@ -13,189 +13,152 @@
 @(userConfig.GetText("U5311"))
 <hr />
 
-<form class="form-inline">
-    <label for="languageSelect" class="col-form-label col-sm-4">@(userConfig.GetText("default_language"))*:</label>
-    <div class="col-sm-2">
-        <select id="languageSelect" class="form-control form-control-sm w-100" @bind="selectedDefaultLanguage">
-            @foreach (Language language in globalConfig.uiLanguages)
-            {
-                <option value="@(language.Name)">@(userConfig.GetText(language.Name))</option>
-            }
-        </select>
+@if (configData != null)
+{
+    <form class="form-inline">
+        <label for="languageSelect" class="col-form-label col-sm-4">@(userConfig.GetText("default_language"))*:</label>
+        <div class="col-sm-2">
+            <select id="languageSelect" class="form-control form-control-sm w-100" @bind="configData!.DefaultLanguage">
+                @foreach (Language language in globalConfig.uiLanguages)
+                {
+                    <option value="@(language.Name)">@(userConfig.GetText(language.Name))</option>
+                }
+            </select>
+        </div>
+    </form>
+    <hr />
+    <form class="form-inline" onsubmit="return false">
+        <label for="elementsPerFetch" class="col-form-label col-sm-4">@(userConfig.GetText("elementsPerFetch"))*:</label>
+        <div class="col-sm-2">
+            <input id="elementsPerFetch" type="number" class="form-control form-control-sm w-100" @bind="configData!.ElementsPerFetch" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="maxInitFetch" class="col-form-label col-sm-4">@(userConfig.GetText("maxInitialFetchesRightSidebar")):</label>
+        <div class="col-sm-2">
+            <input id="maxInitFetch" type="number" class="form-control form-control-sm w-100" @bind="configData!.MaxInitialFetchesRightSidebar" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="autoFillRightSidebar" class="col-form-label col-sm-4">@(userConfig.GetText("autoFillRightSidebar")):</label>
+        <div class="col-sm-2">
+            <input id="autoFillRightSidebar" type="checkbox" class="w-100" @bind="configData!.AutoFillRightSidebar">
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="minCollapseAllDevices" class="col-form-label col-sm-4">@(userConfig.GetText("minCollapseAllDevices"))*:</label>
+        <div class="col-sm-2">
+            <input id="minCollapseAllDevices" type="number" class="form-control form-control-sm w-100" @bind="configData!.MinCollapseAllDevices">
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="messageViewTime" class="col-form-label col-sm-4">@(userConfig.GetText("messageViewTime"))*:</label>
+        <div class="col-sm-2">
+            <input id="messageViewTime" type="number" class="form-control form-control-sm w-100" @bind="configData!.MessageViewTime">
+        </div>
+    </form>
+    <hr />
+    <form class="form-inline" onsubmit="return false">
+        <label for="dataRetentionTime" class="col-form-label col-sm-4">@(userConfig.GetText("dataRetentionTime")):</label>
+        <div class="col-sm-2">
+            <input id="dataRetentionTime" type="number" class="form-control form-control-sm w-100" @bind="configData!.DataRetentionTime" />
+        </div>
+    </form>
+    <hr />
+    <form class="form-inline" onsubmit="return false">
+        <label for="dailyCheckStartAt" class="col-form-label col-sm-4">@(userConfig.GetText("dailyCheckStartAt")):</label>
+        <div class="col-sm-2">
+            <input id="dailyCheckStartAt" type="time" step="60" class="form-control form-control-sm w-100" @bind="configData!.DailyCheckStartAt" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="importSleepTime" class="col-form-label col-sm-4">@(userConfig.GetText("importSleepTime")):</label>
+        <div class="col-sm-2">
+            <input id="importSleepTime" type="number" class="form-control form-control-sm w-100" @bind="configData!.ImportSleepTime" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="fwApiElementsPerFetch" class="col-form-label col-sm-4">@(userConfig.GetText("fwApiElementsPerFetch")):</label>
+        <div class="col-sm-2">
+            <input id="fwApiElementsPerFetch" type="number" class="form-control form-control-sm w-100" @bind="configData!.FwApiElementsPerFetch" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="autoDiscoverSleepTime" class="col-form-label col-sm-4">@(userConfig.GetText("autoDiscoverSleepTime")):</label>
+        <div class="col-sm-2">
+            <input id="autoDiscoverSleepTime" type="number" class="form-control form-control-sm w-100" @bind="configData!.AutoDiscoverSleepTime" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="autoDiscoverStartAt" class="col-form-label col-sm-4">@(userConfig.GetText("autoDiscoverStartAt")):</label>
+        <div class="col-sm-2">
+            <input id="autoDiscoverStartAt" type="time" step="60" class="form-control form-control-sm w-100" @bind="configData!.AutoDiscoverStartAt" />
+        </div>
+    </form>
+    <hr />
+    <form class="form-inline" onsubmit="return false">
+        <label for="recertificationPeriod" class="col-form-label col-sm-4">@(userConfig.GetText("recertificationPeriod")):</label>
+        <div class="col-sm-2">
+            <input id="recertificationPeriod" type="number" class="form-control form-control-sm w-100" @bind="configData!.RecertificationPeriod" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="recertificationNoticePeriod" class="col-form-label col-sm-4">@(userConfig.GetText("recertificationNoticePeriod")):</label>
+        <div class="col-sm-2">
+            <input id="recertificationNoticePeriod" type="number" class="form-control form-control-sm w-100" @bind="configData!.RecertificationNoticePeriod" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="recertificationDisplayPeriod" class="col-form-label col-sm-4">@(userConfig.GetText("recertificationDisplayPeriod"))*:</label>
+        <div class="col-sm-2">
+            <input id="recertificationDisplayPeriod" type="number" class="form-control form-control-sm w-100" @bind="configData!.RecertificationDisplayPeriod" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="ruleRemovalGracePeriod" class="col-form-label col-sm-4">@(userConfig.GetText("ruleRemovalGracePeriod")):</label>
+        <div class="col-sm-2">
+            <input id="ruleRemovalGracePeriod" type="number" class="form-control form-control-sm w-100" @bind="configData!.RuleRemovalGracePeriod" />
+        </div>
+    </form>
+    <form class="form-inline">
+        <label for="commentRequired" class="col-form-label col-sm-4">@(userConfig.GetText("commentRequired")):</label>
+        <div class="col-sm-2">
+            <input id="commentRequired" type="checkbox" class="w-100" @bind="configData!.CommentRequired">
+        </div>
+    </form>
+    <hr />
+    <AuthorizeView Roles="admin">
+        <Authorized>
+            <button class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+        </Authorized>
+        <NotAuthorized>
+            <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+        </NotAuthorized> 
+    </AuthorizeView>
+    <br><br>
+    <p>@(userConfig.GetText("U5303"))</p>
+}
+else
+{
+    <div class="spinner-border" role="status">
+        <span class="sr-only">Loading...</span>
     </div>
-</form>
-<hr />
-<form class="form-inline" onsubmit="return false">
-    <label for="elementsPerFetch" class="col-form-label col-sm-4">@(userConfig.GetText("elementsPerFetch"))*:</label>
-    <div class="col-sm-2">
-        <input id="elementsPerFetch" type="number" class="form-control form-control-sm w-100" @bind="elementsPerFetch" />
-    </div>
-</form>
-<form class="form-inline" onsubmit="return false">
-    <label for="maxInitFetch" class="col-form-label col-sm-4">@(userConfig.GetText("maxInitialFetchesRightSidebar")):</label>
-    <div class="col-sm-2">
-        <input id="maxInitFetch" type="number" class="form-control form-control-sm w-100" @bind="maxInitFetch" />
-    </div>
-</form>
-<form class="form-inline" onsubmit="return false">
-    <label for="autoFillRightSidebar" class="col-form-label col-sm-4">@(userConfig.GetText("autoFillRightSidebar")):</label>
-    <div class="col-sm-2">
-        <input id="autoFillRightSidebar" type="checkbox" class="w-100" @bind="autoFillRightSidebar">
-    </div>
-</form>
-<form class="form-inline" onsubmit="return false">
-    <label for="minCollapseAllDevices" class="col-form-label col-sm-4">@(userConfig.GetText("minCollapseAllDevices"))*:</label>
-    <div class="col-sm-2">
-        <input id="minCollapseAllDevices" type="number" class="form-control form-control-sm w-100" @bind="minCollapseAllDevices">
-    </div>
-</form>
-<form class="form-inline" onsubmit="return false">
-    <label for="messageViewTime" class="col-form-label col-sm-4">@(userConfig.GetText("messageViewTime"))*:</label>
-    <div class="col-sm-2">
-        <input id="messageViewTime" type="number" class="form-control form-control-sm w-100" @bind="messageViewTime">
-    </div>
-</form>
-<hr />
-<form class="form-inline" onsubmit="return false">
-    <label for="dataRetentionTime" class="col-form-label col-sm-4">@(userConfig.GetText("dataRetentionTime")):</label>
-    <div class="col-sm-2">
-        <input id="dataRetentionTime" type="number" class="form-control form-control-sm w-100" @bind="dataRetentionTime" />
-    </div>
-</form>
-<hr />
-<form class="form-inline" onsubmit="return false">
-    <label for="importSleepTime" class="col-form-label col-sm-4">@(userConfig.GetText("importSleepTime")):</label>
-    <div class="col-sm-2">
-        <input id="importSleepTime" type="number" class="form-control form-control-sm w-100" @bind="importSleepTime" />
-    </div>
-</form>
-<form class="form-inline" onsubmit="return false">
-    <label for="fwApiElementsPerFetch" class="col-form-label col-sm-4">@(userConfig.GetText("fwApiElementsPerFetch")):</label>
-    <div class="col-sm-2">
-        <input id="fwApiElementsPerFetch" type="number" class="form-control form-control-sm w-100" @bind="fwApiElementsPerFetch" />
-    </div>
-</form>
-<form class="form-inline" onsubmit="return false">
-    <label for="autoDiscoverSleepTime" class="col-form-label col-sm-4">@(userConfig.GetText("autoDiscoverSleepTime")):</label>
-    <div class="col-sm-2">
-        <input id="autoDiscoverSleepTime" type="number" class="form-control form-control-sm w-100" @bind="autoDiscoverSleepTime" />
-    </div>
-</form>
-<form class="form-inline" onsubmit="return false">
-    <label for="autoDiscoverStartAt" class="col-form-label col-sm-4">@(userConfig.GetText("autoDiscoverStartAt")):</label>
-    <div class="col-sm-2">
-        <input id="autoDiscoverStartAt" type="time" step="60" class="form-control form-control-sm w-100" @bind="autoDiscoverStartAtTime" />
-    </div>
-</form>
-<form class="form-inline" onsubmit="return false">
-    <label for="dailyCheckStartAt" class="col-form-label col-sm-4">@(userConfig.GetText("dailyCheckStartAt")):</label>
-    <div class="col-sm-2">
-        <input id="dailyCheckStartAt" type="time" step="60" class="form-control form-control-sm w-100" @bind="dailyCheckStartAtTime" />
-    </div>
-</form>
-<hr />
-<form class="form-inline" onsubmit="return false">
-    <label for="recertificationPeriod" class="col-form-label col-sm-4">@(userConfig.GetText("recertificationPeriod")):</label>
-    <div class="col-sm-2">
-        <input id="recertificationPeriod" type="number" class="form-control form-control-sm w-100" @bind="recertificationPeriod" />
-    </div>
-</form>
-<form class="form-inline" onsubmit="return false">
-    <label for="recertificationNoticePeriod" class="col-form-label col-sm-4">@(userConfig.GetText("recertificationNoticePeriod")):</label>
-    <div class="col-sm-2">
-        <input id="recertificationNoticePeriod" type="number" class="form-control form-control-sm w-100" @bind="recertificationNoticePeriod" />
-    </div>
-</form>
-<form class="form-inline" onsubmit="return false">
-    <label for="recertificationDisplayPeriod" class="col-form-label col-sm-4">@(userConfig.GetText("recertificationDisplayPeriod"))*:</label>
-    <div class="col-sm-2">
-        <input id="recertificationDisplayPeriod" type="number" class="form-control form-control-sm w-100" @bind="recertificationDisplayPeriod" />
-    </div>
-</form>
-<form class="form-inline" onsubmit="return false">
-    <label for="ruleRemovalGracePeriod" class="col-form-label col-sm-4">@(userConfig.GetText("ruleRemovalGracePeriod")):</label>
-    <div class="col-sm-2">
-        <input id="ruleRemovalGracePeriod" type="number" class="form-control form-control-sm w-100" @bind="ruleRemovalGracePeriod" />
-    </div>
-</form>
-<form class="form-inline">
-    <label for="commentRequired" class="col-form-label col-sm-4">@(userConfig.GetText("commentRequired")):</label>
-    <div class="col-sm-2">
-        <input id="commentRequired" type="checkbox" class="w-100" @bind="commentRequired">
-    </div>
-</form>
-<hr />
-<AuthorizeView Roles="admin">
-    <Authorized>
-        <button class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
-    </Authorized>
-    <NotAuthorized>
-        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-    </NotAuthorized> 
-</AuthorizeView>
-<br><br>
-<p>@(userConfig.GetText("U5303"))</p>
+}
+
+
 
 @code
 {
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
-    
-    ConfigDbAccess? config;
-    int elementsPerFetch = GlobalConfig.kDefaultInitElementsPerFetch;
-    int maxInitFetch = GlobalConfig.kDefaultInitMaxInitFetch;
-    bool autoFillRightSidebar = true;
-    int minCollapseAllDevices = GlobalConfig.kDefaultInitCollapseFrom;
-    int messageViewTime = GlobalConfig.kDefaultInitMessageViewTime;
-    string selectedDefaultLanguage = GlobalConfig.kEnglish;
-    int dataRetentionTime = GlobalConfig.kDefaultInitDataRetentionTime;
-    string dailyCheckStartAt = DateTime.Now.TimeOfDay.ToString();
-    int importSleepTime = GlobalConfig.kDefaultInitImportSleepTime;
-    int fwApiElementsPerFetch = GlobalConfig.kDefaultInitFwApiElementsPerFetch;
-    int autoDiscoverSleepTime = GlobalConfig.kDefaultInitAutoDiscoverSleepTime;
-    string autoDiscoverStartAt = DateTime.Now.TimeOfDay.ToString();
-    int recertificationPeriod = GlobalConfig.kDefaultInitRecertificationPeriod;
-    int recertificationNoticePeriod = GlobalConfig.kDefaultInitRecertificationNoticePeriod;
-    int recertificationDisplayPeriod = GlobalConfig.kDefaultInitRecertificationDisplayPeriod;
-    int ruleRemovalGracePeriod = GlobalConfig.kDefaultInitRuleRemovalGracePeriod;
-    bool commentRequired = false;
 
-    int oldAutoDiscoverSleepTime = GlobalConfig.kDefaultInitAutoDiscoverSleepTime;
-    string oldAutoDiscoverStartAt = DateTime.Now.TimeOfDay.ToString();
-    private DateTime autoDiscoverStartAtTime = DateTime.Now;
-    string oldDailyCheckStartAt = DateTime.Now.TimeOfDay.ToString();
-    private DateTime dailyCheckStartAtTime = DateTime.Now;
+    private ConfigData? configData;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            config = await ConfigDbAccess.ConstructAsync(apiConnection);
-            selectedDefaultLanguage = config.Get<string>(GlobalConfig.kDefaultLanguage);
-            Log.WriteDebug("Default language", $"got language: {selectedDefaultLanguage}");
-
-            elementsPerFetch = GetIntSetting(elementsPerFetch, GlobalConfig.kElementsPerFetch);
-            maxInitFetch = GetIntSetting(maxInitFetch, GlobalConfig.kMaxInitialFetchesRightSidebar);
-            autoFillRightSidebar = GetBoolSetting(autoFillRightSidebar, GlobalConfig.kAutoFillRightSidebar);
-            minCollapseAllDevices = GetIntSetting(minCollapseAllDevices, GlobalConfig.kMinCollapseAllDevices);
-            messageViewTime = GetIntSetting(messageViewTime, GlobalConfig.kMessageViewTime);
-            dataRetentionTime = GetIntSetting(dataRetentionTime, GlobalConfig.kDataRetentionTime);
-            dailyCheckStartAt = config.Get<string>(GlobalConfig.kDailyCheckStartAt);
-            importSleepTime = GetIntSetting(importSleepTime, GlobalConfig.kImportSleepTime);
-            fwApiElementsPerFetch = GetIntSetting(fwApiElementsPerFetch, GlobalConfig.kFwApiElementsPerFetch);
-            autoDiscoverSleepTime = GetIntSetting(autoDiscoverSleepTime, GlobalConfig.kAutoDiscoverSleepTime);
-            autoDiscoverStartAt = config.Get<string>(GlobalConfig.kAutoDiscoverStartAt);
-            recertificationPeriod = GetIntSetting(recertificationPeriod, GlobalConfig.kRecertificationPeriod);
-            recertificationNoticePeriod = GetIntSetting(recertificationNoticePeriod, GlobalConfig.kRecertificationNoticePeriod);
-            recertificationDisplayPeriod = GetIntSetting(recertificationDisplayPeriod, GlobalConfig.kRecertificationDisplayPeriod);
-            ruleRemovalGracePeriod = GetIntSetting(ruleRemovalGracePeriod, GlobalConfig.kRuleRemovalGracePeriod);
-            commentRequired = GetBoolSetting(commentRequired, GlobalConfig.kCommentRequired);
-
-            oldAutoDiscoverSleepTime = autoDiscoverSleepTime;
-            oldAutoDiscoverStartAt = autoDiscoverStartAt;
-            autoDiscoverStartAtTime = Convert.ToDateTime(autoDiscoverStartAt);
-            oldDailyCheckStartAt = dailyCheckStartAt;
-            dailyCheckStartAtTime = Convert.ToDateTime(dailyCheckStartAt);
+            configData = await globalConfig.GetEditableConfig();
         }
         catch (Exception exception)
         {
@@ -203,77 +166,18 @@
         }
     }
 
-    private int GetIntSetting(int value, string setting)
-    {
-        try
-        {
-            value = (config != null ? config.Get<int>(setting) : value);
-        }
-        catch (KeyNotFoundException) {}
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("read_config"), userConfig.GetText("E5302") + userConfig.GetText(setting) + ":" + value.ToString(), false);
-        }
-        return value;
-    }
-
-    private bool GetBoolSetting(bool value, string setting)
-    {
-        try
-        {
-            value = (config != null ? config.Get<bool>(setting) : value);
-        }
-        catch (KeyNotFoundException) { }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("read_config"), userConfig.GetText("E5302") + userConfig.GetText(setting) + ":" + value.ToString(), false);
-        }
-        return value;
-    }
-
     private async Task Save()
     {
         try
         {
-            if (config != null)
+            if (configData != null)
             {
-                await config.Set(GlobalConfig.kDefaultLanguage, selectedDefaultLanguage);
-                await config.Set(GlobalConfig.kElementsPerFetch, elementsPerFetch.ToString());
-                await config.Set(GlobalConfig.kMaxInitialFetchesRightSidebar, maxInitFetch.ToString());
-                await config.Set(GlobalConfig.kAutoFillRightSidebar, autoFillRightSidebar.ToString());
-                await config.Set(GlobalConfig.kMinCollapseAllDevices, minCollapseAllDevices.ToString());
-                await config.Set(GlobalConfig.kMessageViewTime, messageViewTime.ToString());
-                await config.Set(GlobalConfig.kDataRetentionTime, dataRetentionTime.ToString());
-                dailyCheckStartAt = dailyCheckStartAtTime.TimeOfDay.ToString();
-                if(oldDailyCheckStartAt != dailyCheckStartAt)
-                {
-                    // only update if really changed because of subscription
-                    await config.Set(GlobalConfig.kDailyCheckStartAt, dailyCheckStartAt);
-                    oldDailyCheckStartAt = dailyCheckStartAt;
-                }
-                await config.Set(GlobalConfig.kImportSleepTime, importSleepTime.ToString());
-                await config.Set(GlobalConfig.kFwApiElementsPerFetch, fwApiElementsPerFetch.ToString());
-                if(oldAutoDiscoverSleepTime != autoDiscoverSleepTime)
-                {
-                    // only update if really changed because of subscription
-                    await config.Set(GlobalConfig.kAutoDiscoverSleepTime, autoDiscoverSleepTime.ToString());
-                    oldAutoDiscoverSleepTime = autoDiscoverSleepTime;
-                }
-                autoDiscoverStartAt = autoDiscoverStartAtTime.TimeOfDay.ToString();
-                if(oldAutoDiscoverStartAt != autoDiscoverStartAt)
-                {
-                    // only update if really changed because of subscription
-                    await config.Set(GlobalConfig.kAutoDiscoverStartAt, autoDiscoverStartAt);
-                    oldAutoDiscoverStartAt = autoDiscoverStartAt;
-                }
-                await config.Set(GlobalConfig.kRecertificationPeriod, recertificationPeriod.ToString());
-                await config.Set(GlobalConfig.kRecertificationNoticePeriod, recertificationNoticePeriod.ToString());
-                await config.Set(GlobalConfig.kRecertificationDisplayPeriod, recertificationDisplayPeriod.ToString());
-                await config.Set(GlobalConfig.kRuleRemovalGracePeriod, ruleRemovalGracePeriod.ToString());
-                await config.Set(GlobalConfig.kCommentRequired, commentRequired.ToString());
-
-                await userConfig.ReloadDefaults(apiConnection);
+                await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi!(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
+            }
+            else
+            {
+                throw new Exception("Data saved before loaded. This should be impossible.");
             }
         }
         catch (Exception exception)

@@ -226,7 +226,6 @@
     private bool DeleteDeviceMode = false;
     private Device actDevice = new Device();
     private string deleteMessage = "";
-      
 
     protected override async Task OnInitializedAsync()
     {
@@ -238,16 +237,8 @@
         {
             DisplayMessageInUi!(exception, userConfig.GetText("autodiscovery"), "", true);
         }
-    }
-
-    protected override async Task OnParametersSetAsync()
-    {
-        if (Display && firstCall)
-        {
-            await AnalyzeActions();
-            await InvokeAsync(StateHasChanged);
-            firstCall = false;
-        }
+        await AnalyzeActions();
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task Close()

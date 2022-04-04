@@ -13,10 +13,8 @@ namespace FWO.Middleware.Server
     public class DailyCheckScheduler
     {
         private readonly APIConnection apiConnection;
-        private ConfigDbAccess config;
+        private GlobalConfig globalConfig;
         private int DailyCheckSleepTime = 86400000; // 24 hours in milliseconds
-        private string DailyCheckStartAt = DateTime.Now.TimeOfDay.ToString();
-        private readonly ApiSubscription<List<ConfigItem>> configChangeSubscription;
 
         private System.Timers.Timer DailyCheckScheduleTimer = new();
         private System.Timers.Timer DailyCheckTimer = new();
@@ -25,42 +23,42 @@ namespace FWO.Middleware.Server
 
         public static async Task<DailyCheckScheduler> CreateAsync(APIConnection apiConnection)
         {
-            ConfigDbAccess config = await ConfigDbAccess.ConstructAsync(apiConnection);
+            GlobalConfig config = await GlobalConfig.ConstructAsync(apiConnection, false);
             return new DailyCheckScheduler(apiConnection, config);
         }
 
-        private DailyCheckScheduler(APIConnection apiConnection, ConfigDbAccess config)
+        private DailyCheckScheduler(APIConnection apiConnection, GlobalConfig globalConfig)
         {
             this.apiConnection = apiConnection;
-            this.config = config;
-    
-            try
-            {
-                DailyCheckStartAt = config.Get<string>(GlobalConfig.kDailyCheckStartAt);
-            }
-            catch (KeyNotFoundException) {}
-            
-            configChangeSubscription = apiConnection.GetSubscription<List<ConfigItem>>(ApiExceptionHandler, OnConfigUpdate, ConfigQueries.subscribeDailyCheckConfigChanges);
+            this.globalConfig = globalConfig;
+            globalConfig.OnChange += GlobalConfig_OnChange;
 
+            startDailyCheckScheduleTimer();
+        }
+
+        private void GlobalConfig_OnChange(Config.Api.Config globalConfig, ConfigItem[] _)
+        {
+            DailyCheckTimer.Interval = DailyCheckSleepTime;
+            DailyCheckScheduleTimer.Stop();
             startDailyCheckScheduleTimer();
         }
 
         public void startDailyCheckScheduleTimer()
         {
-            DateTime startTime = DateTime.Now;
+            DateTime? startTime = null;
             try
             {
-                startTime = Convert.ToDateTime(DailyCheckStartAt);
+                startTime = DateTime.Now.Date.Add(globalConfig.DailyCheckStartAt.TimeOfDay);
                 if(startTime < DateTime.Now)
                 {
-                    startTime = startTime.AddDays(1);
+                    startTime = ((DateTime)startTime).AddDays(1);
                 }
             }
             catch (Exception exception)
             {
                 Log.WriteError("DailyCheck scheduler", "Could not calculate start time.", exception);
             }
-            TimeSpan interval = startTime - DateTime.Now;
+            TimeSpan interval = (startTime ?? DateTime.Now.AddMilliseconds(1)) - DateTime.Now;
         
             DailyCheckScheduleTimer = new();
             DailyCheckScheduleTimer.Elapsed += DailyCheck;
@@ -80,25 +78,6 @@ namespace FWO.Middleware.Server
             DailyCheckTimer.AutoReset = true;
             DailyCheckTimer.Start();
             Log.WriteDebug("DailyCheck scheduler", "DailyCheckTimer started.");
-        }
-
-        private void OnConfigUpdate(List<ConfigItem> configItems)
-        {
-            foreach (ConfigItem configItem in configItems)
-            {
-                if(configItem.Key == GlobalConfig.kDailyCheckStartAt && configItem.Value != null && configItem.Value != "")
-                {
-                    DailyCheckStartAt = configItem.Value;
-                }
-            }
-            DailyCheckTimer.Interval = DailyCheckSleepTime;
-            DailyCheckScheduleTimer.Stop();
-            startDailyCheckScheduleTimer();
-        }
-
-        private void ApiExceptionHandler(Exception exception)
-        {
-            Log.WriteError("DailyCheck scheduler", "Api subscription lead to exception. Retry subscription.", exception);
         }
 
         private async void DailyCheck(object? _, ElapsedEventArgs __)

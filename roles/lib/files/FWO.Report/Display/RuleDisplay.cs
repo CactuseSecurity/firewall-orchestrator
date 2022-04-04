@@ -16,19 +16,6 @@ namespace FWO.Ui.Display
 
         public string DisplayNumber(Rule rule, Rule[] rules)
         {
-            //result = new StringBuilder();
-            //if (rules != null)
-            //{
-            //    int ruleNumber = Array.IndexOf(rules, rule) + 1;
-
-            //    for (int i = 0; i < ruleNumber; i++)
-            //        if (!string.IsNullOrEmpty(rules[i].SectionHeader))
-            //            ruleNumber--;
-
-            //    result.AppendLine($"{ruleNumber}");
-            //}
-            ////result.AppendLine($"DEBUG: {rule.OrderNumber}");
-            //return result.ToString();
             return rule.DisplayOrderNumber.ToString();
         }
 
@@ -72,7 +59,7 @@ namespace FWO.Ui.Display
                 if (source.User != null)
                     result.AppendLine($"<span class=\"oi oi-people\">&nbsp;</span><a href=\"{location}#{userLink}\" target=\"_top\" style=\"{style}\">{source.User.Name}</a>@");
                 result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"{location}#{nwobjLink}\" target=\"_top\" style=\"{style}\">{source.Object.Name}</a>");
-                result.Append((source.Object.IP != null ? $" ({source.Object.IP})" : ""));
+                result.Append(DisplayIpRange(source.Object.IP, source.Object.IpEnd));
                 result.AppendLine("<br>");
             }
 
@@ -123,13 +110,18 @@ namespace FWO.Ui.Display
                 //                              : $"goto-report-m{rule.MgmtId}-nwobj{destination.Object.Id}";
 
                 result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"{location}#{nwobjLink}\" target=\"_top\" style=\"{style}\">{destination.Object.Name}</a>");
-                result.Append(destination.Object.IP != null ? $" ({destination.Object.IP})" : "");
+                result.Append(DisplayIpRange(destination.Object.IP, destination.Object.IpEnd));
                 result.AppendLine("<br>");
             }
 
             result.AppendLine("</p>");
 
             return result.ToString();
+        }
+
+        public string DisplayIpRange(string Ip, string IpEnd)
+        {
+            return (Ip != null && Ip != "" ? $" ({Ip}{(IpEnd != null && IpEnd != "" ? $"-{IpEnd}" : "")})" : "");
         }
 
         public string DisplayService(Rule rule, string style = "", string location = "report")

@@ -41,17 +41,11 @@ namespace FWO.Ui.Display
                 if (source.User != null)
                     result.AppendLine($"<span class=\"oi oi-people\">&nbsp;</span><a href=\"{location}#{userLink}\" target=\"_top\" style=\"{style}\">{source.User.Name}</a>@");
                 result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"{location}#{nwobjLink}\" target=\"_top\" style=\"{style}\">{source.Object.Name}</a>");
-                result.Append((source.Object.IP != null ? $" ({source.Object.IP})" : ""));
+                result.Append(DisplayIpRange(source.Object.IP, source.Object.IpEnd));
                 result.AppendLine("<br>");
             }
             result.AppendLine("</p>");
 
-//            string translSrc = result.ToString();
-//            if(translSrc == DisplaySource(rule, style))
-//            {
-//                return "origin";
-//            }
-//            return translSrc;
             return result.ToString();
         }
 
@@ -82,17 +76,11 @@ namespace FWO.Ui.Display
                                              : $"goto-report-m{rule.MgmtId}-nwobj{destination.Object.Id}";
 
                 result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"{location}#{link}\" target=\"_top\" style=\"{style}\">{destination.Object.Name}</a>");
-                result.Append(destination.Object.IP != null ? $" ({destination.Object.IP})" : "");
+                result.Append(DisplayIpRange(destination.Object.IP, destination.Object.IpEnd));
                 result.AppendLine("<br>");
             }
             result.AppendLine("</p>");
 
-//            string translDst = result.ToString();
-//            if(translDst == DisplayDestination(rule, style))
-//            {
-//                return "origin";
-//            }
-//            return translDst;
             return result.ToString();
         }
 
@@ -127,12 +115,6 @@ namespace FWO.Ui.Display
             }
             result.AppendLine("</p>");
 
-//            string translSvc = result.ToString();
-//            if(translSvc == DisplayService(rule, style))
-//            {
-//                return "origin";
-//            }
-//            return translSvc;
             return result.ToString();
         }
     }

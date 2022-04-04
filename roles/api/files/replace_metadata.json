@@ -4010,6 +4010,87 @@
             {
               "table": {
                 "schema": "public",
+                "name": "nw_object_limits"
+              },
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "first_ip",
+                      "last_ip",
+                      "mgm_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "first_ip",
+                      "last_ip",
+                      "mgm_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "first_ip",
+                      "last_ip",
+                      "mgm_id"
+                    ],
+                    "filter": {
+                      "mgm_id": {
+                        "_in": "x-hasura-visible-managements"
+                      }
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "first_ip",
+                      "last_ip",
+                      "mgm_id"
+                    ],
+                    "filter": {
+                      "mgm_id": {
+                        "_in": "x-hasura-visible-managements"
+                      }
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "first_ip",
+                      "last_ip",
+                      "mgm_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "schema": "public",
                 "name": "object"
               },
               "object_relationships": [
@@ -4083,6 +4164,21 @@
                       "table": {
                         "schema": "public",
                         "name": "changelog_object"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "network_object_limits",
+                  "using": {
+                    "manual_configuration": {
+                      "remote_table": {
+                        "schema": "public",
+                        "name": "nw_object_limits"
+                      },
+                      "insertion_order": null,
+                      "column_mapping": {
+                        "obj_id": "obj_id"
                       }
                     }
                   }
@@ -11299,6 +11395,6 @@
           "comment": null
         }
       ]
-    }
-    }
+    }  
+  }
 }

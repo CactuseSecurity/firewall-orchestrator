@@ -202,6 +202,12 @@ adding report template format fk and permissions
 - monitoring module
 - CPR8x auto-discovery
 
-### 5.6.7
+### 5.6.7 - 04.04.2022
 - allow deactivation of ldap connection
 - rework of python logging
+- db index optimization
+- fixing CIDR filtering
+
+### 5.6.8
+- no end ip address for obj types <> range
+- fixing range display in reporting

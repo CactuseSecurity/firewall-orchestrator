@@ -121,7 +121,7 @@ namespace FWO.Ui.Display
 
         public string DisplayIpRange(string Ip, string IpEnd)
         {
-            return (Ip != null && Ip != "" ? $" ({Ip}{(IpEnd != null && IpEnd != "" ? $"-{IpEnd}" : "")})" : "");
+            return (Ip != null && Ip != "" ? $" ({Ip}{(IpEnd != null && IpEnd != "" && IpEnd != Ip ? $"-{IpEnd}" : "")})" : "");
         }
 
         public string DisplayService(Rule rule, string style = "", string location = "report")

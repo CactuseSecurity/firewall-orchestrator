@@ -237,8 +237,16 @@
         {
             DisplayMessageInUi!(exception, userConfig.GetText("autodiscovery"), "", true);
         }
-        await AnalyzeActions();
-        await InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Display && firstCall)
+        {
+            await AnalyzeActions();
+            await InvokeAsync(StateHasChanged);
+            firstCall = false;
+        }
     }
 
     private async Task Close()

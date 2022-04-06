@@ -40,7 +40,7 @@ def collect_nw_objects(object_table, nw_objects, debug_level=0):
                         obj['members'] = None
                 ip_addr = get_ip_of_obj(obj)
                 first_ip = ip_addr
-                last_ip = ip_addr
+                last_ip = None
                 obj_type = obj['type']
                 if obj_type=='group':
                     first_ip = None

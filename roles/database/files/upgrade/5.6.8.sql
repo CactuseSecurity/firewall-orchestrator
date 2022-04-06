@@ -51,3 +51,5 @@ Create index IF NOT EXISTS idx_import_object02 on import_object (obj_id);
 Create index IF NOT EXISTS idx_object02 on object (obj_name,mgm_id,zone_id,active);
 Create index IF NOT EXISTS idx_object03 on object (obj_uid,mgm_id,zone_id,active);
 
+insert into config (config_key, config_value, config_user) VALUES ('maxImportDuration', '4', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('maxImportInterval', '12', 0) ON CONFLICT DO NOTHING;

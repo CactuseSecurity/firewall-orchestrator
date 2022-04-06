@@ -163,7 +163,7 @@
             {
                 imp.SortPrio = 1;
                 // too long
-                if (imp.LastIncompleteImport[0].StartTime < DateTime.Now.AddHours(-4))
+                if (imp.LastIncompleteImport[0].StartTime < DateTime.Now.AddHours(-userConfig.MaxImportDuration))
                 {
                     imp.SortPrio = 2;
                 }
@@ -174,7 +174,7 @@
                     // active, but no import at all
                     || (!imp.ImportDisabled && (imp.LastImport == null || imp.LastImport.Length == 0
                                             // or too long ago
-                                            || imp.LastImport[0].StartTime < DateTime.Now.AddHours(-12)))
+                                            || imp.LastImport[0].StartTime < DateTime.Now.AddHours(-userConfig.MaxImportInterval)))
                     )
             {
                 imp.SortPrio = 2;

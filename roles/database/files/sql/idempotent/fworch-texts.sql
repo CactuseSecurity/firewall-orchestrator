@@ -761,6 +761,10 @@ INSERT INTO txt VALUES ('dataRetentionTime',    'German', 	'Datenaufbewahrungsze
 INSERT INTO txt VALUES ('dataRetentionTime',    'English', 	'Data retention time (in days)');
 INSERT INTO txt VALUES ('dailyCheckStartAt',    'German', 	'Startzeit t&auml;glicher Check');
 INSERT INTO txt VALUES ('dailyCheckStartAt',    'English', 	'Daily check start at');
+INSERT INTO txt VALUES ('maxImportDuration',    'German', 	'Max erlaubte Importdauer (in Stunden)');
+INSERT INTO txt VALUES ('maxImportDuration',    'English', 	'Max allowed import duration (in hours)');
+INSERT INTO txt VALUES ('maxImportInterval',    'German', 	'Max erlaubtes Importintervall (in Stunden)');
+INSERT INTO txt VALUES ('maxImportInterval',    'English', 	'Max import interval (in hours)');
 INSERT INTO txt VALUES ('importSleepTime',      'German', 	'Importintervall (in Sekunden)');
 INSERT INTO txt VALUES ('importSleepTime',      'English', 	'Import sleep time (in seconds)');
 INSERT INTO txt VALUES ('fwApiElementsPerFetch','German', 	'FW API - Pro Abruf geholte Elemente');
@@ -979,6 +983,30 @@ INSERT INTO txt VALUES ('disable',				'German', 	'Deaktivieren');
 INSERT INTO txt VALUES ('disable',				'English', 	'Disable');
 INSERT INTO txt VALUES ('nothing',              'German', 	'Nichts');
 INSERT INTO txt VALUES ('nothing',              'English',  'Nothing');
+INSERT INTO txt VALUES ('sample_data',          'German', 	'Beispieldaten');
+INSERT INTO txt VALUES ('sample_data',	        'English', 	'Sample Data');
+INSERT INTO txt VALUES ('sample_data_found_in', 'German', 	'Beispieldaten gefunden in: ');
+INSERT INTO txt VALUES ('sample_data_found_in',	'English', 	'Sample data found in: ');
+INSERT INTO txt VALUES ('no_sample_data_found', 'German', 	'keine Beispieldaten gefunden');
+INSERT INTO txt VALUES ('no_sample_data_found',	'English', 	'no sample data found');
+INSERT INTO txt VALUES ('import_issues_found',  'German', 	' Importprobleme gefunden');
+INSERT INTO txt VALUES ('import_issues_found',  'English',	' import issues found');
+INSERT INTO txt VALUES ('no_import_issues_found','German', 	'keine Importprobleme gefunden');
+INSERT INTO txt VALUES ('no_import_issues_found','English',	'no import issues found');
+INSERT INTO txt VALUES ('ran_into_exception',   'German', 	'Exception ausgel&ouml;st: ');
+INSERT INTO txt VALUES ('ran_into_exception',	'English', 	'Ran into exception: ');
+INSERT INTO txt VALUES ('daily_sample_data_check','German', 'T&auml;glicher Check auf Beispieldaten');
+INSERT INTO txt VALUES ('daily_sample_data_check','English','Scheduled Daily Sample Data Check');
+INSERT INTO txt VALUES ('daily_importer_check', 'German',   'T&auml;glicher Check der Importer');
+INSERT INTO txt VALUES ('daily_importer_check', 'English',  'Scheduled Daily Importer Check');
+INSERT INTO txt VALUES ('scheduled_autodiscovery','German', 'Termingesteuerte Autodiscovery');
+INSERT INTO txt VALUES ('scheduled_autodiscovery','English','Scheduled Autodiscovery');
+INSERT INTO txt VALUES ('manual_autodiscovery', 'German', 	'Manuelle Autodiscovery');
+INSERT INTO txt VALUES ('manual_autodiscovery', 'English', 	'Manual Autodiscovery');
+INSERT INTO txt VALUES ('changes_found',        'German', 	' &Auml;nderungen gefunden');
+INSERT INTO txt VALUES ('changes_found',        'English',	' changes found');
+INSERT INTO txt VALUES ('found_no_changes',     'German', 	'keine &Auml;nderungen gefunden');
+INSERT INTO txt VALUES ('found_no_changes',     'English',	'no changes found');
 
 
 -- help pages
@@ -1382,6 +1410,12 @@ INSERT INTO txt VALUES ('E7002', 'German',  'Bitte zuerst Aktion ausf&uuml;hren 
 INSERT INTO txt VALUES ('E7002', 'English', 'Please apply first action of alert ');
 INSERT INTO txt VALUES ('E7003', 'German',  'Bitte zuerst zugeh&ouml;rige Gateways l&ouml;schen');
 INSERT INTO txt VALUES ('E7003', 'English', 'Please delete related gateways first');
+INSERT INTO txt VALUES ('E7011', 'German',  'Import l&auml;uft zu lange');
+INSERT INTO txt VALUES ('E7011', 'English', 'Import running too long');
+INSERT INTO txt VALUES ('E7012', 'German',  'Kein Import f&uuml;r aktives Management');
+INSERT INTO txt VALUES ('E7012', 'English', 'No Import for active management');
+INSERT INTO txt VALUES ('E7013', 'German',  'Letzter erfolgreicher Import zu lange her');
+INSERT INTO txt VALUES ('E7013', 'English', 'Last successful import too long ago');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');

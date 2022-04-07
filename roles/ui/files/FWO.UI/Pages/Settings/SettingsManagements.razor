@@ -257,7 +257,7 @@
     </Footer>
 </PopUp>
 
-<AutoDiscovery Actions="actActions" @bind-Display="AutoDiscoverMode" Closing="async () => {AutoDiscoverMode = false; await Refresh();}"/>
+<AutoDiscovery @ref="autoDiscovery" Actions="actActions" @bind-Display="AutoDiscoverMode" Closing="async () => {AutoDiscoverMode = false; await Refresh();}"/>
 
 <PopUp Title="@(userConfig.GetText("in_progress"))" Small="true" Show="@workInProgress">
     <Body>
@@ -295,6 +295,8 @@
     private Management newManagement = new Management();
     private Management actManagement = new Management();
     private Management actSuperManagement = new Management();
+
+    private AutoDiscovery autoDiscovery;
 
     private string deleteMessage = "";
     private string cleanupMessage = "";

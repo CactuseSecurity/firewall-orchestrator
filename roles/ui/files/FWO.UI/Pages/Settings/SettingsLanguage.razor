@@ -43,7 +43,6 @@
         {
             Log.WriteDebug("Change language", $"new language: {language}");
             await userConfig.ChangeLanguage(language, apiConnection);
-            userConfig.User.Language = language;
         }
         catch (Exception exception)
         {

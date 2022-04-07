@@ -15,7 +15,7 @@ namespace FWO.ApiClient.Queries
         public static readonly string deleteDeviceFromTenant;
         public static readonly string getUsers;
         public static readonly string getUserByDn;
-        public static readonly string getUserByUuid;
+        public static readonly string getUserByDbId;
         public static readonly string addUser;
         public static readonly string updateUserEmail;
         public static readonly string updateUserLanguage;
@@ -50,7 +50,7 @@ namespace FWO.ApiClient.Queries
                 getLdapConnectionsSubscription = File.ReadAllText(QueryPath + "auth/getLdapConnectionsSubscription.graphql");
                 getUsers = File.ReadAllText(QueryPath + "auth/getUsers.graphql");
                 getUserByDn = File.ReadAllText(QueryPath + "auth/getUserByDn.graphql");
-                getUserByUuid = File.ReadAllText(QueryPath + "auth/getUserByUuid.graphql");
+                getUserByDbId = File.ReadAllText(QueryPath + "auth/getUserByDbId.graphql");
                 addUser = File.ReadAllText(QueryPath + "auth/addUser.graphql");
                 updateUserEmail = File.ReadAllText(QueryPath + "auth/updateUserEmail.graphql");
                 updateUserLanguage = File.ReadAllText(QueryPath + "auth/updateUserLanguage.graphql");

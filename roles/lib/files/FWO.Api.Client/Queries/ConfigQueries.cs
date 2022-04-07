@@ -7,6 +7,7 @@ namespace FWO.ApiClient.Queries
         public static readonly string getLanguages;
         public static readonly string getAllTexts;
         public static readonly string getTextsPerLanguage;
+        public static readonly string getConfigSubscription;
         public static readonly string addConfigItem;
         public static readonly string updateConfigItem;
         public static readonly string upsertConfigItem;
@@ -26,6 +27,7 @@ namespace FWO.ApiClient.Queries
                 getConfigItemsByUser = File.ReadAllText(QueryPath + "config/getConfigItemsByUser.graphql");
                 upsertConfigItem = File.ReadAllText(QueryPath + "config/upsertConfigItem.graphql");
                 subscribeAutodiscoveryConfigChanges = File.ReadAllText(QueryPath + "config/subscribeAutodiscoveryConfigChanges.graphql");
+                getConfigSubscription = File.ReadAllText(QueryPath + "config/getConfigSubscription.graphql");
                 subscribeDailyCheckConfigChanges = File.ReadAllText(QueryPath + "config/subscribeDailyCheckConfigChanges.graphql");
             }
             catch (Exception exception)

@@ -12,11 +12,8 @@ namespace FWO.Middleware.Server
     public class AutoDiscoverScheduler
     {
         private readonly APIConnection apiConnection;
-        private ConfigDbAccess config;
-        private int autoDiscoverSleepTime = GlobalConfig.kDefaultInitAutoDiscoverSleepTime; // in hours
-        private string autoDiscoverStartAt = DateTime.Now.TimeOfDay.ToString();
+        private GlobalConfig globalConfig;
         private long? lastMgmtAlertId;
-        private readonly ApiSubscription<List<ConfigItem>> configChangeSubscription;
         private List<Alert> openAlerts = new List<Alert>();
 
         private System.Timers.Timer ScheduleTimer = new();
@@ -24,38 +21,37 @@ namespace FWO.Middleware.Server
 
         public static async Task<AutoDiscoverScheduler> CreateAsync(APIConnection apiConnection)
         {
-            ConfigDbAccess config = await ConfigDbAccess.ConstructAsync(apiConnection);
-            return new AutoDiscoverScheduler(apiConnection, config);
+            GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, false);
+            return new AutoDiscoverScheduler(apiConnection, globalConfig);
         }
-
-        private AutoDiscoverScheduler(APIConnection apiConnection, ConfigDbAccess config)
+    
+        private AutoDiscoverScheduler(APIConnection apiConnection, GlobalConfig globalConfig)
         {
             this.apiConnection = apiConnection;
-            this.config = config;
+            this.globalConfig = globalConfig;
+            globalConfig.OnChange += GlobalConfig_OnChange;
 
-            try
-            {
-                autoDiscoverSleepTime = config.Get<int>(GlobalConfig.kAutoDiscoverSleepTime);
-                autoDiscoverStartAt = config.Get<string>(GlobalConfig.kAutoDiscoverStartAt);
-            }
-            catch (KeyNotFoundException) { }
+            startScheduleTimer();
+        }
 
-            configChangeSubscription = apiConnection.GetSubscription<List<ConfigItem>>(ApiExceptionHandler, OnConfigUpdate, ConfigQueries.subscribeAutodiscoveryConfigChanges);
-
+        private void GlobalConfig_OnChange(Config.Api.Config globalConfig, ConfigItem[] _)
+        {
+            AutoDiscoverTimer.Interval = globalConfig.AutoDiscoverSleepTime * 3600000; // convert hours to milliseconds
+            ScheduleTimer.Stop();
             startScheduleTimer();
         }
 
         public void startScheduleTimer()
         {
-            if (autoDiscoverSleepTime > 0)
+            if (globalConfig.AutoDiscoverSleepTime > 0)
             {
                 DateTime startTime = DateTime.Now;
                 try
                 {
-                    startTime = Convert.ToDateTime(autoDiscoverStartAt);
+                    startTime = globalConfig.AutoDiscoverStartAt;
                     while (startTime < DateTime.Now)
                     {
-                        startTime = startTime.AddHours(autoDiscoverSleepTime);
+                        startTime = startTime.AddHours(globalConfig.AutoDiscoverSleepTime);
                     }
                 }
                 catch (Exception exception)
@@ -79,33 +75,10 @@ namespace FWO.Middleware.Server
             AutoDiscoverTimer.Stop();
             AutoDiscoverTimer = new();
             AutoDiscoverTimer.Elapsed += AutoDiscover;
-            AutoDiscoverTimer.Interval = autoDiscoverSleepTime * 3600000;  // convert hours to milliseconds
+            AutoDiscoverTimer.Interval = globalConfig.AutoDiscoverSleepTime * 3600000;  // convert hours to milliseconds
             AutoDiscoverTimer.AutoReset = true;
             AutoDiscoverTimer.Start();
             Log.WriteDebug("Autodiscover scheduler", "AutoDiscoverTimer started.");
-        }
-
-        private void OnConfigUpdate(List<ConfigItem> configItems)
-        {
-            foreach (ConfigItem configItem in configItems)
-            {
-                if (configItem.Key == GlobalConfig.kAutoDiscoverSleepTime && configItem.Value != null && configItem.Value != "")
-                {
-                    autoDiscoverSleepTime = Int32.Parse(configItem.Value);
-                }
-                if (configItem.Key == GlobalConfig.kAutoDiscoverStartAt && configItem.Value != null && configItem.Value != "")
-                {
-                    autoDiscoverStartAt = configItem.Value;
-                }
-            }
-            AutoDiscoverTimer.Interval = autoDiscoverSleepTime * 3600000; // convert hours to milliseconds
-            ScheduleTimer.Stop();
-            startScheduleTimer();
-        }
-
-        private void ApiExceptionHandler(Exception exception)
-        {
-            Log.WriteError("Autodiscover scheduler", "Api subscription lead to exception. Retry subscription.", exception);
         }
 
         private async void AutoDiscover(object? _, ElapsedEventArgs __)

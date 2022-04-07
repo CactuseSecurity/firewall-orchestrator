@@ -1,5 +1,6 @@
 ﻿@using FWO.ApiClient
 @using FWO.Config.Api
+@using FWO.Config.Api.Data
 @using FWO.Ui.Services
 
 @page "/settings/recertification"
@@ -12,61 +13,58 @@
 @(userConfig.GetText("U5414"))
 <hr />
 
-<form class="form-inline" onsubmit="return false">
-    <label for="recertificationDisplayPeriod" class="col-form-label mr-2">@(userConfig.GetText("recertificationDisplayPeriod")):</label>
-    <div class="col-sm-2">
-        <input id="recertificationDisplayPeriod" type="number" class="form-control form-control-sm" @bind="recertificationDisplayPeriod" />
+@if (configData != null)
+{
+     <form class="form-inline" onsubmit="return false">
+        <label for="recertificationDisplayPeriod" class="col-form-label mr-2">@(userConfig.GetText("recertificationDisplayPeriod")):</label>
+        <div class="col-sm-2">
+            <input id="recertificationDisplayPeriod" type="number" class="form-control form-control-sm" @bind="configData!.RecertificationDisplayPeriod" />
+        </div>
+    </form>
+    <hr />
+    <button class="btn btn-sm btn-primary" @onclick="SaveRecertificationDisplayPeriod">@(userConfig.GetText("save"))</button>  
+}
+else
+{
+    <div class="spinner-border" role="status">
+        <span class="sr-only">Loading...</span>
     </div>
-</form>
-<hr />
-<button class="btn btn-sm btn-primary" @onclick="SaveRecertificationDisplayPeriod">@(userConfig.GetText("save"))</button>
-
+}
 
 @code
 {
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
-    ConfigDbAccess? config;
-    int recertificationDisplayPeriod = GlobalConfig.kDefaultInitRecertificationDisplayPeriod;
+    ConfigData? configData;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            config = await ConfigDbAccess.ConstructAsync(apiConnection, userConfig);
-            string settingsValue = config.Get<string>(GlobalConfig.kRecertificationDisplayPeriod);
-            if (settingsValue != "")
-            {
-                recertificationDisplayPeriod = Int32.Parse(settingsValue);
-            }
-            else
-            {
-                // get default value
-                ConfigDbAccess defaultConfig = await ConfigDbAccess.ConstructAsync(apiConnection);
-                settingsValue = defaultConfig.Get<string>(GlobalConfig.kRecertificationDisplayPeriod);
-                if (settingsValue != "")
-                {
-                    recertificationDisplayPeriod = Int32.Parse(settingsValue);
-                }
-            }
+            configData = await userConfig.GetEditableConfig();
         }
-        catch (KeyNotFoundException) { }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("recert_settings"), userConfig.GetText("E5421") + recertificationDisplayPeriod.ToString(), false);
+            DisplayMessageInUi!(exception, userConfig.GetText("recert_settings"), userConfig.GetText("E5421"), false);
         }
     }
 
     private async Task SaveRecertificationDisplayPeriod()
-    {
-        string recertificationDisplayPeriodString = recertificationDisplayPeriod.ToString();
+    {       
         try
         {
-            await userConfig.ChangeConfigValue(GlobalConfig.kRecertificationDisplayPeriod, recertificationDisplayPeriodString, apiConnection);
-            DisplayMessageInUi!(null, userConfig.GetText("recert_settings"), userConfig.GetText("U5301"), false);
+            if (configData != null)
+            {
+                await userConfig.WriteToDatabase(configData, apiConnection);
+                DisplayMessageInUi!(null, userConfig.GetText("recert_settings"), userConfig.GetText("U5301"), false);             
+            }
+            else
+            {
+                throw new Exception("Data saved before loaded. This should be impossible.");
+            }
         }
-        catch (System.Exception exception)
+        catch (Exception exception)
         {
             DisplayMessageInUi!(exception, userConfig.GetText("recert_settings"), "", true);
         }

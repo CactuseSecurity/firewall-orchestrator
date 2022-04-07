@@ -45,7 +45,7 @@
                         <DetailTemplate TableItem="NetworkObject">
                             <Detail Title="@(userConfig.GetText("type"))" Data=@context.Type.Name />
                             <Detail Title="@(userConfig.GetText("uid"))" Data=@context.Uid />
-                            <Detail Title="@(userConfig.GetText("ip"))" Data=@context.IP />
+                            <Detail Title="@(userConfig.GetText("ip"))" Data=@(context.IP + (context.IpEnd != null && context.IpEnd != "" && context.IpEnd != context.IP ? "-" + context.IpEnd : "")) />
                             <Detail Title="@(userConfig.GetText("zone"))" Data=@context.Zone?.Name />
                             @if (context.Type.Name == "group" && context.ObjectGroups != null && context.ObjectGroupFlats != null)
                             {

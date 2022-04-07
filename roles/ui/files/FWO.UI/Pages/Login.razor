@@ -27,14 +27,14 @@
             <div class="shadow-sm card p-3" style="width: 250px;">
                 <form class="d-flex flex-column">
                     <div class="form-group">
-                        <input type="text" class="form-control @InputClass" id="UsernameInput" placeholder="@(userConfig.GetText("username"))" @bind="Username" @bind:event="oninput" @onkeypress="ClearInputClass" @ref="usernameInput">
+                        <input type="text" class="form-control @InputClass" id="UsernameInput" placeholder="@(globalConfig.GetText("username"))" @bind="Username" @bind:event="oninput" @onkeypress="ClearInputClass" @ref="usernameInput">
                     </div>
                     <div class="form-group">
-                        <input type="password" class="form-control @InputClass" id="PasswordInput" placeholder="@(userConfig.GetText("password"))" @bind="Password" @bind:event="oninput" @onkeypress="ClearInputClass">
+                        <input type="password" class="form-control @InputClass" id="PasswordInput" placeholder="@(globalConfig.GetText("password"))" @bind="Password" @bind:event="oninput" @onkeypress="ClearInputClass">
                     </div>
                     @if (loginInProgress == false)
                     {
-                        <button class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit">@(userConfig.GetText("login"))</button>
+                        <button class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit">@(globalConfig.GetText("login"))</button>
                         @* <button class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit"><div class="oi oi-account-login"></div></button> *@
                     }
                     else
@@ -106,7 +106,7 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
-        {
+        {      
             // This might be a reconnect. Check if there is a jwt in session storage.
             ProtectedBrowserStorageResult<string> jwtLoadRequest = await sessionStorage.GetAsync<string>("jwt");
 
@@ -114,7 +114,6 @@
             {
                 await CreateUserContext(jwtLoadRequest.Value ?? throw new AccessViolationException("Jwt from protected storage is null"));
             }
-
             else // no reconnect
             {
                 showLoginForm = true;

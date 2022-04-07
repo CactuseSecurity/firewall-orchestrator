@@ -33,6 +33,12 @@ namespace FWO.Api.Data
         [JsonProperty("importDisabled"), JsonPropertyName("importDisabled")]
         public bool ImportDisabled { get; set; }
 
+        [JsonProperty("last_import_attempt"), JsonPropertyName("last_import_attempt")]
+        public DateTime? LastImportAttempt { get; set; }
+
+        [JsonProperty("last_import_attempt_successful"), JsonPropertyName("last_import_attempt_successful")]
+        public bool LastImportAttemptSuccessful { get; set; }
+
         public int SortPrio = 0;
 
         [JsonProperty("deviceType"), JsonPropertyName("deviceType")]

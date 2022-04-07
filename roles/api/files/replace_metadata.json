@@ -408,20 +408,6 @@
                   }
                 }
               ],
-              "array_relationships": [
-                {
-                  "name": "request_object_changes",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "log_obj_id",
-                      "table": {
-                        "schema": "public",
-                        "name": "request_object_change"
-                      }
-                    }
-                  }
-                }
-              ],
               "select_permissions": [
                 {
                   "role": "importer",
@@ -503,20 +489,6 @@
                   "name": "uiuserByImportAdmin",
                   "using": {
                     "foreign_key_constraint_on": "import_admin"
-                  }
-                }
-              ],
-              "array_relationships": [
-                {
-                  "name": "request_rule_changes",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "log_rule_id",
-                      "table": {
-                        "schema": "public",
-                        "name": "request_rule_change"
-                      }
-                    }
                   }
                 }
               ],
@@ -747,20 +719,6 @@
                   }
                 }
               ],
-              "array_relationships": [
-                {
-                  "name": "request_service_changes",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "log_svc_id",
-                      "table": {
-                        "schema": "public",
-                        "name": "request_service_change"
-                      }
-                    }
-                  }
-                }
-              ],
               "select_permissions": [
                 {
                   "role": "importer",
@@ -836,20 +794,6 @@
                   "name": "usrByOldUserId",
                   "using": {
                     "foreign_key_constraint_on": "old_user_id"
-                  }
-                }
-              ],
-              "array_relationships": [
-                {
-                  "name": "request_user_changes",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "log_usr_id",
-                      "table": {
-                        "schema": "public",
-                        "name": "request_user_change"
-                      }
-                    }
                   }
                 }
               ],
@@ -1676,40 +1620,6 @@
             {
               "table": {
                 "schema": "public",
-                "name": "error"
-              },
-              "array_relationships": [
-                {
-                  "name": "error_logs",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "error_id",
-                      "table": {
-                        "schema": "public",
-                        "name": "error_log"
-                      }
-                    }
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
-                "schema": "public",
-                "name": "error_log"
-              },
-              "object_relationships": [
-                {
-                  "name": "error",
-                  "using": {
-                    "foreign_key_constraint_on": "error_id"
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
-                "schema": "public",
                 "name": "import_changelog"
               },
               "object_relationships": [
@@ -1747,6 +1657,7 @@
                     "check": {},
                     "columns": [
                       "config",
+                      "debug_mode",
                       "import_id",
                       "mgm_id",
                       "start_import_flag"
@@ -1761,6 +1672,7 @@
                   "permission": {
                     "columns": [
                       "config",
+                      "debug_mode",
                       "import_id",
                       "mgm_id",
                       "start_import_flag"
@@ -3810,7 +3722,7 @@
                       "ssh_port",
                       "tenant_id",
                       "mgm_comment",
-                      "ssh_private_key",
+                      "secret",
                       "ssh_public_key",
                       "mgm_create",
                       "mgm_update"
@@ -3844,7 +3756,7 @@
                       "multi_device_manager_id",
                       "ssh_hostname",
                       "ssh_port",
-                      "ssh_private_key",
+                      "secret",
                       "ssh_public_key",
                       "ssh_user",
                       "tenant_id"
@@ -3877,7 +3789,7 @@
                       "ssh_port",
                       "tenant_id",
                       "mgm_comment",
-                      "ssh_private_key",
+                      "secret",
                       "ssh_public_key",
                       "mgm_create",
                       "mgm_update"
@@ -3910,7 +3822,7 @@
                       "multi_device_manager_id",
                       "ssh_hostname",
                       "ssh_port",
-                      "ssh_private_key",
+                      "secret",
                       "ssh_public_key",
                       "ssh_user",
                       "tenant_id"
@@ -3943,7 +3855,7 @@
                       "ssh_port",
                       "tenant_id",
                       "mgm_comment",
-                      "ssh_private_key",
+                      "secret",
                       "ssh_public_key",
                       "mgm_create",
                       "mgm_update"
@@ -3975,7 +3887,7 @@
                       "ssh_port",
                       "tenant_id",
                       "mgm_comment",
-                      "ssh_private_key",
+                      "secret",
                       "ssh_public_key",
                       "mgm_create",
                       "mgm_update"
@@ -4012,7 +3924,7 @@
                       "ssh_port",
                       "tenant_id",
                       "mgm_comment",
-                      "ssh_private_key",
+                      "secret",
                       "ssh_public_key",
                       "mgm_create",
                       "mgm_update"
@@ -4049,7 +3961,7 @@
                       "multi_device_manager_id",
                       "ssh_hostname",
                       "ssh_port",
-                      "ssh_private_key",
+                      "secret",
                       "ssh_public_key",
                       "ssh_user",
                       "tenant_id"
@@ -4084,13 +3996,94 @@
                       "ssh_port",
                       "tenant_id",
                       "mgm_comment",
-                      "ssh_private_key",
+                      "secret",
                       "ssh_public_key",
                       "mgm_create",
                       "mgm_update"
                     ],
                     "filter": {},
                     "check": {}
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "schema": "public",
+                "name": "nw_object_limits"
+              },
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "first_ip",
+                      "last_ip",
+                      "mgm_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "first_ip",
+                      "last_ip",
+                      "mgm_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "first_ip",
+                      "last_ip",
+                      "mgm_id"
+                    ],
+                    "filter": {
+                      "mgm_id": {
+                        "_in": "x-hasura-visible-managements"
+                      }
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "first_ip",
+                      "last_ip",
+                      "mgm_id"
+                    ],
+                    "filter": {
+                      "mgm_id": {
+                        "_in": "x-hasura-visible-managements"
+                      }
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "first_ip",
+                      "last_ip",
+                      "mgm_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 }
               ]
@@ -4129,12 +4122,6 @@
                   "name": "stm_color",
                   "using": {
                     "foreign_key_constraint_on": "obj_color_id"
-                  }
-                },
-                {
-                  "name": "stm_nattyp",
-                  "using": {
-                    "foreign_key_constraint_on": "nattyp_id"
                   }
                 },
                 {
@@ -4177,6 +4164,21 @@
                       "table": {
                         "schema": "public",
                         "name": "changelog_object"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "network_object_limits",
+                  "using": {
+                    "manual_configuration": {
+                      "remote_table": {
+                        "schema": "public",
+                        "name": "nw_object_limits"
+                      },
+                      "insertion_order": null,
+                      "column_mapping": {
+                        "obj_id": "obj_id"
                       }
                     }
                   }
@@ -4261,18 +4263,6 @@
                       "table": {
                         "schema": "public",
                         "name": "rule_to"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "tenant_objects",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "obj_id",
-                      "table": {
-                        "schema": "public",
-                        "name": "tenant_object"
                       }
                     }
                   }
@@ -5513,19 +5503,6 @@
                               "name": "report_template_viewable_by_user"
                             }
                           }
-                        },
-                        {
-                          "_exists": {
-                            "_where": {
-                              "tenant_id": {
-                                "_eq": "X-Hasura-Tenant-Id"
-                              }
-                            },
-                            "_table": {
-                              "schema": "public",
-                              "name": "report_template_viewable_by_tenant"
-                            }
-                          }
                         }
                       ]
                     }
@@ -5626,19 +5603,6 @@
                             "_table": {
                               "schema": "public",
                               "name": "report_template_viewable_by_user"
-                            }
-                          }
-                        },
-                        {
-                          "_exists": {
-                            "_where": {
-                              "tenant_id": {
-                                "_eq": "X-Hasura-Tenant-Id"
-                              }
-                            },
-                            "_table": {
-                              "schema": "public",
-                              "name": "report_template_viewable_by_tenant"
                             }
                           }
                         }
@@ -6209,18 +6173,6 @@
                   }
                 },
                 {
-                  "name": "report_template_viewable_by_tenants",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "report_template_id",
-                      "table": {
-                        "schema": "public",
-                        "name": "report_template_viewable_by_tenant"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "report_template_viewable_by_users",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -6646,26 +6598,6 @@
             {
               "table": {
                 "schema": "public",
-                "name": "report_template_viewable_by_tenant"
-              },
-              "object_relationships": [
-                {
-                  "name": "report_template",
-                  "using": {
-                    "foreign_key_constraint_on": "report_template_id"
-                  }
-                },
-                {
-                  "name": "tenant",
-                  "using": {
-                    "foreign_key_constraint_on": "tenant_id"
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
-                "schema": "public",
                 "name": "report_template_viewable_by_user"
               },
               "object_relationships": [
@@ -6679,176 +6611,6 @@
                   "name": "uiuser",
                   "using": {
                     "foreign_key_constraint_on": "uiuser_id"
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
-                "schema": "public",
-                "name": "request"
-              },
-              "object_relationships": [
-                {
-                  "name": "request_type",
-                  "using": {
-                    "foreign_key_constraint_on": "request_type_id"
-                  }
-                },
-                {
-                  "name": "tenant",
-                  "using": {
-                    "foreign_key_constraint_on": "tenant_id"
-                  }
-                }
-              ],
-              "array_relationships": [
-                {
-                  "name": "request_object_changes",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "request_id",
-                      "table": {
-                        "schema": "public",
-                        "name": "request_object_change"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "request_rule_changes",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "request_id",
-                      "table": {
-                        "schema": "public",
-                        "name": "request_rule_change"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "request_service_changes",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "request_id",
-                      "table": {
-                        "schema": "public",
-                        "name": "request_service_change"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "request_user_changes",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "request_id",
-                      "table": {
-                        "schema": "public",
-                        "name": "request_user_change"
-                      }
-                    }
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
-                "schema": "public",
-                "name": "request_object_change"
-              },
-              "object_relationships": [
-                {
-                  "name": "changelog_object",
-                  "using": {
-                    "foreign_key_constraint_on": "log_obj_id"
-                  }
-                },
-                {
-                  "name": "request",
-                  "using": {
-                    "foreign_key_constraint_on": "request_id"
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
-                "schema": "public",
-                "name": "request_rule_change"
-              },
-              "object_relationships": [
-                {
-                  "name": "changelog_rule",
-                  "using": {
-                    "foreign_key_constraint_on": "log_rule_id"
-                  }
-                },
-                {
-                  "name": "request",
-                  "using": {
-                    "foreign_key_constraint_on": "request_id"
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
-                "schema": "public",
-                "name": "request_service_change"
-              },
-              "object_relationships": [
-                {
-                  "name": "changelog_service",
-                  "using": {
-                    "foreign_key_constraint_on": "log_svc_id"
-                  }
-                },
-                {
-                  "name": "request",
-                  "using": {
-                    "foreign_key_constraint_on": "request_id"
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
-                "schema": "public",
-                "name": "request_type"
-              },
-              "array_relationships": [
-                {
-                  "name": "requests",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "request_type_id",
-                      "table": {
-                        "schema": "public",
-                        "name": "request"
-                      }
-                    }
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
-                "schema": "public",
-                "name": "request_user_change"
-              },
-              "object_relationships": [
-                {
-                  "name": "changelog_user",
-                  "using": {
-                    "foreign_key_constraint_on": "log_usr_id"
-                  }
-                },
-                {
-                  "name": "request",
-                  "using": {
-                    "foreign_key_constraint_on": "request_id"
                   }
                 }
               ]
@@ -7468,18 +7230,6 @@
               ],
               "array_relationships": [
                 {
-                  "name": "rule_reviews",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "rule_metadata_id",
-                      "table": {
-                        "schema": "public",
-                        "name": "rule_review"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "rules",
                   "using": {
                     "manual_configuration": {
@@ -7851,26 +7601,6 @@
                     ],
                     "filter": {},
                     "allow_aggregations": true
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
-                "schema": "public",
-                "name": "rule_review"
-              },
-              "object_relationships": [
-                {
-                  "name": "rule_metadatum",
-                  "using": {
-                    "foreign_key_constraint_on": "rule_metadata_id"
-                  }
-                },
-                {
-                  "name": "tenant",
-                  "using": {
-                    "foreign_key_constraint_on": "tenant_id"
                   }
                 }
               ]
@@ -9284,36 +9014,6 @@
             {
               "table": {
                 "schema": "public",
-                "name": "stm_nattyp"
-              },
-              "array_relationships": [
-                {
-                  "name": "objects",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "nattyp_id",
-                      "table": {
-                        "schema": "public",
-                        "name": "object"
-                      }
-                    }
-                  }
-                }
-              ],
-              "select_permissions": [
-                {
-                  "role": "importer",
-                  "permission": {
-                    "columns": [],
-                    "filter": {},
-                    "allow_aggregations": true
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
-                "schema": "public",
                 "name": "stm_obj_typ"
               },
               "array_relationships": [
@@ -9908,18 +9608,6 @@
                   }
                 },
                 {
-                  "name": "report_template_viewable_by_tenants",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "tenant_id",
-                      "table": {
-                        "schema": "public",
-                        "name": "report_template_viewable_by_tenant"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "reports",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -9927,30 +9615,6 @@
                       "table": {
                         "schema": "public",
                         "name": "report"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "requests",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "tenant_id",
-                      "table": {
-                        "schema": "public",
-                        "name": "request"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "rule_reviews",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "tenant_id",
-                      "table": {
-                        "schema": "public",
-                        "name": "rule_review"
                       }
                     }
                   }
@@ -9968,18 +9632,6 @@
                   }
                 },
                 {
-                  "name": "tenant_objects",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "tenant_id",
-                      "table": {
-                        "schema": "public",
-                        "name": "tenant_object"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "tenant_to_devices",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -9987,30 +9639,6 @@
                       "table": {
                         "schema": "public",
                         "name": "tenant_to_device"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "tenant_usernames",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "tenant_id",
-                      "table": {
-                        "schema": "public",
-                        "name": "tenant_username"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "tenant_users",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "tenant_id",
-                      "table": {
-                        "schema": "public",
-                        "name": "tenant_user"
                       }
                     }
                   }
@@ -10139,26 +9767,6 @@
             {
               "table": {
                 "schema": "public",
-                "name": "tenant_object"
-              },
-              "object_relationships": [
-                {
-                  "name": "object",
-                  "using": {
-                    "foreign_key_constraint_on": "obj_id"
-                  }
-                },
-                {
-                  "name": "tenant",
-                  "using": {
-                    "foreign_key_constraint_on": "tenant_id"
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
-                "schema": "public",
                 "name": "tenant_to_device"
               },
               "object_relationships": [
@@ -10230,40 +9838,6 @@
                     ],
                     "filter": {},
                     "check": null
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
-                "schema": "public",
-                "name": "tenant_user"
-              },
-              "object_relationships": [
-                {
-                  "name": "tenant",
-                  "using": {
-                    "foreign_key_constraint_on": "tenant_id"
-                  }
-                },
-                {
-                  "name": "usr",
-                  "using": {
-                    "foreign_key_constraint_on": "user_id"
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
-                "schema": "public",
-                "name": "tenant_username"
-              },
-              "object_relationships": [
-                {
-                  "name": "tenant",
-                  "using": {
-                    "foreign_key_constraint_on": "tenant_id"
                   }
                 }
               ]
@@ -11269,18 +10843,6 @@
                   }
                 },
                 {
-                  "name": "tenant_users",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "user_id",
-                      "table": {
-                        "schema": "public",
-                        "name": "tenant_user"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "usergrpFlatsByUsergrpFlatMemberId",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -11833,6 +11395,6 @@
           "comment": null
         }
       ]
-    }
+    }  
   }
 }

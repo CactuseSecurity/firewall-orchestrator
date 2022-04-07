@@ -21,17 +21,18 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
+    name: test build on merge
     runs-on: ubuntu-latest
-    # if: github.event.pull_request.merged
-
     steps:
-    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - uses: actions/checkout@v2
-
     - name: do test install in case of merged pull request
-      # if: github.event_name == 'push' && github.event.action == 'closed' && github.event.pull_request.merged == true
-      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e 'run_on_github=yes' --skip-tags test site.yml -K
-      # run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e 'run_on_github=yes' site.yml -K
+      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e 'run_on_github=yes testkeys=yes' --skip-tags test site.yml -K
+
+  review:
+    name: Review code
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: do test install in case of reviewable PR
+      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e 'run_on_github=yes testkeys=yes' --skip-tags test site.yml -K

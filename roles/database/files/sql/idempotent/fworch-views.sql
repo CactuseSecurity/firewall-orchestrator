@@ -491,19 +491,25 @@ CREATE OR REPLACE VIEW view_tenant_rules AS
 -- select rule_id,rule_create from view_tenant_rules where mgm_id=4 group by rule_id,rule_create
 */
 
----------------------------------------------------------------------------------------------
--- request views - not implemented yet
----------------------------------------------------------------------------------------------
-
-/*
-CREATE OR REPLACE VIEW view_requests AS
- 	SELECT request.*, FROM
- 	view_changes LEFT JOIN 
-*/
 
 CREATE OR REPLACE VIEW view_device_names AS
 	SELECT 'Management: ' || mgm_name || ', Device: ' || dev_name AS dev_string, dev_id, mgm_id, dev_name, mgm_name FROM device LEFT JOIN management USING (mgm_id);
 
+-- view for ip address filtering
+DROP MATERIALIZED VIEW IF EXISTS nw_object_limits;
+CREATE MATERIALIZED VIEW nw_object_limits AS
+	select obj_id, mgm_id,
+		host ( object.obj_ip )::cidr as first_ip,
+		CASE 
+			WHEN object.obj_ip_end IS NULL
+			THEN host(broadcast(object.obj_ip))::cidr 
+			ELSE host(broadcast(object.obj_ip_end))::cidr 
+		END last_ip
+	from object;
+
+-- adding indexes for view
+Create index IF NOT EXISTS idx_nw_object_limits_obj_id on nw_object_limits (obj_id);
+Create index IF NOT EXISTS idx_nw_object_limits_mgm_id on nw_object_limits (mgm_id);
 ---------------------------------------------------------------------------------------------
 -- GRANTS on exportable Views
 ---------------------------------------------------------------------------------------------

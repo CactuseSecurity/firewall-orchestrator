@@ -84,7 +84,7 @@ BEGIN
 
     IF NEW.start_import_flag THEN
         -- finally start the stored procedure import
-        PERFORM import_all_main(NEW.import_id);        
+        PERFORM import_all_main(NEW.import_id, NEW.debug_mode);        
     END IF;
     RETURN NEW;
 END;
@@ -92,6 +92,7 @@ $BODY$
 LANGUAGE plpgsql
 VOLATILE
 COST 100;
+
 
 ALTER FUNCTION public.import_config_from_json () OWNER TO fworch;
 

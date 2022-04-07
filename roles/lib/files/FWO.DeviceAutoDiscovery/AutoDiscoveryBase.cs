@@ -166,8 +166,7 @@ namespace FWO.DeviceAutoDiscovery
                         {
                             Hostname = superManagement.Hostname,
                             ImportUser = superManagement.ImportUser,
-                            Password = superManagement.Password,
-                            PrivateKey = superManagement.PrivateKey,
+                            Secret = superManagement.Secret,
                             ImporterHostname = superManagement.ImporterHostname,
                             DebugLevel = superManagement.DebugLevel,
                             Port = superManagement.Port,

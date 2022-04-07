@@ -18,9 +18,7 @@ namespace FWO.Api.Data
         public string? ImportUser { get; set; }
 
         [JsonProperty("secret"), JsonPropertyName("secret")]
-        public string PrivateKey { get; set; } = "";
-
-        public string Password { get; set; } = "";
+        public string Secret { get; set; } = "";
 
         [JsonProperty("configPath"), JsonPropertyName("configPath")]
         public string ConfigPath { get; set; } = "";
@@ -113,8 +111,7 @@ namespace FWO.Api.Data
             Name = management.Name;
             Hostname = management.Hostname;
             ImportUser = management.ImportUser;
-            PrivateKey = management.PrivateKey;
-            Password = management.Password;
+            Secret = management.Secret;
             ConfigPath = management.ConfigPath;
             ImporterHostname = management.ImporterHostname;
             Port = management.Port;
@@ -172,8 +169,7 @@ namespace FWO.Api.Data
             ImporterHostname = Sanitizer.SanitizeMand(ImporterHostname);
             Comment = Sanitizer.SanitizeOpt(Comment);
             PublicKey = Sanitizer.SanitizeKeyOpt(PublicKey);
-            PrivateKey = Sanitizer.SanitizeKeyMand(PrivateKey);
-            Password = Sanitizer.SanitizePasswMand(Password);
+            Secret = (DeviceType.IsLegacyDevType() ? Sanitizer.SanitizeKeyMand(Secret) : Sanitizer.SanitizePasswMand(Secret));
         }
     }
 

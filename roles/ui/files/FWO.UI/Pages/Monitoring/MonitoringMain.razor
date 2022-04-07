@@ -29,7 +29,7 @@
         <Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="Alert" Items="alertEntrys" PageSize="100">
             <Column Context="alert" TableItem="Alert" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)">
                 <Template>
-                    @if(alert.Source == GlobalConfig.kAutodiscovery)
+                    @if(alert.Source == GlobalConfig.kAutodiscovery && alert.AlertCode != AlertCode.AutoDiscoveryErrorUnspecific)
                     {
                         <button class="btn btn-sm btn-primary" @onclick="() => ShowAutodiscDetails(alert)">@(userConfig.GetText("details"))</button>
                     }
@@ -187,7 +187,7 @@
         try
         {
             actMgmtId = alert.ManagementId ?? throw new Exception($"Missing ManagementId!");
-            LastIncompleteImport = JsonSerializer.Deserialize<ImportControl[]?>(alert.JsonData ?? throw new Exception($"Missing Import Data!"));
+            LastIncompleteImport = JsonSerializer.Deserialize<ImportControl[]?>((alert.JsonData ?? throw new Exception($"Missing Import Data!")).ToString());
             RollbackMode = true;
         }
         catch (Exception exception)
@@ -200,7 +200,7 @@
     {
         try
         {
-            actStatus = JsonSerializer.Deserialize<ImportStatus>(alert.JsonData ?? throw new Exception($"Missing Import Data!")) ?? throw new Exception($"Import Data not converted!");
+            actStatus = JsonSerializer.Deserialize<ImportStatus>((alert.JsonData ?? throw new Exception($"Missing Import Data!")).ToString()) ?? throw new Exception($"Import Data not converted!");
             DetailsMode = true;
         }
         catch (Exception exception)

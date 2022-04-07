@@ -1,12 +1,13 @@
-import logging
+from fwo_log import getFwoLogger
 import common
+import json
 from cpcommon import nw_obj_table_names, get_ip_of_obj
 
-def parse_network_objects_to_json(full_config, config2import, import_id):
+def parse_network_objects_to_json(full_config, config2import, import_id, debug_level=0):
     nw_objects = []
 
     for obj_table in full_config['object_tables']:
-        collect_nw_objects(obj_table, nw_objects)
+        collect_nw_objects(obj_table, nw_objects, debug_level=debug_level)
     for nw_obj in nw_objects:
         nw_obj.update({'control_id': import_id})
     for idx in range(0, len(nw_objects)-1):
@@ -16,7 +17,8 @@ def parse_network_objects_to_json(full_config, config2import, import_id):
     
 
 # collect_nw_objects from object tables and write them into global nw_objects dict
-def collect_nw_objects(object_table, nw_objects):
+def collect_nw_objects(object_table, nw_objects, debug_level=0):
+    logger = getFwoLogger(debug_level=debug_level)
     nw_obj_type_to_host_list = [
         'simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiVsxClusterNetobj', 'CpmiVsxClusterMember', 'CpmiAnyObject', 
         'CpmiClusterMember', 'CpmiGatewayPlain', 'CpmiHostCkp', 'CpmiGatewayCluster', 'checkpoint-host' 
@@ -38,7 +40,7 @@ def collect_nw_objects(object_table, nw_objects):
                         obj['members'] = None
                 ip_addr = get_ip_of_obj(obj)
                 first_ip = ip_addr
-                last_ip = ip_addr
+                last_ip = None
                 obj_type = obj['type']
                 if obj_type=='group':
                     first_ip = None
@@ -46,14 +48,16 @@ def collect_nw_objects(object_table, nw_objects):
 
                 if obj_type == 'address-range' or obj_type == 'multicast-address-range':
                     obj_type = 'ip_range'
-                    # logging.debug("parse_network::collect_nw_objects - found range object '" + obj['name'] + "' with ip: " + ip_addr)
+                    if debug_level>5:
+                        logger.debug("parse_network::collect_nw_objects - found range object '" + obj['name'] + "' with ip: " + ip_addr)
                     if '-' in ip_addr:
                         first_ip, last_ip = ip_addr.split('-')
                     else:
-                        logging.warning("parse_network::collect_nw_objects - found range object '" + obj['name'] + "' without hyphen: " + ip_addr)
+                        logger.warning("parse_network::collect_nw_objects - found range object '" + obj['name'] + "' without hyphen: " + ip_addr)
                 elif (obj_type in nw_obj_type_to_host_list):
-                    # logging.debug("parse_network::collect_nw_objects - rewriting non-standard cp-host-type '" + obj['name'] + "' with object type '" + obj_type + "' to host")
-                    # logging.debug("obj_dump:" + json.dumps(obj, indent=3))
+                    if debug_level>5:
+                        logger.debug("parse_network::collect_nw_objects - rewriting non-standard cp-host-type '" + obj['name'] + "' with object type '" + obj_type + "' to host")
+                        logger.debug("obj_dump:" + json.dumps(obj, indent=3))
                     obj_type = 'host'
                 # adding the object:
                 if not 'comments' in obj or obj['comments']=='':

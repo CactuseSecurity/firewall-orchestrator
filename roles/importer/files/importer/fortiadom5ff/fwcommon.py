@@ -9,7 +9,7 @@ import fmgr_rule
 import fmgr_network
 import fmgr_getter
 from curses import raw
-import logging
+from fwo_log import getFwoLogger
 from fmgr_gw_networking import getInterfacesAndRouting, normalize_network_data
 
 scope = ['global', 'adom']
@@ -35,6 +35,7 @@ def has_config_changed(full_config, mgm_details, debug_level=0, force=False, pro
 
 
 def get_config(config2import, full_config, current_import_id, mgm_details, debug_level=0, proxy=None, limit=100, force=False, ssl_verification=None, jwt=''):
+    logger = getFwoLogger(debug_level=debug_level)
     if full_config == {}:   # no native config was passed in, so getting it from FortiManager
         parsing_config_only = False
     else:
@@ -48,13 +49,12 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
         sid = fmgr_getter.login(mgm_details['user'], mgm_details['secret'], mgm_details['hostname'],
                                 mgm_details['port'], api_domain, debug=debug_level, ssl_verification='', proxy_string=proxy)
         if sid is None:
-            logging.ERROR(
-                'did not succeed in logging in to FortiManager API, so sid returned')
+            logger.ERROR('did not succeed in logging in to FortiManager API, no sid returned')
             return 1
 
     adom_name = mgm_details['configPath']
     if adom_name is None:
-        logging.error('no ADOM name set for this management!')
+        logger.error('no ADOM name set for management ' + mgm_details['id'])
         return 1
     else:
         if not parsing_config_only:   # no native config was passed in, so getting it from FortiManager
@@ -63,22 +63,21 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
             # currently reading zone from objects/rules for backward compat with FortiManager 6.x
             # getZones(sid, fm_api_url, full_config, adom_name, limit, debug_level)
             getInterfacesAndRouting(
-                sid, fm_api_url, full_config, adom_name, mgm_details['devices'], limit, debug_level)
+                sid, fm_api_url, full_config, adom_name, mgm_details['devices'], limit, debug_level=debug_level)
 
             # initialize all rule dicts
             fmgr_rule.initializeRulebases(full_config)
             for dev in mgm_details['devices']:
                 fmgr_rule.getAccessPolicy(
-                    sid, fm_api_url, full_config, adom_name, dev, limit, debug_level)
+                    sid, fm_api_url, full_config, adom_name, dev, limit, debug_level=debug_level)
                 fmgr_rule.getNatPolicy(
-                    sid, fm_api_url, full_config, adom_name, dev, limit, debug_level)
+                    sid, fm_api_url, full_config, adom_name, dev, limit, debug_level=debug_level)
 
             try:  # logout of fortimanager API
                 fmgr_getter.logout(
                     fm_api_url, sid, ssl_verification='', proxy_string='', debug=debug_level)
             except:
-                logging.warning(
-                    "fortiadm5ff/get_config - logout exception probably due to timeout - irrelevant, so ignoring it")
+                logger.warning("logout exception probably due to timeout - irrelevant, so ignoring it")
 
         # now we normalize relevant parts of the raw config and write the results to config2import dict
         # currently reading zone from objects for backward compat with FortiManager 6.x
@@ -89,16 +88,16 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
         # later we will probably store the networking info in the database as well as a basis
         # for path analysis
 
-        normalize_network_data(full_config, config2import, mgm_details)
+        normalize_network_data(full_config, config2import, mgm_details, debug_level=debug_level)
 
         fmgr_user.normalize_users(
             full_config, config2import, current_import_id, user_scope)
         fmgr_network.normalize_nwobjects(
-            full_config, config2import, current_import_id, nw_obj_scope, jwt=jwt, mgm_id=mgm_details['id'])
+            full_config, config2import, current_import_id, nw_obj_scope, jwt=jwt, mgm_id=mgm_details['id'], debug_level=debug_level)
         fmgr_service.normalize_svcobjects(
             full_config, config2import, current_import_id, svc_obj_scope)
         fmgr_rule.normalize_access_rules(
-            full_config, config2import, current_import_id, mgm_details=mgm_details, jwt=jwt)
+            full_config, config2import, current_import_id, mgm_details=mgm_details, jwt=jwt, debug_level=debug_level)
         fmgr_rule.normalize_nat_rules(
             full_config, config2import, current_import_id, jwt=jwt)
         fmgr_network.remove_nat_ip_entries(config2import)
@@ -150,7 +149,7 @@ def getObjects(sid, fm_api_url, raw_config, adom_name, limit, debug_level, scope
 #         for adom in raw_config['adoms']:
 #             if adom['name']==adom_name:
 #                 if local_pkg_name not in adom['package_names']:
-#                     logging.error('local rulebase/package ' + local_pkg_name + ' not found in management ' + adom_name)
+#                     logger.error('local rulebase/package ' + local_pkg_name + ' not found in management ' + adom_name)
 #                     return 1
 #                 else:
 #                     fmgr_getter.update_config_with_fortinet_api_call(

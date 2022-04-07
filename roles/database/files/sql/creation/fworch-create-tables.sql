@@ -62,7 +62,7 @@ Create table "management" -- contains an entry for each firewall management syst
 	"mgm_create" Timestamp NOT NULL Default now(),
 	"mgm_update" Timestamp NOT NULL Default now(),
 	"ssh_public_key" Text,
-	"ssh_private_key" Text NOT NULL,
+	"secret" Text NOT NULL,
 	"ssh_hostname" Varchar NOT NULL,
 	"ssh_port" Integer NOT NULL Default 22,
 	"ssh_user" Varchar NOT NULL Default 'fworch',
@@ -235,20 +235,6 @@ Create table "rule_from"
 	"negated" Boolean NOT NULL Default FALSE,
 	"rf_create" BIGINT NOT NULL,
 	"rf_last_seen" BIGINT NOT NULL
-);
-
-
--- reference rule_metatdata intead?
-Create table "rule_review"
-(
-	"rule_metadata_id" BIGINT NOT NULL,
-	"tenant_id" Integer NOT NULL,
-	"rr_comment" Text,
-	"rr_approved" Boolean NOT NULL Default true,
-	"rr_visible" Boolean NOT NULL Default true,
-	"rr_create" Timestamp NOT NULL Default now(),
-	"rr_update" Timestamp NOT NULL Default now(),
- primary key ("rule_metadata_id","tenant_id")
 );
 
 Create table "rule_service"
@@ -449,15 +435,6 @@ Create table "error"
  primary key ("error_id")
 );
 
-Create table "error_log"
-(
-	"error_log_id" BIGSERIAL,
-	"error_id" Varchar NOT NULL,
-	"error_txt" Text,
-	"error_time" Timestamp NOT NULL Default now(),
- primary key ("error_log_id")
-);
-
 -- tenant -------------------------------------
 Create table "tenant"
 (
@@ -479,13 +456,6 @@ Create table "tenant_to_device"
  primary key ("tenant_id", "device_id")
 );
 
-Create table "tenant_object"
-(
-	"tenant_id" Integer NOT NULL,
-	"obj_id" BIGINT NOT NULL,
- primary key ("tenant_id","obj_id")
-);
-
 Create table "tenant_network"
 (
 	"tenant_net_id" BIGSERIAL,
@@ -496,25 +466,6 @@ Create table "tenant_network"
 	"tenant_net_ip_end" Cidr,
 	"tenant_net_create" Timestamp NOT NULL Default now(),
  primary key ("tenant_net_id")
-);
-
--- unused in 5.0, moved to ldap
-Create table "tenant_user"
-(
-	"user_id" BIGSERIAL,
-	"tenant_id" BIGSERIAL,
- primary key ("user_id","tenant_id")
-);
-
--- unused in 5.0, moved to ldap
-Create table "tenant_username"
-(
-	"tenant_username_id" BIGSERIAL,
-	"tenant_id" Integer,
-	"tenant_username_pattern" Varchar,
-	"tenant_username_comment" Text,
-	"tenant_username_create" Timestamp NOT NULL Default now(),
- primary key ("tenant_username_id")
 );
 
 -- basic static data -------------------------------------
@@ -557,14 +508,6 @@ Create table "stm_dev_typ"
 	"dev_typ_config_file_users" Varchar,
 	"dev_typ_is_multi_mgmt" Boolean Default FALSE,
  primary key ("dev_typ_id")
-);
-
-Create table "stm_nattyp"
-(
-	"nattyp_id" SERIAL,
-	"nattyp_name" Varchar NOT NULL,
-	"nattyp_comment" Text,
- primary key ("nattyp_id")
 );
 
 Create table "stm_obj_typ"
@@ -632,7 +575,8 @@ CREATE TABLE IF NOT EXISTS "import_config" (
     "import_id" bigint NOT NULL,
     "mgm_id" integer NOT NULL,
     "config" jsonb NOT NULL,
-	"start_import_flag" Boolean NOT NULL Default FALSE
+	"start_import_flag" Boolean NOT NULL Default FALSE,
+	"debug_mode" Boolean Default FALSE
 );
 
 -- todo: move this to git instead
@@ -910,57 +854,6 @@ Create table "changelog_rule"
  primary key ("log_rule_id")
 );
 
--- request handling -------------------------------------------
-
-Create table "request"
-(
-	"request_id" BIGSERIAL,
-	"request_number" Varchar,
-	"request_time" Timestamp,
-	"request_received" Timestamp,
-	"request_submitter" Varchar,
-	"request_approver" Varchar,
-	"tenant_id" Integer,
-	"request_type_id" Integer,
- primary key ("request_id")
-);
-
-Create table "request_object_change"
-(
-	"log_obj_id" BIGINT NOT NULL,
-	"request_id" Integer NOT NULL,
- primary key ("log_obj_id","request_id")
-);
-
-Create table "request_service_change"
-(
-	"log_svc_id" BIGINT NOT NULL,
-	"request_id" Integer NOT NULL,
- primary key ("log_svc_id","request_id")
-);
-
-Create table "request_rule_change"
-(
-	"log_rule_id" BIGINT NOT NULL,
-	"request_id" Integer NOT NULL,
- primary key ("log_rule_id","request_id")
-);
-
-Create table "request_user_change"
-(
-	"log_usr_id" BIGINT NOT NULL,
-	"request_id" Integer NOT NULL,
- primary key ("log_usr_id","request_id")
-);
-
-Create table "request_type"
-(
-	"request_type_id" Integer NOT NULL UNIQUE,
-	"request_type_name" Varchar NOT NULL UNIQUE,
-	"request_type_comment" Varchar,
- primary key ("request_type_id")
-);
-
 Create table "stm_change_type"
 (
 	"change_type_id" SERIAL,
@@ -1027,13 +920,6 @@ Create table if not exists "report_schedule"
 	"report_schedule_repetitions" Integer,
 	"report_schedule_counter" Integer Not NULL Default 0,
  	primary key ("report_schedule_id")
-);
-
-Create table "report_template_viewable_by_tenant"
-(
-	"report_template_id" Integer NOT NULL,
-	"tenant_id" Integer NOT NULL,
- 	primary key ("tenant_id","report_template_id")
 );
 
 Create table "report_template_viewable_by_user"

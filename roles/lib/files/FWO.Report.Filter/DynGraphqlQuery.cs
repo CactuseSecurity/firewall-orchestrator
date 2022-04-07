@@ -162,23 +162,14 @@ namespace FWO.Report.Filter
                     break;
 
                 case TimeRangeType.Interval:
-                    switch (timeFilter.Interval)
+                    start = timeFilter.Interval switch
                     {
-                        case Interval.Days:
-                            start = DateTime.Now.AddDays(-timeFilter.Offset).ToString(fullTimeFormat);
-                            break;
-                        case Interval.Weeks:
-                            start = DateTime.Now.AddDays(-7*timeFilter.Offset).ToString(fullTimeFormat);
-                            break;
-                        case Interval.Months:
-                            start = DateTime.Now.AddMonths(-timeFilter.Offset).ToString(fullTimeFormat);
-                            break;
-                        case Interval.Years:
-                            start = DateTime.Now.AddYears(-timeFilter.Offset).ToString(fullTimeFormat);
-                            break;
-                        default:
-                            throw new Exception($"Error: wrong time interval format:" + timeFilter.Interval.ToString());
-                    }
+                        Interval.Days => DateTime.Now.AddDays(-timeFilter.Offset).ToString(fullTimeFormat),
+                        Interval.Weeks => DateTime.Now.AddDays(-7 * timeFilter.Offset).ToString(fullTimeFormat),
+                        Interval.Months => DateTime.Now.AddMonths(-timeFilter.Offset).ToString(fullTimeFormat),
+                        Interval.Years => DateTime.Now.AddYears(-timeFilter.Offset).ToString(fullTimeFormat),
+                        _ => throw new Exception($"Error: wrong time interval format:" + timeFilter.Interval.ToString()),
+                    };
                     stop = DateTime.Now.ToString(fullTimeFormat);
                     break;
 
@@ -228,13 +219,14 @@ namespace FWO.Report.Filter
             query.ruleWhereStatement += "}] ";
 
             string paramString = string.Join(" ", query.QueryParameters.ToArray());
+            
             switch (reportType)
             {
                 // todo: move $mdmId filter from management into query.xxxWhereStatement
                 // management(where: {{mgm_id: {{_in: $mgmId }} }} order_by: {{ mgm_name: asc }}) 
                         // management(order_by: {{ mgm_name: asc }}) 
                 case ReportType.Statistics:
-                    query.FullQuery = $@"
+                    query.FullQuery = Queries.compact($@"
                     query statisticsReport ({paramString}) 
                     {{ 
                         management(
@@ -259,11 +251,11 @@ namespace FWO.Report.Filter
                                 rules_aggregate(where: {{ {query.ruleWhereStatement} }}) {{ aggregate {{ count }} }}
                             }}
                         }}
-                    }}";
+                    }}");
                     break;                
 
                 case ReportType.Rules:
-                    query.FullQuery = $@"
+                    query.FullQuery = Queries.compact($@"
                     {(detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
 
                     query rulesReport ({paramString}) 
@@ -292,11 +284,11 @@ namespace FWO.Report.Filter
                                             }} 
                                     }}
                             }} 
-                    }}";
+                    }}");
                     break;
                     
                 case ReportType.Changes:
-                    query.FullQuery = $@"
+                    query.FullQuery = Queries.compact($@"
                     {(detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
 
                     query changeReport({paramString}) {{
@@ -336,11 +328,11 @@ namespace FWO.Report.Filter
                                 }}
                             }}
                         }}
-                    ";
+                    ");
                     break;
 
                 case ReportType.NatRules:
-                    query.FullQuery = $@"
+                    query.FullQuery = Queries.compact($@"
                     {(detailed ? RuleQueries.natRuleDetailsForReportFragments : RuleQueries.natRuleOverviewFragments)}
 
                     query natRulesReport ({paramString}) 
@@ -364,7 +356,7 @@ namespace FWO.Report.Filter
                                             }} 
                                     }}
                             }} 
-                    }}";
+                    }}");
                     break;
             }
 

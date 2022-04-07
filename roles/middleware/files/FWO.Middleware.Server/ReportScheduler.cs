@@ -136,7 +136,7 @@ namespace FWO.Middleware.Server
                     string jwt = await jwtWriter.CreateJWT(report.Owner);
                     APIConnection apiConnectionUserContext = new APIConnection(apiServerUri, jwt);
                     GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(jwt);
-                    UserConfig userConfig = new UserConfig(globalConfig);
+                    UserConfig userConfig = await UserConfig.ConstructAsync(globalConfig, apiConnection, report.Owner.DbId);
 
                     await apiConnectionUserContext.SendQueryAsync<object>(ReportQueries.countReportSchedule, new { report_schedule_id = report.Id });
 

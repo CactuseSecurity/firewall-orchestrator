@@ -197,9 +197,17 @@ adding report template format fk and permissions
 - introducing fw-admin role (device admin without delete & auto-discovery rights)
 - working fortinet src hide nat behind interface
 
-### 5.6.6 - 2022
+### 5.6.6 - 07.03.2022
 - allow for users in rule destination (CP)
-- monitoring
+- monitoring module
+- CPR8x auto-discovery
 
-### 5.6.7 - 2022
+### 5.6.7 - 04.04.2022
 - allow deactivation of ldap connection
+- rework of python logging
+- db index optimization
+- fixing CIDR filtering
+
+### 5.6.8
+- no end ip address for obj types <> range
+- fixing range display in reporting

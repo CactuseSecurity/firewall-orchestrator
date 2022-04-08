@@ -115,4 +115,5 @@ http_conf_dir: /etc/{{ webserver_package_name }}/sites-available/
 ################# testing #########################
 test_dir: "{{ fworch_home }}/test"
 test_fortigate_name: "fortigate{{ test_postfix }}"
+test_checkpoint_name: "checkpoint{{ test_postfix }}"
 csharp_test_start_dir: "{{ fworch_home }}/test/csharp/FWO.Test"

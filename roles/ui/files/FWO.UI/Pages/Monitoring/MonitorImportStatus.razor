@@ -173,7 +173,7 @@
                     (imp.LastImport != null && imp.LastImport.Length > 0 && !imp.LastImport[0].SuccessfulImport)
                     // active, but no import at all
                     || (!imp.ImportDisabled && (imp.LastImport == null || imp.LastImport.Length == 0
-                                            // or too long ago
+                                            // or too long ago (not working for legacy devices as LastImportAttempt is not written)
                                             || imp.LastImportAttempt != null && imp.LastImportAttempt < DateTime.Now.AddHours(-userConfig.MaxImportInterval)))
                     )
             {

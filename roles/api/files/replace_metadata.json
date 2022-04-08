@@ -3995,6 +3995,17 @@
                     "filter": {},
                     "check": {}
                   }
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "last_import_attempt",
+                      "last_import_attempt_successful"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
                 }
               ]
             },
@@ -11386,6 +11397,6 @@
           "comment": null
         }
       ]
-    }  
+    } 
   }
 }

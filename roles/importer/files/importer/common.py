@@ -312,9 +312,11 @@ def get_config_sub(mgm_details, full_config_json, config2import, jwt, current_im
 def complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt, debug_level=0):
     logger = getFwoLogger(debug_level=debug_level)
 
+    fwo_api.log_import_attempt(fwo_api_base_url, jwt, mgm_details['id'], successful=not error_count)
+
     try: # CLEANUP: delete configs of imports (without changes) (if no error occured)
         if fwo_api.delete_json_config_in_import_table(fwo_api_base_url, jwt, {"importId": current_import_id})<0:
-            error_count = +1
+            error_count += 1
     except:
         logger.error("import_management - unspecified error cleaning up: " + str(traceback.format_exc()))
         raise
@@ -332,6 +334,7 @@ def complete_import(current_import_id, error_string, start_time, mgm_details, ch
             " change_count: " + str(change_count) + \
             ", duration: " + str(int(time.time()) - start_time) + "s" 
     import_result += ", ERRORS: " + error_string if len(error_string) > 0 else ""
+    
     if error_count>0:
         fwo_api.create_data_issue(fwo_api_base_url, jwt, import_id=current_import_id, severity=1, description=error_string)
         fwo_api.setAlert(fwo_api_base_url, jwt, import_id=current_import_id, title="import error", mgm_id=mgm_details['id'], severity=2, role='importer', \

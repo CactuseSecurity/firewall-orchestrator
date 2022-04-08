@@ -8,6 +8,7 @@ from textwrap import indent
 import requests.packages
 import requests
 import json
+import datetime
 import common
 from fwo_log import getFwoLogger
 
@@ -164,6 +165,16 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables, debug_level=0):
         return api_call_result['data']['management'][0]
     else:
         raise Exception('did not succeed in getting management details from FWO API')
+
+
+def log_import_attempt(fwo_api_base_url, jwt, mgm_id, successful=False):
+    now = datetime.datetime.now().isoformat()
+    query_variables = { "mgmId": mgm_id, "timeStamp": now, "success": successful }
+    mgm_mutation = """
+        mutation logImportAttempt($mgmId: Int!, $timeStamp: timestamp!, $success: Boolean) {
+            update_management(where: {mgm_id: {_eq: $mgmId}}, _set: {last_import_attempt: $timeStamp, last_import_attempt_successful: $success } ) { affected_rows }
+        }"""
+    return call(fwo_api_base_url, jwt, mgm_mutation, query_variables=query_variables, role='importer')
 
 
 def lock_import(fwo_api_base_url, jwt, query_variables):
@@ -482,7 +493,6 @@ def setAlert(fwo_api_base_url, jwt, import_id=None, title=None, mgm_id=None, dev
             if 'data' in existingUnacknowledgedAlerts and 'alert' in existingUnacknowledgedAlerts['data']:
                 for alert in existingUnacknowledgedAlerts['data']['alert']:
                     if 'alert_id' in alert:
-                        import datetime
                         now = datetime.datetime.now().isoformat()
                         query_variables = { "userId": 0, "alertId": alert['alert_id'], "ackTimeStamp": now }
                         updateResult = call(fwo_api_base_url, jwt, ackAlert_mutation, query_variables=query_variables, role=role)

@@ -211,3 +211,6 @@ adding report template format fk and permissions
 ### 5.6.8
 - no end ip address for obj types <> range
 - fixing range display in reporting
+
+### 5.6.9
+- handle import attempts

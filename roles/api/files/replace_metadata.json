@@ -3709,9 +3709,8 @@
                       "config_path",
                       "importer_hostname",
                       "last_import_md5_complete_config",
-                      "last_import_md5_objects",
-                      "last_import_md5_rules",
-                      "last_import_md5_users",
+                      "last_import_attempt",
+                      "last_import_attempt_successful",
                       "mgm_name",
                       "ssh_hostname",
                       "ssh_user",
@@ -3745,9 +3744,8 @@
                       "hide_in_gui",
                       "importer_hostname",
                       "last_import_md5_complete_config",
-                      "last_import_md5_objects",
-                      "last_import_md5_rules",
-                      "last_import_md5_users",
+                      "last_import_attempt",
+                      "last_import_attempt_successful",
                       "mgm_comment",
                       "mgm_create",
                       "mgm_id",
@@ -3776,9 +3774,8 @@
                       "config_path",
                       "importer_hostname",
                       "last_import_md5_complete_config",
-                      "last_import_md5_objects",
-                      "last_import_md5_rules",
-                      "last_import_md5_users",
+                      "last_import_attempt",
+                      "last_import_attempt_successful",
                       "mgm_name",
                       "ssh_hostname",
                       "ssh_user",
@@ -3811,9 +3808,8 @@
                       "hide_in_gui",
                       "importer_hostname",
                       "last_import_md5_complete_config",
-                      "last_import_md5_objects",
-                      "last_import_md5_rules",
-                      "last_import_md5_users",
+                      "last_import_attempt",
+                      "last_import_attempt_successful",
                       "mgm_comment",
                       "mgm_create",
                       "mgm_id",
@@ -3842,9 +3838,8 @@
                       "config_path",
                       "importer_hostname",
                       "last_import_md5_complete_config",
-                      "last_import_md5_objects",
-                      "last_import_md5_rules",
-                      "last_import_md5_users",
+                      "last_import_attempt",
+                      "last_import_attempt_successful",
                       "mgm_name",
                       "ssh_hostname",
                       "ssh_user",
@@ -3874,9 +3869,8 @@
                       "config_path",
                       "importer_hostname",
                       "last_import_md5_complete_config",
-                      "last_import_md5_objects",
-                      "last_import_md5_rules",
-                      "last_import_md5_users",
+                      "last_import_attempt",
+                      "last_import_attempt_successful",
                       "mgm_name",
                       "ssh_hostname",
                       "ssh_user",
@@ -3911,9 +3905,8 @@
                       "config_path",
                       "importer_hostname",
                       "last_import_md5_complete_config",
-                      "last_import_md5_objects",
-                      "last_import_md5_rules",
-                      "last_import_md5_users",
+                      "last_import_attempt",
+                      "last_import_attempt_successful",
                       "mgm_name",
                       "ssh_hostname",
                       "ssh_user",
@@ -3950,9 +3943,8 @@
                       "hide_in_gui",
                       "importer_hostname",
                       "last_import_md5_complete_config",
-                      "last_import_md5_objects",
-                      "last_import_md5_rules",
-                      "last_import_md5_users",
+                      "last_import_attempt",
+                      "last_import_attempt_successful",
                       "mgm_comment",
                       "mgm_create",
                       "mgm_id",
@@ -3983,9 +3975,8 @@
                       "config_path",
                       "importer_hostname",
                       "last_import_md5_complete_config",
-                      "last_import_md5_objects",
-                      "last_import_md5_rules",
-                      "last_import_md5_users",
+                      "last_import_attempt",
+                      "last_import_attempt_successful",
                       "mgm_name",
                       "ssh_hostname",
                       "ssh_user",
@@ -4003,6 +3994,17 @@
                     ],
                     "filter": {},
                     "check": {}
+                  }
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "last_import_attempt",
+                      "last_import_attempt_successful"
+                    ],
+                    "filter": {},
+                    "check": null
                   }
                 }
               ]
@@ -11395,6 +11397,6 @@
           "comment": null
         }
       ]
-    }  
+    } 
   }
 }

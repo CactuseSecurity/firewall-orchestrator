@@ -26,6 +26,8 @@ insert into config (config_key, config_value, config_user) VALUES ('pwUpperCaseR
 insert into config (config_key, config_value, config_user) VALUES ('pwLowerCaseRequired', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('pwNumberRequired', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('pwSpecialCharactersRequired', 'False', 0);
+insert into config (config_key, config_value, config_user) VALUES ('maxImportDuration', '4', 0);
+insert into config (config_key, config_value, config_user) VALUES ('maxImportInterval', '12', 0);
 
 INSERT INTO "report_format" ("report_format_name") VALUES ('json');
 INSERT INTO "report_format" ("report_format_name") VALUES ('pdf');

@@ -88,7 +88,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
             if len(full_config['nat_rulebases'])>0:
                 if len(full_config['nat_rulebases']) != len(rb_range):
                     logger.warning('get_config - found ' + str(len(full_config['nat_rulebases'])) +
-                        ' nat rulebases and ' +  str(len(rb_range)) + ' rulebases')
+                        ' nat rulebases and ' +  str(len(rb_range)) + ' access rulebases')
                 else:
                     rule_num = parse_rule.parse_nat_rulebase_json(
                         full_config['nat_rulebases'][rb_id], target_rulebase, full_config['rulebases'][rb_id]['layername'], 

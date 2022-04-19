@@ -100,7 +100,6 @@ def get_basic_config (config_json, mgm_details, force=False, config_filename=Non
 
         # getting NAT rules - need package name for nat rule retrieval
         # todo: each gateway/layer should have its own package name (pass management details instead of single data?)
-        config_json['nat_rulebases'].append({ "nat_rule_chunks": [] })
         if device['package_name'] != None and device['package_name'] != '':
             show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary,'details-level':details_level, 'package': device['package_name'] }
             if debug_level>3:

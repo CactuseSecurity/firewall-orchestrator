@@ -44,7 +44,7 @@ AND pid <> pg_backend_pid();
 ```
 ...$ sudo su - postgres
 postgres-# \c fworchdb
-postgres-# \dt
-postgres-# \x
+fworchdb-# \dt
+fworchdb-# \x
 fworchdb-# SELECT * FROM my_table;
 ```

@@ -127,9 +127,15 @@ def getObjects(sid, fm_api_url, raw_config, adom_name, limit, debug_level, scope
             fmgr_getter.update_config_with_fortinet_api_call(
                 raw_config, sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/" + object_type, "svc_obj_" + s + "_" + object_type, debug=debug_level, limit=limit, options=options)
 
-    #    user: /pm/config/global/obj/user/local
+# Idee: kann man if s == 'adom': abfragen nur einmal direkt unter for s in scope: machen?
+
+    # get global users: /pm/config/global/obj/user/local
     fmgr_getter.update_config_with_fortinet_api_call(
         raw_config, sid, fm_api_url, "/pm/config/global/obj/user/local", "users_local", debug=debug_level, limit=limit)
+
+    # get adom users: /pm/config/adom/my_adom/obj/user/local
+    #fmgr_getter.update_config_with_fortinet_api_call(
+    #    raw_config, sid, fm_api_url, "/pm/config/adom/adom_name/obj/user/local", "users_local", debug=debug_level, limit=limit)
 
 
 # def getZones(sid, fm_api_url, raw_config, adom_name, limit, debug_level):

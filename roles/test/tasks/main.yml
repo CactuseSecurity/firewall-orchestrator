@@ -13,7 +13,7 @@
   set_fact:
     test_postfix: "_test_{{ random_generated_pw }}"
 
-# ist dieses play überflüssig?
+# todo: is this play needless?
 - name: set postfix to brand all objects in this test run
   set_fact:
     sample_postfix: "{{ test_postfix }}"
@@ -33,7 +33,6 @@
   notify:
   - test importer handler
 
-# erstens: sample data sting hinzu
 - name: include test data
   include_role:
     name: sample-data

@@ -134,8 +134,8 @@ def getObjects(sid, fm_api_url, raw_config, adom_name, limit, debug_level, scope
         raw_config, sid, fm_api_url, "/pm/config/global/obj/user/local", "users_local", debug=debug_level, limit=limit)
 
     # get adom users: /pm/config/adom/my_adom/obj/user/local
-    fmgr_getter.update_config_with_fortinet_api_call(
-        raw_config, sid, fm_api_url, "/pm/config/adom/adom_name/obj/user/local", "users_local", debug=debug_level, limit=limit)
+    #fmgr_getter.update_config_with_fortinet_api_call(
+    #    raw_config, sid, fm_api_url, "/pm/config/adom/adom_name/obj/user/local", "users_local", debug=debug_level, limit=limit)
 
 
 # def getZones(sid, fm_api_url, raw_config, adom_name, limit, debug_level):

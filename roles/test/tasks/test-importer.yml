@@ -1,9 +1,14 @@
 ---
-- name: make test import
+- name: make test fortinet import
   command: "./fworch-importer-single.pl mgm_name={{ test_fortigate_name }}"
   args:
     chdir: "{{ fworch_home }}/importer"
   become_user: "{{ fworch_user }}"
   become: yes
 
-
+- name: make test checkpoint import
+  script: "{{ fworch_home }}/importer/import-mgm.py -m{{ test_checkpoint_mgm_id }} -d4 -ihttps://fwodemodata.cactus.de/demo04_cpr8x.json"
+  args:
+    executable: python3
+  become: yes
+  become_user: "{{ fworch_user }}"

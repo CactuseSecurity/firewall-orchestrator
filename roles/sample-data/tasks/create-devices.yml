@@ -66,11 +66,9 @@
           DO $do$ BEGIN 
           IF NOT EXISTS (SELECT * FROM management WHERE mgm_name='{{ sample_checkpoint_name }}') THEN 
           insert into management (dev_typ_id,mgm_name,secret,ssh_hostname,ssh_user,do_not_import,importer_hostname) 
-          VALUES (9,'{{ sample_checkpoint_name }}','{{ sample_ssh_priv_key }}','{{ import_sample_server }}','{{ sample_config_user }}',false,'{{ importer_hostname }}') 
-          RETURNING mgm_id;
+          VALUES (9,'{{ sample_checkpoint_name }}','{{ sample_ssh_priv_key }}','{{ import_sample_server }}','{{ sample_config_user }}',false,'{{ importer_hostname }}'); 
           END IF; END $do$ 
       when: sample_role_purpose is match('test')
-      register: test_checkpoint_mgm_id
 
     - name: insert test check point R8x device
       postgresql_query:
@@ -81,11 +79,6 @@
           insert into device (mgm_id,dev_name,local_rulebase_name,dev_typ_id)
           VALUES ((select mgm_id from management where mgm_name='{{ sample_checkpoint_name }}'),'{{ sample_checkpoint_name }}','FirstLayer shared with inline layer',9); 
           END IF; END $do$ 
-      when: sample_role_purpose is match('test')
-
-    - name: debug test_checkpoint_mgm_id
-      debug:
-        var: test_checkpoint_mgm_id
       when: sample_role_purpose is match('test')
 
   become: yes

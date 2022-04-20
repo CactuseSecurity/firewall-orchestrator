@@ -6,8 +6,17 @@
   become_user: "{{ fworch_user }}"
   become: yes
 
+- name: find management id for checkpoint test
+  postgresql_query:
+    db: fworchdb
+    query: >
+      SELECT mgm_id FROM management WHERE mgm_name='checkpoint_test';
+  become: yes
+  become_user: postgres
+  register: test_checkpoint_mgm_id
+
 - name: make test checkpoint import
-  script: "{{ fworch_home }}/importer/import-mgm.py -m{{ test_checkpoint_mgm_id }} -d4 -ihttps://fwodemodata.cactus.de/demo04_cpr8x.json"
+  script: "{{ fworch_home }}/importer/import-mgm.py -m{{ test_checkpoint_mgm_id.query_result.0.mgm_id }} -d4 -ihttps://fwodemodata.cactus.de/demo04_cpr8x.json"
   args:
     executable: python3
   become: yes

@@ -50,9 +50,10 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m55",
-                "-d0",
+                "-m8",
+                "-d4",
                 "-f",
+                //"-ihttps://fwodemodata.cactus.de/demo04_cpr8x.json",
                 //"-c",
                 //  41 - lab fortimanager
                 //"-i/home/tim/tmp/configs/mgm_id_53_config_native.json.8.anon",

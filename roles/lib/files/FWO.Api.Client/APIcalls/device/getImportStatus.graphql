@@ -3,6 +3,8 @@ query getImportStatus {
     mgm_id
     mgm_name
     importDisabled: do_not_import
+    last_import_attempt
+    last_import_attempt_successful
     deviceType: stm_dev_typ {
       id: dev_typ_id
       name: dev_typ_name

@@ -23,7 +23,7 @@ namespace FWO.Middleware.Server
 
         public static async Task<DailyCheckScheduler> CreateAsync(APIConnection apiConnection)
         {
-            GlobalConfig config = await GlobalConfig.ConstructAsync(apiConnection, false);
+            GlobalConfig config = await GlobalConfig.ConstructAsync(apiConnection, true);
             return new DailyCheckScheduler(apiConnection, config);
         }
 
@@ -91,8 +91,8 @@ namespace FWO.Middleware.Server
             catch(Exception exc)
             {
                 Log.WriteError("DailyCheck", $"Ran into exception: ", exc);
-                await AddDailyCheckLogEntry(2, "Scheduled Daily Check", "Ran into exception: " + exc.Message);
-                await setAlert(GlobalConfig.kDailyCheck, AlertCode.DailyCheckError, "Daily Check", "Ran into exception: " + exc.Message);
+                await AddDailyCheckLogEntry(2, globalConfig.GetText("daily_checks"), globalConfig.GetText("ran_into_exception") + exc.Message);
+                await setAlert(GlobalConfig.kDailyCheck, AlertCode.DailyCheckError, globalConfig.GetText("daily_checks"), globalConfig.GetText("ran_into_exception") + exc.Message);
             }
         }
 
@@ -148,13 +148,13 @@ namespace FWO.Middleware.Server
             string description = "";
             if(sampleManagementExisting || sampleUserExisting || sampleTenantExisting || sampleGroupExisting)
             {
-                description = $"Sample data found in: {(sampleManagementExisting ? "Managements" : "")}"+
-                                                        $"{(sampleUserExisting ? " Users" : "")}"+
-                                                        $"{(sampleTenantExisting ? " Tenants" : "")}"+
-                                                        $"{(sampleGroupExisting ? " Groups" : "")}";
-                await setAlert(GlobalConfig.kDailyCheck, AlertCode.SampleDataExisting, "Sample Data", description);
+                description = globalConfig.GetText("sample_data_found_in") + (sampleManagementExisting ? globalConfig.GetText("managements") + " " : "") +
+                                                        (sampleUserExisting ? globalConfig.GetText("users") + " " : "") +
+                                                        (sampleTenantExisting ? globalConfig.GetText("tenants") + " " : "") +
+                                                        (sampleGroupExisting ? globalConfig.GetText("groups") : "");
+                await setAlert(GlobalConfig.kDailyCheck, AlertCode.SampleDataExisting, globalConfig.GetText("sample_data"), description);
             }
-            await AddDailyCheckLogEntry((description != "" ? 1 : 0), "Scheduled Daily Sample Data Check", (description != "" ? description : "no sample data found"));
+            await AddDailyCheckLogEntry((description != "" ? 1 : 0), globalConfig.GetText("daily_sample_data_check"), (description != "" ? description : globalConfig.GetText("no_sample_data_found")));
         }
 
         private async Task CheckImports()
@@ -166,27 +166,27 @@ namespace FWO.Middleware.Server
             {
                 if (imp.LastIncompleteImport != null && imp.LastIncompleteImport.Length > 0) // import running
                 {
-                    if (imp.LastIncompleteImport[0].StartTime < DateTime.Now.AddHours(-4))  // too long
+                    if (imp.LastIncompleteImport[0].StartTime < DateTime.Now.AddHours(-globalConfig.MaxImportDuration))  // too long
                     {
                         jsonData = imp.LastIncompleteImport;
-                        await setAlert(GlobalConfig.kDailyCheck, AlertCode.ImportRunningTooLong, "Import", "Import running too long", imp.MgmId, jsonData);
+                        await setAlert(GlobalConfig.kDailyCheck, AlertCode.ImportRunningTooLong, globalConfig.GetText("import"), globalConfig.GetText("E7011"), imp.MgmId, jsonData);
                         importIssues++;
                     }
                 }
                 else if (imp.LastImport == null || imp.LastImport.Length == 0) // no import at all
                 {
                     jsonData = imp;
-                    await setAlert(GlobalConfig.kDailyCheck, AlertCode.NoImport, "Import", "No Import for active management", imp.MgmId, jsonData);
+                    await setAlert(GlobalConfig.kDailyCheck, AlertCode.NoImport, globalConfig.GetText("import"), globalConfig.GetText("E7012"), imp.MgmId, jsonData);
                     importIssues++;
                 }
-                else if (imp.LastSuccessfulImport != null && imp.LastSuccessfulImport.Length > 0 && imp.LastSuccessfulImport[0].StartTime < DateTime.Now.AddHours(-12)) // too long ago
+                else if (imp.LastImportAttempt != null && imp.LastImportAttempt < DateTime.Now.AddHours(-globalConfig.MaxImportInterval)) // too long ago (not working for legacy devices as LastImportAttempt is not written)
                 {
                     jsonData = imp;
-                    await setAlert(GlobalConfig.kDailyCheck, AlertCode.SuccessfulImportOverdue, "Import", "Last successful import too long ago", imp.MgmId, jsonData);
+                    await setAlert(GlobalConfig.kDailyCheck, AlertCode.SuccessfulImportOverdue, globalConfig.GetText("import"), globalConfig.GetText("E7013"), imp.MgmId, jsonData);
                     importIssues++;
                 }
             }
-            await AddDailyCheckLogEntry((importIssues != 0 ? 1 : 0), "Scheduled Daily Importer Check", (importIssues != 0 ? $"found {importIssues} import issues" : "no import issues found"));
+            await AddDailyCheckLogEntry((importIssues != 0 ? 1 : 0), globalConfig.GetText("daily_importer_check"), (importIssues != 0 ? importIssues + globalConfig.GetText("import_issues_found") : globalConfig.GetText("no_import_issues_found")));
         }
 
         public async Task setAlert(string source, AlertCode alertCode, string title, string description, int? mgmtId = null, object? JsonData = null, int? devId = null)

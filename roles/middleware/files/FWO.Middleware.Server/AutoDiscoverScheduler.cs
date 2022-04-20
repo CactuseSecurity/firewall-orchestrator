@@ -21,7 +21,7 @@ namespace FWO.Middleware.Server
 
         public static async Task<AutoDiscoverScheduler> CreateAsync(APIConnection apiConnection)
         {
-            GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, false);
+            GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
             return new AutoDiscoverScheduler(apiConnection, globalConfig);
         }
     
@@ -108,7 +108,7 @@ namespace FWO.Middleware.Server
                             action.AlertId = await setAlert(action);
                             ChangeCounter++;
                         }
-                        await AddAutoDiscoverLogEntry(0, "Scheduled Autodiscovery", (ChangeCounter > 0 ? $"Found {ChangeCounter} changes" : "Found no change"), superManagement.Id);
+                        await AddAutoDiscoverLogEntry(0, globalConfig.GetText("scheduled_autodiscovery"), (ChangeCounter > 0 ? ChangeCounter + globalConfig.GetText("changes_found") : globalConfig.GetText("found_no_changes")), superManagement.Id);
                     }
                     catch (Exception excMgm)
                     {
@@ -120,7 +120,7 @@ namespace FWO.Middleware.Server
                         actionException.Supermanager = superManagement.Name;
                         actionException.JsonData = excMgm.Message;
                         await setAlert(actionException);
-                        await AddAutoDiscoverLogEntry(1, "Scheduled Autodiscovery", $"Ran into exception while handling management {superManagement.Name} (id: {superManagement.Id}): " + excMgm.Message, superManagement.Id);
+                        await AddAutoDiscoverLogEntry(1, globalConfig.GetText("scheduled_autodiscovery"), $"Ran into exception while handling management {superManagement.Name} (id: {superManagement.Id}): " + excMgm.Message, superManagement.Id);
                     }
                 }
             }
@@ -129,7 +129,7 @@ namespace FWO.Middleware.Server
                 Log.WriteError("Autodiscovery", $"Ran into exception: ", exc);
                 Log.WriteAlert($"source: \"{GlobalConfig.kAutodiscovery}\"",
                     $"userId: \"0\", title: \"Error encountered while trying to autodiscover\", description: \"{exc}\", alertCode: \"{AlertCode.Autodiscovery}\"");
-                await AddAutoDiscoverLogEntry(1, "Scheduled Autodiscovery", $"Ran into exception: " + exc.Message);
+                await AddAutoDiscoverLogEntry(1, globalConfig.GetText("scheduled_autodiscovery"), globalConfig.GetText("ran_into_exception") + exc.Message);
             }
         }
 

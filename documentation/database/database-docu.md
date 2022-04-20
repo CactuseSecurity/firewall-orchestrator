@@ -43,6 +43,7 @@ AND pid <> pg_backend_pid();
 
 ```
 ...$ sudo su - postgres
+...$ psql -U postgres
 postgres-# \c fworchdb
 fworchdb-# \dt
 fworchdb-# \x

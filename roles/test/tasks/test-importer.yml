@@ -16,8 +16,8 @@
   register: test_checkpoint_mgm_id
 
 - name: make test checkpoint import
-  script: "{{ fworch_home }}/importer/import-mgm.py -m{{ test_checkpoint_mgm_id.query_result.0.mgm_id }} -d4 -ihttps://fwodemodata.cactus.de/demo04_cpr8x.json"
+  command: "python3 import-mgm.py -m{{ test_checkpoint_mgm_id.query_result.0.mgm_id }} -d4 -ihttps://fwodemodata.cactus.de/demo04_cpr8x.json"
   args:
-    executable: python3
+    chdir: "{{ fworch_home }}/importer"
   become: yes
   become_user: "{{ fworch_user }}"

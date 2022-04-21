@@ -7,6 +7,7 @@ import json
 import time
 import parse_network, parse_rule, parse_service, parse_user
 import common, getter
+import fwo_api
 
 nw_obj_table_names = ['hosts', 'networks', 'address-ranges', 'multicast-address-ranges', 'groups', 'gateways-and-servers', 'simple-gateways', 'CpmiGatewayPlain', 'CpmiAnyObject']  
 # now test to also get: CpmiAnyObject, external 
@@ -40,9 +41,11 @@ def get_ip_of_obj(obj):
         ip_addr = ''
     else:
         ip_addr = '0.0.0.0/0'
-    ## fallback for empty ip addresses (should not regularly occur)
+    ## fallback for empty ip addresses (should not regularly occur and constitutes a data issue in CP database)
     if ip_addr == '':
-        ip_addr = '0.0.0.0/0'
+        ip_addr = '0.0.0.0/32'
+        # TODO: add data issue (need a lot of data here first) 
+        # fwo_api.create_data_issue(fwo_api_base_url, jwt, import_id=import_id, obj_name=obj['obj_name'], severity=1, rule_uid=rule_uid, mgm_id=mgm_id, object_type=obj['obj_typ'])
     return ip_addr
 
 ##################### 2nd-level functions ###################################

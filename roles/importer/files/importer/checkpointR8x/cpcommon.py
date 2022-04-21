@@ -7,7 +7,7 @@ import json
 import time
 import parse_network, parse_rule, parse_service, parse_user
 import common, getter
-import fwo_api
+import fwo_alert, fwo_api
 
 nw_obj_table_names = ['hosts', 'networks', 'address-ranges', 'multicast-address-ranges', 'groups', 'gateways-and-servers', 'simple-gateways', 'CpmiGatewayPlain', 'CpmiAnyObject']  
 # now test to also get: CpmiAnyObject, external 
@@ -24,7 +24,7 @@ original_obj_uid = "85c0f50f-6d8a-4528-88ab-5fb11d8fe16c"
 # used for nat only (both svc and nw obj)
 
 
-def get_ip_of_obj(obj):
+def get_ip_of_obj(obj, mgm_id=0):
     if 'ipv4-address' in obj:
         ip_addr = obj['ipv4-address']
     elif 'ipv6-address' in obj:
@@ -43,9 +43,13 @@ def get_ip_of_obj(obj):
         ip_addr = '0.0.0.0/0'
     ## fallback for empty ip addresses (should not regularly occur and constitutes a data issue in CP database)
     if ip_addr == '':
-        ip_addr = '0.0.0.0/32'
-        # TODO: add data issue (need a lot of data here first) 
-        # fwo_api.create_data_issue(fwo_api_base_url, jwt, import_id=import_id, obj_name=obj['obj_name'], severity=1, rule_uid=rule_uid, mgm_id=mgm_id, object_type=obj['obj_typ'])
+        ip_addr = '0.0.0.0/32'  # setting syntactically correct dummy ip
+        alerter = fwo_alert.getFwoAlerter()
+        alert_description = "object has an empty string as ip address"
+        fwo_api.create_data_issue(alerter['fwo_api_base_url'], alerter['jwt'], severity=2, obj_name=obj['name'], object_type=obj['type'], description=alert_description, mgm_id=mgm_id) 
+        alert_description = "object '" + obj['name'] + "' (type=" + obj['type'] + ") has an empty string as ip address"
+        fwo_api.setAlert(alerter['fwo_api_base_url'], alerter['jwt'], title="import error", severity=2, role='importer', \
+            description=alert_description, source='import', alertCode=17, mgm_id=mgm_id)
     return ip_addr
 
 ##################### 2nd-level functions ###################################

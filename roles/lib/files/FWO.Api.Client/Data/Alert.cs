@@ -16,6 +16,7 @@ namespace FWO.Api.Data
         ImportErrorUnspecific = 14,
         ImportLocked = 15,
         ImportBrokenObjectReferences = 16,
+        EmptyObjectIpAddress = 17,
         Autodiscovery = 21,
         AutoDiscoveryErrorUnspecific = 22
     }

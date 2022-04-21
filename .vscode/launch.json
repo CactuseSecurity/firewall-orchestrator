@@ -56,7 +56,7 @@
                 //"-ihttps://fwodemodata.cactus.de/demo04_cpr8x.json",
                 //"-c",
                 //  41 - lab fortimanager
-                //"-i/home/tim/tmp/configs/mgm_id_53_config_native.json.8.anon",
+                "-i/tmp/mgm_id_8_config_native.json",
                 //"-i/home/tim/tmp/configs/mgm_id_56_config_native.json.anon", // all rules, all objs local mgm_id 4
                 // "-i/home/tim/tmp/configs/mgm_id_56_config_native.json.anon", // 30k rules, local mgm_id 45
                 //"-i/home/tim/tmp/configs/mgm_id_52_config_native.json.anon", // many gateways, local mgm_id 49

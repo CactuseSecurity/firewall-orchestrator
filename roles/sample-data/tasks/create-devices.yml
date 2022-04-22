@@ -76,8 +76,8 @@
         query: >
           DO $do$ BEGIN 
           IF NOT EXISTS (SELECT * FROM device WHERE dev_name='{{ sample_checkpoint_name }}') THEN
-          insert into device (mgm_id,dev_name,local_rulebase_name,dev_typ_id)
-          VALUES ((select mgm_id from management where mgm_name='{{ sample_checkpoint_name }}'),'{{ sample_checkpoint_name }}','FirstLayer shared with inline layer',9); 
+          insert into device (mgm_id,dev_name,local_rulebase_name,dev_typ_id,package_name)
+          VALUES ((select mgm_id from management where mgm_name='{{ sample_checkpoint_name }}'),'{{ sample_checkpoint_name }}','FirstLayer shared with inline layer',9,'TestPolicyWithLayers'); 
           END IF; END $do$ 
       when: sample_role_purpose is match('test')
 

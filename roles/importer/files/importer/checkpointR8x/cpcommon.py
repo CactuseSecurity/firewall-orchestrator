@@ -5,9 +5,23 @@ from fwo_log import getFwoLogger
 sys.path.append(importer_base_dir + '/checkpointR8x')
 import json
 import time
-import parse_network, parse_rule, parse_service, parse_user
-import common, getter
+#import parse_network, parse_rule, parse_service, parse_user
+#import common, getter
+import getter
 import fwo_alert, fwo_api
+import ipaddress 
+
+
+def validate_ip_address(address):
+    try:
+        # ipaddress.ip_address(address)
+        ipaddress.ip_network(address)
+        return True
+        # print("IP address {} is valid. The object returned is {}".format(address, ip))
+    except ValueError:
+        return False
+        # print("IP address {} is not valid".format(address)) 
+
 
 nw_obj_table_names = ['hosts', 'networks', 'address-ranges', 'multicast-address-ranges', 'groups', 'gateways-and-servers', 'simple-gateways', 'CpmiGatewayPlain', 'CpmiAnyObject']  
 # now test to also get: CpmiAnyObject, external 
@@ -37,19 +51,20 @@ def get_ip_of_obj(obj, mgm_id=0):
         ip_addr = obj['ipv4-address-first'] + '-' + str(obj['ipv4-address-last'])
     elif 'ipv6-address-first' in obj and 'ipv6-address-last' in obj:
         ip_addr = obj['ipv6-address-first'] + '-' + str(obj['ipv6-address-last'])
-    elif 'obj_typ' in obj and obj['obj_typ'] == 'group':
-        ip_addr = ''
     else:
-        ip_addr = '0.0.0.0/0'
-    ## fallback for empty ip addresses (should not regularly occur and constitutes a data issue in CP database)
-    if ip_addr == '':
-        ip_addr = '0.0.0.0/32'  # setting syntactically correct dummy ip
+        ip_addr = None
+
+    ## fix malformed ip addresses (should not regularly occur and constitutes a data issue in CP database)
+    if ip_addr is None or ('type' in obj and (obj['type'] == 'address-range' or obj['type'] == 'multicast-address-range')):
+        pass   # ignore None and ranges here
+    elif not validate_ip_address(ip_addr):
         alerter = fwo_alert.getFwoAlerter()
-        alert_description = "object has an empty string as ip address"
+        alert_description = "object is not a valid ip address (" + str(ip_addr) + ")"
         fwo_api.create_data_issue(alerter['fwo_api_base_url'], alerter['jwt'], severity=2, obj_name=obj['name'], object_type=obj['type'], description=alert_description, mgm_id=mgm_id) 
-        alert_description = "object '" + obj['name'] + "' (type=" + obj['type'] + ") has an empty string as ip address"
+        alert_description = "object '" + obj['name'] + "' (type=" + obj['type'] + ") is not a valid ip address (" + str(ip_addr) + ")"
         fwo_api.setAlert(alerter['fwo_api_base_url'], alerter['jwt'], title="import error", severity=2, role='importer', \
             description=alert_description, source='import', alertCode=17, mgm_id=mgm_id)
+        ip_addr = '0.0.0.0/32'  # setting syntactically correct dummy ip
     return ip_addr
 
 ##################### 2nd-level functions ###################################

@@ -6973,9 +6973,18 @@
                       "rule_uid"
                     ],
                     "filter": {
-                      "mgm_id": {
-                        "_in": "x-hasura-visible-managements"
-                      }
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "dev_id": {
+                            "_in": "x-hasura-visible-devices"
+                          }
+                        }
+                      ]
                     },
                     "allow_aggregations": true
                   }
@@ -7024,9 +7033,18 @@
                       "rule_uid"
                     ],
                     "filter": {
-                      "mgm_id": {
-                        "_in": "x-hasura-visible-managements"
-                      }
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "dev_id": {
+                            "_in": "x-hasura-visible-devices"
+                          }
+                        }
+                      ]
                     },
                     "allow_aggregations": true
                   }
@@ -11397,6 +11415,6 @@
           "comment": null
         }
       ]
-    } 
+    }
   }
 }

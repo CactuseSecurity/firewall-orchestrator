@@ -38,3 +38,14 @@ FROM pg_stat_activity
 WHERE pg_stat_activity.datname = '[Database to copy]'
 AND pid <> pg_backend_pid();
 ```
+
+### quick and dirty debugging
+
+```
+...$ sudo su - postgres
+...$ psql -U postgres
+postgres-# \c fworchdb
+fworchdb-# \dt
+fworchdb-# \x
+fworchdb-# SELECT * FROM my_table;
+```

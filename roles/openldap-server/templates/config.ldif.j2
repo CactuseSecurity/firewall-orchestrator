@@ -28,6 +28,9 @@ include: file:///etc/ldap/schema/core.ldif
 include: file:///etc/ldap/schema/cosine.ldif
 include: file:///etc/ldap/schema/inetorgperson.ldif
 include: file:///etc/ldap/schema/nis.ldif
+{% if not ansible_distribution == 'Ubuntu' or {{ ansible_distribution_version | splitext | first }} < 22 %}
+include: file:///etc/ldap/schema/ppolicy.ldif
+{% endif %}
 
 # configure config database
 dn: olcDatabase=config,cn=config

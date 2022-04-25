@@ -70,7 +70,7 @@
     name:
       - python3-pip
       - libsasl2-dev
-      - python-dev
+      - python3-dev
       - libldap2-dev
       - libssl-dev
       - python3-setuptools

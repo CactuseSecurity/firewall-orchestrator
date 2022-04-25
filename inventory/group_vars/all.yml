@@ -1,5 +1,5 @@
 ### general settings
-product_version: "5.6.7"
+product_version: "5.6.9"
 ansible_python_interpreter: /usr/bin/python3
 ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 product_name: fworch
@@ -115,4 +115,5 @@ http_conf_dir: /etc/{{ webserver_package_name }}/sites-available/
 ################# testing #########################
 test_dir: "{{ fworch_home }}/test"
 test_fortigate_name: "fortigate{{ test_postfix }}"
+test_checkpoint_name: "checkpoint{{ test_postfix }}"
 csharp_test_start_dir: "{{ fworch_home }}/test/csharp/FWO.Test"

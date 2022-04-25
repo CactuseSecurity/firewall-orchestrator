@@ -3,11 +3,11 @@ import common
 import json
 from cpcommon import nw_obj_table_names, get_ip_of_obj
 
-def parse_network_objects_to_json(full_config, config2import, import_id, debug_level=0):
+def parse_network_objects_to_json(full_config, config2import, import_id, mgm_id=0, debug_level=0):
     nw_objects = []
 
     for obj_table in full_config['object_tables']:
-        collect_nw_objects(obj_table, nw_objects, debug_level=debug_level)
+        collect_nw_objects(obj_table, nw_objects, debug_level=debug_level, mgm_id=mgm_id)
     for nw_obj in nw_objects:
         nw_obj.update({'control_id': import_id})
     for idx in range(0, len(nw_objects)-1):
@@ -17,7 +17,7 @@ def parse_network_objects_to_json(full_config, config2import, import_id, debug_l
     
 
 # collect_nw_objects from object tables and write them into global nw_objects dict
-def collect_nw_objects(object_table, nw_objects, debug_level=0):
+def collect_nw_objects(object_table, nw_objects, debug_level=0, mgm_id=0):
     logger = getFwoLogger(debug_level=debug_level)
     nw_obj_type_to_host_list = [
         'simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiVsxClusterNetobj', 'CpmiVsxClusterMember', 'CpmiAnyObject', 
@@ -38,9 +38,9 @@ def collect_nw_objects(object_table, nw_objects, debug_level=0):
                     member_refs = member_refs[:-1]
                     if obj['members'] == '':
                         obj['members'] = None
-                ip_addr = get_ip_of_obj(obj)
+                ip_addr = get_ip_of_obj(obj, mgm_id=mgm_id)
                 first_ip = ip_addr
-                last_ip = ip_addr
+                last_ip = None
                 obj_type = obj['type']
                 if obj_type=='group':
                     first_ip = None

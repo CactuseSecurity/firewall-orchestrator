@@ -215,6 +215,9 @@ if (!$error_count_global) {
 					}
 				}
 				# 4) wrapping up
+				# updating last import attempt date directly in DB
+				&exec_pgsql_cmd_no_result("UPDATE management SET last_import_attempt=now() WHERE mgm_id=$mgm_id");
+
 				if (!$error_count_global) {  # import ony when no previous errors occured
 					$error_count_local = 0;
 					my $imp_result_str = &exec_pgsql_cmd_return_value("SET client_min_messages TO NOTICE; SELECT import_all_main($current_import_id, FALSE)");		

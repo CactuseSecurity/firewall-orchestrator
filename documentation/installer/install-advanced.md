@@ -9,14 +9,14 @@ always change into the firewwall-orchestrator directory before starting the inst
 The following switch can be used to set the type of installation to perform
 
 ```console
-ansible-playbook -e "installation_mode=upgrade" site.yml -K
+sudo ansible-playbook -e "installation_mode=upgrade" site.yml -K
 ```
 
 If you want to drop the database and re-install from scratch, do the following:
 
 ```console
-ansible-playbook -e "installation_mode=uninstall" site.yml -K
-ansible-playbook -e "installation_mode=new" site.yml -K
+sudo ansible-playbook -e "installation_mode=uninstall" site.yml -K
+sudo ansible-playbook -e "installation_mode=new" site.yml -K
 ```
 
 installation_mode options:
@@ -30,7 +30,7 @@ installation_mode options:
 e.g. with IP 1.2.3.4, listening on port 3128<br>
 
 ```console
-ansible-playbook -e "http_proxy=http://1.2.3.4:3128 https_proxy=http://1.2.3.4:3128" site.yml -K
+sudo ansible-playbook -e "http_proxy=http://1.2.3.4:3128 https_proxy=http://1.2.3.4:3128" site.yml -K
 ```
 
 use the following syntax for authenticated proxy access:
@@ -60,7 +60,7 @@ NB: for vscode-debugging, you also need access to
 e.g. if your hasura metadata file needs to be re-created from scratch, then use the following switch:
 
 ```console
-ansible-playbook -e "api_no_metadata=yes" site.yml -K
+sudo ansible-playbook -e "api_no_metadata=yes" site.yml -K
 ```
 
 ### Parameter "install_syslog" allows disabling of separate syslog installation
@@ -69,7 +69,7 @@ Default value is install_syslog=yes but if you already have a syslog service run
 
 run installation without syslog installation:
 ```console
-ansible-playbook -e "install_syslog=no" site.yml -K
+sudo ansible-playbook -e "install_syslog=no" site.yml -K
 ```
 
 Here is a sample config you can use for configuring your already running syslog:
@@ -130,12 +130,11 @@ rsyslog config
 ### Parameter "api_docu" to install API documentation
 
 Generating a full hasura (all tables, etc. tracked) API documentation  currently requires
-- 2.3 GB additional hdd space (at least 10 GB total for test install)
+- at least 10 GB total free hdd for test install
 - a minimum of 8 GB RAM
-- 4 minutes to generate
 
 ```console
-cd firewall-orchestrator; ansible-playbook -e "api_docu=yes" site.yml -K
+sudo ansible-playbook -e "api_docu=yes" site.yml -K
 ```
 
 api docu can then be accessed at <https://server/api_schema/index.html>
@@ -150,7 +149,7 @@ The following options exist for communication to the UI:
 
 Example:
 ```console
-cd firewall-orchestrator; ansible-playbook -e "ui_comm_mode=no_ws" site.yml -K
+sudo ansible-playbook -e "ui_comm_mode=no_ws" site.yml -K
 ```
 
 ## User interface server name and aliases
@@ -159,11 +158,11 @@ To make sure that firewall orchestrator UI webserver responds to the correct DNS
 
 Example to set fwodemo.cactus.de as webserver name:
 ```console
-cd firewall-orchestrator; ansible-playbook -e "ui_server_name='fwodemo.cactus.de'" site.yml -K
+sudo ansible-playbook -e "ui_server_name='fwodemo.cactus.de'" site.yml -K
 ```
 Example to set fwodemo.cactus.de and two additional aliases as websrver names:
 ```console
-cd firewall-orchestrator; ansible-playbook -e "ui_server_name=fwodemo.cactus.de ui_server_alias=' fwo1.cactus.de fwo2.cactus.de'" site.yml -K
+sudo ansible-playbook -e "ui_server_name=fwodemo.cactus.de ui_server_alias=' fwo1.cactus.de fwo2.cactus.de'" site.yml -K
 ```
 
 ## User interface Server Alias string
@@ -172,11 +171,11 @@ To be able to configure your webserver name, you may add the following parameter
 
 Example to set fwodemo.cactus.de as websrver name:
 ```console
-cd firewall-orchestrator; ansible-playbook -e "ui_server_alias='fwodemo.cactus.de'" site.yml -K
+sudo ansible-playbook -e "ui_server_alias='fwodemo.cactus.de'" site.yml -K
 ```
 Example to set fwodemo.cactus.de and fwo2.cactus.de as websrver names:
 ```console
-cd firewall-orchestrator; ansible-playbook -e "ui_server_alias='fwodemo.cactus.de fwo2.cactus.de'" site.yml -K
+sudo ansible-playbook -e "ui_server_alias='fwodemo.cactus.de fwo2.cactus.de'" site.yml -K
 ```
 
 ## Distributed setup with multiple servers

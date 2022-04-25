@@ -22,4 +22,4 @@ ansible -m ping 127.0.0.1
 git clone https://github.com/CactuseSecurity/firewall-orchestrator.git
 
 #install firewall-orchestrator
-cd firewall-orchestrator || exit; ansible-playbook site.yml -K
+cd firewall-orchestrator || exit; sudo ansible-playbook site.yml -K

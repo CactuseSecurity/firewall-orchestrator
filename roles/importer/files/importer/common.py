@@ -10,21 +10,8 @@ from pathlib import Path
 sys.path.append(importer_base_dir) # adding absolute path here once
 import fwo_api
 from fwo_log import getFwoLogger, getFwoAlertLogger
-
-fw_module_name = 'fwcommon'  # the module start-point for product specific code
-full_config_size_limit = 5000000 # native configs greater than 5 MB will not be stored in DB
-csv_delimiter = '%'
-list_delimiter = '|'
-line_delimiter = "\n"
-apostrophe = "\""
-section_header_uids=[]
-nat_postfix = '_NatNwObj'
-fwo_api_http_import_timeout = 14400 # 4 hours
-
-fwo_config_filename = base_dir + '/etc/fworch.json'
-with open(fwo_config_filename, "r") as fwo_config:
-    fwo_config = json.loads(fwo_config.read())
-fwo_api_base_url = fwo_config['api_uri']
+from fwo_const import fw_module_name, full_config_size_limit, csv_delimiter, list_delimiter, line_delimiter, apostrophe, section_header_uids, nat_postfix, fwo_api_http_import_timeout
+from fwo_const import fwo_config_filename, importer_pwd_file, importer_user_name, import_tmp_path, fwo_api_base_url
 
 # how many objects (network, services, rules, ...) should be sent to the FWO API in one go?
 # should be between 500 and 2.000 in production (results in a max obj number of max. 5 x this value - nwobj/svc/rules/...)
@@ -93,10 +80,6 @@ class ConfigFileNotFound(Exception):
 #     no changes: remove import_control?
 def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=None, limit=150, force=False, clearManagementData=False):
     error_count = 0
-    importer_user_name = 'importer'  # todo: move to config file?
-    fwo_config_filename = base_dir + '/etc/fworch.json'
-    importer_pwd_file = base_dir + '/etc/secrets/importer_pwd'
-    import_tmp_path = base_dir + '/tmp/import'
     change_count = 0
     error_string = ''
     start_time = int(time.time())
@@ -173,28 +156,28 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
             logger.info('this import run will reset the configuration of this management to "empty"')
         else:
             if in_file is not None:    # read native config from file
-                if 'http://' in in_file or 'https://' in in_file:   # gettinf file via http(s)
-                    try:
+                try:
+                    if 'http://' in in_file or 'https://' in in_file:   # gettinf file via http(s)
                         r = requests.get(in_file, headers={ 'Content-Type': 'application/json' }, verify=ssl, proxies=proxy)
                         r.raise_for_status()
-                    except requests.exceptions.RequestException:
-                        raise("got HTTP status code" + str(r.status_code) + " while trying to read config file from URL " + in_file)
-                    except:
-                        raise("unknown error while reading config file from URL " + in_file)
-                    full_config_json = json.loads(r.content)
-                else:   # reading from local file
-                    try:
+                        full_config_json = json.loads(r.content)
+                    else:   # reading from local file
                         with open(in_file, 'r') as json_file:
-                            full_config_json = json.loads(json_file)
-                    except:
-                        # logger.exception("import_management - error while reading json import from file", traceback.format_exc())
-                        error_string = "Could not read config file " + in_file
-                        error_count += 1
-                        error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt, debug_level=debug_level)
-                        raise ConfigFileNotFound(error_string) from None
+                            full_config_json = json.load(json_file)
+                except requests.exceptions.RequestException:
+                    error_string = "got HTTP status code" + str(r.status_code) + " while trying to read config file from URL " + in_file
+                    error_count += 1
+                    error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt, debug_level=debug_level)
+                    raise ConfigFileNotFound(error_string) from None
+                except:
+                    # logger.exception("import_management - error while reading json import from file", traceback.format_exc())
+                    error_string = "Could not read config file " + in_file
+                    error_count += 1
+                    error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt, debug_level=debug_level)
+                    raise ConfigFileNotFound(error_string) from None
+
             # note: we need to run get_config in any case (even when importing from a file) as this function 
             # also contains the conversion from native to config2import (parsing)
-            
             ### geting config from firewall manager ######################
             config_changed_since_last_import, error_string, error_count, change_count = get_config_sub(mgm_details, full_config_json, config2import, jwt, current_import_id, start_time,
                 in_file=in_file, import_tmp_path=import_tmp_path, error_string=error_string, error_count=error_count, change_count=change_count, 

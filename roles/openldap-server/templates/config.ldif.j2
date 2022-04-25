@@ -13,7 +13,7 @@ dn: cn=module{0},cn=config
 objectClass: olcModuleList
 cn: module{0}
 olcModulePath: /usr/lib/ldap
-olcModuleLoad: {0}back_hdb.la
+olcModuleLoad: {0}back_mdb.la
 olcModuleLoad: {1}memberof.la
 olcModuleLoad: {2}refint.la
 olcModuleLoad: {3}ppolicy.la
@@ -38,10 +38,10 @@ olcRootPW: {{ root_password.stdout }}
 olcAccess: to * by * none
 
 # add database
-dn: olcDatabase=hdb,cn=config
+dn: olcDatabase=mdb,cn=config
 objectClass: olcDatabaseConfig
-objectClass: olcHdbConfig
-olcDatabase: hdb
+objectClass: olcMdbConfig
+olcDatabase: mdb
 olcSuffix: {{ openldap_path }}
 olcDbDirectory: /var/lib/ldap/{{ openldap_server_domain_name }}/
 olcRootDN: {{ openldap_superuser_dn }}
@@ -84,7 +84,7 @@ olcAccess: to *
     by * none
 
 # Backend memberOf overlay
-dn: olcOverlay=memberof,olcDatabase={1}hdb,cn=config
+dn: olcOverlay=memberof,olcDatabase={1}mdb,cn=config
 objectClass: olcMemberOf
 objectClass: olcOverlayConfig
 objectClass: olcConfig
@@ -97,7 +97,7 @@ olcMemberOfMemberAD: uniqueMember
 olcMemberOfMemberOfAD: memberOf
 
 # Referential integrity overlay
-dn: olcOverlay=refint,olcDatabase={1}hdb,cn=config
+dn: olcOverlay=refint,olcDatabase={1}mdb,cn=config
 objectClass: olcConfig
 objectClass: olcOverlayConfig
 objectClass: olcRefintConfig
@@ -107,7 +107,7 @@ olcRefintAttribute: memberOf
 olcRefintAttribute: uniqueMember
 
 # Password policy overlay
-dn: olcOverlay=ppolicy,olcDatabase={1}hdb,cn=config
+dn: olcOverlay=ppolicy,olcDatabase={1}mdb,cn=config
 objectClass: olcConfig
 objectClass: top
 objectClass: olcOverlayConfig

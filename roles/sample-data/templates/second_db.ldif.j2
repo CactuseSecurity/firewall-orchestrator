@@ -1,8 +1,8 @@
-dn: olcDatabase=bdb,cn=config
+dn: olcDatabase=hdb,cn=config
 changetype: add
 objectClass: olcDatabaseConfig
-objectClass: olcBdbConfig
-olcDatabase: bdb
+objectClass: olcHdbConfig
+olcDatabase: hdb
 olcSuffix: {{ sample_ldap_path }}
 olcDbDirectory: /var/lib/ldap/{{ sample_ldap_domain_name }}/
 olcRootDN: {{ openldap_superuser_dn }}

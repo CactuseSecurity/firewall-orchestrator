@@ -54,7 +54,7 @@ namespace FWO.Middleware.Server
                         if (!connection.Bound) return 2;
                     }
                     catch (Exception) { return 2; }
-                    if(WriteUser != null)
+                    if(WriteUser != null && WriteUser != "")
                     {
                         try
                         {

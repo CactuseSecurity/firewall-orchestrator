@@ -1502,7 +1502,6 @@ INSERT INTO txt VALUES ('H1101', 'German',  '<li> Alle Filter sind schreibungsun
     <li> Klammern k&ouml;nnen genutzt werden, um die Filterausdr&uuml;cke zu strukturieren.</li>
     <li> Anf&uuml;hrungszeichen (") k&ouml;nnen optional f&uuml;r Wertdefinitionen genutzt werden. Wenn Leerzeichen im Wert vorkommen (z.B. f&uuml;r Datum/Zeit-Werte), m&uuml;ssen sie genutzt werden.</li>
     <li> Ein Gateway muss ausgew&auml;hlt werden. Dies kann manuell oder &uuml;ber die linke Randleiste, von wo die Auswahl automatisch in den Filter integriert wird, erfolgen.</li>
-    <li> Filterung nach IP-Adressen (CIDR) wird noch nicht angeboten.</li>
     <li> Zeitfilterung funktioniert zur Zeit nur f&uuml;r Zeitpunkte vor dem letzten Import, der einen Config Change gefunden hat. </li>
     <li> Regeln werden immer in voller Tiefe durchsucht, d.h. alle Gruppen in Quell-, Ziel- und Dienstfeldern werden aufgel&ouml;st.
         Zur Zeit gibt es noch keine M&ouml;glichkeit, nur auf der obersten Regelebene zu suchen.</li>
@@ -1514,7 +1513,6 @@ INSERT INTO txt VALUES ('H1101', 'English', '<li> All filtering is case insensit
     <li> Brackets can be used for structuring the filter statement.</li>
     <li> Quotation marks (") can be used optionally for the value definition. If there are white spaces in the value (e.g. for date/time values) the quotation marks have to be used.</li>
     <li> A gateway has to be selected. This can be done manually or via the left sidebar, from where the selection is automatically integrated to the filter.</li>
-    <li> No IP address (CIDR) filtering yet.</li>
     <li> Time filtering currently only works for points in time before the last import that found a config change. </li>
     <li> Rules are always deep-searched, meaning all groups in source, destination and service fields are resolved.
         There is currently no option to only search at the rule top-level.</li>
@@ -1522,6 +1520,7 @@ INSERT INTO txt VALUES ('H1101', 'English', '<li> All filtering is case insensit
 INSERT INTO txt VALUES ('H1111', 'German',  '<li>gateway (gw, firewall, fw, device, dev): Zus&auml;tzlich zu der in der <a href="/help/reporting/leftside">Linken Randleiste</a> zu t&auml;tigenden Auswahl spezifischer Devices
     kann hier noch die Auswahl weiter nach Namen eingeschr&auml;nkt werden. </li>
     <li>management (mgmt, manager, mgm, mgr)</li>
+    <li>disabled</li>
     <li>source (src)</li>
     <li>destination (dst, dest)</li>
     <li>service (svc, srv)</li>
@@ -1535,6 +1534,7 @@ INSERT INTO txt VALUES ('H1111', 'German',  '<li>gateway (gw, firewall, fw, devi
 INSERT INTO txt VALUES ('H1111', 'English', '<li>gateway (gw, firewall, fw, device, dev): Additionally to the specific device selection in the <a href="/help/reporting/leftside">left sidebar</a>
     the selected devices can be further restricted here by device names.</li>
     <li>management (mgmt, manager, mgm, mgr)</li>
+    <li>disabled</li>
     <li>source (src)</li>
     <li>destination (dst, dest)</li>
     <li>service (svc, srv)</li>
@@ -1556,10 +1556,10 @@ INSERT INTO txt VALUES ('H1141', 'English', '<li> full text searches</li><ul>
     <li>fulltext=cactus - same as above</li></ul>
 ');
 INSERT INTO txt VALUES ('H1143', 'German',  '<li> Suche nach spezifischem Regelinhalt</li><ul>
-    <li>src=cactus</li><li>src=subnet</li><li>dst=daba</li><li>svc=valve_udp</li><li>action=accept</li><li>not action=drop</li></ul>
+    <li>src=cactus</li><li>src=subnet</li><li>dst=daba</li><li>svc=valve_udp</li><li>action=accept</li><li>not action=drop</li><li>disabled=true</li><li>dst=10.222.0.10/31</li></ul>
 ');
 INSERT INTO txt VALUES ('H1143', 'English', '<li> Specific rule content searches</li><ul>
-    <li>src=cactus</li><li>src=subnet</li><li>dst=daba</li><li>svc=valve_udp</li><li>action=accept</li><li>not action=drop</li></ul>
+    <li>src=cactus</li><li>src=subnet</li><li>dst=daba</li><li>svc=valve_udp</li><li>action=accept</li><li>not action=drop</li><li>disabled=true</li><li>dst=10.222.0.10/31</li></ul>
 ');
 INSERT INTO txt VALUES ('H1144', 'German',  '<li> Filtern nach Gateways oder Managements</li><ul>
     <li>gateway=forti and src=cactus</li><li>gateway=forti or gateway=check</li><li>not gateway=check</li></ul>

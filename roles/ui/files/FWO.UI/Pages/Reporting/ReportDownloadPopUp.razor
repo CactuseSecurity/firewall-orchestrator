@@ -1,0 +1,95 @@
+﻿@using System.Text
+
+@inject UserConfig userConfig
+@inject IJSRuntime JSRuntime
+
+<PopUp Title="@(userConfig.GetText("export_report_download"))" Show="@Show" OnClose="() => Close()">
+    <Body>
+        <div class="d-flex flex-column align ml-1 mr-1">
+            @if(Downloading)
+            {
+                <div class="spinner-border" role="status">
+                    <span class="sr-only">Exporting...</span>
+                </div>
+            }
+            else
+            {
+                @if (ReportFile?.Csv != null)
+                {
+                    <btn class="btn btn-sm btn-info m-1"
+                    @onclick="@(async _ => { await DownloadFile(ReportFile.Name + ".csv", "text/csv", Encoding.UTF8.GetBytes(ReportFile.Csv)); })">
+                        @(userConfig.GetText("download_csv"))
+                    </btn>
+                }
+                @if (ReportFile?.Pdf != null)
+                {
+                    @*TODO: application/pdf would be correct but Firefox ignores the new tab request in this case*@
+                    <btn class="btn btn-sm btn-info m-1"
+                    @onclick="@(async _ => { await DownloadFile(ReportFile.Name + ".pdf", "application/octet-stream", Convert.FromBase64String(ReportFile.Pdf)); })">
+                        @(userConfig.GetText("download_pdf"))
+                    </btn>
+                }
+                @if (ReportFile?.Html != null)
+                {
+                    <btn class="btn btn-sm btn-info m-1"
+                    @onclick="@(async _ => { await DownloadFile(ReportFile.Name + ".html", "text/html", Encoding.UTF8.GetBytes(ReportFile.Html)); })">
+                        @(userConfig.GetText("download_html"))
+                    </btn>
+                }
+                @if (ReportFile?.Json != null && ShowJson)
+                {
+                    <btn class="btn btn-sm btn-info m-1"
+                    @onclick="@(async _ => { await DownloadFile(ReportFile.Name + ".json", "application/json", Encoding.UTF8.GetBytes(ReportFile.Json)); })">
+                        @(userConfig.GetText("download_json"))
+                    </btn>
+                }            
+            }
+        </div>
+    </Body>
+    <Footer>
+        @if(!Downloading)
+        {
+            <button class="btn btn-sm btn-danger" @onclick="() => Close()">@(userConfig.GetText("close"))</button>
+        }
+    </Footer>
+</PopUp>
+
+@code {
+    private bool Downloading = false;
+
+    [Parameter]
+    public string Title { get; set; } = "EMPTY_TITLE";
+
+    [Parameter]
+    public ReportFile? ReportFile { get; set; }
+
+    [Parameter]
+    public bool Show { get; set; }
+
+    [Parameter]
+    public bool ShowJson { get; set; }
+
+    [Parameter]
+    public Action OnClose { get; set; } = new Action(() => { });
+
+    private void Close()
+    {
+        Show = false;
+        OnClose();
+    }
+
+    private async Task DownloadFile(string fileName, string contentType, byte[] data)
+    {
+        await Task.Run(async () =>
+        {
+            if (ReportFile != null)
+            {
+                Downloading = true;
+                await InvokeAsync(StateHasChanged);
+                await JSRuntime.InvokeVoidAsync("DownloadFile", fileName, contentType, data);
+                Downloading = false;
+            }
+        });
+    }
+}
+

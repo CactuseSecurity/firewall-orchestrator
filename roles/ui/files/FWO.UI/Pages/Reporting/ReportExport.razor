@@ -59,40 +59,20 @@
         </div>
     </Body>
     <Footer>
-        <button class="btn btn-sm btn-primary" @onclick="async () => { await Export(); ShowExportDialog = false; ShowExportDownloadDialog = true; }">@(userConfig.GetText("export"))</button>
-        <button class="btn btn-sm btn-secondary" @onclick="() => ShowExportDialog = false">@(userConfig.GetText("cancel"))</button>
+        @if (!Exporting) {
+            <button class="btn btn-sm btn-primary" @onclick="async () => { Exporting = true; await Export(); ShowExportDialog = false; ShowExportDownloadDialog = true; Exporting = false; }">@(userConfig.GetText("export"))</button>
+            <button class="btn btn-sm btn-secondary" @onclick="() => ShowExportDialog = false">@(userConfig.GetText("cancel"))</button>
+        }
+        else {
+            <div class="spinner-border" role="status">
+                <span class="sr-only">Exporting...</span>
+            </div>
+        }
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("export_report_download"))" Show="@ShowExportDownloadDialog" OnClose="() => ShowExportDownloadDialog = false">
-    <Body>
-        <div class="d-flex flex-column align ml-1 mr-1">
-            @if (reportExportFile?.Csv != null)
-            {
-                <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportExportFile.Csv)))"
-                   target="_blank" download="@(reportExportFile.Name).@("csv")">@(userConfig.GetText("download_csv"))</a>
-            }
-            @if (reportExportFile?.Pdf != null)
-            {
-                <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(reportExportFile.Pdf)"
-                   target="_blank" download="@(reportExportFile.Name).@("pdf")">@(userConfig.GetText("download_pdf"))</a>
-            }
-            @if (reportExportFile?.Html != null)
-            {
-                <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportExportFile.Html)))"
-                   target="_blank" download="@(reportExportFile.Name).@("html")">@(userConfig.GetText("download_html"))</a>
-            }
-            @if (reportExportFile?.Json != null && ExportJson)
-            {
-                <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportExportFile.Json)))"
-                   target="_blank" download="@(reportExportFile.Name).@("json")">@(userConfig.GetText("download_json"))</a>
-            }
-        </div>
-    </Body>
-    <Footer>
-        <button class="btn btn-sm btn-danger" @onclick="() => ShowExportDownloadDialog = false">@(userConfig.GetText("close"))</button>
-    </Footer>
-</PopUp>
+<ReportDownloadPopUp Title="@(userConfig.GetText("export_report_download"))" ReportFile="reportExportFile"
+Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportDownloadDialog = false" />
 
 @code
 {
@@ -111,6 +91,8 @@
 
     private bool ShowExportDialog = false;
     private bool ShowExportDownloadDialog = false;
+
+    private bool Exporting = false;
 
     private async Task Export()
     {

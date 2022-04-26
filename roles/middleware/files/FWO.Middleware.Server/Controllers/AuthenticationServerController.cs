@@ -30,7 +30,7 @@ namespace FWO.Middleware.Controllers
         [Authorize(Roles = "admin, auditor")]
         public bool TestConnection([FromBody] LdapGetUpdateParameters parameters)
         {
-            FWO.Middleware.Server.Ldap ldapToTest = new FWO.Middleware.Server.Ldap(parameters);
+            Ldap ldapToTest = new Ldap(parameters);
             return ldapToTest.TestConnection();
         }
 
@@ -39,7 +39,7 @@ namespace FWO.Middleware.Controllers
         [Authorize(Roles = "admin, auditor")]
         public async Task<List<LdapGetUpdateParameters>> Get()
         {
-            UiLdapConnection[] ldapConnections = (await apiConnection.SendQueryAsync<UiLdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getAllLdapConnections));
+            UiLdapConnection[] ldapConnections = (await apiConnection.SendQueryAsync<UiLdapConnection[]>(AuthQueries.getAllLdapConnections));
             List<LdapGetUpdateParameters> ldapList = new List<LdapGetUpdateParameters>();
             foreach (UiLdapConnection conn in ldapConnections)
             {
@@ -90,7 +90,7 @@ namespace FWO.Middleware.Controllers
         public async Task<int> Delete([FromBody] LdapDeleteParameters ldapData)
         {
             // Delete ldap in DB and in middleware ldap list
-            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.deleteLdapConnection, ldapData)).DeletedId;
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.deleteLdapConnection, ldapData)).DeletedId;
             if (delId == ldapData.Id)
             {
                 ldaps.RemoveAll(x => x.Id == delId);

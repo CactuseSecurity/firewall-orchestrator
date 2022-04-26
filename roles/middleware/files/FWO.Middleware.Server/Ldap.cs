@@ -42,16 +42,33 @@ namespace FWO.Middleware.Server
             }
         }
 
-        public bool TestConnection()
+        public int TestConnection()
         {
             try
             {
-                Connect();
-                return true;
+                using (LdapConnection connection = Connect())
+                {
+                    try
+                    {
+                        connection.Bind(SearchUser, SearchUserPwd);
+                        if (!connection.Bound) return 2;
+                    }
+                    catch (Exception) { return 2; }
+                    if(WriteUser != null)
+                    {
+                        try
+                        {
+                            connection.Bind(WriteUser, WriteUserPwd);
+                            if (!connection.Bound) return 3;
+                        }
+                        catch (Exception) { return 3; }
+                    }
+                }
+                return 0;
             }
             catch (Exception)
             {
-                return false;
+                return 1;
             }
         }
 

@@ -27,6 +27,8 @@ namespace FWO.Config.Api
 
         protected SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
 
+        public ConfigItem[] RawConfigItems { get; set; }
+
         protected Config() { }
 
         protected Config(APIConnection apiConnection, int userId)
@@ -50,6 +52,7 @@ namespace FWO.Config.Api
             semaphoreSlim.Wait();
             try
             {
+                RawConfigItems = configItems;
                 Update(configItems);
                 OnChange?.Invoke(this, configItems);
                 Initialized = true;

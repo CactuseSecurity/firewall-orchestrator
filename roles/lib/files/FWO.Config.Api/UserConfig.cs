@@ -35,13 +35,14 @@ namespace FWO.Config.Api
         public UserConfig(GlobalConfig globalConfig, APIConnection apiConnection, UiUser user) : base(apiConnection, user.DbId)
         {
             User = user;
-            Translate = globalConfig.langDict[globalConfig.DefaultLanguage];
+            Translate = globalConfig.langDict[user.Language!];
             this.globalConfig = globalConfig;
             globalConfig.OnChange += GlobalConfigOnChange;
         }
 
         public UserConfig(GlobalConfig globalConfig) : base()
         {
+            User = new UiUser();
             Translate = globalConfig.langDict[globalConfig.DefaultLanguage];
             this.globalConfig = globalConfig;
             globalConfig.OnChange += GlobalConfigOnChange;
@@ -63,6 +64,7 @@ namespace FWO.Config.Api
 
         public async Task SetUserInformation(string userDn, APIConnection apiConnection)
         {
+            GlobalConfigOnChange(globalConfig, globalConfig.RawConfigItems);
             Log.WriteDebug("Get User Data", $"Get user data from user with DN: \"{userDn}\"");
             UiUser[]? users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = userDn });
             if (users.Count() > 0)

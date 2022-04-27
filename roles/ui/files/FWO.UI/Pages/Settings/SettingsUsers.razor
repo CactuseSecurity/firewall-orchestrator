@@ -14,6 +14,7 @@
 @inject APIConnection apiConnection
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
+@inject GlobalConfig globalConfig
 
 <h3>@(userConfig.GetText("users"))</h3>
 @(userConfig.GetText("U5213"))
@@ -815,7 +816,7 @@
             DisplayMessageInUi!(null, userConfig.GetText("add_user"), userConfig.GetText("E5211"), true);
             return false;
         }
-        if (!PasswordPolicy.CheckPolicy(actUser.Password, userConfig, out errorMsg))
+        if (!PasswordPolicy.CheckPolicy(actUser.Password, globalConfig, userConfig, out errorMsg))
         {
             DisplayMessageInUi!(null, userConfig.GetText("add_user"), errorMsg, true);
             return false;
@@ -979,7 +980,7 @@
             {
                 DisplayMessageInUi!(null, userConfig.GetText("reset_password"), userConfig.GetText("E5218"), true);
             }
-            else if (!PasswordPolicy.CheckPolicy(actUser.Password, userConfig, out errorMsg))
+            else if (!PasswordPolicy.CheckPolicy(actUser.Password, globalConfig, userConfig, out errorMsg))
             {
                 DisplayMessageInUi!(null, userConfig.GetText("reset_password"), errorMsg, true);
             }

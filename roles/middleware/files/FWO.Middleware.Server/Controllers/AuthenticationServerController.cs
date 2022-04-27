@@ -28,7 +28,7 @@ namespace FWO.Middleware.Controllers
         // GET: api/<LdapController>/TestConnection/5
         [HttpGet("TestConnection")]
         [Authorize(Roles = "admin, auditor")]
-        public bool TestConnection([FromBody] LdapGetUpdateParameters parameters)
+        public int TestConnection([FromBody] LdapGetUpdateParameters parameters)
         {
             Ldap ldapToTest = new Ldap(parameters);
             return ldapToTest.TestConnection();

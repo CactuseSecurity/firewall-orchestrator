@@ -1361,8 +1361,14 @@ INSERT INTO txt VALUES ('E5265', 'German',  'Rollenverwaltung kann nur im intern
 INSERT INTO txt VALUES ('E5265', 'English', 'Role handling can only be done in internal Ldap');
 INSERT INTO txt VALUES ('E5266', 'German',  'LDAP-Verbindung Ok');
 INSERT INTO txt VALUES ('E5266', 'English', 'LDAP connection Ok');
-INSERT INTO txt VALUES ('E5267', 'German',  'LDAP-Verbindung nicht Ok');
-INSERT INTO txt VALUES ('E5267', 'English', 'LDAP connection not Ok');
+INSERT INTO txt VALUES ('E5267', 'German',  'LDAP-Verbindung nicht Ok: unbekannter Fehler');
+INSERT INTO txt VALUES ('E5267', 'English', 'LDAP connection not Ok: unknown error');
+INSERT INTO txt VALUES ('E5268', 'German',  'LDAP-Verbindung nicht Ok: Verbindung mit Adresse/Port/TLS nicht m&ouml;glich');
+INSERT INTO txt VALUES ('E5268', 'English', 'LDAP connection not Ok: no connection with address/port/TLS');
+INSERT INTO txt VALUES ('E5269', 'German',  'LDAP-Verbindung nicht Ok: Bindung mit Nutzer/Passwort f&uuml;r Suche nicht m&ouml;glich');
+INSERT INTO txt VALUES ('E5269', 'English', 'LDAP connection not Ok: no binding for search user/password');
+INSERT INTO txt VALUES ('E5270', 'German',  'LDAP-Verbindung nicht Ok: Bindung mit Nutzer/Passwort Schreibender Nutzer nicht m&ouml;glich');
+INSERT INTO txt VALUES ('E5270', 'English', 'LDAP connection not Ok: no binding for write user/password');
 INSERT INTO txt VALUES ('E5271', 'German',  'Keine Gateways zum Hinzuf&uuml;gen gefunden');
 INSERT INTO txt VALUES ('E5271', 'English', 'No remaining gateways found to add');
 INSERT INTO txt VALUES ('E5272', 'German',  'Keine Gateways zum L&ouml;schen gefunden');

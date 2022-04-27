@@ -350,12 +350,34 @@
             LdapGetUpdateParameters ldapParams = new LdapGetUpdateParameters()
             {
                 Address = actLdapConnection.Address,
-                Port = actLdapConnection.Port
+                Port = actLdapConnection.Port,
+                Tls = actLdapConnection.Tls,
+                SearchUser = actLdapConnection.SearchUser,
+                SearchUserPwd = actLdapConnection.SearchUserPwd,
+                WriteUser = actLdapConnection.WriteUser,
+                WriteUserPwd = actLdapConnection.WriteUserPwd
             };
-            RestResponse<bool> middlewareServerResponse = await middlewareClient.TestConnection(ldapParams);
-            if (middlewareServerResponse.StatusCode == HttpStatusCode.OK && middlewareServerResponse.Data == true)
+            RestResponse<int> middlewareServerResponse = await middlewareClient.TestConnection(ldapParams);
+            if (middlewareServerResponse.StatusCode == HttpStatusCode.OK)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("test_connection"), userConfig.GetText("E5266"), false);
+                switch (middlewareServerResponse.Data)
+                {
+                    case 0: 
+                        DisplayMessageInUi!(null, userConfig.GetText("test_connection"), userConfig.GetText("E5266"), false);
+                        break;
+                    case 1: 
+                        DisplayMessageInUi!(null, userConfig.GetText("test_connection"), userConfig.GetText("E5268"), true);
+                        break;
+                    case 2: 
+                        DisplayMessageInUi!(null, userConfig.GetText("test_connection"), userConfig.GetText("E5269"), true);
+                        break;
+                    case 3: 
+                        DisplayMessageInUi!(null, userConfig.GetText("test_connection"), userConfig.GetText("E5270"), true);
+                        break;
+                    default: 
+                        DisplayMessageInUi!(null, userConfig.GetText("test_connection"), userConfig.GetText("E5267"), true);
+                        break;
+                }
             }
             else
             {

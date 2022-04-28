@@ -164,7 +164,6 @@
         {
             try
             {
-                await GetSettings();
                 rulesFound = false;
 
                 deviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
@@ -309,8 +308,6 @@
 
         try
         {
-            await GetSettings();
-
             string query = "";
             Dictionary<String, object> queryVars = new Dictionary<string, object>();
 
@@ -494,18 +491,6 @@
         catch (Exception exception)
         {
             DisplayMessageInUi!(exception, userConfig.GetText("execute_selected"), "", true);
-        }
-    }
-
-    private async Task GetSettings()
-    {
-        try
-        {
-            await userConfig.GetEditableConfig();
-        }
-        catch (Exception exception)
-        {
-            Log.WriteError("Read Config", $"Error reading config value", exception);
         }
     }
 }

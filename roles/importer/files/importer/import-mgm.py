@@ -22,7 +22,7 @@ parser.add_argument('-s', '--ssl', metavar='ssl_verification_mode', default='',
 parser.add_argument('-l', '--limit', metavar='api_limit', default='150',
                     help='The maximal number of returned results per HTTPS Connection; default=150')
 parser.add_argument('-i', '--in_file', metavar='config_file_input',
-                    help='if set, the config will not be fetched from firewall but read from native json config file specified here')
+                    help='if set, the config will not be fetched from firewall but read from native json config file specified here; may also be an url.')
 
 args = parser.parse_args()
 if len(sys.argv) == 1:

@@ -1,7 +1,23 @@
 ---
-- name: make test import
+- name: make test fortinet import
   command: "./fworch-importer-single.pl mgm_name={{ test_fortigate_name }}"
   args:
     chdir: "{{ fworch_home }}/importer"
   become_user: "{{ fworch_user }}"
   become: yes
+
+- name: find management id for checkpoint test
+  postgresql_query:
+    db: fworchdb
+    query: >
+      SELECT mgm_id FROM management WHERE mgm_name='{{ test_checkpoint_name }}';
+  become: yes
+  become_user: postgres
+  register: test_checkpoint_mgm_id
+
+- name: make test checkpoint import
+  command: "python3 import-mgm.py -m{{ test_checkpoint_mgm_id.query_result.0.mgm_id }} -d4 -ihttps://fwodemodata.cactus.de/demo04_cpr8x.json"
+  args:
+    chdir: "{{ fworch_home }}/importer"
+  become: yes
+  become_user: "{{ fworch_user }}"

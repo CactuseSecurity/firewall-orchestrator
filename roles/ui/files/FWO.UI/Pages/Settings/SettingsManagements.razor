@@ -528,7 +528,7 @@
             AutoDiscoveryBase autodiscovery = new AutoDiscoveryBase(superManagement, apiConnection);
             actActions = autodiscovery.ConvertToActions(await autodiscovery.Run());
             int ChangeCounter = actActions.Count();
-            await AddAutoDiscoverLogEntry(0, "Manual Autodiscovery", (ChangeCounter > 0 ? $"Found {ChangeCounter} changes" : "Found no change"), superManagement.Id);
+            await AddAutoDiscoverLogEntry(0, userConfig.GetText("manual_autodiscovery"), (ChangeCounter > 0 ? ChangeCounter + userConfig.GetText("changes_found") : userConfig.GetText("found_no_changes")), superManagement.Id);
             workInProgress = false;
             AutoDiscoverMode = true;
         }
@@ -536,7 +536,7 @@
         {
             workInProgress = false;
             DisplayMessageInUi!(exception, userConfig.GetText("autodiscovery"), "", true);
-            await AddAutoDiscoverLogEntry(1, "Manual Autodiscovery", $"Ran into exception: " + exception.Message, superManagement.Id);
+            await AddAutoDiscoverLogEntry(1, userConfig.GetText("manual_autodiscovery"), userConfig.GetText("ran_into_exception") + exception.Message, superManagement.Id);
         }
     }
 

@@ -206,7 +206,7 @@
             passwordChangeInProgress = true;
             try
             {
-                chgPwErrorMessage = await (new PasswordChanger(middlewareClient)).ChangePassword(oldPassword, newPassword1, newPassword2, userConfig);
+                chgPwErrorMessage = await (new PasswordChanger(middlewareClient)).ChangePassword(oldPassword, newPassword1, newPassword2, userConfig, globalConfig);
                 if (chgPwErrorMessage == "")
                 {
                     showPasswordChangeForm = false;

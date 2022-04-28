@@ -62,7 +62,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
     if full_config == {}: # no changes
         return 0
     else:
-        parse_network.parse_network_objects_to_json(full_config, config2import, current_import_id, debug_level=debug_level)
+        parse_network.parse_network_objects_to_json(full_config, config2import, current_import_id, debug_level=debug_level, mgm_id=mgm_details['id'])
         parse_service.parse_service_objects_to_json(full_config, config2import, current_import_id, debug_level=debug_level)
         if 'users' not in full_config:
             full_config.update({'users': {}})
@@ -88,7 +88,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
             if len(full_config['nat_rulebases'])>0:
                 if len(full_config['nat_rulebases']) != len(rb_range):
                     logger.warning('get_config - found ' + str(len(full_config['nat_rulebases'])) +
-                        ' nat rulebases and ' +  str(len(rb_range)) + ' rulebases')
+                        ' nat rulebases and ' +  str(len(rb_range)) + ' access rulebases')
                 else:
                     rule_num = parse_rule.parse_nat_rulebase_json(
                         full_config['nat_rulebases'][rb_id], target_rulebase, full_config['rulebases'][rb_id]['layername'], 

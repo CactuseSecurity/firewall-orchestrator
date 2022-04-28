@@ -85,6 +85,12 @@ namespace FWO.Config.Api.Data
         [JsonProperty("dailyCheckStartAt"), JsonPropertyName("dailyCheckStartAt")]
         public DateTime DailyCheckStartAt { get; set; } = new DateTime();
 
+        [JsonProperty("maxImportDuration"), JsonPropertyName("maxImportDuration")]
+        public int MaxImportDuration { get; set; } = 4;
+
+        [JsonProperty("maxImportInterval"), JsonPropertyName("maxImportInterval")]
+        public int MaxImportInterval { get; set; } = 12;
+
         public ConfigData(bool editable = false)
         {
             Editable = editable;

@@ -5,8 +5,23 @@ from fwo_log import getFwoLogger
 sys.path.append(importer_base_dir + '/checkpointR8x')
 import json
 import time
-import parse_network, parse_rule, parse_service, parse_user
-import common, getter
+#import parse_network, parse_rule, parse_service, parse_user
+#import common, getter
+import getter
+import fwo_alert, fwo_api
+import ipaddress 
+
+
+def validate_ip_address(address):
+    try:
+        # ipaddress.ip_address(address)
+        ipaddress.ip_network(address)
+        return True
+        # print("IP address {} is valid. The object returned is {}".format(address, ip))
+    except ValueError:
+        return False
+        # print("IP address {} is not valid".format(address)) 
+
 
 nw_obj_table_names = ['hosts', 'networks', 'address-ranges', 'multicast-address-ranges', 'groups', 'gateways-and-servers', 'simple-gateways', 'CpmiGatewayPlain', 'CpmiAnyObject']  
 # now test to also get: CpmiAnyObject, external 
@@ -23,7 +38,7 @@ original_obj_uid = "85c0f50f-6d8a-4528-88ab-5fb11d8fe16c"
 # used for nat only (both svc and nw obj)
 
 
-def get_ip_of_obj(obj):
+def get_ip_of_obj(obj, mgm_id=0):
     if 'ipv4-address' in obj:
         ip_addr = obj['ipv4-address']
     elif 'ipv6-address' in obj:
@@ -36,10 +51,20 @@ def get_ip_of_obj(obj):
         ip_addr = obj['ipv4-address-first'] + '-' + str(obj['ipv4-address-last'])
     elif 'ipv6-address-first' in obj and 'ipv6-address-last' in obj:
         ip_addr = obj['ipv6-address-first'] + '-' + str(obj['ipv6-address-last'])
-    elif 'obj_typ' in obj and obj['obj_typ'] == 'group':
-        ip_addr = ''
     else:
-        ip_addr = '0.0.0.0/0'
+        ip_addr = None
+
+    ## fix malformed ip addresses (should not regularly occur and constitutes a data issue in CP database)
+    if ip_addr is None or ('type' in obj and (obj['type'] == 'address-range' or obj['type'] == 'multicast-address-range')):
+        pass   # ignore None and ranges here
+    elif not validate_ip_address(ip_addr):
+        alerter = fwo_alert.getFwoAlerter()
+        alert_description = "object is not a valid ip address (" + str(ip_addr) + ")"
+        fwo_api.create_data_issue(alerter['fwo_api_base_url'], alerter['jwt'], severity=2, obj_name=obj['name'], object_type=obj['type'], description=alert_description, mgm_id=mgm_id) 
+        alert_description = "object '" + obj['name'] + "' (type=" + obj['type'] + ") is not a valid ip address (" + str(ip_addr) + ")"
+        fwo_api.setAlert(alerter['fwo_api_base_url'], alerter['jwt'], title="import error", severity=2, role='importer', \
+            description=alert_description, source='import', alertCode=17, mgm_id=mgm_id)
+        ip_addr = '0.0.0.0/32'  # setting syntactically correct dummy ip
     return ip_addr
 
 ##################### 2nd-level functions ###################################
@@ -100,7 +125,6 @@ def get_basic_config (config_json, mgm_details, force=False, config_filename=Non
 
         # getting NAT rules - need package name for nat rule retrieval
         # todo: each gateway/layer should have its own package name (pass management details instead of single data?)
-        config_json['nat_rulebases'].append({ "nat_rule_chunks": [] })
         if device['package_name'] != None and device['package_name'] != '':
             show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary,'details-level':details_level, 'package': device['package_name'] }
             if debug_level>3:
@@ -228,52 +252,54 @@ def enrich_config (config, mgm_details, proxy=None, limit=150, details_level='fu
             show_params_host = {'details-level':details_level,'uid':missing_obj}
             logger.debug ( "fetching obj with uid: " + missing_obj)
             obj = getter.cp_api_call(base_url, 'show-object', show_params_host, sid, ssl_verification, proxy)
-            obj = obj['object']
-            if (obj['type'] == 'CpmiAnyObject'):
-                json_obj = {"object_type": "hosts", "object_chunks": [ {
+            if 'object' in obj:
+                obj = obj['object']
+                if (obj['type'] == 'CpmiAnyObject'):
+                    json_obj = {"object_type": "hosts", "object_chunks": [ {
+                            "objects": [ {
+                                'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                                'comments': 'any nw object checkpoint (hard coded)',
+                                'type': 'CpmiAnyObject', 'ipv4-address': '0.0.0.0/0',
+                                } ] } ] }
+                    config['object_tables'].append(json_obj)
+                elif (obj['type'] == 'simple-gateway' or obj['type'] == 'CpmiGatewayPlain' or obj['type'] == 'interop'):
+                    json_obj = {"object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
-                            'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
-                            'comments': 'any nw object checkpoint (hard coded)',
-                            'type': 'CpmiAnyObject', 'ipv4-address': '0.0.0.0/0',
-                            } ] } ] }
-                config['object_tables'].append(json_obj)
-            elif (obj['type'] == 'simple-gateway' or obj['type'] == 'CpmiGatewayPlain' or obj['type'] == 'interop'):
-                json_obj = {"object_type": "hosts", "object_chunks": [ {
-                    "objects": [ {
-                    'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
-                    'comments': obj['comments'], 'type': 'host', 'ipv4-address': get_ip_of_obj(obj),
-                    } ] } ] }
-                config['object_tables'].append(json_obj)
-            elif obj['type'] == 'multicast-address-range':
-                logger.debug("found multicast-address-range: " + obj['name'] + " (uid:" + obj['uid']+ ")")
-                json_obj = {"object_type": "hosts", "object_chunks": [ {
-                    "objects": [ {
-                    'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
-                    'comments': obj['comments'], 'type': 'host', 'ipv4-address': get_ip_of_obj(obj),
-                    } ] } ] }
-                config['object_tables'].append(json_obj)
-            elif (obj['type'] == 'CpmiVsClusterMember' or obj['type'] == 'CpmiVsxClusterMember'):
-                json_obj = {"object_type": "hosts", "object_chunks": [ {
-                    "objects": [ {
-                    'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
-                    'comments': obj['comments'], 'type': 'host', 'ipv4-address': get_ip_of_obj(obj),
-                    } ] } ] }
-                config['object_tables'].append(json_obj)
-                logger.debug ('missing obj: ' + obj['name'] + obj['type'])
-            elif (obj['type'] == 'Global'):
-                json_obj = {"object_type": "hosts", "object_chunks": [ {
-                    "objects": [ {
-                    'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
-                    'comments': obj['comments'], 'type': 'host', 'ipv4-address': '0.0.0.0/0',
-                    } ] } ] }
-                config['object_tables'].append(json_obj)
-                logger.debug ('missing obj: ' + obj['name'] + obj['type'])
-            elif (obj['type'] == 'access-role'):
-                pass # ignorning user objects
+                        'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                        'comments': obj['comments'], 'type': 'host', 'ipv4-address': get_ip_of_obj(obj),
+                        } ] } ] }
+                    config['object_tables'].append(json_obj)
+                elif obj['type'] == 'multicast-address-range':
+                    logger.debug("found multicast-address-range: " + obj['name'] + " (uid:" + obj['uid']+ ")")
+                    json_obj = {"object_type": "hosts", "object_chunks": [ {
+                        "objects": [ {
+                        'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                        'comments': obj['comments'], 'type': 'host', 'ipv4-address': get_ip_of_obj(obj),
+                        } ] } ] }
+                    config['object_tables'].append(json_obj)
+                elif (obj['type'] == 'CpmiVsClusterMember' or obj['type'] == 'CpmiVsxClusterMember'):
+                    json_obj = {"object_type": "hosts", "object_chunks": [ {
+                        "objects": [ {
+                        'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                        'comments': obj['comments'], 'type': 'host', 'ipv4-address': get_ip_of_obj(obj),
+                        } ] } ] }
+                    config['object_tables'].append(json_obj)
+                    logger.debug ('missing obj: ' + obj['name'] + obj['type'])
+                elif (obj['type'] == 'Global'):
+                    json_obj = {"object_type": "hosts", "object_chunks": [ {
+                        "objects": [ {
+                        'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                        'comments': obj['comments'], 'type': 'host', 'ipv4-address': '0.0.0.0/0',
+                        } ] } ] }
+                    config['object_tables'].append(json_obj)
+                    logger.debug ('missing obj: ' + obj['name'] + obj['type'])
+                elif (obj['type'] == 'access-role'):
+                    pass # ignorning user objects
+                else:
+                    logger.warning ( "missing nw obj of unexpected type '" + obj['type'] + "': " + missing_obj )
+                logger.debug ( "missing nw obj: " + missing_obj + " added" )
             else:
-                logger.warning ( "missing nw obj of unexpected type '" + obj['type'] + "': " + missing_obj )
-
-            logger.debug ( "missing nw obj: " + missing_obj + " added" )
+                logger.warning("could not get the missing object with uid=" + missing_obj + " from CP API")
 
         for missing_obj in missing_svc_object_uids:
             show_params_host = {'details-level':details_level,'uid':missing_obj}

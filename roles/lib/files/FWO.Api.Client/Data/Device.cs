@@ -87,13 +87,15 @@ namespace FWO.Api.Data
             }
         }
 
-        public void Sanitize()
+        public bool Sanitize()
         {
-            Name = Sanitizer.SanitizeOpt(Name);
-            LocalRulebase = Sanitizer.SanitizeOpt(LocalRulebase);
-            GlobalRulebase = Sanitizer.SanitizeOpt(GlobalRulebase);
-            Package = Sanitizer.SanitizeOpt(Package);
-            Comment = Sanitizer.SanitizeOpt(Comment);
+            bool shortened = false;
+            Name = Sanitizer.SanitizeOpt(Name, ref shortened);
+            LocalRulebase = Sanitizer.SanitizeOpt(LocalRulebase, ref shortened);
+            GlobalRulebase = Sanitizer.SanitizeOpt(GlobalRulebase, ref shortened);
+            Package = Sanitizer.SanitizeOpt(Package, ref shortened);
+            Comment = Sanitizer.SanitizeOpt(Comment, ref shortened);
+            return shortened;
         }
     }
 

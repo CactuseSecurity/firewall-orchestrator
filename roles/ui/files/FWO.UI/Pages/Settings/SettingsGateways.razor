@@ -287,7 +287,10 @@
     {
         try
         {
-            actDevice.Sanitize();
+            if (actDevice.Sanitize())
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_gateway"), userConfig.GetText("U0001"), true);
+            }
             if (CheckValues())
             {    
                 if (AddMode)

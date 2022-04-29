@@ -96,7 +96,10 @@ Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportD
 
     private async Task Export()
     {
-        reportExportFile.Sanitize();
+        if (reportExportFile.Sanitize())
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("export_report"), userConfig.GetText("U0001"), true);
+        }
         if (ReportToExport != null)
         {
             await Task.Run(async () =>

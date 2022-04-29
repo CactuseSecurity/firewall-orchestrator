@@ -409,7 +409,10 @@
     {
         try
         {
-            actManagement.Sanitize();
+            if (actManagement.Sanitize())
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_management"), userConfig.GetText("U0001"), true);
+            }
             if (CheckValues(actManagement, userConfig.GetText("save_management")))
             {
                 if (AddMode)

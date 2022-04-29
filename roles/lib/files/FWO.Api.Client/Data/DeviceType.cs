@@ -46,9 +46,13 @@ namespace FWO.Api.Data
 
         public static List<int> CheckPointManagers = new List<int>
         {  
-             13, 9   // Check Point MDS R8x and Check Point R8x
+            13, 9   // Check Point MDS R8x and Check Point R8x
         };
 
+        public static List<int> FortiManagers = new List<int>
+        {  
+            12   // FortiManager 5ff
+        };
 
         public DeviceType()
         {}
@@ -69,6 +73,11 @@ namespace FWO.Api.Data
         public bool IsLegacyDevType()
         {
             return LegacyDevTypeList.Contains(Id);
+        }
+
+        public bool CanHaveDomain()
+        {
+            return !FortiManagers.Contains(Id);
         }
 
         public bool CanHaveSupermanager()

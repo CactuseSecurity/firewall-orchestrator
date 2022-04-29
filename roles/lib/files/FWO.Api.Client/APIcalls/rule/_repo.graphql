@@ -89,3 +89,14 @@ mutation updateRuleRuleComment($rule_id: Int!, $new_comment: String!) {
     }
   }
 }
+
+query filterRulesByTenant($importId: bigint) {
+  view_tenant_rules(where: {access_rule: {_eq: true}, rule_last_seen: {_gte: $importId}}, rule_create: {_lte: $importId}) {
+    rule_id
+    rule_src
+    rule_dst
+    rule_create
+    rule_last_seen
+    tenant_id
+  }
+}

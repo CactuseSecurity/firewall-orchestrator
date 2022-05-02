@@ -338,7 +338,10 @@
     {
         try
         {
-            actTenant.Sanitize();
+            if (actTenant.Sanitize())
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_tenant"), userConfig.GetText("U0001"), true);
+            }
             if (actTenant.Name == "")
             {
                 DisplayMessageInUi!(null, userConfig.GetText("save_tenant"), userConfig.GetText("E5234"), true);

@@ -422,7 +422,12 @@
 
     private async Task ExecuteSelected()
     {
-        actComment = Sanitizer.SanitizeMand(actComment);
+        bool shortened = false;
+        actComment = Sanitizer.SanitizeMand(actComment, ref shortened);
+        if(shortened)
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("execute_selected"), userConfig.GetText("U0001"), true);
+        }
         if(userConfig.CommentRequired && actComment == "")
         {
             DisplayMessageInUi!(null, userConfig.GetText("execute_selected"), userConfig.GetText("E4001"), true);

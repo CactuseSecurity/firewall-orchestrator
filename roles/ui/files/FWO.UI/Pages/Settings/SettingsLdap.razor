@@ -394,7 +394,10 @@
     {
         try
         {
-            actLdapConnection.Sanitize();
+            if (actLdapConnection.Sanitize())
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("U0001"), true);
+            }
             if (CheckValues())
             {    
                 if (AddMode)

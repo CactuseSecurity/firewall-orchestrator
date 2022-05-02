@@ -28,9 +28,11 @@
             return string.Join(", ", userNames);
         }
 
-        public void Sanitize()
+        public bool Sanitize()
         {
-            Name = Sanitizer.SanitizeLdapNameMand(Name);
+            bool shortened = false;
+            Name = Sanitizer.SanitizeLdapNameMand(Name, ref shortened);
+            return shortened;
         }
     }
 }

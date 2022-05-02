@@ -192,7 +192,10 @@
             //$report_schedule_active: Boolean!
 
             scheduledReportInEdit.StartTime = actDate.Date.Add(actTime.TimeOfDay);
-            scheduledReportInEdit.Sanitize();
+            if (scheduledReportInEdit.Sanitize())
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_scheduled_report"), userConfig.GetText("U0001"), true);
+            }
             if (checkInput())
             {
                 // Add report schedule to DB
@@ -240,7 +243,10 @@
         try
         {
             scheduledReportInEdit.StartTime = actDate.Date.Add(actTime.TimeOfDay);
-            scheduledReportInEdit.Sanitize();
+            if (scheduledReportInEdit.Sanitize())
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("edit_scheduled_report"), userConfig.GetText("U0001"), true);
+            }
             if (checkInput())
             {
                 var queryVariables = new

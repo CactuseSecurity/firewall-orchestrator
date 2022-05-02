@@ -1094,6 +1094,9 @@ INSERT INTO txt VALUES ('architecture',         'English',  'Firewall Orchestrat
 -- 7000-7999: Monitoring
 
 -- user messages
+INSERT INTO txt VALUES ('U0001', 'German',  'Eingabetext wurde um nicht erlaubte Zeichen gek&uuml;rzt');
+INSERT INTO txt VALUES ('U0001', 'English', 'Input text has been shortened by not allowed characters');
+
 INSERT INTO txt VALUES ('U1002', 'German',  'Sind sie sicher, dass sie folgende Reportvorlage l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U1002', 'English', 'Do you really want to delete report template');
 

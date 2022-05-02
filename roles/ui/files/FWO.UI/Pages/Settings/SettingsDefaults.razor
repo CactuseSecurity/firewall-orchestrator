@@ -34,15 +34,22 @@
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
-        <label for="maxInitFetch" class="col-form-label col-sm-4">@(userConfig.GetText("maxInitialFetchesRightSidebar")):</label>
-        <div class="col-sm-2">
-            <input id="maxInitFetch" type="number" class="form-control form-control-sm w-100" @bind="configData!.MaxInitialFetchesRightSidebar" />
-        </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
         <label for="autoFillRightSidebar" class="col-form-label col-sm-4">@(userConfig.GetText("autoFillRightSidebar")):</label>
         <div class="col-sm-2">
             <input id="autoFillRightSidebar" type="checkbox" class="w-100" @bind="configData!.AutoFillRightSidebar">
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="maxInitFetch" class="col-form-label col-sm-4">@(userConfig.GetText("maxInitialFetchesRightSidebar")):</label>
+        <div class="col-sm-2">
+            @if (configData!.AutoFillRightSidebar)
+            {
+                <input disabled id="maxInitFetch" type="number" class="form-control form-control-sm w-100" @bind="configData!.MaxInitialFetchesRightSidebar" />
+            }
+            else
+            {
+                <input id="maxInitFetch" type="number" class="form-control form-control-sm w-100" @bind="configData!.MaxInitialFetchesRightSidebar" />
+            }
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">

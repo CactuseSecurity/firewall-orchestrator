@@ -2,7 +2,7 @@
 @using System.Linq
 @using System.Net
 @using FWO.Api.Data
-@using FWO.ApiClient
+@using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.Middleware.Client
 @using FWO.Middleware.RequestParameters
@@ -11,7 +11,7 @@
 @page "/settings/tenants"
 @attribute [Authorize(Roles = "admin, auditor")]
 
-@inject APIConnection apiConnection
+@inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 
@@ -311,8 +311,8 @@
             }
             showCleanupButton = (sampleTenants.Count > 0);
 
-            devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.ApiClient.Queries.DeviceQueries.getDeviceDetails);
-            uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.ApiClient.Queries.AuthQueries.getUsers);
+            devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
+            uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
                         
         }
         catch (Exception exception)
@@ -526,7 +526,7 @@
         try
         {
             var Variables = new { tenantId = actTenant.Id, deviceId = deviceId };
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addDeviceToTenant, Variables)).ReturnIds;
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.AuthQueries.addDeviceToTenant, Variables)).ReturnIds;
             if (returnIds != null && returnIds[0].NewId == deviceId)
             {
                 Device newDevice = new Device() { Id = deviceId, Name = devices.Find(x => x.Id == deviceId)?.Name };
@@ -545,7 +545,7 @@
         try
         {
             var Variables = new { tenantId = actTenant.Id, deviceId = deviceId };
-            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.deleteDeviceFromTenant, Variables)).DeletedId;
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.AuthQueries.deleteDeviceFromTenant, Variables)).DeletedId;
             if (delId == deviceId)
             {
                 actTenant.TenantDevices = actTenant.TenantDevices.Where(x => x.VisibleDevice.Id != deviceId).ToArray();

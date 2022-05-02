@@ -1,4 +1,4 @@
-﻿@using FWO.ApiClient
+﻿@using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.Config.Api.Data
 @using FWO.Ui.Services
@@ -6,7 +6,7 @@
 @page "/settings/recertification"
 @attribute [Authorize(Roles = "admin, recertifier, auditor")]
 
-@inject APIConnection apiConnection
+@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 <h3>@(userConfig.GetText("recert_settings"))</h3>

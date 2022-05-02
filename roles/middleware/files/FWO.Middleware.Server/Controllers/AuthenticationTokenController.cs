@@ -1,6 +1,6 @@
 ﻿using FWO.Api.Data;
-using FWO.ApiClient;
-using FWO.ApiClient.Queries;
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Logging;
 using FWO.Middleware.Server;
 using Microsoft.AspNetCore.Mvc;
@@ -13,9 +13,9 @@ namespace FWO.Middleware.Controllers
     {
         private readonly JwtWriter jwtWriter;
         private readonly List<Ldap> ldaps;
-        private readonly APIConnection apiConnection;
+        private readonly ApiConnection apiConnection;
 
-        public AuthenticationTokenController(JwtWriter jwtWriter, List<Ldap> ldaps, APIConnection apiConnection)
+        public AuthenticationTokenController(JwtWriter jwtWriter, List<Ldap> ldaps, ApiConnection apiConnection)
         {
             this.jwtWriter = jwtWriter;
             this.ldaps = ldaps;
@@ -64,10 +64,10 @@ namespace FWO.Middleware.Controllers
     {
         private readonly JwtWriter jwtWriter;
         private readonly List<Ldap> ldaps;
-        private readonly APIConnection apiConnection;
+        private readonly ApiConnection apiConnection;
         private Ldap loggedInLdap = new Ldap();
 
-        public AuthManager(JwtWriter jwtWriter, List<Ldap> ldaps, APIConnection apiConnection)
+        public AuthManager(JwtWriter jwtWriter, List<Ldap> ldaps, ApiConnection apiConnection)
         {
             this.jwtWriter = jwtWriter;
             this.ldaps = ldaps;
@@ -254,7 +254,7 @@ namespace FWO.Middleware.Controllers
                                 viewAllDevices = false,
                                 create = DateTime.Now
                             };
-                            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addTenant, Variables)).ReturnIds;
+                            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.AuthQueries.addTenant, Variables)).ReturnIds;
                             if (returnIds != null)
                             {
                                 tenant.Id = returnIds[0].NewId;

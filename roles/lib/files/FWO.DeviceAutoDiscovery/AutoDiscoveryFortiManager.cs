@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using RestSharp;
 using FWO.Api.Data;
-using FWO.ApiClient;
+using FWO.Api.Client;
 using FWO.Logging;
 using FWO.Rest.Client;
 
@@ -9,7 +9,7 @@ namespace FWO.DeviceAutoDiscovery
 {
     public class AutoDiscoveryFortiManager : AutoDiscoveryBase
     {
-        public AutoDiscoveryFortiManager(Management superManagement, APIConnection apiConn) : base(superManagement, apiConn) { }
+        public AutoDiscoveryFortiManager(Management superManagement, ApiConnection apiConn) : base(superManagement, apiConn) { }
         public override async Task<List<Management>> Run()
         {
             List<Management> discoveredDevices = new List<Management>();

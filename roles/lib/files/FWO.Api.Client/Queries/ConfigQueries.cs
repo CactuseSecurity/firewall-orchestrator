@@ -1,6 +1,6 @@
 ﻿using FWO.Logging;
 
-namespace FWO.ApiClient.Queries
+namespace FWO.Api.Client.Queries
 {
     public class ConfigQueries : Queries
     {

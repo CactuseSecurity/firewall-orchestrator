@@ -52,13 +52,11 @@ namespace FWO.Api.Data
 
         public override bool Equals(object? obj)
         {
-            switch (obj)
+            return obj switch
             {
-                case NetworkUser user:
-                    return Id == user.Id;
-                default:
-                    return base.Equals(obj);
-            }
+                NetworkUser user => Id == user.Id,
+                _ => base.Equals(obj),
+            };
         }
 
         public override int GetHashCode()

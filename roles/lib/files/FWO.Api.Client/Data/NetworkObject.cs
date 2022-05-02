@@ -14,6 +14,9 @@ namespace FWO.Api.Data
         [JsonProperty("obj_ip"), JsonPropertyName("obj_ip")]
         public string IP { get; set; } = "";
 
+        [JsonProperty("obj_ip_end"), JsonPropertyName("obj_ip_end")]
+        public string IpEnd { get; set; } = "";
+
         [JsonProperty("obj_uid"), JsonPropertyName("obj_uid")]
         public string Uid { get; set; } = "";
 
@@ -52,13 +55,11 @@ namespace FWO.Api.Data
 
         public override bool Equals(object? obj)
         {
-            switch (obj)
+            return obj switch
             {
-                case NetworkObject nobj:
-                    return Id == nobj.Id;
-                default:
-                    return base.Equals(obj);
-            }
+                NetworkObject nobj => Id == nobj.Id,
+                _ => base.Equals(obj),
+            };
         }
 
         public override int GetHashCode()

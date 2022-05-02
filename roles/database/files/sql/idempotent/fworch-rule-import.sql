@@ -218,6 +218,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+/*
+
+only works for postgres>10
+
 CREATE OR REPLACE FUNCTION security_relevant_change(record, record, INT, INT, INT, INT) RETURNS BOOLEAN AS $$
 DECLARE
     r_existing ALIAS FOR $1;
@@ -267,7 +271,7 @@ BEGIN
 		);
 END;
 $$ LANGUAGE plpgsql;
-
+*/
 
 ----------------------------------------------------
 -- FUNCTION:   insert_single_rule
@@ -372,11 +376,36 @@ BEGIN
 	END IF;
 
 	IF FOUND THEN  -- rule already exists
-		IF security_relevant_change(r_existing, r_to_import, i_fromzone, i_tozone, i_action_id, i_track_id) THEN
+		-- IF security_relevant_change(r_existing, r_to_import, i_fromzone, i_tozone, i_action_id, i_track_id) THEN
+		IF ( NOT (
+			are_equal(r_existing.rule_uid, r_to_import.rule_uid) AND
+			are_equal(r_existing.rule_ruleid,r_to_import.rule_ruleid) AND
+			are_equal(r_existing.rule_from_zone,i_fromzone) AND
+			are_equal(r_existing.rule_to_zone,i_tozone) AND
+			are_equal(r_existing.rule_disabled, r_to_import.rule_disabled) AND
+			are_equal(r_existing.rule_src, r_to_import.rule_src) AND
+			are_equal(r_existing.rule_dst, r_to_import.rule_dst) AND
+			are_equal(r_existing.rule_svc, r_to_import.rule_svc) AND
+			are_equal(r_existing.rule_src_refs,r_to_import.rule_src_refs) AND
+			are_equal(r_existing.rule_dst_refs, r_to_import.rule_dst_refs) AND
+			are_equal(r_existing.rule_svc_refs, r_to_import.rule_svc_refs) AND
+			are_equal(r_existing.rule_src_neg, r_to_import.rule_src_neg) AND
+			are_equal(r_existing.rule_dst_neg, r_to_import.rule_dst_neg) AND
+			are_equal(r_existing.rule_svc_neg, r_to_import.rule_svc_neg) AND
+			are_equal(r_existing.action_id, i_action_id) AND
+			are_equal(r_existing.track_id, i_track_id) AND
+			are_equal(r_existing.rule_installon, r_to_import.rule_installon) AND
+			are_equal(r_existing.rule_time, r_to_import.rule_time) ))
+		THEN 
 			b_change := TRUE;
 			b_change_sr := TRUE;
 		END IF;
-		IF non_security_relevant_change(r_existing, r_to_import) THEN
+		-- IF non_security_relevant_change(r_existing, r_to_import) THEN
+		IF ( NOT (		--	from here: non-security-relevant changes
+			are_equal(r_existing.rule_name,r_to_import.rule_name) AND 
+			are_equal(r_existing.rule_head_text, r_to_import.rule_head_text) AND
+			are_equal(r_existing.rule_comment, r_to_import.rule_comment) ))
+		THEN
 			b_change := TRUE;
 		END IF;
 		IF (b_change)

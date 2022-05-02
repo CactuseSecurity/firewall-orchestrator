@@ -75,6 +75,7 @@ namespace FWO.Config.File
                 return middlewareServerNativeUri;
             }
         }
+
         private string? middlewareServerUri = null;
         public string MiddlewareServerUri
         {

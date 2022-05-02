@@ -1,9 +1,9 @@
-﻿mutation upsertConfigItem($key: String!, $value: String!, $user: Int!) {
+﻿mutation upsertConfigItem($config_key: String!, $config_value: String!, $config_user: Int!) {
   insert_config(
     objects: {
-      config_key: $key,
-      config_value: $value,
-      config_user: $user
+      config_key: $config_key,
+      config_value: $config_value,
+      config_user: $config_user
     },
     on_conflict: {
       constraint: config_pkey,

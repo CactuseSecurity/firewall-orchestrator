@@ -144,66 +144,53 @@ namespace FWO.Report.Filter.Ast
         private DynGraphqlQuery ExtractIpFilter(DynGraphqlQuery query, string location, string locationTable)
         {
             string filterIP = SanitizeIp(Value.Text);
-            (string firstIp, string lastIp) = GetFirstAndLastIp(filterIP);
-            string ipFilterString;
-
-            if (firstIp == lastIp) // optimization, just need a single comparison if searching for single ip
-            {
-                string QueryVarName = $"{location}Ip" + query.parameterCounter++;
-                query.QueryVariables[QueryVarName] = firstIp;
-                query.QueryParameters.Add($"${QueryVarName}: cidr! ");
-                // checking if single filter ip is part of a cidr subnet (or is a direct match for a single ip)
-                ipFilterString = $@" _and: 
-                                        [ 
-                                            {{ obj_ip: {{ _gte: ${QueryVarName} }} }}
-                                            {{ obj_ip: {{ _lte: ${QueryVarName} }} }}
-                                        ]";
-            }
-            else // ip filter is a subnet with /xy
-            {
-                string QueryVarName0 = $"{location}IpNet" + query.parameterCounter;
-                string QueryVarName1 = $"{location}IpLow" + query.parameterCounter;
-                string QueryVarName2 = $"{location}IpHigh" + query.parameterCounter++;
-                query.QueryVariables[QueryVarName0] = filterIP;
-                query.QueryVariables[QueryVarName1] = firstIp;
-                query.QueryVariables[QueryVarName2] = lastIp;
-                query.QueryParameters.Add($"${QueryVarName0}: cidr! ");
-                query.QueryParameters.Add($"${QueryVarName1}: cidr! ");
-                query.QueryParameters.Add($"${QueryVarName2}: cidr! ");
-                // covering various cases: 
+            (string firstFilterIp, string lastFilterIp) = GetFirstAndLastIp(filterIP);
+            string QueryVarNameFirst1 = $"{location}IpLow" + query.parameterCounter;
+            string QueryVarNameLast2 = $"{location}IpHigh" + query.parameterCounter++;
+            query.QueryVariables[QueryVarNameFirst1] = firstFilterIp;
+            query.QueryVariables[QueryVarNameLast2] = lastFilterIp;
+            query.QueryParameters.Add($"${QueryVarNameFirst1}: cidr! ");
+            query.QueryParameters.Add($"${QueryVarNameLast2}: cidr! ");
+            // covering the following cases: 
                 // 1 - current ip is fully contained in filter ip range
-                // 2 - current ip overlaps with lower boundary of filter ip range
-                // 3 - current ip overlaps with upper boundary of filter ip range
-                // 4 - current ip fully contains filter ip range - does not work
-                ipFilterString =
-                     $@" _or: [
-                            {{ obj_ip: {{ _eq: ${QueryVarName0} }} }}
+                // 2 - current ip fully contains filter ip range - does not work
+                // 3 - current ip overlaps with lower boundary of filter ip range
+                // 4 - current ip overlaps with upper boundary of filter ip range
+            // TODO: might simply set all header IP addresses to 0.0.0.0/32 instead of 0.0.0.0/0 to filter them out
+            string ipFilterString =
+                    $@" _or: [
                             {{ _and: 
                                     [ 
-                                        {{ obj_ip: {{ _gte: ${QueryVarName1} }} }}
-                                        {{ obj_ip: {{ _lte: ${QueryVarName2} }} }}
+                                        {{ obj_ip: {{ _gte: ${QueryVarNameFirst1} }} }}
+                                        {{ obj_ip: {{ _lte: ${QueryVarNameLast2} }} }}
                                     ]
                             }}
                             {{ _and: 
                                     [ 
-                                        {{ obj_ip: {{ _lte: ${QueryVarName1} }} }}
-                                        {{ obj_ip: {{ _gte: ${QueryVarName1} }} }}
+                                        {{ obj_ip: {{ _lte: ${QueryVarNameFirst1} }} }}
+                                        {{ obj_ip: {{ _gte: ${QueryVarNameFirst1} }} }}
                                     ]
                             }} 
                             {{ _and: 
                                     [ 
-                                        {{ obj_ip: {{ _lte: ${QueryVarName2} }} }}
-                                        {{ obj_ip: {{ _gte: ${QueryVarName2} }} }}
+                                        {{ obj_ip: {{ _lte: ${QueryVarNameLast2} }} }}
+                                        {{ obj_ip: {{ _gte: ${QueryVarNameLast2} }} }}
                                     ]
                             }}
                             {{ _and: 
                                     [ 
-                                        {{ obj_ip: {{ _lte: ${QueryVarName1} }} }}
-                                        {{ obj_ip: {{ _gte: ${QueryVarName2} }} }}
+                                        {{ obj_ip: {{ _lte: ${QueryVarNameFirst1} }} }}
+                                        {{ obj_ip: {{ _gte: ${QueryVarNameLast2} }} }}
                                     ]
                             }}
-                     ]";
-            }
+                            {{
+                            _and:
+                            [
+                                {{ network_object_limits: {{ first_ip: {{ _lte: ${QueryVarNameFirst1} }} }} }}
+                                {{ network_object_limits: {{ last_ip: {{ _gte: ${QueryVarNameLast2} }} }} }}
+                            ]
+                        }}
+                    ]";
             query.ruleWhereStatement +=
                 $@" {locationTable}: 
                         {{ object: 

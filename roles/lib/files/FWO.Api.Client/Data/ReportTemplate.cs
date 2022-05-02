@@ -38,10 +38,12 @@ namespace FWO.Api.Data
             ReportParams.TimeFilter = timeFilter;
         }
 
-        public void Sanitize()
+        public bool Sanitize()
         {
-            Name = Sanitizer.SanitizeMand(Name);
-            Comment = Sanitizer.SanitizeMand(Comment);
+            bool shortened = false;
+            Name = Sanitizer.SanitizeMand(Name, ref shortened);
+            Comment = Sanitizer.SanitizeMand(Comment, ref shortened);
+            return shortened;
         }
     }
 

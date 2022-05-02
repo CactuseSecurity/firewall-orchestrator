@@ -149,12 +149,15 @@
                         </div>
                     </div>
                 }
-                <div class="form-group row">
-                    <label for="managementConfigPath" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("config_path")):</label>
-                    <div class="col-sm-8">
-                        <input id="managementConfigPath" type="text" class="form-control form-control-sm" @bind="actManagement.ConfigPath" />
+                @if (actManagement.DeviceType.CanHaveDomain())
+                {
+                    <div class="form-group row">
+                        <label for="managementConfigPath" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("config_path")):</label>
+                        <div class="col-sm-8">
+                            <input id="managementConfigPath" type="text" class="form-control form-control-sm" @bind="actManagement.ConfigPath" />
+                        </div>
                     </div>
-                </div>
+                }
                 @if (actManagement.DeviceType.CanHaveSupermanager())
                 {
                     <div class="form-group row">
@@ -257,7 +260,7 @@
     </Footer>
 </PopUp>
 
-<AutoDiscovery Actions="actActions" @bind-Display="AutoDiscoverMode" Closing="async () => {AutoDiscoverMode = false; await Refresh();}"/>
+<AutoDiscovery @ref="autoDiscovery" Actions="actActions" @bind-Display="AutoDiscoverMode" Closing="async () => {AutoDiscoverMode = false; await Refresh();}"/>
 
 <PopUp Title="@(userConfig.GetText("in_progress"))" Small="true" Show="@workInProgress">
     <Body>
@@ -295,6 +298,8 @@
     private Management newManagement = new Management();
     private Management actManagement = new Management();
     private Management actSuperManagement = new Management();
+
+    private AutoDiscovery? autoDiscovery;
 
     private string deleteMessage = "";
     private string cleanupMessage = "";
@@ -404,7 +409,10 @@
     {
         try
         {
-            actManagement.Sanitize();
+            if (actManagement.Sanitize())
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_management"), userConfig.GetText("U0001"), true);
+            }
             if (CheckValues(actManagement, userConfig.GetText("save_management")))
             {
                 if (AddMode)
@@ -523,10 +531,10 @@
         {
             workInProgress = true;
             StateHasChanged();
-            AutoDiscoveryBase autodiscovery = new AutoDiscoveryBase(superManagement, apiConnection);
-            actActions = autodiscovery.ConvertToActions(await autodiscovery.Run());
+            AutoDiscoveryBase actAutodiscovery = new AutoDiscoveryBase(superManagement, apiConnection);
+            actActions = actAutodiscovery.ConvertToActions(await actAutodiscovery.Run());
             int ChangeCounter = actActions.Count();
-            await AddAutoDiscoverLogEntry(0, "Manual Autodiscovery", (ChangeCounter > 0 ? $"Found {ChangeCounter} changes" : "Found no change"), superManagement.Id);
+            await AddAutoDiscoverLogEntry(0, userConfig.GetText("manual_autodiscovery"), (ChangeCounter > 0 ? ChangeCounter + userConfig.GetText("changes_found") : userConfig.GetText("found_no_changes")), superManagement.Id);
             workInProgress = false;
             AutoDiscoverMode = true;
         }
@@ -534,7 +542,7 @@
         {
             workInProgress = false;
             DisplayMessageInUi!(exception, userConfig.GetText("autodiscovery"), "", true);
-            await AddAutoDiscoverLogEntry(1, "Manual Autodiscovery", $"Ran into exception: " + exception.Message, superManagement.Id);
+            await AddAutoDiscoverLogEntry(1, userConfig.GetText("manual_autodiscovery"), userConfig.GetText("ran_into_exception") + exception.Message, superManagement.Id);
         }
     }
 

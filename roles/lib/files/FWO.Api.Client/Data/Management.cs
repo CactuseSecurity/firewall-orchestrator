@@ -160,16 +160,18 @@ namespace FWO.Api.Data
             }
         }
 
-        public void Sanitize()
+        public bool Sanitize()
         {
-            Name = Sanitizer.SanitizeMand(Name);
-            Hostname = Sanitizer.SanitizeMand(Hostname);
-            ImportUser = Sanitizer.SanitizeOpt(ImportUser);
-            ConfigPath = Sanitizer.SanitizeMand(ConfigPath);
-            ImporterHostname = Sanitizer.SanitizeMand(ImporterHostname);
-            Comment = Sanitizer.SanitizeOpt(Comment);
-            PublicKey = Sanitizer.SanitizeKeyOpt(PublicKey);
-            Secret = (DeviceType.IsLegacyDevType() ? Sanitizer.SanitizeKeyMand(Secret) : Sanitizer.SanitizePasswMand(Secret));
+            bool shortened = false;
+            Name = Sanitizer.SanitizeMand(Name, ref shortened);
+            Hostname = Sanitizer.SanitizeMand(Hostname, ref shortened);
+            ImportUser = Sanitizer.SanitizeOpt(ImportUser, ref shortened);
+            ConfigPath = Sanitizer.SanitizeMand(ConfigPath, ref shortened);
+            ImporterHostname = Sanitizer.SanitizeMand(ImporterHostname, ref shortened);
+            Comment = Sanitizer.SanitizeOpt(Comment, ref shortened);
+            PublicKey = Sanitizer.SanitizeKeyOpt(PublicKey, ref shortened);
+            Secret = (DeviceType.IsLegacyDevType() ? Sanitizer.SanitizeKeyMand(Secret, ref shortened) : Sanitizer.SanitizePasswMand(Secret, ref shortened));
+            return shortened;
         }
     }
 

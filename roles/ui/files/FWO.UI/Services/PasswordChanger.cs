@@ -18,11 +18,11 @@ namespace FWO.Ui.Services
             middlewareClient = MiddlewareClient;
         }
 
-        public async Task<string> ChangePassword(string oldPassword, string newPassword1, string newPassword2, UserConfig userConfig)
+        public async Task<string> ChangePassword(string oldPassword, string newPassword1, string newPassword2, UserConfig userConfig, GlobalConfig globalConfig)
         {
             try
             {
-                if(doChecks(oldPassword, newPassword1, newPassword2, userConfig))
+                if(doChecks(oldPassword, newPassword1, newPassword2, userConfig, globalConfig))
                 {
                     // Ldap call
                     UserChangePasswordParameters parameters = new UserChangePasswordParameters { LdapId = userConfig.User.LdapConnection.Id, NewPassword = newPassword1, OldPassword = oldPassword, UserId = userConfig.User.DbId };
@@ -44,7 +44,7 @@ namespace FWO.Ui.Services
             return errorMsg;
         }
 
-        private bool doChecks(string oldPassword, string newPassword1, string newPassword2, UserConfig userConfig)
+        private bool doChecks(string oldPassword, string newPassword1, string newPassword2, UserConfig userConfig, GlobalConfig globalConfig)
         {
             if(oldPassword == "")
             {
@@ -66,7 +66,7 @@ namespace FWO.Ui.Services
                 errorMsg = userConfig.GetText("E5404");
                 return false;
             }
-            else if(!PasswordPolicy.CheckPolicy(newPassword1, userConfig, out errorMsg))
+            else if(!PasswordPolicy.CheckPolicy(newPassword1, globalConfig, userConfig, out errorMsg))
             {
                 return false;
             }

@@ -1,0 +1,18 @@
+﻿mutation upsertConfig($key: String!, $value: String!, $user: Int!) {
+  insert_config(
+    objects: [
+    ] {
+      config_key: $key,
+      config_value: $value,
+      config_user: $user
+    },
+    on_conflict: {
+      constraint: config_pkey,
+      update_columns: [config_value]
+    }
+  ) {
+    returning {
+      id: config_key
+    }
+  }
+}

@@ -4,77 +4,86 @@ using FWO.Config.Api.Data;
 using FWO.ApiClient;
 using FWO.Api.Data;
 using FWO.ApiClient.Queries;
+using System.Reflection;
+using System.Text.Json.Serialization;
 
 namespace FWO.Config.Api
 {
     /// <summary>
     /// Collection of all config data for the current user
     /// </summary>
-    public class UserConfig
+    public class UserConfig : Config
     {
         private readonly GlobalConfig globalConfig;
 
-        private Dictionary<string, string> userConfigItems = new Dictionary<string, string>();
-        private Dictionary<string, string> defaultConfigItems = new Dictionary<string, string>();
-
-        public Dictionary<string, string> Translate {get; set; }
+        public Dictionary<string, string> Translate { get; set; }
 
         public UiUser User { private set; get; }
 
-        public event Func<UserConfig, Task>? OnChange;
-
-        /// <summary>
-        /// create a config collection (used centrally once in a UI server for all users
-        /// </summary>
-        /// 
-        public UserConfig(GlobalConfig globalConfigIn)
+        public static async Task<UserConfig> ConstructAsync(GlobalConfig globalConfig, APIConnection apiConnection, int userId)
         {
-            Translate = globalConfigIn.langDict[globalConfigIn.defaultLanguage];
-            globalConfig = globalConfigIn;
+            UiUser[] users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDbId, new { userId = userId });
+            UiUser? user = users.FirstOrDefault();
+            if (user == null)
+            {
+                Log.WriteError("Load user config", $"User with id {userId} could not be found in database.");
+                throw new Exception();
+            }
+            return new UserConfig(globalConfig, apiConnection, user);
+        }
+
+        public UserConfig(GlobalConfig globalConfig, APIConnection apiConnection, UiUser user) : base(apiConnection, user.DbId)
+        {
+            User = user;
+            Translate = globalConfig.langDict[user.Language!];
+            this.globalConfig = globalConfig;
+            globalConfig.OnChange += GlobalConfigOnChange;
+        }
+
+        public UserConfig(GlobalConfig globalConfig) : base()
+        {
             User = new UiUser();
+            Translate = globalConfig.langDict[globalConfig.DefaultLanguage];
+            this.globalConfig = globalConfig;
+            globalConfig.OnChange += GlobalConfigOnChange;
+        }
+
+        private void GlobalConfigOnChange(Config config, ConfigItem[] changedItems)
+        {
+            // Get properties that belong to the user config 
+            IEnumerable<PropertyInfo> properties = GetType().GetProperties()
+                .Where(prop => prop.CustomAttributes.Any(attr => attr.GetType() == typeof(UserConfigDataAttribute)));
+
+            // Exclude all properties from update that belong to the user config
+            ConfigItem[] relevantChangedItems = changedItems.Where(configItem =>
+                !properties.Any(prop => ((JsonPropertyNameAttribute)prop.GetCustomAttribute(typeof(JsonPropertyNameAttribute))!).Name == configItem.Key)).ToArray();
+
+            Update(relevantChangedItems);
+            InvokeOnChange(this, changedItems);
         }
 
         public async Task SetUserInformation(string userDn, APIConnection apiConnection)
         {
+            GlobalConfigOnChange(globalConfig, globalConfig.RawConfigItems);
             Log.WriteDebug("Get User Data", $"Get user data from user with DN: \"{userDn}\"");
             UiUser[]? users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = userDn });
             if (users.Count() > 0)
                 User = users[0];
+            await SetUserId(apiConnection, User.DbId);
 
-            defaultConfigItems = await GetConfigItems(0, apiConnection);
-            userConfigItems = await GetConfigItems(User.DbId, apiConnection);
-            
-            if(User.Language == null)
+            if (User.Language == null)
             {
-                User.Language = GetConfigValue(GlobalConfig.kDefaultLanguage);
+                User.Language = DefaultLanguage;
             }
             await ChangeLanguage(User.Language, apiConnection);
-        }
-
-        public async Task ReloadDefaults(APIConnection apiConnection)
-        {
-            defaultConfigItems = await GetConfigItems(0, apiConnection);
-        }
-
-        private async Task<Dictionary<string, string>> GetConfigItems(int userId, APIConnection apiConnection)
-        {
-            ConfigItem[] apiConfItems = await apiConnection.SendQueryAsync<ConfigItem[]>(ConfigQueries.getConfigItemsByUser, new { user = userId });
-            Dictionary<string, string> result = new Dictionary<string, string>();
-            foreach (ConfigItem confItem in apiConfItems)
-            {
-                result.Add(confItem.Key, (confItem.Value != null ? confItem.Value : ""));
-            }
-
-            return result;
         }
 
         public async Task ChangeLanguage(string languageName, APIConnection apiConnection)
         {
             await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.updateUserLanguage, new { id = User.DbId, language = languageName });
-
             Translate = globalConfig.langDict[languageName];
-            if (OnChange != null)
-                await OnChange.Invoke(this);
+            User.Language = languageName;
+            InvokeOnChange(this, null);
         }
 
         public string GetUserLanguage()
@@ -84,8 +93,8 @@ namespace FWO.Config.Api
 
         public void SetLanguage(string languageName)
         {
-            User = new UiUser(){Language = globalConfig.defaultLanguage};
-            if(languageName != null && languageName != "")
+            User = new UiUser() { Language = globalConfig.DefaultLanguage };
+            if (languageName != null && languageName != "")
             {
                 User.Language = languageName;
             }
@@ -95,16 +104,16 @@ namespace FWO.Config.Api
             }
         }
 
-        public string GetText(string key)
+        public override string GetText(string key)
         {
-            if(Translate.ContainsKey(key))
+            if (Translate.ContainsKey(key))
             {
                 return Convert(Translate[key]);
             }
-            else 
+            else
             {
-                string defaultLanguage = GetConfigValue(GlobalConfig.kDefaultLanguage);
-                if(defaultLanguage == "")
+                string defaultLanguage = globalConfig.DefaultLanguage;
+                if (defaultLanguage == "")
                 {
                     defaultLanguage = GlobalConfig.kEnglish;
                 }
@@ -128,7 +137,7 @@ namespace FWO.Config.Api
             string plainText = System.Web.HttpUtility.HtmlDecode(rawText);
 
             // Heuristic to add language parameter to internal links
-            if(User != null && User.Language != null)
+            if (User != null && User.Language != null)
             {
                 string startLink = "<a href=\"/";
                 string insertString = $"/?lang={User.Language}";
@@ -137,10 +146,10 @@ namespace FWO.Config.Api
                 int index = 0;
                 bool cont = true;
 
-                while(cont)
+                while (cont)
                 {
                     begin = plainText.IndexOf(startLink, index);
-                    if(begin > 0)
+                    if (begin > 0)
                     {
                         end = plainText.IndexOf("\"", begin + startLink.Length);
                         if (end > 0)
@@ -169,51 +178,13 @@ namespace FWO.Config.Api
             Match m = Regex.Match(key, pattern);
             if (m.Success)
             {
-                string msg = GetText(key.Substring(0,5));
+                string msg = GetText(key.Substring(0, 5));
                 if (msg != "(undefined text)")
                 {
                     text = msg;
                 }
             }
             return text;
-        }
-
-        public string GetConfigValue(string key)
-        {
-            string settingsValue = "";
-            if (userConfigItems.ContainsKey(key))
-            {
-                settingsValue = userConfigItems[key];
-            }
-            else if (defaultConfigItems.ContainsKey(key))
-            {
-                settingsValue = defaultConfigItems[key];
-            }
-            return settingsValue;
-        }
-
-        public async Task ChangeConfigValue(string key, string value, APIConnection apiConnection)
-        {
-            var apiVariables = new { key, value, user = User.DbId };
-
-            try
-            {
-                if (userConfigItems.ContainsKey(key))
-                {
-                    await apiConnection.SendQueryAsync<object>(ConfigQueries.updateConfigItem, apiVariables);
-                    userConfigItems[key] = value;
-                }
-                else
-                {
-                    await apiConnection.SendQueryAsync<object>(ConfigQueries.addConfigItem, apiVariables);
-                    userConfigItems.Add(key, value);
-                }
-            }
-            catch (Exception exception)
-            {
-                Log.WriteError("Write Config", $"Could not write key: {key}, user: {User.Dn}, value: {value} to config: ", exception);
-                throw;
-            }
         }
     }
 }

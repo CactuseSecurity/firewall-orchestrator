@@ -13,10 +13,8 @@ namespace FWO.Middleware.Server
     public class DailyCheckScheduler
     {
         private readonly APIConnection apiConnection;
-        private ConfigDbAccess config;
+        private GlobalConfig globalConfig;
         private int DailyCheckSleepTime = 86400000; // 24 hours in milliseconds
-        private string DailyCheckStartAt = DateTime.Now.TimeOfDay.ToString();
-        private readonly ApiSubscription<List<ConfigItem>> configChangeSubscription;
 
         private System.Timers.Timer DailyCheckScheduleTimer = new();
         private System.Timers.Timer DailyCheckTimer = new();
@@ -25,42 +23,42 @@ namespace FWO.Middleware.Server
 
         public static async Task<DailyCheckScheduler> CreateAsync(APIConnection apiConnection)
         {
-            ConfigDbAccess config = await ConfigDbAccess.ConstructAsync(apiConnection);
+            GlobalConfig config = await GlobalConfig.ConstructAsync(apiConnection, true);
             return new DailyCheckScheduler(apiConnection, config);
         }
 
-        private DailyCheckScheduler(APIConnection apiConnection, ConfigDbAccess config)
+        private DailyCheckScheduler(APIConnection apiConnection, GlobalConfig globalConfig)
         {
             this.apiConnection = apiConnection;
-            this.config = config;
-    
-            try
-            {
-                DailyCheckStartAt = config.Get<string>(GlobalConfig.kDailyCheckStartAt);
-            }
-            catch (KeyNotFoundException) {}
-            
-            configChangeSubscription = apiConnection.GetSubscription<List<ConfigItem>>(ApiExceptionHandler, OnConfigUpdate, ConfigQueries.subscribeDailyCheckConfigChanges);
+            this.globalConfig = globalConfig;
+            globalConfig.OnChange += GlobalConfig_OnChange;
 
+            startDailyCheckScheduleTimer();
+        }
+
+        private void GlobalConfig_OnChange(Config.Api.Config globalConfig, ConfigItem[] _)
+        {
+            DailyCheckTimer.Interval = DailyCheckSleepTime;
+            DailyCheckScheduleTimer.Stop();
             startDailyCheckScheduleTimer();
         }
 
         public void startDailyCheckScheduleTimer()
         {
-            DateTime startTime = DateTime.Now;
+            DateTime? startTime = null;
             try
             {
-                startTime = Convert.ToDateTime(DailyCheckStartAt);
+                startTime = DateTime.Now.Date.Add(globalConfig.DailyCheckStartAt.TimeOfDay);
                 if(startTime < DateTime.Now)
                 {
-                    startTime = startTime.AddDays(1);
+                    startTime = ((DateTime)startTime).AddDays(1);
                 }
             }
             catch (Exception exception)
             {
                 Log.WriteError("DailyCheck scheduler", "Could not calculate start time.", exception);
             }
-            TimeSpan interval = startTime - DateTime.Now;
+            TimeSpan interval = (startTime ?? DateTime.Now.AddMilliseconds(1)) - DateTime.Now;
         
             DailyCheckScheduleTimer = new();
             DailyCheckScheduleTimer.Elapsed += DailyCheck;
@@ -82,25 +80,6 @@ namespace FWO.Middleware.Server
             Log.WriteDebug("DailyCheck scheduler", "DailyCheckTimer started.");
         }
 
-        private void OnConfigUpdate(List<ConfigItem> configItems)
-        {
-            foreach (ConfigItem configItem in configItems)
-            {
-                if(configItem.Key == GlobalConfig.kDailyCheckStartAt && configItem.Value != null && configItem.Value != "")
-                {
-                    DailyCheckStartAt = configItem.Value;
-                }
-            }
-            DailyCheckTimer.Interval = DailyCheckSleepTime;
-            DailyCheckScheduleTimer.Stop();
-            startDailyCheckScheduleTimer();
-        }
-
-        private void ApiExceptionHandler(Exception exception)
-        {
-            Log.WriteError("DailyCheck scheduler", "Api subscription lead to exception. Retry subscription.", exception);
-        }
-
         private async void DailyCheck(object? _, ElapsedEventArgs __)
         {
             try
@@ -112,8 +91,8 @@ namespace FWO.Middleware.Server
             catch(Exception exc)
             {
                 Log.WriteError("DailyCheck", $"Ran into exception: ", exc);
-                await AddDailyCheckLogEntry(2, "Scheduled Daily Check", "Ran into exception: " + exc.Message);
-                await setAlert(GlobalConfig.kDailyCheck, AlertCode.DailyCheckError, "Daily Check", "Ran into exception: " + exc.Message);
+                await AddDailyCheckLogEntry(2, globalConfig.GetText("daily_checks"), globalConfig.GetText("ran_into_exception") + exc.Message);
+                await setAlert(GlobalConfig.kDailyCheck, AlertCode.DailyCheckError, globalConfig.GetText("daily_checks"), globalConfig.GetText("ran_into_exception") + exc.Message);
             }
         }
 
@@ -169,13 +148,13 @@ namespace FWO.Middleware.Server
             string description = "";
             if(sampleManagementExisting || sampleUserExisting || sampleTenantExisting || sampleGroupExisting)
             {
-                description = $"Sample data found in: {(sampleManagementExisting ? "Managements" : "")}"+
-                                                        $"{(sampleUserExisting ? " Users" : "")}"+
-                                                        $"{(sampleTenantExisting ? " Tenants" : "")}"+
-                                                        $"{(sampleGroupExisting ? " Groups" : "")}";
-                await setAlert(GlobalConfig.kDailyCheck, AlertCode.SampleDataExisting, "Sample Data", description);
+                description = globalConfig.GetText("sample_data_found_in") + (sampleManagementExisting ? globalConfig.GetText("managements") + " " : "") +
+                                                        (sampleUserExisting ? globalConfig.GetText("users") + " " : "") +
+                                                        (sampleTenantExisting ? globalConfig.GetText("tenants") + " " : "") +
+                                                        (sampleGroupExisting ? globalConfig.GetText("groups") : "");
+                await setAlert(GlobalConfig.kDailyCheck, AlertCode.SampleDataExisting, globalConfig.GetText("sample_data"), description);
             }
-            await AddDailyCheckLogEntry((description != "" ? 1 : 0), "Scheduled Daily Sample Data Check", (description != "" ? description : "no sample data found"));
+            await AddDailyCheckLogEntry((description != "" ? 1 : 0), globalConfig.GetText("daily_sample_data_check"), (description != "" ? description : globalConfig.GetText("no_sample_data_found")));
         }
 
         private async Task CheckImports()
@@ -187,27 +166,27 @@ namespace FWO.Middleware.Server
             {
                 if (imp.LastIncompleteImport != null && imp.LastIncompleteImport.Length > 0) // import running
                 {
-                    if (imp.LastIncompleteImport[0].StartTime < DateTime.Now.AddHours(-4))  // too long
+                    if (imp.LastIncompleteImport[0].StartTime < DateTime.Now.AddHours(-globalConfig.MaxImportDuration))  // too long
                     {
                         jsonData = imp.LastIncompleteImport;
-                        await setAlert(GlobalConfig.kDailyCheck, AlertCode.ImportRunningTooLong, "Import", "Import running too long", imp.MgmId, jsonData);
+                        await setAlert(GlobalConfig.kDailyCheck, AlertCode.ImportRunningTooLong, globalConfig.GetText("import"), globalConfig.GetText("E7011"), imp.MgmId, jsonData);
                         importIssues++;
                     }
                 }
                 else if (imp.LastImport == null || imp.LastImport.Length == 0) // no import at all
                 {
                     jsonData = imp;
-                    await setAlert(GlobalConfig.kDailyCheck, AlertCode.NoImport, "Import", "No Import for active management", imp.MgmId, jsonData);
+                    await setAlert(GlobalConfig.kDailyCheck, AlertCode.NoImport, globalConfig.GetText("import"), globalConfig.GetText("E7012"), imp.MgmId, jsonData);
                     importIssues++;
                 }
-                else if (imp.LastSuccessfulImport != null && imp.LastSuccessfulImport.Length > 0 && imp.LastSuccessfulImport[0].StartTime < DateTime.Now.AddHours(-12)) // too long ago
+                else if (imp.LastImportAttempt != null && imp.LastImportAttempt < DateTime.Now.AddHours(-globalConfig.MaxImportInterval)) // too long ago (not working for legacy devices as LastImportAttempt is not written)
                 {
                     jsonData = imp;
-                    await setAlert(GlobalConfig.kDailyCheck, AlertCode.SuccessfulImportOverdue, "Import", "Last successful import too long ago", imp.MgmId, jsonData);
+                    await setAlert(GlobalConfig.kDailyCheck, AlertCode.SuccessfulImportOverdue, globalConfig.GetText("import"), globalConfig.GetText("E7013"), imp.MgmId, jsonData);
                     importIssues++;
                 }
             }
-            await AddDailyCheckLogEntry((importIssues != 0 ? 1 : 0), "Scheduled Daily Importer Check", (importIssues != 0 ? $"found {importIssues} import issues" : "no import issues found"));
+            await AddDailyCheckLogEntry((importIssues != 0 ? 1 : 0), globalConfig.GetText("daily_importer_check"), (importIssues != 0 ? importIssues + globalConfig.GetText("import_issues_found") : globalConfig.GetText("no_import_issues_found")));
         }
 
         public async Task setAlert(string source, AlertCode alertCode, string title, string description, int? mgmtId = null, object? JsonData = null, int? devId = null)

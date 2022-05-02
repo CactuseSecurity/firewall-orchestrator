@@ -43,14 +43,14 @@
   when: ansible_facts['distribution'] == "RedHat"
   become: yes
 
-- name: create db log file for {{ product_name }} - owner postgres
-  file:
-    path: "/var/log/{{ product_name }}/database.log"
-    state: touch
-    owner: postgres
-    group: adm
-    mode: "0640"
-  become: yes
+# - name: create db log file for {{ product_name }} - owner postgres
+#   file:
+#     path: "/var/log/{{ product_name }}/database.log"
+#     state: touch
+#     owner: postgres
+#     group: adm
+#     mode: "0640"
+#   become: yes
 
 - name: edit rsyslog to include fworch file logging
   blockinfile:

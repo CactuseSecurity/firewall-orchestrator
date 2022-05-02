@@ -1,7 +1,7 @@
 ---
 # this script will uninstall all fworch components from all hosts in the chosen inventory
 # call with:
-# ansible-playbook/ scripts/uninstall-fworch.yml -K [-e "wipe_packages=yes"]
+# sudo ansible-playbook/ scripts/uninstall-fworch.yml -K [-e "wipe_packages=yes"]
 # parameters:
 # wipe_packages=yes    removes all packages potentially installed during fworch installation
 #                      NB: this might break other applications running on the same system

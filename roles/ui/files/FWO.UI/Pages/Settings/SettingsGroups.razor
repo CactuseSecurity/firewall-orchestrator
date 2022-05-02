@@ -386,7 +386,12 @@
         EditGroupMode = false;
         try
         {
-            newGroupName = Sanitizer.SanitizeMand(newGroupName);
+            bool shortened = false;
+            newGroupName = Sanitizer.SanitizeMand(newGroupName, ref shortened);
+            if(shortened)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_group"), userConfig.GetText("U0001"), true);
+            }
             if (CheckValues())
             {
                 if (AddGroupMode)

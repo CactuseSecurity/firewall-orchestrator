@@ -35,9 +35,11 @@ namespace FWO.Api.Data
         [JsonProperty("report_schedule_counter"), JsonPropertyName("report_schedule_counter")]
         public int Counter { get; set; }
 
-        public void Sanitize()
+        public bool Sanitize()
         {
-            Name = Sanitizer.SanitizeMand(Name);
+            bool shortened = false;
+            Name = Sanitizer.SanitizeMand(Name, ref shortened);
+            return shortened;
         }
     }
 

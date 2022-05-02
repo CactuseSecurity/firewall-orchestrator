@@ -13,6 +13,7 @@
   set_fact:
     test_postfix: "_test_{{ random_generated_pw }}"
 
+# todo: is this play needless?
 - name: set postfix to brand all objects in this test run
   set_fact:
     sample_postfix: "{{ test_postfix }}"
@@ -38,6 +39,7 @@
   vars:
     sample_role_purpose: test
     sample_fortigate_name: "{{ test_fortigate_name }}"
+    sample_checkpoint_name: "{{ test_checkpoint_name }}"
     sample_config_user: fworchtest
     sample_config_user_home: "/home/{{ sample_config_user }}"
   when: "'sampleserver' in group_names"

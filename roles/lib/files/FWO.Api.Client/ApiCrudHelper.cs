@@ -1,7 +1,7 @@
 ﻿using System.Text.Json.Serialization; 
 using Newtonsoft.Json; 
 
-namespace FWO.ApiClient
+namespace FWO.Api.Client
 {
     public class ReturnId
     {

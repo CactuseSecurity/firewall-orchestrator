@@ -1,13 +1,13 @@
 ﻿@using BlazorTable
 @using FWO.Api.Data
-@using FWO.ApiClient
+@using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.DeviceAutoDiscovery
 
 @page "/settings/managements"
 @attribute [Authorize(Roles = "admin, auditor, fw-admin")]
 
-@inject APIConnection apiConnection
+@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 <h3>@(userConfig.GetText("managements"))</h3>
@@ -313,7 +313,7 @@
     {
         try
         {
-            managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails);
+            managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
             foreach (var management in managements)
             {
                 if (management.Name.EndsWith("_demo"))
@@ -323,7 +323,7 @@
             }
             showCleanupButton = (sampleManagements.Count > 0);
 
-            deviceTypes = await apiConnection.SendQueryAsync<List<DeviceType>>(FWO.ApiClient.Queries.DeviceQueries.getDeviceTypeDetails);
+            deviceTypes = await apiConnection.SendQueryAsync<List<DeviceType>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceTypeDetails);
         }
         catch (System.Exception exception)
         {
@@ -359,7 +359,7 @@
             DeleteMode = false;
             workInProgress = true;
             var Variables = new { id = management.Id };
-            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.deleteManagement, Variables)).DeletedId;
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.deleteManagement, Variables)).DeletedId;
             if (delId == management.Id)
             {
                 managements.Remove(management);
@@ -436,7 +436,7 @@
                         debugLevel = actManagement.DebugLevel,
                         comment = actManagement.Comment
                     };
-                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newManagement, Variables)).ReturnIds;
+                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.DeviceQueries.newManagement, Variables)).ReturnIds;
                     if (returnIds != null)
                     {
                         actManagement.Id = returnIds[0].NewId;
@@ -467,7 +467,7 @@
                         debugLevel = actManagement.DebugLevel,
                         comment = actManagement.Comment
                     };
-                    int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.updateManagement, Variables)).UpdatedId;
+                    int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.updateManagement, Variables)).UpdatedId;
                     EditMode = (udId == actManagement.Id ? false : true);
                     managements[managements.FindIndex(x => x.Id == actManagement.Id)] = actManagement;
                 }

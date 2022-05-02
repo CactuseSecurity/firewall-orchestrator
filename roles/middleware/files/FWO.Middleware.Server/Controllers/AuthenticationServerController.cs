@@ -1,5 +1,5 @@
-﻿using FWO.ApiClient.Queries;
-using FWO.ApiClient;
+﻿using FWO.Api.Client.Queries;
+using FWO.Api.Client;
 using FWO.Api.Data;
 using FWO.Logging;
 using FWO.Middleware.Server;
@@ -17,9 +17,9 @@ namespace FWO.Middleware.Controllers
     public class AuthenticationServerController : ControllerBase
     {
         private List<Ldap> ldaps;
-        private readonly APIConnection apiConnection;
+        private readonly ApiConnection apiConnection;
 
-        public AuthenticationServerController(APIConnection apiConnection, List<Ldap> ldaps)
+        public AuthenticationServerController(ApiConnection apiConnection, List<Ldap> ldaps)
         {
             this.apiConnection = apiConnection;
             this.ldaps = ldaps;

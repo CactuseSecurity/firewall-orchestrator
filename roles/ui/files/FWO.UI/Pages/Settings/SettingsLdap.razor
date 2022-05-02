@@ -1,7 +1,7 @@
 ﻿@using BlazorTable
 @using System.Net
 @using FWO.Api.Data
-@using FWO.ApiClient
+@using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.Middleware.Client
 @using FWO.Middleware.RequestParameters
@@ -11,7 +11,7 @@
 @page "/settings/ldap"
 @attribute [Authorize(Roles = "admin, auditor")]
 
-@inject APIConnection apiConnection
+@inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 
@@ -268,7 +268,7 @@
                 }
             }
 
-            tenants = await apiConnection.SendQueryAsync<List<Tenant>>(FWO.ApiClient.Queries.AuthQueries.getTenants);
+            tenants = await apiConnection.SendQueryAsync<List<Tenant>>(FWO.Api.Client.Queries.AuthQueries.getTenants);
         }
         catch (System.Exception exception)
         {

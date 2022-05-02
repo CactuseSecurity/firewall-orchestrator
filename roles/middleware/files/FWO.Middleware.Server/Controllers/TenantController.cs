@@ -1,5 +1,5 @@
 ﻿using FWO.Api.Data;
-using FWO.ApiClient;
+using FWO.Api.Client;
 using FWO.Logging;
 using FWO.Middleware.RequestParameters;
 using FWO.Middleware.Server;
@@ -15,9 +15,9 @@ namespace FWO.Middleware.Controllers
     public class TenantController : ControllerBase
     {
         private readonly List<Ldap> ldaps;
-        private readonly APIConnection apiConnection;
+        private readonly ApiConnection apiConnection;
 
-        public TenantController(List<Ldap> ldaps, APIConnection apiConnection)
+        public TenantController(List<Ldap> ldaps, ApiConnection apiConnection)
         {
             this.ldaps = ldaps;
             this.apiConnection = apiConnection;
@@ -28,7 +28,7 @@ namespace FWO.Middleware.Controllers
         [Authorize(Roles = "admin, auditor")]
         public async Task<List<TenantGetReturnParameters>> Get()
         {
-            Tenant[] tenants = (await apiConnection.SendQueryAsync<Tenant[]>(FWO.ApiClient.Queries.AuthQueries.getTenants));
+            Tenant[] tenants = (await apiConnection.SendQueryAsync<Tenant[]>(FWO.Api.Client.Queries.AuthQueries.getTenants));
             List<TenantGetReturnParameters> tenantList = new List<TenantGetReturnParameters>();
             foreach (Tenant tenant in tenants)
             {
@@ -76,7 +76,7 @@ namespace FWO.Middleware.Controllers
                         // superAdmin = tenant.Superadmin,
                         create = DateTime.Now
                     };
-                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addTenant, Variables)).ReturnIds;
+                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.AuthQueries.addTenant, Variables)).ReturnIds;
                     if (returnIds != null)
                     {
                         tenantId = returnIds[0].NewId;
@@ -111,7 +111,7 @@ namespace FWO.Middleware.Controllers
                     comment = parameters.Comment,
                     viewAllDevices = parameters.ViewAllDevices
                 };
-                ReturnId returnId = await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateTenant, Variables);
+                ReturnId returnId = await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.AuthQueries.updateTenant, Variables);
                 if (returnId.UpdatedId == parameters.Id)
                 {
                     tenantUpdated = true;
@@ -151,7 +151,7 @@ namespace FWO.Middleware.Controllers
             {
                 // Delete also from local database table
                 var Variables = new { id = tenant.Id };
-                int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.deleteTenant, Variables)).DeletedId;
+                int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.AuthQueries.deleteTenant, Variables)).DeletedId;
                 if (delId == tenant.Id)
                 {
                     tenantDeleted = true;

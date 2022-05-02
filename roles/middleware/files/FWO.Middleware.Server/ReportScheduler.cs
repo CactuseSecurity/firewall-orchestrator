@@ -1,12 +1,14 @@
 ﻿using FWO.Api.Data;
-using FWO.ApiClient;
-using FWO.ApiClient.Queries;
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Logging;
 using FWO.Middleware.Controllers;
 using FWO.Report;
 using FWO.Report.Filter;
 using System.Timers;
+using WkHtmlToPdfDotNet;
+using FWO.Config.File;
 
 namespace FWO.Middleware.Server
 {
@@ -17,18 +19,18 @@ namespace FWO.Middleware.Server
         private readonly TimeSpan CheckScheduleInterval = TimeSpan.FromMinutes(1);
 
         private readonly string apiServerUri;
-        private readonly APIConnection apiConnection;
+        private readonly ApiConnection apiConnection;
         private readonly ApiSubscription<ScheduledReport[]> scheduledReportsSubscription;
         private readonly JwtWriter jwtWriter;
 
         private readonly object ldapLock = new object();
         private List<Ldap> connectedLdaps;
 
-        public ReportScheduler(APIConnection apiConnection, JwtWriter jwtWriter, ApiSubscription<List<Ldap>> connectedLdapsSubscription)
+        public ReportScheduler(ApiConnection apiConnection, JwtWriter jwtWriter, ApiSubscription<List<Ldap>> connectedLdapsSubscription)
         {
             this.jwtWriter = jwtWriter;            
             this.apiConnection = apiConnection;
-            apiServerUri = apiConnection.APIServerURI;
+            apiServerUri = ConfigFile.ApiServerUri;
 
             connectedLdaps = apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections).Result;
             connectedLdapsSubscription.OnUpdate += OnLdapUpdate;
@@ -134,7 +136,7 @@ namespace FWO.Middleware.Server
                     report.Owner.Roles = await authHandler.GetRoles(report.Owner);
                     report.Owner.Tenant = await authHandler.GetTenantAsync(report.Owner);
                     string jwt = await jwtWriter.CreateJWT(report.Owner);
-                    APIConnection apiConnectionUserContext = new APIConnection(apiServerUri, jwt);
+                    ApiConnection apiConnectionUserContext = new GraphQlApiConnection(apiServerUri, jwt);
                     GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(jwt);
                     UserConfig userConfig = await UserConfig.ConstructAsync(globalConfig, apiConnection, report.Owner.DbId);
 
@@ -177,7 +179,7 @@ namespace FWO.Middleware.Server
                                 break;
 
                             case "pdf":
-                                reportFile.Pdf = Convert.ToBase64String(reportRules.ToPdf());
+                                reportFile.Pdf = Convert.ToBase64String(reportRules.ToPdf(PaperKind.A4));
                                 break;
 
                             case "json":

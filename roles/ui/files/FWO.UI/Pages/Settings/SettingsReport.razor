@@ -1,4 +1,4 @@
-﻿@using FWO.ApiClient
+﻿@using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.Config.Api.Data
 
@@ -6,7 +6,7 @@
 @page "/settings/report"
 @attribute [Authorize(Roles = "admin, reporter, reporter-viewall, recertifier, workflow-user, workflow-admin, auditor, fw-admin")]
 
-@inject APIConnection apiConnection
+@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 <h3>@(userConfig.GetText("report_settings"))</h3>

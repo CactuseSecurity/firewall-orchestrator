@@ -1,5 +1,5 @@
-﻿using FWO.ApiClient;
-using FWO.ApiClient.Queries;
+﻿using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Config.Api.Data;
 using FWO.Logging;
 using System;
@@ -18,7 +18,7 @@ namespace FWO.Config.Api
         /// <summary>
         /// Internal connection to api server. Used to get/edit config data.
         /// </summary>
-        protected APIConnection apiConnection;
+        protected ApiConnection apiConnection;
 
         public int UserId { get; private set; }
         public bool Initialized { get; private set; } = false;
@@ -31,12 +31,12 @@ namespace FWO.Config.Api
 
         protected Config() { }
 
-        protected Config(APIConnection apiConnection, int userId)
+        protected Config(ApiConnection apiConnection, int userId)
         {
             SetUserId(apiConnection, userId).Wait();
         }
 
-        public async Task SetUserId(APIConnection apiConnection, int userId, bool waitForFirstUpdate = true)
+        public async Task SetUserId(ApiConnection apiConnection, int userId, bool waitForFirstUpdate = true)
         {
             this.apiConnection = apiConnection;
             UserId = userId;
@@ -97,7 +97,7 @@ namespace FWO.Config.Api
             }
         }
 
-        public async Task WriteToDatabase(ConfigData editedData, APIConnection apiConnection)
+        public async Task WriteToDatabase(ConfigData editedData, ApiConnection apiConnection)
         {
             await semaphoreSlim.WaitAsync();
             try

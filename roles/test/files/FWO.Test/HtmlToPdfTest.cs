@@ -15,11 +15,6 @@ namespace FWO.Test.HtmlToPdf
         // Pdf converter
         protected readonly SynchronizedConverter converter;
 
-        // [SetUp]
-        // public void Setup()
-        // {
-            
-        // }
         public HtmlToPdfTest()
         {
             converter = new SynchronizedConverter(new PdfTools());

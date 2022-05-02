@@ -3,7 +3,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components.Authorization;
 using FWO.Config.Api;
-using FWO.ApiClient;
+using FWO.Api.Client;
 using FWO.Ui.Services;
 using FWO.Middleware.Client;
 
@@ -20,7 +20,7 @@ namespace FWO.Ui.Auth
             return Task.FromResult(new AuthenticationState(user));
         }
 
-        public async Task AuthenticateUser(string jwtString, UserConfig userConfig, APIConnection apiConnection, CircuitHandlerService circuitHandler)
+        public async Task AuthenticateUser(string jwtString, UserConfig userConfig, ApiConnection apiConnection, CircuitHandlerService circuitHandler)
         {
             JwtReader jwt = new JwtReader(jwtString);
 

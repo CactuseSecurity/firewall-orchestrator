@@ -29,8 +29,18 @@ namespace FWO.Config.File
                         provider.ImportPkcs8PrivateKey(new ReadOnlySpan<byte>(keyBytes), out _);
                     }
                 }
-                else   // public key
-                    provider.ImportSubjectPublicKeyInfo(new ReadOnlySpan<byte>(keyBytes), out _);
+                else // public key
+                {
+                    if (isRsaKey)
+                    {
+                        provider.ImportRSAPublicKey(new ReadOnlySpan<byte>(keyBytes), out _);
+                    }
+                    else
+                    {
+                        provider.ImportSubjectPublicKeyInfo(new ReadOnlySpan<byte>(keyBytes), out _);
+                    }
+                }
+
                 rsaKey = new RsaSecurityKey(provider);
             }
             catch (Exception exception)
@@ -41,7 +51,7 @@ namespace FWO.Config.File
             return rsaKey;
         }
 
-        public static (string key, bool isRsa) ExtractKeyFromPemAsString(string rawKey)
+        private static (string key, bool isRsa) ExtractKeyFromPemAsString(string rawKey)
         {
             bool isRsaKey = true;
             string keyText = "";

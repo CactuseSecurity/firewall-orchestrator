@@ -228,7 +228,10 @@
     {
         try
         {
-            reportTemplateInEdit.Sanitize();
+            if (reportTemplateInEdit.Sanitize())
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_template"), userConfig.GetText("U0001"), true);
+            }
             reportTemplateInEdit.CreationDate = DateTime.Now;
             reportTemplateInEdit.Owner = userConfig.User.DbId;
 

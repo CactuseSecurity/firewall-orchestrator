@@ -47,9 +47,11 @@ namespace FWO.Api.Data
         [JsonProperty("description"), JsonPropertyName("description")]
         public String? Description { get; set; }
 
-        public void Sanitize()
+        public bool Sanitize()
         {
-            Name = Sanitizer.SanitizeMand(Name);
+            bool shortened = false;
+            Name = Sanitizer.SanitizeMand(Name, ref shortened);
+            return shortened;
         }
     }
 }

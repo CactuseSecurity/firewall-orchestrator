@@ -6,7 +6,7 @@ using System.Security.Cryptography;
 
 namespace FWO.Config.File
 {
-    class KeyImporter
+    public class KeyImporter
     {
         public static RsaSecurityKey? ExtractKeyFromPem(string rawKey, bool isPrivateKey)
         {

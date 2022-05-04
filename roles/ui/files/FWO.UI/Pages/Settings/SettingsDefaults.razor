@@ -26,6 +26,24 @@
             </select>
         </div>
     </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="sessionTimeout" class="col-form-label col-sm-4">@(userConfig.GetText("sessionTimeout")):</label>
+        <div class="col-sm-2">
+            <input id="sessionTimeout" type="number" class="form-control form-control-sm w-100" @bind="configData!.SessionTimeout" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="maxMessages" class="col-form-label col-sm-4">@(userConfig.GetText("maxMessages"))*:</label>
+        <div class="col-sm-2">
+            <input id="maxMessages" type="number" class="form-control form-control-sm w-100" @bind="configData!.MaxMessages">
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="messageViewTime" class="col-form-label col-sm-4">@(userConfig.GetText("messageViewTime"))*:</label>
+        <div class="col-sm-2">
+            <input id="messageViewTime" type="number" class="form-control form-control-sm w-100" @bind="configData!.MessageViewTime">
+        </div>
+    </form>
     <hr />
     <form class="form-inline" onsubmit="return false">
         <label for="elementsPerFetch" class="col-form-label col-sm-4">@(userConfig.GetText("elementsPerFetch"))*:</label>
@@ -56,12 +74,6 @@
         <label for="minCollapseAllDevices" class="col-form-label col-sm-4">@(userConfig.GetText("minCollapseAllDevices"))*:</label>
         <div class="col-sm-2">
             <input id="minCollapseAllDevices" type="number" class="form-control form-control-sm w-100" @bind="configData!.MinCollapseAllDevices">
-        </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label for="messageViewTime" class="col-form-label col-sm-4">@(userConfig.GetText("messageViewTime"))*:</label>
-        <div class="col-sm-2">
-            <input id="messageViewTime" type="number" class="form-control form-control-sm w-100" @bind="configData!.MessageViewTime">
         </div>
     </form>
     <hr />

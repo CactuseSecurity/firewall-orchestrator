@@ -22,6 +22,12 @@ namespace FWO.Config.Api.Data
         [JsonProperty("DefaultLanguage"), JsonPropertyName("DefaultLanguage")]
         public virtual string DefaultLanguage { get; set; } = "English";
 
+        [JsonProperty("sessionTimeout"), JsonPropertyName("sessionTimeout"), UserConfigData]
+        public int SessionTimeout { get; set; } = 240;
+
+        [JsonProperty("maxMessages"), JsonPropertyName("maxMessages"), UserConfigData]
+        public int MaxMessages { get; set; } = 3;
+
         [JsonProperty("elementsPerFetch"), JsonPropertyName("elementsPerFetch"), UserConfigData]
         public int ElementsPerFetch { get; set; } = 100;
 

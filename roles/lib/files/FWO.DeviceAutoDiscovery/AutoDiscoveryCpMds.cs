@@ -1,5 +1,5 @@
 ﻿using FWO.Api.Data;
-using FWO.ApiClient;
+using FWO.Api.Client;
 using FWO.Logging;
 using FWO.Rest.Client;
 using System.Net;
@@ -9,7 +9,7 @@ namespace FWO.DeviceAutoDiscovery
 {
     public class AutoDiscoveryCpMds : AutoDiscoveryBase
     {
-        public AutoDiscoveryCpMds(Management mgm, APIConnection apiConn) : base(mgm, apiConn) { }
+        public AutoDiscoveryCpMds(Management mgm, ApiConnection apiConn) : base(mgm, apiConn) { }
 
         public override async Task<List<Management>> Run()
         {

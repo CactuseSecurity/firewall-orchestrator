@@ -23,7 +23,7 @@ namespace FWO.Middleware.Client
 
             // Get public key from config lib
             ConfigFile config = new ConfigFile();
-            jwtPublicKey = config.JwtPublicKey ?? throw new Exception("Jwt public key could not be read form config file.");
+            jwtPublicKey = ConfigFile.JwtPublicKey ?? throw new Exception("Jwt public key could not be read form config file.");
         }
 
         /// <summary>

@@ -1,6 +1,6 @@
 ﻿using FWO.Api.Data;
 using System.Text;
-using FWO.ApiClient;
+using FWO.Api.Client;
 using FWO.Report.Filter;
 using FWO.Ui.Display;
 using FWO.Config.Api;
@@ -12,7 +12,7 @@ namespace FWO.Report
     {
         public ReportChanges(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
 
-        public override async Task<bool> GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback)
+        public override async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback)
         {
             await callback(Managements);
             // currently no further objects to be fetched
@@ -20,13 +20,13 @@ namespace FWO.Report
             return true;
         }
 
-        public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, int maxFetchCycles, APIConnection apiConnection, Func<Management[], Task> callback)
+        public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, int maxFetchCycles, ApiConnection apiConnection, Func<Management[], Task> callback)
         {
             throw new NotImplementedException();
         }
 
 
-        public override async Task Generate(int changesPerFetch, APIConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)
+        public override async Task Generate(int changesPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)
         {
             Query.QueryVariables["limit"] = changesPerFetch;
             Query.QueryVariables["offset"] = 0;

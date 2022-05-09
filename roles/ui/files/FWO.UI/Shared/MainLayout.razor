@@ -1,12 +1,12 @@
 ﻿@inherits LayoutComponentBase
 @using FWO.Config.Api
-@using FWO.ApiClient
+@using FWO.Api.Client
 @using FWO.Api.Data
-@using FWO.ApiClient.Queries
+@using FWO.Api.Client.Queries
 @using System.Timers
 
 
-@inject APIConnection apiConnection
+@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 <div style="z-index:15; top:0px;" class="position-sticky">
@@ -193,7 +193,7 @@
                 suspectedCause = cause,
                 description = description,
             };
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.MonitorQueries.addUiLogEntry, Variables)).ReturnIds;
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.MonitorQueries.addUiLogEntry, Variables)).ReturnIds;
             if (returnIds == null)
             {
                 Log.WriteError("Write Log", "Log could not be written to database");
@@ -228,7 +228,7 @@
                 description = message,
                 alertCode = (int)AlertCode.UiError
             };
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.MonitorQueries.addAlert, Variables)).ReturnIds;
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.MonitorQueries.addAlert, Variables)).ReturnIds;
             if (returnIds != null)
             {
                 try

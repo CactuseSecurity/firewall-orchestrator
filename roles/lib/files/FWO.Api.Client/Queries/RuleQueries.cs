@@ -2,7 +2,7 @@
 using System.IO;
 using FWO.Logging;
 
-namespace FWO.ApiClient.Queries
+namespace FWO.Api.Client.Queries
 {
     public class RuleQueries : Queries
     {

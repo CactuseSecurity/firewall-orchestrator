@@ -1,12 +1,12 @@
 @using BlazorTable
 @using FWO.Api.Data
-@using FWO.ApiClient
+@using FWO.Api.Client
 @using FWO.Config.Api
 
 @page "/settings/gateways"
 @attribute [Authorize(Roles = "admin, auditor, fw-admin")]
 
-@inject APIConnection apiConnection
+@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 <h3>@(userConfig.GetText("gateways"))</h3>
@@ -220,9 +220,9 @@
     {
         try
         {
-            devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.ApiClient.Queries.DeviceQueries.getDeviceDetails);
-            deviceTypes = await apiConnection.SendQueryAsync<List<DeviceType>>(FWO.ApiClient.Queries.DeviceQueries.getDeviceTypeDetails);
-            managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails);
+            devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
+            deviceTypes = await apiConnection.SendQueryAsync<List<DeviceType>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceTypeDetails);
+            managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
         }
         catch (Exception exception)
         {
@@ -250,7 +250,7 @@
             DeleteMode = false;
             workInProgress = true;
             var Variables = new { id = device.Id };
-            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.deleteDevice, Variables)).DeletedId;
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.deleteDevice, Variables)).DeletedId;
             if (delId == device.Id)
             {
                 devices.Remove(device);
@@ -308,7 +308,7 @@
                         hideInUi = actDevice.HideInUi,
                         comment = actDevice.Comment
                     };
-                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newDevice, Variables)).ReturnIds;
+                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.DeviceQueries.newDevice, Variables)).ReturnIds;
                     if (returnIds == null)
                     {
                         DisplayMessageInUi!(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5112"), true);
@@ -338,7 +338,7 @@
                         hideInUi = actDevice.HideInUi,
                         comment = actDevice.Comment
                     };
-                    int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.updateDevice, Variables)).UpdatedId;
+                    int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.updateDevice, Variables)).UpdatedId;
                     EditMode = (udId == actDevice.Id ? false : true);
                     devices[devices.FindIndex(x => x.Id == actDevice.Id)] = actDevice;
                 }
@@ -377,7 +377,7 @@
         try
         {
             var Variables = new { tenantId = 1, deviceId = deviceId };
-            await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addDeviceToTenant, Variables);
+            await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.AuthQueries.addDeviceToTenant, Variables);
         }
         catch (System.Exception exception)
         {

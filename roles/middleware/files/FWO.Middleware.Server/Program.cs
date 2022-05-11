@@ -9,7 +9,6 @@ using Microsoft.OpenApi.Models;
 
 
 object changesLock = new object(); // LOCK
-int jwtMinutesValid = 240;  // TODO: MOVE TO API/Config    
 
 ReportScheduler reportScheduler;
 AutoDiscoverScheduler autoDiscoverScheduler;
@@ -19,7 +18,7 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls(ConfigFile.MiddlewareServerNativeUri ?? throw new Exception("Missing middleware server url on startup."));
 
 // Create Token Generator
-JwtWriter jwtWriter = new JwtWriter(ConfigFile.JwtPrivateKey, jwtMinutesValid);
+JwtWriter jwtWriter = new JwtWriter(ConfigFile.JwtPrivateKey);
 
 // Create JWT for middleware-server API calls (relevant part is the role middleware-server) and add it to the Api connection header. 
 ApiConnection apiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new Exception("Missing api server url on startup."), jwtWriter.CreateJWTMiddlewareServer());

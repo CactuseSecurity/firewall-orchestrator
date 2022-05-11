@@ -17,12 +17,12 @@ namespace FWO.Middleware.Server
     public class UiUserHandler
     {
         private readonly string jwtToken;
-        private APIConnection apiConn;
+        private ApiConnection apiConn;
 
         public UiUserHandler(string jwtToken)
         {
             this.jwtToken = jwtToken;
-            apiConn = new APIConnection(new ConfigFile().ApiServerUri, jwtToken);
+            apiConn = new ApiConnection(new ConfigFile().ApiServerUri, jwtToken);
         }
 
         public async Task<int> GetExpirationTime()

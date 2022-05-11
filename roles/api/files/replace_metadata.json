@@ -3684,6 +3684,51 @@
                   }
                 },
                 {
+                  "name": "view_rule_nwobj_resolved_sorteds",
+                  "using": {
+                    "manual_configuration": {
+                      "remote_table": {
+                        "schema": "public",
+                        "name": "view_rule_nwobj_resolved_sorted"
+                      },
+                      "insertion_order": null,
+                      "column_mapping": {
+                        "mgm_id": "mgm_id"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "view_rule_svc_resolved_sorteds",
+                  "using": {
+                    "manual_configuration": {
+                      "remote_table": {
+                        "schema": "public",
+                        "name": "view_rule_svc_resolved_sorted"
+                      },
+                      "insertion_order": null,
+                      "column_mapping": {
+                        "mgm_id": "mgm_id"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "view_rule_user_resolved_sorteds",
+                  "using": {
+                    "manual_configuration": {
+                      "remote_table": {
+                        "schema": "public",
+                        "name": "view_rule_user_resolved_sorted"
+                      },
+                      "insertion_order": null,
+                      "column_mapping": {
+                        "mgm_id": "mgm_id"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "zones",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -11152,8 +11197,757 @@
             {
               "table": {
                 "schema": "public",
+                "name": "view_rule_nwobj_resolved_sorted"
+              },
+              "object_relationships": [
+                {
+                  "name": "management",
+                  "using": {
+                    "manual_configuration": {
+                      "remote_table": {
+                        "schema": "public",
+                        "name": "management"
+                      },
+                      "insertion_order": null,
+                      "column_mapping": {
+                        "mgm_id": "mgm_id"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "object",
+                  "using": {
+                    "manual_configuration": {
+                      "remote_table": {
+                        "schema": "public",
+                        "name": "object"
+                      },
+                      "insertion_order": null,
+                      "column_mapping": {
+                        "obj_id": "obj_id"
+                      }
+                    }
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "obj_create",
+                      "obj_id",
+                      "obj_last_seen",
+                      "removed",
+                      "rule_id",
+                      "active",
+                      "initial_config",
+                      "obj_nat",
+                      "obj_comment",
+                      "obj_location",
+                      "obj_name",
+                      "obj_sw",
+                      "obj_sys_contact",
+                      "obj_sys_location",
+                      "obj_sys_name",
+                      "obj_sys_readcom",
+                      "obj_sys_writecom",
+                      "obj_ip",
+                      "obj_ip_end",
+                      "obj_nat_ip",
+                      "obj_nat_ip_end",
+                      "last_change_admin",
+                      "mgm_id",
+                      "nattyp_id",
+                      "obj_color_id",
+                      "obj_nat_install",
+                      "obj_typ_id",
+                      "zone_id",
+                      "obj_member_names",
+                      "obj_member_refs",
+                      "obj_sys_desc",
+                      "obj_uid"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "obj_create",
+                      "obj_id",
+                      "obj_last_seen",
+                      "removed",
+                      "rule_id",
+                      "active",
+                      "initial_config",
+                      "obj_nat",
+                      "obj_comment",
+                      "obj_location",
+                      "obj_name",
+                      "obj_sw",
+                      "obj_sys_contact",
+                      "obj_sys_location",
+                      "obj_sys_name",
+                      "obj_sys_readcom",
+                      "obj_sys_writecom",
+                      "obj_ip",
+                      "obj_ip_end",
+                      "obj_nat_ip",
+                      "obj_nat_ip_end",
+                      "last_change_admin",
+                      "mgm_id",
+                      "nattyp_id",
+                      "obj_color_id",
+                      "obj_nat_install",
+                      "obj_typ_id",
+                      "zone_id",
+                      "obj_member_names",
+                      "obj_member_refs",
+                      "obj_sys_desc",
+                      "obj_uid"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "obj_create",
+                      "obj_id",
+                      "obj_last_seen",
+                      "removed",
+                      "rule_id",
+                      "active",
+                      "initial_config",
+                      "obj_nat",
+                      "obj_comment",
+                      "obj_location",
+                      "obj_name",
+                      "obj_sw",
+                      "obj_sys_contact",
+                      "obj_sys_location",
+                      "obj_sys_name",
+                      "obj_sys_readcom",
+                      "obj_sys_writecom",
+                      "obj_ip",
+                      "obj_ip_end",
+                      "obj_nat_ip",
+                      "obj_nat_ip_end",
+                      "last_change_admin",
+                      "mgm_id",
+                      "nattyp_id",
+                      "obj_color_id",
+                      "obj_nat_install",
+                      "obj_typ_id",
+                      "zone_id",
+                      "obj_member_names",
+                      "obj_member_refs",
+                      "obj_sys_desc",
+                      "obj_uid"
+                    ],
+                    "filter": {
+                      "mgm_id": {
+                        "_in": "x-hasura-visible-managements"
+                      }
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "obj_create",
+                      "obj_id",
+                      "obj_last_seen",
+                      "removed",
+                      "rule_id",
+                      "active",
+                      "initial_config",
+                      "obj_nat",
+                      "obj_comment",
+                      "obj_location",
+                      "obj_name",
+                      "obj_sw",
+                      "obj_sys_contact",
+                      "obj_sys_location",
+                      "obj_sys_name",
+                      "obj_sys_readcom",
+                      "obj_sys_writecom",
+                      "obj_ip",
+                      "obj_ip_end",
+                      "obj_nat_ip",
+                      "obj_nat_ip_end",
+                      "last_change_admin",
+                      "mgm_id",
+                      "nattyp_id",
+                      "obj_color_id",
+                      "obj_nat_install",
+                      "obj_typ_id",
+                      "zone_id",
+                      "obj_member_names",
+                      "obj_member_refs",
+                      "obj_sys_desc",
+                      "obj_uid"
+                    ],
+                    "filter": {
+                      "mgm_id": {
+                        "_in": "X-Hasura-visible-managements"
+                      }
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "obj_create",
+                      "obj_id",
+                      "obj_last_seen",
+                      "removed",
+                      "rule_id",
+                      "active",
+                      "initial_config",
+                      "obj_nat",
+                      "obj_comment",
+                      "obj_location",
+                      "obj_name",
+                      "obj_sw",
+                      "obj_sys_contact",
+                      "obj_sys_location",
+                      "obj_sys_name",
+                      "obj_sys_readcom",
+                      "obj_sys_writecom",
+                      "obj_ip",
+                      "obj_ip_end",
+                      "obj_nat_ip",
+                      "obj_nat_ip_end",
+                      "last_change_admin",
+                      "mgm_id",
+                      "nattyp_id",
+                      "obj_color_id",
+                      "obj_nat_install",
+                      "obj_typ_id",
+                      "zone_id",
+                      "obj_member_names",
+                      "obj_member_refs",
+                      "obj_sys_desc",
+                      "obj_uid"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "schema": "public",
                 "name": "view_rule_source_or_destination"
               }
+            },
+            {
+              "table": {
+                "schema": "public",
+                "name": "view_rule_svc_resolved_sorted"
+              },
+              "object_relationships": [
+                {
+                  "name": "management",
+                  "using": {
+                    "manual_configuration": {
+                      "remote_table": {
+                        "schema": "public",
+                        "name": "management"
+                      },
+                      "insertion_order": null,
+                      "column_mapping": {
+                        "mgm_id": "mgm_id"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "service",
+                  "using": {
+                    "manual_configuration": {
+                      "remote_table": {
+                        "schema": "public",
+                        "name": "service"
+                      },
+                      "insertion_order": null,
+                      "column_mapping": {
+                        "svc_id": "svc_id"
+                      }
+                    }
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "rule_id",
+                      "svc_create",
+                      "svc_id",
+                      "svc_last_seen",
+                      "active",
+                      "initial_config",
+                      "srv_keeponinstall",
+                      "svc_accept_rep",
+                      "svc_accept_rep_any",
+                      "svc_mfa",
+                      "svc_sync",
+                      "svc_sync_delay",
+                      "svc_tcp_res",
+                      "svc_timeout_std",
+                      "svc_code",
+                      "svc_name",
+                      "svc_rpcnr",
+                      "ip_proto_id",
+                      "last_change_admin",
+                      "mgm_id",
+                      "svc_color_id",
+                      "svc_port",
+                      "svc_port_end",
+                      "svc_source_port",
+                      "svc_source_port_end",
+                      "svc_sync_delay_start",
+                      "svc_timeout",
+                      "svc_typ_id",
+                      "svc_comment",
+                      "svc_match",
+                      "svc_member_names",
+                      "svc_member_refs",
+                      "svc_prod_specific",
+                      "svc_uid"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "rule_id",
+                      "svc_create",
+                      "svc_id",
+                      "svc_last_seen",
+                      "active",
+                      "initial_config",
+                      "srv_keeponinstall",
+                      "svc_accept_rep",
+                      "svc_accept_rep_any",
+                      "svc_mfa",
+                      "svc_sync",
+                      "svc_sync_delay",
+                      "svc_tcp_res",
+                      "svc_timeout_std",
+                      "svc_code",
+                      "svc_name",
+                      "svc_rpcnr",
+                      "ip_proto_id",
+                      "last_change_admin",
+                      "mgm_id",
+                      "svc_color_id",
+                      "svc_port",
+                      "svc_port_end",
+                      "svc_source_port",
+                      "svc_source_port_end",
+                      "svc_sync_delay_start",
+                      "svc_timeout",
+                      "svc_typ_id",
+                      "svc_comment",
+                      "svc_match",
+                      "svc_member_names",
+                      "svc_member_refs",
+                      "svc_prod_specific",
+                      "svc_uid"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "rule_id",
+                      "svc_create",
+                      "svc_id",
+                      "svc_last_seen",
+                      "active",
+                      "initial_config",
+                      "srv_keeponinstall",
+                      "svc_accept_rep",
+                      "svc_accept_rep_any",
+                      "svc_mfa",
+                      "svc_sync",
+                      "svc_sync_delay",
+                      "svc_tcp_res",
+                      "svc_timeout_std",
+                      "svc_code",
+                      "svc_name",
+                      "svc_rpcnr",
+                      "ip_proto_id",
+                      "last_change_admin",
+                      "mgm_id",
+                      "svc_color_id",
+                      "svc_port",
+                      "svc_port_end",
+                      "svc_source_port",
+                      "svc_source_port_end",
+                      "svc_sync_delay_start",
+                      "svc_timeout",
+                      "svc_typ_id",
+                      "svc_comment",
+                      "svc_match",
+                      "svc_member_names",
+                      "svc_member_refs",
+                      "svc_prod_specific",
+                      "svc_uid"
+                    ],
+                    "filter": {
+                      "mgm_id": {
+                        "_in": "x-hasura-visible-managements"
+                      }
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "rule_id",
+                      "svc_create",
+                      "svc_id",
+                      "svc_last_seen",
+                      "active",
+                      "initial_config",
+                      "srv_keeponinstall",
+                      "svc_accept_rep",
+                      "svc_accept_rep_any",
+                      "svc_mfa",
+                      "svc_sync",
+                      "svc_sync_delay",
+                      "svc_tcp_res",
+                      "svc_timeout_std",
+                      "svc_code",
+                      "svc_name",
+                      "svc_rpcnr",
+                      "ip_proto_id",
+                      "last_change_admin",
+                      "mgm_id",
+                      "svc_color_id",
+                      "svc_port",
+                      "svc_port_end",
+                      "svc_source_port",
+                      "svc_source_port_end",
+                      "svc_sync_delay_start",
+                      "svc_timeout",
+                      "svc_typ_id",
+                      "svc_comment",
+                      "svc_match",
+                      "svc_member_names",
+                      "svc_member_refs",
+                      "svc_prod_specific",
+                      "svc_uid"
+                    ],
+                    "filter": {
+                      "mgm_id": {
+                        "_in": "X-Hasura-visible-managements"
+                      }
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "rule_id",
+                      "svc_create",
+                      "svc_id",
+                      "svc_last_seen",
+                      "active",
+                      "initial_config",
+                      "srv_keeponinstall",
+                      "svc_accept_rep",
+                      "svc_accept_rep_any",
+                      "svc_mfa",
+                      "svc_sync",
+                      "svc_sync_delay",
+                      "svc_tcp_res",
+                      "svc_timeout_std",
+                      "svc_code",
+                      "svc_name",
+                      "svc_rpcnr",
+                      "ip_proto_id",
+                      "last_change_admin",
+                      "mgm_id",
+                      "svc_color_id",
+                      "svc_port",
+                      "svc_port_end",
+                      "svc_source_port",
+                      "svc_source_port_end",
+                      "svc_sync_delay_start",
+                      "svc_timeout",
+                      "svc_typ_id",
+                      "svc_comment",
+                      "svc_match",
+                      "svc_member_names",
+                      "svc_member_refs",
+                      "svc_prod_specific",
+                      "svc_uid"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "schema": "public",
+                "name": "view_rule_user_resolved_sorted"
+              },
+              "object_relationships": [
+                {
+                  "name": "management",
+                  "using": {
+                    "manual_configuration": {
+                      "remote_table": {
+                        "schema": "public",
+                        "name": "management"
+                      },
+                      "insertion_order": null,
+                      "column_mapping": {
+                        "mgm_id": "mgm_id"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "usr",
+                  "using": {
+                    "manual_configuration": {
+                      "remote_table": {
+                        "schema": "public",
+                        "name": "usr"
+                      },
+                      "insertion_order": null,
+                      "column_mapping": {
+                        "user_id": "user_id"
+                      }
+                    }
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "rule_id",
+                      "user_create",
+                      "user_id",
+                      "user_last_seen",
+                      "active",
+                      "user_authmethod",
+                      "user_firstname",
+                      "user_lastname",
+                      "user_name",
+                      "user_valid_from",
+                      "user_valid_until",
+                      "last_change_admin",
+                      "mgm_id",
+                      "tenant_id",
+                      "user_color_id",
+                      "usr_typ_id",
+                      "dst_restrict",
+                      "src_restrict",
+                      "time_restrict",
+                      "user_comment",
+                      "user_member_names",
+                      "user_member_refs",
+                      "user_uid"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "rule_id",
+                      "created",
+                      "removed",
+                      "user_id",
+                      "usr_typ_id",
+                      "user_color_id",
+                      "mgm_id",
+                      "user_name",
+                      "active",
+                      "user_member_names",
+                      "user_member_refs",
+                      "user_authmethod",
+                      "user_valid_from",
+                      "user_valid_until",
+                      "src_restrict",
+                      "dst_restrict",
+                      "time_restrict",
+                      "user_create",
+                      "user_last_seen",
+                      "user_comment",
+                      "user_uid",
+                      "user_firstname",
+                      "user_lastname",
+                      "last_change_admin",
+                      "tenant_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "rule_id",
+                      "user_create",
+                      "user_id",
+                      "user_last_seen",
+                      "active",
+                      "user_authmethod",
+                      "user_firstname",
+                      "user_lastname",
+                      "user_name",
+                      "user_valid_from",
+                      "user_valid_until",
+                      "last_change_admin",
+                      "mgm_id",
+                      "tenant_id",
+                      "user_color_id",
+                      "usr_typ_id",
+                      "dst_restrict",
+                      "src_restrict",
+                      "time_restrict",
+                      "user_comment",
+                      "user_member_names",
+                      "user_member_refs",
+                      "user_uid"
+                    ],
+                    "filter": {
+                      "mgm_id": {
+                        "_in": "x-hasura-visible-managements"
+                      }
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "rule_id",
+                      "user_create",
+                      "user_id",
+                      "user_last_seen",
+                      "active",
+                      "user_authmethod",
+                      "user_firstname",
+                      "user_lastname",
+                      "user_name",
+                      "user_valid_from",
+                      "user_valid_until",
+                      "last_change_admin",
+                      "mgm_id",
+                      "tenant_id",
+                      "user_color_id",
+                      "usr_typ_id",
+                      "dst_restrict",
+                      "src_restrict",
+                      "time_restrict",
+                      "user_comment",
+                      "user_member_names",
+                      "user_member_refs",
+                      "user_uid"
+                    ],
+                    "filter": {
+                      "mgm_id": {
+                        "_in": "X-Hasura-visible-managements"
+                      }
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "rule_id",
+                      "user_create",
+                      "user_id",
+                      "user_last_seen",
+                      "active",
+                      "user_authmethod",
+                      "user_firstname",
+                      "user_lastname",
+                      "user_name",
+                      "user_valid_from",
+                      "user_valid_until",
+                      "last_change_admin",
+                      "mgm_id",
+                      "tenant_id",
+                      "user_color_id",
+                      "usr_typ_id",
+                      "dst_restrict",
+                      "src_restrict",
+                      "time_restrict",
+                      "user_comment",
+                      "user_member_names",
+                      "user_member_refs",
+                      "user_uid"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                }
+              ]
             },
             {
               "table": {

@@ -32,12 +32,12 @@
             <input id="sessionTimeout" type="number" class="form-control form-control-sm w-100" @bind="configData!.SessionTimeout" />
         </div>
     </form>
-    <form class="form-inline" onsubmit="return false">
+    @* <form class="form-inline" onsubmit="return false">
         <label for="maxMessages" class="col-form-label col-sm-4">@(userConfig.GetText("maxMessages"))*:</label>
         <div class="col-sm-2">
             <input id="maxMessages" type="number" class="form-control form-control-sm w-100" @bind="configData!.MaxMessages">
         </div>
-    </form>
+    </form> *@
     <form class="form-inline" onsubmit="return false">
         <label for="messageViewTime" class="col-form-label col-sm-4">@(userConfig.GetText("messageViewTime"))*:</label>
         <div class="col-sm-2">

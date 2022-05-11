@@ -22,7 +22,7 @@ namespace FWO.Middleware.Server
         public UiUserHandler(string jwtToken)
         {
             this.jwtToken = jwtToken;
-            apiConn = new ApiConnection(new ConfigFile().ApiServerUri, jwtToken);
+            apiConn = new GraphQlApiConnection(ConfigFile.ApiServerUri, jwtToken);
         }
 
         public async Task<int> GetExpirationTime()

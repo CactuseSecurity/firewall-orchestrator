@@ -1,8 +1,10 @@
 ﻿@using System.Text
 @using FWO.Report
 @using FWO.Config.Api
+@using WkHtmlToPdfDotNet
+@using System.Linq;
 
-@inject APIConnection apiConnection
+@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 <button class="btn btn-sm btn-dark" @onclick='() => { if (ReportToExport != null) { ShowExportDialog = true; reportExportFile = new ReportFile { Name = "Report", OwnerId = userConfig.User.DbId }; } else { 
@@ -26,6 +28,18 @@
                             <label class="form-check-label" for="reportExportPdf">
                                 PDF
                             </label>
+                            @if (ExportPdf)
+                            {
+                                <div>
+                                    Paper Size:
+                                    <select class="form-control form-control-sm" @bind="PaperKind">
+                                        @foreach (PaperKind paperKind in Enum.GetValues<PaperKind>())
+                                        {                                      
+                                            <option selected="@(paperKind == PaperKind.A4)" value="@paperKind">@paperKind</option>
+                                        }
+                                    </select>
+                                </div>
+                            }
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="reportExportHtml" @bind="ExportHtml">
@@ -88,6 +102,7 @@ Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportD
     private bool ExportCsv = false;
     private bool ExportArchive = false;
     private ReportFile reportExportFile = new ReportFile();
+    private PaperKind PaperKind;
 
     private bool ShowExportDialog = false;
     private bool ShowExportDownloadDialog = false;
@@ -116,7 +131,7 @@ Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportD
 
                     if (ExportPdf)
                     {
-                        reportExportFile.Pdf = Convert.ToBase64String(ReportToExport.ToPdf());
+                        reportExportFile.Pdf = Convert.ToBase64String(ReportToExport.ToPdf(PaperKind));
                     }
 
                     if (ExportCsv)

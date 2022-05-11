@@ -1,5 +1,5 @@
-﻿using FWO.ApiClient;
-using FWO.ApiClient.Queries;
+﻿using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Logging;
 using FWO.Config.File;
 using FWO.Api.Data;
@@ -51,6 +51,7 @@ namespace FWO.Middleware.Server
         /// <returns> user including its db id </returns>
         public async Task<UiUser> HandleUiUserAtLogin(UiUser user)
         {
+            ApiConnection apiConn = new GraphQlApiConnection(ConfigFile.ApiServerUri, jwtToken);
             bool userSetInDb = false;
             try
             {
@@ -80,7 +81,7 @@ namespace FWO.Middleware.Server
             return user;
         }
 
-        private static async Task AddUiUserToDb(APIConnection apiConn, UiUser user)
+        private static async Task AddUiUserToDb(ApiConnection apiConn, UiUser user)
         {
             try
             {
@@ -107,7 +108,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private static async Task<bool> UpdateLastLogin(APIConnection apiConn, int id)
+        private static async Task<bool> UpdateLastLogin(ApiConnection apiConn, int id)
         {
             try
             {
@@ -116,7 +117,7 @@ namespace FWO.Middleware.Server
                     id = id, 
                     loginTime = DateTime.UtcNow
                 };
-                return (await apiConn.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateUserLastLogin, Variables)).PasswordMustBeChanged;
+                return (await apiConn.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.AuthQueries.updateUserLastLogin, Variables)).PasswordMustBeChanged;
             }
             catch(Exception exeption)
             {
@@ -125,7 +126,7 @@ namespace FWO.Middleware.Server
             return true;
         }
 
-        public static async Task UpdateUserPasswordChanged(APIConnection apiConn, string userDn, bool passwordMustBeChanged = false)
+        public static async Task UpdateUserPasswordChanged(ApiConnection apiConn, string userDn, bool passwordMustBeChanged = false)
         {
             try
             {
@@ -135,7 +136,7 @@ namespace FWO.Middleware.Server
                     passwordMustBeChanged = passwordMustBeChanged,
                     changeTime = DateTime.UtcNow
                 };
-                await apiConn.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateUserPasswordChange, Variables);
+                await apiConn.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.AuthQueries.updateUserPasswordChange, Variables);
             }
             catch(Exception exeption)
             {

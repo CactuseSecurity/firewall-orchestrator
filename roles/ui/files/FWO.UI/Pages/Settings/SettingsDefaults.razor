@@ -1,11 +1,11 @@
-﻿@using FWO.ApiClient
+﻿@using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.Config.Api.Data
 
 @page "/settings/defaults"
 @attribute [Authorize(Roles = "admin, auditor")]
 
-@inject APIConnection apiConnection
+@inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 

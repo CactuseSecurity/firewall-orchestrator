@@ -1,8 +1,8 @@
 ﻿@using FWO.Config.Api
 @using FWO.Api.Data
-@using FWO.ApiClient
+@using FWO.Api.Client
 
-@inject APIConnection apiConnection
+@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 <PopUp Title="@(userConfig.GetText("rollback_import") + ": " + ManagementId)" Show="@RollbackMode" OnClose="() => RollbackMode = false">
@@ -80,7 +80,7 @@
             RollbackMode = false;
             workInProgress = false;
             var Variables = new { mgmId = ManagementId };
-            int affectedRows = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.deleteImport, Variables)).AffectedRows;
+            int affectedRows = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.deleteImport, Variables)).AffectedRows;
             if (affectedRows > 0)
             {
                 Log.WriteDebug("Delete Import", $"deleted {affectedRows} rows from Management Id {ManagementId}");

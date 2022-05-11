@@ -1,5 +1,5 @@
-using FWO.ApiClient;
-using FWO.ApiClient.Queries;
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Config.File;
 using FWO.Logging;
 using FWO.Middleware.Server;
@@ -14,17 +14,14 @@ ReportScheduler reportScheduler;
 AutoDiscoverScheduler autoDiscoverScheduler;
 DailyCheckScheduler dailyCheckScheduler;
 
-// Create new config file
-ConfigFile configFile = new ConfigFile();
-
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
-builder.WebHost.UseUrls(configFile.MiddlewareServerNativeUri ?? throw new Exception("Missing middleware server url on startup."));
+builder.WebHost.UseUrls(ConfigFile.MiddlewareServerNativeUri ?? throw new Exception("Missing middleware server url on startup."));
 
 // Create Token Generator
 JwtWriter jwtWriter = new JwtWriter(configFile.JwtPrivateKey);
 
 // Create JWT for middleware-server API calls (relevant part is the role middleware-server) and add it to the Api connection header. 
-APIConnection apiConnection = new APIConnection(configFile.ApiServerUri ?? throw new Exception("Missing api server url on startup."), jwtWriter.CreateJWTMiddlewareServer());
+ApiConnection apiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new Exception("Missing api server url on startup."), jwtWriter.CreateJWTMiddlewareServer());
 
 // Fetch all connectedLdaps via API (blocking).
 List<Ldap> connectedLdaps = new List<Ldap>();
@@ -75,10 +72,9 @@ builder.Services.AddControllers()
         jsonOptions.JsonSerializerOptions.PropertyNamingPolicy = null;
   });
 
-builder.Services.AddSingleton<string>(configFile.ApiServerUri);
 builder.Services.AddSingleton<JwtWriter>(jwtWriter);
 builder.Services.AddSingleton<List<Ldap>>(connectedLdaps);
-builder.Services.AddScoped<APIConnection>(_ => new APIConnection(configFile.ApiServerUri, jwtWriter.CreateJWTMiddlewareServer()));
+builder.Services.AddScoped<ApiConnection>(_ => new GraphQlApiConnection(ConfigFile.ApiServerUri, jwtWriter.CreateJWTMiddlewareServer()));
 
 builder.Services.AddAuthentication(confOptions =>
 {
@@ -95,7 +91,7 @@ builder.Services.AddAuthentication(confOptions =>
         ValidateIssuer = false,
         ValidateLifetime = true,
         RoleClaimType = "role",
-        IssuerSigningKey = configFile.JwtPublicKey
+        IssuerSigningKey = ConfigFile.JwtPublicKey
     };
 });
 builder.Services.AddSwaggerGen(c =>

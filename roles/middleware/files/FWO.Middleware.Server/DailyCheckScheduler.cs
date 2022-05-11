@@ -1,5 +1,5 @@
-﻿using FWO.ApiClient;
-using FWO.ApiClient.Queries;
+﻿using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
@@ -12,7 +12,7 @@ namespace FWO.Middleware.Server
 {
     public class DailyCheckScheduler
     {
-        private readonly APIConnection apiConnection;
+        private readonly ApiConnection apiConnection;
         private GlobalConfig globalConfig;
         private int DailyCheckSleepTime = 86400000; // 24 hours in milliseconds
 
@@ -21,13 +21,13 @@ namespace FWO.Middleware.Server
 
         private List<Alert> openAlerts = new List<Alert>();
 
-        public static async Task<DailyCheckScheduler> CreateAsync(APIConnection apiConnection)
+        public static async Task<DailyCheckScheduler> CreateAsync(ApiConnection apiConnection)
         {
             GlobalConfig config = await GlobalConfig.ConstructAsync(apiConnection, true);
             return new DailyCheckScheduler(apiConnection, config);
         }
 
-        private DailyCheckScheduler(APIConnection apiConnection, GlobalConfig globalConfig)
+        private DailyCheckScheduler(ApiConnection apiConnection, GlobalConfig globalConfig)
         {
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
@@ -98,7 +98,7 @@ namespace FWO.Middleware.Server
 
         private async Task CheckDemoData()
         {
-            List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails);
+            List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
             bool sampleManagementExisting = false;
             foreach (var management in managements)
             {
@@ -108,7 +108,7 @@ namespace FWO.Middleware.Server
                 }
             }
 
-            List<UiUser> users = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.ApiClient.Queries.AuthQueries.getUsers);
+            List<UiUser> users = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
             bool sampleUserExisting = false;
             foreach (var user in users)
             {
@@ -118,7 +118,7 @@ namespace FWO.Middleware.Server
                 }
             }
 
-            List<Tenant> tenants = await apiConnection.SendQueryAsync<List<Tenant>>(FWO.ApiClient.Queries.AuthQueries.getTenants);
+            List<Tenant> tenants = await apiConnection.SendQueryAsync<List<Tenant>>(FWO.Api.Client.Queries.AuthQueries.getTenants);
             bool sampleTenantExisting = false;
             foreach (var tenant in tenants)
             {
@@ -159,7 +159,7 @@ namespace FWO.Middleware.Server
 
         private async Task CheckImports()
         {
-            List<ImportStatus> importStati = await apiConnection.SendQueryAsync<List<ImportStatus>>(FWO.ApiClient.Queries.DeviceQueries.getImportStatus);
+            List<ImportStatus> importStati = await apiConnection.SendQueryAsync<List<ImportStatus>>(FWO.Api.Client.Queries.DeviceQueries.getImportStatus);
             int importIssues = 0;
             object jsonData;
             foreach(ImportStatus imp in importStati.Where(x => !x.ImportDisabled))

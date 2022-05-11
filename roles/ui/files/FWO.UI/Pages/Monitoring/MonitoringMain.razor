@@ -10,7 +10,7 @@
 @page "/monitoring/main"
 @attribute [Authorize(Roles = "admin, reporter, reporter-viewall, recertifier, workflow-user, workflow-admin, auditor, fw-admin")]
 
-@inject APIConnection apiConnection
+@inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 
@@ -134,7 +134,7 @@
  
     protected override async Task OnInitializedAsync()
     {
-        managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails);
+        managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
         await Refresh();
     }
 
@@ -221,7 +221,7 @@
         {
             RemoveSampleDataMode = false;
             workInProgress = true;
-            List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails);
+            List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
             int deletedSampleManagements = 0;
             foreach (var management in managements)
             {
@@ -234,7 +234,7 @@
                 }
             }
 
-            List<UiUser> users = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.ApiClient.Queries.AuthQueries.getUsers);
+            List<UiUser> users = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
             int deletedSampleUsers = 0;
             foreach (var user in users)
             {
@@ -247,7 +247,7 @@
                 }
             }
 
-            List<Tenant> tenants = await apiConnection.SendQueryAsync<List<Tenant>>(FWO.ApiClient.Queries.AuthQueries.getTenants);
+            List<Tenant> tenants = await apiConnection.SendQueryAsync<List<Tenant>>(FWO.Api.Client.Queries.AuthQueries.getTenants);
             int deletedSampleTenants = 0;
             foreach (var tenant in tenants)
             {
@@ -316,7 +316,7 @@
         try
         {
             var Variables = new { id = management.Id };
-            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.deleteManagement, Variables)).DeletedId;
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.deleteManagement, Variables)).DeletedId;
             if (delId == management.Id)
             {
                 return true;

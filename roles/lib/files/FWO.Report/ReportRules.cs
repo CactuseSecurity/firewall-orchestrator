@@ -1,8 +1,8 @@
 ﻿using FWO.Api.Data;
 using System.Text;
-using FWO.ApiClient;
+using FWO.Api.Client;
 using FWO.Report.Filter;
-using FWO.ApiClient.Queries;
+using FWO.Api.Client.Queries;
 using FWO.Ui.Display;
 using FWO.Logging;
 using FWO.Config.Api;
@@ -16,7 +16,7 @@ namespace FWO.Report
         private const byte all = 0, nobj = 1, nsrv = 2, user = 3;
         public bool GotReportedRuleIds { get; protected set; } = false;
 
-        public async Task GetReportedRuleIds(APIConnection apiConnection)
+        public async Task GetReportedRuleIds(ApiConnection apiConnection)
         {
             List<int> relevantDevIds = DeviceFilter.ExtractSelectedDevIds(Managements);
             if (relevantDevIds.Count == 0)
@@ -36,7 +36,7 @@ namespace FWO.Report
             GotReportedRuleIds = true;
         }
 
-        public override async Task<bool> GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback) // to be called when exporting
+        public override async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback) // to be called when exporting
         {
             // get rule ids per import (= management)
             if (!GotReportedRuleIds)
@@ -69,7 +69,7 @@ namespace FWO.Report
             return gotAllObjects;
         }
 
-        public override async Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, int maxFetchCycles, APIConnection apiConnection, Func<Management[], Task> callback)
+        public override async Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, int maxFetchCycles, ApiConnection apiConnection, Func<Management[], Task> callback)
         {
             if (!objQueryVariables.ContainsKey("mgmIds") || !objQueryVariables.ContainsKey("limit") || !objQueryVariables.ContainsKey("offset"))
                 throw new ArgumentException("Given objQueryVariables dictionary does not contain variable for management id, limit or offset");
@@ -130,7 +130,7 @@ namespace FWO.Report
             return fetchCount <= maxFetchCycles;
         }
 
-        public override async Task Generate(int rulesPerFetch, APIConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)
+        public override async Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)
         {
             Query.QueryVariables["limit"] = rulesPerFetch;
             Query.QueryVariables["offset"] = 0;

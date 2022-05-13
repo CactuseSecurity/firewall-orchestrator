@@ -599,7 +599,7 @@ Create index IF NOT EXISTS idx_view_rule_svc_resolved_sorted_obj_id on view_rule
 DROP MATERIALIZED VIEW IF EXISTS view_rule_user_resolved_sorted;
 
 CREATE MATERIALIZED VIEW view_rule_user_resolved_sorted AS
-	select r.rule_id, r.created, r.removed, u.* from rule_user_resolved r join user u on (r.user_id=u.user_id) order by mgm_id, user_name;
+	select r.rule_id, r.created, r.removed, u.* from rule_user_resolved r join usr u on (r.user_id=u.user_id) order by mgm_id, user_name;
 
 -- adding indexes for user view
 Create index IF NOT EXISTS idx_view_rule_user_resolved_sorted_mgm_id on view_rule_user_resolved_sorted (mgm_id);

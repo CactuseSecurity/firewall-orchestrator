@@ -12,6 +12,14 @@ $$;
 
 DO $$
 BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'task_type_enum') THEN
+    CREATE TYPE task_type_enum AS ENUM ('access', 'svc_group', 'obj_group', 'rule_modify');
+    END IF;
+END
+$$;
+
+DO $$
+BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'action_enum') THEN
     CREATE TYPE request.action_enum AS ENUM ('create', 'delete', 'modifiy');
     END IF;
@@ -26,52 +34,40 @@ BEGIN
 END
 $$;
 
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'task_type_enum') THEN
-    CREATE TYPE task_type_enum AS ENUM ('access', 'svc_group', 'obj_group', 'rule_modify');
-    END IF;
-END
-$$;
-
-
--- create table
+-- create tables
 create table if not exists request.task 
 (
     id SERIAL PRIMARY KEY,
     title VARCHAR,
     ticket_id int,
     task_number int,
-    state request.state_enum not null,
-    task_type task_type_enum,
-    request_action request.action_enum,
+    state request.state_enum NOT NULL,
+    task_type task_type_enum NOT NULL,
+    request_action request.action_enum NOT NULL,
     rule_action int,
     rule_tracking int,
     start Timestamp,
     stop Timestamp,
-    group_name VARCHAR,
     svc_grp_id int,
     nw_obj_grp_id int,
     reason text
 );
 
--- create table
 create table if not exists request.element 
 (
     id SERIAL PRIMARY KEY,
-    request_action request.action_enum default 'create',
+    request_action request.action_enum NOT NULL default 'create',
     task_id int,
     ip cidr,
     port int,
     proto int,
     network_object_id bigint,
     service_id bigint,
-    field rule_field_enum,
+    field rule_field_enum NOT NULL,
     user_id bigint,
     original_nat_id int
 );
 
--- create table
 create table if not exists request.approval 
 (
     id SERIAL PRIMARY KEY,
@@ -84,15 +80,15 @@ create table if not exists request.approval
     comment text
 );
 
--- create table
 create table if not exists request.ticket 
 (
     id SERIAL PRIMARY KEY,
-    title int,
+    title VARCHAR NOT NULL,
     date_created Timestamp NOT NULL default CURRENT_TIMESTAMP,
     date_completed Timestamp,
     state_id request.state_enum NOT NULL,
-    requester Varchar NOT NULL,
+    requester_id int,
+    requester_dn Varchar,
     requester_group Varchar,
     tenant_id int,
     reason text
@@ -103,7 +99,7 @@ create table if not exists owner
     id SERIAL PRIMARY KEY,
     name Varchar NOT NULL,
     dn Varchar NOT NULL,
-    group_dn Varchar,
+    group_dn Varchar NOT NULL,
     is_default boolean default false,
     tenant_id int,
     recert_interval interval
@@ -136,14 +132,14 @@ create table if not exists rule_owner
 create table if not exists implementation.element
 (
     id SERIAL PRIMARY KEY,
-    implementation_action request.action_enum,
+    implementation_action request.action_enum NOT NULL default 'create',
     implementation_task_id int,
     ip cidr,
     port int,
     ip_proto_id int,
     network_object_id bigint,
     service_id bigint,
-    field rule_field_enum,
+    field rule_field_enum NOT NULL,
     user_id bigint,
     original_nat_id int
 );
@@ -153,9 +149,9 @@ create table if not exists implementation.task
     id SERIAL PRIMARY KEY,
     request_task_id int,
     implementation_task_number int,
-    implementation_state request.state_enum default 'open',
+    implementation_state request.state_enum NOT NULL default 'open',
     device_id int,
-    implementation_action request.action_enum,
+    implementation_action request.action_enum NOT NULL,
     rule_action int,
     rule_tracking int,
     start timestamp,
@@ -179,15 +175,18 @@ ALTER TABLE request.element DROP CONSTRAINT IF EXISTS request_element_request_ta
 ALTER TABLE request.element DROP CONSTRAINT IF EXISTS request_element_service_foreign_key;
 ALTER TABLE request.element DROP CONSTRAINT IF EXISTS request_element_object_foreign_key;
 ALTER TABLE request.element DROP CONSTRAINT IF EXISTS request_element_request_element_foreign_key;
+ALTER TABLE request.element DROP CONSTRAINT IF EXISTS request_element_usr_foreign_key;
 --- request.approval ---
 ALTER TABLE request.approval DROP CONSTRAINT IF EXISTS request_approval_request_task_foreign_key;
 ALTER TABLE request.approval DROP CONSTRAINT IF EXISTS request_approval_tenant_foreign_key;
 --- request.ticket ---
 ALTER TABLE request.ticket DROP CONSTRAINT IF EXISTS request_ticket_tenant_foreign_key;
+ALTER TABLE request.ticket DROP CONSTRAINT IF EXISTS request_ticket_uiuser_foreign_key;
 --- owner ---
 ALTER TABLE owner DROP CONSTRAINT IF EXISTS owner_tenant_foreign_key;
 --- owner_network ---
 ALTER TABLE owner_network DROP CONSTRAINT IF EXISTS owner_network_proto_foreign_key;
+ALTER TABLE owner_network DROP CONSTRAINT IF EXISTS owner_network_owner_foreign_key;
 --- rule_owner ---
 ALTER TABLE rule_owner DROP CONSTRAINT IF EXISTS rule_owner_rule_metadata_foreign_key;
 ALTER TABLE rule_owner DROP CONSTRAINT IF EXISTS rule_owner_owner_foreign_key;
@@ -199,6 +198,8 @@ ALTER TABLE implementation.element DROP CONSTRAINT IF EXISTS implementation_elem
 ALTER TABLE implementation.element DROP CONSTRAINT IF EXISTS implementation_element_service_foreign_key;
 ALTER TABLE implementation.element DROP CONSTRAINT IF EXISTS implementation_element_object_foreign_key;
 ALTER TABLE implementation.element DROP CONSTRAINT IF EXISTS implementation_element_proto_foreign_key;
+ALTER TABLE implementation.element DROP CONSTRAINT IF EXISTS implementation_element_implementation_task_foreign_key;
+ALTER TABLE implementation.element DROP CONSTRAINT IF EXISTS implementation_element_usr_foreign_key;
 --- implementation.task
 ALTER TABLE implementation.task DROP CONSTRAINT IF EXISTS implementation_task_request_task_foreign_key;
 ALTER TABLE implementation.task DROP CONSTRAINT IF EXISTS implementation_task_device_foreign_key;
@@ -220,16 +221,18 @@ ALTER TABLE request.element ADD CONSTRAINT request_element_request_task_foreign_
 ALTER TABLE request.element ADD CONSTRAINT request_element_service_foreign_key FOREIGN KEY (service_id) REFERENCES service(svc_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.element ADD CONSTRAINT request_element_object_foreign_key FOREIGN KEY (network_object_id) REFERENCES object(obj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.element ADD CONSTRAINT request_element_request_element_foreign_key FOREIGN KEY (original_nat_id) REFERENCES request.element(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-
+ALTER TABLE request.element ADD CONSTRAINT request_element_usr_foreign_key FOREIGN KEY (user_id) REFERENCES usr(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- request.approval ---
 ALTER TABLE request.approval ADD CONSTRAINT request_approval_request_task_foreign_key FOREIGN KEY (task_id) REFERENCES request.task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.approval ADD CONSTRAINT request_approval_tenant_foreign_key FOREIGN KEY (tenant_id) REFERENCES tenant(tenant_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- request.ticket ---
 ALTER TABLE request.ticket ADD CONSTRAINT request_ticket_tenant_foreign_key FOREIGN KEY (tenant_id) REFERENCES tenant(tenant_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.ticket ADD CONSTRAINT request_ticket_uiuser_foreign_key FOREIGN KEY (requester_id) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- owner ---
 ALTER TABLE owner ADD CONSTRAINT owner_tenant_foreign_key FOREIGN KEY (tenant_id) REFERENCES tenant(tenant_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- owner_network ---
 ALTER TABLE owner_network ADD CONSTRAINT owner_network_proto_foreign_key FOREIGN KEY (ip_proto_id) REFERENCES stm_ip_proto(ip_proto_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE owner_network ADD CONSTRAINT owner_network_owner_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- rule_owner ---
 ALTER TABLE rule_owner ADD CONSTRAINT rule_owner_rule_metadata_foreign_key FOREIGN KEY (rule_metadata_id) REFERENCES rule_metadata(rule_metadata_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE rule_owner ADD CONSTRAINT rule_owner_owner_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
@@ -241,6 +244,8 @@ ALTER TABLE implementation.element ADD CONSTRAINT implementation_element_impleme
 ALTER TABLE implementation.element ADD CONSTRAINT implementation_element_service_foreign_key FOREIGN KEY (service_id) REFERENCES service(svc_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE implementation.element ADD CONSTRAINT implementation_element_object_foreign_key FOREIGN KEY (network_object_id) REFERENCES object(obj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE implementation.element ADD CONSTRAINT implementation_element_proto_foreign_key FOREIGN KEY (ip_proto_id) REFERENCES stm_ip_proto(ip_proto_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE implementation.element ADD CONSTRAINT implementation_element_implementation_task_foreign_key FOREIGN KEY (implementation_task_id) REFERENCES implementation.task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE implementation.element ADD CONSTRAINT implementation_element_usr_foreign_key FOREIGN KEY (user_id) REFERENCES usr(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- implementation.task
 ALTER TABLE implementation.task ADD CONSTRAINT implementation_task_request_task_foreign_key FOREIGN KEY (request_task_id) REFERENCES request.task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE implementation.task ADD CONSTRAINT implementation_task_device_foreign_key FOREIGN KEY (device_id) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;
@@ -268,4 +273,3 @@ ALTER TABLE owner_network ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and
 ALTER TABLE request.element ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
 --- implementation.element ---
 ALTER TABLE implementation.element ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
-

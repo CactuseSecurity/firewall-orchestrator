@@ -16,10 +16,8 @@ Alter Table "usr" add Constraint "usr_altkey" UNIQUE ("mgm_id","user_name","user
 Alter Table "zone" add Constraint "Alter_Key10" UNIQUE ("mgm_id","zone_name");
 
 --- owner_network ---
-ALTER TABLE owner_network ADD CONSTRAINT port_in_valid_range CHECK port > 0 and port <= 65535;
-
+ALTER TABLE owner_network ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
 --- request.element ---
-ALTER TABLE request.element ADD CONSTRAINT port_in_valid_range CHECK port > 0 and port <= 65535;
-
+ALTER TABLE request.element ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
 --- implementation.element ---
-ALTER TABLE implementation.element ADD CONSTRAINT port_in_valid_range CHECK port > 0 and port <= 65535;
+ALTER TABLE implementation.element ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);

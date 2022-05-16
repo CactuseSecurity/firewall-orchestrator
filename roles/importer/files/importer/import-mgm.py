@@ -34,6 +34,8 @@ if len(sys.argv) == 1:
     parser.print_help(sys.stderr)
     sys.exit(1)
 
+if args.suppress_certificate_warnings:
+    requests.packages.urllib3.disable_warnings()
 logger = fwo_log.getFwoLogger(debug_level=args.debug)
 
 try:

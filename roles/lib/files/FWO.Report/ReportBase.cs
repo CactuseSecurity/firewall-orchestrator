@@ -1,5 +1,5 @@
-﻿using FWO.ApiClient;
-using FWO.ApiClient.Queries;
+﻿using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Api.Data;
 using FWO.Report.Filter;
 using FWO.Config.Api;
@@ -65,13 +65,13 @@ namespace FWO.Report
             ReportType = reportType;
         }
 
-        public abstract Task Generate(int rulesPerFetch, APIConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct);
+        public abstract Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct);
 
         public bool GotObjectsInReport { get; protected set; } = false;
 
-        public abstract Task<bool> GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback); // to be called when exporting
+        public abstract Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback); // to be called when exporting
 
-        public abstract Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, int maxFetchCycles, APIConnection apiConnection, Func<Management[], Task> callback);
+        public abstract Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, int maxFetchCycles, ApiConnection apiConnection, Func<Management[], Task> callback);
 
         public abstract string ExportToCsv();
 
@@ -106,7 +106,7 @@ namespace FWO.Report
             return htmlExport;
         }
 
-        public virtual byte[] ToPdf()
+        public virtual byte[] ToPdf(PaperKind paperKind)
         {
             // HTML
             if (string.IsNullOrEmpty(htmlExport))
@@ -116,7 +116,7 @@ namespace FWO.Report
             {
                 ColorMode = ColorMode.Color,
                 Orientation = Orientation.Landscape,
-                PaperSize = PaperKind.A4
+                PaperSize = paperKind
             };
 
             HtmlToPdfDocument doc = new HtmlToPdfDocument()
@@ -165,7 +165,7 @@ namespace FWO.Report
             };
         }
 
-        public async Task<Management[]> getRelevantImportIds(APIConnection apiConnection)
+        public async Task<Management[]> getRelevantImportIds(ApiConnection apiConnection)
         {
             Dictionary<string, object> ImpIdQueryVariables = new Dictionary<string, object>();
             ImpIdQueryVariables["time"] = (Query.ReportTimeString != "" ? Query.ReportTimeString : DateTime.Now.ToString(DynGraphqlQuery.fullTimeFormat));

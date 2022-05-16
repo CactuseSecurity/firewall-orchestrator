@@ -10,11 +10,10 @@ namespace FWO.Middleware.Server
     public class JwtWriter
     {
         private readonly RsaSecurityKey jwtPrivateKey;
-        private readonly int JwtMinutesValid;
+        private int JwtMinutesValid;
 
-        public JwtWriter(RsaSecurityKey jwtPrivateKey, int JwtMinutesValid)
+        public JwtWriter(RsaSecurityKey jwtPrivateKey)
         {
-            this.JwtMinutesValid = JwtMinutesValid;
             this.jwtPrivateKey = jwtPrivateKey;
             JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
         }
@@ -28,9 +27,11 @@ namespace FWO.Middleware.Server
 
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
 
+            UiUserHandler uiUserHandler = new UiUserHandler(CreateJWTMiddlewareServer());
+            JwtMinutesValid = await uiUserHandler.GetExpirationTime();
             ClaimsIdentity subject;
             if (user != null)
-                subject = GetClaims(await UiUserHandler.HandleUiUserAtLogin(user, CreateJWTMiddlewareServer()));
+                subject = GetClaims(await uiUserHandler.HandleUiUserAtLogin(user));
             else
                 subject = GetClaims(new UiUser() { Name = "", Password = "", Dn = "anonymous", Roles = new List<string> { "anonymous" } });
             // adding uiuser.uiuser_id as x-hasura-user-id to JWT

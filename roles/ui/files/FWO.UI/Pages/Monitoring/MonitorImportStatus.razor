@@ -1,12 +1,12 @@
 ﻿@using BlazorTable
 @using FWO.Api.Data
-@using FWO.ApiClient
+@using FWO.Api.Client
 @using FWO.Config.Api
 
 @page "/monitoring/import_status"
 @attribute [Authorize(Roles = "admin, importer, auditor, fw-admin")]
 
-@inject APIConnection apiConnection
+@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 <h3>@(userConfig.GetText("import_status"))</h3>
@@ -103,7 +103,7 @@
     {
         try
         {
-            importStati = await apiConnection.SendQueryAsync<List<ImportStatus>>(FWO.ApiClient.Queries.DeviceQueries.getImportStatus);
+            importStati = await apiConnection.SendQueryAsync<List<ImportStatus>>(FWO.Api.Client.Queries.DeviceQueries.getImportStatus);
             countErrors();
             setSortPrio();
             sortedImportStati = importStati.OrderByDescending(stat=>stat.SortPrio).ToList();

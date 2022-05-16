@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using System.IO;
 using FWO.Logging;
 
-namespace FWO.ApiClient.Queries
+namespace FWO.Api.Client.Queries
 {
     public class ReportQueries : Queries
     {

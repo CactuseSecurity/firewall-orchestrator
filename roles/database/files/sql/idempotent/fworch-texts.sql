@@ -95,8 +95,10 @@ INSERT INTO txt VALUES ('logout', 				'German',	'Abmelden');
 INSERT INTO txt VALUES ('logout', 				'English',	'Logout');
 INSERT INTO txt VALUES ('documentation', 		'German',	'Dokumentation');
 INSERT INTO txt VALUES ('documentation', 		'English',	'Documentation');
-INSERT INTO txt VALUES ('request', 				'German',	'Antrag');
-INSERT INTO txt VALUES ('request', 				'English',	'Request');
+INSERT INTO txt VALUES ('requests', 			'German',	'Antr&auml;ge');
+INSERT INTO txt VALUES ('requests', 			'English',	'Requests');
+INSERT INTO txt VALUES ('approvals', 			'German',	'Genehmigungen');
+INSERT INTO txt VALUES ('approvals', 			'English',	'Approvals');
 INSERT INTO txt VALUES ('scheduling', 			'German',	'Scheduling');
 INSERT INTO txt VALUES ('scheduling', 			'English',	'Scheduling');
 INSERT INTO txt VALUES ('archive', 				'German',	'Archiv');
@@ -496,6 +498,18 @@ INSERT INTO txt VALUES ('fetch_report',		    'English', 	'Fetch downloads of gen
 INSERT INTO txt VALUES ('delete_report',		'German', 	'Erstellten Report l&ouml;schen');
 INSERT INTO txt VALUES ('delete_report',		'English', 	'Delete generated report');
 
+-- requests
+INSERT INTO txt VALUES ('add_new_request',      'German', 	'Neuen Antrag hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_new_request',      'English', 	'Add new request');
+INSERT INTO txt VALUES ('fetch_requests',       'German', 	'Antr&auml;ge holen');
+INSERT INTO txt VALUES ('fetch_requests',       'English', 	'Fetch requests');
+INSERT INTO txt VALUES ('save_request',         'German', 	'Antrag speichern');
+INSERT INTO txt VALUES ('save_request',         'English', 	'Save request');
+INSERT INTO txt VALUES ('edit_request',         'German', 	'Antrag bearbeiten');
+INSERT INTO txt VALUES ('edit_request',         'English', 	'Edit request');
+INSERT INTO txt VALUES ('state',                'German', 	'Status');
+INSERT INTO txt VALUES ('state',                'English', 	'State');
+
 -- recertification
 INSERT INTO txt VALUES ('recertify',		    'German', 	'Rezertifizieren');
 INSERT INTO txt VALUES ('recertify',		    'English', 	'Recertify');
@@ -755,6 +769,10 @@ INSERT INTO txt VALUES ('autoFillRightSidebar', 'German', 	'Komplettes F&uuml;ll
 INSERT INTO txt VALUES ('autoFillRightSidebar', 'English', 	'Completely auto-fill right sidebar');
 INSERT INTO txt VALUES ('minCollapseAllDevices','German', 	'Devices zu Beginn eingeklappt ab');
 INSERT INTO txt VALUES ('minCollapseAllDevices','English', 	'Devices collapsed at beginning from');
+INSERT INTO txt VALUES ('sessionTimeout',       'German', 	'Sitzungs-Timeout (in Minuten)');
+INSERT INTO txt VALUES ('sessionTimeout',       'English', 	'Session timeout (in minutes)');
+INSERT INTO txt VALUES ('maxMessages',          'German', 	'Max Anzahl Nachrichten');
+INSERT INTO txt VALUES ('maxMessages',          'English', 	'Max number of messages');
 INSERT INTO txt VALUES ('messageViewTime',      'German', 	'Nachrichten-Anzeigedauer (in Sekunden)');
 INSERT INTO txt VALUES ('messageViewTime',      'English', 	'Message view time (in seconds)');
 INSERT INTO txt VALUES ('dataRetentionTime',    'German', 	'Datenaufbewahrungszeit (in Tagen)');
@@ -1098,6 +1116,7 @@ INSERT INTO txt VALUES ('architecture',         'English',  'Firewall Orchestrat
 --            5400-5499: personal settings
 -- 6000-6999: API
 -- 7000-7999: Monitoring
+-- 8000-8999: Request
 
 -- user messages
 INSERT INTO txt VALUES ('U0001', 'German',  'Eingabetext wurde um nicht erlaubte Zeichen gek&uuml;rzt');
@@ -1431,6 +1450,9 @@ INSERT INTO txt VALUES ('E7012', 'German',  'Kein Import f&uuml;r aktives Manage
 INSERT INTO txt VALUES ('E7012', 'English', 'No Import for active management');
 INSERT INTO txt VALUES ('E7013', 'German',  'Letzter erfolgreicher Import zu lange her');
 INSERT INTO txt VALUES ('E7013', 'English', 'Last successful import too long ago');
+
+INSERT INTO txt VALUES ('E8001', 'German',  'Antrag konnte nicht angelegt werden');
+INSERT INTO txt VALUES ('E8001', 'English', 'Request could not be created');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');

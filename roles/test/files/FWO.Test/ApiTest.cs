@@ -1,6 +1,6 @@
 using System;
 using System.Threading.Tasks;
-using FWO.ApiClient;
+using FWO.Api.Client;
 using NUnit.Framework;
 using FWO.Api.Data;
 using FWO.Config.File;
@@ -14,7 +14,7 @@ namespace FWO.Test.Api
     [TestFixture]
     public class ApiTest
     {
-        APIConnection apiConnection;
+        ApiConnection apiConnection;
 
         public ApiTest()
         {

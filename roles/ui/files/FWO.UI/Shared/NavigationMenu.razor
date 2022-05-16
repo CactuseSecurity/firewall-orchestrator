@@ -17,21 +17,23 @@
 
     <div class="navbar-collapse @NavMenuCollapseClass">
         <ul class="navbar-nav mr-auto">
-            <li class="nav-item px-2">
-                <NavLink class="nav-link" href="/report">
-                    <span class="oi oi-spreadsheet"></span> @(userConfig.GetText("reporting"))
-                </NavLink>
-            </li>
-            <li class="nav-item px-2">
-                <NavLink class="nav-link" href="/schedule">
-                    <span class="oi oi-calendar"></span> @(userConfig.GetText("scheduling"))
-                </NavLink>
-            </li>
-            <li class="nav-item px-2">
-                <NavLink class="nav-link" href="/archive">
-                    <span class="oi oi-box"></span> @(userConfig.GetText("archive"))
-                </NavLink>
-            </li>
+            <AuthorizeView Roles="admin, fw-admin, reporter, reporter-viewall, auditor">
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="/report">
+                        <span class="oi oi-spreadsheet"></span> @(userConfig.GetText("reporting"))
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="/schedule">
+                        <span class="oi oi-calendar"></span> @(userConfig.GetText("scheduling"))
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="/archive">
+                        <span class="oi oi-box"></span> @(userConfig.GetText("archive"))
+                    </NavLink>
+                </li>
+            </AuthorizeView>
             <AuthorizeView Roles="admin, recertifier, auditor">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="/certification">
@@ -43,11 +45,6 @@
             <NavLink class="nav-link" href="#">
                 <span class="oi oi-book"></span> @(userConfig.GetText("documentation"))
             </NavLink>
-            </li>
-            <li class="nav-item px-2">
-                <NavLink class="nav-link" href="#">
-                    <span class="oi oi-comment-square"></span> @(userConfig.GetText("request"))
-                </NavLink>
             </li> *@
         </ul>
 
@@ -69,18 +66,13 @@
                 </NavLink>
             </li>
             <li class="nav-item px-2">
-                <NavLink class="nav-link" href="/settings/language">
-                    <span class="oi oi-person"></span> @(userConfig.User.Name.ToUpper())
-                </NavLink>
-            </li>
-            <li class="nav-item px-2">
                 <NavLink class="nav-link" @onclick="@(async () => await jsRuntime.InvokeAsync<object>("newWindow", args: $"/help/?lang={userConfig.GetUserLanguage()}"))">
                     <span class="oi oi-info"></span> @(userConfig.GetText("help"))
                 </NavLink>
             </li>
             <li class="nav-item px-2">
-                <NavLink class="nav-link" href="/logout">
-                    <span class="oi oi-account-logout"></span> @(userConfig.GetText("logout"))
+                <NavLink class="nav-link" href="/settings/user">
+                    <span class="oi oi-person"></span> @(userConfig.User.Name.ToUpper())
                 </NavLink>
             </li>
         </ul>

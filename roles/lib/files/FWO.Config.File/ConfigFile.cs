@@ -36,8 +36,8 @@ namespace FWO.Config.File
         //private readonly APIConnection apiConnection;
 
 
-        private RsaSecurityKey? jwtPrivateKey = null;
-        public RsaSecurityKey JwtPrivateKey
+        private static RsaSecurityKey? jwtPrivateKey = null;
+        public static RsaSecurityKey JwtPrivateKey
         {
             get
             {
@@ -46,8 +46,8 @@ namespace FWO.Config.File
             }
         }
 
-        private RsaSecurityKey? jwtPublicKey = null;
-        public RsaSecurityKey JwtPublicKey
+        private static RsaSecurityKey? jwtPublicKey = null;
+        public static RsaSecurityKey JwtPublicKey
         {
             get
             {
@@ -56,8 +56,8 @@ namespace FWO.Config.File
             }
         }
 
-        private string? apiServerUri = null;
-        public string ApiServerUri
+        private static string? apiServerUri = null;
+        public static string ApiServerUri
         {
             get
             {
@@ -66,8 +66,8 @@ namespace FWO.Config.File
             }
         }
 
-        private string? middlewareServerNativeUri = null;
-        public string MiddlewareServerNativeUri
+        private static string? middlewareServerNativeUri = null;
+        public static string MiddlewareServerNativeUri
         {
             get
             {
@@ -76,8 +76,8 @@ namespace FWO.Config.File
             }
         }
 
-        private string? middlewareServerUri = null;
-        public string MiddlewareServerUri
+        private static string? middlewareServerUri = null;
+        public static string MiddlewareServerUri
         {
             get
             {
@@ -86,8 +86,8 @@ namespace FWO.Config.File
             }
         }
 
-        private string? productVersion = null;
-        public string ProductVersion
+        private static string? productVersion = null;
+        public static string ProductVersion
         {
             get
             {
@@ -96,7 +96,7 @@ namespace FWO.Config.File
             }
         }
 
-        private Dictionary<string,string> customSettings = new Dictionary<string,string>();
+        private static Dictionary<string,string> customSettings = new Dictionary<string,string>();
         public Dictionary<string,string> CustomSettings
         {
             get
@@ -105,7 +105,7 @@ namespace FWO.Config.File
             }
         }
 
-        public ConfigFile()
+        static ConfigFile()
         {
             try
             {              
@@ -160,7 +160,7 @@ namespace FWO.Config.File
             return customSettings;
         }
 
-        public bool ConfigFileCreate(string relativePath, string fileContent = "")
+        public static bool ConfigFileCreate(string relativePath, string fileContent = "")
         {
             try{
                 System.IO.File.WriteAllText(basePath + relativePath, fileContent);
@@ -173,7 +173,7 @@ namespace FWO.Config.File
             return true;
         }
 
-        private ConfigValueType CriticalConfigValueLoaded<ConfigValueType>(ConfigValueType? configValue)
+        private static ConfigValueType CriticalConfigValueLoaded<ConfigValueType>(ConfigValueType? configValue)
         {
             if (configValue == null)
             {
@@ -187,7 +187,7 @@ namespace FWO.Config.File
             }
         }
         
-        private void IgnoreExceptions(Action method)
+        private static void IgnoreExceptions(Action method)
         {
             try { method(); } catch (Exception e){ Log.WriteDebug("Config value", $"Config value could not be loaded. Error: {e.Message}"); }
         }

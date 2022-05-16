@@ -1,7 +1,7 @@
 @using BlazorTable
 @using System.Net
 @using FWO.Api.Data
-@using FWO.ApiClient
+@using FWO.Api.Client
 @using FWO.Middleware.Client
 @using FWO.Config.Api
 @using FWO.Middleware.RequestParameters
@@ -11,7 +11,7 @@
 @page "/settings/users"
 @attribute [Authorize(Roles = "admin, auditor")]
 
-@inject APIConnection apiConnection
+@inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 @inject GlobalConfig globalConfig
@@ -344,12 +344,12 @@
     {
         try
         {
-            connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections);
+            connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(FWO.Api.Client.Queries.AuthQueries.getLdapConnections);
             writableLdaps = connectedLdaps.FindAll(x => x.IsWritable());
             internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal()) ?? throw new Exception(userConfig.GetText("E5207"));
 
             // Get the tenants
-            tenants = await apiConnection.SendQueryAsync<List<Tenant>>(FWO.ApiClient.Queries.AuthQueries.getTenants);
+            tenants = await apiConnection.SendQueryAsync<List<Tenant>>(FWO.Api.Client.Queries.AuthQueries.getTenants);
 
             // Get users from uiusers table
             RestResponse<List<UserGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetUsers();
@@ -602,7 +602,7 @@
                 id = user.DbId,
                 email = user.Email
             };
-            await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateUserEmail, Variables);
+            await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.AuthQueries.updateUserEmail, Variables);
         }
         catch (Exception exception)
         {
@@ -629,7 +629,7 @@
                 passwordMustBeChanged = user.PasswordMustBeChanged,
                 ldapConnectionId = user.LdapConnection.Id
             };
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addUser, Variables)).ReturnIds;
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.AuthQueries.addUser, Variables)).ReturnIds;
             if(returnIds != null)
             {
                 user.DbId = returnIds[0].NewId;
@@ -948,7 +948,7 @@
         try
         {
             var Variables = new { id = user.DbId };
-            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.deleteUser, Variables)).DeletedId;
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.AuthQueries.deleteUser, Variables)).DeletedId;
             if (delId == user.DbId)
             {
                 uiUsers.Remove(user);

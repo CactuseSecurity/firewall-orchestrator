@@ -37,6 +37,15 @@ namespace FWO.Config.Api.Data
         [JsonProperty("importSleepTime"), JsonPropertyName("importSleepTime")]
         public int ImportSleepTime { get; set; } = 40;
 
+        [JsonProperty("importCheckCertificates"), JsonPropertyName("importCheckCertificates")]
+        public bool ImportCheckCertificates { get; set; } = false;
+
+        [JsonProperty("importSuppressCertificateWarnings"), JsonPropertyName("importSuppressCertificateWarnings")]
+        public bool ImportSuppressCertificateWarnings { get; set; } = true;
+
+        [JsonProperty("importFwProxy"), JsonPropertyName("importFwProxy")]
+        public string ImportFwProxy { get; set; } = "";
+
         [JsonProperty("autoDiscoverSleepTime"), JsonPropertyName("autoDiscoverSleepTime")]
         public int AutoDiscoverSleepTime { get; set; } = 24;
 

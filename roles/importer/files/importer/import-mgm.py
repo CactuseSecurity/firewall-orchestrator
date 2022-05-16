@@ -1,8 +1,11 @@
 #!/usr/bin/python3
-import sys, fwo_log, traceback
+import sys, traceback
+import fwo_api, fwo_log
 import argparse
+import requests
 from common import importer_base_dir, import_management
 sys.path.append(importer_base_dir)
+
 
 parser = argparse.ArgumentParser(
     description='Read configuration from FW management via API calls')
@@ -17,8 +20,10 @@ parser.add_argument('-d', '--debug', metavar='debug_level', default='0',
                         'config files are saved to $FWORCH/tmp/import dir')
 parser.add_argument('-x', '--proxy', metavar='proxy_string',
                     help='proxy server string to use, e.g. http://1.2.3.4:8080')
-parser.add_argument('-s', '--ssl', metavar='ssl_verification_mode', default='',
-                    help='[ca]certfile, if value not set, ssl check is off"; default=empty/off')
+parser.add_argument('-v', "--verify_certificates", action='store_true', default = False, 
+                    help = "verify certificates, default=False")
+parser.add_argument('-s', "--suppress_certificate_warnings", action='store_true', default = False, 
+                    help = "suppress certificate warnings, default=False")
 parser.add_argument('-l', '--limit', metavar='api_limit', default='150',
                     help='The maximal number of returned results per HTTPS Connection; default=150')
 parser.add_argument('-i', '--in_file', metavar='config_file_input',
@@ -29,12 +34,14 @@ if len(sys.argv) == 1:
     parser.print_help(sys.stderr)
     sys.exit(1)
 
+if args.suppress_certificate_warnings:
+    requests.packages.urllib3.disable_warnings()
 logger = fwo_log.getFwoLogger(debug_level=args.debug)
 
 try:
     error_count = import_management(
-        mgm_id=args.mgm_id, in_file=args.in_file, debug_level=args.debug, ssl=args.ssl, proxy=args.proxy, \
-        force=args.force, limit=args.limit, clearManagementData=args.clear)
+        mgm_id=args.mgm_id, in_file=args.in_file, debug_level=args.debug, ssl_verification=args.verify_certificates, proxy=args.proxy, \
+        force=args.force, limit=args.limit, clearManagementData=args.clear, suppress_cert_warnings=args.suppress_certificate_warnings)
 except:
     logger.error("import-mgm - error while importing mgm_id=" + str(args.mgm_id) + ": " + str(traceback.format_exc()))
     error_count = 1

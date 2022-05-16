@@ -91,6 +91,24 @@
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
+        <label for="importCheckCertificates" class="col-form-label col-sm-4">@(userConfig.GetText("importCheckCertificates")):</label>
+        <div class="col-sm-2">
+            <input id="importCheckCertificates" type="checkbox" class="w-100" @bind="configData!.ImportCheckCertificates" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="importSuppressCertificateWarnings" class="col-form-label col-sm-4">@(userConfig.GetText("importSuppressCertificateWarnings")):</label>
+        <div class="col-sm-2">
+            <input id="importSuppressCertificateWarnings" type="checkbox" class="w-100" @bind="configData!.ImportSuppressCertificateWarnings" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="importFwProxy" class="col-form-label col-sm-4">@(userConfig.GetText("importFwProxy")):</label>
+        <div class="col-sm-2">
+            <input id="importFwProxy" type="text" class="form-control form-control-sm w-100" @bind="configData!.ImportFwProxy" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
         <label for="fwApiElementsPerFetch" class="col-form-label col-sm-4">@(userConfig.GetText("fwApiElementsPerFetch")):</label>
         <div class="col-sm-2">
             <input id="fwApiElementsPerFetch" type="number" class="form-control form-control-sm w-100" @bind="configData!.FwApiElementsPerFetch" />

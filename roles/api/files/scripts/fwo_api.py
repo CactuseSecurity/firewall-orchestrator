@@ -8,8 +8,6 @@ import sys
 base_dir = "/usr/local/fworch"
 sys.path.append(base_dir + '/importer')
 
-requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
-
 details_level = "full"    # 'standard'
 use_object_dictionary = 'false'
 
@@ -41,7 +39,7 @@ def call(url, jwt, query, query_variables="", role="reporter", ssl_verification=
     return r.json()
 
 
-def login(user, password, user_management_api_base_url, method, ssl_verification=False, proxy_string='', debug=0):
+def login(user, password, user_management_api_base_url, method, ssl_verification=fwo_api_verify_certs, proxy_string='', debug=0):
     payload = {"Username": user, "Password": password}
     request_headers = {'Content-Type': 'application/json'}
 
@@ -62,11 +60,6 @@ def login(user, password, user_management_api_base_url, method, ssl_verification
                         ", api_url: " + str(user_management_api_base_url) + ", payload: " + str(payload) +
                         ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy_string))
         sys.exit(1)
-
-
-
-def get_api_url(sid, api_host, api_port, user, base_url, limit, test_version, ssl_verification, proxy_string):
-    return base_url + '/jsonrpc'
 
 
 def set_api_url(base_url, testmode, api_supported, hostname):

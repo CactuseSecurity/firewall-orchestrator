@@ -34,7 +34,7 @@ else:
 
 proxy_string = { "http"  : args.proxy, "https" : args.proxy }
 details_level="full"    # 'standard'
-ssl_verification=False
+ssl_verification=True
 use_object_dictionary='false'
 
 # show package name "New_Standard_Package_1" --format json

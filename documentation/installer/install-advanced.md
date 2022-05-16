@@ -39,6 +39,7 @@ use the following syntax for authenticated proxy access:
 
 Note that the following domains must be reachable through the proxy:
 
+    cactus.de (only for downloading test data, not needed if run with "--skip-tags test")
     ubuntu.com
     canonical.com
     github.com

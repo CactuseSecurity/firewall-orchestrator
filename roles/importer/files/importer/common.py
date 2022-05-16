@@ -103,7 +103,7 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level=0, proxy=N
         importer_pwd = file.read().replace('\n', '')
     try:
         jwt = fwo_api.login(importer_user_name, importer_pwd, user_management_api_base_url,
-                                ssl_verification=ssl_verification, proxy=proxy)
+                                ssl_verification=False, proxy=proxy)
     except FwoApiLoginFailed as e:
         logger.error(e.message)
         return e.message

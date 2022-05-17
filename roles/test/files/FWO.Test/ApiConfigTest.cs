@@ -1,4 +1,6 @@
-﻿using NUnit.Framework;
+﻿using FWO.Api.Client;
+using FWO.Config.Api;
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,15 +27,16 @@ namespace FWO.Test
         }
 
         [Test]
-        public void ReadUserConfig()
+        public async Task ReadGlobalConfig()
         {
-
+            //ApiConnection apiConnection = new GraphQlApiConnection("");
+            //GlobalConfig globalConfig = await GlobalConfig.ConstructAsync();
         }
 
         [Test]
-        public void ReadGlobalConfig()
+        public void ReadUserConfig()
         {
-
+            //UserConfig userConfig = new UserConfig()
         }
 
         [Test]

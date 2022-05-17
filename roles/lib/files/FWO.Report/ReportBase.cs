@@ -47,8 +47,8 @@ namespace FWO.Report
     </body>
 </html>");
 
-        public Management[] Managements = new Management[]{};
-        
+        public Management[] Managements = new Management[] { };
+
         public readonly DynGraphqlQuery Query;
         protected UserConfig userConfig;
         public ReportType ReportType;
@@ -106,7 +106,7 @@ namespace FWO.Report
             return htmlExport;
         }
 
-        public virtual byte[] ToPdf(PaperKind paperKind)
+        public virtual byte[] ToPdf(PaperKind paperKind, int width = -1, int height = -1)
         {
             // HTML
             if (string.IsNullOrEmpty(htmlExport))
@@ -116,8 +116,23 @@ namespace FWO.Report
             {
                 ColorMode = ColorMode.Color,
                 Orientation = Orientation.Landscape,
-                PaperSize = paperKind
             };
+
+            if (paperKind == PaperKind.Custom)
+            {
+                if (width > 0 && height > 0)
+                {
+                    globalSettings.PaperSize = new PechkinPaperSize(width + "mm", height + "mm");
+                }
+                else
+                {
+                    throw new Exception("Custom paper size: width or height <= 0");
+                }
+            }
+            else
+            {
+                globalSettings.PaperSize = paperKind;
+            }
 
             HtmlToPdfDocument doc = new HtmlToPdfDocument()
             {
@@ -135,26 +150,12 @@ namespace FWO.Report
             };
 
             return converter.Convert(doc);
-
-            //// CONFIG
-            //PdfGenerateConfig config = new PdfGenerateConfig();
-            //config.PageOrientation = PageOrientation.Landscape;
-            //config.SetMargins(20);
-            //config.PageSize = PageSize.A4;
-
-            //PdfDocument document = PdfGenerator.GeneratePdf(html, config);
-
-            //using (MemoryStream stream = new MemoryStream())
-            //{
-            //    document.Save(stream, false);
-            //    return stream.ToArray();
-            //}
         }
 
         public static ReportBase ConstructReport(string filterInput, DeviceFilter deviceFilter, TimeFilter timeFilter, ReportType reportType, UserConfig userConfig)
         {
             DynGraphqlQuery query = Compiler.Compile(filterInput, reportType, deviceFilter, timeFilter);
- 
+
             return reportType switch
             {
                 ReportType.Statistics => new ReportStatistics(query, userConfig, reportType),

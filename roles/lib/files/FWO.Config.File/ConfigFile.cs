@@ -107,21 +107,34 @@ namespace FWO.Config.File
 
         static ConfigFile()
         {
+            Read(configPath, jwtPrivateKeyPath, jwtPublicKeyPath);
+        }
+
+        private static void Read(string configFilePath, string privateKeyFilePath, string publicKeyFilePath)
+        {
             try
-            {              
+            {
+                // Reset all values
+                jwtPrivateKey = null;
+                jwtPublicKey = null;
+                middlewareServerNativeUri = null;
+                middlewareServerUri = null;
+                apiServerUri = null;
+                productVersion = null;
+
                 // Read config as json from file
-                string configFile = System.IO.File.ReadAllText(configPath).TrimEnd();
+                string configFile = System.IO.File.ReadAllText(configFilePath).TrimEnd();
 
                 // Deserialize config to dictionary
-                Dictionary<string, string> configFileData = JsonSerializer.Deserialize<Dictionary<string,string>>(configFile) ?? throw new Exception("Config file could not be parsed.");
+                Dictionary<string, string> configFileData = JsonSerializer.Deserialize<Dictionary<string, string>>(configFile) ?? throw new Exception("Config file could not be parsed.");
 
                 // Errors can be ignored. If a configuration value that could not be loaded is requested from outside this class, an excpetion is thrown. See NotNullCriticalConfigValue()
 
                 // Try to read jwt private key
-                IgnoreExceptions(() => jwtPrivateKey = KeyImporter.ExtractKeyFromPem(System.IO.File.ReadAllText(jwtPrivateKeyPath), isPrivateKey: true));
+                IgnoreExceptions(() => jwtPrivateKey = KeyImporter.ExtractKeyFromPem(System.IO.File.ReadAllText(privateKeyFilePath), isPrivateKey: true));
 
                 // Try to read jwt public key
-                IgnoreExceptions(() => jwtPublicKey = KeyImporter.ExtractKeyFromPem(System.IO.File.ReadAllText(jwtPublicKeyPath), isPrivateKey: false));
+                IgnoreExceptions(() => jwtPublicKey = KeyImporter.ExtractKeyFromPem(System.IO.File.ReadAllText(publicKeyFilePath), isPrivateKey: false));
 
                 // Try to get uri of the middleware server (http)
                 IgnoreExceptions(() => middlewareServerNativeUri = configFileData["middleware_native_uri"]);
@@ -131,46 +144,18 @@ namespace FWO.Config.File
 
                 // Try to get api uri
                 IgnoreExceptions(() => apiServerUri = configFileData["api_uri"]);
-                
+
                 // Try to get productVersion
                 IgnoreExceptions(() => productVersion = configFileData["product_version"]);
             }
-
             catch (Exception configFileReadException)
             {
                 Log.WriteError("Config file read", $"Config file could not be found.", configFileReadException);
+#if RELEASE
                 Environment.Exit(1); // Exit with error
+#endif
+                throw;
             }
-        }
-
-        public Dictionary<string,string> ReadAdditionalConfigFile(string relativePath, List<string> keys)
-        {
-            try{
-                string configFileContent = System.IO.File.ReadAllText(basePath + "/" + relativePath);
-                Dictionary<string, string> configFileData = new Dictionary<string, string>();
-                configFileData = JsonSerializer.Deserialize<Dictionary<string,string>>(configFileContent) ?? throw new Exception("Config file could not be parsed.");
-                customSettings = configFileData;
-                // foreach (string key in keys)
-                //     customSettings.Add(key, configFileData[key]);
-            }
-            catch (Exception configFileReadException)
-            {
-                Log.WriteError("Config file read", $"Config file '{basePath + relativePath}' could not be read", configFileReadException);
-            }
-            return customSettings;
-        }
-
-        public static bool ConfigFileCreate(string relativePath, string fileContent = "")
-        {
-            try{
-                System.IO.File.WriteAllText(basePath + relativePath, fileContent);
-            }
-            catch (Exception configFileWriteException)
-            {
-                Log.WriteError("Config file write", $"Config file '{basePath + relativePath}' could not be written", configFileWriteException);
-                return false;
-            }
-            return true;
         }
 
         private static ConfigValueType CriticalConfigValueLoaded<ConfigValueType>(ConfigValueType? configValue)
@@ -178,8 +163,10 @@ namespace FWO.Config.File
             if (configValue == null)
             {
                 Log.WriteError("Config value read", $"A necessary config value could not be found.", LogStackTrace: true);
+#if RELEASE
                 Environment.Exit(1); // Exit with error
-                throw new ApplicationException("unreachable");
+#endif
+                throw new ApplicationException("A necessary config value could not be found.");
             }
             else
             {

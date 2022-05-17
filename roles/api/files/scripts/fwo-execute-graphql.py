@@ -26,8 +26,8 @@ if len(sys.argv) == 1:
     sys.exit(1)
 
 fwo_config_filename = base_dir + '/etc/fworch.json'
-if args.ssl == '' or args.ssl == 'off':
-    requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
+# if args.ssl == '' or args.ssl == 'off':
+#     requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 debug_level = int(args.debug)
 common_scripts.set_log_level(log_level=debug_level, debug_level=debug_level)
 

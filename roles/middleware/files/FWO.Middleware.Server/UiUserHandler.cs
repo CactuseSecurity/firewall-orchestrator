@@ -3,18 +3,53 @@ using FWO.Api.Client.Queries;
 using FWO.Logging;
 using FWO.Config.File;
 using FWO.Api.Data;
+using System.Text.Json.Serialization; 
+using Newtonsoft.Json; 
 
 namespace FWO.Middleware.Server
 {
+    public class ConfExpirationTime
+    {
+        [JsonProperty("config_value"), JsonPropertyName("config_value")]
+        public int ExpirationValue { get; set; }
+    }
+
     public class UiUserHandler
     {
+        private readonly string jwtToken;
+        private ApiConnection apiConn;
+
+        public UiUserHandler(string jwtToken)
+        {
+            this.jwtToken = jwtToken;
+            apiConn = new GraphQlApiConnection(ConfigFile.ApiServerUri, jwtToken);
+        }
+
+        public async Task<int> GetExpirationTime()
+        {
+            int expirationTime = 240;
+            try
+            {
+                List<ConfExpirationTime> resultList = await apiConn.SendQueryAsync<List<ConfExpirationTime>>(ConfigQueries.getConfigItemByKey, new { key = "sessionTimeout" });
+                if (resultList.Count > 0)
+                {
+                    expirationTime = resultList[0].ExpirationValue;
+                }
+            }
+            catch(Exception exeption)
+            {
+                Log.WriteError("Get ExpirationTime Error", $"Error while trying to find config value in database. Taking default value", exeption);
+            }
+            return expirationTime;
+        }
+
         /// <summary>
         /// if the user logs in for the first time, user details (excluding password) are written to DB bia API
         /// the database id is retrieved and added to the user 
         /// the user id is needed for allowing access to report_templates
         /// </summary>
         /// <returns> user including its db id </returns>
-        public static async Task<UiUser> HandleUiUserAtLogin(UiUser user, string jwtToken)
+        public async Task<UiUser> HandleUiUserAtLogin(UiUser user)
         {
             ApiConnection apiConn = new GraphQlApiConnection(ConfigFile.ApiServerUri, jwtToken);
             bool userSetInDb = false;

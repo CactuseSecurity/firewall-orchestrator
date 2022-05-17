@@ -26,6 +26,24 @@
             </select>
         </div>
     </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="sessionTimeout" class="col-form-label col-sm-4">@(userConfig.GetText("sessionTimeout")):</label>
+        <div class="col-sm-2">
+            <input id="sessionTimeout" type="number" class="form-control form-control-sm w-100" @bind="configData!.SessionTimeout" />
+        </div>
+    </form>
+    @* <form class="form-inline" onsubmit="return false">
+        <label for="maxMessages" class="col-form-label col-sm-4">@(userConfig.GetText("maxMessages"))*:</label>
+        <div class="col-sm-2">
+            <input id="maxMessages" type="number" class="form-control form-control-sm w-100" @bind="configData!.MaxMessages">
+        </div>
+    </form> *@
+    <form class="form-inline" onsubmit="return false">
+        <label for="messageViewTime" class="col-form-label col-sm-4">@(userConfig.GetText("messageViewTime"))*:</label>
+        <div class="col-sm-2">
+            <input id="messageViewTime" type="number" class="form-control form-control-sm w-100" @bind="configData!.MessageViewTime">
+        </div>
+    </form>
     <hr />
     <form class="form-inline" onsubmit="return false">
         <label for="elementsPerFetch" class="col-form-label col-sm-4">@(userConfig.GetText("elementsPerFetch"))*:</label>
@@ -58,12 +76,6 @@
             <input id="minCollapseAllDevices" type="number" class="form-control form-control-sm w-100" @bind="configData!.MinCollapseAllDevices">
         </div>
     </form>
-    <form class="form-inline" onsubmit="return false">
-        <label for="messageViewTime" class="col-form-label col-sm-4">@(userConfig.GetText("messageViewTime"))*:</label>
-        <div class="col-sm-2">
-            <input id="messageViewTime" type="number" class="form-control form-control-sm w-100" @bind="configData!.MessageViewTime">
-        </div>
-    </form>
     <hr />
     <form class="form-inline" onsubmit="return false">
         <label for="dataRetentionTime" class="col-form-label col-sm-4">@(userConfig.GetText("dataRetentionTime")):</label>
@@ -76,6 +88,24 @@
         <label for="importSleepTime" class="col-form-label col-sm-4">@(userConfig.GetText("importSleepTime")):</label>
         <div class="col-sm-2">
             <input id="importSleepTime" type="number" class="form-control form-control-sm w-100" @bind="configData!.ImportSleepTime" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="importCheckCertificates" class="col-form-label col-sm-4">@(userConfig.GetText("importCheckCertificates")):</label>
+        <div class="col-sm-2">
+            <input id="importCheckCertificates" type="checkbox" class="w-100" @bind="configData!.ImportCheckCertificates" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="importSuppressCertificateWarnings" class="col-form-label col-sm-4">@(userConfig.GetText("importSuppressCertificateWarnings")):</label>
+        <div class="col-sm-2">
+            <input id="importSuppressCertificateWarnings" type="checkbox" class="w-100" @bind="configData!.ImportSuppressCertificateWarnings" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="importFwProxy" class="col-form-label col-sm-4">@(userConfig.GetText("importFwProxy")):</label>
+        <div class="col-sm-2">
+            <input id="importFwProxy" type="text" class="form-control form-control-sm w-100" @bind="configData!.ImportFwProxy" />
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">

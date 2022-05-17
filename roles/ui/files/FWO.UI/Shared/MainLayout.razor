@@ -8,6 +8,7 @@
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject NavigationManager NavigationManager
 
 <div style="z-index:15; top:0px;" class="position-sticky">
     <NavigationMenu @bind-ShowAlert="showAlert"/>
@@ -147,12 +148,9 @@
             // first some recurring specific messages
             if (exception.Message.Contains("JWTExpired"))
             {
-                // todo: consider redirect to login page
                 Log.WriteError("Auth Token Error", "JWT expired in session.", exception);
-                severity = 1;
-                messageType = MessageType.Warning;
-                cause = userConfig.GetText("jwt_expiry");
-                description = userConfig.GetText("E0003");
+                NavigationManager.NavigateTo("/logout");
+                return;
             }
             else if (exception.Message == "no such type exists in the schema: 'cidr'")
             {

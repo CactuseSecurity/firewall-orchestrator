@@ -3,7 +3,7 @@ import json
 import fwo_const
 import fwo_log
 
-def getFwoAlerter(debug_level=0, proxy='', ssl_mode='off'):
+def getFwoAlerter(debug_level=0, proxy='', ssl_mode=fwo_const.fwo_api_verify_certs):
     logger = fwo_log.getFwoLogger(debug_level=debug_level)
     try: 
         with open(fwo_const.fwo_config_filename, "r") as fwo_config:

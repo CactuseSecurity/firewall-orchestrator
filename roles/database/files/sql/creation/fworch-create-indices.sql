@@ -99,3 +99,6 @@ Create index "IX_Relationship176" on "service" ("svc_create");
 Create index "IX_Relationship177" on "service" ("svc_last_seen");
 Create index "IX_Relationship178" on "zone" ("zone_create");
 Create index "IX_Relationship179" on "zone" ("zone_last_seen");
+
+create unique index if not exists only_one_default_owner on owner(is_default) 
+where is_default = true;

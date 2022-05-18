@@ -99,6 +99,10 @@ INSERT INTO txt VALUES ('requests', 			'German',	'Antr&auml;ge');
 INSERT INTO txt VALUES ('requests', 			'English',	'Requests');
 INSERT INTO txt VALUES ('approvals', 			'German',	'Genehmigungen');
 INSERT INTO txt VALUES ('approvals', 			'English',	'Approvals');
+INSERT INTO txt VALUES ('plannings', 			'German',	'Planungen');
+INSERT INTO txt VALUES ('plannings', 			'English',	'Plannings');
+INSERT INTO txt VALUES ('implementations', 		'German',	'Implementierungen');
+INSERT INTO txt VALUES ('implementations', 		'English',	'Implementations');
 INSERT INTO txt VALUES ('scheduling', 			'German',	'Scheduling');
 INSERT INTO txt VALUES ('scheduling', 			'English',	'Scheduling');
 INSERT INTO txt VALUES ('archive', 				'German',	'Archiv');
@@ -499,16 +503,55 @@ INSERT INTO txt VALUES ('delete_report',		'German', 	'Erstellten Report l&ouml;s
 INSERT INTO txt VALUES ('delete_report',		'English', 	'Delete generated report');
 
 -- requests
+INSERT INTO txt VALUES ('request',              'German', 	'Antrag');
+INSERT INTO txt VALUES ('request',              'English', 	'Request');
+INSERT INTO txt VALUES ('task',                 'German', 	'Aufgabe');
+INSERT INTO txt VALUES ('task',                 'English', 	'Task');
+INSERT INTO txt VALUES ('element',              'German', 	'Element');
+INSERT INTO txt VALUES ('element',              'English', 	'Element');
 INSERT INTO txt VALUES ('add_new_request',      'German', 	'Neuen Antrag hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_new_request',      'English', 	'Add new request');
 INSERT INTO txt VALUES ('fetch_requests',       'German', 	'Antr&auml;ge holen');
 INSERT INTO txt VALUES ('fetch_requests',       'English', 	'Fetch requests');
 INSERT INTO txt VALUES ('save_request',         'German', 	'Antrag speichern');
 INSERT INTO txt VALUES ('save_request',         'English', 	'Save request');
-INSERT INTO txt VALUES ('edit_request',         'German', 	'Antrag bearbeiten');
-INSERT INTO txt VALUES ('edit_request',         'English', 	'Edit request');
 INSERT INTO txt VALUES ('state',                'German', 	'Status');
 INSERT INTO txt VALUES ('state',                'English', 	'State');
+INSERT INTO txt VALUES ('tasks',                'German', 	'Aufgaben');
+INSERT INTO txt VALUES ('tasks',                'English', 	'Tasks');
+INSERT INTO txt VALUES ('add_task',             'German', 	'Aufgabe hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_task',             'English', 	'Add task');
+INSERT INTO txt VALUES ('save_task',            'German', 	'Aufgabe speichern');
+INSERT INTO txt VALUES ('save_task',            'English', 	'Save task');
+INSERT INTO txt VALUES ('delete_task',          'German', 	'Aufgabe l&ouml;schen');
+INSERT INTO txt VALUES ('delete_task',          'English', 	'Delete task');
+INSERT INTO txt VALUES ('elements',             'German', 	'Elemente');
+INSERT INTO txt VALUES ('elements',             'English', 	'Elements');
+INSERT INTO txt VALUES ('add_element',          'German', 	'Element hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_element',          'English', 	'Add element');
+INSERT INTO txt VALUES ('save_element',         'German', 	'Element speichern');
+INSERT INTO txt VALUES ('save_element',         'English', 	'Save element');
+INSERT INTO txt VALUES ('search_element',       'German', 	'Element suchen');
+INSERT INTO txt VALUES ('search_element',       'English', 	'Search element');
+INSERT INTO txt VALUES ('delete_element',       'German', 	'Element l&ouml;schen');
+INSERT INTO txt VALUES ('delete_element',       'English', 	'Delete element');
+INSERT INTO txt VALUES ('requester', 			'German',	'Antragsteller');
+INSERT INTO txt VALUES ('requester', 			'English',	'Requester');
+INSERT INTO txt VALUES ('promote_to', 			'German',	'Status &auml;ndern');
+INSERT INTO txt VALUES ('promote_to', 			'English',	'Promote to');
+INSERT INTO txt VALUES ('closed', 				'German',	'Geschlossen');
+INSERT INTO txt VALUES ('closed', 			    'English',	'Closed');
+INSERT INTO txt VALUES ('plan',                 'German', 	'Planen');
+INSERT INTO txt VALUES ('plan',                 'English', 	'Plan');
+INSERT INTO txt VALUES ('create_implementation','German', 	'Implementierung hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('create_implementation','English', 	'Create implementation task');
+INSERT INTO txt VALUES ('implementation_tasks', 'German', 	'Implementierungsaufgaben');
+INSERT INTO txt VALUES ('implementation_tasks', 'English', 	'Implementation tasks');
+INSERT INTO txt VALUES ('request_elements',     'German', 	'Auftragselemente');
+INSERT INTO txt VALUES ('request_elements',     'English', 	'Request elements');
+INSERT INTO txt VALUES ('change_state',         'German', 	'Status &auml;ndern');
+INSERT INTO txt VALUES ('change_state',         'English', 	'Change state');
+
 
 -- recertification
 INSERT INTO txt VALUES ('recertify',		    'German', 	'Rezertifizieren');
@@ -1230,6 +1273,11 @@ INSERT INTO txt VALUES ('U7401', 'German',  'Archiv der Autodiscovery-Nachrichte
 INSERT INTO txt VALUES ('U7401', 'English', 'View the past autodiscovery messages');
 INSERT INTO txt VALUES ('U7501', 'German',  'Archiv der Nachrichten der t&auml;glichen Checks');
 INSERT INTO txt VALUES ('U7501', 'English', 'View the past daily check messages');
+
+INSERT INTO txt VALUES ('U8001', 'German',  'Sind sie sicher, dass sie folgendes Element l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U8001', 'English', 'Are you sure you want to delete element: ');
+INSERT INTO txt VALUES ('U8002', 'German',  'Sind sie sicher, dass sie folgende Implementierungs-Aufgabe l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U8002', 'English', 'Are you sure you want to delete implementation task: ');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');

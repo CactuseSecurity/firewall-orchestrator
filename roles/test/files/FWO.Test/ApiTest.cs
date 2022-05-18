@@ -9,7 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using FWO.Middleware.RequestParameters;
 using FWO.Logging;
 
-namespace FWO.Test.Api
+namespace FWO.Test
 {
     [TestFixture]
     public class ApiTest

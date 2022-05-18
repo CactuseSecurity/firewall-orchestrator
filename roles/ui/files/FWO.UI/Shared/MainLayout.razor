@@ -3,12 +3,13 @@
 @using FWO.Api.Client
 @using FWO.Api.Data
 @using FWO.Api.Client.Queries
+@using FWO.Ui.Services
 @using System.Timers
-
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 @inject NavigationManager NavigationManager
+@inject PermissionEventService permissionService
 
 <div style="z-index:15; top:0px;" class="position-sticky">
     <NavigationMenu @bind-ShowAlert="showAlert"/>
@@ -61,6 +62,7 @@
         var user = authenticationStateTask!.Result.User;
         DisplayMessageInUiFunction = DisplayMessageInUi;
 
+        permissionService.OnPermissionChanged += OnPermissionsChanged;
         alertSubscription = apiConnection.GetSubscription<List<Alert>>(ApiExceptionHandler, OnAlertUpdate, MonitorQueries.subscribeAlertChanges);
     }
 
@@ -68,6 +70,14 @@
     {
         showAlert = alerts.Count() > 0;
         InvokeAsync(StateHasChanged);
+    }
+
+    private void OnPermissionsChanged(object? sender, UiUser user)
+    {
+        if (user.DbId == userConfig.User.DbId)
+        {
+            ShowMessage("Permissions", "Your permissions have been changed. Re-login to update your permissions.", MessageType.Info);
+        }
     }
 
     private void ShowMessage(string title, string message, MessageType type)

@@ -31,13 +31,28 @@
                             @if (ExportPdf)
                             {
                                 <div>
-                                    Paper Size:
-                                    <select class="form-control form-control-sm" @bind="PaperKind">
+                                    Paper Kind:
+                                    <select class="form-control form-control-sm" @bind="SelectedPaperKind">
                                         @foreach (PaperKind paperKind in Enum.GetValues<PaperKind>())
-                                        {                                      
-                                            <option selected="@(paperKind == PaperKind.A4)" value="@paperKind">@paperKind</option>
+                                        {                      
+                                            <option value="@paperKind">@paperKind</option>
                                         }
                                     </select>
+                                    @if (SelectedPaperKind == PaperKind.Custom)
+                                    {
+                                        <div class="input-group input-group-sm mb-2 mt-2">
+                                          <div class="input-group-prepend">
+                                            <span class="input-group-text">Width (mm)</span>
+                                          </div>
+                                          <input  @bind="PaperSizeWidth" min="1" max="1000000" type="number" class="form-control">
+                                        </div>
+                                        <div class="input-group input-group-sm mb-1">
+                                          <div class="input-group-prepend">
+                                            <span class="input-group-text">Height (mm)</span>
+                                          </div>
+                                          <input @bind="PaperSizeHeight" min="1" max="1000000" type="number" class="form-control">
+                                        </div>
+                                    }
                                 </div>
                             }
                         </div>
@@ -102,12 +117,16 @@ Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportD
     private bool ExportCsv = false;
     private bool ExportArchive = false;
     private ReportFile reportExportFile = new ReportFile();
-    private PaperKind PaperKind;
+    private PaperKind SelectedPaperKind = PaperKind.A4;
 
     private bool ShowExportDialog = false;
     private bool ShowExportDownloadDialog = false;
 
     private bool Exporting = false;
+
+    private bool PaperKindChanged = false;
+    private int PaperSizeWidth = 0;
+    private int PaperSizeHeight = 0;
 
     private async Task Export()
     {
@@ -131,7 +150,14 @@ Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportD
 
                     if (ExportPdf)
                     {
-                        reportExportFile.Pdf = Convert.ToBase64String(ReportToExport.ToPdf(PaperKind));
+                        try
+                        {
+                            reportExportFile.Pdf = Convert.ToBase64String(ReportToExport.ToPdf(SelectedPaperKind, PaperSizeWidth, PaperSizeHeight));                    
+                        }
+                        catch (KeyNotFoundException e)
+                        {
+                            throw new Exception("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
+                        }
                     }
 
                     if (ExportCsv)

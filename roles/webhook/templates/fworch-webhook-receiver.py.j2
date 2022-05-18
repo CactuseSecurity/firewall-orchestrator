@@ -109,14 +109,14 @@ def post_handler():
                   # might not work due to user rights:
                   # os.system("systemctl restart fworch-webhook-receiver.service")
 {% if webhook_install_mode == 'reinstall' %}
-               uninstall_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook site.yml -e \"installation_mode=uninstall " + prox + "\""
+               uninstall_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && sudo ansible-playbook site.yml -e \"installation_mode=uninstall " + prox + "\""
                f.write('executing uninstall command: ' + uninstall_cmd + '\n')
                os.system(uninstall_cmd) # remove fworch
                # fresh install: 
-               build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook site.yml -e \"testkeys=yes installation_mode=new " + prox + "\""
+               build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && sudo ansible-playbook site.yml -e \"testkeys=yes installation_mode=new " + prox + "\""
 {% else %}
                # upgrade 
-               build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook site.yml -e \"testkeys=yes installation_mode=upgrade " + prox + "\""
+               build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && sudo ansible-playbook site.yml -e \"testkeys=yes installation_mode=upgrade " + prox + "\""
 {% endif %}
                f.write('executing build command: ' + build_cmd + '\n')
                os.system(build_cmd) # building fworch

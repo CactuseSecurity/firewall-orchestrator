@@ -26,13 +26,6 @@ BEGIN
 END
 $$;
 
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'state_enum') THEN
-    CREATE TYPE request.state_enum AS ENUM ('draft', 'open', 'in progress', 'closed', 'cancelled');
-    END IF;
-END
-$$;
 
 -- create tables
 create table if not exists request.task 
@@ -41,7 +34,7 @@ create table if not exists request.task
     title VARCHAR,
     ticket_id int,
     task_number int,
-    state request.state_enum NOT NULL,
+    state_id int NOT NULL,
     task_type task_type_enum NOT NULL,
     request_action request.action_enum NOT NULL,
     rule_action int,
@@ -86,12 +79,18 @@ create table if not exists request.ticket
     title VARCHAR NOT NULL,
     date_created Timestamp NOT NULL default CURRENT_TIMESTAMP,
     date_completed Timestamp,
-    state_id request.state_enum NOT NULL,
+    state_id int NOT NULL,
     requester_id int,
     requester_dn Varchar,
     requester_group Varchar,
     tenant_id int,
     reason text
+);
+
+create table if not exists request.state
+(
+    id SERIAL PRIMARY KEY,
+    name VARCHAR NOT NULL
 );
 
 create table if not exists owner
@@ -149,7 +148,7 @@ create table if not exists implementation.task
     id SERIAL PRIMARY KEY,
     request_task_id int,
     implementation_task_number int,
-    implementation_state request.state_enum NOT NULL default 'open',
+    state_id int NOT NULL,
     device_id int,
     implementation_action request.action_enum NOT NULL,
     rule_action int,
@@ -166,6 +165,7 @@ create table if not exists implementation.task
 
 --- request.task ---
 ALTER TABLE request.task DROP CONSTRAINT IF EXISTS request_task_request_ticket_foreign_key;
+ALTER TABLE request.task DROP CONSTRAINT IF EXISTS request_task_request_state_foreign_key;
 ALTER TABLE request.task DROP CONSTRAINT IF EXISTS request_task_stm_action_foreign_key;
 ALTER TABLE request.task DROP CONSTRAINT IF EXISTS request_task_stm_track_foreign_key;
 ALTER TABLE request.task DROP CONSTRAINT IF EXISTS request_task_service_foreign_key;
@@ -180,6 +180,7 @@ ALTER TABLE request.element DROP CONSTRAINT IF EXISTS request_element_usr_foreig
 ALTER TABLE request.approval DROP CONSTRAINT IF EXISTS request_approval_request_task_foreign_key;
 ALTER TABLE request.approval DROP CONSTRAINT IF EXISTS request_approval_tenant_foreign_key;
 --- request.ticket ---
+ALTER TABLE request.ticket DROP CONSTRAINT IF EXISTS request_ticket_request_state_foreign_key;
 ALTER TABLE request.ticket DROP CONSTRAINT IF EXISTS request_ticket_tenant_foreign_key;
 ALTER TABLE request.ticket DROP CONSTRAINT IF EXISTS request_ticket_uiuser_foreign_key;
 --- owner ---
@@ -202,6 +203,7 @@ ALTER TABLE implementation.element DROP CONSTRAINT IF EXISTS implementation_elem
 ALTER TABLE implementation.element DROP CONSTRAINT IF EXISTS implementation_element_usr_foreign_key;
 --- implementation.task
 ALTER TABLE implementation.task DROP CONSTRAINT IF EXISTS implementation_task_request_task_foreign_key;
+ALTER TABLE implementation.task DROP CONSTRAINT IF EXISTS implementation_task_request_state_foreign_key;
 ALTER TABLE implementation.task DROP CONSTRAINT IF EXISTS implementation_task_device_foreign_key;
 ALTER TABLE implementation.task DROP CONSTRAINT IF EXISTS implementation_task_stm_action_foreign_key;
 ALTER TABLE implementation.task DROP CONSTRAINT IF EXISTS implementation_task_stm_tracking_foreign_key;
@@ -212,6 +214,7 @@ ALTER TABLE implementation.task DROP CONSTRAINT IF EXISTS implementation_task_ob
 
 --- request.task ---
 ALTER TABLE request.task ADD CONSTRAINT request_task_request_ticket_foreign_key FOREIGN KEY (ticket_id) REFERENCES request.ticket(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.task ADD CONSTRAINT request_task_request_state_foreign_key FOREIGN KEY (state_id) REFERENCES request.state(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.task ADD CONSTRAINT request_task_stm_action_foreign_key FOREIGN KEY (rule_action) REFERENCES stm_action(action_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.task ADD CONSTRAINT request_task_stm_track_foreign_key FOREIGN KEY (rule_tracking) REFERENCES stm_track(track_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.task ADD CONSTRAINT request_task_service_foreign_key FOREIGN KEY (svc_grp_id) REFERENCES service(svc_id) ON UPDATE RESTRICT ON DELETE CASCADE;
@@ -226,6 +229,7 @@ ALTER TABLE request.element ADD CONSTRAINT request_element_usr_foreign_key FOREI
 ALTER TABLE request.approval ADD CONSTRAINT request_approval_request_task_foreign_key FOREIGN KEY (task_id) REFERENCES request.task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.approval ADD CONSTRAINT request_approval_tenant_foreign_key FOREIGN KEY (tenant_id) REFERENCES tenant(tenant_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- request.ticket ---
+ALTER TABLE request.ticket ADD CONSTRAINT request_ticket_request_state_foreign_key FOREIGN KEY (state_id) REFERENCES request.state(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.ticket ADD CONSTRAINT request_ticket_tenant_foreign_key FOREIGN KEY (tenant_id) REFERENCES tenant(tenant_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.ticket ADD CONSTRAINT request_ticket_uiuser_foreign_key FOREIGN KEY (requester_id) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- owner ---
@@ -248,6 +252,7 @@ ALTER TABLE implementation.element ADD CONSTRAINT implementation_element_impleme
 ALTER TABLE implementation.element ADD CONSTRAINT implementation_element_usr_foreign_key FOREIGN KEY (user_id) REFERENCES usr(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- implementation.task
 ALTER TABLE implementation.task ADD CONSTRAINT implementation_task_request_task_foreign_key FOREIGN KEY (request_task_id) REFERENCES request.task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE implementation.task ADD CONSTRAINT implementation_task_request_state_foreign_key FOREIGN KEY (state_id) REFERENCES request.state(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE implementation.task ADD CONSTRAINT implementation_task_device_foreign_key FOREIGN KEY (device_id) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE implementation.task ADD CONSTRAINT implementation_task_stm_action_foreign_key FOREIGN KEY (rule_action) REFERENCES stm_action(action_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE implementation.task ADD CONSTRAINT implementation_task_stm_tracking_foreign_key FOREIGN KEY (rule_tracking) REFERENCES stm_track(track_id) ON UPDATE RESTRICT ON DELETE CASCADE;

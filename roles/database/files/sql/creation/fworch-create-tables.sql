@@ -968,7 +968,6 @@ create schema if not exists implementation;
 CREATE TYPE rule_field_enum AS ENUM ('source', 'destination', 'service');
 CREATE TYPE task_type_enum AS ENUM ('access', 'svc_group', 'obj_group', 'rule_modify');
 CREATE TYPE request.action_enum AS ENUM ('create', 'delete', 'modifiy');
-CREATE TYPE request.state_enum AS ENUM ('draft', 'open', 'in progress', 'closed', 'cancelled');
 
 -- create tables
 create table if not exists request.task 
@@ -977,7 +976,7 @@ create table if not exists request.task
     title VARCHAR,
     ticket_id int,
     task_number int,
-    state request.state_enum NOT NULL,
+    state_id int NOT NULL,
     task_type task_type_enum NOT NULL,
     request_action request.action_enum NOT NULL,
     rule_action int,
@@ -1022,12 +1021,18 @@ create table if not exists request.ticket
     title VARCHAR NOT NULL,
     date_created Timestamp NOT NULL default CURRENT_TIMESTAMP,
     date_completed Timestamp,
-    state_id request.state_enum NOT NULL,
+    state_id int NOT NULL,
     requester_id int,
     requester_dn Varchar,
     requester_group Varchar,
     tenant_id int,
     reason text
+);
+
+create table if not exists request.state
+(
+    id SERIAL PRIMARY KEY,
+    name VARCHAR NOT NULL
 );
 
 create table if not exists owner
@@ -1085,7 +1090,7 @@ create table if not exists implementation.task
     id SERIAL PRIMARY KEY,
     request_task_id int,
     implementation_task_number int,
-    implementation_state request.state_enum NOT NULL default 'open',
+    state_id int NOT NULL,
     device_id int,
     implementation_action request.action_enum NOT NULL,
     rule_action int,

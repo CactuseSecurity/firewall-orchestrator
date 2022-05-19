@@ -1031,7 +1031,7 @@ create table if not exists request.ticket
 
 create table if not exists request.state
 (
-    id SERIAL PRIMARY KEY,
+    id Integer NOT NULL UNIQUE,
     name VARCHAR NOT NULL
 );
 

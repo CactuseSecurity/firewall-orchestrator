@@ -8,33 +8,33 @@
         public void Init()
         {
             Name.Add(0,"Draft");
-            Name.Add(9,"Requested");
+            Name.Add(49,"Requested");
             
-            Name.Add(10,"ToApprove");
-            Name.Add(11,"InApproval");
-            Name.Add(19,"Approved");
+            Name.Add(50,"ToApprove");
+            Name.Add(60,"InApproval");
+            Name.Add(99,"Approved");
 
-            Name.Add(20,"ToPlan");
-            Name.Add(21,"InPlanning");
-            Name.Add(22,"WaitForApproval");
-            Name.Add(23,"ComplianceViolation");
-            Name.Add(29,"Planned");
+            Name.Add(100,"ToPlan");
+            Name.Add(110,"InPlanning");
+            Name.Add(120,"WaitForApproval");
+            Name.Add(130,"ComplianceViolation");
+            Name.Add(149,"Planned");
 
-            Name.Add(30,"ToImplement");
-            Name.Add(31,"InImplementation");
-            Name.Add(32,"ImplementationTrouble");
-            Name.Add(39,"Implemented");
+            Name.Add(200,"ToImplement");
+            Name.Add(210,"InImplementation");
+            Name.Add(220,"ImplementationTrouble");
+            Name.Add(249,"Implemented");
 
-            Name.Add(40,"ToVerify");
-            Name.Add(41,"InVerification");
-            Name.Add(42,"FurtherWorkRequested");
-            Name.Add(49,"Verified");
+            Name.Add(250,"ToVerify");
+            Name.Add(260,"InVerification");
+            Name.Add(270,"FurtherWorkRequested");
+            Name.Add(299,"Verified");
 
-            Name.Add(50,"InProgress");
+            Name.Add(500,"InProgress");
 
-            Name.Add(60,"Done");
-            Name.Add(61,"Rejected");
-            Name.Add(62,"Discarded");
+            Name.Add(600,"Done");
+            Name.Add(610,"Rejected");
+            Name.Add(620,"Discarded");
         }
     }
 }

@@ -1,0 +1,17 @@
+query getTickets ($from_state: Int!, $to_state: Int!){
+  request_ticket(where: {_and: [{state_id: {_gte: $from_state}},{state_id: {_lte: $to_state}}]}){
+    id
+    title
+    date_created
+    date_completed
+    state_id
+    requester: uiuser{
+      uiuser_username
+    }
+    requester_dn
+    requester_group
+    tenant_id
+    reason
+  }
+}
+

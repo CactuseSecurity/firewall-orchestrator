@@ -31,7 +31,7 @@
         </Column>
         <Column TableItem="RequestTicket" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
         <Column TableItem="RequestTicket" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true" />
-        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("requester"))" Field="@(x => x.Requester)" Sortable="true" Filterable="true" />
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("requester"))" Field="@(x => x.Requester.Name)" Sortable="true" Filterable="true" />
         <Column TableItem="RequestTicket" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
             <Template>
                 @(states.Name[context.StateId])
@@ -56,8 +56,8 @@
                     <label class="col-sm-8">@states.Name[actRequest.StateId]</label>
                 </div>
                 <div class="form-group row">
-                    <label for="requestRequester" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("requester"))*:</label>
-                    <label class="col-sm-8">@actRequest.Requester</label>
+                    <label for="requestRequester" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("requester")):</label>
+                    <label class="col-sm-8">@actRequest.Requester?.Name</label>
                 </div>
                 @(userConfig.GetText("tasks"))
                 <div class="m-2">
@@ -524,13 +524,31 @@
     {
         try
         {
+            stateMatrix.Init(2);
+            states.Init();
+
             devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
             // nwObjects = await apiConnection.SendQueryAsync<List<NetworkObject>>(FWO.Api.Client.Queries.ObjectQueries.getNetworkObjects);
 
-            // requests = await apiConnection.SendQueryAsync<List<RequestTicket>>(FWO.Api.Client.Queries.RequestQueries.getRequests);
-
-            stateMatrix.Init(2);
-            states.Init();
+            var Variables = new
+            {
+                from_state = stateMatrix.LowestInputState,
+                to_state = 999,
+            };
+            requests = await apiConnection.SendQueryAsync<List<RequestTicket>>(FWO.Api.Client.Queries.RequestQueries.getTickets, Variables);
+            requests.Add(new RequestTicket()
+                {
+                    Id=1, Title="DummyReq", CreationDate=DateTime.Now, StateId=49, Requester=new UiUser(){Name="Dummy"},
+                    Tasks = new List<RequestTask>()
+                        {
+                            new RequestTask () {Id=1, Title="Task1", StateId=49, 
+                                                Elements = new List<RequestElement>()
+                                                {
+                                                    new RequestElement(){Id=1, Ip="127.0.0.0", Port=123, Field="Src"}
+                                                }},
+                            new RequestTask () {Id=2, Title="Task2", StateId=49}
+                        }
+                });        
         }
         catch (Exception exception)
         {
@@ -560,7 +578,11 @@
             {
                 taskStates.Add(task.StateId);
             }
-            actRequest.StateId = stateMatrix.getRequestStateFromTaskStates(taskStates);
+            if(taskStates.Count > 0)
+            {
+                actRequest.StateId = stateMatrix.getRequestStateFromTaskStates(taskStates);
+            }
+            
             if (actRequest.Sanitize())
             {
                 DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("U0001"), true);

@@ -21,7 +21,10 @@ namespace FWO.Api.Data
         public int StateId { get; set; }
 
         [JsonProperty("requester"), JsonPropertyName("requester")]
-        public string Requester { get; set; } = "";
+        public UiUser? Requester { get; set; }
+
+        [JsonProperty("requester_dn"), JsonPropertyName("requester_dn")]
+        public string? RequesterDn { get; set; } = "";
 
         [JsonProperty("requester_group"), JsonPropertyName("requester_group")]
         public string? RequesterGroup { get; set; }
@@ -47,6 +50,7 @@ namespace FWO.Api.Data
             CompletionDate = ticket.CompletionDate;
             StateId = ticket.StateId;
             Requester = ticket.Requester;
+            RequesterDn = ticket.RequesterDn;
             RequesterGroup = ticket.RequesterGroup;
             TenantId = ticket.TenantId;
             Reason = ticket.Reason;
@@ -57,8 +61,8 @@ namespace FWO.Api.Data
         {
             bool shortened = false;
             Title = Sanitizer.SanitizeMand(Title, ref shortened);
-            Requester = Sanitizer.SanitizeMand(Requester, ref shortened);
-            RequesterGroup = Sanitizer.SanitizeOpt(RequesterGroup, ref shortened);
+            RequesterDn = Sanitizer.SanitizeLdapNameOpt(RequesterDn, ref shortened);
+            RequesterGroup = Sanitizer.SanitizeLdapNameOpt(RequesterGroup, ref shortened);
             Reason = Sanitizer.SanitizeOpt(Reason, ref shortened);
             return shortened;
         }

@@ -393,3 +393,36 @@ where dev_typ_id=2;
 -- SET check_function_bodies = false;
 -- SET client_min_messages = warning;
 -- SET search_path = public, pg_catalog;
+
+insert into request.state (id,name) VALUES (0,'Draft');
+insert into request.state (id,name) VALUES (49,'Requested');
+
+insert into request.state (id,name) VALUES (50,'ToApproveRequest');
+insert into request.state (id,name) VALUES (60,'RequestInApproval');
+insert into request.state (id,name) VALUES (99,'RequestApproved');
+
+insert into request.state (id,name) VALUES (100,'ToPlan');
+insert into request.state (id,name) VALUES (110,'InPlanning');
+insert into request.state (id,name) VALUES (120,'WaitForApproval');
+insert into request.state (id,name) VALUES (130,'ComplianceViolation');
+insert into request.state (id,name) VALUES (149,'Planned');
+
+insert into request.state (id,name) VALUES (150,'ToApprovePlan');
+insert into request.state (id,name) VALUES (160,'PlanInApproval');
+insert into request.state (id,name) VALUES (199,'PlanApproved');
+
+insert into request.state (id,name) VALUES (200,'ToImplement');
+insert into request.state (id,name) VALUES (210,'InImplementation');
+insert into request.state (id,name) VALUES (220,'ImplementationTrouble');
+insert into request.state (id,name) VALUES (249,'Implemented');
+
+insert into request.state (id,name) VALUES (250,'ToVerify');
+insert into request.state (id,name) VALUES (260,'InVerification');
+insert into request.state (id,name) VALUES (270,'FurtherWorkRequested');
+insert into request.state (id,name) VALUES (299,'Verified');
+
+insert into request.state (id,name) VALUES (500,'InProgress');
+
+insert into request.state (id,name) VALUES (600,'Done');
+insert into request.state (id,name) VALUES (610,'Rejected');
+insert into request.state (id,name) VALUES (620,'Discarded');

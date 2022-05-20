@@ -4,6 +4,7 @@
     {
         private Dictionary<int, List<int>> matrix = new Dictionary<int, List<int>>();
         private Dictionary<int, int> derivedStates = new Dictionary<int, int>();
+        public int LowestInputState { get; set; }
         public int LowestStartedState { get; set; }
         public int LowestEndState { get; set; }
 
@@ -14,27 +15,29 @@
             switch(phase)
             {
                 case 0:
-                    matrix.Add(0, new List<int>(){0,9,62});
-                    matrix.Add(9, new List<int>(){9,62});
-                    matrix.Add(62, new List<int>(){62});
+                    matrix.Add(0, new List<int>(){0,49,620});
+                    matrix.Add(49, new List<int>(){49,620});
+                    matrix.Add(620, new List<int>(){620});
+                    LowestInputState = 0;
                     LowestStartedState = 0;
-                    LowestEndState = 9;
+                    LowestEndState = 49;
                     break;
                 case 2:
-                    matrix.Add(9, new List<int>(){21});
-                    matrix.Add(21, new List<int>(){21,22,23,29});
-                    matrix.Add(22, new List<int>(){22,21,23,29});
-                    matrix.Add(23, new List<int>(){23,21,22,29,61});
-                    matrix.Add(29, new List<int>(){29});
-                    matrix.Add(61, new List<int>(){61});
-                    LowestStartedState = 21;
-                    LowestEndState = 29;
-                    derivedStates.Add(9, 9);
-                    derivedStates.Add(21, 21);
-                    derivedStates.Add(22, 21);
-                    derivedStates.Add(23, 21);
-                    derivedStates.Add(29, 29);
-                    derivedStates.Add(61, 61);
+                    matrix.Add(49, new List<int>(){110});
+                    matrix.Add(110, new List<int>(){110,120,130,149});
+                    matrix.Add(120, new List<int>(){120,110,130,149});
+                    matrix.Add(130, new List<int>(){130,110,120,149,610});
+                    matrix.Add(149, new List<int>(){149});
+                    matrix.Add(610, new List<int>(){610});
+                    LowestInputState = 49;
+                    LowestStartedState = 110;
+                    LowestEndState = 149;
+                    derivedStates.Add(49, 49);
+                    derivedStates.Add(110, 110);
+                    derivedStates.Add(120, 110);
+                    derivedStates.Add(130, 110);
+                    derivedStates.Add(149, 149);
+                    derivedStates.Add(610, 610);
                     break;
                 default:
                     break;

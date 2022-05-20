@@ -303,3 +303,36 @@ insert into config (config_key, config_value, config_user) VALUES ('importSuppre
 insert into config (config_key, config_value, config_user) VALUES ('importFwProxy', '', 0) ON CONFLICT DO NOTHING;
 insert into config (config_key, config_value, config_user) VALUES ('sessionTimeout', '240', 0) ON CONFLICT DO NOTHING;
 -- insert into config (config_key, config_value, config_user) VALUES ('maxMessages', '3', 0) ON CONFLICT DO NOTHING;
+
+insert into request.state (id,name) VALUES (0,'Draft') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (49,'Requested') ON CONFLICT DO NOTHING;
+
+insert into request.state (id,name) VALUES (50,'ToApproveRequest') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (60,'RequestInApproval') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (99,'RequestApproved') ON CONFLICT DO NOTHING;
+
+insert into request.state (id,name) VALUES (100,'ToPlan') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (110,'InPlanning') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (120,'WaitForApproval') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (130,'ComplianceViolation') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (149,'Planned') ON CONFLICT DO NOTHING;
+
+insert into request.state (id,name) VALUES (150,'ToApprovePlan') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (160,'PlanInApproval') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (199,'PlanApproved') ON CONFLICT DO NOTHING;
+
+insert into request.state (id,name) VALUES (200,'ToImplement') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (210,'InImplementation') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (220,'ImplementationTrouble') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (249,'Implemented') ON CONFLICT DO NOTHING;
+
+insert into request.state (id,name) VALUES (250,'ToVerify') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (260,'InVerification') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (270,'FurtherWorkRequested') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (299,'Verified') ON CONFLICT DO NOTHING;
+
+insert into request.state (id,name) VALUES (500,'InProgress') ON CONFLICT DO NOTHING;
+
+insert into request.state (id,name) VALUES (600,'Done') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (610,'Rejected') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (620,'Discarded') ON CONFLICT DO NOTHING;

@@ -1501,6 +1501,8 @@ INSERT INTO txt VALUES ('E7013', 'English', 'Last successful import too long ago
 
 INSERT INTO txt VALUES ('E8001', 'German',  'Antrag konnte nicht angelegt werden');
 INSERT INTO txt VALUES ('E8001', 'English', 'Request could not be created');
+INSERT INTO txt VALUES ('E8002', 'German',  'Antrag konnte nicht ge&auml;ndert werden');
+INSERT INTO txt VALUES ('E8002', 'English', 'Request could not be updated');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');

@@ -34,7 +34,7 @@
         </Column>
         <Column TableItem="RequestTicket" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
         <Column TableItem="RequestTicket" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true" />
-        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("requester"))" Field="@(x => x.Requester)" Sortable="true" Filterable="true" />
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("requester"))" Field="@(x => x.Requester.Name)" Sortable="true" Filterable="true" />
         <Column TableItem="RequestTicket" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
             <Template>
                 @(states.Name[context.StateId])
@@ -72,8 +72,8 @@
                     }
                 </div>
                 <div class="form-group row">
-                    <label for="requestRequester" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("requester"))*:</label>
-                    <label class="col-sm-8">@actRequest.Requester</label>
+                    <label for="requestRequester" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("requester")):</label>
+                    <label class="col-sm-8">@actRequest.Requester?.Name</label>
                 </div>
                 @(userConfig.GetText("tasks"))
                 @if (EditRequestMode)
@@ -338,10 +338,15 @@
     {
         try
         {
-            // requests = await apiConnection.SendQueryAsync<List<RequestTicket>>(FWO.Api.Client.Queries.RequestQueries.getRequests);
-
             stateMatrix.Init(0);
             states.Init();
+
+            var Variables = new
+            {
+                from_state = stateMatrix.LowestInputState,
+                to_state = 999,
+            };
+            requests = await apiConnection.SendQueryAsync<List<RequestTicket>>(FWO.Api.Client.Queries.RequestQueries.getTickets, Variables);
         }
         catch (Exception exception)
         {
@@ -405,21 +410,25 @@
                     actRequest.CreationDate = DateTime.Now;
                     var Variables = new
                     {
-                        title = actRequest.Title
+                        title = actRequest.Title,
+                        state = actRequest.StateId,
+                        reason = actRequest.Reason,
+                        requesterId = userConfig.User.DbId
                     };
- //                   ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newRequest, Variables)).ReturnIds;
- //                   if (returnIds == null)
- //                   {
- //                       DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("E8001"), true);
- //                   }
- //                   else
- //                   {
- //                       actRequest.Id = returnIds[0].NewId;
+                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newTicket, Variables)).ReturnIds;
+                    if (returnIds == null)
+                    {
+                        DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("E8001"), true);
+                    }
+                    else
+                    {
+                        actRequest.Id = returnIds[0].NewId;
+                        actRequest.Requester = userConfig.User;
                         requests.Add(actRequest);
                         AddRequestMode = false;
                         EditRequestMode = false;
                         ShowRequestMode = false;
- //                   }
+                    }
                 }
                 else
                 {
@@ -428,12 +437,20 @@
                     {
                         id = actRequest.Id,
                         title = actRequest.Title,
+                        state = actRequest.StateId,
+                        reason = actRequest.Reason
                     };
-//                    int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequest, Variables)).UpdatedId;
-//                    EditRequestMode = (udId != actRequest.Id);
-                    requests[requests.FindIndex(x => x.Id == actRequest.Id)] = actRequest;
-                    EditRequestMode = false;
-                    ShowRequestMode = false;
+                    int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateTicket, Variables)).UpdatedId;
+                    if(udId != actRequest.Id)
+                    {
+                        DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("E8002"), true);
+                    }
+                    else
+                    {
+                        requests[requests.FindIndex(x => x.Id == actRequest.Id)] = actRequest;
+                        EditRequestMode = false;
+                        ShowRequestMode = false;
+                    }
                 }
             }
         }

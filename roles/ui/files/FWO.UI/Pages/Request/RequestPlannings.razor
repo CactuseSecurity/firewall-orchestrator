@@ -96,7 +96,7 @@
             {
                 <AuthorizeView Roles="admin, requester, fw-admin">
                     <Authorized>
-                        <button class="btn btn-sm btn-primary" @onclick="SaveRequest">@(userConfig.GetText("save"))</button>
+                        <button class="btn btn-sm btn-primary" @onclick="InitSaveRequest">@(userConfig.GetText("save"))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
@@ -104,6 +104,38 @@
                 </AuthorizeView>
             }
             <button class="btn btn-sm btn-secondary" @onclick="CancelRequest">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText("save_request"))" Show="@PromoteRequestMode" OnClose="() => PromoteRequestMode = false">
+    <Body>
+        @if (PromoteRequestMode)
+        {
+            <div class="form-group row">
+                <label for="promoteRequest" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("promote_to")):</label>
+                <div class="col-sm-8">
+                    <select id="promoteRequest" class="form-control form-control-sm" @bind="actRequest.StateId">
+                        @foreach (int state in actPossibleStates)
+                        {
+                            <option value="@state">@(states.Name[state])</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="admin, requester, fw-admin">
+                <Authorized>
+                    <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveRequest">@(userConfig.GetText("save"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button class="btn btn-sm btn-secondary" @onclick="CancelSaveRequest">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -493,6 +525,7 @@
 
     private bool ShowRequestMode = false;
     private bool PlanRequestMode = false;
+    private bool PromoteRequestMode = false;
     private bool PlanTaskMode = false;
     private bool ShowReqTaskMode = false;
     private bool ShowReqElementMode = false;
@@ -569,20 +602,38 @@
         ShowRequestMode = true;
     }
 
-    private async Task SaveRequest()
+    private async Task InitSaveRequest()
     {
-        try
+        if(actRequest.Tasks.Count > 0)
         {
             List<int> taskStates = new List<int>();
             foreach (RequestTask task in actRequest.Tasks)
             {
                 taskStates.Add(task.StateId);
             }
-            if(taskStates.Count > 0)
+            actRequest.StateId = stateMatrix.getRequestStateFromTaskStates(taskStates);
+            await SaveRequest();
+        }
+        else
+        {
+            actPossibleStates = stateMatrix.getAllowedTransitions(actRequest.StateId);
+            if(actPossibleStates.Count == 1)
             {
-                actRequest.StateId = stateMatrix.getRequestStateFromTaskStates(taskStates);
+                actRequest.StateId = actPossibleStates[0];
+                await SaveRequest();
             }
-            
+            else
+            {
+                PromoteRequestMode = true;
+            }
+        }
+    }
+
+    private async Task SaveRequest()
+    {
+        try
+        {           
+            PromoteRequestMode = false;
             if (actRequest.Sanitize())
             {
                 DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("U0001"), true);
@@ -594,12 +645,19 @@
                 {
                     id = actRequest.Id,
                     title = actRequest.Title,
+                    state = actRequest.StateId
                 };
-//                    int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequest, Variables)).UpdatedId;
-//                    PlanRequestMode = (udId != actRequest.Id);
-                requests[requests.FindIndex(x => x.Id == actRequest.Id)] = actRequest;
-                PlanRequestMode = false;
-                ShowRequestMode = false;
+                int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateTicket, Variables)).UpdatedId;
+                if(udId != actRequest.Id)
+                {
+                    DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("E8002"), true);
+                }
+                else
+                {
+                    requests[requests.FindIndex(x => x.Id == actRequest.Id)] = actRequest;
+                    PlanRequestMode = false;
+                    ShowRequestMode = false;
+                }
             }
         }
         catch (Exception exception)
@@ -622,6 +680,11 @@
     {
         PlanRequestMode = false;
         ShowRequestMode = false;
+    }
+
+    private void CancelSaveRequest()
+    {
+        PromoteRequestMode = false;
     }
 
     private void PlanTask(RequestTask task)

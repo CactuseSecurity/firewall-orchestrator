@@ -277,9 +277,9 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("save_request"))" Show="@promoteRequestMode" OnClose="() => promoteRequestMode = false">
+<PopUp Title="@(userConfig.GetText("save_request"))" Show="@PromoteRequestMode" OnClose="() => PromoteRequestMode = false">
     <Body>
-        @if (promoteRequestMode)
+        @if (PromoteRequestMode)
         {
             <div class="form-group row">
                 <label for="promoteRequest" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("promote_to")):</label>
@@ -324,7 +324,7 @@
     private bool ShowTaskMode = false;
     private bool AddElementMode = false;
     private bool ShowElementMode = false;
-    private bool promoteRequestMode = false;
+    private bool PromoteRequestMode = false;
     private List<int> actPossibleStates = new List<int>();
 
     private RequestTicket actRequest = new RequestTicket();
@@ -384,7 +384,7 @@
         }
         else
         {
-            promoteRequestMode = true;
+            PromoteRequestMode = true;
         }
     }
 
@@ -392,7 +392,7 @@
     {
         try
         {
-            promoteRequestMode = false;
+            PromoteRequestMode = false;
             if (actRequest.Sanitize())
             {
                 DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("U0001"), true);
@@ -479,7 +479,7 @@
 
     private void CancelSaveRequest()
     {
-        promoteRequestMode = false;
+        PromoteRequestMode = false;
     }
 
 

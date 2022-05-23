@@ -8,19 +8,12 @@
   management(where: { mgm_id: { _in: $mgmIds }, stm_dev_typ:{dev_typ_is_multi_mgmt:{_eq:false}} }) {
     name: mgm_name
     id: mgm_id
-    reportServiceObjects: view_rule_svc_resolved_sorteds (
+    reportServiceObjects: filter_rule_svc_resolveds (
+      args: {rule_ids: $ruleIds, import_id: $importId}
       limit: $limit
       offset: $offset
-      where: {
-        rule_id: { _in: $ruleIds }
-        created: { _lte: $importId }
-        removed: { _lt: $importId }
-      }
-      distinct_on: [svc_id]
     ) {
-      service {
-        ...networkServiceDetails
-      }
+      ...networkServiceDetails
     }
   }
 }

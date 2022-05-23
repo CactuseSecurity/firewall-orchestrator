@@ -8,47 +8,26 @@ query getObjectsInReport(
   management(where: { mgm_id: { _in: $mgmIds }, stm_dev_typ:{dev_typ_is_multi_mgmt:{_eq:false}} }) {
     name: mgm_name
     id: mgm_id
-    reportNetworkObjects: view_rule_nwobj_resolved_sorteds (
+    reportNetworkObjects: filter_rule_nwobj_resolveds (
+      args: {rule_ids: $ruleIds, import_id: $importId}
       limit: $limit
       offset: $offset
-      where: {
-        rule_id: { _in: $ruleIds }
-        created: { _lte: $importId }
-        _or: [{ removed: { _is_null: true } }, { removed: { _gt: $importId } }]
-      }
-      distinct_on: [obj_id]
     ) {
-      object {
-        ...networkObjectDetails
-      }
+      ...networkObjectDetails
     }
-    reportServiceObjects: view_rule_svc_resolved_sorteds (
+    reportServiceObjects: filter_rule_svc_resolveds (
+      args: {rule_ids: $ruleIds, import_id: $importId}
       limit: $limit
       offset: $offset
-      where: {
-        rule_id: { _in: $ruleIds }
-        created: { _lte: $importId }
-        _or: [{ removed: { _is_null: true } }, { removed: { _gt: $importId } }]
-      }
-      distinct_on: [svc_id]
     ) {
-      service {
-        ...networkServiceDetails
-      }
+      ...networkServiceDetails
     }
-    reportUserObjects: view_rule_user_resolved_sorteds (
+    reportUserObjects: filter_rule_user_resolveds (
+      args: {rule_ids: $ruleIds, import_id: $importId}
       limit: $limit
       offset: $offset
-      where: {
-        rule_id: { _in: $ruleIds }
-        created: { _lte: $importId }
-        _or: [{ removed: { _is_null: true } }, { removed: { _gt: $importId } }]
-      }
-      distinct_on: [user_id]
     ) {
-      usr {
-        ...userDetails
-      }
+      ...userDetails
     }
   }
 }

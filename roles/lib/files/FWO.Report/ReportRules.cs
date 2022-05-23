@@ -1,4 +1,4 @@
-﻿using FWO.Api.Data;
+using FWO.Api.Data;
 using System.Text;
 using FWO.Api.Client;
 using FWO.Report.Filter;
@@ -81,6 +81,7 @@ namespace FWO.Report
                 await GetReportedRuleIds(apiConnection);
 
             objQueryVariables.Add("ruleIds", management.ReportedRuleIds);
+            objQueryVariables.Add("importId", management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId!);
 
             string query = "";
             switch (objects)

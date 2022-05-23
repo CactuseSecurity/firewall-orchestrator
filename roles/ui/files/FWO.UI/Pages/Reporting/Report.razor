@@ -583,9 +583,9 @@
 
                     queryVars = new Dictionary<string, object>()
                     {
+                        { "management_id", (int) id },
                         { "limit", userConfig.ElementsPerFetch },
-                        { "offset", 0 },
-                        { "management_id", (int) id }
+                        { "offset", 0 }
                     };
 
                     break;
@@ -594,9 +594,9 @@
 
                     queryVars = new Dictionary<string, object>()
                     {
+                        { "mgmIds", (int) id },
                         { "limit", userConfig.ElementsPerFetch },
-                        { "offset", 0 },
-                        { "mgmIds", (int) id }
+                        { "offset", 0 }
                     };
 
                     if (currentReport != null)
@@ -611,9 +611,9 @@
 
                     queryVars = new Dictionary<string, object>()
                     {
+                        { "rule_id", id },
                         { "limit", userConfig.ElementsPerFetch },
-                        { "offset", (int)0 },
-                        { "rule_id", id }
+                        { "offset", (int)0 }
                     };
 
                     break;

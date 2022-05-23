@@ -66,13 +66,13 @@ namespace FWO.Api.Data
         public NetworkUser[] Users { get; set; } = new NetworkUser[]{};
 
         [JsonProperty("reportNetworkObjects"), JsonPropertyName("reportNetworkObjects")]
-        public NetworkObjectWrapper[] ReportObjects { get; set; } = new NetworkObjectWrapper[]{};
+        public NetworkObject[] ReportObjects { get; set; } = new NetworkObject[]{};
 
         [JsonProperty("reportServiceObjects"), JsonPropertyName("reportServiceObjects")]
-        public ServiceWrapper[] ReportServices { get; set; } = new ServiceWrapper[]{};
+        public NetworkService[] ReportServices { get; set; } = new NetworkService[]{};
 
         [JsonProperty("reportUserObjects"), JsonPropertyName("reportUserObjects")]
-        public UserWrapper[] ReportUsers { get; set; } = new UserWrapper[]{};
+        public NetworkUser[] ReportUsers { get; set; } = new NetworkUser[]{};
 
         [JsonProperty("deviceType"), JsonPropertyName("deviceType")]
         public DeviceType DeviceType { get; set; } = new DeviceType();

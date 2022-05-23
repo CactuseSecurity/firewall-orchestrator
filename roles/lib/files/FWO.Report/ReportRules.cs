@@ -1,4 +1,4 @@
-using FWO.Api.Data;
+﻿using FWO.Api.Data;
 using System.Text;
 using FWO.Api.Client;
 using FWO.Report.Filter;
@@ -80,7 +80,7 @@ namespace FWO.Report
             if (!GotReportedRuleIds)
                 await GetReportedRuleIds(apiConnection);
 
-            objQueryVariables.Add("ruleIds", management.ReportedRuleIds);
+            objQueryVariables.Add("ruleIds", "{" + string.Join(", ", management.ReportedRuleIds) + "}");
             objQueryVariables.Add("importId", management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId!);
 
             string query = "";
@@ -293,19 +293,19 @@ namespace FWO.Report
                     report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
                     report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                     report.AppendLine("</tr>");
-                    foreach (NetworkObjectWrapper nwobj in management.ReportObjects)
+                    foreach (NetworkObject nwobj in management.ReportObjects)
                     {
                         report.AppendLine("<tr>");
                         report.AppendLine($"<td>{objNumber++}</td>");
-                        report.AppendLine($"<td><a name=nwobj{nwobj.Content.Id}>{nwobj.Content.Name}</a></td>");
-                        report.AppendLine($"<td>{nwobj.Content.Type.Name}</td>");
-                        report.AppendLine($"<td>{nwobj.Content.IP}{(nwobj.Content.IpEnd != null && nwobj.Content.IpEnd != "" && nwobj.Content.IpEnd != nwobj.Content.IP ? $"-{nwobj.Content.IpEnd}" : "")}</td>");
-                        if (nwobj.Content.MemberNames != null && nwobj.Content.MemberNames.Contains('|'))
-                            report.AppendLine($"<td>{string.Join("<br>", nwobj.Content.MemberNames.Split('|'))}</td>");
+                        report.AppendLine($"<td><a name=nwobj{nwobj.Id}>{nwobj.Name}</a></td>");
+                        report.AppendLine($"<td>{nwobj.Type.Name}</td>");
+                        report.AppendLine($"<td>{nwobj.IP}{(nwobj.IpEnd != null && nwobj.IpEnd != "" && nwobj.IpEnd != nwobj.IP ? $"-{nwobj.IpEnd}" : "")}</td>");
+                        if (nwobj.MemberNames != null && nwobj.MemberNames.Contains('|'))
+                            report.AppendLine($"<td>{string.Join("<br>", nwobj.MemberNames.Split('|'))}</td>");
                         else
-                            report.AppendLine($"<td>{nwobj.Content.MemberNames}</td>");
-                        report.AppendLine($"<td>{nwobj.Content.Uid}</td>");
-                        report.AppendLine($"<td>{nwobj.Content.Comment}</td>");
+                            report.AppendLine($"<td>{nwobj.MemberNames}</td>");
+                        report.AppendLine($"<td>{nwobj.Uid}</td>");
+                        report.AppendLine($"<td>{nwobj.Comment}</td>");
                         report.AppendLine("</tr>");
                     }
                     report.AppendLine("</table>");
@@ -327,23 +327,23 @@ namespace FWO.Report
                     report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                     report.AppendLine("</tr>");
                     objNumber = 1;
-                    foreach (ServiceWrapper svcobj in management.ReportServices)
+                    foreach (NetworkService svcobj in management.ReportServices)
                     {
                         report.AppendLine("<tr>");
                         report.AppendLine($"<td>{objNumber++}</td>");
-                        report.AppendLine($"<td>{svcobj.Content.Name}</td>");
-                        report.AppendLine($"<td><a name=svc{svcobj.Content.Id}>{svcobj.Content.Name}</a></td>");
-                        report.AppendLine($"<td>{((svcobj.Content.Protocol!=null)?svcobj.Content.Protocol.Name:"")}</td>");
-                        if (svcobj.Content.DestinationPortEnd != null && svcobj.Content.DestinationPortEnd != svcobj.Content.DestinationPort)
-                            report.AppendLine($"<td>{svcobj.Content.DestinationPort}-{svcobj.Content.DestinationPortEnd}</td>");
+                        report.AppendLine($"<td>{svcobj.Name}</td>");
+                        report.AppendLine($"<td><a name=svc{svcobj.Id}>{svcobj.Name}</a></td>");
+                        report.AppendLine($"<td>{((svcobj.Protocol!=null)?svcobj.Protocol.Name:"")}</td>");
+                        if (svcobj.DestinationPortEnd != null && svcobj.DestinationPortEnd != svcobj.DestinationPort)
+                            report.AppendLine($"<td>{svcobj.DestinationPort}-{svcobj.DestinationPortEnd}</td>");
                         else
-                            report.AppendLine($"<td>{svcobj.Content.DestinationPort}</td>");
-                        if (svcobj.Content.MemberNames != null && svcobj.Content.MemberNames.Contains("|"))
-                            report.AppendLine($"<td>{string.Join("<br>", svcobj.Content.MemberNames.Split('|'))}</td>");
+                            report.AppendLine($"<td>{svcobj.DestinationPort}</td>");
+                        if (svcobj.MemberNames != null && svcobj.MemberNames.Contains("|"))
+                            report.AppendLine($"<td>{string.Join("<br>", svcobj.MemberNames.Split('|'))}</td>");
                         else 
-                            report.AppendLine($"<td>{svcobj.Content.MemberNames}</td>");
-                        report.AppendLine($"<td>{svcobj.Content.Uid}</td>");
-                        report.AppendLine($"<td>{svcobj.Content.Comment}</td>");
+                            report.AppendLine($"<td>{svcobj.MemberNames}</td>");
+                        report.AppendLine($"<td>{svcobj.Uid}</td>");
+                        report.AppendLine($"<td>{svcobj.Comment}</td>");
                         report.AppendLine("</tr>");
                     }
                     report.AppendLine("</table>");
@@ -363,18 +363,18 @@ namespace FWO.Report
                     report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                     report.AppendLine("</tr>");
                     objNumber = 1;
-                    foreach (UserWrapper userobj in management.ReportUsers)
+                    foreach (NetworkUser userobj in management.ReportUsers)
                     {
                         report.AppendLine("<tr>");
                         report.AppendLine($"<td>{objNumber++}</td>");
-                        report.AppendLine($"<td>{userobj.Content.Name}</td>");
-                        report.AppendLine($"<td><a name=user{userobj.Content.Id}>{userobj.Content.Name}</a></td>");
-                        if (userobj.Content.MemberNames != null && userobj.Content.MemberNames.Contains("|"))
-                            report.AppendLine($"<td>{string.Join("<br>", userobj.Content.MemberNames.Split('|'))}</td>");
+                        report.AppendLine($"<td>{userobj.Name}</td>");
+                        report.AppendLine($"<td><a name=user{userobj.Id}>{userobj.Name}</a></td>");
+                        if (userobj.MemberNames != null && userobj.MemberNames.Contains("|"))
+                            report.AppendLine($"<td>{string.Join("<br>", userobj.MemberNames.Split('|'))}</td>");
                         else
-                            report.AppendLine($"<td>{userobj.Content.MemberNames}</td>");
-                        report.AppendLine($"<td>{userobj.Content.Uid}</td>");
-                        report.AppendLine($"<td>{userobj.Content.Comment}</td>");
+                            report.AppendLine($"<td>{userobj.MemberNames}</td>");
+                        report.AppendLine($"<td>{userobj.Uid}</td>");
+                        report.AppendLine($"<td>{userobj.Comment}</td>");
                         report.AppendLine("</tr>");
                     }
                     report.AppendLine("</table>");

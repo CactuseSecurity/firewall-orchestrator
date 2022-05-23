@@ -38,7 +38,7 @@ original_obj_uid = "85c0f50f-6d8a-4528-88ab-5fb11d8fe16c"
 # used for nat only (both svc and nw obj)
 
 
-def get_ip_of_obj(obj, mgm_id=0):
+def get_ip_of_obj(obj, mgm_id=None):
     if 'ipv4-address' in obj:
         ip_addr = obj['ipv4-address']
     elif 'ipv6-address' in obj:
@@ -70,7 +70,7 @@ def get_ip_of_obj(obj, mgm_id=0):
 ##################### 2nd-level functions ###################################
 
 def get_basic_config (config_json, mgm_details, force=False, config_filename=None,
-    proxy=None, limit=150, details_level='full', test_version='off', debug_level=0, ssl_verification='', sid=None):
+    proxy=None, limit=150, details_level='full', test_version='off', debug_level=0, ssl_verification=True, sid=None):
     logger = getFwoLogger(debug_level=debug_level)
 
     api_host = mgm_details['hostname']
@@ -150,7 +150,7 @@ def get_basic_config (config_json, mgm_details, force=False, config_filename=Non
             logger.debug ( "obj_type: "+ obj_type )
         while (current<total) :
             show_params_objs['offset']=current
-            objects = getter.cp_api_call(v_url, show_cmd, show_params_objs, sid, ssl_verification, proxy)
+            objects = getter.cp_api_call(v_url, show_cmd, show_params_objs, sid, ssl_verification=ssl_verification, proxy=proxy)
             object_table["object_chunks"].append(objects)
             if 'total' in objects  and 'to' in objects:
                 total=objects['total']
@@ -162,7 +162,7 @@ def get_basic_config (config_json, mgm_details, force=False, config_filename=Non
                 if debug_level>5:
                     logger.debug ( obj_type +" total:"+ str(total) )
         config_json["object_tables"].append(object_table)
-    logout_result = getter.cp_api_call(v_url, 'logout', {}, sid, ssl_verification, proxy)
+    logout_result = getter.cp_api_call(v_url, 'logout', {}, sid, ssl_verification=ssl_verification, proxy=proxy)
 
     # only write config to file if config_filename is given
     if config_filename != None and len(config_filename)>1:
@@ -251,7 +251,7 @@ def enrich_config (config, mgm_details, proxy=None, limit=150, details_level='fu
         for missing_obj in missing_nw_object_uids:
             show_params_host = {'details-level':details_level,'uid':missing_obj}
             logger.debug ( "fetching obj with uid: " + missing_obj)
-            obj = getter.cp_api_call(base_url, 'show-object', show_params_host, sid, ssl_verification, proxy)
+            obj = getter.cp_api_call(base_url, 'show-object', show_params_host, sid, ssl_verification=ssl_verification, proxy=proxy)
             if 'object' in obj:
                 obj = obj['object']
                 if (obj['type'] == 'CpmiAnyObject'):
@@ -303,7 +303,7 @@ def enrich_config (config, mgm_details, proxy=None, limit=150, details_level='fu
 
         for missing_obj in missing_svc_object_uids:
             show_params_host = {'details-level':details_level,'uid':missing_obj}
-            obj = getter.cp_api_call(base_url, 'show-object', show_params_host, sid, ssl_verification, proxy)
+            obj = getter.cp_api_call(base_url, 'show-object', show_params_host, sid, ssl_verification=ssl_verification, proxy=proxy)
             obj = obj['object']
             if (obj['type'] == 'CpmiAnyObject'):
                 json_obj = {"object_type": "services-other", "object_chunks": [ {
@@ -326,7 +326,7 @@ def enrich_config (config, mgm_details, proxy=None, limit=150, details_level='fu
                 # print ("WARNING - enrich_config - missing svc obj of unexpected type: '" + obj['type'] + "': " + missing_obj)
             logger.debug ( "missing svc obj: " + missing_obj + " added")
 
-        logout_result = getter.cp_api_call(base_url, 'logout', {}, sid, ssl_verification, proxy)
+        logout_result = getter.cp_api_call(base_url, 'logout', {}, sid, ssl_verification=ssl_verification, proxy=proxy)
     
     logger.debug ( "checkpointR8x/enrich_config - duration: " + str(int(time.time()) - starttime) + "s" )
 

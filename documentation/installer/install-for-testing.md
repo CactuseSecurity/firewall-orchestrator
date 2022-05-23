@@ -32,14 +32,14 @@ You need to
 Set debug level for extended debugging info during installation.
 
 ```console
-sudo ansible-playbook/ site.yml -e "debug_level='2'" -K
+sudo ansible-playbook site.yml -e "debug_level='2'" -K
 ```
 ## Running integration tests after installation/upgrade
 
 To only run tests (for an existing installation) use tags as follows:
 
 ```console
-sudo ansible-playbook/ site.yml --tags test -K
+sudo ansible-playbook site.yml --tags test -K
 ```
 
 ## Running unit tests only

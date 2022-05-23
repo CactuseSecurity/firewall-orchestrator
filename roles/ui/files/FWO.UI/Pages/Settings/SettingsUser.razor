@@ -1,0 +1,43 @@
+﻿@using FWO.Config.Api
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+@page "/settings/user"
+
+<h3>@(userConfig.GetText("user")): @(userConfig.User.Name)</h3>
+<hr />
+
+<div class="form-group row">
+    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("email")):</label>
+    <label class="col-sm-8">@user?.Email</label>
+</div>
+<div class="form-group row">
+    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("last_login")):</label>
+    <label class="col-sm-8">@user?.LastLogin</label>
+</div>
+<div class="form-group row">
+    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("last_pw_change")):</label>
+    <label class="col-sm-8">@user?.LastPasswordChange</label>
+</div>
+<hr />
+
+<button class="btn btn-sm btn-danger">
+    <NavLink class="nav-link text-white" href="/logout">
+        <span class="oi oi-account-logout"></span> @(userConfig.GetText("logout"))
+    </NavLink>
+</button>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+
+    UiUser? user;
+
+    protected override async Task OnInitializedAsync()
+    {
+        List<UiUser> users = await apiConnection.SendQueryAsync<List<UiUser>>(AuthQueries.getUserByDbId, new { userId = userConfig.UserId });
+        user = users.FirstOrDefault();
+    }
+}

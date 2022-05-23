@@ -11,6 +11,122 @@
           "tables": [
             {
               "table": {
+                "schema": "implementation",
+                "name": "element"
+              },
+              "object_relationships": [
+                {
+                  "name": "element",
+                  "using": {
+                    "foreign_key_constraint_on": "original_nat_id"
+                  }
+                },
+                {
+                  "name": "object",
+                  "using": {
+                    "foreign_key_constraint_on": "network_object_id"
+                  }
+                },
+                {
+                  "name": "service",
+                  "using": {
+                    "foreign_key_constraint_on": "service_id"
+                  }
+                },
+                {
+                  "name": "stm_ip_proto",
+                  "using": {
+                    "foreign_key_constraint_on": "ip_proto_id"
+                  }
+                },
+                {
+                  "name": "task",
+                  "using": {
+                    "foreign_key_constraint_on": "implementation_task_id"
+                  }
+                },
+                {
+                  "name": "usr",
+                  "using": {
+                    "foreign_key_constraint_on": "user_id"
+                  }
+                }
+              ],
+              "array_relationships": [
+                {
+                  "name": "elements",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "original_nat_id",
+                      "table": {
+                        "schema": "implementation",
+                        "name": "element"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "schema": "implementation",
+                "name": "task"
+              },
+              "object_relationships": [
+                {
+                  "name": "device",
+                  "using": {
+                    "foreign_key_constraint_on": "device_id"
+                  }
+                },
+                {
+                  "name": "object",
+                  "using": {
+                    "foreign_key_constraint_on": "nw_obj_grp_id"
+                  }
+                },
+                {
+                  "name": "service",
+                  "using": {
+                    "foreign_key_constraint_on": "svc_grp_id"
+                  }
+                },
+                {
+                  "name": "stm_action",
+                  "using": {
+                    "foreign_key_constraint_on": "rule_action"
+                  }
+                },
+                {
+                  "name": "stm_track",
+                  "using": {
+                    "foreign_key_constraint_on": "rule_tracking"
+                  }
+                },
+                {
+                  "name": "task",
+                  "using": {
+                    "foreign_key_constraint_on": "request_task_id"
+                  }
+                }
+              ],
+              "array_relationships": [
+                {
+                  "name": "elements",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "implementation_task_id",
+                      "table": {
+                        "schema": "implementation",
+                        "name": "element"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
                 "schema": "public",
                 "name": "alert"
               },
@@ -1249,6 +1365,18 @@
                   }
                 },
                 {
+                  "name": "tasks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "device_id",
+                      "table": {
+                        "schema": "implementation",
+                        "name": "task"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "tenant_to_devices",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -1616,6 +1744,12 @@
                   }
                 }
               ]
+            },
+            {
+              "table": {
+                "schema": "public",
+                "name": "error"
+              }
             },
             {
               "table": {
@@ -4216,6 +4350,18 @@
                   }
                 },
                 {
+                  "name": "elements",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "network_object_id",
+                      "table": {
+                        "schema": "implementation",
+                        "name": "element"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "network_object_limits",
                   "using": {
                     "manual_configuration": {
@@ -4310,6 +4456,18 @@
                       "table": {
                         "schema": "public",
                         "name": "rule_to"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "tasks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "nw_obj_grp_id",
+                      "table": {
+                        "schema": "implementation",
+                        "name": "task"
                       }
                     }
                   }
@@ -4731,6 +4889,78 @@
                       "negated"
                     ],
                     "filter": {}
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "schema": "public",
+                "name": "owner"
+              },
+              "object_relationships": [
+                {
+                  "name": "tenant",
+                  "using": {
+                    "foreign_key_constraint_on": "tenant_id"
+                  }
+                }
+              ],
+              "array_relationships": [
+                {
+                  "name": "owner_networks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "owner_id",
+                      "table": {
+                        "schema": "public",
+                        "name": "owner_network"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "request_owners",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "owner_id",
+                      "table": {
+                        "schema": "public",
+                        "name": "request_owner"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "rule_owners",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "owner_id",
+                      "table": {
+                        "schema": "public",
+                        "name": "rule_owner"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "schema": "public",
+                "name": "owner_network"
+              },
+              "object_relationships": [
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "owner_id"
+                  }
+                },
+                {
+                  "name": "stm_ip_proto",
+                  "using": {
+                    "foreign_key_constraint_on": "ip_proto_id"
                   }
                 }
               ]
@@ -6665,6 +6895,26 @@
             {
               "table": {
                 "schema": "public",
+                "name": "request_owner"
+              },
+              "object_relationships": [
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "owner_id"
+                  }
+                },
+                {
+                  "name": "task",
+                  "using": {
+                    "foreign_key_constraint_on": "request_task_id"
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "schema": "public",
                 "name": "rule"
               },
               "object_relationships": [
@@ -7295,6 +7545,18 @@
               ],
               "array_relationships": [
                 {
+                  "name": "rule_owners",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "rule_metadata_id",
+                      "table": {
+                        "schema": "public",
+                        "name": "rule_owner"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "rules",
                   "using": {
                     "manual_configuration": {
@@ -7666,6 +7928,26 @@
                     ],
                     "filter": {},
                     "allow_aggregations": true
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "schema": "public",
+                "name": "rule_owner"
+              },
+              "object_relationships": [
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "owner_id"
+                  }
+                },
+                {
+                  "name": "rule_metadatum",
+                  "using": {
+                    "foreign_key_constraint_on": "rule_metadata_id"
                   }
                 }
               ]
@@ -8209,6 +8491,18 @@
                   }
                 },
                 {
+                  "name": "elements",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "service_id",
+                      "table": {
+                        "schema": "implementation",
+                        "name": "element"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "rule_services",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -8276,6 +8570,18 @@
                       "table": {
                         "schema": "public",
                         "name": "svcgrp"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "tasks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "svc_grp_id",
+                      "table": {
+                        "schema": "implementation",
+                        "name": "task"
                       }
                     }
                   }
@@ -8516,6 +8822,18 @@
                       "table": {
                         "schema": "public",
                         "name": "rule"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "tasks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "rule_action",
+                      "table": {
+                        "schema": "implementation",
+                        "name": "task"
                       }
                     }
                   }
@@ -8996,6 +9314,30 @@
               },
               "array_relationships": [
                 {
+                  "name": "elements",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "ip_proto_id",
+                      "table": {
+                        "schema": "implementation",
+                        "name": "element"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "owner_networks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "ip_proto_id",
+                      "table": {
+                        "schema": "public",
+                        "name": "owner_network"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "services",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -9266,6 +9608,18 @@
                       "table": {
                         "schema": "public",
                         "name": "rule"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "tasks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "rule_tracking",
+                      "table": {
+                        "schema": "implementation",
+                        "name": "task"
                       }
                     }
                   }
@@ -9637,6 +9991,18 @@
               },
               "array_relationships": [
                 {
+                  "name": "approvals",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "tenant_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "approval"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "devices",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -9673,6 +10039,18 @@
                   }
                 },
                 {
+                  "name": "owners",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "tenant_id",
+                      "table": {
+                        "schema": "public",
+                        "name": "owner"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "reports",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -9704,6 +10082,18 @@
                       "table": {
                         "schema": "public",
                         "name": "tenant_to_device"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "tickets",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "tenant_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "ticket"
                       }
                     }
                   }
@@ -10275,6 +10665,18 @@
                       "table": {
                         "schema": "public",
                         "name": "service"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "tickets",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "requester_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "ticket"
                       }
                     }
                   }
@@ -10867,6 +11269,18 @@
                       "table": {
                         "schema": "public",
                         "name": "changelog_user"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "elements",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "user_id",
+                      "table": {
+                        "schema": "implementation",
+                        "name": "element"
                       }
                     }
                   }
@@ -11958,302 +12372,6 @@
             {
               "table": {
                 "schema": "public",
-                "name": "view_tenant_rules"
-              },
-              "object_relationships": [
-                {
-                  "name": "rule_details",
-                  "using": {
-                    "manual_configuration": {
-                      "remote_table": {
-                        "schema": "public",
-                        "name": "rule"
-                      },
-                      "insertion_order": null,
-                      "column_mapping": {
-                        "rule_id": "rule_id"
-                      }
-                    }
-                  }
-                }
-              ],
-              "select_permissions": [
-                {
-                  "role": "auditor",
-                  "permission": {
-                    "columns": [
-                      "parent_rule_id",
-                      "rule_create",
-                      "rule_id",
-                      "rule_last_seen",
-                      "xlate_rule",
-                      "access_rule",
-                      "active",
-                      "nat_rule",
-                      "rule_disabled",
-                      "rule_dst_neg",
-                      "rule_implied",
-                      "rule_src_neg",
-                      "rule_svc_neg",
-                      "rule_installon",
-                      "rule_name",
-                      "rule_ruleid",
-                      "rule_time",
-                      "action_id",
-                      "dev_id",
-                      "last_change_admin",
-                      "mgm_id",
-                      "rule_from_zone",
-                      "rule_num",
-                      "rule_to_zone",
-                      "tenant_id",
-                      "track_id",
-                      "rule_num_numeric",
-                      "parent_rule_type",
-                      "rule_action",
-                      "rule_comment",
-                      "rule_dst",
-                      "rule_dst_refs",
-                      "rule_head_text",
-                      "rule_src",
-                      "rule_src_refs",
-                      "rule_svc",
-                      "rule_svc_refs",
-                      "rule_track",
-                      "rule_uid"
-                    ],
-                    "filter": {}
-                  }
-                },
-                {
-                  "role": "fw-admin",
-                  "permission": {
-                    "columns": [
-                      "parent_rule_id",
-                      "rule_create",
-                      "rule_id",
-                      "rule_last_seen",
-                      "xlate_rule",
-                      "access_rule",
-                      "active",
-                      "nat_rule",
-                      "rule_disabled",
-                      "rule_dst_neg",
-                      "rule_implied",
-                      "rule_src_neg",
-                      "rule_svc_neg",
-                      "rule_installon",
-                      "rule_name",
-                      "rule_ruleid",
-                      "rule_time",
-                      "action_id",
-                      "dev_id",
-                      "last_change_admin",
-                      "mgm_id",
-                      "rule_from_zone",
-                      "rule_num",
-                      "rule_to_zone",
-                      "tenant_id",
-                      "track_id",
-                      "rule_num_numeric",
-                      "parent_rule_type",
-                      "rule_action",
-                      "rule_comment",
-                      "rule_dst",
-                      "rule_dst_refs",
-                      "rule_head_text",
-                      "rule_src",
-                      "rule_src_refs",
-                      "rule_svc",
-                      "rule_svc_refs",
-                      "rule_track",
-                      "rule_uid"
-                    ],
-                    "filter": {}
-                  }
-                },
-                {
-                  "role": "recertifier",
-                  "permission": {
-                    "columns": [
-                      "parent_rule_id",
-                      "rule_create",
-                      "rule_id",
-                      "rule_last_seen",
-                      "xlate_rule",
-                      "access_rule",
-                      "active",
-                      "nat_rule",
-                      "rule_disabled",
-                      "rule_dst_neg",
-                      "rule_implied",
-                      "rule_src_neg",
-                      "rule_svc_neg",
-                      "rule_installon",
-                      "rule_name",
-                      "rule_ruleid",
-                      "rule_time",
-                      "action_id",
-                      "dev_id",
-                      "last_change_admin",
-                      "mgm_id",
-                      "rule_from_zone",
-                      "rule_num",
-                      "rule_to_zone",
-                      "tenant_id",
-                      "track_id",
-                      "rule_num_numeric",
-                      "parent_rule_type",
-                      "rule_action",
-                      "rule_comment",
-                      "rule_dst",
-                      "rule_dst_refs",
-                      "rule_head_text",
-                      "rule_src",
-                      "rule_src_refs",
-                      "rule_svc",
-                      "rule_svc_refs",
-                      "rule_track",
-                      "rule_uid"
-                    ],
-                    "filter": {
-                      "_and": [
-                        {
-                          "mgm_id": {
-                            "_in": "x-hasura-visible-managements"
-                          }
-                        },
-                        {
-                          "dev_id": {
-                            "_in": "x-hasura-visible-devices"
-                          }
-                        },
-                        {
-                          "tenant_id": {
-                            "_eq": "x-hasura-tenant-id"
-                          }
-                        }
-                      ]
-                    }
-                  }
-                },
-                {
-                  "role": "reporter",
-                  "permission": {
-                    "columns": [
-                      "parent_rule_id",
-                      "rule_create",
-                      "rule_id",
-                      "rule_last_seen",
-                      "xlate_rule",
-                      "access_rule",
-                      "active",
-                      "nat_rule",
-                      "rule_disabled",
-                      "rule_dst_neg",
-                      "rule_implied",
-                      "rule_src_neg",
-                      "rule_svc_neg",
-                      "rule_installon",
-                      "rule_name",
-                      "rule_ruleid",
-                      "rule_time",
-                      "action_id",
-                      "dev_id",
-                      "last_change_admin",
-                      "mgm_id",
-                      "rule_from_zone",
-                      "rule_num",
-                      "rule_to_zone",
-                      "tenant_id",
-                      "track_id",
-                      "rule_num_numeric",
-                      "parent_rule_type",
-                      "rule_action",
-                      "rule_comment",
-                      "rule_dst",
-                      "rule_dst_refs",
-                      "rule_head_text",
-                      "rule_src",
-                      "rule_src_refs",
-                      "rule_svc",
-                      "rule_svc_refs",
-                      "rule_track",
-                      "rule_uid"
-                    ],
-                    "filter": {
-                      "_and": [
-                        {
-                          "mgm_id": {
-                            "_in": "x-hasura-visible-managements"
-                          }
-                        },
-                        {
-                          "dev_id": {
-                            "_in": "x-hasura-visible-devices"
-                          }
-                        },
-                        {
-                          "tenant_id": {
-                            "_eq": "x-hasura-tenant-id"
-                          }
-                        }
-                      ]
-                    }
-                  }
-                },
-                {
-                  "role": "reporter-viewall",
-                  "permission": {
-                    "columns": [
-                      "parent_rule_id",
-                      "rule_create",
-                      "rule_id",
-                      "rule_last_seen",
-                      "xlate_rule",
-                      "access_rule",
-                      "active",
-                      "nat_rule",
-                      "rule_disabled",
-                      "rule_dst_neg",
-                      "rule_implied",
-                      "rule_src_neg",
-                      "rule_svc_neg",
-                      "rule_installon",
-                      "rule_name",
-                      "rule_ruleid",
-                      "rule_time",
-                      "action_id",
-                      "dev_id",
-                      "last_change_admin",
-                      "mgm_id",
-                      "rule_from_zone",
-                      "rule_num",
-                      "rule_to_zone",
-                      "tenant_id",
-                      "track_id",
-                      "rule_num_numeric",
-                      "parent_rule_type",
-                      "rule_action",
-                      "rule_comment",
-                      "rule_dst",
-                      "rule_dst_refs",
-                      "rule_head_text",
-                      "rule_src",
-                      "rule_src_refs",
-                      "rule_svc",
-                      "rule_svc_refs",
-                      "rule_track",
-                      "rule_uid"
-                    ],
-                    "filter": {}
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
-                "schema": "public",
                 "name": "view_undocumented_change_counter"
               }
             },
@@ -12414,6 +12532,200 @@
                     ],
                     "filter": {},
                     "allow_aggregations": true
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "schema": "request",
+                "name": "approval"
+              },
+              "object_relationships": [
+                {
+                  "name": "task",
+                  "using": {
+                    "foreign_key_constraint_on": "task_id"
+                  }
+                },
+                {
+                  "name": "tenant",
+                  "using": {
+                    "foreign_key_constraint_on": "tenant_id"
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "schema": "request",
+                "name": "element"
+              },
+              "object_relationships": [
+                {
+                  "name": "element",
+                  "using": {
+                    "foreign_key_constraint_on": "original_nat_id"
+                  }
+                },
+                {
+                  "name": "object",
+                  "using": {
+                    "foreign_key_constraint_on": "network_object_id"
+                  }
+                },
+                {
+                  "name": "service",
+                  "using": {
+                    "foreign_key_constraint_on": "service_id"
+                  }
+                },
+                {
+                  "name": "task",
+                  "using": {
+                    "foreign_key_constraint_on": "task_id"
+                  }
+                },
+                {
+                  "name": "usr",
+                  "using": {
+                    "foreign_key_constraint_on": "user_id"
+                  }
+                }
+              ],
+              "array_relationships": [
+                {
+                  "name": "elements",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "original_nat_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "element"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "schema": "request",
+                "name": "task"
+              },
+              "object_relationships": [
+                {
+                  "name": "object",
+                  "using": {
+                    "foreign_key_constraint_on": "nw_obj_grp_id"
+                  }
+                },
+                {
+                  "name": "service",
+                  "using": {
+                    "foreign_key_constraint_on": "svc_grp_id"
+                  }
+                },
+                {
+                  "name": "stm_action",
+                  "using": {
+                    "foreign_key_constraint_on": "rule_action"
+                  }
+                },
+                {
+                  "name": "stm_track",
+                  "using": {
+                    "foreign_key_constraint_on": "rule_tracking"
+                  }
+                },
+                {
+                  "name": "ticket",
+                  "using": {
+                    "foreign_key_constraint_on": "ticket_id"
+                  }
+                }
+              ],
+              "array_relationships": [
+                {
+                  "name": "approvals",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "task_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "approval"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "elements",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "task_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "element"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "request_owners",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "request_task_id",
+                      "table": {
+                        "schema": "public",
+                        "name": "request_owner"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "tasks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "request_task_id",
+                      "table": {
+                        "schema": "implementation",
+                        "name": "task"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "schema": "request",
+                "name": "ticket"
+              },
+              "object_relationships": [
+                {
+                  "name": "tenant",
+                  "using": {
+                    "foreign_key_constraint_on": "tenant_id"
+                  }
+                },
+                {
+                  "name": "uiuser",
+                  "using": {
+                    "foreign_key_constraint_on": "requester_id"
+                  }
+                }
+              ],
+              "array_relationships": [
+                {
+                  "name": "tasks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "ticket_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "task"
+                      }
+                    }
                   }
                 }
               ]

@@ -960,3 +960,138 @@ Create table "config"
 	"config_user" Integer,
 	primary key ("config_key","config_user")
 );
+
+-- create schema
+create schema if not exists request;
+create schema if not exists implementation;
+
+CREATE TYPE rule_field_enum AS ENUM ('source', 'destination', 'service');
+CREATE TYPE task_type_enum AS ENUM ('access', 'svc_group', 'obj_group', 'rule_modify');
+CREATE TYPE request.action_enum AS ENUM ('create', 'delete', 'modifiy');
+CREATE TYPE request.state_enum AS ENUM ('draft', 'open', 'in progress', 'closed', 'cancelled');
+
+-- create tables
+create table if not exists request.task 
+(
+    id SERIAL PRIMARY KEY,
+    title VARCHAR,
+    ticket_id int,
+    task_number int,
+    state request.state_enum NOT NULL,
+    task_type task_type_enum NOT NULL,
+    request_action request.action_enum NOT NULL,
+    rule_action int,
+    rule_tracking int,
+    start Timestamp,
+    stop Timestamp,
+    svc_grp_id int,
+    nw_obj_grp_id int,
+    reason text
+);
+
+create table if not exists request.element 
+(
+    id SERIAL PRIMARY KEY,
+    request_action request.action_enum NOT NULL default 'create',
+    task_id int,
+    ip cidr,
+    port int,
+    proto int,
+    network_object_id bigint,
+    service_id bigint,
+    field rule_field_enum NOT NULL,
+    user_id bigint,
+    original_nat_id int
+);
+
+create table if not exists request.approval 
+(
+    id SERIAL PRIMARY KEY,
+    task_id int,
+    date_opened Timestamp NOT NULL default CURRENT_TIMESTAMP,
+    approver_group Varchar,
+    approval_date Timestamp,
+    approver Varchar,
+    tenant_id int,
+    comment text
+);
+
+create table if not exists request.ticket 
+(
+    id SERIAL PRIMARY KEY,
+    title VARCHAR NOT NULL,
+    date_created Timestamp NOT NULL default CURRENT_TIMESTAMP,
+    date_completed Timestamp,
+    state_id request.state_enum NOT NULL,
+    requester_id int,
+    requester_dn Varchar,
+    requester_group Varchar,
+    tenant_id int,
+    reason text
+);
+
+create table if not exists owner
+(
+    id SERIAL PRIMARY KEY,
+    name Varchar NOT NULL,
+    dn Varchar NOT NULL,
+    group_dn Varchar NOT NULL,
+    is_default boolean default false,
+    tenant_id int,
+    recert_interval interval
+);
+
+create unique index if not exists only_one_default_owner on owner(is_default) 
+where is_default = true;
+
+create table if not exists owner_network
+(
+    id SERIAL PRIMARY KEY,
+    owner_id int,
+    ip cidr NOT NULL,
+    port int,
+    ip_proto_id int
+);
+
+create table if not exists request_owner
+(
+    request_task_id int,
+    owner_id int
+);
+
+create table if not exists rule_owner
+(
+    owner_id int,
+    rule_metadata_id bigint
+);
+
+create table if not exists implementation.element
+(
+    id SERIAL PRIMARY KEY,
+    implementation_action request.action_enum NOT NULL default 'create',
+    implementation_task_id int,
+    ip cidr,
+    port int,
+    ip_proto_id int,
+    network_object_id bigint,
+    service_id bigint,
+    field rule_field_enum NOT NULL,
+    user_id bigint,
+    original_nat_id int
+);
+
+create table if not exists implementation.task
+(
+    id SERIAL PRIMARY KEY,
+    request_task_id int,
+    implementation_task_number int,
+    implementation_state request.state_enum NOT NULL default 'open',
+    device_id int,
+    implementation_action request.action_enum NOT NULL,
+    rule_action int,
+    rule_tracking int,
+    start timestamp,
+    stop timestamp,
+    svc_grp_id int,
+    nw_obj_grp_id int
+);

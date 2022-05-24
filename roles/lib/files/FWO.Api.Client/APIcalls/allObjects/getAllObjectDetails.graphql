@@ -1,4 +1,4 @@
-query getAllObjectDetails(
+query getAllObjectDetails (
   $management_id: [Int!]
   $type: [String!]
   $uid: [String!]
@@ -13,7 +13,7 @@ query getAllObjectDetails(
   ) {
     id: mgm_id
     name: mgm_name
-    networkObjects: objects(
+    networkObjects: objects (
       limit: $limit
       offset: $offset
       where: {
@@ -26,7 +26,7 @@ query getAllObjectDetails(
     ) {
       ...networkObjectDetails
     }
-    serviceObjects: services(
+    serviceObjects: services (
       limit: $limit
       offset: $offset
       where: {
@@ -39,7 +39,7 @@ query getAllObjectDetails(
     ) {
       ...networkServiceDetails
     }
-    userObjects: usrs(
+    userObjects: usrs (
       limit: $limit
       offset: $offset
       where: {

@@ -1,6 +1,6 @@
 query getObjectsInReport(
   $mgmIds: [Int!]
-  $ruleIds: [bigint!]!
+  $ruleIds: _int8
   $importId: bigint
   $limit: Int
   $offset: Int

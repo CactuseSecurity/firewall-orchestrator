@@ -1,7 +1,7 @@
 ﻿query getServicesInReport (
   $mgmIds: [Int!]
   $importId: bigint
-  $ruleIds: [bigint!]!
+  $ruleIds: _int8
   $limit: Int
   $offset: Int
 ) {

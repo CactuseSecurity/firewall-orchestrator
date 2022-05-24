@@ -54,7 +54,6 @@ namespace FWO.Report
                         var objQueryVariables = new Dictionary<string, object>
                         {
                             { "mgmIds", Managements[i].Id },
-                            { "importId", Managements[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId! },
                             { "limit", objectsPerFetch },
                             { "offset", 0 },
                         };

@@ -70,7 +70,7 @@ AS $function$
   WHERE r.mgm_id = management_row.mgm_id AND rule_id = any (rule_ids) AND r.created <= import_id AND (r.removed IS NULL OR r.removed >= import_id)
   GROUP BY o.obj_id
   ORDER BY MAX(obj_name), o.obj_id
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION public.filter_rule_svc_resolveds(management_row management, rule_ids bigint[], import_id bigint)
  RETURNS SETOF service
@@ -82,7 +82,7 @@ AS $function$
   WHERE r.mgm_id = management_row.mgm_id AND rule_id = any (rule_ids) AND r.created <= import_id AND (r.removed IS NULL OR r.removed >= import_id)
   GROUP BY s.svc_id
   ORDER BY MAX(svc_name), s.svc_id
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION public.filter_rule_user_resolveds(management_row management, rule_ids bigint[], import_id bigint)
  RETURNS SETOF usr
@@ -94,4 +94,4 @@ AS $function$
   WHERE r.mgm_id = management_row.mgm_id AND rule_id = any (rule_ids) AND r.created <= import_id AND (r.removed IS NULL OR r.removed >= import_id)
   GROUP BY u.user_id
   ORDER BY MAX(user_name), u.user_id
-$function$
+$function$;

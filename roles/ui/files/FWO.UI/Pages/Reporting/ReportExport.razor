@@ -1,8 +1,10 @@
 ﻿@using System.Text
 @using FWO.Report
 @using FWO.Config.Api
+@using WkHtmlToPdfDotNet
+@using System.Linq;
 
-@inject APIConnection apiConnection
+@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 <button class="btn btn-sm btn-dark" @onclick='() => { if (ReportToExport != null) { ShowExportDialog = true; reportExportFile = new ReportFile { Name = "Report", OwnerId = userConfig.User.DbId }; } else { 
@@ -26,6 +28,33 @@
                             <label class="form-check-label" for="reportExportPdf">
                                 PDF
                             </label>
+                            @if (ExportPdf)
+                            {
+                                <div>
+                                    Paper Kind:
+                                    <select class="form-control form-control-sm" @bind="SelectedPaperKind">
+                                        @foreach (PaperKind paperKind in Enum.GetValues<PaperKind>())
+                                        {                      
+                                            <option value="@paperKind">@paperKind</option>
+                                        }
+                                    </select>
+                                    @if (SelectedPaperKind == PaperKind.Custom)
+                                    {
+                                        <div class="input-group input-group-sm mb-2 mt-2">
+                                          <div class="input-group-prepend">
+                                            <span class="input-group-text">Width (mm)</span>
+                                          </div>
+                                          <input  @bind="PaperSizeWidth" min="1" max="1000000" type="number" class="form-control">
+                                        </div>
+                                        <div class="input-group input-group-sm mb-1">
+                                          <div class="input-group-prepend">
+                                            <span class="input-group-text">Height (mm)</span>
+                                          </div>
+                                          <input @bind="PaperSizeHeight" min="1" max="1000000" type="number" class="form-control">
+                                        </div>
+                                    }
+                                </div>
+                            }
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="reportExportHtml" @bind="ExportHtml">
@@ -59,40 +88,20 @@
         </div>
     </Body>
     <Footer>
-        <button class="btn btn-sm btn-primary" @onclick="async () => { await Export(); ShowExportDialog = false; ShowExportDownloadDialog = true; }">@(userConfig.GetText("export"))</button>
-        <button class="btn btn-sm btn-secondary" @onclick="() => ShowExportDialog = false">@(userConfig.GetText("cancel"))</button>
+        @if (!Exporting) {
+            <button class="btn btn-sm btn-primary" @onclick="async () => { Exporting = true; await Export(); ShowExportDialog = false; ShowExportDownloadDialog = true; Exporting = false; }">@(userConfig.GetText("export"))</button>
+            <button class="btn btn-sm btn-secondary" @onclick="() => ShowExportDialog = false">@(userConfig.GetText("cancel"))</button>
+        }
+        else {
+            <div class="spinner-border" role="status">
+                <span class="sr-only">Exporting...</span>
+            </div>
+        }
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("export_report_download"))" Show="@ShowExportDownloadDialog" OnClose="() => ShowExportDownloadDialog = false">
-    <Body>
-        <div class="d-flex flex-column align ml-1 mr-1">
-            @if (reportExportFile?.Csv != null)
-            {
-                <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportExportFile.Csv)))"
-                   target="_blank" download="@(reportExportFile.Name).@("csv")">@(userConfig.GetText("download_csv"))</a>
-            }
-            @if (reportExportFile?.Pdf != null)
-            {
-                <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(reportExportFile.Pdf)"
-                   target="_blank" download="@(reportExportFile.Name).@("pdf")">@(userConfig.GetText("download_pdf"))</a>
-            }
-            @if (reportExportFile?.Html != null)
-            {
-                <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportExportFile.Html)))"
-                   target="_blank" download="@(reportExportFile.Name).@("html")">@(userConfig.GetText("download_html"))</a>
-            }
-            @if (reportExportFile?.Json != null && ExportJson)
-            {
-                <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportExportFile.Json)))"
-                   target="_blank" download="@(reportExportFile.Name).@("json")">@(userConfig.GetText("download_json"))</a>
-            }
-        </div>
-    </Body>
-    <Footer>
-        <button class="btn btn-sm btn-danger" @onclick="() => ShowExportDownloadDialog = false">@(userConfig.GetText("close"))</button>
-    </Footer>
-</PopUp>
+<ReportDownloadPopUp Title="@(userConfig.GetText("export_report_download"))" ReportFile="reportExportFile"
+Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportDownloadDialog = false" />
 
 @code
 {
@@ -108,13 +117,23 @@
     private bool ExportCsv = false;
     private bool ExportArchive = false;
     private ReportFile reportExportFile = new ReportFile();
+    private PaperKind SelectedPaperKind = PaperKind.A4;
 
     private bool ShowExportDialog = false;
     private bool ShowExportDownloadDialog = false;
 
+    private bool Exporting = false;
+
+    private bool PaperKindChanged = false;
+    private int PaperSizeWidth = 0;
+    private int PaperSizeHeight = 0;
+
     private async Task Export()
     {
-        reportExportFile.Sanitize();
+        if (reportExportFile.Sanitize())
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("export_report"), userConfig.GetText("U0001"), true);
+        }
         if (ReportToExport != null)
         {
             await Task.Run(async () =>
@@ -131,7 +150,14 @@
 
                     if (ExportPdf)
                     {
-                        reportExportFile.Pdf = Convert.ToBase64String(ReportToExport.ToPdf());
+                        try
+                        {
+                            reportExportFile.Pdf = Convert.ToBase64String(ReportToExport.ToPdf(SelectedPaperKind, PaperSizeWidth, PaperSizeHeight));                    
+                        }
+                        catch (KeyNotFoundException e)
+                        {
+                            throw new Exception("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
+                        }
                     }
 
                     if (ExportCsv)

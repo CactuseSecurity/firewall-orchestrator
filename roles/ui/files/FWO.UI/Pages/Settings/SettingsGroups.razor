@@ -1,7 +1,7 @@
 ﻿@using BlazorTable
 @using System.Net
 @using FWO.Api.Data
-@using FWO.ApiClient
+@using FWO.Api.Client
 @using FWO.Middleware.Client
 @using FWO.Config.Api
 @using FWO.Middleware.RequestParameters
@@ -10,7 +10,7 @@
 @page "/settings/groups"
 @attribute [Authorize(Roles = "admin, auditor")]
 
-@inject APIConnection apiConnection
+@inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 
@@ -289,7 +289,7 @@
         
             CollectSampleGroups();
 
-            uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.ApiClient.Queries.AuthQueries.getUsers);
+            uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
             uiUsers = uiUsers.FindAll(x => x.DbId != 0);
 
             // get roles from internal ldap
@@ -386,7 +386,12 @@
         EditGroupMode = false;
         try
         {
-            newGroupName = Sanitizer.SanitizeMand(newGroupName);
+            bool shortened = false;
+            newGroupName = Sanitizer.SanitizeMand(newGroupName, ref shortened);
+            if(shortened)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_group"), userConfig.GetText("U0001"), true);
+            }
             if (CheckValues())
             {
                 if (AddGroupMode)

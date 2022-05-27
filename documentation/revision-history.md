@@ -212,5 +212,10 @@ adding report template format fk and permissions
 - no end ip address for obj types <> range
 - fixing range display in reporting
 
-### 5.6.9
-- handle import attempts
+### 5.6.9 - 28.04.2022
+- import of fw configs directly from URL (import-mgm.py -m 17 -i https://x.y/z.conf)
+- ldap connection check improvements
+- alerting - handle import attempts
+
+### 5.7.1
+- start ip-based tenant filtering

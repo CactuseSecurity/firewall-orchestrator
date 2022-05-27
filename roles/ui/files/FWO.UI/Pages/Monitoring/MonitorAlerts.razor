@@ -1,6 +1,6 @@
 ﻿@using FWO.Config.Api
 
-@inject APIConnection apiConnection
+@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 @page "/monitoring/alerts"
@@ -46,8 +46,8 @@
         try
         {
             alertEntrys = await apiConnection.SendQueryAsync<List<Alert>>(MonitorQueries.getAlerts);
-            uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.ApiClient.Queries.AuthQueries.getUsers);
-            managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails);
+            uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
+            managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
         }
         catch (Exception exception)
         {

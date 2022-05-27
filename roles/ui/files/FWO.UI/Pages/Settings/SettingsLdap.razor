@@ -1,7 +1,7 @@
 ﻿@using BlazorTable
 @using System.Net
 @using FWO.Api.Data
-@using FWO.ApiClient
+@using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.Middleware.Client
 @using FWO.Middleware.RequestParameters
@@ -11,7 +11,7 @@
 @page "/settings/ldap"
 @attribute [Authorize(Roles = "admin, auditor")]
 
-@inject APIConnection apiConnection
+@inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 
@@ -268,7 +268,7 @@
                 }
             }
 
-            tenants = await apiConnection.SendQueryAsync<List<Tenant>>(FWO.ApiClient.Queries.AuthQueries.getTenants);
+            tenants = await apiConnection.SendQueryAsync<List<Tenant>>(FWO.Api.Client.Queries.AuthQueries.getTenants);
         }
         catch (System.Exception exception)
         {
@@ -350,12 +350,34 @@
             LdapGetUpdateParameters ldapParams = new LdapGetUpdateParameters()
             {
                 Address = actLdapConnection.Address,
-                Port = actLdapConnection.Port
+                Port = actLdapConnection.Port,
+                Tls = actLdapConnection.Tls,
+                SearchUser = actLdapConnection.SearchUser,
+                SearchUserPwd = actLdapConnection.SearchUserPwd,
+                WriteUser = actLdapConnection.WriteUser,
+                WriteUserPwd = actLdapConnection.WriteUserPwd
             };
-            RestResponse<bool> middlewareServerResponse = await middlewareClient.TestConnection(ldapParams);
-            if (middlewareServerResponse.StatusCode == HttpStatusCode.OK && middlewareServerResponse.Data == true)
+            RestResponse<int> middlewareServerResponse = await middlewareClient.TestConnection(ldapParams);
+            if (middlewareServerResponse.StatusCode == HttpStatusCode.OK)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("test_connection"), userConfig.GetText("E5266"), false);
+                switch (middlewareServerResponse.Data)
+                {
+                    case 0: 
+                        DisplayMessageInUi!(null, userConfig.GetText("test_connection"), userConfig.GetText("E5266"), false);
+                        break;
+                    case 1: 
+                        DisplayMessageInUi!(null, userConfig.GetText("test_connection"), userConfig.GetText("E5268"), true);
+                        break;
+                    case 2: 
+                        DisplayMessageInUi!(null, userConfig.GetText("test_connection"), userConfig.GetText("E5269"), true);
+                        break;
+                    case 3: 
+                        DisplayMessageInUi!(null, userConfig.GetText("test_connection"), userConfig.GetText("E5270"), true);
+                        break;
+                    default: 
+                        DisplayMessageInUi!(null, userConfig.GetText("test_connection"), userConfig.GetText("E5267"), true);
+                        break;
+                }
             }
             else
             {
@@ -372,7 +394,10 @@
     {
         try
         {
-            actLdapConnection.Sanitize();
+            if (actLdapConnection.Sanitize())
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("U0001"), true);
+            }
             if (CheckValues())
             {    
                 if (AddMode)

@@ -5,11 +5,16 @@ INSERT INTO language ("name", "culture_info") VALUES('English', 'en-US');
 insert into uiuser (uiuser_id, uiuser_username, uuid) VALUES (0,'default', 'default');
 
 insert into config (config_key, config_value, config_user) VALUES ('DefaultLanguage', 'English', 0);
+insert into config (config_key, config_value, config_user) VALUES ('sessionTimeout', '240', 0);
+-- insert into config (config_key, config_value, config_user) VALUES ('maxMessages', '3', 0);
 insert into config (config_key, config_value, config_user) VALUES ('elementsPerFetch', '100', 0);
 insert into config (config_key, config_value, config_user) VALUES ('maxInitialFetchesRightSidebar', '10', 0);
 insert into config (config_key, config_value, config_user) VALUES ('autoFillRightSidebar', 'True', 0);
 insert into config (config_key, config_value, config_user) VALUES ('dataRetentionTime', '731', 0);
 insert into config (config_key, config_value, config_user) VALUES ('importSleepTime', '40', 0);
+insert into config (config_key, config_value, config_user) VALUES ('importCheckCertificates', 'False', 0);
+insert into config (config_key, config_value, config_user) VALUES ('importSuppressCertificateWarnings', 'True', 0);
+insert into config (config_key, config_value, config_user) VALUES ('importFwProxy', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('fwApiElementsPerFetch', '150', 0);
 insert into config (config_key, config_value, config_user) VALUES ('recertificationPeriod', '365', 0);
 insert into config (config_key, config_value, config_user) VALUES ('recertificationNoticePeriod', '30', 0);

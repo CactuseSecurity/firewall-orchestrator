@@ -6,7 +6,7 @@ from common import importer_base_dir, set_ssl_verification
 sys.path.append(importer_base_dir)
 import getter, cpcommon, fwo_log
 
-requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
+# requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
 parser = argparse.ArgumentParser(description='Read configuration from Check Point R8x management via API calls')
 parser.add_argument('-a', '--apihost', metavar='api_host', required=True, help='Check Point R8x management server')

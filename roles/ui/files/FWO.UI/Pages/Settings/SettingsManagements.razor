@@ -1,13 +1,13 @@
 ﻿@using BlazorTable
 @using FWO.Api.Data
-@using FWO.ApiClient
+@using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.DeviceAutoDiscovery
 
 @page "/settings/managements"
 @attribute [Authorize(Roles = "admin, auditor, fw-admin")]
 
-@inject APIConnection apiConnection
+@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 <h3>@(userConfig.GetText("managements"))</h3>
@@ -149,12 +149,15 @@
                         </div>
                     </div>
                 }
-                <div class="form-group row">
-                    <label for="managementConfigPath" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("config_path")):</label>
-                    <div class="col-sm-8">
-                        <input id="managementConfigPath" type="text" class="form-control form-control-sm" @bind="actManagement.ConfigPath" />
+                @if (actManagement.DeviceType.CanHaveDomain())
+                {
+                    <div class="form-group row">
+                        <label for="managementConfigPath" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("config_path")):</label>
+                        <div class="col-sm-8">
+                            <input id="managementConfigPath" type="text" class="form-control form-control-sm" @bind="actManagement.ConfigPath" />
+                        </div>
                     </div>
-                </div>
+                }
                 @if (actManagement.DeviceType.CanHaveSupermanager())
                 {
                     <div class="form-group row">
@@ -296,7 +299,7 @@
     private Management actManagement = new Management();
     private Management actSuperManagement = new Management();
 
-    private AutoDiscovery autoDiscovery;
+    private AutoDiscovery? autoDiscovery;
 
     private string deleteMessage = "";
     private string cleanupMessage = "";
@@ -310,7 +313,7 @@
     {
         try
         {
-            managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails);
+            managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
             foreach (var management in managements)
             {
                 if (management.Name.EndsWith("_demo"))
@@ -320,7 +323,7 @@
             }
             showCleanupButton = (sampleManagements.Count > 0);
 
-            deviceTypes = await apiConnection.SendQueryAsync<List<DeviceType>>(FWO.ApiClient.Queries.DeviceQueries.getDeviceTypeDetails);
+            deviceTypes = await apiConnection.SendQueryAsync<List<DeviceType>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceTypeDetails);
         }
         catch (System.Exception exception)
         {
@@ -356,7 +359,7 @@
             DeleteMode = false;
             workInProgress = true;
             var Variables = new { id = management.Id };
-            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.deleteManagement, Variables)).DeletedId;
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.deleteManagement, Variables)).DeletedId;
             if (delId == management.Id)
             {
                 managements.Remove(management);
@@ -406,7 +409,10 @@
     {
         try
         {
-            actManagement.Sanitize();
+            if (actManagement.Sanitize())
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_management"), userConfig.GetText("U0001"), true);
+            }
             if (CheckValues(actManagement, userConfig.GetText("save_management")))
             {
                 if (AddMode)
@@ -430,7 +436,7 @@
                         debugLevel = actManagement.DebugLevel,
                         comment = actManagement.Comment
                     };
-                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newManagement, Variables)).ReturnIds;
+                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.DeviceQueries.newManagement, Variables)).ReturnIds;
                     if (returnIds != null)
                     {
                         actManagement.Id = returnIds[0].NewId;
@@ -461,7 +467,7 @@
                         debugLevel = actManagement.DebugLevel,
                         comment = actManagement.Comment
                     };
-                    int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.updateManagement, Variables)).UpdatedId;
+                    int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.updateManagement, Variables)).UpdatedId;
                     EditMode = (udId == actManagement.Id ? false : true);
                     managements[managements.FindIndex(x => x.Id == actManagement.Id)] = actManagement;
                 }
@@ -525,8 +531,8 @@
         {
             workInProgress = true;
             StateHasChanged();
-            AutoDiscoveryBase autodiscovery = new AutoDiscoveryBase(superManagement, apiConnection);
-            actActions = autodiscovery.ConvertToActions(await autodiscovery.Run());
+            AutoDiscoveryBase actAutodiscovery = new AutoDiscoveryBase(superManagement, apiConnection);
+            actActions = actAutodiscovery.ConvertToActions(await actAutodiscovery.Run());
             int ChangeCounter = actActions.Count();
             await AddAutoDiscoverLogEntry(0, userConfig.GetText("manual_autodiscovery"), (ChangeCounter > 0 ? ChangeCounter + userConfig.GetText("changes_found") : userConfig.GetText("found_no_changes")), superManagement.Id);
             workInProgress = false;

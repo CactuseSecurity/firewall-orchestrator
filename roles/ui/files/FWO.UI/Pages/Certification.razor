@@ -9,7 +9,7 @@
 
 @page "/certification"
 
-@inject APIConnection apiConnection
+@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 @* ==== LEFT SIDEBAR ==== *@
@@ -164,7 +164,6 @@
         {
             try
             {
-                await GetSettings();
                 rulesFound = false;
 
                 deviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
@@ -309,8 +308,6 @@
 
         try
         {
-            await GetSettings();
-
             string query = "";
             Dictionary<String, object> queryVars = new Dictionary<string, object>();
 
@@ -425,7 +422,12 @@
 
     private async Task ExecuteSelected()
     {
-        actComment = Sanitizer.SanitizeMand(actComment);
+        bool shortened = false;
+        actComment = Sanitizer.SanitizeMand(actComment, ref shortened);
+        if(shortened)
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("execute_selected"), userConfig.GetText("U0001"), true);
+        }
         if(userConfig.CommentRequired && actComment == "")
         {
             DisplayMessageInUi!(null, userConfig.GetText("execute_selected"), userConfig.GetText("E4001"), true);
@@ -494,18 +496,6 @@
         catch (Exception exception)
         {
             DisplayMessageInUi!(exception, userConfig.GetText("execute_selected"), "", true);
-        }
-    }
-
-    private async Task GetSettings()
-    {
-        try
-        {
-            await userConfig.GetEditableConfig();
-        }
-        catch (Exception exception)
-        {
-            Log.WriteError("Read Config", $"Error reading config value", exception);
         }
     }
 }

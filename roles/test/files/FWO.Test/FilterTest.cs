@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace FWO.Test.Filter
+namespace FWO.Test
 {
     [TestFixture]
     public class FilterTest

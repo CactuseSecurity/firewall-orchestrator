@@ -9,7 +9,7 @@ using FWO.Api.Client;
 using Newtonsoft.Json.Linq;
 using FWO.Logging;
 
-namespace FWO.ApiClient
+namespace FWO.Api.Client
 {
     public class ApiSubscription<SubscriptionResponseType> : IDisposable
     {

@@ -1,7 +1,7 @@
 ﻿@using System.Text
 @using FWO.Config.Api
 
-@inject APIConnection apiConnection
+@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 @page "/archive"
@@ -12,10 +12,19 @@
     <Column TableItem="ReportFile" Title="@(userConfig.GetText("action"))">
         <Template>
             <div class="btn-group">
-                <button class="btn btn-sm btn-info" @onclick="async () => { await GetGeneratedReportContent(context.Id); ShowDownloadReportFileDialog = true; }">@(userConfig.GetText("download"))</button>
-                @if (context.Owner.DbId == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole("admin"))
+                @if (!Exporting)
                 {
-                    <button class="btn btn-sm btn-danger" @onclick="() => { reportFileContext = context; ShowDeleteReportFileDialog = true; }">@(userConfig.GetText("delete"))</button>
+                    <button class="btn btn-sm btn-info" @onclick="async () => { Exporting = true; await GetGeneratedReportContent(context.Id); ShowDownloadReportFileDialog = true; Exporting = false; }">@(userConfig.GetText("download"))</button>
+                    @if (context.Owner.DbId == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole("admin"))
+                    {
+                        <button class="btn btn-sm btn-danger" @onclick="() => { reportFileContext = context; ShowDeleteReportFileDialog = true; }">@(userConfig.GetText("delete"))</button>
+                    }
+                }
+                else
+                {                    
+                    <div class="spinner-border" role="status">
+                        <span class="sr-only">Exporting...</span>
+                    </div>
                 }
             </div>
         </Template>
@@ -42,35 +51,8 @@
     </Footer>
 </PopUp>
 
-<PopUp Show="ShowDownloadReportFileDialog" Title="@(userConfig.GetText("generated_report"))">
-    <Body>
-        <div class="d-flex flex-column align">
-            @if (reportFileContext?.Csv != null)
-            {
-                <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportFileContext.Csv)))"
-                   target="_blank" download="@(reportFileContext.Name).@("csv")">@(userConfig.GetText("download_as_csv"))</a>
-            }
-            @if (reportFileContext?.Pdf != null)
-            {
-                <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(reportFileContext.Pdf)"
-                   target="_blank" download="@(reportFileContext.Name).@("pdf")">@(userConfig.GetText("download_as_pdf"))</a>
-            }
-            @if (reportFileContext?.Html != null)
-            {
-                <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportFileContext.Html)))"
-                   target="_blank" download="@(reportFileContext.Name).@("html")">@(userConfig.GetText("download_as_html"))</a>
-            }
-            @if (reportFileContext?.Json != null)
-            {
-                <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportFileContext.Json)))"
-                   target="_blank" download="@(reportFileContext.Name).@("json")">@(userConfig.GetText("download_as_json"))</a>
-            }
-        </div>
-    </Body>
-    <Footer>
-        <button class="btn btn-secondary" @onclick="() => ShowDownloadReportFileDialog = false">@(userConfig.GetText("cancel"))</button>
-    </Footer>
-</PopUp>
+<ReportDownloadPopUp Title="@(userConfig.GetText("generated_report"))" ReportFile="reportFileContext"
+Show="ShowDownloadReportFileDialog" ShowJson="true" OnClose="() => ShowDownloadReportFileDialog = false" />
 
 @code
 {
@@ -85,6 +67,8 @@
     private ReportFile reportFileContext = new ReportFile();
     private bool ShowDeleteReportFileDialog = false;
     private bool ShowDownloadReportFileDialog = false;
+
+    private bool Exporting = false;
 
     protected override async Task OnInitializedAsync()
     {

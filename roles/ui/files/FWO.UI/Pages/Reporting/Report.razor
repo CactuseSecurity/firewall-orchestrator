@@ -9,7 +9,7 @@
 
 @page "/report"
 
-@inject APIConnection Connection
+@inject ApiConnection Connection
 @inject UserConfig userConfig
 
 @* ==== LEFT SIDEBAR ==== *@
@@ -638,7 +638,7 @@
             }
 
             Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount - 1} cycle(s) ({userConfig.ElementsPerFetch} at a time)");
-            
+
             if (fetchCount > userConfig.MaxInitialFetchesRightSidebar && !userConfig.AutoFillRightSidebar)
                 DisplayMessageInUi!(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);
         }
@@ -764,14 +764,13 @@
 
     private void TryFilter(ChangeEventArgs changeArgs)
     {
+        string input = (changeArgs.Value ?? "").ToString() ?? "";
+
         try
         {
-            // TODO: CHECK IF NEEDED
-            // filterInput = (changeArgs.Value ?? "").ToString() ?? "";
+            DynGraphqlQuery query = Compiler.Compile(input);
 
-            DynGraphqlQuery query = Compiler.Compile(filterInput);
-
-            filterFeedbackStart = filterInput;
+            filterFeedbackStart = input;
             filterFeedbackError = "";
             filterFeedbackEnd = "";
         }
@@ -780,9 +779,9 @@
             int errorStart = filterError.ErrorPosition.Start.Value;
             int errorEnd = filterError.ErrorPosition.End.Value;
 
-            filterFeedbackStart = filterInput[..errorStart];
-            filterFeedbackError = filterInput[errorStart..errorEnd];
-            filterFeedbackEnd = filterInput[errorEnd..];
+            filterFeedbackStart = input[..errorStart];
+            filterFeedbackError = input[errorStart..errorEnd];
+            filterFeedbackEnd = input[errorEnd..];
         }
         catch (Exception unexpectedError)
         {

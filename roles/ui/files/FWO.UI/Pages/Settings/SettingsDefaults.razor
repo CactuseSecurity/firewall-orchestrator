@@ -1,11 +1,11 @@
-﻿@using FWO.ApiClient
+﻿@using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.Config.Api.Data
 
 @page "/settings/defaults"
 @attribute [Authorize(Roles = "admin, auditor")]
 
-@inject APIConnection apiConnection
+@inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 
@@ -26,17 +26,29 @@
             </select>
         </div>
     </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="sessionTimeout" class="col-form-label col-sm-4">@(userConfig.GetText("sessionTimeout")):</label>
+        <div class="col-sm-2">
+            <input id="sessionTimeout" type="number" class="form-control form-control-sm w-100" @bind="configData!.SessionTimeout" />
+        </div>
+    </form>
+    @* <form class="form-inline" onsubmit="return false">
+        <label for="maxMessages" class="col-form-label col-sm-4">@(userConfig.GetText("maxMessages"))*:</label>
+        <div class="col-sm-2">
+            <input id="maxMessages" type="number" class="form-control form-control-sm w-100" @bind="configData!.MaxMessages">
+        </div>
+    </form> *@
+    <form class="form-inline" onsubmit="return false">
+        <label for="messageViewTime" class="col-form-label col-sm-4">@(userConfig.GetText("messageViewTime"))*:</label>
+        <div class="col-sm-2">
+            <input id="messageViewTime" type="number" class="form-control form-control-sm w-100" @bind="configData!.MessageViewTime">
+        </div>
+    </form>
     <hr />
     <form class="form-inline" onsubmit="return false">
         <label for="elementsPerFetch" class="col-form-label col-sm-4">@(userConfig.GetText("elementsPerFetch"))*:</label>
         <div class="col-sm-2">
             <input id="elementsPerFetch" type="number" class="form-control form-control-sm w-100" @bind="configData!.ElementsPerFetch" />
-        </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label for="maxInitFetch" class="col-form-label col-sm-4">@(userConfig.GetText("maxInitialFetchesRightSidebar")):</label>
-        <div class="col-sm-2">
-            <input id="maxInitFetch" type="number" class="form-control form-control-sm w-100" @bind="configData!.MaxInitialFetchesRightSidebar" />
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
@@ -46,15 +58,22 @@
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
-        <label for="minCollapseAllDevices" class="col-form-label col-sm-4">@(userConfig.GetText("minCollapseAllDevices"))*:</label>
+        <label for="maxInitFetch" class="col-form-label col-sm-4">@(userConfig.GetText("maxInitialFetchesRightSidebar")):</label>
         <div class="col-sm-2">
-            <input id="minCollapseAllDevices" type="number" class="form-control form-control-sm w-100" @bind="configData!.MinCollapseAllDevices">
+            @if (configData!.AutoFillRightSidebar)
+            {
+                <input disabled id="maxInitFetch" type="number" class="form-control form-control-sm w-100" @bind="configData!.MaxInitialFetchesRightSidebar" />
+            }
+            else
+            {
+                <input id="maxInitFetch" type="number" class="form-control form-control-sm w-100" @bind="configData!.MaxInitialFetchesRightSidebar" />
+            }
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
-        <label for="messageViewTime" class="col-form-label col-sm-4">@(userConfig.GetText("messageViewTime"))*:</label>
+        <label for="minCollapseAllDevices" class="col-form-label col-sm-4">@(userConfig.GetText("minCollapseAllDevices"))*:</label>
         <div class="col-sm-2">
-            <input id="messageViewTime" type="number" class="form-control form-control-sm w-100" @bind="configData!.MessageViewTime">
+            <input id="minCollapseAllDevices" type="number" class="form-control form-control-sm w-100" @bind="configData!.MinCollapseAllDevices">
         </div>
     </form>
     <hr />
@@ -69,6 +88,24 @@
         <label for="importSleepTime" class="col-form-label col-sm-4">@(userConfig.GetText("importSleepTime")):</label>
         <div class="col-sm-2">
             <input id="importSleepTime" type="number" class="form-control form-control-sm w-100" @bind="configData!.ImportSleepTime" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="importCheckCertificates" class="col-form-label col-sm-4">@(userConfig.GetText("importCheckCertificates")):</label>
+        <div class="col-sm-2">
+            <input id="importCheckCertificates" type="checkbox" class="w-100" @bind="configData!.ImportCheckCertificates" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="importSuppressCertificateWarnings" class="col-form-label col-sm-4">@(userConfig.GetText("importSuppressCertificateWarnings")):</label>
+        <div class="col-sm-2">
+            <input id="importSuppressCertificateWarnings" type="checkbox" class="w-100" @bind="configData!.ImportSuppressCertificateWarnings" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="importFwProxy" class="col-form-label col-sm-4">@(userConfig.GetText("importFwProxy")):</label>
+        <div class="col-sm-2">
+            <input id="importFwProxy" type="text" class="form-control form-control-sm w-100" @bind="configData!.ImportFwProxy" />
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">

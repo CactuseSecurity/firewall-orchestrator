@@ -2,7 +2,7 @@
 @using FWO.Report.Filter
 
 @inject UserConfig userConfig
-@inject APIConnection apiConnection
+@inject ApiConnection apiConnection
 
 <div class="mr-1 ml-1 mb-1 shadow">
     <Collapse Title="@(userConfig.GetText("templates"))" Style="@("primary")" StartToggled="false" @ref="collapseControl">
@@ -228,7 +228,10 @@
     {
         try
         {
-            reportTemplateInEdit.Sanitize();
+            if (reportTemplateInEdit.Sanitize())
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_template"), userConfig.GetText("U0001"), true);
+            }
             reportTemplateInEdit.CreationDate = DateTime.Now;
             reportTemplateInEdit.Owner = userConfig.User.DbId;
 

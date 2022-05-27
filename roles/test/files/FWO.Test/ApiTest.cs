@@ -1,6 +1,6 @@
 using System;
 using System.Threading.Tasks;
-using FWO.ApiClient;
+using FWO.Api.Client;
 using NUnit.Framework;
 using FWO.Api.Data;
 using FWO.Config.File;
@@ -9,12 +9,12 @@ using Microsoft.IdentityModel.Tokens;
 using FWO.Middleware.RequestParameters;
 using FWO.Logging;
 
-namespace FWO.Test.Api
+namespace FWO.Test
 {
     [TestFixture]
     public class ApiTest
     {
-        APIConnection apiConnection;
+        ApiConnection apiConnection;
 
         public ApiTest()
         {

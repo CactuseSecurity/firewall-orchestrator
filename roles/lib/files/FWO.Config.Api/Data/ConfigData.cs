@@ -22,6 +22,12 @@ namespace FWO.Config.Api.Data
         [JsonProperty("DefaultLanguage"), JsonPropertyName("DefaultLanguage")]
         public virtual string DefaultLanguage { get; set; } = "English";
 
+        [JsonProperty("sessionTimeout"), JsonPropertyName("sessionTimeout"), UserConfigData]
+        public int SessionTimeout { get; set; } = 240;
+
+//        [JsonProperty("maxMessages"), JsonPropertyName("maxMessages"), UserConfigData]
+//        public int MaxMessages { get; set; } = 3;
+
         [JsonProperty("elementsPerFetch"), JsonPropertyName("elementsPerFetch"), UserConfigData]
         public int ElementsPerFetch { get; set; } = 100;
 
@@ -36,6 +42,15 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("importSleepTime"), JsonPropertyName("importSleepTime")]
         public int ImportSleepTime { get; set; } = 40;
+
+        [JsonProperty("importCheckCertificates"), JsonPropertyName("importCheckCertificates")]
+        public bool ImportCheckCertificates { get; set; } = false;
+
+        [JsonProperty("importSuppressCertificateWarnings"), JsonPropertyName("importSuppressCertificateWarnings")]
+        public bool ImportSuppressCertificateWarnings { get; set; } = true;
+
+        [JsonProperty("importFwProxy"), JsonPropertyName("importFwProxy")]
+        public string ImportFwProxy { get; set; } = "";
 
         [JsonProperty("autoDiscoverSleepTime"), JsonPropertyName("autoDiscoverSleepTime")]
         public int AutoDiscoverSleepTime { get; set; } = 24;

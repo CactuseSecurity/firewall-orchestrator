@@ -3830,6 +3830,35 @@
                   }
                 }
               ],
+              "computed_fields": [
+                {
+                  "name": "filter_rule_nwobj_resolveds",
+                  "definition": {
+                    "function": {
+                      "schema": "public",
+                      "name": "filter_rule_nwobj_resolveds"
+                    }
+                  }
+                },
+                {
+                  "name": "filter_rule_svc_resolveds",
+                  "definition": {
+                    "function": {
+                      "schema": "public",
+                      "name": "filter_rule_svc_resolveds"
+                    }
+                  }
+                },
+                {
+                  "name": "filter_rule_user_resolveds",
+                  "definition": {
+                    "function": {
+                      "schema": "public",
+                      "name": "filter_rule_user_resolveds"
+                    }
+                  }
+                }
+              ],
               "insert_permissions": [
                 {
                   "role": "fw-admin",
@@ -11938,6 +11967,24 @@
             }
           ],
           "functions": [
+            {
+              "function": {
+                "schema": "public",
+                "name": "filter_rule_nwobj_resolveds"
+              }
+            },
+            {
+              "function": {
+                "schema": "public",
+                "name": "filter_rule_svc_resolveds"
+              }
+            },
+            {
+              "function": {
+                "schema": "public",
+                "name": "filter_rule_user_resolveds"
+              }
+            },
             {
               "function": {
                 "schema": "public",

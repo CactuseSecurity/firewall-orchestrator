@@ -181,9 +181,9 @@
                         <CascadingValue Value="collapseSidebarRule">
                             <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="rule" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule" Data="selectedItemsRuleReportTable"
                                                 NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
-                                                NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object).Union(rule.Tos.Select(nl => nl.Object)).Union(rule.NatData.TranslatedFroms.Select(nl => nl.Object)).Union(rule.NatData.TranslatedTos.Select(nl => nl.Object)).ToArray()"
-                                                NetworkServiceExtractor="rule => rule.Services.Select(sw => sw.Content).Union(rule.NatData.TranslatedServices.Select(sw => sw.Content)).ToArray()"
-                                                NetworkUserExtractor="rule => rule.Froms.Select(nl => nl.User).Distinct().Where(u => u != null).ToArray()" />
+                                                NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object).Union(rule.Tos.Select(nl => nl.Object)).Union(rule.NatData.TranslatedFroms.Select(nl => nl.Object)).Union(rule.NatData.TranslatedTos.Select(nl => nl.Object)).OrderBy(o => o.Name).ToArray()"
+                                                NetworkServiceExtractor="rule => rule.Services.Select(sw => sw.Content).Union(rule.NatData.TranslatedServices.Select(sw => sw.Content)).OrderBy(s => s.Name).ToArray()"
+                                                NetworkUserExtractor="rule => rule.Froms.Select(nl => nl.User).Distinct().Where(u => u != null).OrderBy(u => u.Name).ToArray()" />
                         </CascadingValue>
                     </div>
                 </Tab>

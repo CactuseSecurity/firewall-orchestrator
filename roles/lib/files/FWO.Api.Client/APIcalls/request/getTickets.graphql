@@ -12,6 +12,53 @@ query getTickets ($from_state: Int!, $to_state: Int!){
     requester_group
     tenant_id
     reason
+    tasks: tasks{
+      id
+      title
+      task_number
+      state_id
+      task_type
+      request_action
+      rule_action
+      rule_tracking
+      start
+      stop
+      svc_grp_id
+      nw_obj_grp_id
+      reason
+      elements: elements{
+        id
+        request_action
+        ip
+        port
+        proto
+        network_object_id
+        service_id
+        field
+      }
+      implementation_tasks: tasks{
+        id
+        implementation_task_number
+        state_id
+        device_id
+        rule_action
+        rule_tracking
+        start
+        stop
+        svc_grp_id
+        nw_obj_grp_id
+        elements: elements{
+          id
+          implementation_action
+          ip
+          port
+          ip_proto_id
+          network_object_id
+          service_id
+          field
+          original_nat_id
+        }
+      }
+    }
   }
 }
-

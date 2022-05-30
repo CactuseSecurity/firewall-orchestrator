@@ -1,0 +1,864 @@
+@using BlazorTable
+@using FWO.Api.Data
+@using FWO.Api.Client
+@using FWO.Config.Api
+@using FWO.Ui.Services
+
+@page "/request"
+@page "/request/tickets"
+@attribute [Authorize(Roles = "admin, requester, auditor, fw-admin")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+<h3>@(userConfig.GetText("tickets"))</h3>
+<hr />
+
+<button class="btn btn-success m-2" @onclick="AddTicket">@(userConfig.GetText("add_new_request"))</button>
+
+<div class="m-2">
+    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="RequestTicket" Items="requests" PageSize="0" ColumnReorder="true">
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+            <Template>
+                <div class="btn-group">
+                    @if (context.StateId < stateMatrix.LowestEndState)
+                    {
+                        <button class="btn btn-sm btn-warning" @onclick="() => EditTicket(context)">@(userConfig.GetText("edit"))</button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-sm btn-primary" @onclick="() => ShowTicketDetails(context)">@(userConfig.GetText("details"))</button>
+                    }
+                </div>
+            </Template>
+        </Column>
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true" />
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("requester"))" Field="@(x => x.Requester.Name)" Sortable="true" Filterable="true" />
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
+            <Template>
+                @(states.Name[context.StateId])
+            </Template>
+        </Column>
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("created"))" Field="@(x => x.CreationDate)" Sortable="true" Filterable="true" />
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("closed"))" Field="@(x => x.CompletionDate)" Sortable="true" Filterable="true" />
+    </Table>
+</div>
+
+<PopUp Title="@(userConfig.GetText("ticket") + ": " + actTicket.Title)" Show="@ShowTicketMode" Large="true" OnClose="() => ShowTicketMode = false">
+    <Body>
+        @if (ShowTicketMode)
+        {
+            <form>
+                <div class="form-group row">
+                    <label for="ticketId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                    <label class="col-sm-8">@actTicket.Id</label>
+                </div>
+                <div class="form-group row">
+                    <label for="taskId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
+                    <label class="col-sm-8">@states.Name[actTicket.StateId]</label>
+                </div>
+                <div class="form-group row">
+                    <label for="ticketTitle" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("title"))*:</label>
+                    @if (EditTicketMode)
+                    {
+                        <div class="col-sm-8">
+                            <input id="ticketTitle" type="text" class="form-control form-control-sm" @bind="actTicket.Title" />
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@actTicket.Title</label>
+                    }
+                </div>
+                <div class="form-group row">
+                    <label for="ticketRequester" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("requester")):</label>
+                    <label class="col-sm-8">@actTicket.Requester?.Name</label>
+                </div>
+                <div class="form-group row">
+                    <label for="ticketReason" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
+                    @if (EditTicketMode)
+                    {
+                        <div class="col-sm-8">
+                            <input id="ticketReason" type="text" class="form-control form-control-sm" @bind="actTicket.Reason" />
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@actTicket.Reason</label>
+                    }
+                </div>
+
+                @(userConfig.GetText("tasks"))
+                @if (EditTicketMode)
+                {
+                    <button class="btn btn-success m-2" @onclick:preventDefault @onclick="AddTask">@(userConfig.GetText("add_task"))</button>
+                }
+                <div class="m-2">
+                    <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="RequestTask" Items="actTicket.Tasks" PageSize="0" ColumnReorder="true">
+                        <Column TableItem="RequestTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                            <Template>
+                                <div class="btn-group">
+                                    @if (EditTicketMode)
+                                    {
+                                        <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => ShowTask(context)">@(userConfig.GetText("edit"))</button>
+                                        <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteTask(context)">@(userConfig.GetText("delete"))</button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowTask(context)">@(userConfig.GetText("details"))</button>
+                                    }
+                                </div>
+                            </Template>
+                        </Column>
+                        <Column TableItem="RequestTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+                        <Column TableItem="RequestTask" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true" />
+                        <Column TableItem="RequestTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
+                            <Template>
+                                @(states.Name[context.StateId])
+                            </Template>
+                        </Column>
+                        <Column TableItem="RequestTask" Title="@(userConfig.GetText("start"))" Field="@(x => x.Start)" Sortable="true" Filterable="true" />
+                        <Column TableItem="RequestTask" Title="@(userConfig.GetText("stop"))" Field="@(x => x.Stop)" Sortable="true" Filterable="true" />
+                    </Table>
+                </div>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            @if (actTicket.StateId < stateMatrix.LowestEndState)
+            {
+                <AuthorizeView Roles="admin, requester, fw-admin">
+                    <Authorized>
+                        <button class="btn btn-sm btn-primary" @onclick="InitSaveTicket">@(userConfig.GetText("save"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+            }
+            else if(stateMatrix.getAllowedTransitions(actTicket.StateId).Count > 1)
+            {
+                <AuthorizeView Roles="admin, requester, fw-admin">
+                    <Authorized>
+                        <button class="btn btn-sm btn-primary" @onclick="InitSaveTicket">@(userConfig.GetText("change_state"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("change_state"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+            }
+            <button class="btn btn-sm btn-secondary" @onclick="CancelTicket">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText("task") + ": " + actTask.Title)" Show="@ShowTaskMode" Large="true" OnClose="() => ShowTaskMode = false">
+    <Body>
+        @if (ShowTaskMode)
+        {
+            <form>
+                <div class="form-group row">
+                    <label for="taskId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
+                    <label class="col-sm-8">@states.Name[actTask.StateId]</label>
+                </div>
+                <div class="form-group row">
+                    <label for="taskTitle" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("title"))*:</label>
+                    @if (EditTicketMode)
+                    {
+                        <div class="col-sm-8">
+                            <input id="taskTitle" type="text" class="form-control form-control-sm" @bind="actTask.Title" />
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@actTask.Title</label>
+                    }
+                </div>
+                <div class="form-group row">
+                    <label for="taskType" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("type"))*:</label>
+                    @if (EditTicketMode)
+                    {
+                        <div class="col-sm-8">
+                            <select id="taskType" class="form-control form-control-sm" @bind="actTask.TaskType">
+                                @foreach (string type in Enum.GetNames(typeof(TaskType)))
+                                {
+                                    <option value="@type">@(userConfig.GetText(type))</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@actTask.TaskType</label>
+                    }
+                </div>
+                <div class="form-group row">
+                    <label for="taskReqAction" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("action"))*:</label>
+                    @if (EditTicketMode)
+                    {
+                        <div class="col-sm-8">
+                            <select id="taskReqAction" class="form-control form-control-sm" @bind="actTask.RequestAction">
+                                @foreach (string action in Enum.GetNames(typeof(RequestAction)))
+                                {
+                                    <option value="@action">@(userConfig.GetText(action))</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@actTask.RequestAction</label>
+                    }
+                </div>
+                <div class="form-group row">
+                    <label for="taskRuleAction" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("rule_action")):</label>
+                    @if (EditTicketMode)
+                    {
+                        <div class="col-sm-8">
+                            <input id="taskRuleAction" type="number" class="form-control form-control-sm" @bind="actTask.RuleAction" />
+                        </div>
+                        @* <select id="elementRuleAction" class="form-control form-control-sm" @bind="actTask.RuleAction">
+                            @foreach (int action in ruleActions)
+                            {
+                                <option value="@action.Id">@(action.Name)</option>
+                            }
+                        </select> *@
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@actTask.RuleAction</label>
+                    }
+                </div>
+                <div class="form-group row">
+                    <label for="taskReason" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
+                    @if (EditTicketMode)
+                    {
+                        <div class="col-sm-8">
+                            <input id="taskReason" type="text" class="form-control form-control-sm" @bind="actTask.Reason" />
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@actTask.Reason</label>
+                    }
+                </div>
+
+                @(userConfig.GetText("elements"))
+                @if (EditTicketMode)
+                {
+                    <button class="btn btn-success m-2" @onclick:preventDefault @onclick="AddElement">@(userConfig.GetText("add_element"))</button>
+                }
+                <div class="m-2">
+                    <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="RequestElement" Items="actTask.Elements" PageSize="0" ColumnReorder="true">
+                        <Column TableItem="RequestElement" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                            <Template>
+                                <div class="btn-group">
+                                    @if (EditTicketMode)
+                                    {
+                                        <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => ShowElement(context)">@(userConfig.GetText("edit"))</button>
+                                        <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteElement(context)">@(userConfig.GetText("delete"))</button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowElement(context)">@(userConfig.GetText("details"))</button>
+                                    }
+                                </div>
+                            </Template>
+                        </Column>
+                        <Column TableItem="RequestElement" Title="@(userConfig.GetText("action"))" Field="@(x => x.RequestAction)" Sortable="true" Filterable="true" >
+                            <Template>
+                                @(userConfig.GetText(context.RequestAction))
+                            </Template>
+                        </Column>
+                        <Column TableItem="RequestElement" Title="@(userConfig.GetText("type"))" Field="@(x => x.Field)" Sortable="true" Filterable="true" >
+                            <Template>
+                                @(userConfig.GetText(context.Field))
+                            </Template>
+                        </Column>
+                        <Column TableItem="RequestElement" Title="@(userConfig.GetText("ip"))" Field="@(x => x.Ip)" Sortable="true" Filterable="true" />
+                        <Column TableItem="RequestElement" Title="@(userConfig.GetText("port"))" Field="@(x => x.Port)" Sortable="true" Filterable="true" />
+                        <Column TableItem="RequestElement" Title="@(userConfig.GetText("protocol"))" Field="@(x => x.ProtoId)" Sortable="true" Filterable="true" >
+                            <Template>
+                                @(context.ProtoId) @* todo: translate from stm_ table *@
+                            </Template>
+                        </Column>
+                    </Table>
+                </div>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            @if (EditTicketMode)
+            {
+                <AuthorizeView Roles="admin, requester, fw-admin">
+                    <Authorized>
+                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveTask">@(userConfig.GetText("save"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+            }
+            <button class="btn btn-sm btn-secondary" @onclick="CancelTask">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText("delete_task"))" Show="@DeleteTaskMode" OnClose="() => DeleteTaskMode = false">
+    <Body>
+        @if (DeleteTaskMode)
+        {
+            <p>@(userConfig.GetText("U8002")) @(actTask.Title)?</p>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="admin">
+                <Authorized>
+                    <button class="btn btn-sm btn-danger" @onclick="ConfDeleteTask">@(userConfig.GetText("delete"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button class="btn btn-sm btn-secondary" @onclick="CancelTask">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText("element") + ": " + actElement.Id)" Show="@ShowElementMode" Large="true" OnClose="() => ShowElementMode = false">
+    <Body>
+        @if (ShowElementMode)
+        {
+            <form>
+                <div class="form-group row">
+                    <label for="elementAction" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("action"))*:</label>
+                    @if (EditTicketMode) 
+                    {
+                        <div class="col-sm-8">
+                            <select id="elementAction" class="form-control form-control-sm" @bind="actElement.RequestAction">
+                                @foreach (string action in Enum.GetNames(typeof(RequestAction)))
+                                {
+                                    <option value="@action">@(userConfig.GetText(action))</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@(userConfig.GetText(actElement.RequestAction))</label>
+                    }              
+                </div>
+                <div class="form-group row">
+                    <label for="elementField" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("type"))*:</label>
+                    @if (EditTicketMode) 
+                    {
+                        <div class="col-sm-8">
+                            <select id="elementField" class="form-control form-control-sm" @bind="actElement.Field">
+                                @foreach (string type in Enum.GetNames(typeof(RuleField)))
+                                {
+                                    <option value="@type">@(userConfig.GetText(type))</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@(userConfig.GetText(actElement.Field))</label>
+                    }              
+                </div>
+                <div class="form-group row">
+                    <label for="elementIp" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ip"))*:</label>
+                    @if (EditTicketMode) 
+                    {
+                        <div class="col-sm-8">
+                            <input id="elementIp" type="text" class="form-control form-control-sm" @bind="actElement.Ip" />
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@actElement.Ip</label>
+                    }              
+                </div>
+                <div class="form-group row">
+                    <label for="elementPort" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
+                    @if (EditTicketMode) 
+                    {
+                        <div class="col-sm-8">
+                            <input id="elementPort" type="text" class="form-control form-control-sm" @bind="actElement.Port" />
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@actElement.Port</label>
+                    }              
+                </div>
+                <div class="form-group row">
+                    <label for="elementProto" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("protocol")):</label>
+                    @if (EditTicketMode)
+                    {
+                        <div class="col-sm-8">
+                            <input id="elementProto" type="number" class="form-control form-control-sm" @bind="actElement.ProtoId" />
+                        </div>
+                        @* <select id="elementProto" class="form-control form-control-sm" @bind="actElement.ProtoId">
+                            @foreach (int proto in protos)
+                            {
+                                <option value="@proto.Id">@(proto.Name)</option>
+                            }
+                        </select> *@
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@actElement.ProtoId</label>
+                    }
+                </div>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            @if (EditTicketMode)
+            {
+                <AuthorizeView Roles="admin, requester, fw-admin">
+                    <Authorized>
+                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveElement">@(userConfig.GetText("save"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+            }
+            <button class="btn btn-sm btn-secondary" @onclick="CancelElement">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText("delete_element"))" Show="@DeleteElementMode" OnClose="() => DeleteElementMode = false">
+    <Body>
+        @if (DeleteElementMode)
+        {
+            <p>@(userConfig.GetText("U8001")) @(actElement.Ip)?</p>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="admin">
+                <Authorized>
+                    <button class="btn btn-sm btn-danger" @onclick="ConfDeleteElement">@(userConfig.GetText("delete"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button class="btn btn-sm btn-secondary" @onclick="CancelElement">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText("save_request"))" Show="@PromoteTicketMode" OnClose="() => PromoteTicketMode = false">
+    <Body>
+        @if (PromoteTicketMode)
+        {
+            <div class="form-group row">
+                <label for="promoteTicket" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("promote_to")):</label>
+                <div class="col-sm-8">
+                    <select id="promoteTicket" class="form-control form-control-sm" @bind="actTicket.StateId">
+                        @foreach (int state in actPossibleStates)
+                        {
+                            <option value="@state">@(states.Name[state])</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="admin, requester, fw-admin">
+                <Authorized>
+                    <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveTicket">@(userConfig.GetText("save"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button class="btn btn-sm btn-secondary" @onclick="CancelSaveTicket">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    
+    private List<RequestTicket> requests = new List<RequestTicket>();
+
+    private bool ShowTicketMode = false;
+    private bool AddTicketMode = false;
+    private bool EditTicketMode = false;
+    private bool AddTaskMode = false;
+    private bool ShowTaskMode = false;
+    private bool DeleteTaskMode = false;
+    private bool AddElementMode = false;
+    private bool ShowElementMode = false;
+    private bool DeleteElementMode = false;
+    private bool PromoteTicketMode = false;
+    private List<int> actPossibleStates = new List<int>();
+
+    private RequestTicket actTicket = new RequestTicket();
+    private RequestTask actTask = new RequestTask();
+    private RequestElement actElement = new RequestElement();
+
+    private RequestStates states = new RequestStates();
+    private StateMatrix stateMatrix = new StateMatrix();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            stateMatrix.Init(0);
+            states.Init();
+
+            await FetchTickets();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_requests"), "", true);
+        }
+    }
+
+    private async Task FetchTickets()
+    {
+        try
+        {
+            var Variables = new
+            {
+                from_state = stateMatrix.LowestInputState,
+                to_state = 999,
+            };
+            requests = await apiConnection.SendQueryAsync<List<RequestTicket>>(FWO.Api.Client.Queries.RequestQueries.getTickets, Variables);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_requests"), "", true);
+        }
+    }
+
+    private void AddTicket()
+    {
+        AddTicketMode = true;
+        actTicket = new RequestTicket();
+        EditTicket(actTicket);
+    }
+
+    private void EditTicket(RequestTicket ticket)
+    {
+        EditTicketMode = true;
+        ShowTicketDetails(ticket);
+    }
+
+    private void ShowTicketDetails(RequestTicket ticket)
+    {
+        actTicket = new RequestTicket(ticket);
+        ShowTicketMode = true;
+    }
+
+    private async Task InitSaveTicket()
+    {
+        actPossibleStates = stateMatrix.getAllowedTransitions(actTicket.StateId);
+        if(actPossibleStates.Count == 1)
+        {
+            actTicket.StateId = actPossibleStates[0];
+            await SaveTicket();
+        }
+        else
+        {
+            PromoteTicketMode = true;
+        }
+    }
+
+    private async Task SaveTicket()
+    {
+        try
+        {
+            PromoteTicketMode = false;
+            if (actTicket.Sanitize())
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("U0001"), true);
+            }
+            if (CheckRequestValues())
+            {
+                foreach(RequestTask task in actTicket.Tasks)
+                {
+                    task.StateId = actTicket.StateId;
+                }
+
+                if (AddTicketMode)
+                {                  
+                    // insert new ticket
+                    actTicket.CreationDate = DateTime.Now;
+                    var Variables = new
+                    {
+                        title = actTicket.Title,
+                        state = actTicket.StateId,
+                        reason = actTicket.Reason,
+                        requesterId = userConfig.User.DbId,
+                        requestTasks = new RequestTicketWriter(actTicket)
+                    };
+                    // {"title":"r8","state":0,"reason":null,"requesterId":3,
+                    //   "requestTasks":{"data": [{"title":"r81","task_number":0,"state_id":0,"task_type":"access","request_action":"create","rule_action":null,"rule_tracking":null,"start":null,"stop":null,"svc_grp_id":null,"nw_obj_grp_id":null,"reason":null}]}}
+                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newTicket, Variables)).ReturnIds;
+                    if (returnIds == null)
+                    {
+                        DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("E8001"), true);
+                    }
+                    else
+                    {
+                        actTicket.Id = returnIds[0].NewId;
+                        actTicket.Requester = userConfig.User;
+                        // requests.Add(actTicket);
+                        await FetchTickets();
+                        AddTicketMode = false;
+                        EditTicketMode = false;
+                        ShowTicketMode = false;
+                    }
+                }
+                else
+                {
+                    // Update existing ticket
+                    var Variables = new
+                    {
+                        id = actTicket.Id,
+                        title = actTicket.Title,
+                        state = actTicket.StateId,
+                        reason = actTicket.Reason
+                    };
+                    int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateTicket, Variables)).UpdatedId;
+                    if(udId != actTicket.Id)
+                    {
+                        DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("E8002"), true);
+                    }
+                    else
+                    {
+                        requests[requests.FindIndex(x => x.Id == actTicket.Id)] = actTicket;
+                        EditTicketMode = false;
+                        ShowTicketMode = false;
+                    }
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("save_request"), "", true);
+        }
+    }
+
+    private bool CheckRequestValues()
+    {
+        if (actTicket.Title == null || actTicket.Title == "")
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("E5102"), true);
+            return false;
+        }
+        return true;
+    }
+    
+    private void CancelTicket()
+    {
+        AddTicketMode = false;
+        EditTicketMode = false;
+        ShowTicketMode = false;
+    }
+
+    private void CancelSaveTicket()
+    {
+        PromoteTicketMode = false;
+    }
+
+
+    private void AddTask()
+    {
+        AddTaskMode = true;
+        actTask = new RequestTask(){ TicketId = actTicket.Id };
+        ShowTask(actTask);
+    }
+
+    private void ShowTask(RequestTask task)
+    {
+        actTask = new RequestTask(task);
+        ShowTaskMode = true;
+    }
+
+    private async Task SaveTask()
+    {
+        try
+        {
+            if (actTask.Sanitize())
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_task"), userConfig.GetText("U0001"), true);
+            }
+            if (CheckTaskValues())
+            {
+                if (AddTaskMode)
+                {
+                    actTask.TaskNumber = actTicket.Tasks.Count + 1;
+                    if (actTicket.Id > 0) // ticket already created -> write directly to db
+                    {
+                        actTask.TicketId = actTicket.Id;
+                        actTask.Id = await AddTaskToDb(actTask);
+                    }
+                    actTicket.Tasks.Add(actTask);
+                    AddTaskMode = false;
+                    ShowTaskMode = false;
+                }
+                else
+                {
+                    actTicket.Tasks[actTicket.Tasks.FindIndex(x => x.Id == actTask.Id)] = actTask;
+                    ShowTaskMode = false;
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("save_task"), "", true);
+        }
+    }
+
+    private async Task<int> AddTaskToDb(RequestTask task)
+    {
+        int returnId = 0;
+        try
+        {
+            var Variables = new
+            {
+                title = task.Title,
+                ticketId = task.TicketId,
+                taskNumber = task.TaskNumber,
+                state = task.StateId,
+                taskType = task.TaskType,
+                requestAction = task.RequestAction,
+                reason = task.Reason
+            };
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newRequestTask, Variables)).ReturnIds;
+            if (returnIds == null)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_task"), userConfig.GetText("E8003"), true);
+            }
+            else
+            {
+                returnId = returnIds[0].NewId;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("save_task"), "", true);
+        }
+        return returnId;
+    }
+
+    private bool CheckTaskValues()
+    {
+        if (actTask.Title == null || actTask.Title == "")
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
+            return false;
+        }
+        return true;
+    }
+
+    private void DeleteTask(RequestTask task)
+    {
+        actTask = task;
+        DeleteTaskMode = true;
+    }
+
+    private void ConfDeleteTask()
+    {
+        actTicket.Tasks.Remove(actTask);
+        // todo: adapt TaskNumbers of following tasks?
+        DeleteTaskMode = false;
+    }
+
+    private void CancelTask()
+    {
+        AddTaskMode = false;
+        ShowTaskMode = false;
+        DeleteTaskMode = false;
+    }
+
+
+    private void AddElement()
+    {
+        AddElementMode = true;
+        actElement = new RequestElement();
+        ShowElement(actElement);
+    }
+
+    private void ShowElement(RequestElement element)
+    {
+        actElement = new RequestElement(element);
+        ShowElementMode = true;
+    }
+
+    private async Task SaveElement()
+    {
+        try
+        {
+            if (actElement.Sanitize())
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_element"), userConfig.GetText("U0001"), true);
+            }
+            if (CheckElementValues())
+            {    
+                if (AddElementMode)
+                {
+                    actTask.Elements.Add(actElement);
+                }
+                else
+                {
+                    actTask.Elements[actTask.Elements.FindIndex(x => x.Id == actElement.Id)] = actElement;
+                }
+                ShowElementMode = false;
+                AddElementMode = false;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("save_element"), "", true);
+        }
+    }
+
+    private bool CheckElementValues()
+    {
+        if (actElement.Ip == null || actElement.Ip == "")
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("save_element"), userConfig.GetText("E5102"), true);
+            return false;
+        }
+        return true;
+    }
+
+    private void DeleteElement(RequestElement element)
+    {
+        actElement = element;
+        DeleteElementMode = true;
+    }
+
+    private void ConfDeleteElement()
+    {
+        actTask.Elements.Remove(actElement);
+        DeleteElementMode = false;
+    }
+
+    private void CancelElement()
+    {
+        AddElementMode = false;
+        ShowElementMode = false;
+        DeleteElementMode = false;
+    }
+}

@@ -2,13 +2,15 @@ mutation newTicket(
   $title: String!, 
   $reason: String, 
   $state: Int,
-  $requesterId: Int
+  $requesterId: Int,
+  $requestTasks: request_task_arr_rel_insert_input
   ) {
   insert_request_ticket(objects: {
     title: $title, 
     reason: $reason, 
-    state_id: $state
-    requester_id: $requesterId
+    state_id: $state,
+    requester_id: $requesterId,
+    tasks: $requestTasks
   }) {
     returning {
       newId: id

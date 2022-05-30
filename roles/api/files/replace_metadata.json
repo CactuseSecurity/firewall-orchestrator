@@ -11817,6 +11817,12 @@
             {
               "table": {
                 "schema": "request",
+                "name": "state"
+              }
+            },
+            {
+              "table": {
+                "schema": "request",
                 "name": "task"
               },
               "object_relationships": [

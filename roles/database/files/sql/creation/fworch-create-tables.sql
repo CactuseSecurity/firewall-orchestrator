@@ -967,7 +967,7 @@ create schema if not exists implementation;
 
 CREATE TYPE rule_field_enum AS ENUM ('source', 'destination', 'service');
 CREATE TYPE task_type_enum AS ENUM ('access', 'svc_group', 'obj_group', 'rule_modify');
-CREATE TYPE request.action_enum AS ENUM ('create', 'delete', 'modifiy');
+CREATE TYPE action_enum AS ENUM ('create', 'delete', 'modify');
 
 -- create tables
 create table if not exists request.task 
@@ -978,7 +978,7 @@ create table if not exists request.task
     task_number int,
     state_id int NOT NULL,
     task_type task_type_enum NOT NULL,
-    request_action request.action_enum NOT NULL,
+    request_action action_enum NOT NULL,
     rule_action int,
     rule_tracking int,
     start Timestamp,
@@ -991,7 +991,7 @@ create table if not exists request.task
 create table if not exists request.element 
 (
     id SERIAL PRIMARY KEY,
-    request_action request.action_enum NOT NULL default 'create',
+    request_action action_enum NOT NULL default 'create',
     task_id int,
     ip cidr,
     port int,
@@ -1073,7 +1073,7 @@ create table if not exists rule_owner
 create table if not exists implementation.element
 (
     id SERIAL PRIMARY KEY,
-    implementation_action request.action_enum NOT NULL default 'create',
+    implementation_action action_enum NOT NULL default 'create',
     implementation_task_id int,
     ip cidr,
     port int,
@@ -1092,7 +1092,7 @@ create table if not exists implementation.task
     implementation_task_number int,
     state_id int NOT NULL,
     device_id int,
-    implementation_action request.action_enum NOT NULL,
+    implementation_action action_enum NOT NULL,
     rule_action int,
     rule_tracking int,
     start timestamp,

@@ -17,7 +17,7 @@
 
 <div class="m-2">
     <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="ImportStatus" Items="sortedImportStati" PageSize="0" ColumnReorder="true" TableRowClass="@(stat => getTableRowClass(stat))">
-        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("action"))" Field="(x => x.MgmId)" Sortable="false" Filterable="false">
+        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("actions"))" Field="(x => x.MgmId)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
                     <button class="btn btn-sm btn-secondary" @onclick="() => Details(context)">@(userConfig.GetText("details"))</button>

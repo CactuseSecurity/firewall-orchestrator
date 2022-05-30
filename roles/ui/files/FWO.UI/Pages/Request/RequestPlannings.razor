@@ -15,7 +15,7 @@
 
 <div class="m-2">
     <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="RequestTicket" Items="requests" PageSize="0" ColumnReorder="true">
-        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
                     @if (context.StateId <= stateMatrix.LowestEndState)
@@ -42,27 +42,27 @@
     </Table>
 </div>
 
-<PopUp Title="@(userConfig.GetText("request") + ": " + actRequest.Title)" Show="@ShowRequestMode" Large="true" OnClose="() => ShowRequestMode = false">
+<PopUp Title="@(userConfig.GetText("request") + ": " + actTicket.Title)" Show="@ShowTicketMode" Large="true" OnClose="() => ShowTicketMode = false">
     <Body>
-        @if (ShowRequestMode)
+        @if (ShowTicketMode)
         {
             <form>
                 <div class="form-group row">
                     <label for="requestId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
-                    <label class="col-sm-8">@actRequest.Id</label>
+                    <label class="col-sm-8">@actTicket.Id</label>
                 </div>
                 <div class="form-group row">
                     <label for="taskId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
-                    <label class="col-sm-8">@states.Name[actRequest.StateId]</label>
+                    <label class="col-sm-8">@states.Name[actTicket.StateId]</label>
                 </div>
                 <div class="form-group row">
                     <label for="requestRequester" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("requester")):</label>
-                    <label class="col-sm-8">@actRequest.Requester?.Name</label>
+                    <label class="col-sm-8">@actTicket.Requester?.Name</label>
                 </div>
                 @(userConfig.GetText("tasks"))
                 <div class="m-2">
-                    <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="RequestTask" Items="actRequest.Tasks" PageSize="0" ColumnReorder="true">
-                        <Column TableItem="RequestTask" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                    <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="RequestTask" Items="actTicket.Tasks" PageSize="0" ColumnReorder="true">
+                        <Column TableItem="RequestTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                             <Template>
                                 <div class="btn-group">
                                     @if (context.StateId < stateMatrix.LowestEndState)
@@ -115,7 +115,7 @@
             <div class="form-group row">
                 <label for="promoteRequest" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("promote_to")):</label>
                 <div class="col-sm-8">
-                    <select id="promoteRequest" class="form-control form-control-sm" @bind="actRequest.StateId">
+                    <select id="promoteRequest" class="form-control form-control-sm" @bind="actTicket.StateId">
                         @foreach (int state in actPossibleStates)
                         {
                             <option value="@state">@(states.Name[state])</option>
@@ -156,7 +156,7 @@
                 @(userConfig.GetText("request_elements"))
                 <div class="m-2">
                     <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="RequestElement" Items="actReqTask.Elements" PageSize="0" ColumnReorder="true">
-                        <Column TableItem="RequestElement" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                        <Column TableItem="RequestElement" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                             <Template>
                                 <div class="btn-group">
                                     <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowReqElement(context)">@(userConfig.GetText("details"))</button>
@@ -175,7 +175,7 @@
                 }
                 <div class="m-2">
                     <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="ImplementationTask" Items="actReqTask.ImplementationTasks" PageSize="0" ColumnReorder="true">
-                        <Column TableItem="ImplementationTask" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                        <Column TableItem="ImplementationTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                             <Template>
                                 <div class="btn-group">
                                     @if (context.StateId < stateMatrix.LowestEndState)
@@ -190,8 +190,7 @@
                                 </div>
                             </Template>
                         </Column>
-                        <Column TableItem="ImplementationTask" Title="@(userConfig.GetText("number"))" Field="@(x => x.TaskNumber)" Sortable="true" Filterable="true" />
-                        <Column TableItem="ImplementationTask" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true" />
+                        <Column TableItem="ImplementationTask" Title="@(userConfig.GetText("number"))" Field="@(x => x.ImplTaskNumber)" Sortable="true" Filterable="true" />
                         <Column TableItem="ImplementationTask" Title="@(userConfig.GetText("device"))" Field="@(x => x.DeviceId)" Sortable="true">
                             <Template>
                                 @(context.DeviceId != null && context.DeviceId != 0 ? devices[devices.FindIndex(x => x.Id == context.DeviceId)].Name : "")
@@ -279,27 +278,14 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("task") + ": " + actImplTask.Title)" Show="@ShowImplTaskMode" Large="true" OnClose="() => ShowImplTaskMode = false">
+<PopUp Title="@(userConfig.GetText("task") + ": " + actImplTask.ImplTaskNumber)" Show="@ShowImplTaskMode" Large="true" OnClose="() => ShowImplTaskMode = false">
     <Body>
         @if (ShowImplTaskMode)
         {
             <form>
                 <div class="form-group row">
                     <label for="taskNo" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("number")):</label>
-                    <label class="col-sm-8">@actImplTask.TaskNumber</label>
-                </div>
-                <div class="form-group row">
-                    <label for="taskTitle" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("title"))*:</label>
-                    @if (EditImplTaskMode)
-                    {
-                        <div class="col-sm-8">
-                            <input id="taskTitle" type="text" class="form-control form-control-sm" @bind="actImplTask.Title" />
-                        </div>
-                    }
-                    else
-                    {
-                        <label class="col-sm-8">@actImplTask.Title</label>
-                    }
+                    <label class="col-sm-8">@actImplTask.ImplTaskNumber</label>
                 </div>
                 <div class="form-group row">
                     <label for="taskDevId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("device"))*:</label>
@@ -329,7 +315,7 @@
                 }
                 <div class="m-2">
                     <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="ImplementationElement" Items="actImplTask.ImplElements" PageSize="0" ColumnReorder="true">
-                        <Column TableItem="ImplementationElement" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                        <Column TableItem="ImplementationElement" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                             <Template>
                                 <div class="btn-group">
                                     @if (EditImplTaskMode)
@@ -374,7 +360,7 @@
     <Body>
         @if (DeleteImplTaskMode)
         {
-            <p>@(userConfig.GetText("U8002")) @(actImplTask.Title)?</p>
+            <p>@(userConfig.GetText("U8002")) @(actImplTask.ImplTaskNumber)?</p>
         }
     </Body>
     <Footer>
@@ -523,7 +509,7 @@
     
     private List<RequestTicket> requests = new List<RequestTicket>();
 
-    private bool ShowRequestMode = false;
+    private bool ShowTicketMode = false;
     private bool PlanRequestMode = false;
     private bool PromoteRequestMode = false;
     private bool PlanTaskMode = false;
@@ -540,7 +526,7 @@
     private bool SearchImplElementMode = false;
     private bool DeleteImplElementMode = false;
 
-    private RequestTicket actRequest = new RequestTicket();
+    private RequestTicket actTicket = new RequestTicket();
     private RequestTask actReqTask = new RequestTask();
     private RequestElement actReqElement = new RequestElement();
     private ImplementationTask actImplTask = new ImplementationTask();
@@ -598,28 +584,28 @@
 
     private void ShowRequestDetails(RequestTicket ticket)
     {
-        actRequest = new RequestTicket(ticket);
-        ShowRequestMode = true;
+        actTicket = new RequestTicket(ticket);
+        ShowTicketMode = true;
     }
 
     private async Task InitSaveRequest()
     {
-        if(actRequest.Tasks.Count > 0)
+        if(actTicket.Tasks.Count > 0)
         {
             List<int> taskStates = new List<int>();
-            foreach (RequestTask task in actRequest.Tasks)
+            foreach (RequestTask task in actTicket.Tasks)
             {
                 taskStates.Add(task.StateId);
             }
-            actRequest.StateId = stateMatrix.getRequestStateFromTaskStates(taskStates);
+            actTicket.StateId = stateMatrix.getRequestStateFromTaskStates(taskStates);
             await SaveRequest();
         }
         else
         {
-            actPossibleStates = stateMatrix.getAllowedTransitions(actRequest.StateId);
+            actPossibleStates = stateMatrix.getAllowedTransitions(actTicket.StateId);
             if(actPossibleStates.Count == 1)
             {
-                actRequest.StateId = actPossibleStates[0];
+                actTicket.StateId = actPossibleStates[0];
                 await SaveRequest();
             }
             else
@@ -634,7 +620,7 @@
         try
         {           
             PromoteRequestMode = false;
-            if (actRequest.Sanitize())
+            if (actTicket.Sanitize())
             {
                 DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("U0001"), true);
             }
@@ -643,20 +629,20 @@
                 // Update existing ticket
                 var Variables = new
                 {
-                    id = actRequest.Id,
-                    title = actRequest.Title,
-                    state = actRequest.StateId
+                    id = actTicket.Id,
+                    title = actTicket.Title,
+                    state = actTicket.StateId
                 };
                 int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateTicket, Variables)).UpdatedId;
-                if(udId != actRequest.Id)
+                if(udId != actTicket.Id)
                 {
                     DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("E8002"), true);
                 }
                 else
                 {
-                    requests[requests.FindIndex(x => x.Id == actRequest.Id)] = actRequest;
+                    requests[requests.FindIndex(x => x.Id == actTicket.Id)] = actTicket;
                     PlanRequestMode = false;
-                    ShowRequestMode = false;
+                    ShowTicketMode = false;
                 }
             }
         }
@@ -668,7 +654,7 @@
 
     private bool CheckRequestValues()
     {
-        if (actRequest.Title == null || actRequest.Title == "")
+        if (actTicket.Title == null || actTicket.Title == "")
         {
             DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("E5102"), true);
             return false;
@@ -679,7 +665,7 @@
     private void CancelRequest()
     {
         PlanRequestMode = false;
-        ShowRequestMode = false;
+        ShowTicketMode = false;
     }
 
     private void CancelSaveRequest()
@@ -736,7 +722,7 @@
                 {
                     implTask.StateId = actReqTask.StateId;
                 }
-                actRequest.Tasks[actRequest.Tasks.FindIndex(x => x.Id == actReqTask.Id)] = actReqTask;
+                actTicket.Tasks[actTicket.Tasks.FindIndex(x => x.Id == actReqTask.Id)] = actReqTask;
                 ShowReqTaskMode = false;
                 PlanTaskMode = false;
             }
@@ -797,7 +783,7 @@
     {
         AddImplTaskMode = true;
         EditImplTask(new ImplementationTask(actReqTask){
-            TaskNumber = actReqTask.ImplementationTasks.Count + 1,
+            ImplTaskNumber = actReqTask.ImplementationTasks.Count + 1,
             DeviceId = (devices.Count > 0 ? devices[0].Id : 0)
             });
     }
@@ -818,7 +804,7 @@
                 }
                 else
                 {
-                    actReqTask.ImplementationTasks[actReqTask.ImplementationTasks.FindIndex(x => x.TaskNumber == actImplTask.TaskNumber)] = actImplTask;
+                    actReqTask.ImplementationTasks[actReqTask.ImplementationTasks.FindIndex(x => x.ImplTaskNumber == actImplTask.ImplTaskNumber)] = actImplTask;
                 }
                 ShowImplTaskMode = false;
                 EditImplTaskMode = false;

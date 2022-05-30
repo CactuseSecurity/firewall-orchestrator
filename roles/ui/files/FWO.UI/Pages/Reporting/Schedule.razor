@@ -10,7 +10,7 @@
 <button class="btn btn-sm btn-success mb-1" @onclick="() => { scheduledReportInEdit = new ScheduledReport() { RepeatInterval = Interval.Never }; ShowSaveScheduledReportDialog = true; }">@(userConfig.GetText("add"))</button>
 
 <Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="ScheduledReport" Items="scheduledReports" PageSize="0">
-    <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("action"))">
+    <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("actions"))">
         <Template>
             @if (context.Owner.DbId == uiUserDbId || authenticationState!.User.IsInRole("admin"))
             {

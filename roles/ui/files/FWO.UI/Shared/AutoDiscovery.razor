@@ -16,7 +16,7 @@
             {
                 <h6>@(userConfig.GetText("managements"))</h6>
                 <Table class="table table-bordered table-responsive" TableItem="Management" Items="managementsToDisplay" PageSize="0" ColumnReorder="true">
-                    <Column TableItem="Management" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)">
+                    <Column TableItem="Management" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)">
                         <Template>
                             @if(!context.Ignore)
                             {
@@ -67,7 +67,7 @@
                             @if(context.Devices.Count() > 0)
                             {
                                 <Table class="table table-bordered table-responsive" TableItem="Device" Items="context.Devices" PageSize="0" ColumnReorder="true">
-                                    <Column TableItem="Device" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)">
+                                    <Column TableItem="Device" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)">
                                         <Template Context="Dev">
                                             @if(Dev.Relevant)
                                             {

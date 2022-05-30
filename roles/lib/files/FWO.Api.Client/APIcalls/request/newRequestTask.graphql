@@ -1,0 +1,23 @@
+mutation newRequestTask(
+  $title: String!,
+  $ticketId: Int!,
+  $taskNumber: Int,
+  $state: Int,
+  $taskType: task_type_enum,
+  $requestAction: action_enum,
+  $reason: String
+  ) {
+  insert_request_task(objects: {
+    title: $title,
+    ticket_id: $ticketId,
+    task_number: $taskNumber,
+    state_id: $state,
+    task_type: $taskType,
+    request_action: $requestAction,
+    reason: $reason 
+  }) {
+    returning {
+      newId: id
+    }
+  }
+}

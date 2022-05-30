@@ -76,8 +76,7 @@ namespace FWO.Config.Api
 
         public static async Task<GlobalConfig> ConstructAsync(string jwt, bool loadLanguageData = true)
         {
-            ApiConnection apiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri);
-            apiConnection.SetAuthHeader(jwt);
+            ApiConnection apiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri, jwt);
             return await ConstructAsync(apiConnection, loadLanguageData);
         }
 

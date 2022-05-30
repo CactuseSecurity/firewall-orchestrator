@@ -9,7 +9,7 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 @inject NavigationManager NavigationManager
-@inject PermissionEventService permissionService
+@inject AuthenticationStateProvider authenticationProvider
 
 <div style="z-index:15; top:0px;" class="position-sticky">
     <NavigationMenu @bind-ShowAlert="showAlert"/>
@@ -62,7 +62,7 @@
         var user = authenticationStateTask!.Result.User;
         DisplayMessageInUiFunction = DisplayMessageInUi;
 
-        permissionService.OnPermissionChanged += OnPermissionsChanged;
+        JwtEventService.OnPermissionChanged += OnPermissionsChanged;
         alertSubscription = apiConnection.GetSubscription<List<Alert>>(ApiExceptionHandler, OnAlertUpdate, MonitorQueries.subscribeAlertChanges);
     }
 
@@ -72,11 +72,12 @@
         InvokeAsync(StateHasChanged);
     }
 
-    private void OnPermissionsChanged(object? sender, UiUser user)
+    private void OnPermissionsChanged(object? sender, string userDn)
     {
-        if (user.DbId == userConfig.User.DbId)
+        if (userDn == userConfig.User.Dn)
         {
             ShowMessage("Permissions", "Your permissions have been changed. Re-login to update your permissions.", MessageType.Info);
+            // authenticationProvider.
         }
     }
 

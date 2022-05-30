@@ -59,3 +59,39 @@ BEGIN
 	RETURN;
 END;
 $BODY$;
+
+CREATE OR REPLACE FUNCTION public.filter_rule_nwobj_resolveds(management_row management, rule_ids bigint[], import_id bigint)
+ RETURNS SETOF object
+ LANGUAGE sql
+ STABLE
+AS $function$
+  SELECT o.*
+  FROM rule_nwobj_resolved r JOIN object o ON (r.obj_id=o.obj_id)
+  WHERE r.mgm_id = management_row.mgm_id AND rule_id = any (rule_ids) AND r.created <= import_id AND (r.removed IS NULL OR r.removed >= import_id)
+  GROUP BY o.obj_id
+  ORDER BY MAX(obj_name), o.obj_id
+$function$;
+
+CREATE OR REPLACE FUNCTION public.filter_rule_svc_resolveds(management_row management, rule_ids bigint[], import_id bigint)
+ RETURNS SETOF service
+ LANGUAGE sql
+ STABLE
+AS $function$
+  SELECT s.*
+  FROM rule_svc_resolved r JOIN service s ON (r.svc_id=s.svc_id)
+  WHERE r.mgm_id = management_row.mgm_id AND rule_id = any (rule_ids) AND r.created <= import_id AND (r.removed IS NULL OR r.removed >= import_id)
+  GROUP BY s.svc_id
+  ORDER BY MAX(svc_name), s.svc_id
+$function$;
+
+CREATE OR REPLACE FUNCTION public.filter_rule_user_resolveds(management_row management, rule_ids bigint[], import_id bigint)
+ RETURNS SETOF usr
+ LANGUAGE sql
+ STABLE
+AS $function$
+  SELECT u.*
+  FROM rule_user_resolved r JOIN usr u ON (r.user_id=u.user_id)
+  WHERE r.mgm_id = management_row.mgm_id AND rule_id = any (rule_ids) AND r.created <= import_id AND (r.removed IS NULL OR r.removed >= import_id)
+  GROUP BY u.user_id
+  ORDER BY MAX(user_name), u.user_id
+$function$;

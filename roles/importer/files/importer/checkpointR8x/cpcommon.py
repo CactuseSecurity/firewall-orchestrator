@@ -38,7 +38,7 @@ original_obj_uid = "85c0f50f-6d8a-4528-88ab-5fb11d8fe16c"
 # used for nat only (both svc and nw obj)
 
 
-def get_ip_of_obj(obj, mgm_id=0):
+def get_ip_of_obj(obj, mgm_id=None):
     if 'ipv4-address' in obj:
         ip_addr = obj['ipv4-address']
     elif 'ipv6-address' in obj:

@@ -30,6 +30,7 @@ namespace FWO.Ui
             services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
 
             services.AddScoped<CircuitHandlerService, CircuitHandlerService>();
+            services.AddScoped<PermissionEventService >();
 
             string ApiUri = ConfigFile.ApiServerUri;
             string MiddlewareUri = ConfigFile.MiddlewareServerUri;

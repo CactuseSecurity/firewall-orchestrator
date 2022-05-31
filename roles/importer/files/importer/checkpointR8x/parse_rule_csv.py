@@ -40,7 +40,7 @@ def create_domain_rule_header(section_name, layer_name, import_id, rule_uid, rul
 
 
 def csv_dump_rule(rule, layer_name, import_id, rule_num, parent_uid, debug_level=0):
-    logger = getFwoLogger(debug_level=debug_level)
+    logger = getFwoLogger()
     rule_csv = ''
 
     # reference to domain rule layer, filling up basic fields
@@ -171,7 +171,7 @@ def csv_dump_rule(rule, layer_name, import_id, rule_num, parent_uid, debug_level
 
 
 def csv_dump_rules(rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, debug_level=0):
-    logger = getFwoLogger(debug_level=debug_level)
+    logger = getFwoLogger()
     result = ''
 
     if 'layerchunks' in rulebase:

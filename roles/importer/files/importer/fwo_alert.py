@@ -3,8 +3,8 @@ import json
 import fwo_const
 import fwo_log
 
-def getFwoAlerter(debug_level=0, proxy='', ssl_mode=fwo_const.fwo_api_verify_certs):
-    logger = fwo_log.getFwoLogger(debug_level=debug_level)
+def getFwoAlerter():
+    logger = fwo_log.getFwoLogger()
     try: 
         with open(fwo_const.fwo_config_filename, "r") as fwo_config:
             fwo_config = json.loads(fwo_config.read())
@@ -21,7 +21,7 @@ def getFwoAlerter(debug_level=0, proxy='', ssl_mode=fwo_const.fwo_api_verify_cer
         logger.error("getFwoAlerter - error while reading importer pwd file")
         raise
 
-    jwt = fwo_api.login(fwo_const.importer_user_name, importer_pwd, user_management_api_base_url, ssl_verification=ssl_mode, proxy=proxy)
+    jwt = fwo_api.login(fwo_const.importer_user_name, importer_pwd, user_management_api_base_url)
 
     return { "fwo_api_base_url": fwo_api_base_url, "jwt": jwt }
 

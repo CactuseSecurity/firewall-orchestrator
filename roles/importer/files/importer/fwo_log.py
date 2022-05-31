@@ -1,9 +1,11 @@
 import logging
 from sys import stdout
+import fwo_globals
+#from fwo_globals import global_debug_level
 
 
-def getFwoLogger(debug_level=0):
-    debug_level=int(debug_level)
+def getFwoLogger():
+    debug_level=int(fwo_globals.debug_level)
     if debug_level>=1:
         llevel = logging.DEBUG
     else:

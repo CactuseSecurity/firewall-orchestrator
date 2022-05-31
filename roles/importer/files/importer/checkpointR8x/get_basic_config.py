@@ -35,7 +35,7 @@ with open(args.password, "r") as password_file:
 details_level = "full"    # 'standard'
 use_object_dictionary = 'false'
 debug_level = int(args.debug)
-logger = fwo_log.getFwoLogger(debug_level=debug_level)
+logger = fwo_log.getFwoLogger()
 starttime = int(time.time())
 full_config_json = {}
 

@@ -31,7 +31,7 @@ result = ""
 
 # log config
 debug_level = int(args.debug)
-logger = fwo_log.getFwoLogger(debug_level=debug_level)
+logger = fwo_log.getFwoLogger()
 
 args = parser.parse_args()
 if len(sys.argv)==1:

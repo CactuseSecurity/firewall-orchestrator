@@ -12,18 +12,8 @@ namespace FWO.Api.Data
         public RequestTicket()
         { }
 
-        public RequestTicket(RequestTicket ticket)
+        public RequestTicket(RequestTicket ticket) : base(ticket)
         {
-            Id = ticket.Id;
-            Title = ticket.Title;
-            CreationDate = ticket.CreationDate;
-            CompletionDate = ticket.CompletionDate;
-            StateId = ticket.StateId;
-            Requester = ticket.Requester;
-            RequesterDn = ticket.RequesterDn;
-            RequesterGroup = ticket.RequesterGroup;
-            TenantId = ticket.TenantId;
-            Reason = ticket.Reason;
             Tasks = ticket.Tasks;
         }
     }

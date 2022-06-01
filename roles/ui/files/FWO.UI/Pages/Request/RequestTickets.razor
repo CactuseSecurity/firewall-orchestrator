@@ -217,14 +217,13 @@
                     @if (EditTicketMode)
                     {
                         <div class="col-sm-8">
-                            <input id="taskRuleAction" type="number" class="form-control form-control-sm" @bind="actTask.RuleAction" />
+                            <select id="elementRuleAction" class="form-control form-control-sm" @bind="actTask.RuleAction">
+                                @foreach (var action in ruleActions)
+                                {
+                                    <option value="@action.Id">@(action.Name)</option>
+                                }
+                            </select>
                         </div>
-                        @* <select id="elementRuleAction" class="form-control form-control-sm" @bind="actTask.RuleAction">
-                            @foreach (int action in ruleActions)
-                            {
-                                <option value="@action.Id">@(action.Name)</option>
-                            }
-                        </select> *@
                     }
                     else
                     {
@@ -281,7 +280,7 @@
                         <Column TableItem="RequestElement" Title="@(userConfig.GetText("port"))" Field="@(x => x.Port)" Sortable="true" Filterable="true" />
                         <Column TableItem="RequestElement" Title="@(userConfig.GetText("protocol"))" Field="@(x => x.ProtoId)" Sortable="true" Filterable="true" >
                             <Template>
-                                @(context.ProtoId) @* todo: translate from stm_ table *@
+                                @(((context.ProtoId != null) ? ipProtos.Find(x => x.Id == context.ProtoId)?.Name : ""))
                             </Template>
                         </Column>
                     </Table>
@@ -401,14 +400,13 @@
                     @if (EditTicketMode)
                     {
                         <div class="col-sm-8">
-                            <input id="elementProto" type="number" class="form-control form-control-sm" @bind="actElement.ProtoId" />
+                            <select id="elementProto" class="form-control form-control-sm" @bind="actElement.ProtoId">
+                                @foreach (var proto in ipProtos)
+                                {
+                                    <option value="@proto.Id">@(proto.Name)</option>
+                                }
+                            </select>
                         </div>
-                        @* <select id="elementProto" class="form-control form-control-sm" @bind="actElement.ProtoId">
-                            @foreach (int proto in protos)
-                            {
-                                <option value="@proto.Id">@(proto.Name)</option>
-                            }
-                        </select> *@
                     }
                     else
                     {
@@ -516,6 +514,9 @@
 
     private RequestStates states = new RequestStates();
     private StateMatrix stateMatrix = new StateMatrix();
+    private List<IpProtocol> ipProtos = new List<IpProtocol>();
+    private List<RuleAction> ruleActions = new List<RuleAction>();
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -523,7 +524,8 @@
         {
             stateMatrix.Init(0);
             states.Init();
-
+            ipProtos = await apiConnection.SendQueryAsync<List<IpProtocol>>(FWO.Api.Client.Queries.StmQueries.getIpProtocols);
+            ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(FWO.Api.Client.Queries.StmQueries.getRuleActions);
             await FetchTickets();
         }
         catch (Exception exception)
@@ -602,27 +604,11 @@
                 {                  
                     // insert new ticket
                     actTicket.CreationDate = DateTime.Now;
-                    var Variables = new
+                    actTicket.Requester = userConfig.User;
+                    actTicket.Id = await AddTicketToDb(actTicket);
+                    if(actTicket.Id > 0)
                     {
-                        title = actTicket.Title,
-                        state = actTicket.StateId,
-                        reason = actTicket.Reason,
-                        requesterId = userConfig.User.DbId,
-                        requestTasks = new RequestTicketWriter(actTicket)
-                    };
-                    // {"title":"r8","state":0,"reason":null,"requesterId":3,
-                    //   "requestTasks":{"data": [{"title":"r81","task_number":0,"state_id":0,"task_type":"access","request_action":"create","rule_action":null,"rule_tracking":null,"start":null,"stop":null,"svc_grp_id":null,"nw_obj_grp_id":null,"reason":null}]}}
-                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newTicket, Variables)).ReturnIds;
-                    if (returnIds == null)
-                    {
-                        DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("E8001"), true);
-                    }
-                    else
-                    {
-                        actTicket.Id = returnIds[0].NewId;
-                        actTicket.Requester = userConfig.User;
-                        // requests.Add(actTicket);
-                        await FetchTickets();
+                        await FetchTickets(); // else all new ids would have to be updated locally
                         AddTicketMode = false;
                         EditTicketMode = false;
                         ShowTicketMode = false;
@@ -631,24 +617,9 @@
                 else
                 {
                     // Update existing ticket
-                    var Variables = new
-                    {
-                        id = actTicket.Id,
-                        title = actTicket.Title,
-                        state = actTicket.StateId,
-                        reason = actTicket.Reason
-                    };
-                    int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateTicket, Variables)).UpdatedId;
-                    if(udId != actTicket.Id)
-                    {
-                        DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("E8002"), true);
-                    }
-                    else
-                    {
-                        requests[requests.FindIndex(x => x.Id == actTicket.Id)] = actTicket;
-                        EditTicketMode = false;
-                        ShowTicketMode = false;
-                    }
+                    await UpdateTicketInDb(actTicket);
+                    EditTicketMode = false;
+                    ShowTicketMode = false;
                 }
             }
         }
@@ -718,6 +689,10 @@
                 }
                 else
                 {
+                    if(actTask.Id > 0)
+                    {
+                        await UpdateTaskInDb(actTask);
+                    }
                     actTicket.Tasks[actTicket.Tasks.FindIndex(x => x.Id == actTask.Id)] = actTask;
                     ShowTaskMode = false;
                 }
@@ -727,38 +702,6 @@
         {
             DisplayMessageInUi!(exception, userConfig.GetText("save_task"), "", true);
         }
-    }
-
-    private async Task<int> AddTaskToDb(RequestTask task)
-    {
-        int returnId = 0;
-        try
-        {
-            var Variables = new
-            {
-                title = task.Title,
-                ticketId = task.TicketId,
-                taskNumber = task.TaskNumber,
-                state = task.StateId,
-                taskType = task.TaskType,
-                requestAction = task.RequestAction,
-                reason = task.Reason
-            };
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newRequestTask, Variables)).ReturnIds;
-            if (returnIds == null)
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("save_task"), userConfig.GetText("E8003"), true);
-            }
-            else
-            {
-                returnId = returnIds[0].NewId;
-            }
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_task"), "", true);
-        }
-        return returnId;
     }
 
     private bool CheckTaskValues()
@@ -777,8 +720,13 @@
         DeleteTaskMode = true;
     }
 
-    private void ConfDeleteTask()
+    private async Task ConfDeleteTask()
     {
+        if(actTask.Id > 0)
+        {
+            await DeleteTaskFromDb(actTask);
+        }
+
         actTicket.Tasks.Remove(actTask);
         // todo: adapt TaskNumbers of following tasks?
         DeleteTaskMode = false;
@@ -817,10 +765,19 @@
             {    
                 if (AddElementMode)
                 {
+                    if(actTask.Id > 0)
+                    {
+                        actElement.TaskId = actTask.Id;
+                        actElement.Id = await AddElementToDb(actElement);
+                    }
                     actTask.Elements.Add(actElement);
                 }
                 else
                 {
+                    if(actElement.Id > 0)
+                    {
+                        await UpdateElementInDb(actElement);
+                    }
                     actTask.Elements[actTask.Elements.FindIndex(x => x.Id == actElement.Id)] = actElement;
                 }
                 ShowElementMode = false;
@@ -840,6 +797,12 @@
             DisplayMessageInUi!(null, userConfig.GetText("save_element"), userConfig.GetText("E5102"), true);
             return false;
         }
+        if (actElement.Port < 1 || actElement.Port > 65535)
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("save_element"), userConfig.GetText("E5103"), true);
+            return false;
+        }
+
         return true;
     }
 
@@ -849,8 +812,12 @@
         DeleteElementMode = true;
     }
 
-    private void ConfDeleteElement()
+    private async Task ConfDeleteElement()
     {
+        if(actElement.Id > 0)
+        {
+            await DeleteElementFromDb(actElement);
+        }
         actTask.Elements.Remove(actElement);
         DeleteElementMode = false;
     }
@@ -860,5 +827,222 @@
         AddElementMode = false;
         ShowElementMode = false;
         DeleteElementMode = false;
+    }
+
+
+    private async Task<int> AddTicketToDb(RequestTicket ticket)
+    {
+        int returnId = 0;
+        try
+        {
+            var Variables = new
+            {
+                title = ticket.Title,
+                state = ticket.StateId,
+                reason = ticket.Reason,
+                requesterId = ticket.Requester?.DbId,
+                requestTasks = new RequestTicketWriter(ticket)
+            };
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newTicket, Variables)).ReturnIds;
+            if (returnIds == null)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("E8001"), true);
+            }
+            else
+            {
+                returnId = returnIds[0].NewId;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("save_request"), "", true);
+        }
+        return returnId;
+    }
+
+    private async Task UpdateTicketInDb(RequestTicket ticket)
+    {
+        try
+        {
+            var Variables = new
+            {
+                id = ticket.Id,
+                title = ticket.Title,
+                state = ticket.StateId,
+                reason = ticket.Reason
+            };
+            int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateTicket, Variables)).UpdatedId;
+            if(udId != ticket.Id)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("E8002"), true);
+            }
+            else
+            {
+                foreach(RequestTask task in ticket.Tasks)
+                {
+                    await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequestTaskState, new {id = task.Id, state = task.StateId});
+                }
+                requests[requests.FindIndex(x => x.Id == ticket.Id)] = ticket;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("save_request"), "", true);
+        }
+    }
+
+    private async Task<int> AddTaskToDb(RequestTask task)
+    {
+        int returnId = 0;
+        try
+        {
+            var Variables = new
+            {
+                title = task.Title,
+                ticketId = task.TicketId,
+                taskNumber = task.TaskNumber,
+                state = task.StateId,
+                taskType = task.TaskType,
+                requestAction = task.RequestAction,
+                reason = task.Reason
+            };
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newRequestTask, Variables)).ReturnIds;
+            if (returnIds == null)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("add_task"), userConfig.GetText("E8003"), true);
+            }
+            else
+            {
+                returnId = returnIds[0].NewId;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("add_task"), "", true);
+        }
+        return returnId;
+    }
+
+    private async Task UpdateTaskInDb(RequestTask task)
+    {
+        try
+        {
+            var Variables = new
+            {
+                id = task.Id,
+                title = task.Title,
+                taskNumber = task.TaskNumber,
+                state = task.StateId,
+                taskType = task.TaskType,
+                requestAction = task.RequestAction,
+                reason = task.Reason
+            };
+            int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequestTask, Variables)).UpdatedId;
+            if(udId != task.Id)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_task"), userConfig.GetText("E8004"), true);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("save_task"), "", true);
+        }
+    }
+
+    private async Task DeleteTaskFromDb(RequestTask task)
+    {
+        try
+        {
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.deleteRequestTask, new { id = task.Id })).DeletedId;
+            if(delId != task.Id)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("delete_task"), userConfig.GetText("E8005"), true);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_task"), "", true);
+        }
+    }
+
+    private async Task<int> AddElementToDb(RequestElement element)
+    {
+        int returnId = 0;
+        try
+        {
+            var Variables = new
+            {
+                requestAction = element.RequestAction,
+                taskId = element.TaskId,
+                ip = element.Ip,
+                port = element.Port,
+                proto = element.ProtoId,
+                network_obj_id = element.NetworkId,
+                service_id = element.ServiceId,
+                field = element.Field,
+                user_id = element.UserId,
+                original_nat_id = element.OriginalNatId
+            };
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newRequestElement, Variables)).ReturnIds;
+            if (returnIds == null)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("add_element"), userConfig.GetText("E8006"), true);
+            }
+            else
+            {
+                returnId = returnIds[0].NewId;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("add_element"), "", true);
+        }
+        return returnId;
+    }
+
+    private async Task UpdateElementInDb(RequestElement element)
+    {
+        try
+        {
+            var Variables = new
+            {
+                id = element.Id,                
+                requestAction = element.RequestAction,
+                taskId = element.TaskId,
+                ip = element.Ip,
+                port = element.Port,
+                proto = element.ProtoId,
+                network_obj_id = element.NetworkId,
+                service_id = element.ServiceId,
+                field = element.Field,
+                user_id = element.UserId,
+                original_nat_id = element.OriginalNatId
+            };
+            int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequestElement, Variables)).UpdatedId;
+            if(udId != element.Id)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_element"), userConfig.GetText("E8007"), true);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("save_element"), "", true);
+        }
+    }
+
+    private async Task DeleteElementFromDb(RequestElement element)
+    {
+        try
+        {
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.deleteRequestElement, new { id = element.Id })).DeletedId;
+            if(delId != element.Id)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("delete_element"), userConfig.GetText("E8008"), true);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_element"), "", true);
+        }
     }
 }

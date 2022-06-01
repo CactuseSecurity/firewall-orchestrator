@@ -8,20 +8,16 @@ namespace FWO.Api.Data
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
 
+        [JsonProperty("task_id"), JsonPropertyName("task_id")]
+        public int TaskId { get; set; }
 
         public RequestElement()
         { }
 
-        public RequestElement(RequestElement element)
+        public RequestElement(RequestElement element) : base (element)
         {
             Id = element.Id;
-            RequestAction = element.RequestAction;
-            Ip = element.Ip;
-            Port = element.Port;
-            ProtoId = element.ProtoId;
-            NetworkId = element.NetworkId;
-            ServiceId = element.ServiceId;
-            Field = element.Field;
+            TaskId = element.TaskId;
         }
     }
 }

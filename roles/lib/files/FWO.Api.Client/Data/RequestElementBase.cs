@@ -22,7 +22,7 @@ namespace FWO.Api.Data
         public int Port { get; set; }
 
         [JsonProperty("proto"), JsonPropertyName("proto")]
-        public int? ProtoId { get; set; }
+        public int? ProtoId { get; set; } = 6;
 
         [JsonProperty("network_object_id"), JsonPropertyName("network_object_id")]
         public long? NetworkId { get; set; }
@@ -31,7 +31,14 @@ namespace FWO.Api.Data
         public long? ServiceId { get; set; }
 
         [JsonProperty("field"), JsonPropertyName("field")]
-        public string Field { get; set; } = "";
+        public string Field { get; set; } = "source";
+
+        [JsonProperty("user_id"), JsonPropertyName("user_id")]
+        public long? UserId { get; set; }
+
+        [JsonProperty("original_nat_id"), JsonPropertyName("original_nat_id")]
+        public long? OriginalNatId { get; set; }
+
 
         public RequestElementBase()
         { }
@@ -45,11 +52,15 @@ namespace FWO.Api.Data
             NetworkId = element.NetworkId;
             ServiceId = element.ServiceId;
             Field = element.Field;
+            UserId = element.UserId;
+            OriginalNatId = element.OriginalNatId;
         }
 
         public bool Sanitize()
         {
             bool shortened = false;
+            RequestAction = Sanitizer.SanitizeMand(RequestAction, ref shortened);
+            Ip = Sanitizer.SanitizeMand(Ip, ref shortened);
             Field = Sanitizer.SanitizeMand(Field, ref shortened);
             return shortened;
         }

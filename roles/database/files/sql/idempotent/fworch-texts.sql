@@ -1306,8 +1306,8 @@ INSERT INTO txt VALUES ('U7501', 'English', 'View the past daily check messages'
 
 INSERT INTO txt VALUES ('U8001', 'German',  'Sind sie sicher, dass sie folgendes Element l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U8001', 'English', 'Are you sure you want to delete element: ');
-INSERT INTO txt VALUES ('U8002', 'German',  'Sind sie sicher, dass sie folgende Implementierungs-Aufgabe l&ouml;schen wollen: ');
-INSERT INTO txt VALUES ('U8002', 'English', 'Are you sure you want to delete implementation task: ');
+INSERT INTO txt VALUES ('U8002', 'German',  'Sind sie sicher, dass sie folgende Aufgabe l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U8002', 'English', 'Are you sure you want to delete task: ');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -1529,6 +1529,16 @@ INSERT INTO txt VALUES ('E8002', 'German',  'Antrag konnte nicht ge&auml;ndert w
 INSERT INTO txt VALUES ('E8002', 'English', 'Request could not be updated');
 INSERT INTO txt VALUES ('E8003', 'German',  'Aufgabe konnte nicht angelegt werden');
 INSERT INTO txt VALUES ('E8003', 'English', 'Task could not be created');
+INSERT INTO txt VALUES ('E8004', 'German',  'Aufgabe konnte nicht ge&auml;ndert werden');
+INSERT INTO txt VALUES ('E8004', 'English', 'Task could not be updated');
+INSERT INTO txt VALUES ('E8005', 'German',  'Aufgabe konnte nicht gel&ouml;scht werden');
+INSERT INTO txt VALUES ('E8005', 'English', 'Task could not be deleted');
+INSERT INTO txt VALUES ('E8006', 'German',  'Element konnte nicht angelegt werden');
+INSERT INTO txt VALUES ('E8006', 'English', 'Element could not be created');
+INSERT INTO txt VALUES ('E8007', 'German',  'Element konnte nicht ge&auml;ndert werden');
+INSERT INTO txt VALUES ('E8007', 'English', 'Element could not be updated');
+INSERT INTO txt VALUES ('E8008', 'German',  'Element konnte nicht gel&ouml;scht werden');
+INSERT INTO txt VALUES ('E8008', 'English', 'Element could not be deleted');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');

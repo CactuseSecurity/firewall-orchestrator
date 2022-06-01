@@ -20,22 +20,10 @@ namespace FWO.Api.Data
         public RequestTask()
         { }
 
-        public RequestTask(RequestTask task)
+        public RequestTask(RequestTask task) : base(task)
         {
             Id = task.Id;
-            Title = task.Title;
             TicketId = task.TicketId;
-            TaskNumber = task.TaskNumber;
-            StateId = task.StateId;
-            TaskType = task.TaskType;
-            RequestAction = task.RequestAction;
-            RuleAction = task.RuleAction;
-            Tracking = task.Tracking;
-            Start = task.Start;
-            Stop = task.Stop;
-            ServiceGroupId = task.ServiceGroupId;
-            NetworkGroupId = task.NetworkGroupId;
-            Reason = task.Reason;
             Elements = task.Elements;
             ImplementationTasks = task.ImplementationTasks;
         }

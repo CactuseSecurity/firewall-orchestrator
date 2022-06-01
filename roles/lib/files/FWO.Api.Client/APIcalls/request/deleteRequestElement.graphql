@@ -1,0 +1,7 @@
+mutation deleteRequestElement ($id: Int!) {
+  delete_request_element_by_pk (
+    id: $id
+  ) {
+    DeletedId: id
+  }
+}

@@ -597,7 +597,10 @@
             {
                 taskStates.Add(task.StateId);
             }
-            actTicket.StateId = stateMatrix.getRequestStateFromTaskStates(taskStates);
+            if (taskStates.Count > 0)
+            {
+                actTicket.StateId = stateMatrix.getRequestStateFromTaskStates(taskStates);
+            }
             await SaveRequest();
         }
         else
@@ -626,14 +629,13 @@
             }
             if (CheckRequestValues())
             {    
-                // Update existing ticket
+                // Update existing ticket state
                 var Variables = new
                 {
                     id = actTicket.Id,
-                    title = actTicket.Title,
                     state = actTicket.StateId
                 };
-                int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateTicket, Variables)).UpdatedId;
+                int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateTicketState, Variables)).UpdatedId;
                 if(udId != actTicket.Id)
                 {
                     DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("E8002"), true);

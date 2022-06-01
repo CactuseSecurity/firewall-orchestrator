@@ -56,6 +56,10 @@
 
         public int getRequestStateFromTaskStates(List<int> statesIn)
         {
+            if(statesIn.Count == 0)
+            {
+                return 0;
+            }
             int stateOut = 0;
             int initState = 0;
             int inWorkState = LowestEndState;

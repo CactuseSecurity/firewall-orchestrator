@@ -1,0 +1,7 @@
+mutation deleteRequestTask ($id: Int!) {
+  delete_request_task_by_pk (
+    id: $id
+  ) {
+    DeletedId: id
+  }
+}

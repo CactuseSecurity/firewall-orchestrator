@@ -1,23 +1,22 @@
-mutation newRequestTask(
+mutation updateRequestTask(
+  $id: Int!
   $title: String!
-  $ticketId: Int!
   $taskNumber: Int
   $state: Int
   $taskType: task_type_enum
   $requestAction: action_enum
   $reason: String
   ) {
-  insert_request_task(objects: {
+  update_request_task_by_pk(
+    pk_columns: { id: $id }
+    _set: {
     title: $title
-    ticket_id: $ticketId
     task_number: $taskNumber
     state_id: $state
     task_type: $taskType
     request_action: $requestAction
     reason: $reason 
   }) {
-    returning {
-      newId: id
-    }
+    UpdatedId: id
   }
 }

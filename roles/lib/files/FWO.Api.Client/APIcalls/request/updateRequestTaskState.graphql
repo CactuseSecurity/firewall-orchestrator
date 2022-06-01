@@ -1,0 +1,16 @@
+mutation updateRequestTaskState(
+  $id: Int!
+  $state: Int
+  $start: timestamp
+  $stop: timestamp
+  ) {
+  update_request_task_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+    state_id: $state
+    start: $start
+    stop: $stop
+  }) {
+    UpdatedId: id
+  }
+}

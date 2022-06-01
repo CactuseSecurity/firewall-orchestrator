@@ -1,0 +1,30 @@
+mutation updateRequestElement(
+  $id: Int!
+  $requestAction: action_enum
+  $taskId: Int!
+  $ip: String
+  $port: Int
+  $proto: Int
+  $network_obj_id: bigint
+  $service_id: bigint
+  $field: rule_field_enum!
+  $user_id: bigint
+  $original_nat_id: Int
+  ) {
+  update_request_element_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      request_action: $requestAction
+      task_id: $taskId
+      ip: $ip
+      port: $port
+      proto: $proto
+      network_object_id: $network_obj_id
+      service_id: $service_id
+      field: $field
+      user_id: $user_id
+      original_nat_id: $original_nat_id
+  }) {
+    UpdatedId: id
+  }
+}

@@ -31,7 +31,7 @@ query getTickets ($from_state: Int!, $to_state: Int!){
         request_action
         ip
         port
-        proto
+        ip_proto_id
         network_object_id
         service_id
         field

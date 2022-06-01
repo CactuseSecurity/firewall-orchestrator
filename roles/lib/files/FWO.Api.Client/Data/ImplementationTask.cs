@@ -52,7 +52,6 @@ namespace FWO.Api.Data
         {
             Id = 0;
             ReqTaskId = task.Id;
-            // Title = "Implementation for " + task.Title;
             ImplTaskNumber = 0;
             StateId = 0;
             ImplAction = task.RequestAction;

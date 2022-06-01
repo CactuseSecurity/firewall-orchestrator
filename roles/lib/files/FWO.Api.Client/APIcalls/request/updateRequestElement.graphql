@@ -18,7 +18,7 @@ mutation updateRequestElement(
       task_id: $taskId
       ip: $ip
       port: $port
-      proto: $proto
+      ip_proto_id: $proto
       network_object_id: $network_obj_id
       service_id: $service_id
       field: $field

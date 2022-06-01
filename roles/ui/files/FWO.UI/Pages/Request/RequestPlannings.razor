@@ -150,8 +150,28 @@
                     <label class="col-sm-8">@actReqTask.Id</label>
                 </div>
                 <div class="form-group row">
-                    <label for="taskId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
+                    <label for="taskState" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
                     <label class="col-sm-8">@states.Name[actReqTask.StateId]</label>
+                </div>
+                <div class="form-group row">
+                    <label for="taskType" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("type")):</label>
+                    <label class="col-sm-8">@(userConfig.GetText(actReqTask.TaskType))</label>
+                </div>
+                <div class="form-group row">
+                    <label for="taskAction" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("action")):</label>
+                    <label class="col-sm-8">@(userConfig.GetText(actReqTask.RequestAction))</label>
+                </div>
+                <div class="form-group row">
+                    <label for="taskRuleAction" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("rule_action")):</label>
+                    <label class="col-sm-8">@(((actReqTask.RuleAction != null) ? ruleActions.Find(x => x.Id == actReqTask.RuleAction)?.Name : ""))</label>
+                </div>
+                <div class="form-group row">
+                    <label for="taskTracking" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("track")):</label>
+                    <label class="col-sm-8">@(((actReqTask.Tracking != null) ? trackings.Find(x => x.Id == actReqTask.Tracking)?.Name : ""))</label>
+                </div>
+                <div class="form-group row">
+                    <label for="taskReason" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
+                    <label class="col-sm-8">@actReqTask.Reason</label>
                 </div>
                 @(userConfig.GetText("request_elements"))
                 <div class="m-2">
@@ -163,9 +183,19 @@
                                 </div>
                             </Template>
                         </Column>
+                        <Column TableItem="RequestElement" Title="@(userConfig.GetText("action"))" Field="@(x => x.RequestAction)" Sortable="true" Filterable="true" >
+                            <Template>
+                                @(userConfig.GetText(context.RequestAction))
+                            </Template>
+                        </Column>
                         <Column TableItem="RequestElement" Title="@(userConfig.GetText("type"))" Field="@(x => x.Field)" Sortable="true" Filterable="true" />
                         <Column TableItem="RequestElement" Title="@(userConfig.GetText("ip"))" Field="@(x => x.Ip)" Sortable="true" Filterable="true" />
                         <Column TableItem="RequestElement" Title="@(userConfig.GetText("port"))" Field="@(x => x.Port)" Sortable="true" Filterable="true" />
+                        <Column TableItem="RequestElement" Title="@(userConfig.GetText("protocol"))" Field="@(x => x.ProtoId)" Sortable="true" Filterable="true" >
+                            <Template>
+                                @(((context.ProtoId != null) ? ipProtos.Find(x => x.Id == context.ProtoId)?.Name : ""))
+                            </Template>
+                        </Column>
                     </Table>
                 </div>
                 @(userConfig.GetText("implementation_tasks"))
@@ -225,8 +255,12 @@
         {
             <form>
                 <div class="form-group row">
+                    <label for="elementAction" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("action"))*:</label>
+                    <label class="col-sm-8">@(userConfig.GetText(actReqElement.RequestAction))</label>
+                </div>
+                <div class="form-group row">
                     <label for="elementField" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("type"))*:</label>
-                    <label class="col-sm-8">@actReqElement.Field</label>
+                    <label class="col-sm-8">@(userConfig.GetText(actReqElement.Field))</label>
                 </div>
                 <div class="form-group row">
                     <label for="elementIp" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ip"))*:</label>
@@ -235,6 +269,10 @@
                 <div class="form-group row">
                     <label for="elementPort" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
                     <label class="col-sm-8">@actReqElement.Port</label>
+                </div>
+                <div class="form-group row">
+                    <label for="elementProto" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("protocol")):</label>
+                    <label class="col-sm-8">@(((actReqElement.ProtoId != null) ? ipProtos.Find(x => x.Id == actReqElement.ProtoId)?.Name : ""))</label>
                 </div>
             </form>
         }
@@ -284,10 +322,6 @@
         {
             <form>
                 <div class="form-group row">
-                    <label for="taskNo" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("number")):</label>
-                    <label class="col-sm-8">@actImplTask.ImplTaskNumber</label>
-                </div>
-                <div class="form-group row">
                     <label for="taskDevId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("device"))*:</label>
                     @if (EditImplTaskMode)
                     {
@@ -303,6 +337,60 @@
                     else
                     {
                         <label class="col-sm-8">@(actImplTask.DeviceId != null && actImplTask.DeviceId != 0 ? devices[devices.FindIndex(x => x.Id == actImplTask.DeviceId)].Name : "")</label>
+                    }
+                </div>
+                <div class="form-group row">
+                    <label for="taskReqAction" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("action"))*:</label>
+                    @if (EditImplTaskMode)
+                    {
+                        <div class="col-sm-8">
+                            <select id="taskReqAction" class="form-control form-control-sm" @bind="actImplTask.ImplAction">
+                                @foreach (string action in Enum.GetNames(typeof(RequestAction)))
+                                {
+                                    <option value="@action">@(userConfig.GetText(action))</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@(userConfig.GetText(actImplTask.ImplAction))</label>
+                    }
+                </div>
+                <div class="form-group row">
+                    <label for="taskRuleAction" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("rule_action")):</label>
+                    @if (EditImplTaskMode)
+                    {
+                        <div class="col-sm-8">
+                            <select id="taskRuleAction" class="form-control form-control-sm" @bind="actImplTask.RuleAction">
+                                @foreach (var action in ruleActions)
+                                {
+                                    <option value="@action.Id">@(action.Name)</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@(((actImplTask.RuleAction != null) ? ruleActions.Find(x => x.Id == actImplTask.RuleAction)?.Name : ""))</label>
+                    }
+                </div>
+                <div class="form-group row">
+                    <label for="taskRuleTracking" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("track")):</label>
+                    @if (EditImplTaskMode)
+                    {
+                        <div class="col-sm-8">
+                            <select id="taskRuleTracking" class="form-control form-control-sm" @bind="actImplTask.Tracking">
+                                @foreach (var track in trackings)
+                                {
+                                    <option value="@track.Id">@(track.Name)</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@(((actImplTask.Tracking != null) ? trackings.Find(x => x.Id == actImplTask.Tracking)?.Name : ""))</label>
                     }
                 </div>
                 @(userConfig.GetText("elements"))
@@ -330,10 +418,20 @@
                                 </div>
                             </Template>
                         </Column>
+                        <Column TableItem="ImplementationElement" Title="@(userConfig.GetText("action"))" Field="@(x => x.ImplAction)" Sortable="true" Filterable="true" >
+                            <Template>
+                                @(userConfig.GetText(context.ImplAction))
+                            </Template>
+                        </Column>
                         <Column TableItem="ImplementationElement" Title="@(userConfig.GetText("type"))" Field="@(x => x.Field)" Sortable="true" Filterable="true" />
                         <Column TableItem="ImplementationElement" Title="@(userConfig.GetText("ip"))" Field="@(x => x.Ip)" Sortable="true" Filterable="true" />
                         <Column TableItem="ImplementationElement" Title="@(userConfig.GetText("port"))" Field="@(x => x.Port)" Sortable="true" Filterable="true" />
-                    </Table>
+                        <Column TableItem="ImplementationElement" Title="@(userConfig.GetText("protocol"))" Field="@(x => x.ProtoId)" Sortable="true" Filterable="true" >
+                            <Template>
+                                @(((context.ProtoId != null) ? ipProtos.Find(x => x.Id == context.ProtoId)?.Name : ""))
+                            </Template>
+                        </Column>
+                </Table>
                 </div>
             </form>
         }
@@ -537,6 +635,9 @@
     private StateMatrix stateMatrix = new StateMatrix();
     private List<Device> devices = new List<Device>();
     private List<NetworkObject> nwObjects = new List<NetworkObject>();
+    private List<IpProtocol> ipProtos = new List<IpProtocol>();
+    private List<RuleAction> ruleActions = new List<RuleAction>();
+    private List<Tracking> trackings = new List<Tracking>();
 
 
     protected override async Task OnInitializedAsync()
@@ -548,6 +649,9 @@
 
             devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
             // nwObjects = await apiConnection.SendQueryAsync<List<NetworkObject>>(FWO.Api.Client.Queries.ObjectQueries.getNetworkObjects);
+            ipProtos = await apiConnection.SendQueryAsync<List<IpProtocol>>(FWO.Api.Client.Queries.StmQueries.getIpProtocols);
+            ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(FWO.Api.Client.Queries.StmQueries.getRuleActions);
+            trackings = await apiConnection.SendQueryAsync<List<Tracking>>(FWO.Api.Client.Queries.StmQueries.getTracking);
 
             var Variables = new
             {
@@ -555,7 +659,7 @@
                 to_state = 999,
             };
             requests = await apiConnection.SendQueryAsync<List<RequestTicket>>(FWO.Api.Client.Queries.RequestQueries.getTickets, Variables);
-            requests.Add(new RequestTicket()
+            @* requests.Add(new RequestTicket()
                 {
                     Id=1, Title="DummyReq", CreationDate=DateTime.Now, StateId=49, Requester=new UiUser(){Name="Dummy"},
                     Tasks = new List<RequestTask>()
@@ -567,7 +671,7 @@
                                                 }},
                             new RequestTask () {Id=2, Title="Task2", StateId=49}
                         }
-                });        
+                });         *@
         }
         catch (Exception exception)
         {

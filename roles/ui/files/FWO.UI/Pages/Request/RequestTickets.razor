@@ -191,7 +191,7 @@
                     }
                     else
                     {
-                        <label class="col-sm-8">@actTask.TaskType</label>
+                        <label class="col-sm-8">@(userConfig.GetText(actTask.TaskType))</label>
                     }
                 </div>
                 <div class="form-group row">
@@ -209,7 +209,7 @@
                     }
                     else
                     {
-                        <label class="col-sm-8">@actTask.RequestAction</label>
+                        <label class="col-sm-8">@(userConfig.GetText(actTask.RequestAction))</label>
                     }
                 </div>
                 <div class="form-group row">
@@ -217,7 +217,7 @@
                     @if (EditTicketMode)
                     {
                         <div class="col-sm-8">
-                            <select id="elementRuleAction" class="form-control form-control-sm" @bind="actTask.RuleAction">
+                            <select id="taskRuleAction" class="form-control form-control-sm" @bind="actTask.RuleAction">
                                 @foreach (var action in ruleActions)
                                 {
                                     <option value="@action.Id">@(action.Name)</option>
@@ -227,7 +227,25 @@
                     }
                     else
                     {
-                        <label class="col-sm-8">@actTask.RuleAction</label>
+                        <label class="col-sm-8">@(((actTask.RuleAction != null) ? ruleActions.Find(x => x.Id == actTask.RuleAction)?.Name : ""))</label>
+                    }
+                </div>
+                <div class="form-group row">
+                    <label for="taskRuleTracking" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("track")):</label>
+                    @if (EditTicketMode)
+                    {
+                        <div class="col-sm-8">
+                            <select id="taskRuleTracking" class="form-control form-control-sm" @bind="actTask.Tracking">
+                                @foreach (var track in trackings)
+                                {
+                                    <option value="@track.Id">@(track.Name)</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@(((actTask.Tracking != null) ? trackings.Find(x => x.Id == actTask.Tracking)?.Name : ""))</label>
                     }
                 </div>
                 <div class="form-group row">
@@ -410,7 +428,7 @@
                     }
                     else
                     {
-                        <label class="col-sm-8">@actElement.ProtoId</label>
+                        <label class="col-sm-8">@(((actElement.ProtoId != null) ? ipProtos.Find(x => x.Id == actElement.ProtoId)?.Name : ""))</label>
                     }
                 </div>
             </form>
@@ -516,6 +534,7 @@
     private StateMatrix stateMatrix = new StateMatrix();
     private List<IpProtocol> ipProtos = new List<IpProtocol>();
     private List<RuleAction> ruleActions = new List<RuleAction>();
+    private List<Tracking> trackings = new List<Tracking>();
 
 
     protected override async Task OnInitializedAsync()
@@ -526,6 +545,7 @@
             states.Init();
             ipProtos = await apiConnection.SendQueryAsync<List<IpProtocol>>(FWO.Api.Client.Queries.StmQueries.getIpProtocols);
             ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(FWO.Api.Client.Queries.StmQueries.getRuleActions);
+            trackings = await apiConnection.SendQueryAsync<List<Tracking>>(FWO.Api.Client.Queries.StmQueries.getTracking);
             await FetchTickets();
         }
         catch (Exception exception)
@@ -904,6 +924,8 @@
                 state = task.StateId,
                 taskType = task.TaskType,
                 requestAction = task.RequestAction,
+                rule_action = task.RuleAction,
+                tracking = task.Tracking,
                 reason = task.Reason
             };
             ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newRequestTask, Variables)).ReturnIds;
@@ -935,6 +957,8 @@
                 state = task.StateId,
                 taskType = task.TaskType,
                 requestAction = task.RequestAction,
+                rule_action = task.RuleAction,
+                tracking = task.Tracking,
                 reason = task.Reason
             };
             int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequestTask, Variables)).UpdatedId;

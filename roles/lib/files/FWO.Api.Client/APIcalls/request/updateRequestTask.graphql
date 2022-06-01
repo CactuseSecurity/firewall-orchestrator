@@ -5,6 +5,8 @@ mutation updateRequestTask(
   $state: Int
   $taskType: task_type_enum
   $requestAction: action_enum
+  $ruleAction: Int
+  $tracking: Int
   $reason: String
   ) {
   update_request_task_by_pk(
@@ -15,6 +17,8 @@ mutation updateRequestTask(
     state_id: $state
     task_type: $taskType
     request_action: $requestAction
+    rule_action: $ruleAction
+    rule_tracking: $tracking
     reason: $reason 
   }) {
     UpdatedId: id

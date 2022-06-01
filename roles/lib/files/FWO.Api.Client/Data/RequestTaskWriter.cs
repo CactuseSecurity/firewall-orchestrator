@@ -13,7 +13,7 @@ namespace FWO.Api.Data
         {
             foreach(var element in task.Elements)
             {
-                Elements.RequestElementList.Add(element);
+                Elements.RequestElementList.Add(new RequestElementWriter(element));
             }
         }
     }
@@ -21,7 +21,7 @@ namespace FWO.Api.Data
     public class RequestElementDataHelper
     {
         [JsonProperty("data"), JsonPropertyName("data")]
-        public List<RequestElementBase> RequestElementList { get; set; } = new List<RequestElementBase>();
+        public List<RequestElementWriter> RequestElementList { get; set; } = new List<RequestElementWriter>();
     }
 
 }

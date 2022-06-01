@@ -995,7 +995,7 @@ create table if not exists request.element
     task_id int,
     ip cidr,
     port int,
-    proto int,
+    ip_proto_id int,
     network_object_id bigint,
     service_id bigint,
     field rule_field_enum NOT NULL,

@@ -10,18 +10,15 @@ namespace FWO.Api.Data
         service
     }
 
-    public class RequestElementBase
+    public class ElementBase
     {
-        [JsonProperty("request_action"), JsonPropertyName("request_action")]
-        public string RequestAction { get; set; } = "create";
-
         [JsonProperty("ip"), JsonPropertyName("ip")]
         public string Ip { get; set; } = "";
 
         [JsonProperty("port"), JsonPropertyName("port")]
         public int Port { get; set; }
 
-        [JsonProperty("proto"), JsonPropertyName("proto")]
+        [JsonProperty("ip_proto_id"), JsonPropertyName("ip_proto_id")]
         public int? ProtoId { get; set; } = 6;
 
         [JsonProperty("network_object_id"), JsonPropertyName("network_object_id")]
@@ -40,12 +37,11 @@ namespace FWO.Api.Data
         public long? OriginalNatId { get; set; }
 
 
-        public RequestElementBase()
+        public ElementBase()
         { }
 
-        public RequestElementBase(RequestElementBase element)
+        public ElementBase(ElementBase element)
         {
-            RequestAction = element.RequestAction;
             Ip = element.Ip;
             Port = element.Port;
             ProtoId = element.ProtoId;
@@ -59,7 +55,6 @@ namespace FWO.Api.Data
         public bool Sanitize()
         {
             bool shortened = false;
-            RequestAction = Sanitizer.SanitizeMand(RequestAction, ref shortened);
             Ip = Sanitizer.SanitizeMand(Ip, ref shortened);
             Field = Sanitizer.SanitizeMand(Field, ref shortened);
             return shortened;

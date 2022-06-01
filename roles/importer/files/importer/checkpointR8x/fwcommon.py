@@ -7,15 +7,17 @@ import copy, time
 import parse_network, parse_rule, parse_service, parse_user
 import common, getter
 from cpcommon import get_basic_config, enrich_config
+#from fwo_const import global_debug_level, global_fwo_api_verify_certs, global_fwo_default_proxy_settings
+import fwo_globals
 
 
-def has_config_changed (full_config, mgm_details, debug_level=0, force=False, proxy=None, ssl_verification=None):
+def has_config_changed (full_config, mgm_details, force=False):
 
     if full_config != {}:   # a native config was passed in, so we assume that an import has to be done (simulating changes here)
         return 1
 
     try: # top level dict start, sid contains the domain information, so only sending domain during login
-        session_id = getter.login(mgm_details['user'], mgm_details['secret'], mgm_details['hostname'], str(mgm_details['port']), mgm_details['configPath'], ssl_verification, proxy)
+        session_id = getter.login(mgm_details['user'], mgm_details['secret'], mgm_details['hostname'], str(mgm_details['port']), mgm_details['configPath'])
     except:
         raise common.FwLoginFailed     # maybe 2Temporary failure in name resolution"
 
@@ -30,11 +32,11 @@ def has_config_changed (full_config, mgm_details, debug_level=0, force=False, pr
         return 1
     else:
         # otherwise search for any changes since last import
-        return (getter.get_changes(session_id, mgm_details['hostname'], str(mgm_details['port']),last_change_time,ssl_verification, proxy, debug_level=debug_level) != 0)
+        return (getter.get_changes(session_id, mgm_details['hostname'], str(mgm_details['port']),last_change_time) != 0)
 
 
-def get_config(config2import, full_config, current_import_id, mgm_details, debug_level=0, proxy=None, limit=150, force=False, ssl_verification='', jwt=None):
-    logger = getFwoLogger(debug_level=debug_level)
+def get_config(config2import, full_config, current_import_id, mgm_details, limit=150, force=False, jwt=None):
+    logger = getFwoLogger()
     if full_config == {}:   # no native config was passed in, so getting it from FW-Manager
         parsing_config_only = False
     else:
@@ -42,16 +44,14 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
 
     if not parsing_config_only: # get config from cp fw mgr
         starttime = int(time.time())
-        sid = getter.login(mgm_details['user'], mgm_details['secret'], mgm_details['hostname'], str(mgm_details['port']), mgm_details['configPath'], ssl_verification, proxy)
+        sid = getter.login(mgm_details['user'], mgm_details['secret'], mgm_details['hostname'], str(mgm_details['port']), mgm_details['configPath'])
 
-        result_get_basic_config = get_basic_config (full_config, mgm_details, force=force, proxy=proxy, sid=sid,
-            limit=str(limit), details_level='full', test_version='off', debug_level=debug_level, ssl_verification=common.set_ssl_verification('', debug_level=debug_level))
+        result_get_basic_config = get_basic_config (full_config, mgm_details, force=force, sid=sid, limit=str(limit), details_level='full', test_version='off')
 
         if result_get_basic_config>0:
             return result_get_basic_config
 
-        result_enrich_config = enrich_config (full_config, mgm_details, proxy, 
-            str(limit), details_level='full', debug_level=debug_level, ssl_verification=common.set_ssl_verification('', debug_level=debug_level), sid=sid)
+        result_enrich_config = enrich_config (full_config, mgm_details, limit=str(limit), details_level='full', sid=sid)
 
         if result_enrich_config>0:
             return result_enrich_config
@@ -62,8 +62,8 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
     if full_config == {}: # no changes
         return 0
     else:
-        parse_network.parse_network_objects_to_json(full_config, config2import, current_import_id, debug_level=debug_level, mgm_id=mgm_details['id'])
-        parse_service.parse_service_objects_to_json(full_config, config2import, current_import_id, debug_level=debug_level)
+        parse_network.parse_network_objects_to_json(full_config, config2import, current_import_id, mgm_id=mgm_details['id'])
+        parse_service.parse_service_objects_to_json(full_config, config2import, current_import_id)
         if 'users' not in full_config:
             full_config.update({'users': {}})
         target_rulebase = []
@@ -75,13 +75,13 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
             parse_user.parse_user_objects_from_rulebase(
                 full_config['rulebases'][rb_id], full_config['users'], current_import_id)
             # if current_layer_name == args.rulebase:
-            if debug_level>3:
+            if fwo_globals.debug_level>3:
                 logger.debug("parsing layer " + full_config['rulebases'][rb_id]['layername'])
 
             # parse access rules
             rule_num = parse_rule.parse_rulebase_json(
                 full_config['rulebases'][rb_id], target_rulebase, full_config['rulebases'][rb_id]['layername'], 
-                current_import_id, rule_num, section_header_uids, parent_uid, debug_level=debug_level)
+                current_import_id, rule_num, section_header_uids, parent_uid)
             # now parse the nat rulebase
 
             # parse nat rules
@@ -92,7 +92,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
                 else:
                     rule_num = parse_rule.parse_nat_rulebase_json(
                         full_config['nat_rulebases'][rb_id], target_rulebase, full_config['rulebases'][rb_id]['layername'], 
-                        current_import_id, rule_num, section_header_uids, parent_uid, debug_level=debug_level)
+                        current_import_id, rule_num, section_header_uids, parent_uid)
         config2import.update({'rules': target_rulebase})
 
         # copy users from full_config to config2import

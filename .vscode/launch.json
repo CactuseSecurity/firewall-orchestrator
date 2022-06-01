@@ -50,9 +50,11 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m8",
+                "-m6",
                 "-d4",
                 "-f",
+                "-s",
+                "-xhttp://10.6.5.10:3128",
                 //"-ihttps://fwodemodata.cactus.de/demo04_cpr8x.json",
                 //"-c",
                 //  41 - lab fortimanager

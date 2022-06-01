@@ -205,4 +205,12 @@
       group:
         name: "{{ fworch_group }}"
         state: absent
+
+    # ssh-keygen -f "/usr/local/fworch/.ssh/known_hosts" -R "localhost"
+    - name: remove known host key
+      known_hosts:
+        name: "localhost"
+        path: "{{ fworch_home }}/.ssh/known_hosts"
+        state: absent
+
   become: yes

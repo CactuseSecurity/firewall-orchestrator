@@ -101,13 +101,7 @@
         <div class="col-sm-2">
             <input id="importSuppressCertificateWarnings" type="checkbox" class="w-100" @bind="configData!.ImportSuppressCertificateWarnings" />
         </div>
-    </form>
-    @* <form class="form-inline" onsubmit="return false">
-        <label for="importFwProxy" class="col-form-label col-sm-4">@(userConfig.GetText("importFwProxy")):</label>
-        <div class="col-sm-2">
-            <input id="importFwProxy" type="text" class="form-control form-control-sm w-100" @bind="configData!.ImportFwProxy" />
-        </div>
-    </form> *@
+    </form> 
     <form class="form-inline" onsubmit="return false">
         <label for="fwApiElementsPerFetch" class="col-form-label col-sm-4">@(userConfig.GetText("fwApiElementsPerFetch")):</label>
         <div class="col-sm-2">

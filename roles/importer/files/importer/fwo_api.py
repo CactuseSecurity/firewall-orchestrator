@@ -43,8 +43,12 @@ def call(url, jwt, query, query_variables="", role="reporter", show_progress=Fal
     logger = getFwoLogger()
 
     try:
+        if fwo_globals.verify_certs is None:    # only for first FWO API call (getting info on cert verification)
+            cert_verification = False
+        else: 
+            cert_verification = fwo_globals.verify_certs
         r = requests.post(url, data=json.dumps(
-            full_query), headers=request_headers, verify=fwo_globals.verify_certs, proxies=fwo_globals.proxy, timeout=int(common.fwo_api_http_import_timeout))
+            full_query), headers=request_headers, verify=cert_verification, proxies=fwo_globals.proxy, timeout=int(common.fwo_api_http_import_timeout))
         r.raise_for_status()
     except requests.exceptions.RequestException:
         logger.error(showApiCallInfo(url, full_query, request_headers, type='error') + ":\n" + str(traceback.format_exc()))
@@ -67,8 +71,11 @@ def login(user, password, user_management_api_base_url, method='api/Authenticati
     request_headers = {'Content-Type': 'application/json'}
 
     try:
-        response = requests.post(user_management_api_base_url + method, data=json.dumps(
-            payload), headers=request_headers, verify=fwo_globals.verify_certs, proxies=fwo_globals.proxy)
+        if fwo_globals.verify_certs is None:
+            cert_verification = False
+        else: 
+            cert_verification = fwo_globals.verify_certs
+        response = requests.post(user_management_api_base_url + method, data=json.dumps( payload), headers=request_headers, verify=cert_verification, proxies=fwo_globals.proxy)
         # response.raise_for_status()
     except requests.exceptions.RequestException:
         raise common.FwoApiLoginFailed ("fwo_api: error during login to url: " + str(user_management_api_base_url) + " with user " + user) from None

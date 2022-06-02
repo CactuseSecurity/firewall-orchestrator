@@ -7,7 +7,6 @@ import copy, time
 import parse_network, parse_rule, parse_service, parse_user
 import common, getter
 from cpcommon import get_basic_config, enrich_config
-#from fwo_const import global_debug_level, global_fwo_api_verify_certs, global_fwo_default_proxy_settings
 import fwo_globals
 
 

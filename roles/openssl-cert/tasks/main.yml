@@ -44,11 +44,11 @@
     owner: "{{ openssl_user }}"
     group: "{{ openssl_user }}"
 
-# the following only works vor deb bases systems
+# the following only works vor deb based systems
 - name: set link to debian cert store
   file:
     src: "{{ openssl_cert }}"
-    dest: /usr/local/share/ca-certificates/
+    dest: /usr/local/share/ca-certificates/{{ openssl_cert }}
     state: link
   become: yes
     

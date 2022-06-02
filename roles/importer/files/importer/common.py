@@ -160,7 +160,7 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0, prox
                 try:
                     # TODO: turn this api call into a function
                     if 'http://' in in_file or 'https://' in in_file:   # gettinf file via http(s)
-                        r = requests.get(in_file, headers={ 'Content-Type': 'application/json' }, verify=global_fwo_api_verify_certs, proxies=global_fwo_default_proxy_settings)
+                        r = requests.get(in_file, headers={ 'Content-Type': 'application/json' }, verify=fwo_globals.verify_certs, proxies=fwo_globals.proxy)
                         r.raise_for_status()
                         full_config_json = json.loads(r.content)
                     else:   # reading from local file
@@ -242,6 +242,7 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0, prox
 def get_config_sub(mgm_details, full_config_json, config2import, jwt, current_import_id, start_time,
         in_file=None, import_tmp_path='.', error_string='', error_count=0, change_count=0, limit=150, force=False):
     logger = getFwoLogger()
+    fwo_config = readConfig(fwo_config_filename)
 
     try: # pick product-specific importer:
         pkg_name = mgm_details['deviceType']['name'].lower().replace(' ', '') + mgm_details['deviceType']['version']

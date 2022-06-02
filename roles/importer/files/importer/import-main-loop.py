@@ -100,7 +100,6 @@ if __name__ == '__main__':
         suppress_certificate_warnings = fwo_api.get_config_value(fwo_api_base_url, jwt, key='importSuppressCertificateWarnings')=='True'
         if not suppress_certificate_warnings:
             warnings.resetwarnings()
-        import_proxy_string = fwo_api.get_config_value(fwo_api_base_url, jwt, key='importFwProxy')
         
         if not skipping:
             try:

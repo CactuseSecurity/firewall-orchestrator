@@ -852,12 +852,10 @@ INSERT INTO txt VALUES ('maxImportInterval',    'German', 	'Max erlaubtes Import
 INSERT INTO txt VALUES ('maxImportInterval',    'English', 	'Max import interval (in hours)');
 INSERT INTO txt VALUES ('importSleepTime',      'German', 	'Importintervall (in Sekunden)');
 INSERT INTO txt VALUES ('importSleepTime',      'English', 	'Import sleep time (in seconds)');
-INSERT INTO txt VALUES ('importCheckCertificates',      'German', 	'Zertifikate von Firewall-APIs pr&uuml;fen');
-INSERT INTO txt VALUES ('importCheckCertificates',      'English', 	'Check certificates of firewall APIs');
-INSERT INTO txt VALUES ('importSuppressCertificateWarnings',      'German', 	'Zertifikatwarnungen unterdr&uuml;cken');
+INSERT INTO txt VALUES ('importCheckCertificates',      'German', 	'Zertifikate beim Import pr&uuml;fen');
+INSERT INTO txt VALUES ('importCheckCertificates',      'English', 	'Check certificates during import');
+INSERT INTO txt VALUES ('importSuppressCertificateWarnings',      'German', 	'Zertifikatswarnungen unterdr&uuml;cken');
 INSERT INTO txt VALUES ('importSuppressCertificateWarnings',      'English', 	'Suppress certificate warnings');
-INSERT INTO txt VALUES ('importFwProxy',      'German', 	'Import Proxystring');
-INSERT INTO txt VALUES ('importFwProxy',      'English', 	'Import proxy string');
 INSERT INTO txt VALUES ('fwApiElementsPerFetch','German', 	'FW API - Pro Abruf geholte Elemente');
 INSERT INTO txt VALUES ('fwApiElementsPerFetch','English', 	'FW API - Elements per fetch');
 INSERT INTO txt VALUES ('autoDiscoverSleepTime','German', 	'Autodiscover-Intervall (in Stunden)');

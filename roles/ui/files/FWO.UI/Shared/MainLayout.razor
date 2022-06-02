@@ -3,13 +3,20 @@
 @using FWO.Api.Client
 @using FWO.Api.Data
 @using FWO.Api.Client.Queries
+@using FWO.Middleware.Client
+@using FWO.Ui.Auth
 @using FWO.Ui.Services
 @using System.Timers
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using RestSharp
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject MiddlewareClient middlewareClient
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider authenticationProvider
+@inject ProtectedSessionStorage sessionStorage
+@inject CircuitHandlerService circuitHandler
 
 <div style="z-index:15; top:0px;" class="position-sticky">
     <NavigationMenu @bind-ShowAlert="showAlert"/>
@@ -30,8 +37,26 @@
             <div>@dialogTitle - @dialogMessage</div>
             <div class="oi oi-x" @onclick="@(() => { messageDialogShow = false; StateHasChanged();})"></div>
         </div>
+        @if (showReloginInput)
+        {
+            <div class="input-group">
+              <input class="form-control form-control-sm @reloginCssClass" @bind="password" type="password" placeholder="Password" @onkeypress="@(() => reloginCssClass = "")">
+              <div class="input-group-append">
+                <button class="btn btn-sm btn-primary" @onclick="Relogin">Re-login</button>
+              </div>
+            </div>
+            @if (!string.IsNullOrEmpty(reloginErrorMessage))
+            {
+                <label class="mt-1 mb-1 text-danger">@reloginErrorMessage</label>                
+            }
+        }
     </div>
 }
+
+<div class="footer alert alert-info">
+    <button @onclick="() => OnPermissionsChanged(null, userConfig.User.Dn)">Debug</button>
+</div>
+
 
 @code
 {
@@ -48,6 +73,11 @@
     private string cssClass = "";
     private object errorLock = new object();
 
+    private string reloginErrorMessage = "";
+    private string reloginCssClass = "";
+    private bool showReloginInput;
+    private string? password;
+
     public enum MessageType
     {
         Info,
@@ -56,13 +86,14 @@
         Error
     }
 
-
     protected override void OnInitialized()
     {
         var user = authenticationStateTask!.Result.User;
         DisplayMessageInUiFunction = DisplayMessageInUi;
 
         JwtEventService.OnPermissionChanged += OnPermissionsChanged;
+        JwtEventService.OnJwtAboutToExpire += OnJwtAboutToExpire;
+
         alertSubscription = apiConnection.GetSubscription<List<Alert>>(ApiExceptionHandler, OnAlertUpdate, MonitorQueries.subscribeAlertChanges);
     }
 
@@ -76,17 +107,61 @@
     {
         if (userDn == userConfig.User.Dn)
         {
-            ShowMessage("Permissions", "Your permissions have been changed. Re-login to update your permissions.", MessageType.Info);
-            // authenticationProvider.
+            showReloginInput = true;
+            ShowMessage("Permissions", "Your permissions have been changed. Re-login to update your permissions.", MessageType.Info, showtime: -1);
         }
     }
 
-    private void ShowMessage(string title, string message, MessageType type)
+    private void OnJwtAboutToExpire(object? sender, string userDn)
+    {
+        if (userDn == userConfig.User.Dn)
+        {
+            showReloginInput = true;
+            ShowMessage("Jwt Expiry", "Your jwt is about to expire. Re-login to create a new jwt.", MessageType.Info, showtime: -1);
+        }
+    }
+
+    private async Task Relogin()
+    {
+        string errorMessage = "Re-login unsuccessful. See log for details!";
+
+        if (password == null)
+        {
+            password = "";
+        }
+        try
+        {
+            RestResponse<string> authResponse = await ((AuthStateProvider)authenticationProvider).Login(userConfig.User.Name,
+            password, apiConnection, middlewareClient, userConfig, sessionStorage, circuitHandler);
+            if (authResponse.StatusCode == System.Net.HttpStatusCode.OK) 
+            { 
+                showReloginInput = false;
+                messageDialogShow = false;
+                reloginErrorMessage = "";
+                password = "";
+                return;
+            }
+            else
+            {
+                // There was an error trying to authenticate the user. Probably invalid credentials
+                errorMessage = (authResponse.Data != null ? userConfig.GetApiText(authResponse.Data) : "Middleware Api Error: " + authResponse.Content);            
+            }
+        }
+        catch (Exception ex){ Log.WriteError("Re-login", "Re-login unsuccessful.", ex); }
+
+        reloginErrorMessage = errorMessage;
+        reloginCssClass = "is-invalid";
+    }
+
+    private void ShowMessage(string title, string message, MessageType type, int? showtime = null)
     {
         // Needed so there is no chance an error is announced by 2 threads at the same time.
         lock (errorLock)
         {
-            int showtime = userConfig.MessageViewTime * 1000; // convert to milliseconds
+            if (showtime == null)
+            {
+                showtime = userConfig.MessageViewTime * 1000; // convert to milliseconds
+            }
             
             switch(type)
             {
@@ -110,9 +185,9 @@
             dialogMessage = message;
             messageDialogShow = true;
 
-            if(showtime > 0)
+            if (showtime > 0)
             {
-                Timer messageTimer = new Timer(showtime);
+                Timer messageTimer = new Timer(showtime.Value);
                 messageTimer.Elapsed += HideMessage;
                 messageTimer.AutoReset = false;
                 messageTimer.Start();

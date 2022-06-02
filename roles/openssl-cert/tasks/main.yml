@@ -48,7 +48,7 @@
 - name: set link to debian cert store
   file:
     src: "{{ openssl_cert }}"
-    dest: /usr/local/share/ca-certificates/{{ openssl_cert }}
+    dest: /usr/local/share/ca-certificates/{{ product_name }}-server.crt
     state: link
   become: yes
     

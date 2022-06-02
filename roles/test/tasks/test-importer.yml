@@ -15,8 +15,13 @@
   become_user: postgres
   register: test_checkpoint_mgm_id
 
+- name: set proxy parameter for import
+  set_fact:
+    http_proxy_import_parameter: "-x{{ https_proxy }}"
+  when: https_proxy is not ""
+
 - name: make test checkpoint import
-  command: "python3 import-mgm.py -m{{ test_checkpoint_mgm_id.query_result.0.mgm_id }} -d4 -ihttps://fwodemodata.cactus.de/demo04_cpr8x.json -x{{ https_proxy }}"
+  command: "python3 import-mgm.py -m{{ test_checkpoint_mgm_id.query_result.0.mgm_id }} -ihttps://fwodemodata.cactus.de/demo04_cpr8x.json {{ http_proxy_import_parameter }}"
   args:
     chdir: "{{ fworch_home }}/importer"
   become: yes

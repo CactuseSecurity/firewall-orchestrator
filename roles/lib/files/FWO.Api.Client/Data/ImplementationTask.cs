@@ -41,6 +41,12 @@ namespace FWO.Api.Data
         [JsonProperty("nw_obj_grp_id"), JsonPropertyName("nw_obj_grp_id")]
         public int? NetworkGroupId { get; set; }
 
+        [JsonProperty("user_grp_id "), JsonPropertyName("user_grp_id ")]
+        public int? UserGroupId { get; set; }
+
+        [JsonProperty("current_handler"), JsonPropertyName("current_handler")]
+        public int? CurrentHandler { get; set; }
+
         [JsonProperty("elements"), JsonPropertyName("elements")]
         public List<ImplementationElement> ImplElements { get; set; } = new List<ImplementationElement>();
 
@@ -61,6 +67,8 @@ namespace FWO.Api.Data
             Stop = null;
             ServiceGroupId = task.ServiceGroupId;
             NetworkGroupId = task.NetworkGroupId;
+            UserGroupId = task.UserGroupId;
+            CurrentHandler = task.CurrentHandler;
             if (task.Elements != null && task.Elements.Count > 0)
             {
                 ImplElements = new List<ImplementationElement>();

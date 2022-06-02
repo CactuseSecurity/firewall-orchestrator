@@ -35,6 +35,12 @@ namespace FWO.Api.Data
         [JsonProperty("reason"), JsonPropertyName("reason")]
         public string? Reason { get; set; }
 
+        [JsonProperty("external_ticket_id"), JsonPropertyName("external_ticket_id")]
+        public string? ExternalTicketId { get; set; }
+
+        [JsonProperty("external_ticket_source"), JsonPropertyName("external_ticket_source")]
+        public int? ExternalTicketSource { get; set; }
+
 
         public RequestTicketBase()
         { }
@@ -51,6 +57,8 @@ namespace FWO.Api.Data
             RequesterGroup = ticket.RequesterGroup;
             TenantId = ticket.TenantId;
             Reason = ticket.Reason;
+            ExternalTicketId = ticket.ExternalTicketId;
+            ExternalTicketSource = ticket.ExternalTicketSource;
         }
 
         public bool Sanitize()
@@ -60,6 +68,7 @@ namespace FWO.Api.Data
             RequesterDn = Sanitizer.SanitizeLdapNameOpt(RequesterDn, ref shortened);
             RequesterGroup = Sanitizer.SanitizeLdapNameOpt(RequesterGroup, ref shortened);
             Reason = Sanitizer.SanitizeOpt(Reason, ref shortened);
+            ExternalTicketId = Sanitizer.SanitizeOpt(ExternalTicketId, ref shortened);
             return shortened;
         }
     }

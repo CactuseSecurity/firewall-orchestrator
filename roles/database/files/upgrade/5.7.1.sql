@@ -43,7 +43,13 @@ create table if not exists request.task
     stop Timestamp,
     svc_grp_id int,
     nw_obj_grp_id int,
-    reason text
+    user_grp_id int,
+    reason text,
+    last_recert_date Timestamp,
+	current_handler int,
+	target_begin_date Timestamp,
+	target_end_date Timestamp,
+	fw_admin_comments varchar
 );
 
 create table if not exists request.element 
@@ -70,7 +76,9 @@ create table if not exists request.approval
     approval_date Timestamp,
     approver Varchar,
     tenant_id int,
-    comment text
+    comment text,
+    initial_approval boolean not null default true,
+	approval_deadline Timestamp
 );
 
 create table if not exists request.ticket 
@@ -84,7 +92,9 @@ create table if not exists request.ticket
     requester_dn Varchar,
     requester_group Varchar,
     tenant_id int,
-    reason text
+    reason text,
+    external_ticket_id varchar,
+	external_ticket_source int
 );
 
 create table if not exists request.state
@@ -101,7 +111,9 @@ create table if not exists owner
     group_dn Varchar NOT NULL,
     is_default boolean default false,
     tenant_id int,
-    recert_interval interval
+    recert_interval interval,
+    next_recert_date Timestamp,
+    app_id_external varchar not null
 );
 
 create unique index if not exists only_one_default_owner on owner(is_default) 
@@ -156,7 +168,9 @@ create table if not exists implementation.task
     start timestamp,
     stop timestamp,
     svc_grp_id int,
-    nw_obj_grp_id int
+    nw_obj_grp_id int,
+    user_grp_id int,
+	current_handler int
 );
 
 --- FOREIGN KEYS ---
@@ -170,6 +184,8 @@ ALTER TABLE request.task DROP CONSTRAINT IF EXISTS request_task_stm_action_forei
 ALTER TABLE request.task DROP CONSTRAINT IF EXISTS request_task_stm_track_foreign_key;
 ALTER TABLE request.task DROP CONSTRAINT IF EXISTS request_task_service_foreign_key;
 ALTER TABLE request.task DROP CONSTRAINT IF EXISTS request_task_object_foreign_key;
+ALTER TABLE request.task DROP CONSTRAINT IF EXISTS request_task_usergrp_foreign_key;
+ALTER TABLE request.task DROP CONSTRAINT IF EXISTS request_task_handler_foreign_key;
 --- request.element ---
 ALTER TABLE request.element DROP CONSTRAINT IF EXISTS request_element_request_task_foreign_key;
 ALTER TABLE request.element DROP CONSTRAINT IF EXISTS request_element_proto_foreign_key;
@@ -210,6 +226,8 @@ ALTER TABLE implementation.task DROP CONSTRAINT IF EXISTS implementation_task_st
 ALTER TABLE implementation.task DROP CONSTRAINT IF EXISTS implementation_task_stm_tracking_foreign_key;
 ALTER TABLE implementation.task DROP CONSTRAINT IF EXISTS implementation_task_service_foreign_key;
 ALTER TABLE implementation.task DROP CONSTRAINT IF EXISTS implementation_task_object_foreign_key;
+ALTER TABLE implementation.task DROP CONSTRAINT IF EXISTS implementation_task_usergrp_foreign_key;
+ALTER TABLE implementation.task DROP CONSTRAINT IF EXISTS implementation_task_handler_foreign_key;
 
 --- ADD ---
 
@@ -220,6 +238,8 @@ ALTER TABLE request.task ADD CONSTRAINT request_task_stm_action_foreign_key FORE
 ALTER TABLE request.task ADD CONSTRAINT request_task_stm_track_foreign_key FOREIGN KEY (rule_tracking) REFERENCES stm_track(track_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.task ADD CONSTRAINT request_task_service_foreign_key FOREIGN KEY (svc_grp_id) REFERENCES service(svc_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.task ADD CONSTRAINT request_task_object_foreign_key FOREIGN KEY (nw_obj_grp_id) REFERENCES object(obj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.task ADD CONSTRAINT request_task_usergrp_foreign_key FOREIGN KEY (user_grp_id) REFERENCES usr(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.task ADD CONSTRAINT request_task_handler_foreign_key FOREIGN KEY (current_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- request.element ---
 ALTER TABLE request.element ADD CONSTRAINT request_element_request_task_foreign_key FOREIGN KEY (task_id) REFERENCES request.task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.element ADD CONSTRAINT request_element_proto_foreign_key FOREIGN KEY (ip_proto_id) REFERENCES stm_ip_proto(ip_proto_id) ON UPDATE RESTRICT ON DELETE CASCADE;
@@ -260,6 +280,8 @@ ALTER TABLE implementation.task ADD CONSTRAINT implementation_task_stm_action_fo
 ALTER TABLE implementation.task ADD CONSTRAINT implementation_task_stm_tracking_foreign_key FOREIGN KEY (rule_tracking) REFERENCES stm_track(track_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE implementation.task ADD CONSTRAINT implementation_task_service_foreign_key FOREIGN KEY (svc_grp_id) REFERENCES service(svc_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE implementation.task ADD CONSTRAINT implementation_task_object_foreign_key FOREIGN KEY (nw_obj_grp_id) REFERENCES object(obj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE implementation.task ADD CONSTRAINT implementation_task_usergrp_foreign_key FOREIGN KEY (user_grp_id) REFERENCES usr(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE implementation.task ADD CONSTRAINT implementation_task_handler_foreign_key FOREIGN KEY (current_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
 --- OTHER CONSTRAINTS ---
 

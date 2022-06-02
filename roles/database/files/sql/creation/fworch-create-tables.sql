@@ -985,7 +985,13 @@ create table if not exists request.task
     stop Timestamp,
     svc_grp_id int,
     nw_obj_grp_id int,
-    reason text
+	user_grp_id int,
+    reason text,
+	last_recert_date Timestamp,
+	current_handler int,
+	target_begin_date Timestamp,
+	target_end_date Timestamp,
+	fw_admin_comments varchar
 );
 
 create table if not exists request.element 
@@ -1012,7 +1018,9 @@ create table if not exists request.approval
     approval_date Timestamp,
     approver Varchar,
     tenant_id int,
-    comment text
+    comment text,
+	initial_approval boolean not null default true,
+	approval_deadline Timestamp
 );
 
 create table if not exists request.ticket 
@@ -1026,7 +1034,9 @@ create table if not exists request.ticket
     requester_dn Varchar,
     requester_group Varchar,
     tenant_id int,
-    reason text
+    reason text,
+	external_ticket_id varchar,
+	external_ticket_source int
 );
 
 create table if not exists request.state
@@ -1043,7 +1053,9 @@ create table if not exists owner
     group_dn Varchar NOT NULL,
     is_default boolean default false,
     tenant_id int,
-    recert_interval interval
+    recert_interval interval,
+	next_recert_date Timestamp,
+    app_id_external varchar not null
 );
 
 create unique index if not exists only_one_default_owner on owner(is_default) 
@@ -1098,5 +1110,7 @@ create table if not exists implementation.task
     start timestamp,
     stop timestamp,
     svc_grp_id int,
-    nw_obj_grp_id int
+    nw_obj_grp_id int,
+	user_grp_id int,
+	current_handler int
 );

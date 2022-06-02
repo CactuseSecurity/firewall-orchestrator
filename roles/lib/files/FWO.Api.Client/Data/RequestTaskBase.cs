@@ -53,8 +53,26 @@ namespace FWO.Api.Data
         [JsonProperty("nw_obj_grp_id"), JsonPropertyName("nw_obj_grp_id")]
         public int? NetworkGroupId { get; set; }
 
+        [JsonProperty("user_grp_id "), JsonPropertyName("user_grp_id ")]
+        public int? UserGroupId { get; set; }
+
         [JsonProperty("reason"), JsonPropertyName("reason")]
         public string? Reason { get; set; }
+
+        [JsonProperty("last_recert_date"), JsonPropertyName("last_recert_date")]
+        public DateTime? LastRecertDate { get; set; }
+
+        [JsonProperty("current_handler"), JsonPropertyName("current_handler")]
+        public int? CurrentHandler { get; set; }
+
+        [JsonProperty("target_begin_date"), JsonPropertyName("target_begin_date")]
+        public DateTime? TargetBeginDate { get; set; }
+
+        [JsonProperty("target_end_date"), JsonPropertyName("target_end_date")]
+        public DateTime? TargetEndDate { get; set; }
+
+        [JsonProperty("fw_admin_comments"), JsonPropertyName("fw_admin_comments")]
+        public string? FwAdminComments { get; set; }
 
 
         public RequestTaskBase()
@@ -73,7 +91,13 @@ namespace FWO.Api.Data
             Stop = task.Stop;
             ServiceGroupId = task.ServiceGroupId;
             NetworkGroupId = task.NetworkGroupId;
+            UserGroupId = task.UserGroupId;
             Reason = task.Reason;
+            LastRecertDate = task.LastRecertDate;
+            CurrentHandler = task.CurrentHandler;
+            TargetBeginDate = task.TargetBeginDate;
+            TargetEndDate = task.TargetEndDate;
+            FwAdminComments = task.FwAdminComments;
         }
 
         public bool Sanitize()
@@ -81,6 +105,7 @@ namespace FWO.Api.Data
             bool shortened = false;
             Title = Sanitizer.SanitizeMand(Title, ref shortened);
             Reason = Sanitizer.SanitizeOpt(Reason, ref shortened);
+            FwAdminComments = Sanitizer.SanitizeOpt(FwAdminComments, ref shortened);
             return shortened;
         }
     }

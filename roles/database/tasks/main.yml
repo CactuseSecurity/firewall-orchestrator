@@ -16,6 +16,7 @@
       loop:
         - postgresql-server
         - python3-psycopg2
+        - acl
       when: ansible_os_family == "RedHat"
       # todo: check if we need and if yes, how to install libpq-dev(el)
 
@@ -27,6 +28,7 @@
         - postgresql
         - python3-psycopg2
         - libpq-dev
+        - acl
       when: ansible_os_family == "Debian"
 
     - name: initdb as extra step for redhat

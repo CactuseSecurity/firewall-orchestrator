@@ -76,6 +76,15 @@
   environment: "{{ proxy_env }}"
   become: yes
 
+- debug:
+    var: ansible_env.PATH
+
+- debug:
+    var: ansible_env.PATH
+  become: yes
+  become_user: "{{ fworch_user }}"
+  environment: "{{ proxy_env }}"
+
 - name: initialize hasura cli directory
   command: "{{ api_hasura_cli_bin }} init {{ product_name }} --endpoint http://{{ api_ip_address }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
   args: 

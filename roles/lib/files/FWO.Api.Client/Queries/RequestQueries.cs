@@ -15,6 +15,13 @@ namespace FWO.Api.Client.Queries
         public static readonly string newRequestElement;
         public static readonly string updateRequestElement;
         public static readonly string deleteRequestElement;
+        public static readonly string newImplementationTask;
+        public static readonly string updateImplementationTask;
+        public static readonly string updateImplementationTaskState;
+        public static readonly string deleteImplementationTask;
+        public static readonly string newImplementationElement;
+        public static readonly string updateImplementationElement;
+        public static readonly string deleteImplementationElement;
 
 
         static RequestQueries()
@@ -32,6 +39,13 @@ namespace FWO.Api.Client.Queries
                 newRequestElement = File.ReadAllText(QueryPath + "request/newRequestElement.graphql");
                 updateRequestElement = File.ReadAllText(QueryPath + "request/updateRequestElement.graphql");
                 deleteRequestElement = File.ReadAllText(QueryPath + "request/deleteRequestElement.graphql");
+                newImplementationTask = File.ReadAllText(QueryPath + "request/newImplementationTask.graphql");
+                updateImplementationTask = File.ReadAllText(QueryPath + "request/updateImplementationTask.graphql");
+                updateImplementationTaskState = File.ReadAllText(QueryPath + "request/updateImplementationTaskState.graphql");
+                deleteImplementationTask = File.ReadAllText(QueryPath + "request/deleteImplementationTask.graphql");
+                newImplementationElement = File.ReadAllText(QueryPath + "request/newImplementationElement.graphql");
+                updateImplementationElement = File.ReadAllText(QueryPath + "request/updateImplementationElement.graphql");
+                deleteImplementationElement = File.ReadAllText(QueryPath + "request/deleteImplementationElement.graphql");
             }
             catch (Exception exception)
             {

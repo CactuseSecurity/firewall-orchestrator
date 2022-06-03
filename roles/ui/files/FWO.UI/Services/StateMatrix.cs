@@ -22,17 +22,26 @@
                     LowestStartedState = 0;
                     LowestEndState = 49;
                     break;
+                case 1:
+                    matrix.Add(49, new List<int>(){49,60,99,610});
+                    matrix.Add(60, new List<int>(){60,99,610});
+                    matrix.Add(99, new List<int>(){99});
+                    matrix.Add(610, new List<int>(){610});
+                    LowestInputState = 49;
+                    LowestStartedState = 60;
+                    LowestEndState = 99;
+                    break;
                 case 2:
-                    matrix.Add(49, new List<int>(){110});
+                    matrix.Add(99, new List<int>(){110});
                     matrix.Add(110, new List<int>(){110,120,130,149});
                     matrix.Add(120, new List<int>(){120,110,130,149});
                     matrix.Add(130, new List<int>(){130,110,120,149,610});
                     matrix.Add(149, new List<int>(){149});
                     matrix.Add(610, new List<int>(){610});
-                    LowestInputState = 49;
+                    LowestInputState = 99;
                     LowestStartedState = 110;
                     LowestEndState = 149;
-                    derivedStates.Add(49, 49);
+                    derivedStates.Add(99, 99);
                     derivedStates.Add(110, 110);
                     derivedStates.Add(120, 110);
                     derivedStates.Add(130, 110);

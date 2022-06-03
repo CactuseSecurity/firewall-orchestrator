@@ -17,7 +17,7 @@ namespace FWO.Api.Data
         [JsonProperty("state_id"), JsonPropertyName("state_id")]
         public int StateId { get; set; }
 
-        [JsonProperty("deviceId"), JsonPropertyName("deviceId")]
+        [JsonProperty("device_id"), JsonPropertyName("device_id")]
         public int? DeviceId { get; set; }
 
         [JsonProperty("implementation_action"), JsonPropertyName("implementation_action")]

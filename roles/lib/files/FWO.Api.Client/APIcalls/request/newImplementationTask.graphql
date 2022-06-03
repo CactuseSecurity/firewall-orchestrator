@@ -1,0 +1,25 @@
+mutation newImplementationTask(
+  $reqTaskId: Int!
+  $implIaskNumber: Int
+  $state: Int
+  $device: Int
+  $implAction: action_enum
+  $ruleAction: Int
+  $tracking: Int
+  $handler: Int
+  ) {
+  insert_implementation_task(objects: {
+    request_task_id: $reqTaskId
+    implementation_task_number: $implIaskNumber
+    state_id: $state
+    device_id: $device
+    implementation_action: $implAction
+    rule_action: $ruleAction
+    rule_tracking: $tracking
+    current_handler: $handler
+  }) {
+    returning {
+      newId: id
+    }
+  }
+}

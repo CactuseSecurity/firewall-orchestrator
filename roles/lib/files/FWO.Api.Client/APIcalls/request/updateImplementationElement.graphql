@@ -1,0 +1,30 @@
+mutation updateImplementationElement(
+  $id: Int!
+  $implementationAction: action_enum
+  $implTaskId: Int!
+  $ip: cidr
+  $port: Int
+  $proto: Int
+  $network_obj_id: bigint
+  $service_id: bigint
+  $field: rule_field_enum!
+  $user_id: bigint
+  $original_nat_id: Int
+  ) {
+  update_implementation_element_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      implementation_action: $implementationAction
+      implementation_task_id: $implTaskId
+      ip: $ip
+      port: $port
+      ip_proto_id: $proto
+      network_object_id: $network_obj_id
+      service_id: $service_id
+      field: $field
+      user_id: $user_id
+      original_nat_id: $original_nat_id
+  }) {
+    UpdatedId: id
+  }
+}

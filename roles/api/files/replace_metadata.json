@@ -11816,6 +11816,12 @@
                   }
                 },
                 {
+                  "name": "stm_ip_proto",
+                  "using": {
+                    "foreign_key_constraint_on": "ip_proto_id"
+                  }
+                },
+                {
                   "name": "task",
                   "using": {
                     "foreign_key_constraint_on": "task_id"
@@ -11847,7 +11853,33 @@
               "table": {
                 "schema": "request",
                 "name": "state"
-              }
+              },
+              "array_relationships": [
+                {
+                  "name": "tasks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "state_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "task"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "tickets",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "state_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "ticket"
+                      }
+                    }
+                  }
+                }
+              ]
             },
             {
               "table": {
@@ -11868,6 +11900,12 @@
                   }
                 },
                 {
+                  "name": "state",
+                  "using": {
+                    "foreign_key_constraint_on": "state_id"
+                  }
+                },
+                {
                   "name": "stm_action",
                   "using": {
                     "foreign_key_constraint_on": "rule_action"
@@ -11883,6 +11921,12 @@
                   "name": "ticket",
                   "using": {
                     "foreign_key_constraint_on": "ticket_id"
+                  }
+                },
+                {
+                  "name": "uiuser",
+                  "using": {
+                    "foreign_key_constraint_on": "current_handler"
                   }
                 }
               ],
@@ -11943,6 +11987,12 @@
                 "name": "ticket"
               },
               "object_relationships": [
+                {
+                  "name": "state",
+                  "using": {
+                    "foreign_key_constraint_on": "state_id"
+                  }
+                },
                 {
                   "name": "tenant",
                   "using": {

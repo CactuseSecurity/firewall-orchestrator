@@ -1,0 +1,399 @@
+@using BlazorTable
+@using FWO.Api.Data
+@using FWO.Api.Client
+@using FWO.Config.Api
+@using FWO.Ui.Services
+
+@page "/request/approvals"
+@attribute [Authorize(Roles = "admin, approver, auditor, fw-admin")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+<h3>@(userConfig.GetText("approvals"))</h3>
+<hr />
+
+<div class="m-2">
+    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="RequestTicket" Items="requests" PageSize="0" ColumnReorder="true">
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+            <Template>
+                <div class="btn-group">
+                    @if (context.StateId < stateMatrix.LowestEndState)
+                    {
+                        <button class="btn btn-sm btn-warning" @onclick="() => ApproveRequest(context)">@(userConfig.GetText("approve"))</button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-sm btn-primary" @onclick="() => ShowRequestDetails(context)">@(userConfig.GetText("details"))</button>
+                    }
+                </div>
+            </Template>
+        </Column>
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true" />
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("requester"))" Field="@(x => x.Requester.Name)" Sortable="true" Filterable="true" />
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
+            <Template>
+                @(states.Name[context.StateId])
+            </Template>
+        </Column>
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("created"))" Field="@(x => x.CreationDate)" Sortable="true" Filterable="true" />
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("closed"))" Field="@(x => x.CompletionDate)" Sortable="true" Filterable="true" />
+    </Table>
+</div>
+
+<PopUp Title="@(userConfig.GetText("request") + ": " + actTicket.Title)" Show="@ShowTicketMode" Large="true" OnClose="() => ShowTicketMode = false">
+    <Body>
+        @if (ShowTicketMode)
+        {
+            <form>
+                <div class="form-group row">
+                    <label for="requestId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                    <label class="col-sm-8">@actTicket.Id</label>
+                </div>
+                <div class="form-group row">
+                    <label for="taskId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
+                    <label class="col-sm-8">@states.Name[actTicket.StateId]</label>
+                </div>
+                <div class="form-group row">
+                    <label for="requestRequester" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("requester")):</label>
+                    <label class="col-sm-8">@actTicket.Requester?.Name</label>
+                </div>
+                @(userConfig.GetText("tasks"))
+                <div class="m-2">
+                    <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="RequestTask" Items="actTicket.Tasks" PageSize="0" ColumnReorder="true">
+                        <Column TableItem="RequestTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                            <Template>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowReqTask(context)">@(userConfig.GetText("details"))</button>
+                                </div>
+                            </Template>
+                        </Column>
+                        <Column TableItem="RequestTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+                        <Column TableItem="RequestTask" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true" />
+                        <Column TableItem="RequestTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
+                            <Template>
+                                @(states.Name[context.StateId])
+                            </Template>
+                        </Column>
+                        <Column TableItem="RequestTask" Title="@(userConfig.GetText("start"))" Field="@(x => x.Start)" Sortable="true" Filterable="true" />
+                        <Column TableItem="RequestTask" Title="@(userConfig.GetText("stop"))" Field="@(x => x.Stop)" Sortable="true" Filterable="true" />
+                    </Table>
+                </div>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            @if (ApproveRequestMode)
+            {
+                <AuthorizeView Roles="admin, requester, fw-admin">
+                    <Authorized>
+                        <button class="btn btn-sm btn-primary" @onclick="InitSaveRequest">@(userConfig.GetText("save"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+            }
+            <button class="btn btn-sm btn-secondary" @onclick="CancelRequest">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText("save_request"))" Show="@PromoteRequestMode" OnClose="() => PromoteRequestMode = false">
+    <Body>
+        @if (PromoteRequestMode)
+        {
+            <div class="form-group row">
+                <label for="promoteRequest" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("promote_to")):</label>
+                <div class="col-sm-8">
+                    <select id="promoteRequest" class="form-control form-control-sm" @bind="actTicket.StateId">
+                        @foreach (int state in actPossibleStates)
+                        {
+                            <option value="@state">@(states.Name[state])</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="admin, requester, fw-admin">
+                <Authorized>
+                    <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveRequest">@(userConfig.GetText("save"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button class="btn btn-sm btn-secondary" @onclick="CancelSaveRequest">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText("task") + ": " + actReqTask.Title)" Show="@ShowReqTaskMode" Large="true" OnClose="() => ShowReqTaskMode = false">
+    <Body>
+        @if (ShowReqTaskMode)
+        {
+            <form>
+                <div class="form-group row">
+                    <label for="taskId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                    <label class="col-sm-8">@actReqTask.Id</label>
+                </div>
+                <div class="form-group row">
+                    <label for="taskState" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
+                    <label class="col-sm-8">@states.Name[actReqTask.StateId]</label>
+                </div>
+                <div class="form-group row">
+                    <label for="taskType" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("type")):</label>
+                    <label class="col-sm-8">@(userConfig.GetText(actReqTask.TaskType))</label>
+                </div>
+                <div class="form-group row">
+                    <label for="taskAction" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("action")):</label>
+                    <label class="col-sm-8">@(userConfig.GetText(actReqTask.RequestAction))</label>
+                </div>
+                <div class="form-group row">
+                    <label for="taskRuleAction" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("rule_action")):</label>
+                    <label class="col-sm-8">@(((actReqTask.RuleAction != null) ? ruleActions.Find(x => x.Id == actReqTask.RuleAction)?.Name : ""))</label>
+                </div>
+                <div class="form-group row">
+                    <label for="taskTracking" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("track")):</label>
+                    <label class="col-sm-8">@(((actReqTask.Tracking != null) ? trackings.Find(x => x.Id == actReqTask.Tracking)?.Name : ""))</label>
+                </div>
+                <div class="form-group row">
+                    <label for="taskReason" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
+                    <label class="col-sm-8">@actReqTask.Reason</label>
+                </div>
+                @(userConfig.GetText("request_elements"))
+                <div class="m-2">
+                    <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="RequestElement" Items="actReqTask.Elements" PageSize="0" ColumnReorder="true">
+                        <Column TableItem="RequestElement" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                            <Template>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowReqElement(context)">@(userConfig.GetText("details"))</button>
+                                </div>
+                            </Template>
+                        </Column>
+                        <Column TableItem="RequestElement" Title="@(userConfig.GetText("action"))" Field="@(x => x.RequestAction)" Sortable="true" Filterable="true" >
+                            <Template>
+                                @(userConfig.GetText(context.RequestAction))
+                            </Template>
+                        </Column>
+                        <Column TableItem="RequestElement" Title="@(userConfig.GetText("type"))" Field="@(x => x.Field)" Sortable="true" Filterable="true" />
+                        <Column TableItem="RequestElement" Title="@(userConfig.GetText("ip"))" Field="@(x => x.Ip)" Sortable="true" Filterable="true" />
+                        <Column TableItem="RequestElement" Title="@(userConfig.GetText("port"))" Field="@(x => x.Port)" Sortable="true" Filterable="true" />
+                        <Column TableItem="RequestElement" Title="@(userConfig.GetText("protocol"))" Field="@(x => x.ProtoId)" Sortable="true" Filterable="true" >
+                            <Template>
+                                @(((context.ProtoId != null) ? ipProtos.Find(x => x.Id == context.ProtoId)?.Name : ""))
+                            </Template>
+                        </Column>
+                    </Table>
+                </div>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button class="btn btn-sm btn-secondary" @onclick="CancelTask">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText("element") + ": " + actReqElement.Id)" Show="@ShowReqElementMode" Large="true" OnClose="() => ShowReqElementMode = false">
+    <Body>
+        @if (ShowReqElementMode)
+        {
+            <form>
+                <div class="form-group row">
+                    <label for="elementAction" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("action"))*:</label>
+                    <label class="col-sm-8">@(userConfig.GetText(actReqElement.RequestAction))</label>
+                </div>
+                <div class="form-group row">
+                    <label for="elementField" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("type"))*:</label>
+                    <label class="col-sm-8">@(userConfig.GetText(actReqElement.Field))</label>
+                </div>
+                <div class="form-group row">
+                    <label for="elementIp" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ip"))*:</label>
+                    <label class="col-sm-8">@actReqElement.Ip</label>
+                </div>
+                <div class="form-group row">
+                    <label for="elementPort" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
+                    <label class="col-sm-8">@actReqElement.Port</label>
+                </div>
+                <div class="form-group row">
+                    <label for="elementProto" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("protocol")):</label>
+                    <label class="col-sm-8">@(((actReqElement.ProtoId != null) ? ipProtos.Find(x => x.Id == actReqElement.ProtoId)?.Name : ""))</label>
+                </div>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button class="btn btn-sm btn-secondary" @onclick="CancelReqElement">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    
+    private List<RequestTicket> requests = new List<RequestTicket>();
+
+    private bool ShowTicketMode = false;
+    private bool ApproveRequestMode = false;
+    private bool PromoteRequestMode = false;
+    private bool ShowReqTaskMode = false;
+    private bool ShowReqElementMode = false;
+
+    private RequestTicket actTicket = new RequestTicket();
+    private RequestTask actReqTask = new RequestTask();
+    private RequestElement actReqElement = new RequestElement();
+
+    private RequestStates states = new RequestStates();
+    private List<int> actPossibleStates = new List<int>();
+    private StateMatrix stateMatrix = new StateMatrix();
+    private List<IpProtocol> ipProtos = new List<IpProtocol>();
+    private List<RuleAction> ruleActions = new List<RuleAction>();
+    private List<Tracking> trackings = new List<Tracking>();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            stateMatrix.Init(1);
+            states.Init();
+
+            ipProtos = await apiConnection.SendQueryAsync<List<IpProtocol>>(FWO.Api.Client.Queries.StmQueries.getIpProtocols);
+            ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(FWO.Api.Client.Queries.StmQueries.getRuleActions);
+            trackings = await apiConnection.SendQueryAsync<List<Tracking>>(FWO.Api.Client.Queries.StmQueries.getTracking);
+
+            var Variables = new
+            {
+                from_state = stateMatrix.LowestInputState,
+                to_state = stateMatrix.LowestEndState,
+            };
+            requests = await apiConnection.SendQueryAsync<List<RequestTicket>>(FWO.Api.Client.Queries.RequestQueries.getTickets, Variables);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_requests"), "", true);
+        }
+    }
+
+    private void ApproveRequest(RequestTicket ticket)
+    {
+        ApproveRequestMode = true;
+        ShowRequestDetails(ticket);
+    }
+
+    private void ShowRequestDetails(RequestTicket ticket)
+    {
+        actTicket = new RequestTicket(ticket);
+        ShowTicketMode = true;
+    }
+
+    private async Task InitSaveRequest()
+    {
+        actPossibleStates = stateMatrix.getAllowedTransitions(actTicket.StateId);
+        if(actPossibleStates.Count == 1)
+        {
+            actTicket.StateId = actPossibleStates[0];
+            await SaveRequest();
+        }
+        else
+        {
+            PromoteRequestMode = true;
+        }
+    }
+
+    private async Task SaveRequest()
+    {
+        try
+        {           
+            PromoteRequestMode = false;
+            if (actTicket.Sanitize())
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("U0001"), true);
+            }
+            if (CheckRequestValues())
+            {    
+                // Update existing ticket state
+                var Variables = new
+                {
+                    id = actTicket.Id,
+                    state = actTicket.StateId
+                };
+                int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateTicketState, Variables)).UpdatedId;
+                if(udId != actTicket.Id)
+                {
+                    DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("E8002"), true);
+                }
+                else
+                {
+                    foreach(RequestTask task in actTicket.Tasks)
+                    {
+                        task.StateId = actTicket.StateId;
+                        await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequestTaskState, new {id = task.Id, state = task.StateId});
+                    }
+                    requests[requests.FindIndex(x => x.Id == actTicket.Id)] = actTicket;
+                    ApproveRequestMode = false;
+                    ShowTicketMode = false;
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("save_request"), "", true);
+        }
+    }
+
+    private bool CheckRequestValues()
+    {
+        if (actTicket.Title == null || actTicket.Title == "")
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("E5102"), true);
+            return false;
+        }
+        return true;
+    }
+    
+    private void CancelRequest()
+    {
+        ApproveRequestMode = false;
+        ShowTicketMode = false;
+    }
+
+    private void CancelSaveRequest()
+    {
+        PromoteRequestMode = false;
+    }
+
+    private void ShowReqTask(RequestTask task)
+    {
+        actReqTask = new RequestTask(task);
+        ShowReqTaskMode = true;
+    }
+
+    private void CancelTask()
+    {
+        ShowReqTaskMode = false;
+    }
+
+    private void ShowReqElement(RequestElement element)
+    {
+        actReqElement = new RequestElement(element);
+        ShowReqElementMode = true;
+    }
+
+    private void CancelReqElement()
+    {
+        ShowReqElementMode = false;
+    }
+}

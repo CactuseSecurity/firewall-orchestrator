@@ -924,7 +924,7 @@
                 state = task.StateId,
                 taskType = task.TaskType,
                 requestAction = task.RequestAction,
-                rule_action = task.RuleAction,
+                ruleAction = task.RuleAction,
                 tracking = task.Tracking,
                 reason = task.Reason
             };
@@ -936,6 +936,11 @@
             else
             {
                 returnId = returnIds[0].NewId;
+                foreach(var element in task.Elements)
+                {
+                    element.TaskId = returnId;
+                    await AddElementToDb(element);
+                }
             }
         }
         catch (Exception exception)
@@ -957,7 +962,7 @@
                 state = task.StateId,
                 taskType = task.TaskType,
                 requestAction = task.RequestAction,
-                rule_action = task.RuleAction,
+                ruleAction = task.RuleAction,
                 tracking = task.Tracking,
                 reason = task.Reason
             };

@@ -53,7 +53,7 @@ namespace FWO.Api.Data
         [JsonProperty("nw_obj_grp_id"), JsonPropertyName("nw_obj_grp_id")]
         public int? NetworkGroupId { get; set; }
 
-        [JsonProperty("user_grp_id "), JsonPropertyName("user_grp_id ")]
+        [JsonProperty("user_grp_id"), JsonPropertyName("user_grp_id")]
         public int? UserGroupId { get; set; }
 
         [JsonProperty("reason"), JsonPropertyName("reason")]

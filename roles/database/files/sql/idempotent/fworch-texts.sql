@@ -575,6 +575,10 @@ INSERT INTO txt VALUES ('request_elements',     'German', 	'Auftragselemente');
 INSERT INTO txt VALUES ('request_elements',     'English', 	'Request elements');
 INSERT INTO txt VALUES ('change_state',         'German', 	'Status &auml;ndern');
 INSERT INTO txt VALUES ('change_state',         'English', 	'Change state');
+INSERT INTO txt VALUES ('approval', 			'German',	'Genehmigung');
+INSERT INTO txt VALUES ('approval', 			'English',	'Approval');
+INSERT INTO txt VALUES ('approve', 			    'German',	'Genehmigen');
+INSERT INTO txt VALUES ('approve', 			    'English',	'Approve');
 
 
 -- recertification

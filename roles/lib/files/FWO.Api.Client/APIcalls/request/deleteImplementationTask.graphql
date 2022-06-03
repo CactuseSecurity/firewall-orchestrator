@@ -1,0 +1,7 @@
+mutation deleteImplementationTask ($id: Int!) {
+  delete_implementation_task_by_pk (
+    id: $id
+  ) {
+    DeletedId: id
+  }
+}

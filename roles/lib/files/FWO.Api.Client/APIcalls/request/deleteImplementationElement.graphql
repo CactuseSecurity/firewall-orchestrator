@@ -1,0 +1,7 @@
+mutation deleteImplementationElement ($id: Int!) {
+  delete_implementation_element_by_pk (
+    id: $id
+  ) {
+    DeletedId: id
+  }
+}

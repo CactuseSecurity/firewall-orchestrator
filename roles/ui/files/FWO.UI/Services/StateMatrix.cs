@@ -48,6 +48,21 @@
                     derivedStates.Add(149, 149);
                     derivedStates.Add(610, 610);
                     break;
+                case 4:
+                    matrix.Add(149, new List<int>(){210});
+                    matrix.Add(210, new List<int>(){210,220,249});
+                    matrix.Add(220, new List<int>(){220,210,249,610});
+                    matrix.Add(249, new List<int>(){249});
+                    matrix.Add(610, new List<int>(){610});
+                    LowestInputState = 149;
+                    LowestStartedState = 210;
+                    LowestEndState = 249;
+                    derivedStates.Add(149, 149);
+                    derivedStates.Add(210, 210);
+                    derivedStates.Add(220, 210);
+                    derivedStates.Add(249, 249);
+                    derivedStates.Add(610, 610);
+                    break;
                 default:
                     break;
             }

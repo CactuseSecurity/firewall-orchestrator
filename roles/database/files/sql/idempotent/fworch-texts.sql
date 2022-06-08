@@ -567,6 +567,8 @@ INSERT INTO txt VALUES ('closed', 				'German',	'Geschlossen');
 INSERT INTO txt VALUES ('closed', 			    'English',	'Closed');
 INSERT INTO txt VALUES ('plan',                 'German', 	'Planen');
 INSERT INTO txt VALUES ('plan',                 'English', 	'Plan');
+INSERT INTO txt VALUES ('planner',              'German', 	'Planer');
+INSERT INTO txt VALUES ('planner',              'English', 	'Planner');
 INSERT INTO txt VALUES ('create_implementation','German', 	'Implementierung hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('create_implementation','English', 	'Create implementation task');
 INSERT INTO txt VALUES ('implementation_tasks', 'German', 	'Implementierungsaufgaben');
@@ -579,6 +581,16 @@ INSERT INTO txt VALUES ('approval', 			'German',	'Genehmigung');
 INSERT INTO txt VALUES ('approval', 			'English',	'Approval');
 INSERT INTO txt VALUES ('approve', 			    'German',	'Genehmigen');
 INSERT INTO txt VALUES ('approve', 			    'English',	'Approve');
+INSERT INTO txt VALUES ('start_implementation', 'German', 	'Implementierung beginnen');
+INSERT INTO txt VALUES ('start_implementation', 'English', 	'Start implementation');
+INSERT INTO txt VALUES ('implement', 		    'German',	'Implementieren');
+INSERT INTO txt VALUES ('implement', 		    'English',	'Implement');
+INSERT INTO txt VALUES ('implementer', 		    'German',	'Implementierer');
+INSERT INTO txt VALUES ('implementer', 		    'English',	'Implementer');
+INSERT INTO txt VALUES ('promote_task', 		'German',	'Auftrag-Status &auml;ndern');
+INSERT INTO txt VALUES ('promote_task', 		'English',	'Promote task');
+INSERT INTO txt VALUES ('promote_ticket', 		'German',	'Antrag-Status &auml;ndern');
+INSERT INTO txt VALUES ('promote_ticket', 		'English',	'Promote ticket');
 
 
 -- recertification

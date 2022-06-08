@@ -38,7 +38,6 @@
             </Template>
         </Column>
         <Column TableItem="RequestTicket" Title="@(userConfig.GetText("created"))" Field="@(x => x.CreationDate)" Sortable="true" Filterable="true" />
-        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("closed"))" Field="@(x => x.CompletionDate)" Sortable="true" Filterable="true" />
     </Table>
 </div>
 
@@ -83,6 +82,7 @@
                                 @(states.Name[context.StateId])
                             </Template>
                         </Column>
+                        <Column TableItem="RequestTask" Title="@(userConfig.GetText("planner"))" Field="@(x => x.CurrentHandler.Name)" Sortable="true" Filterable="true" />
                         <Column TableItem="RequestTask" Title="@(userConfig.GetText("start"))" Field="@(x => x.Start)" Sortable="true" Filterable="true" />
                         <Column TableItem="RequestTask" Title="@(userConfig.GetText("stop"))" Field="@(x => x.Stop)" Sortable="true" Filterable="true" />
                     </Table>
@@ -94,7 +94,7 @@
         <div class="btn-group">
             @if (PlanRequestMode)
             {
-                <AuthorizeView Roles="admin, requester, fw-admin">
+                <AuthorizeView Roles="admin, planner, fw-admin">
                     <Authorized>
                         <button class="btn btn-sm btn-primary" @onclick="InitSaveRequest">@(userConfig.GetText("save"))</button>
                     </Authorized>
@@ -127,7 +127,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin, requester, fw-admin">
+            <AuthorizeView Roles="admin, planner, fw-admin">
                 <Authorized>
                     <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveRequest">@(userConfig.GetText("save"))</button>
                 </Authorized>
@@ -172,6 +172,10 @@
                 <div class="form-group row">
                     <label for="taskReason" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
                     <label class="col-sm-8">@actReqTask.Reason</label>
+                </div>
+                <div class="form-group row">
+                    <label for="taskPlanner" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("planner")):</label>
+                    <label class="col-sm-8">@actReqTask.CurrentHandler?.Name</label>
                 </div>
                 @(userConfig.GetText("request_elements"))
                 <div class="m-2">
@@ -463,7 +467,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin">
+            <AuthorizeView Roles="admin, planner, fw-admin">
                 <Authorized>
                     <button class="btn btn-sm btn-danger" @onclick="ConfDeleteImplTask">@(userConfig.GetText("delete"))</button>
                 </Authorized>
@@ -563,7 +567,7 @@
         <div class="btn-group">
             @if (EditImplElementMode)
             {
-                <AuthorizeView Roles="admin, requester, fw-admin">
+                <AuthorizeView Roles="admin, planner, fw-admin">
                     <Authorized>
                         <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveImplElement">@(userConfig.GetText("save"))</button>
                     </Authorized>
@@ -600,7 +604,7 @@
         <div class="btn-group">
             @if (EditImplElementMode)
             {
-                <AuthorizeView Roles="admin, requester, fw-admin">
+                <AuthorizeView Roles="admin, planner, fw-admin">
                     <Authorized>
                         <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveImplElement">@(userConfig.GetText("save"))</button>
                     </Authorized>
@@ -623,7 +627,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin">
+            <AuthorizeView Roles="admin, planner, fw-admin">
                 <Authorized>
                     <button class="btn btn-sm btn-danger" @onclick="ConfDeleteImplElement">@(userConfig.GetText("delete"))</button>
                 </Authorized>
@@ -855,6 +859,7 @@
                 if (actReqTask.Start == null && actReqTask.StateId >= stateMatrix.LowestStartedState)
                 {
                     actReqTask.Start = DateTime.Now;
+                    actReqTask.CurrentHandler = userConfig.User;
                 }
                 if (actReqTask.Stop == null && actReqTask.StateId >= stateMatrix.LowestEndState)
                 {
@@ -1098,6 +1103,7 @@
                 state = task.StateId,
                 start = task.Start,
                 stop = task.Stop,
+                handler = task.CurrentHandler?.DbId
             };
             int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequestTaskState, Variables)).UpdatedId;
             if(udId != task.Id)
@@ -1125,7 +1131,7 @@
                 implAction = task.ImplAction,
                 ruleAction = task.RuleAction,
                 tracking = task.Tracking,
-                handler = task.CurrentHandler
+                handler = task.CurrentHandler?.DbId
             };
             ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newImplementationTask, Variables)).ReturnIds;
             if (returnIds == null)
@@ -1163,7 +1169,7 @@
                 implAction = task.ImplAction,
                 ruleAction = task.RuleAction,
                 tracking = task.Tracking,
-                handler = task.CurrentHandler
+                handler = task.CurrentHandler?.DbId
             };
             int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateImplementationTask, Variables)).UpdatedId;
             if(udId != task.Id)

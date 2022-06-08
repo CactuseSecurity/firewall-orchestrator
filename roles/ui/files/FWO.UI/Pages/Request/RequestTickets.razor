@@ -333,7 +333,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin">
+            <AuthorizeView Roles="admin, requester, fw-admin">
                 <Authorized>
                     <button class="btn btn-sm btn-danger" @onclick="ConfDeleteTask">@(userConfig.GetText("delete"))</button>
                 </Authorized>
@@ -461,7 +461,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin">
+            <AuthorizeView Roles="admin, requester, fw-admin">
                 <Authorized>
                     <button class="btn btn-sm btn-danger" @onclick="ConfDeleteElement">@(userConfig.GetText("delete"))</button>
                 </Authorized>

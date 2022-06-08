@@ -45,7 +45,13 @@ namespace FWO.Api.Data
         public int? UserGroupId { get; set; }
 
         [JsonProperty("current_handler"), JsonPropertyName("current_handler")]
-        public int? CurrentHandler { get; set; }
+        public UiUser? CurrentHandler { get; set; }
+
+        [JsonProperty("target_begin_date"), JsonPropertyName("target_begin_date")]
+        public DateTime? TargetBeginDate { get; set; }
+
+        [JsonProperty("target_end_date"), JsonPropertyName("target_end_date")]
+        public DateTime? TargetEndDate { get; set; }
 
         [JsonProperty("elements"), JsonPropertyName("elements")]
         public List<ImplementationElement> ImplElements { get; set; } = new List<ImplementationElement>();
@@ -69,6 +75,8 @@ namespace FWO.Api.Data
             NetworkGroupId = task.NetworkGroupId;
             UserGroupId = task.UserGroupId;
             CurrentHandler = task.CurrentHandler;
+            TargetBeginDate = task.TargetBeginDate;
+            TargetEndDate = task.TargetEndDate;
             if (task.Elements != null && task.Elements.Count > 0)
             {
                 ImplElements = new List<ImplementationElement>();

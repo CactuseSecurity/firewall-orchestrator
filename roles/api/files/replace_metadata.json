@@ -92,6 +92,12 @@
                   }
                 },
                 {
+                  "name": "state",
+                  "using": {
+                    "foreign_key_constraint_on": "state_id"
+                  }
+                },
+                {
                   "name": "stm_action",
                   "using": {
                     "foreign_key_constraint_on": "rule_action"
@@ -107,6 +113,12 @@
                   "name": "task",
                   "using": {
                     "foreign_key_constraint_on": "request_task_id"
+                  }
+                },
+                {
+                  "name": "uiuser",
+                  "using": {
+                    "foreign_key_constraint_on": "current_handler"
                   }
                 }
               ],

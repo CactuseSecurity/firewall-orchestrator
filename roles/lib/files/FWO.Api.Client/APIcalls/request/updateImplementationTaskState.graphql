@@ -1,11 +1,13 @@
 mutation updateImplementationTaskState(
   $id: Int!
   $state: Int
+  $handler: Int
   ) {
   update_implementation_task_by_pk(
     pk_columns: { id: $id }
     _set: {
     state_id: $state
+    current_handler: $handler
   }) {
     UpdatedId: id
   }

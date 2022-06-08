@@ -63,7 +63,7 @@ namespace FWO.Api.Data
         public DateTime? LastRecertDate { get; set; }
 
         [JsonProperty("current_handler"), JsonPropertyName("current_handler")]
-        public int? CurrentHandler { get; set; }
+        public UiUser? CurrentHandler { get; set; }
 
         [JsonProperty("target_begin_date"), JsonPropertyName("target_begin_date")]
         public DateTime? TargetBeginDate { get; set; }

@@ -38,7 +38,6 @@
             </Template>
         </Column>
         <Column TableItem="RequestTicket" Title="@(userConfig.GetText("created"))" Field="@(x => x.CreationDate)" Sortable="true" Filterable="true" />
-        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("closed"))" Field="@(x => x.CompletionDate)" Sortable="true" Filterable="true" />
     </Table>
 </div>
 
@@ -76,8 +75,6 @@
                                 @(states.Name[context.StateId])
                             </Template>
                         </Column>
-                        <Column TableItem="RequestTask" Title="@(userConfig.GetText("start"))" Field="@(x => x.Start)" Sortable="true" Filterable="true" />
-                        <Column TableItem="RequestTask" Title="@(userConfig.GetText("stop"))" Field="@(x => x.Stop)" Sortable="true" Filterable="true" />
                     </Table>
                 </div>
             </form>
@@ -87,7 +84,7 @@
         <div class="btn-group">
             @if (ApproveRequestMode)
             {
-                <AuthorizeView Roles="admin, requester, fw-admin">
+                <AuthorizeView Roles="admin, approver, fw-admin">
                     <Authorized>
                         <button class="btn btn-sm btn-primary" @onclick="InitSaveRequest">@(userConfig.GetText("save"))</button>
                     </Authorized>
@@ -120,7 +117,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin, requester, fw-admin">
+            <AuthorizeView Roles="admin, approver, fw-admin">
                 <Authorized>
                     <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveRequest">@(userConfig.GetText("save"))</button>
                 </Authorized>

@@ -30,7 +30,9 @@ query getTickets ($from_state: Int!, $to_state: Int!){
       user_grp_id
       reason
       last_recert_date
-      current_handler
+      current_handler: uiuser{
+        uiuser_username
+      }
       target_begin_date
       target_end_date
       fw_admin_comments
@@ -59,7 +61,11 @@ query getTickets ($from_state: Int!, $to_state: Int!){
         svc_grp_id
         nw_obj_grp_id
         user_grp_id
-        current_handler
+        current_handler: uiuser{
+          uiuser_username
+        }
+        # target_begin_date
+        # target_end_date
         elements: elements{
           id
           implementation_action

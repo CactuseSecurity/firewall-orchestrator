@@ -64,8 +64,9 @@ query getTickets ($from_state: Int!, $to_state: Int!){
         current_handler: uiuser{
           uiuser_username
         }
-        # target_begin_date
-        # target_end_date
+        target_begin_date
+        target_end_date
+        fw_admin_comments
         elements: elements{
           id
           implementation_action

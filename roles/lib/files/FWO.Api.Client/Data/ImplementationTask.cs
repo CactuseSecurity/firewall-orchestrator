@@ -53,6 +53,9 @@ namespace FWO.Api.Data
         [JsonProperty("target_end_date"), JsonPropertyName("target_end_date")]
         public DateTime? TargetEndDate { get; set; }
 
+        [JsonProperty("fw_admin_comments"), JsonPropertyName("fw_admin_comments")]
+        public string? FwAdminComments { get; set; }
+
         [JsonProperty("elements"), JsonPropertyName("elements")]
         public List<ImplementationElement> ImplElements { get; set; } = new List<ImplementationElement>();
 
@@ -77,6 +80,7 @@ namespace FWO.Api.Data
             CurrentHandler = task.CurrentHandler;
             TargetBeginDate = task.TargetBeginDate;
             TargetEndDate = task.TargetEndDate;
+            FwAdminComments = task.FwAdminComments;
             if (task.Elements != null && task.Elements.Count > 0)
             {
                 ImplElements = new List<ImplementationElement>();
@@ -90,7 +94,7 @@ namespace FWO.Api.Data
         public bool Sanitize()
         {
             bool shortened = false;
-
+            FwAdminComments = Sanitizer.SanitizeOpt(FwAdminComments, ref shortened);
             return shortened;
         }
 

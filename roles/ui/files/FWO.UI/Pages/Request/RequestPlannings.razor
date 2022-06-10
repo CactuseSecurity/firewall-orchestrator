@@ -170,12 +170,33 @@
                     <label class="col-sm-8">@(((actReqTask.Tracking != null) ? trackings.Find(x => x.Id == actReqTask.Tracking)?.Name : ""))</label>
                 </div>
                 <div class="form-group row">
+                    <label for="taskValidFrom" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("valid_from")):</label>
+                    <label class="col-sm-8">@actReqTask.TargetBeginDate?.ToString("d")</label>
+                </div>
+                <div class="form-group row">
+                    <label for="taskValidTo" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("valid_to")):</label>
+                    <label class="col-sm-8">@actReqTask.TargetEndDate?.ToString("d")</label>
+                </div>
+                <div class="form-group row">
                     <label for="taskReason" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
                     <label class="col-sm-8">@actReqTask.Reason</label>
                 </div>
                 <div class="form-group row">
                     <label for="taskPlanner" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("planner")):</label>
                     <label class="col-sm-8">@actReqTask.CurrentHandler?.Name</label>
+                </div>
+                <div class="form-group row">
+                    <label for="taskComment" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
+                    @if (PlanTaskMode)
+                    {
+                        <div class="col-sm-8">
+                            <input id="taskComment" type="text" class="form-control form-control-sm" @bind="actReqTask.FwAdminComments" />
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@actReqTask.FwAdminComments</label>
+                    }
                 </div>
                 @(userConfig.GetText("request_elements"))
                 <div class="m-2">
@@ -397,6 +418,45 @@
                         <label class="col-sm-8">@(((actImplTask.Tracking != null) ? trackings.Find(x => x.Id == actImplTask.Tracking)?.Name : ""))</label>
                     }
                 </div>
+                <div class="form-group row">
+                    <label for="taskRuleValidFrom" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("valid_from")):</label>
+                    @if (EditImplTaskMode)
+                    {
+                        <div class="col-sm-8">
+                            <input id="taskRuleValidFrom" type="date" class="form-control form-control-sm" @bind="actImplTask.TargetBeginDate" />
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@actImplTask.TargetBeginDate?.ToString("d")</label>
+                    }
+                </div>
+                <div class="form-group row">
+                    <label for="taskRuleValidTo" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("valid_to")):</label>
+                    @if (EditImplTaskMode)
+                    {
+                        <div class="col-sm-8">
+                            <input id="taskRuleValidTo" type="date" class="form-control form-control-sm" @bind="actImplTask.TargetEndDate" />
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@actImplTask.TargetEndDate?.ToString("d")</label>
+                    }
+                </div>
+                <div class="form-group row">
+                    <label for="taskComment" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
+                    @if (EditImplTaskMode)
+                    {
+                        <div class="col-sm-8">
+                            <input id="taskComment" type="text" class="form-control form-control-sm" @bind="actImplTask.FwAdminComments" />
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@actImplTask.FwAdminComments</label>
+                    }
+                </div>
                 @(userConfig.GetText("elements"))
                 @if (EditImplTaskMode)
                 {
@@ -508,7 +568,12 @@
                     @if (EditImplElementMode) 
                     {
                         <div class="col-sm-8">
-                            <input id="elementField" type="text" class="form-control form-control-sm" @bind="actImplElement.Field" />
+                            <select id="elementField" class="form-control form-control-sm" @bind="actImplElement.Field">
+                                @foreach (string type in Enum.GetNames(typeof(RuleField)))
+                                {
+                                    <option value="@type">@(userConfig.GetText(type))</option>
+                                }
+                            </select>
                         </div>
                     }
                     else
@@ -670,7 +735,7 @@
     private ImplementationTask actImplTask = new ImplementationTask();
     private ImplementationElement actImplElement = new ImplementationElement();
 
-    private RequestStates states = new RequestStates();
+    private RequestStateDict states = new RequestStateDict();
     private List<int> actPossibleStates = new List<int>();
     private StateMatrix stateMatrix = new StateMatrix();
     private List<Device> devices = new List<Device>();
@@ -685,7 +750,7 @@
         try
         {
             stateMatrix.Init(2);
-            states.Init();
+            await states.Init(apiConnection);
 
             devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
             // nwObjects = await apiConnection.SendQueryAsync<List<NetworkObject>>(FWO.Api.Client.Queries.ObjectQueries.getNetworkObjects);
@@ -696,7 +761,7 @@
             var Variables = new
             {
                 from_state = stateMatrix.LowestInputState,
-                to_state = 999,
+                to_state = stateMatrix.LowestEndState,
             };
             requests = await apiConnection.SendQueryAsync<List<RequestTicket>>(FWO.Api.Client.Queries.RequestQueries.getTickets, Variables);
             @* requests.Add(new RequestTicket()
@@ -1103,7 +1168,8 @@
                 state = task.StateId,
                 start = task.Start,
                 stop = task.Stop,
-                handler = task.CurrentHandler?.DbId
+                handler = task.CurrentHandler?.DbId,
+                comment = task.FwAdminComments
             };
             int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequestTaskState, Variables)).UpdatedId;
             if(udId != task.Id)
@@ -1131,7 +1197,10 @@
                 implAction = task.ImplAction,
                 ruleAction = task.RuleAction,
                 tracking = task.Tracking,
-                handler = task.CurrentHandler?.DbId
+                handler = task.CurrentHandler?.DbId,
+                validFrom = task.TargetBeginDate,
+                validTo = task.TargetEndDate,
+                comment = task.FwAdminComments
             };
             ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newImplementationTask, Variables)).ReturnIds;
             if (returnIds == null)
@@ -1169,7 +1238,10 @@
                 implAction = task.ImplAction,
                 ruleAction = task.RuleAction,
                 tracking = task.Tracking,
-                handler = task.CurrentHandler?.DbId
+                handler = task.CurrentHandler?.DbId,
+                validFrom = task.TargetBeginDate,
+                validTo = task.TargetEndDate,
+                comment = task.FwAdminComments
             };
             int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateImplementationTask, Variables)).UpdatedId;
             if(udId != task.Id)

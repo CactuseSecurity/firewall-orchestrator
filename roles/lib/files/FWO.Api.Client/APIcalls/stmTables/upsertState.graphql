@@ -1,0 +1,16 @@
+﻿mutation upsertState($id: Int!, $name: String!) {
+  insert_request_state(
+    objects: {
+      id: $id
+      name: $name
+    },
+    on_conflict: {
+      constraint: state_id_key,
+      update_columns: [name]
+    }
+  ) {
+    returning {
+      id: id
+    }
+  }
+}

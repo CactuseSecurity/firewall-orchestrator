@@ -7,6 +7,9 @@ mutation newImplementationTask(
   $ruleAction: Int
   $tracking: Int
   $handler: Int
+  $validFrom: timestamp
+  $validTo: timestamp
+  $comment: String
   ) {
   insert_implementation_task(objects: {
     request_task_id: $reqTaskId
@@ -17,6 +20,9 @@ mutation newImplementationTask(
     rule_action: $ruleAction
     rule_tracking: $tracking
     current_handler: $handler
+    target_begin_date: $validFrom
+	  target_end_date: $validTo
+	  fw_admin_comments: $comment
   }) {
     returning {
       newId: id

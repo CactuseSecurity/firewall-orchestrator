@@ -8,6 +8,9 @@ mutation updateImplementationTask(
   $ruleAction: Int
   $tracking: Int
   $handler: Int
+  $validFrom: timestamp
+  $validTo: timestamp
+  $comment: String
   ) {
   update_implementation_task_by_pk(
     pk_columns: { id: $id }
@@ -20,6 +23,9 @@ mutation updateImplementationTask(
     rule_action: $ruleAction
     rule_tracking: $tracking
     current_handler: $handler
+    target_begin_date: $validFrom
+	  target_end_date: $validTo
+	  fw_admin_comments: $comment
   }) {
     UpdatedId: id
   }

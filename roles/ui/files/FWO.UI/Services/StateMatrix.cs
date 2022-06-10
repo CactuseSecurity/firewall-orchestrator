@@ -1,12 +1,21 @@
 ﻿namespace FWO.Ui.Services
 {
+    public enum WorkflowPhases
+    {
+        request = 0,
+        approval = 1,
+        planning = 2,
+        implementation = 4
+    }
+
     public class StateMatrix
     {
-        private Dictionary<int, List<int>> matrix = new Dictionary<int, List<int>>();
-        private Dictionary<int, int> derivedStates = new Dictionary<int, int>();
+        public Dictionary<int, List<int>> matrix = new Dictionary<int, List<int>>();
+        public Dictionary<int, int> derivedStates = new Dictionary<int, int>();
         public int LowestInputState { get; set; }
         public int LowestStartedState { get; set; }
         public int LowestEndState { get; set; }
+        public bool Active { get; set; }
 
         public void Init(int phase)
         {

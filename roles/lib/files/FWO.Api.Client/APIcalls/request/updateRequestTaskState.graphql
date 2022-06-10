@@ -4,6 +4,7 @@ mutation updateRequestTaskState(
   $start: timestamp
   $stop: timestamp
   $handler: Int
+  $comment: String
   ) {
   update_request_task_by_pk(
     pk_columns: { id: $id }
@@ -12,6 +13,7 @@ mutation updateRequestTaskState(
     start: $start
     stop: $stop
     current_handler: $handler
+    fw_admin_comments: $comment
   }) {
     UpdatedId: id
   }

@@ -160,6 +160,14 @@
                     <label class="col-sm-8">@(((actReqTask.Tracking != null) ? trackings.Find(x => x.Id == actReqTask.Tracking)?.Name : ""))</label>
                 </div>
                 <div class="form-group row">
+                    <label for="taskValidFrom" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("valid_from")):</label>
+                    <label class="col-sm-8">@actReqTask.TargetBeginDate?.ToString("d")</label>
+                </div>
+                <div class="form-group row">
+                    <label for="taskValidTo" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("valid_to")):</label>
+                    <label class="col-sm-8">@actReqTask.TargetEndDate?.ToString("d")</label>
+                </div>
+                <div class="form-group row">
                     <label for="taskReason" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
                     <label class="col-sm-8">@actReqTask.Reason</label>
                 </div>
@@ -252,7 +260,7 @@
     private RequestTask actReqTask = new RequestTask();
     private RequestElement actReqElement = new RequestElement();
 
-    private RequestStates states = new RequestStates();
+    private RequestStateDict states = new RequestStateDict();
     private List<int> actPossibleStates = new List<int>();
     private StateMatrix stateMatrix = new StateMatrix();
     private List<IpProtocol> ipProtos = new List<IpProtocol>();
@@ -265,7 +273,7 @@
         try
         {
             stateMatrix.Init(1);
-            states.Init();
+            await states.Init(apiConnection);
 
             ipProtos = await apiConnection.SendQueryAsync<List<IpProtocol>>(FWO.Api.Client.Queries.StmQueries.getIpProtocols);
             ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(FWO.Api.Client.Queries.StmQueries.getRuleActions);

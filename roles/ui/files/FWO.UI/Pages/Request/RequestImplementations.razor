@@ -181,6 +181,27 @@
                     <label for="taskRuleTracking" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("track")):</label>
                     <label class="col-sm-8">@(((actImplTask.Tracking != null) ? trackings.Find(x => x.Id == actImplTask.Tracking)?.Name : ""))</label>
                 </div>
+                <div class="form-group row">
+                    <label for="taskValidFrom" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("valid_from")):</label>
+                    <label class="col-sm-8">@actImplTask.TargetBeginDate?.ToString("d")</label>
+                </div>
+                <div class="form-group row">
+                    <label for="taskValidTo" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("valid_to")):</label>
+                    <label class="col-sm-8">@actImplTask.TargetEndDate?.ToString("d")</label>
+                </div>
+                <div class="form-group row">
+                    <label for="taskComment" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
+                    @if (ImplementTaskMode)
+                    {
+                        <div class="col-sm-8">
+                            <input id="taskComment" type="text" class="form-control form-control-sm" @bind="actImplTask.FwAdminComments" />
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@actImplTask.FwAdminComments</label>
+                    }
+                </div>
                 @(userConfig.GetText("elements"))
                 <div class="m-2">
                     <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="ImplementationElement" Items="actImplTask.ImplElements" PageSize="0" ColumnReorder="true">
@@ -316,7 +337,7 @@
     private ImplementationElement actImplElement = new ImplementationElement();
     private List<ImplementationTask> allImplTasks = new List<ImplementationTask>();
 
-    private RequestStates states = new RequestStates();
+    private RequestStateDict states = new RequestStateDict();
     private List<int> actPossibleStates = new List<int>();
     private StateMatrix stateMatrix = new StateMatrix();
     private List<Device> devices = new List<Device>();
@@ -330,7 +351,7 @@
         try
         {
             stateMatrix.Init(4);
-            states.Init();
+            await states.Init(apiConnection);
 
             devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
             ipProtos = await apiConnection.SendQueryAsync<List<IpProtocol>>(FWO.Api.Client.Queries.StmQueries.getIpProtocols);
@@ -340,7 +361,7 @@
             var Variables = new
             {
                 from_state = stateMatrix.LowestInputState,
-                to_state = 999,
+                to_state = stateMatrix.LowestEndState,
             };
             requests = await apiConnection.SendQueryAsync<List<RequestTicket>>(FWO.Api.Client.Queries.RequestQueries.getTickets, Variables);
         }

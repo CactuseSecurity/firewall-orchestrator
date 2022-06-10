@@ -396,28 +396,28 @@ where dev_typ_id=2;
 insert into request.state (id,name) VALUES (0,'Draft');
 insert into request.state (id,name) VALUES (49,'Requested');
 
-insert into request.state (id,name) VALUES (50,'ToApproveRequest');
-insert into request.state (id,name) VALUES (60,'RequestInApproval');
-insert into request.state (id,name) VALUES (99,'RequestApproved');
+insert into request.state (id,name) VALUES (50,'To Approve Request');
+insert into request.state (id,name) VALUES (60,'Request In Approval');
+insert into request.state (id,name) VALUES (99,'Request Approved');
 
-insert into request.state (id,name) VALUES (100,'ToPlan');
-insert into request.state (id,name) VALUES (110,'InPlanning');
-insert into request.state (id,name) VALUES (120,'WaitForApproval');
-insert into request.state (id,name) VALUES (130,'ComplianceViolation');
+insert into request.state (id,name) VALUES (100,'To Plan');
+insert into request.state (id,name) VALUES (110,'In Planning');
+insert into request.state (id,name) VALUES (120,'Wait For Approval');
+insert into request.state (id,name) VALUES (130,'Compliance Violation');
 insert into request.state (id,name) VALUES (149,'Planned');
 
-insert into request.state (id,name) VALUES (150,'ToApprovePlan');
-insert into request.state (id,name) VALUES (160,'PlanInApproval');
-insert into request.state (id,name) VALUES (199,'PlanApproved');
+insert into request.state (id,name) VALUES (150,'To Approve Plan');
+insert into request.state (id,name) VALUES (160,'Plan In Approval');
+insert into request.state (id,name) VALUES (199,'Plan Approved');
 
-insert into request.state (id,name) VALUES (200,'ToImplement');
-insert into request.state (id,name) VALUES (210,'InImplementation');
-insert into request.state (id,name) VALUES (220,'ImplementationTrouble');
+insert into request.state (id,name) VALUES (200,'To Implement');
+insert into request.state (id,name) VALUES (210,'In Implementation');
+insert into request.state (id,name) VALUES (220,'Implementation Trouble');
 insert into request.state (id,name) VALUES (249,'Implemented');
 
-insert into request.state (id,name) VALUES (250,'ToVerify');
-insert into request.state (id,name) VALUES (260,'InVerification');
-insert into request.state (id,name) VALUES (270,'FurtherWorkRequested');
+insert into request.state (id,name) VALUES (250,'To Verify');
+insert into request.state (id,name) VALUES (260,'In Verification');
+insert into request.state (id,name) VALUES (270,'Further Work Requested');
 insert into request.state (id,name) VALUES (299,'Verified');
 
 insert into request.state (id,name) VALUES (500,'InProgress');

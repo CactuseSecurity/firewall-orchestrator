@@ -113,6 +113,12 @@ INSERT INTO txt VALUES ('recertification', 		'German',	'Rezertifizierung');
 INSERT INTO txt VALUES ('recertification', 		'English',	'Recertification');
 INSERT INTO txt VALUES ('api', 		            'German',	'API');
 INSERT INTO txt VALUES ('api', 		            'English',	'API');
+INSERT INTO txt VALUES ('workflow', 			'German',	'Workflow');
+INSERT INTO txt VALUES ('workflow', 			'English',	'Workflow');
+INSERT INTO txt VALUES ('planning', 			'German',	'Planung');
+INSERT INTO txt VALUES ('planning', 			'English',	'Planning');
+INSERT INTO txt VALUES ('implementation', 		'German',	'Implementierung');
+INSERT INTO txt VALUES ('implementation', 		'English',	'Implementation');
 
 -- start
 INSERT INTO txt VALUES ('welcome_to',           'German', 	'Willkommen zu Firewall Orchestrator');
@@ -591,6 +597,10 @@ INSERT INTO txt VALUES ('promote_task', 		'German',	'Auftrag-Status &auml;ndern'
 INSERT INTO txt VALUES ('promote_task', 		'English',	'Promote task');
 INSERT INTO txt VALUES ('promote_ticket', 		'German',	'Antrag-Status &auml;ndern');
 INSERT INTO txt VALUES ('promote_ticket', 		'English',	'Promote ticket');
+INSERT INTO txt VALUES ('valid_from', 		    'German',	'G&uuml;ltig ab');
+INSERT INTO txt VALUES ('valid_from', 		    'English',	'Valid from');
+INSERT INTO txt VALUES ('valid_to', 		    'German',	'G&uuml;ltig bis');
+INSERT INTO txt VALUES ('valid_to', 		    'English',	'Valid to');
 
 
 -- recertification
@@ -1000,6 +1010,29 @@ INSERT INTO txt VALUES ('change_language',      'German', 	'&Auml;ndern der Pass
 INSERT INTO txt VALUES ('change_language',      'English', 	'Change Language');
 INSERT INTO txt VALUES ('recert_settings',      'German', 	'Rezertifizierungseinstellungen');
 INSERT INTO txt VALUES ('recert_settings',      'English', 	'Recertification Settings');
+INSERT INTO txt VALUES ('save_settings',        'German',   'Einstellungen speichern');
+INSERT INTO txt VALUES ('save_settings',        'English',  'Save settings');
+INSERT INTO txt VALUES ('available_states',     'German',   'Verf&uuml;gbare Stati');
+INSERT INTO txt VALUES ('available_states',     'English',  'Available states');
+INSERT INTO txt VALUES ('add_state',            'German',   'Status hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_state',            'English',  'Add state');
+INSERT INTO txt VALUES ('from_state',           'German',   'Von Status');
+INSERT INTO txt VALUES ('from_state',           'English',  'From state');
+INSERT INTO txt VALUES ('to_states',            'German',   'Nach Stati');
+INSERT INTO txt VALUES ('to_states',            'English',  'To states');
+INSERT INTO txt VALUES ('allowed_transitions',  'German',   'erlaubte &Uuml;berg&auml;nge');
+INSERT INTO txt VALUES ('allowed_transitions',  'English',  'Allowed transitions');
+INSERT INTO txt VALUES ('special_states',       'German',   'Spezielle Stati');
+INSERT INTO txt VALUES ('special_states',       'English',  'Special states');
+INSERT INTO txt VALUES ('lowest_input_state',   'German',   'Niedrigster Eingangsstatus');
+INSERT INTO txt VALUES ('lowest_input_state',   'English',  'Lowest input state');
+INSERT INTO txt VALUES ('lowest_started_state', 'German',   'Niedrigster Bearbeitungsstatus');
+INSERT INTO txt VALUES ('lowest_started_state', 'English',  'Lowest started state');
+INSERT INTO txt VALUES ('lowest_end_state',     'German',   'Niedrigster Ausgangsstatus');
+INSERT INTO txt VALUES ('lowest_end_state',     'English',  'Lowest end state');
+INSERT INTO txt VALUES ('derived_state',        'German',   'Abgeleiteter Status');
+INSERT INTO txt VALUES ('derived_state',        'English',  'Derived state');
+
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
@@ -1222,6 +1255,8 @@ INSERT INTO txt VALUES ('U5013', 'German',  'Verwaltung der Voreinstellungen (nu
 INSERT INTO txt VALUES ('U5013', 'English', 'Administration of default settings (only by admin)');
 INSERT INTO txt VALUES ('U5014', 'German',  'Pers&ouml;nliche Nutzereinstellungen');
 INSERT INTO txt VALUES ('U5014', 'English', 'Personal settings for the individual user');
+INSERT INTO txt VALUES ('U5015', 'German',  'Verwaltung der Workflow-Voreinstellungen (nur f&uuml;r Admin)');
+INSERT INTO txt VALUES ('U5015', 'English', 'Administration of workflow settings (only by admin)');
 
 INSERT INTO txt VALUES ('U5101', 'German',  'Sind sie sicher, dass sie folgendes Management l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5101', 'English', 'Are you sure you want to delete management: ');
@@ -1289,6 +1324,8 @@ INSERT INTO txt VALUES ('U5311', 'German',  'Verwaltung der Standard-Voreinstell
 INSERT INTO txt VALUES ('U5311', 'English', 'Set default values for all users and some technical parameters');
 INSERT INTO txt VALUES ('U5312', 'German',  'Verwaltung der Passwortregeln');
 INSERT INTO txt VALUES ('U5312', 'English', 'Set the policy for all user passwords');
+INSERT INTO txt VALUES ('U5313', 'German',  'Definition des Auftrags-Workflows inklusive Statusdefinitionen. Vorsicht bei &Auml;nderungen an einem bereits verwendeten Workflow!');
+INSERT INTO txt VALUES ('U5313', 'English', 'Define the request workflow including state definitions. Be careful when changing workflow already in use!');
 
 INSERT INTO txt VALUES ('U5401', 'German',  'Passwort ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5401', 'English', 'Password changed.');

@@ -170,7 +170,7 @@ create table if not exists implementation.task
     svc_grp_id int,
     nw_obj_grp_id int,
     user_grp_id int,
-	current_handler int
+	current_handler int,
 	target_begin_date Timestamp,
 	target_end_date Timestamp,
     fw_admin_comments varchar

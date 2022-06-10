@@ -71,6 +71,15 @@
                     </NavLink>
                 </li>
                 <hr />
+                <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5015"))">
+                    <h5>@(userConfig.GetText("workflow"))</h5>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/requests">
+                        <span class="oi oi-comment-square"></span> @(userConfig.GetText("requests"))
+                    </NavLink>
+                </li>
+                <hr />
             </AuthorizeView>
             <AuthorizeView Roles="admin, reporter, reporter-viewall, recertifier, workflow-user, workflow-admin, auditor, fw-admin">
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5014"))">

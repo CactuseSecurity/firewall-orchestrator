@@ -1,0 +1,282 @@
+﻿@using FWO.Api.Client
+@using FWO.Config.Api
+@using FWO.Ui.Services
+
+@page "/settings/requests"
+@attribute [Authorize(Roles = "admin, auditor")]
+
+@inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+
+<h3>@(userConfig.GetText("requests"))</h3>
+@(userConfig.GetText("U5313"))
+<hr />
+<button class="btn btn-sm btn-primary" @onclick="ShowStates">@(userConfig.GetText("available_states"))</button>
+
+@foreach (WorkflowPhases phase in Enum.GetValues(typeof(WorkflowPhases)))
+{
+    <hr />
+    <div class="form-group row">
+        <input id="phase" type="checkbox" @bind="globalStateMatrix[phase].Active" />
+        <label for="phase" class="col-form-label col-sm-2">@(userConfig.GetText(phase.ToString()))</label>
+    </div>
+    @if(globalStateMatrix[phase].Active)
+    {
+        @(userConfig.GetText("allowed_transitions"))
+        <button class="btn btn-sm btn-success" @onclick="() => AddStateToPhase(phase)">@(userConfig.GetText("add_state"))</button>
+
+        <div class="m-2">
+            <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="KeyValuePair<int,List<int>>" Items="globalStateMatrix[phase].matrix" PageSize="0" ColumnReorder="true">
+                <Column TableItem="KeyValuePair<int,List<int>>" Title="@(userConfig.GetText("action"))" Field="(x => x.Key)" Sortable="false" Filterable="false">
+                    <Template>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-warning" @onclick="() => EditTargetStates(phase, context.Key)">@(userConfig.GetText("edit"))</button>
+                            <button class="btn btn-sm btn-danger" @onclick="() => RemoveStateFromPhase(phase, context.Key)">@(userConfig.GetText("remove"))</button>
+                        </div>
+                    </Template>
+                </Column>
+                <Column TableItem="KeyValuePair<int,List<int>>" Title="@(userConfig.GetText("from_state"))" Field="@(x => x.Key)" Sortable="true" Filterable="true" >
+                    <Template>
+                        @statesDict.Name[context.Key]
+                    </Template>
+                </Column>
+                <Column TableItem="KeyValuePair<int,List<int>>" Title="@(userConfig.GetText("to_states"))" Field="@(x => x.Key)" Sortable="false" Filterable="false">
+                    <Template>
+                        @TargetStateList(globalStateMatrix[phase].matrix[context.Key])
+                    </Template>
+                </Column>
+                <Column TableItem="KeyValuePair<int,List<int>>" Title="@(userConfig.GetText("derived_state"))" Field="@(x => x.Key)" Sortable="false" Filterable="false">
+                    <Template>
+                        @(globalStateMatrix[phase].derivedStates.ContainsKey(context.Key) ? statesDict.Name[globalStateMatrix[phase].derivedStates[context.Key]] : "")
+                    </Template>
+                </Column>
+            </Table>
+        </div>
+        @(userConfig.GetText("special_states"))
+        <div class="form-group row">
+            <label for="lowestInputState" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_input_state")):</label>
+            <label class="col-sm-2">@statesDict.Name[globalStateMatrix[phase].LowestInputState]</label>
+        </div>
+        <div class="form-group row">
+            <label for="lowestStartedState" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_started_state")):</label>
+            <label class="col-sm-2">@statesDict.Name[globalStateMatrix[phase].LowestStartedState]</label>
+        </div>
+        <div class="form-group row">
+            <label for="lowestEndState" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_end_state")):</label>
+            <label class="col-sm-2">@statesDict.Name[globalStateMatrix[phase].LowestEndState]</label>
+        </div>
+    }
+}
+<hr />
+<AuthorizeView Roles="admin">
+    <Authorized>
+        <button class="btn btn-sm btn-primary" @onclick="SaveMatrix" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+    </Authorized>
+    <NotAuthorized>
+        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+    </NotAuthorized> 
+</AuthorizeView>
+<br><br>
+
+<PopUp Title="@(userConfig.GetText("available_states"))" Show="@ShowStatesMode" OnClose="() => ShowStatesMode = false">
+    <Body>
+        @if (ShowStatesMode)
+        {
+            <button class="btn btn-sm btn-success" @onclick="AddState">@(userConfig.GetText("add_state"))</button>
+            <br><br>
+            @foreach(var state in tmpStates)
+            {
+                <div class="form-group row">
+                    <label for="stateName" class="col-sm-3 col-form-label col-form-label-sm">@(state.Id)</label>
+                    <div class="col-sm-8">
+                        <input id="stateName" type="text" class="form-control form-control-sm" @bind="state.Name" />
+                    </div>
+                </div>
+            }
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="admin, requester, fw-admin">
+                <Authorized>
+                    <button class="btn btn-sm btn-primary" @onclick="SaveStates">@(userConfig.GetText("save"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText("add_state"))" Show="@AddStateMode" OnClose="() => AddStateMode = false">
+    <Body>
+        @if (AddStateMode)
+        {
+            <div class="form-group row">
+                <div class="col-sm-3">
+                    <input id="stateId" type="number" class="form-control form-control-sm" @bind="actState.Id" />
+                </div>
+                <div class="col-sm-8">
+                    <input id="stateName" type="text" class="form-control form-control-sm" @bind="actState.Name" />
+                </div>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="admin, requester, fw-admin">
+                <Authorized>
+                    <button class="btn btn-sm btn-primary" @onclick="DoAddState">@(userConfig.GetText("add"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("add"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button class="btn btn-sm btn-secondary" @onclick="CancelAddState">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+
+    private List<RequestState> states = new List<RequestState>();
+    private List<RequestState> tmpStates = new List<RequestState>();
+    private RequestStateDict statesDict = new RequestStateDict();
+
+
+    private Dictionary<WorkflowPhases, StateMatrix> globalStateMatrix = new Dictionary<WorkflowPhases, StateMatrix>();
+
+
+    private StateMatrix actStateMatrix = new StateMatrix();
+    private RequestState actState = new RequestState();
+
+    private bool ShowStatesMode = false;
+    private bool AddStateMode = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await InitMatrix();
+        await RefreshStates();
+    }
+
+    private async Task RefreshStates()
+    {
+        try
+        {
+            states = new List<RequestState>();
+            states = await apiConnection.SendQueryAsync<List<RequestState>>(FWO.Api.Client.Queries.StmQueries.getStates);
+            statesDict = new RequestStateDict();
+            await statesDict.Init(apiConnection);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private async Task InitMatrix()
+    {
+        try
+        {
+            foreach (WorkflowPhases phase in Enum.GetValues(typeof(WorkflowPhases)))
+            {
+                StateMatrix stateMatrix = new StateMatrix();
+                stateMatrix.Init((int)phase);
+                globalStateMatrix.Add(phase,stateMatrix);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    public string TargetStateList(List<int> statesIn)
+    {
+        List<string> statesOut = new List<string>();
+        foreach(int state in statesIn)
+        {
+            statesOut.Add(statesDict.Name[state]);
+        }
+        return string.Join(", ", statesOut);
+    }
+
+    private void AddStateToPhase(WorkflowPhases phase)
+    {}
+
+    private void EditTargetStates(WorkflowPhases phase, int key)
+    {}
+
+    private void RemoveStateFromPhase(WorkflowPhases phase, int key)
+    {}
+
+    private async Task SaveMatrix()
+    {
+        try
+        {
+
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("save_settings"), "", true);
+        }
+    }
+
+    private void Cancel()
+    {
+        ShowStatesMode = false;
+    }
+
+    private void ShowStates()
+    {
+        tmpStates = new List<RequestState>();
+        foreach(var state in states)
+        {
+            tmpStates.Add(new RequestState(state));
+        }
+        ShowStatesMode = true;
+    }
+
+    private void AddState()
+    {
+        actState = new RequestState();
+        AddStateMode = true;
+    }
+
+    private void DoAddState()
+    {
+        tmpStates.Add(actState);
+        AddStateMode = false;
+    }
+
+    private void CancelAddState()
+    {
+        AddStateMode = false;
+    }
+
+    private async Task SaveStates()
+    {
+        try
+        {
+            foreach(var tmpState in tmpStates)
+            {
+                if(!((states.FirstOrDefault(x => x.Id == tmpState.Id))?.Name == tmpState.Name))
+                {
+                    await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.StmQueries.upsertState, new { id = tmpState.Id, name = tmpState.Name });
+                }
+            }
+            await RefreshStates();
+            ShowStatesMode = false;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("save_settings"), "", true);
+        }
+    }
+}

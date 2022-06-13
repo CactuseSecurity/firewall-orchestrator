@@ -5,9 +5,10 @@ from functools import cmp_to_key
 import traceback
 import json
 import fmgr_getter
+import fwo_globals
 
 
-def normalize_network_data(native_config, normalized_config, mgm_details, debug_level=0):
+def normalize_network_data(native_config, normalized_config, mgm_details):
 
     # currently only a single IP (v4+v6) per interface ;-)
 
@@ -39,7 +40,7 @@ def normalize_network_data(native_config, normalized_config, mgm_details, debug_
     #     "maskv6": 48
     # }
 
-    logger = getFwoLogger(debug_level=debug_level)
+    logger = getFwoLogger()
 
     normalized_config.update({'networking': {}})
 
@@ -72,7 +73,7 @@ def normalize_network_data(native_config, normalized_config, mgm_details, debug_
 
         if 'routing-table-ipv6/' + full_vdom_name not in native_config:
             logger.warning('could not find routing data routing-table-ipv6/' + full_vdom_name)
-            if debug_level>5:
+            if fwo_globals.debug_level>5:
                 logger.warning('native configs contains the following keys ' + str(native_config.keys()))
             normalized_config['networking'][full_vdom_name]['routingv6'] = []
         else:
@@ -111,9 +112,9 @@ def normalize_network_data(native_config, normalized_config, mgm_details, debug_
             })
 
 
-def get_matching_route(destination_ip, routing_table, debug_level=0):
+def get_matching_route(destination_ip, routing_table):
 
-    logger = getFwoLogger(debug_level=debug_level)
+    logger = getFwoLogger()
 
     def route_matches(ip, destination):
         ip_n = IPNetwork(ip).cidr
@@ -216,9 +217,9 @@ def get_all_dev_names(devices):
 
 
 # get network information (currently only used for source nat)
-def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, limit, debug_level=0):
+def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, limit):
 
-    logger = getFwoLogger(debug_level=debug_level)
+    logger = getFwoLogger()
     # strip off vdom names, just deal with the plain device
     device_array = get_all_dev_names(devices)
 
@@ -296,7 +297,7 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
         try:    # get interfaces from top level device (not vdom)
             fmgr_getter.update_config_with_fortinet_api_call(
                 raw_config, sid, fm_api_url, "/pm/config/device/" + plain_dev_name + "/global/system/interface",
-                "interfaces_per_device/" + full_vdom_name, payload=all_interfaces_payload, debug=debug_level, limit=limit, method="get")
+                "interfaces_per_device/" + full_vdom_name, payload=all_interfaces_payload, limit=limit, method="get")
         except:
             logger.warning("error while getting interfaces of device " + plain_vdom_name + ", vdom=" + plain_vdom_name + ", ignoring, traceback: " + str(traceback.format_exc()))
 
@@ -312,7 +313,7 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
                 fmgr_getter.update_config_with_fortinet_api_call(
                     routing_helper, sid, fm_api_url, "/sys/proxy/json",
                     "routing-table-" + ip_version + '/' + full_vdom_name,
-                    payload=payload, debug=debug_level, limit=limit, method="exec")
+                    payload=payload, limit=limit, method="exec")
                 
                 if "routing-table-" + ip_version + '/' + full_vdom_name in routing_helper:
                     routing_helper = routing_helper["routing-table-" + ip_version + '/' + full_vdom_name]
@@ -329,8 +330,8 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
             raw_config.update({"routing-table-" + ip_version + '/' + full_vdom_name: routing_table})
 
 
-def get_device_from_package(package_name, mgm_details, debug_level=0):
-    logger = getFwoLogger(debug_level=debug_level)
+def get_device_from_package(package_name, mgm_details):
+    logger = getFwoLogger()
     for dev in mgm_details['devices']:
         if dev['local_rulebase_name'] == package_name:
             return dev['name']

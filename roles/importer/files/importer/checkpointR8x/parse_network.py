@@ -18,7 +18,7 @@ def parse_network_objects_to_json(full_config, config2import, import_id, mgm_id=
 
 # collect_nw_objects from object tables and write them into global nw_objects dict
 def collect_nw_objects(object_table, nw_objects, debug_level=0, mgm_id=0):
-    logger = getFwoLogger(debug_level=debug_level)
+    logger = getFwoLogger()
     nw_obj_type_to_host_list = [
         'simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiVsxClusterNetobj', 'CpmiVsxClusterMember', 'CpmiAnyObject', 
         'CpmiClusterMember', 'CpmiGatewayPlain', 'CpmiHostCkp', 'CpmiGatewayCluster', 'checkpoint-host' 

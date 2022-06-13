@@ -14,7 +14,6 @@ insert into config (config_key, config_value, config_user) VALUES ('dataRetentio
 insert into config (config_key, config_value, config_user) VALUES ('importSleepTime', '40', 0);
 insert into config (config_key, config_value, config_user) VALUES ('importCheckCertificates', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('importSuppressCertificateWarnings', 'True', 0);
-insert into config (config_key, config_value, config_user) VALUES ('importFwProxy', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('fwApiElementsPerFetch', '150', 0);
 insert into config (config_key, config_value, config_user) VALUES ('recertificationPeriod', '365', 0);
 insert into config (config_key, config_value, config_user) VALUES ('recertificationNoticePeriod', '30', 0);

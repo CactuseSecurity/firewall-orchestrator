@@ -1,26 +1,19 @@
-﻿query getNetworkObjectsInReport(
+﻿query getNetworkObjectsInReport (
   $mgmIds: [Int!]
   $importId: bigint
-  $ruleIds: [bigint!]!
+  $ruleIds: _int8
   $limit: Int
   $offset: Int
 ) {
   management(where: { mgm_id: { _in: $mgmIds }, stm_dev_typ:{dev_typ_is_multi_mgmt:{_eq:false}} }) {
     name: mgm_name
     id: mgm_id
-    reportNetworkObjects: rule_nwobj_resolveds(
+    reportNetworkObjects: filter_rule_nwobj_resolveds (
+      args: {rule_ids: $ruleIds, import_id: $importId}
       limit: $limit
       offset: $offset
-      where: {
-        rule_id: { _in: $ruleIds }
-        created: { _lte: $importId }
-        removed: { _gte: $importId }
-      }
-      distinct_on: [obj_id]
     ) {
-      object {
-        ...networkObjectDetails
-      }
+      ...networkObjectDetails
     }
   }
 }

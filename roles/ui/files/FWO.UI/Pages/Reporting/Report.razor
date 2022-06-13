@@ -166,9 +166,9 @@
                     <div class="mt-2">
                         <CascadingValue Value="collapseSidebarReport">
                             <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="report" InputDataType="Management" Data="managementsReport.Where(m => (m.Devices.Where(d => d.Rules != null && d.Rules.Count() > 0).Count() > 0))" NameExtractor="man => man.Name"
-                                                NetworkObjectExtractor="man => man.ReportObjects?.Select(ro => ro.Content).ToArray()"
-                                                NetworkServiceExtractor="man => man.ReportServices?.Select(rs => rs.Content).ToArray()"
-                                                NetworkUserExtractor="man => man.ReportUsers?.Select(ru => ru.Content).ToArray()" />
+                                                NetworkObjectExtractor="man => man.ReportObjects"
+                                                NetworkServiceExtractor="man => man.ReportServices"
+                                                NetworkUserExtractor="man => man.ReportUsers" />
                         </CascadingValue>
                     </div>
                 </Tab>
@@ -181,9 +181,9 @@
                         <CascadingValue Value="collapseSidebarRule">
                             <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="rule" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule" Data="selectedItemsRuleReportTable"
                                                 NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
-                                                NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object).Union(rule.Tos.Select(nl => nl.Object)).Union(rule.NatData.TranslatedFroms.Select(nl => nl.Object)).Union(rule.NatData.TranslatedTos.Select(nl => nl.Object)).ToArray()"
-                                                NetworkServiceExtractor="rule => rule.Services.Select(sw => sw.Content).Union(rule.NatData.TranslatedServices.Select(sw => sw.Content)).ToArray()"
-                                                NetworkUserExtractor="rule => rule.Froms.Select(nl => nl.User).Distinct().Where(u => u != null).ToArray()" />
+                                                NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object).Union(rule.Tos.Select(nl => nl.Object)).Union(rule.NatData.TranslatedFroms.Select(nl => nl.Object)).Union(rule.NatData.TranslatedTos.Select(nl => nl.Object)).OrderBy(o => o.Name).ToArray()"
+                                                NetworkServiceExtractor="rule => rule.Services.Select(sw => sw.Content).Union(rule.NatData.TranslatedServices.Select(sw => sw.Content)).OrderBy(s => s.Name).ToArray()"
+                                                NetworkUserExtractor="rule => rule.Froms.Select(nl => nl.User).Distinct().Where(u => u != null).OrderBy(u => u.Name).ToArray()" />
                         </CascadingValue>
                     </div>
                 </Tab>
@@ -583,9 +583,9 @@
 
                     queryVars = new Dictionary<string, object>()
                     {
+                        { "management_id", (int) id },
                         { "limit", userConfig.ElementsPerFetch },
-                        { "offset", 0 },
-                        { "management_id", (int) id }
+                        { "offset", 0 }
                     };
 
                     break;
@@ -594,9 +594,9 @@
 
                     queryVars = new Dictionary<string, object>()
                     {
+                        { "mgmIds", (int) id },
                         { "limit", userConfig.ElementsPerFetch },
-                        { "offset", 0 },
-                        { "mgmIds", (int) id }
+                        { "offset", 0 }
                     };
 
                     if (currentReport != null)
@@ -611,9 +611,9 @@
 
                     queryVars = new Dictionary<string, object>()
                     {
+                        { "rule_id", id },
                         { "limit", userConfig.ElementsPerFetch },
-                        { "offset", (int)0 },
-                        { "rule_id", id }
+                        { "offset", (int)0 }
                     };
 
                     break;

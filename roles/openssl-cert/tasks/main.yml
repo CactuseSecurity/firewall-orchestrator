@@ -43,3 +43,17 @@
     state: file
     owner: "{{ openssl_user }}"
     group: "{{ openssl_user }}"
+
+# the following only works vor deb based systems
+- name: set link to debian cert store
+  file:
+    src: "{{ openssl_cert }}"
+    dest: /usr/local/share/ca-certificates/{{ product_name }}-server.crt
+    state: link
+  become: yes
+    
+# sudo dpkg-reconfigure ca-certificates -f noninteractive
+- name: reconfigure ca-certificates package
+  debconf:
+    name: ca-certificates
+  become: yes

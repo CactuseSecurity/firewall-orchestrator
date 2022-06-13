@@ -5,10 +5,11 @@ import requests.packages
 import requests
 import json
 import common
+import fwo_globals
 
 
-def api_call(url, command, json_payload, sid, ssl_verification='', proxy_string='', show_progress=False, method='', debug=0):
-    logger = getFwoLogger(debug_level=debug)
+def api_call(url, command, json_payload, sid, show_progress=False, method=''):
+    logger = getFwoLogger()
     request_headers = {'Content-Type': 'application/json'}
     if sid != '':
         json_payload.update({"session": sid})
@@ -19,7 +20,7 @@ def api_call(url, command, json_payload, sid, ssl_verification='', proxy_string=
         method = 'get'
     json_payload.update({"method": method})
 
-    r = requests.post(url, data=json.dumps(json_payload), headers=request_headers, verify=ssl_verification, proxies=proxy_string)
+    r = requests.post(url, data=json.dumps(json_payload), headers=request_headers, verify=fwo_globals.verify_certs, proxies=fwo_globals.proxy)
     if r is None:
         if 'pass' in json.dumps(json_payload):
             exception_text = "error while sending api_call containing credential information to url '" + str(url)
@@ -40,7 +41,7 @@ def api_call(url, command, json_payload, sid, ssl_verification='', proxy_string=
     if 'status' not in result_json['result'][0] or 'code' not in result_json['result'][0]['status'] or result_json['result'][0]['status']['code'] != 0:
         # trying to ignore empty results as valid
         pass # logger.warning('received empty result')
-    if debug>2:
+    if fwo_globals.debug_level>2:
         if 'pass' in json.dumps(json_payload):
             logger.debug("api_call containing credential information to url '" + str(url) + " - not logging query")
         else:
@@ -52,15 +53,14 @@ def api_call(url, command, json_payload, sid, ssl_verification='', proxy_string=
     return result_json
 
 
-def login(user, password, api_host, api_port, domain, ssl_verification, proxy_string, debug=0):
+def login(user, password, api_host, api_port, domain):
     payload = {
         "id": 1,
         "params": [ { "data": [ { "user": user, "passwd": password, } ] } ]
     }
     base_url = 'https://' + api_host + ':' + str(api_port) + '/jsonrpc'
     try:
-       response = api_call(base_url, 'sys/login/user', payload, '', ssl_verification=ssl_verification,
-                        proxy_string=proxy_string, method="exec", debug=debug)
+       response = api_call(base_url, 'sys/login/user', payload, '', method="exec")
     except Exception:
         raise common.FwLoginFailed("FortiManager login ERROR: host=" + str(api_host) + ":" + str(api_port)) from None
     if "session" not in response:   # leaving out payload as it contains pwd
@@ -68,18 +68,16 @@ def login(user, password, api_host, api_port, domain, ssl_verification, proxy_st
     return response["session"]
 
 
-def logout(v_url, sid, ssl_verification='', proxy_string='', debug=0, method='exec'):
-    logger = getFwoLogger(debug_level=debug)
+def logout(v_url, sid, method='exec'):
+    logger = getFwoLogger()
     payload = {"params": [{}]}
 
-    response = api_call(v_url, 'sys/logout', payload, sid, ssl_verification=ssl_verification,
-                        proxy_string=proxy_string, method="exec", debug=debug)
+    response = api_call(v_url, 'sys/logout', payload, sid, method=method)
     if "result" in response and "status" in response["result"][0] and "code" in response["result"][0]["status"] and response["result"][0]["status"]["code"] == 0:
         logger.debug("successfully logged out")
     else:
         raise Exception( "fmgr_getter ERROR: did not get status code 0 when logging out, " + 
-                            "api call: url: " + str(v_url) + ",  + payload: " + str(payload) + 
-                            ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy_string))
+                            "api call: url: " + str(v_url) + ",  + payload: " + str(payload))
 
 
 def set_api_url(base_url, testmode, api_supported, hostname):
@@ -98,7 +96,7 @@ def set_api_url(base_url, testmode, api_supported, hostname):
     return url
 
 
-def update_config_with_fortinet_api_call(config_json, sid, api_base_url, api_path, result_name, payload={}, options=[], ssl_verification='', proxy_string="", show_progress=False, debug=0, limit=150, method="get"):
+def update_config_with_fortinet_api_call(config_json, sid, api_base_url, api_path, result_name, payload={}, options=[], show_progress=False, limit=150, method="get"):
     offset = 0
     limit = int(limit)
     returned_new_objects = True
@@ -116,8 +114,7 @@ def update_config_with_fortinet_api_call(config_json, sid, api_base_url, api_pat
             payload['params'][0].update({'option': options})
             # payload['params'][0].update({'filter': options})
 
-        result = fortinet_api_call(sid, api_base_url, api_path, payload=payload, ssl_verification=ssl_verification,
-                                   proxy_string=proxy_string, show_progress=show_progress, debug=debug, method=method)
+        result = fortinet_api_call(sid, api_base_url, api_path, payload=payload, show_progress=show_progress, method=method)
         full_result.extend(result)
         offset += limit
         if len(result)<limit:
@@ -129,11 +126,10 @@ def update_config_with_fortinet_api_call(config_json, sid, api_base_url, api_pat
         config_json.update({result_name: full_result})
 
 
-def fortinet_api_call(sid, api_base_url, api_path, payload={}, ssl_verification='', proxy_string="", show_progress=False, debug=0, method="get"):
+def fortinet_api_call(sid, api_base_url, api_path, payload={}, show_progress=False, method="get"):
     if payload == {}:
         payload = {"params": [{}]}
-    result = api_call(api_base_url, api_path, payload, sid,
-                      ssl_verification, proxy_string, debug=debug, method=method)
+    result = api_call(api_base_url, api_path, payload, sid, method=method)
     plain_result = result["result"][0]
     if "data" in plain_result:
         result = plain_result["data"]

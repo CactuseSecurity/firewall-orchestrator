@@ -43,7 +43,7 @@ def add_domain_rule_header_rule_in_json(rulebase, section_name, layer_name, impo
 
 
 def parse_single_rule_to_json (src_rule, rulebase, layer_name, import_id, rule_num, parent_uid, debug_level=0):
-    logger = getFwoLogger(debug_level=debug_level)
+    logger = getFwoLogger()
     # reference to domain rule layer, filling up basic fields
     if 'type' in src_rule and src_rule['type'] != 'place-holder':
         if 'rule-number' in src_rule:  # standard rule, no section header
@@ -202,7 +202,7 @@ def parse_single_rule_to_json (src_rule, rulebase, layer_name, import_id, rule_n
 
 def parse_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, debug_level=0):
 
-    logger = getFwoLogger(debug_level=debug_level)
+    logger = getFwoLogger()
     if 'layerchunks' in src_rulebase:
         for chunk in src_rulebase['layerchunks']:
             if 'rulebase' in chunk:
@@ -248,7 +248,7 @@ def parse_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, ru
 
 def parse_nat_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, debug_level=0):
 
-    logger = getFwoLogger(debug_level=debug_level)
+    logger = getFwoLogger()
     if 'nat_rule_chunks' in src_rulebase:
         for chunk in src_rulebase['nat_rule_chunks']:
             if 'rulebase' in chunk:

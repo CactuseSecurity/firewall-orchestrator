@@ -23,103 +23,103 @@
 
                 TokenKind.Disabled => new TokenSyntax
                 (
-                    WhiteSpaceRequiered: new string[] { "disabled", "inactive" },
+                    WhiteSpaceRequiered: new string[] { "Disabled", "disabled", "inactive" },
                     NoWhiteSpaceRequiered: new string[] { }
                 ),
 
                 TokenKind.SourceNegated => new TokenSyntax
                 (
-                    WhiteSpaceRequiered: new string[] { "srcnegate", "sourcenegate", "sourcenegated", "source-negate", "source-negated" },
+                    WhiteSpaceRequiered: new string[] { "SourceNegated", "srcnegate", "sourcenegate", "sourcenegated", "source-negate", "source-negated" },
                     NoWhiteSpaceRequiered: new string[] { }
                 ),
 
                 TokenKind.DestinationNegated => new TokenSyntax
                 (
-                    WhiteSpaceRequiered: new string[] { "dstnegate", "destinationnegate", "destinationnegated", "destination-negate", "destination-negated" },
+                    WhiteSpaceRequiered: new string[] { "DestinationNegated", "dstnegate", "destinationnegate", "destinationnegated", "destination-negate", "destination-negated" },
                     NoWhiteSpaceRequiered: new string[] { }
                 ),
 
                 TokenKind.ServiceNegated => new TokenSyntax
                 (
-                    WhiteSpaceRequiered: new string[] { "svcnegate", "servicenegate", "servicenegated", "service-negate", "service-negated" },
+                    WhiteSpaceRequiered: new string[] { "ServiceNegated", "svcnegate", "servicenegate", "servicenegated", "service-negate", "service-negated" },
                     NoWhiteSpaceRequiered: new string[] { }
                 ),
 
                 TokenKind.Source => new TokenSyntax
                 (
-                    WhiteSpaceRequiered: new string[] { "src", "source" },
+                    WhiteSpaceRequiered: new string[] { "Source", "src", "source" },
                     NoWhiteSpaceRequiered: new string[] { }
                 ),
 
                 TokenKind.Destination => new TokenSyntax
                 (
-                    WhiteSpaceRequiered: new string[] { "dst", "dest", "destination" },
+                    WhiteSpaceRequiered: new string[] { "Destination", "dst", "dest", "destination" },
                     NoWhiteSpaceRequiered: new string[] { }
                 ),
 
                 TokenKind.Action => new TokenSyntax
                 (
-                    WhiteSpaceRequiered: new string[] { "action", "act", "enforce" },
+                    WhiteSpaceRequiered: new string[] { "Action", "action", "act", "enforce" },
                     NoWhiteSpaceRequiered: new string[] { }
                 ),
 
                 TokenKind.Management => new TokenSyntax
                 (
-                    WhiteSpaceRequiered: new string[] { "management", "mgmt", "manager", "mgm", "mgr" },
+                    WhiteSpaceRequiered: new string[] { "Management", "management", "mgmt", "manager", "mgm", "mgr" },
                     NoWhiteSpaceRequiered: new string[] { }
                 ),
 
                 TokenKind.Gateway => new TokenSyntax
                 (
-                    WhiteSpaceRequiered: new string[] { "gateway", "gw", "firewall", "fw", "device", "dev" },
+                    WhiteSpaceRequiered: new string[] { "Gateway", "gateway", "gw", "firewall", "fw", "device", "dev" },
                     NoWhiteSpaceRequiered: new string[] { }
                 ),
 
                 TokenKind.FullText => new TokenSyntax
                 (
-                    WhiteSpaceRequiered: new string[] { "fulltext", "full", "fulltextsearch", "fts", "text", "textsearch" },
+                    WhiteSpaceRequiered: new string[] { "FullText", "fulltext", "full", "fulltextsearch", "fts", "text", "textsearch" },
                     NoWhiteSpaceRequiered: new string[] { }
                 ),
 
                 TokenKind.Service => new TokenSyntax
                 (
-                    WhiteSpaceRequiered: new string[] { "svc", "service", "srv" },
+                    WhiteSpaceRequiered: new string[] { "Service", "svc", "service", "srv" },
                     NoWhiteSpaceRequiered: new string[] { }
                 ),
 
                 TokenKind.DestinationPort => new TokenSyntax
                 (
-                    WhiteSpaceRequiered: new string[] { "destinationport", "port", "dport", "dst_port", "dst-port", "dest-port", "destination-port", "dest_port", "destination_port" },
+                    WhiteSpaceRequiered: new string[] { "DestinationPort", "destinationport", "port", "dport", "dst_port", "dst-port", "dest-port", "destination-port", "dest_port", "destination_port" },
                     NoWhiteSpaceRequiered: new string[] { }
                 ),
 
                 TokenKind.Protocol => new TokenSyntax
                 (
-                    WhiteSpaceRequiered: new string[] { "proto", "protocol" },
+                    WhiteSpaceRequiered: new string[] { "Protocol", "proto", "protocol" },
                     NoWhiteSpaceRequiered: new string[] { }
                 ),
 
                 TokenKind.Remove => new TokenSyntax
                 (
-                    WhiteSpaceRequiered: new string[] { "remove" },
+                    WhiteSpaceRequiered: new string[] { "Remove", "remove" },
                     NoWhiteSpaceRequiered: new string[] { }
                 ),
 
                 TokenKind.RecertDisplay => new TokenSyntax
                 (
-                    WhiteSpaceRequiered: new string[] { "recertdisplay", "recertdisp" },
+                    WhiteSpaceRequiered: new string[] { "RecertDisplay", "recertdisplay", "recertdisp" },
                     NoWhiteSpaceRequiered: new string[] { }
                 ),
 
                 TokenKind.ReportType => new TokenSyntax
                 (
-                    WhiteSpaceRequiered: new string[] { "type", "report-type" },
+                    WhiteSpaceRequiered: new string[] { "ReportType", "type", "report-type", "reporttype" },
                     NoWhiteSpaceRequiered: new string[] {  }
                 ),
 
                 TokenKind.Time => new TokenSyntax
                 (
-                    WhiteSpaceRequiered: new string[] { "time" },
+                    WhiteSpaceRequiered: new string[] { "Time", "time" },
                     NoWhiteSpaceRequiered: new string[] {  }
                 ),
 

@@ -123,35 +123,6 @@
       hasura_env
   when: debug_level > '1'
 
-- name: debug path
-  command: "echo $PATH"
-  register: firstout
-
-- debug:
-    var: firstout
-
-- name: debug path
-  command: "echo $PATH"
-  register: secondout
-  become: yes
-  become_user: "{{ fworch_user }}"
-
-- debug:
-    var: secondout
-
-- name: debug path
-  command: "echo $PATH"
-  register: thirdout
-  become: yes
-  become_user: "{{ fworch_user }}"
-  environment: "{{ proxy_env }}"
-
-- debug:
-    var: thirdout
-
-- pause:
-    minutes: 30
-
 - name: start hasura container
   docker_container:
     name: "{{ api_container_name }}"

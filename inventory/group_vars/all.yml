@@ -41,7 +41,6 @@ proxy_env:
         HTTP_PROXY: "{{ http_proxy }}"
         HTTPS_PROXY: "{{ https_proxy }}"
         no_proxy: "{{ proxy_exceptions }}"
-        PATH: /usr/bin:{{ ansible_env.PATH }}
 #        validate_certs: false
 # proxy in capitals needed for debian and ubuntu <20
 test_packages:

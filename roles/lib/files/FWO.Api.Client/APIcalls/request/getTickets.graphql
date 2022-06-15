@@ -80,6 +80,18 @@ query getTickets ($from_state: Int!, $to_state: Int!){
           original_nat_id
         }
       }
+      request_approvals: approvals{
+        id
+        date_opened
+        approver_group
+        approval_date
+        approver
+        tenant_id
+        comment
+	      initial_approval
+	      approval_deadline
+        state_id
+      }
     }
   }
 }

@@ -1,0 +1,21 @@
+mutation newApproval(
+  $taskId: Int!
+  $state: Int!
+  $approverGroup: String
+  $tenant: Int
+  $deadline: timestamp
+  $initialApproval: Boolean
+  ) {
+  insert_request_approval(objects: {
+    task_id: $taskId
+    state_id: $state
+    approver_group: $approverGroup
+    tenant_id: $tenant
+    approval_deadline: $deadline
+    initial_approval: $initialApproval
+  }) {
+    returning {
+      newId: id
+    }
+  }
+}

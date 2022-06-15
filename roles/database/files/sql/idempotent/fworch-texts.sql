@@ -65,6 +65,8 @@ INSERT INTO txt VALUES ('coming_soon',		    'German', 	'(demn&auml;chst)');
 INSERT INTO txt VALUES ('coming_soon',		    'English', 	'(coming soon)');
 INSERT INTO txt VALUES ('in_progress',		    'German', 	'in Arbeit');
 INSERT INTO txt VALUES ('in_progress',		    'English', 	'in progress');
+INSERT INTO txt VALUES ('select', 				'German',	'Ausw&auml;hlen');
+INSERT INTO txt VALUES ('select', 				'English',	'Select');
 
 -- login
 INSERT INTO txt VALUES ('login', 				'German',	'Anmelden');
@@ -601,6 +603,8 @@ INSERT INTO txt VALUES ('valid_from', 		    'German',	'G&uuml;ltig ab');
 INSERT INTO txt VALUES ('valid_from', 		    'English',	'Valid from');
 INSERT INTO txt VALUES ('valid_to', 		    'German',	'G&uuml;ltig bis');
 INSERT INTO txt VALUES ('valid_to', 		    'English',	'Valid to');
+INSERT INTO txt VALUES ('add_approval',         'German', 	'Genehmigung hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_approval',         'English', 	'Add approval');
 
 
 -- recertification
@@ -1016,6 +1020,10 @@ INSERT INTO txt VALUES ('available_states',     'German',   'Verf&uuml;gbare Sta
 INSERT INTO txt VALUES ('available_states',     'English',  'Available states');
 INSERT INTO txt VALUES ('add_state',            'German',   'Status hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_state',            'English',  'Add state');
+INSERT INTO txt VALUES ('select_state',         'German',   'Status ausw&auml;hlen');
+INSERT INTO txt VALUES ('select_state',         'English',  'Select state');
+INSERT INTO txt VALUES ('edit_state',           'German',   'Status bearbeiten');
+INSERT INTO txt VALUES ('edit_state',           'English',  'Edit state');
 INSERT INTO txt VALUES ('from_state',           'German',   'Von Status');
 INSERT INTO txt VALUES ('from_state',           'English',  'From state');
 INSERT INTO txt VALUES ('to_states',            'German',   'Nach Stati');
@@ -1590,6 +1598,8 @@ INSERT INTO txt VALUES ('E8007', 'German',  'Element konnte nicht ge&auml;ndert 
 INSERT INTO txt VALUES ('E8007', 'English', 'Element could not be updated');
 INSERT INTO txt VALUES ('E8008', 'German',  'Element konnte nicht gel&ouml;scht werden');
 INSERT INTO txt VALUES ('E8008', 'English', 'Element could not be deleted');
+INSERT INTO txt VALUES ('E8009', 'German',  'Genehmigung konnte nicht angelegt werden');
+INSERT INTO txt VALUES ('E8009', 'English', 'Approval could not be created');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');

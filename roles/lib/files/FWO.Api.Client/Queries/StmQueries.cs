@@ -9,6 +9,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getTracking;
         public static readonly string getStates;
         public static readonly string upsertState;
+        public static readonly string deleteState;
 
 
         static StmQueries()
@@ -20,6 +21,7 @@ namespace FWO.Api.Client.Queries
                 getTracking = File.ReadAllText(QueryPath + "stmTables/getTracking.graphql");
                 getStates = File.ReadAllText(QueryPath + "stmTables/getStates.graphql");
                 upsertState = File.ReadAllText(QueryPath + "stmTables/upsertState.graphql");
+                deleteState = File.ReadAllText(QueryPath + "stmTables/deleteState.graphql");
             }
             catch (Exception exception)
             {

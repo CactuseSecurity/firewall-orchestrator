@@ -83,15 +83,19 @@
     <Body>
         @if (ShowStatesMode)
         {
-            <button class="btn btn-sm btn-success" @onclick="AddState">@(userConfig.GetText("add_state"))</button>
+            <button class="btn btn-sm btn-success" @onclick="AddNewState">@(userConfig.GetText("add_state"))</button>
             <br><br>
             @foreach(var state in tmpStates)
             {
                 <div class="form-group row">
-                    <label for="stateName" class="col-sm-3 col-form-label col-form-label-sm">@(state.Id)</label>
-                    <div class="col-sm-8">
+                    <label for="stateName" class="col-sm-2 col-form-label col-form-label-sm">@(state.Id)</label>
+                    <div class="col-sm-7">
                         <input id="stateName" type="text" class="form-control form-control-sm" @bind="state.Name" />
                     </div>
+                    @if(!usedStateIds.Exists(x => x == state.Id))
+                    {
+                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteState(state)">@(userConfig.GetText("delete"))</button>
+                    }
                 </div>
             }
         }
@@ -106,14 +110,14 @@
                     <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                 </NotAuthorized> 
             </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            <button class="btn btn-sm btn-secondary" @onclick="CancelShowStates">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("add_state"))" Show="@AddStateMode" OnClose="() => AddStateMode = false">
+<PopUp Title="@(userConfig.GetText("add_state"))" Show="@AddNewStateMode" OnClose="() => AddNewStateMode = false">
     <Body>
-        @if (AddStateMode)
+        @if (AddNewStateMode)
         {
             <div class="form-group row">
                 <div class="col-sm-3">
@@ -129,13 +133,72 @@
         <div class="btn-group">
             <AuthorizeView Roles="admin, requester, fw-admin">
                 <Authorized>
-                    <button class="btn btn-sm btn-primary" @onclick="DoAddState">@(userConfig.GetText("add"))</button>
+                    <button class="btn btn-sm btn-primary" @onclick="DoAddNewState">@(userConfig.GetText("add"))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("add"))</button>
                 </NotAuthorized> 
             </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="CancelAddState">@(userConfig.GetText("cancel"))</button>
+            <button class="btn btn-sm btn-secondary" @onclick="CancelAddNewState">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText("edit_state"))" Show="@EditTargetStatesMode" OnClose="() => EditTargetStatesMode = false">
+    <Body>
+        @if (EditTargetStatesMode)
+        {
+            <button class="btn btn-sm btn-success" @onclick="AddStateToTargetStates">@(userConfig.GetText("add_state"))</button>
+            <br><br>
+            @foreach(var stateId in actToStateIds)
+            {
+                <div class="form-group row">
+                    <label for="stateName" class="col-sm-6 col-form-label col-form-label-sm">@statesDict.Name[stateId]</label>
+                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteStateId(stateId)">@(userConfig.GetText("delete"))</button>
+                </div>
+            }
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="admin, requester, fw-admin">
+                <Authorized>
+                    <button class="btn btn-sm btn-primary" @onclick="ApplyEditTargetStates">@(userConfig.GetText("save"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText("select_state"))" Show="@SelectStateMode" OnClose="() => SelectStateMode = false">
+    <Body>
+        @if (SelectStateMode)
+        {
+            <div class="col-sm-8">
+                <select id="selectState" class="form-control form-control-sm" @bind="stateIdToAdd">
+                    @foreach (var state in availableStates)
+                    {
+                        <option value="@state.Id">@(state.Name)</option>
+                    }
+                </select>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="admin, requester, fw-admin">
+                <Authorized>
+                    <button class="btn btn-sm btn-primary" @onclick="ApplySelection">@(userConfig.GetText("select"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("select"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button class="btn btn-sm btn-secondary" @onclick="CancelSelect">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -147,17 +210,23 @@
 
     private List<RequestState> states = new List<RequestState>();
     private List<RequestState> tmpStates = new List<RequestState>();
+    private List<int> usedStateIds = new List<int>();
+    private List<int> actToStateIds = new List<int>();
+    private List<RequestState> availableStates = new List<RequestState>();
     private RequestStateDict statesDict = new RequestStateDict();
-
 
     private Dictionary<WorkflowPhases, StateMatrix> globalStateMatrix = new Dictionary<WorkflowPhases, StateMatrix>();
 
-
     private StateMatrix actStateMatrix = new StateMatrix();
     private RequestState actState = new RequestState();
+    private int actStateId = 0;
+    private int stateIdToAdd = 0;
+    private WorkflowPhases actPhase = new WorkflowPhases();
 
     private bool ShowStatesMode = false;
-    private bool AddStateMode = false;
+    private bool AddNewStateMode = false;
+    private bool SelectStateMode = false;
+    private bool EditTargetStatesMode = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -208,13 +277,75 @@
     }
 
     private void AddStateToPhase(WorkflowPhases phase)
-    {}
+    {
+        actPhase = phase;
+        availableStates = new List<RequestState>();
+        foreach(var state in states.Where(x => !globalStateMatrix[actPhase].matrix.ContainsKey(x.Id)))
+        {
+            availableStates.Add(state);
+        }
+        stateIdToAdd = (availableStates.Count > 0 ? availableStates[0].Id : 0);
+        SelectStateMode = true;
+    }
+
+    private void ApplySelection()
+    {
+        if(EditTargetStatesMode)
+        {
+            actToStateIds.Add(stateIdToAdd);
+        }
+        else
+        {
+            globalStateMatrix[actPhase].matrix.Add(stateIdToAdd, new List<int>());
+        }
+        SelectStateMode = false;
+    }
 
     private void EditTargetStates(WorkflowPhases phase, int key)
-    {}
+    {
+        actPhase = phase;
+        actStateId = key;
+        actToStateIds = globalStateMatrix[actPhase].matrix[actStateId];
+        EditTargetStatesMode = true;
+    }
+    
+    private void AddStateToTargetStates()
+    {
+        availableStates = new List<RequestState>();
+        foreach(var state in states.Where(x => !globalStateMatrix[actPhase].matrix[actStateId].Contains(x.Id)))
+        {
+            availableStates.Add(state);
+        }
+        stateIdToAdd = (availableStates.Count > 0 ? availableStates[0].Id : 0);
+        SelectStateMode = true;
+    }
+
+    private void DeleteStateId(int state)
+    {
+        actToStateIds.Remove(state);
+    }
+
+    private void ApplyEditTargetStates()
+    {
+        globalStateMatrix[actPhase].matrix[actStateId] = actToStateIds;
+        EditTargetStatesMode = false;
+    }
 
     private void RemoveStateFromPhase(WorkflowPhases phase, int key)
-    {}
+    {
+         globalStateMatrix[phase].matrix.Remove(key);
+    }
+
+    private void Cancel()
+    {
+        EditTargetStatesMode = false;
+    }
+
+    private void CancelSelect()
+    {
+        SelectStateMode = false;
+    }
+
 
     private async Task SaveMatrix()
     {
@@ -228,7 +359,7 @@
         }
     }
 
-    private void Cancel()
+    private void CancelShowStates()
     {
         ShowStatesMode = false;
     }
@@ -236,28 +367,41 @@
     private void ShowStates()
     {
         tmpStates = new List<RequestState>();
+        usedStateIds = new List<int>();
         foreach(var state in states)
         {
             tmpStates.Add(new RequestState(state));
         }
+        foreach(var key in globalStateMatrix.Keys)
+        {
+            foreach(var stateId in globalStateMatrix[key].matrix.Keys)
+            {
+                usedStateIds.Add(stateId);
+            }
+        }
         ShowStatesMode = true;
     }
 
-    private void AddState()
+    private void AddNewState()
     {
         actState = new RequestState();
-        AddStateMode = true;
+        AddNewStateMode = true;
     }
 
-    private void DoAddState()
+    private void DoAddNewState()
     {
         tmpStates.Add(actState);
-        AddStateMode = false;
+        AddNewStateMode = false;
     }
 
-    private void CancelAddState()
+    private void CancelAddNewState()
     {
-        AddStateMode = false;
+        AddNewStateMode = false;
+    }
+
+    private void DeleteState(RequestState state)
+    {
+        tmpStates.Remove(state);
     }
 
     private async Task SaveStates()
@@ -269,6 +413,13 @@
                 if(!((states.FirstOrDefault(x => x.Id == tmpState.Id))?.Name == tmpState.Name))
                 {
                     await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.StmQueries.upsertState, new { id = tmpState.Id, name = tmpState.Name });
+                }
+            }
+            foreach(var state in states)
+            {
+                if(tmpStates.FirstOrDefault(x => x.Id == state.Id) == null)
+                {
+                    await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.StmQueries.deleteState, new { id = state.Id });
                 }
             }
             await RefreshStates();

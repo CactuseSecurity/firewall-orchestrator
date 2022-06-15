@@ -22,6 +22,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string newImplementationElement;
         public static readonly string updateImplementationElement;
         public static readonly string deleteImplementationElement;
+        public static readonly string newApproval;
+        public static readonly string updateApproval;
 
 
         static RequestQueries()
@@ -46,6 +48,8 @@ namespace FWO.Api.Client.Queries
                 newImplementationElement = File.ReadAllText(QueryPath + "request/newImplementationElement.graphql");
                 updateImplementationElement = File.ReadAllText(QueryPath + "request/updateImplementationElement.graphql");
                 deleteImplementationElement = File.ReadAllText(QueryPath + "request/deleteImplementationElement.graphql");
+                newApproval = File.ReadAllText(QueryPath + "request/newApproval.graphql");
+                updateApproval = File.ReadAllText(QueryPath + "request/updateApproval.graphql");
             }
             catch (Exception exception)
             {

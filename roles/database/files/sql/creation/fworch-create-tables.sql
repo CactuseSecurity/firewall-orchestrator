@@ -1020,7 +1020,8 @@ create table if not exists request.approval
     tenant_id int,
     comment text,
 	initial_approval boolean not null default true,
-	approval_deadline Timestamp
+	approval_deadline Timestamp,
+	state_id int NOT NULL
 );
 
 create table if not exists request.ticket 

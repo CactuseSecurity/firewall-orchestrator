@@ -17,6 +17,9 @@ namespace FWO.Api.Data
         [JsonProperty("implementation_tasks"), JsonPropertyName("implementation_tasks")]
         public List<ImplementationTask> ImplementationTasks { get; set; } = new List<ImplementationTask>();
 
+        [JsonProperty("request_approvals"), JsonPropertyName("request_approvals")]
+        public List<RequestApproval> Approvals { get; set; } = new List<RequestApproval>();
+
         public RequestTask()
         { }
 

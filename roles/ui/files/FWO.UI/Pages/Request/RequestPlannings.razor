@@ -749,7 +749,7 @@
     {
         try
         {
-            stateMatrix.Init(2);
+            await stateMatrix.Init(WorkflowPhases.planning, apiConnection);
             await states.Init(apiConnection);
 
             devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);

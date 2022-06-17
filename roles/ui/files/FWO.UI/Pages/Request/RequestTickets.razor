@@ -574,7 +574,7 @@
     {
         try
         {
-            stateMatrix.Init(0);
+            await stateMatrix.Init(WorkflowPhases.request, apiConnection);
             await states.Init(apiConnection);
             ipProtos = await apiConnection.SendQueryAsync<List<IpProtocol>>(FWO.Api.Client.Queries.StmQueries.getIpProtocols);
             ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(FWO.Api.Client.Queries.StmQueries.getRuleActions);
@@ -731,6 +731,16 @@
                 if (AddTaskMode)
                 {
                     actTask.TaskNumber = actTicket.Tasks.Count + 1;
+                    RequestApproval approval = new RequestApproval()
+                    {
+                        StateId = stateMatrix.LowestEndState,
+                        // ApproverGroup = get from owner ???,
+                        TenantId = actTicket.TenantId, // ??
+                        // Deadline = DateTime.Now.AddDays(30), // config/input ??
+                        InitialApproval = true
+                    };
+                    actTask.Approvals.Add(approval);
+
                     if (actTicket.Id > 0) // ticket already created -> write directly to db
                     {
                         actTask.TicketId = actTicket.Id;
@@ -976,6 +986,11 @@
                     element.TaskId = returnId;
                     await AddElementToDb(element);
                 }
+                foreach(var approval in task.Approvals)
+                {
+                    approval.TaskId = returnId;
+                    await AddApprovalToDb(approval);
+                }
             }
         }
         catch (Exception exception)
@@ -1110,5 +1125,36 @@
         {
             DisplayMessageInUi!(exception, userConfig.GetText("delete_element"), "", true);
         }
+    }
+
+    private async Task<int> AddApprovalToDb(RequestApproval approval)
+    {
+        int returnId = 0;
+        try
+        {
+            var Variables = new
+            {
+                taskId = approval.TaskId,
+                state = approval.StateId,
+                approverGroup = approval.ApproverGroup,
+                tenant = approval.TenantId,
+                deadline = approval.Deadline,
+                initialApproval = approval.InitialApproval
+            };
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newApproval, Variables)).ReturnIds;
+            if (returnIds == null)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("add_approval"), userConfig.GetText("E8009"), true);
+            }
+            else
+            {
+                returnId = returnIds[0].NewId;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("add_approval"), "", true);
+        }
+        return returnId;
     }
 }

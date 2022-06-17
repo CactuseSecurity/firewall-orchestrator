@@ -29,6 +29,7 @@ namespace FWO.Api.Data
             TicketId = task.TicketId;
             Elements = task.Elements;
             ImplementationTasks = task.ImplementationTasks;
+            Approvals = task.Approvals;
         }
     }
 }

@@ -1,6 +1,8 @@
 ﻿@using FWO.Api.Client
 @using FWO.Config.Api
+@using FWO.Config.Api.Data
 @using FWO.Ui.Services
+@using System.Text.Json
 
 @page "/settings/requests"
 @attribute [Authorize(Roles = "admin, auditor")]
@@ -9,6 +11,8 @@
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 
+@if(InitComplete)
+{
 <h3>@(userConfig.GetText("requests"))</h3>
 @(userConfig.GetText("U5313"))
 <hr />
@@ -18,16 +22,16 @@
 {
     <hr />
     <div class="form-group row">
-        <input id="phase" type="checkbox" @bind="globalStateMatrix[phase].Active" />
+        <input id="phase" type="checkbox" @bind="globalStateMatrix.GlobalMatrix[phase].Active" />
         <label for="phase" class="col-form-label col-sm-2">@(userConfig.GetText(phase.ToString()))</label>
     </div>
-    @if(globalStateMatrix[phase].Active)
+    @if(globalStateMatrix.GlobalMatrix[phase].Active)
     {
         @(userConfig.GetText("allowed_transitions"))
         <button class="btn btn-sm btn-success" @onclick="() => AddStateToPhase(phase)">@(userConfig.GetText("add_state"))</button>
 
         <div class="m-2">
-            <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="KeyValuePair<int,List<int>>" Items="globalStateMatrix[phase].matrix" PageSize="0" ColumnReorder="true">
+            <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="KeyValuePair<int,List<int>>" Items="globalStateMatrix.GlobalMatrix[phase].Matrix" PageSize="0" ColumnReorder="true">
                 <Column TableItem="KeyValuePair<int,List<int>>" Title="@(userConfig.GetText("action"))" Field="(x => x.Key)" Sortable="false" Filterable="false">
                     <Template>
                         <div class="btn-group">
@@ -43,12 +47,12 @@
                 </Column>
                 <Column TableItem="KeyValuePair<int,List<int>>" Title="@(userConfig.GetText("to_states"))" Field="@(x => x.Key)" Sortable="false" Filterable="false">
                     <Template>
-                        @TargetStateList(globalStateMatrix[phase].matrix[context.Key])
+                        @TargetStateList(globalStateMatrix.GlobalMatrix[phase].Matrix[context.Key])
                     </Template>
                 </Column>
                 <Column TableItem="KeyValuePair<int,List<int>>" Title="@(userConfig.GetText("derived_state"))" Field="@(x => x.Key)" Sortable="false" Filterable="false">
                     <Template>
-                        @(globalStateMatrix[phase].derivedStates.ContainsKey(context.Key) ? statesDict.Name[globalStateMatrix[phase].derivedStates[context.Key]] : "")
+                        @(globalStateMatrix.GlobalMatrix[phase].DerivedStates.ContainsKey(context.Key) ? statesDict.Name[globalStateMatrix.GlobalMatrix[phase].DerivedStates[context.Key]] : "")
                     </Template>
                 </Column>
             </Table>
@@ -56,15 +60,36 @@
         @(userConfig.GetText("special_states"))
         <div class="form-group row">
             <label for="lowestInputState" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_input_state")):</label>
-            <label class="col-sm-2">@statesDict.Name[globalStateMatrix[phase].LowestInputState]</label>
+            <div class="col-sm-8">
+                <select id="selectState" class="form-control form-control-sm col-sm-2" @bind="globalStateMatrix.GlobalMatrix[phase].LowestInputState">
+                    @foreach (var state in states)
+                    {
+                        <option value="@state.Id">@(state.Name)</option>
+                    }
+                </select>
+            </div>
         </div>
         <div class="form-group row">
             <label for="lowestStartedState" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_started_state")):</label>
-            <label class="col-sm-2">@statesDict.Name[globalStateMatrix[phase].LowestStartedState]</label>
+            <div class="col-sm-8">
+                <select id="selectState" class="form-control form-control-sm col-sm-2" @bind="globalStateMatrix.GlobalMatrix[phase].LowestStartedState">
+                    @foreach (var state in states)
+                    {
+                        <option value="@state.Id">@(state.Name)</option>
+                    }
+                </select>
+            </div>
         </div>
         <div class="form-group row">
             <label for="lowestEndState" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_end_state")):</label>
-            <label class="col-sm-2">@statesDict.Name[globalStateMatrix[phase].LowestEndState]</label>
+            <div class="col-sm-8">
+                <select id="selectState" class="form-control form-control-sm col-sm-2" @bind="globalStateMatrix.GlobalMatrix[phase].LowestEndState">
+                    @foreach (var state in states)
+                    {
+                        <option value="@state.Id">@(state.Name)</option>
+                    }
+                </select>
+            </div>
         </div>
     }
 }
@@ -144,32 +169,37 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("edit_state"))" Show="@EditTargetStatesMode" OnClose="() => EditTargetStatesMode = false">
+<PopUp Title="@(userConfig.GetText("edit_state") + ": " + statesDict.Name[actStateId])" Show="@EditTargetStatesMode" OnClose="() => EditTargetStatesMode = false">
     <Body>
         @if (EditTargetStatesMode)
         {
+            @(userConfig.GetText("allowed_transitions"))
+            <br><br>
             <button class="btn btn-sm btn-success" @onclick="AddStateToTargetStates">@(userConfig.GetText("add_state"))</button>
             <br><br>
             @foreach(var stateId in actToStateIds)
             {
                 <div class="form-group row">
                     <label for="stateName" class="col-sm-6 col-form-label col-form-label-sm">@statesDict.Name[stateId]</label>
-                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteStateId(stateId)">@(userConfig.GetText("delete"))</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteStateId(stateId)">@(userConfig.GetText("remove"))</button>
                 </div>
             }
+            <hr />
+            @(userConfig.GetText("derived_state"))
+            <br><br>
+            <div class="col-sm-8">
+                <select id="selectState" class="form-control form-control-sm" @bind="globalStateMatrix.GlobalMatrix[actPhase].DerivedStates[actStateId]">
+                    @foreach (var state in states)
+                    {
+                        <option value="@state.Id">@(state.Name)</option>
+                    }
+                </select>
+            </div>
         }
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin, requester, fw-admin">
-                <Authorized>
-                    <button class="btn btn-sm btn-primary" @onclick="ApplyEditTargetStates">@(userConfig.GetText("save"))</button>
-                </Authorized>
-                <NotAuthorized>
-                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-                </NotAuthorized> 
-            </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            <button class="btn btn-sm btn-primary" @onclick="ApplyEditTargetStates">@(userConfig.GetText("ok"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -202,6 +232,7 @@
         </div>
     </Footer>
 </PopUp>
+}
 
 @code
 {
@@ -215,7 +246,7 @@
     private List<RequestState> availableStates = new List<RequestState>();
     private RequestStateDict statesDict = new RequestStateDict();
 
-    private Dictionary<WorkflowPhases, StateMatrix> globalStateMatrix = new Dictionary<WorkflowPhases, StateMatrix>();
+    private GlobalStateMatrix globalStateMatrix = new GlobalStateMatrix();
 
     private StateMatrix actStateMatrix = new StateMatrix();
     private RequestState actState = new RequestState();
@@ -227,11 +258,13 @@
     private bool AddNewStateMode = false;
     private bool SelectStateMode = false;
     private bool EditTargetStatesMode = false;
+    private bool InitComplete = false;
 
     protected override async Task OnInitializedAsync()
     {
-        await InitMatrix();
         await RefreshStates();
+        await InitMatrix();
+        InitComplete = true;
     }
 
     private async Task RefreshStates()
@@ -253,12 +286,7 @@
     {
         try
         {
-            foreach (WorkflowPhases phase in Enum.GetValues(typeof(WorkflowPhases)))
-            {
-                StateMatrix stateMatrix = new StateMatrix();
-                stateMatrix.Init((int)phase);
-                globalStateMatrix.Add(phase,stateMatrix);
-            }
+            await globalStateMatrix.Init(apiConnection);
         }
         catch (Exception exception)
         {
@@ -280,7 +308,7 @@
     {
         actPhase = phase;
         availableStates = new List<RequestState>();
-        foreach(var state in states.Where(x => !globalStateMatrix[actPhase].matrix.ContainsKey(x.Id)))
+        foreach(var state in states.Where(x => !globalStateMatrix.GlobalMatrix[actPhase].Matrix.ContainsKey(x.Id)))
         {
             availableStates.Add(state);
         }
@@ -296,7 +324,8 @@
         }
         else
         {
-            globalStateMatrix[actPhase].matrix.Add(stateIdToAdd, new List<int>());
+            globalStateMatrix.GlobalMatrix[actPhase].Matrix.Add(stateIdToAdd, new List<int>());
+            globalStateMatrix.GlobalMatrix[actPhase].DerivedStates.Add(stateIdToAdd, stateIdToAdd);
         }
         SelectStateMode = false;
     }
@@ -305,14 +334,14 @@
     {
         actPhase = phase;
         actStateId = key;
-        actToStateIds = globalStateMatrix[actPhase].matrix[actStateId];
+        actToStateIds = globalStateMatrix.GlobalMatrix[actPhase].Matrix[actStateId];
         EditTargetStatesMode = true;
     }
     
     private void AddStateToTargetStates()
     {
         availableStates = new List<RequestState>();
-        foreach(var state in states.Where(x => !globalStateMatrix[actPhase].matrix[actStateId].Contains(x.Id)))
+        foreach(var state in states.Where(x => !globalStateMatrix.GlobalMatrix[actPhase].Matrix[actStateId].Contains(x.Id)))
         {
             availableStates.Add(state);
         }
@@ -327,18 +356,13 @@
 
     private void ApplyEditTargetStates()
     {
-        globalStateMatrix[actPhase].matrix[actStateId] = actToStateIds;
+        globalStateMatrix.GlobalMatrix[actPhase].Matrix[actStateId] = actToStateIds;
         EditTargetStatesMode = false;
     }
 
     private void RemoveStateFromPhase(WorkflowPhases phase, int key)
     {
-         globalStateMatrix[phase].matrix.Remove(key);
-    }
-
-    private void Cancel()
-    {
-        EditTargetStatesMode = false;
+        globalStateMatrix.GlobalMatrix[phase].Matrix.Remove(key);
     }
 
     private void CancelSelect()
@@ -346,12 +370,18 @@
         SelectStateMode = false;
     }
 
-
     private async Task SaveMatrix()
     {
         try
         {
-
+            ConfigItem item = new ConfigItem 
+            { 
+                Key = "stateMatrix", 
+                Value = JsonSerializer.Serialize(globalStateMatrix),
+                User = 0 
+            };
+            await apiConnection.SendQueryAsync<object>(ConfigQueries.upsertConfigItem, item);
+            DisplayMessageInUi!(null, userConfig.GetText("save_settings"), userConfig.GetText("U5301"), false);             
         }
         catch (Exception exception)
         {
@@ -372,9 +402,9 @@
         {
             tmpStates.Add(new RequestState(state));
         }
-        foreach(var key in globalStateMatrix.Keys)
+        foreach(var key in globalStateMatrix.GlobalMatrix.Keys)
         {
-            foreach(var stateId in globalStateMatrix[key].matrix.Keys)
+            foreach(var stateId in globalStateMatrix.GlobalMatrix[key].Matrix.Keys)
             {
                 usedStateIds.Add(stateId);
             }

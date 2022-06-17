@@ -1,4 +1,9 @@
-﻿namespace FWO.Ui.Services
+﻿using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using System.Text.Json.Serialization; 
+using Newtonsoft.Json; 
+
+namespace FWO.Ui.Services
 {
     public enum WorkflowPhases
     {
@@ -10,79 +15,42 @@
 
     public class StateMatrix
     {
-        public Dictionary<int, List<int>> matrix = new Dictionary<int, List<int>>();
-        public Dictionary<int, int> derivedStates = new Dictionary<int, int>();
+        [JsonProperty("matrix"), JsonPropertyName("matrix")]
+        public Dictionary<int, List<int>> Matrix { get; set; } = new Dictionary<int, List<int>>();
+
+        [JsonProperty("derived_states"), JsonPropertyName("derived_states")]
+        public Dictionary<int, int> DerivedStates { get; set; } = new Dictionary<int, int>();
+
+        [JsonProperty("lowest_input_state"), JsonPropertyName("lowest_input_state")]
         public int LowestInputState { get; set; }
+
+        [JsonProperty("lowest_start_state"), JsonPropertyName("lowest_start_state")]
         public int LowestStartedState { get; set; }
+
+        [JsonProperty("lowest_end_state"), JsonPropertyName("lowest_end_state")]
         public int LowestEndState { get; set; }
+
+        [JsonProperty("active"), JsonPropertyName("active")]
         public bool Active { get; set; }
 
-        public void Init(int phase)
+        public async Task Init(WorkflowPhases phase, ApiConnection apiConnection)
         {
-            matrix = new Dictionary<int, List<int>>();
-            derivedStates = new Dictionary<int, int>();
-            switch(phase)
-            {
-                case 0:
-                    matrix.Add(0, new List<int>(){0,49,620});
-                    matrix.Add(49, new List<int>(){49,620});
-                    matrix.Add(620, new List<int>(){620});
-                    LowestInputState = 0;
-                    LowestStartedState = 0;
-                    LowestEndState = 49;
-                    break;
-                case 1:
-                    matrix.Add(49, new List<int>(){49,60,99,610});
-                    matrix.Add(60, new List<int>(){60,99,610});
-                    matrix.Add(99, new List<int>(){99});
-                    matrix.Add(610, new List<int>(){610});
-                    LowestInputState = 49;
-                    LowestStartedState = 60;
-                    LowestEndState = 99;
-                    break;
-                case 2:
-                    matrix.Add(99, new List<int>(){110});
-                    matrix.Add(110, new List<int>(){110,120,130,149});
-                    matrix.Add(120, new List<int>(){120,110,130,149});
-                    matrix.Add(130, new List<int>(){130,110,120,149,610});
-                    matrix.Add(149, new List<int>(){149});
-                    matrix.Add(610, new List<int>(){610});
-                    LowestInputState = 99;
-                    LowestStartedState = 110;
-                    LowestEndState = 149;
-                    derivedStates.Add(99, 99);
-                    derivedStates.Add(110, 110);
-                    derivedStates.Add(120, 110);
-                    derivedStates.Add(130, 110);
-                    derivedStates.Add(149, 149);
-                    derivedStates.Add(610, 610);
-                    break;
-                case 4:
-                    matrix.Add(149, new List<int>(){210});
-                    matrix.Add(210, new List<int>(){210,220,249});
-                    matrix.Add(220, new List<int>(){220,210,249,610});
-                    matrix.Add(249, new List<int>(){249});
-                    matrix.Add(610, new List<int>(){610});
-                    LowestInputState = 149;
-                    LowestStartedState = 210;
-                    LowestEndState = 249;
-                    derivedStates.Add(149, 149);
-                    derivedStates.Add(210, 210);
-                    derivedStates.Add(220, 210);
-                    derivedStates.Add(249, 249);
-                    derivedStates.Add(610, 610);
-                    break;
-                default:
-                    break;
-            }
+            GlobalStateMatrix glbStateMatrix = new GlobalStateMatrix();
+            await glbStateMatrix.Init(apiConnection);
+            Matrix = glbStateMatrix.GlobalMatrix[phase].Matrix;
+            DerivedStates = glbStateMatrix.GlobalMatrix[phase].DerivedStates;
+            LowestInputState = glbStateMatrix.GlobalMatrix[phase].LowestInputState;
+            LowestStartedState = glbStateMatrix.GlobalMatrix[phase].LowestStartedState;
+            LowestEndState = glbStateMatrix.GlobalMatrix[phase].LowestEndState;
+            Active = glbStateMatrix.GlobalMatrix[phase].Active;
         }
 
         public List<int> getAllowedTransitions(int stateIn)
         {
             List<int> statesOut = new List<int>();
-            if(matrix.ContainsKey(stateIn))
+            if(Matrix.ContainsKey(stateIn))
             {
-                statesOut = matrix[stateIn];
+                statesOut = Matrix[stateIn];
             }
             return statesOut;
         }
@@ -140,7 +108,25 @@
             {
                 stateOut = LowestStartedState;
             }
-            return derivedStates[stateOut];
+            return DerivedStates[stateOut];
         }
+    }
+    public class GlobalStateMatrix
+    {
+        [JsonProperty("config_value"), JsonPropertyName("config_value")]
+        public Dictionary<WorkflowPhases, StateMatrix> GlobalMatrix { get; set; } = new Dictionary<WorkflowPhases, StateMatrix>();
+
+        public async Task Init(ApiConnection apiConnection)
+        {
+            List<GlobalStateMatrixHelper> confData = await apiConnection.SendQueryAsync<List<GlobalStateMatrixHelper>>(ConfigQueries.getConfigItemByKey, new { key = "stateMatrix" });
+            GlobalStateMatrix glbStateMatrix = System.Text.Json.JsonSerializer.Deserialize<GlobalStateMatrix>(confData[0].ConfData) ?? throw new Exception("Config data could not be parsed.");
+            GlobalMatrix = glbStateMatrix.GlobalMatrix;
+        }
+    }
+
+    public class GlobalStateMatrixHelper
+    {
+        [JsonProperty("config_value"), JsonPropertyName("config_value")]
+        public string ConfData = "";
     }
 }

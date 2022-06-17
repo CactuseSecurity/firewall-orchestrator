@@ -9,7 +9,7 @@ mutation updateApproval(
     pk_columns: { id: $id }
     _set: {
       state_id: $state
-      approval_date: $implementationAction
+      approval_date: $approvalDate
       approver: $approver
       comment: $comment
   }) {

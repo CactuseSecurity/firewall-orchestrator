@@ -18,7 +18,7 @@
         <Column TableItem="RequestTicket" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
-                    @if (context.StateId < stateMatrix.LowestEndState)
+                    @if (context.StateId >= stateMatrix.LowestInputState && context.StateId < stateMatrix.LowestEndState)
                     {
                         <button class="btn btn-sm btn-warning" @onclick="() => ApproveRequest(context)">@(userConfig.GetText("approve"))</button>
                     }
@@ -90,14 +90,46 @@
             {
                 <AuthorizeView Roles="admin, approver, fw-admin">
                     <Authorized>
-                        <button class="btn btn-sm btn-primary" @onclick="SaveRequest">@(userConfig.GetText("save"))</button>
+                        <button class="btn btn-sm btn-primary" @onclick="PromoteTicket">@(userConfig.GetText("promote_ticket"))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("promote_ticket"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
             }
             <button class="btn btn-sm btn-secondary" @onclick="CancelRequest">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText("promote_ticket"))" Show="@PromoteTicketMode" OnClose="() => PromoteTicketMode = false">
+    <Body>
+        @if (PromoteTicketMode)
+        {
+            <div class="form-group row">
+                <label for="promoteRequest" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("promote_to")):</label>
+                <div class="col-sm-8">
+                    <select id="promoteRequest" class="form-control form-control-sm" @bind="actTicket.StateId">
+                        @foreach (int state in actPossibleStates)
+                        {
+                            <option value="@state">@(states.Name[state])</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="admin, approver, fw-admin">
+                <Authorized>
+                    <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => UpdateTicket()">@(userConfig.GetText("save"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button class="btn btn-sm btn-secondary" @onclick="CancelPromoteTicket">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -259,6 +291,7 @@
     private List<RequestTicket> requests = new List<RequestTicket>();
 
     private bool ShowTicketMode = false;
+    private bool PromoteTicketMode = false;
     private bool ApproveRequestMode = false;
     private bool ShowReqTaskMode = false;
     private bool PromoteTaskMode = false;
@@ -314,10 +347,41 @@
         ShowTicketMode = true;
     }
 
-    private async Task SaveRequest()
+    private async Task PromoteTicket()
+    {
+        if(actTicket.Tasks.Count > 0)
+        {
+            List<int> taskStates = new List<int>();
+            foreach (RequestTask task in actTicket.Tasks)
+            {
+                taskStates.Add(task.StateId);
+            }
+            if (taskStates.Count > 0)
+            {
+                actTicket.StateId = stateMatrix.getRequestStateFromTaskStates(taskStates);
+            }
+            await UpdateTicket();
+        }
+        else
+        {
+            actPossibleStates = stateMatrix.getAllowedTransitions(actTicket.StateId);
+            if(actPossibleStates.Count == 1)
+            {
+                actTicket.StateId = actPossibleStates[0];
+                await UpdateTicket();
+            }
+            else
+            {
+                PromoteTicketMode = true;
+            }
+        }
+    }
+
+    private async Task UpdateTicket()
     {
         try
         {           
+            PromoteTicketMode = false;
             if (actTicket.Sanitize())
             {
                 DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("U0001"), true);
@@ -325,15 +389,6 @@
             if (CheckRequestValues())
             {
                 // Update existing ticket state
-                List<int> taskStates = new List<int>();
-                foreach (RequestTask task in actTicket.Tasks)
-                {
-                    taskStates.Add(task.StateId);
-                }
-                if (taskStates.Count > 0)
-                {
-                    actTicket.StateId = stateMatrix.getRequestStateFromTaskStates(taskStates);
-                }
                 var Variables = new
                 {
                     id = actTicket.Id,
@@ -372,6 +427,11 @@
     {
         ApproveRequestMode = false;
         ShowTicketMode = false;
+    }
+
+    private void CancelPromoteTicket()
+    {
+        PromoteTicketMode = false;
     }
 
     private void ShowReqTask(RequestTask task)

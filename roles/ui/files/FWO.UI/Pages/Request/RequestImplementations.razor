@@ -18,14 +18,7 @@
         <Column TableItem="RequestTicket" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
-                    @if (context.StateId < stateMatrix.LowestEndState)
-                    {
-                        <button class="btn btn-sm btn-warning" @onclick="() => ImplementRequest(context)">@(userConfig.GetText("implement"))</button>
-                    }
-                    else
-                    {
-                        <button class="btn btn-sm btn-primary" @onclick="() => ShowRequestDetails(context)">@(userConfig.GetText("details"))</button>
-                    }
+                    <button class="btn btn-sm btn-primary" @onclick="() => ShowTicketDetails(context)">@(userConfig.GetText("details"))</button>
                 </div>
             </Template>
         </Column>
@@ -59,27 +52,27 @@
                     <label for="requestRequester" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("requester")):</label>
                     <label class="col-sm-8">@actTicket.Requester?.Name</label>
                 </div>
-                @if (ImplementRequestMode && actTicket.StateId < stateMatrix.LowestStartedState)
-                {
-                    <AuthorizeView Roles="admin, implementer, fw-admin">
-                        <Authorized>
-                            <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="PromoteImplementation">@(userConfig.GetText("start_implementation"))</button>
-                        </Authorized>
-                        <NotAuthorized>
-                            <button class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("start_implementation"))</button>
-                        </NotAuthorized> 
-                    </AuthorizeView>
-                    <br>
-                }
                 @(userConfig.GetText("implementation_tasks"))
                 <div class="m-2">
                     <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="ImplementationTask" Items="allImplTasks" PageSize="0" ColumnReorder="true">
                         <Column TableItem="ImplementationTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                             <Template>
                                 <div class="btn-group">
-                                    @if (actTicket.StateId >= stateMatrix.LowestStartedState && context.StateId < stateMatrix.LowestEndState)
+                                    @if (context.StateId < stateMatrix.LowestStartedState)
                                     {
-                                        <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => ImplementTask(context)">@(userConfig.GetText("implement"))</button>
+                                        <AuthorizeView Roles="admin, implementer, fw-admin">
+                                            <Authorized Context="ctx">
+                                                <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => StartImplementation(context)">@(userConfig.GetText("start_implementation"))</button>
+                                            </Authorized>
+                                            <NotAuthorized Context="ctx">
+                                                <button class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("start_implementation"))</button>
+                                            </NotAuthorized> 
+                                        </AuthorizeView>
+                                        <br>
+                                    }
+                                    else if (context.StateId < stateMatrix.LowestEndState)
+                                    {
+                                        <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => ImplementTask(context)">@(userConfig.GetText("continue_implementation"))</button>
                                     }
                                     else
                                     {
@@ -112,7 +105,7 @@
             {
                 <AuthorizeView Roles="admin, implementer, fw-admin">
                     <Authorized>
-                        <button class="btn btn-sm btn-primary" @onclick="PromoteImplementation">@(userConfig.GetText("promote_ticket"))</button>
+                        <button class="btn btn-sm btn-primary" @onclick="PromoteTicket">@(userConfig.GetText("promote_ticket"))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("promote_ticket"))</button>
@@ -124,9 +117,9 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("save_request"))" Show="@PromoteRequestMode" OnClose="() => PromoteRequestMode = false">
+<PopUp Title="@(userConfig.GetText("promote_ticket"))" Show="@PromoteTicketMode" OnClose="() => PromoteTicketMode = false">
     <Body>
-        @if (PromoteRequestMode)
+        @if (PromoteTicketMode)
         {
             <div class="form-group row">
                 <label for="promoteRequest" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("promote_to")):</label>
@@ -145,13 +138,13 @@
         <div class="btn-group">
             <AuthorizeView Roles="admin, implementer, fw-admin">
                 <Authorized>
-                    <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="UpdateRequest">@(userConfig.GetText("save"))</button>
+                    <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => UpdateTicket()">@(userConfig.GetText("save"))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                 </NotAuthorized> 
             </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="CancelUpdateRequest">@(userConfig.GetText("cancel"))</button>
+            <button class="btn btn-sm btn-secondary" @onclick="CancelPromoteTicket">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -248,9 +241,9 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("save_task"))" Show="@promoteTaskMode" OnClose="() => promoteTaskMode = false">
+<PopUp Title="@(userConfig.GetText("save_task"))" Show="@PromoteImplTaskMode" OnClose="() => PromoteImplTaskMode = false">
     <Body>
-        @if (promoteTaskMode)
+        @if (PromoteImplTaskMode)
         {
             <div class="form-group row">
                 <label for="promoteTask" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("promote_to")):</label>
@@ -324,11 +317,10 @@
     private List<RequestTicket> requests = new List<RequestTicket>();
 
     private bool ShowTicketMode = false;
-    private bool ImplementRequestMode = false;
-    private bool PromoteRequestMode = false;
+    private bool PromoteTicketMode = false;
     private bool ShowImplTaskMode = false;
     private bool ImplementTaskMode = false;
-    private bool promoteTaskMode = false;
+    private bool PromoteImplTaskMode = false;
     private bool ShowImplElementMode = false;
    
     private RequestTicket actTicket = new RequestTicket();
@@ -371,14 +363,7 @@
         }
     }
 
-
-    private void ImplementRequest(RequestTicket ticket)
-    {
-        ImplementRequestMode = true;
-        ShowRequestDetails(ticket);
-    }
-
-    private void ShowRequestDetails(RequestTicket ticket)
+    private void ShowTicketDetails(RequestTicket ticket)
     {
         actTicket = new RequestTicket(ticket);
         allImplTasks = new List<ImplementationTask>();
@@ -393,25 +378,25 @@
         ShowTicketMode = true;
     }
 
-    private async Task PromoteImplementation()
+    private async Task PromoteTicket()
     {
         actPossibleStates = stateMatrix.getAllowedTransitions(actTicket.StateId);
         if(actPossibleStates.Count == 1)
         {
             actTicket.StateId = actPossibleStates[0];
-            await UpdateRequest();
+            await UpdateTicket();
         }
         else
         {
-            PromoteRequestMode = true;
+            PromoteTicketMode = true;
         }
     }
 
-    private async Task UpdateRequest()
+    private async Task UpdateTicket(bool closeAfter = true)
     {
         try
         {           
-            PromoteRequestMode = false;
+            PromoteTicketMode = false;
             if (actTicket.StateId >= stateMatrix.LowestEndState)
             {
                 actTicket.CompletionDate = DateTime.Now;
@@ -432,9 +417,8 @@
             {
                 requests[requests.FindIndex(x => x.Id == actTicket.Id)] = actTicket;
             }
-            if (actTicket.StateId >= stateMatrix.LowestEndState)
+            if (closeAfter)
             {
-                ImplementRequestMode = false;
                 ShowTicketMode = false;
             }
         }
@@ -446,13 +430,12 @@
     
     private void CancelRequest()
     {
-        ImplementRequestMode = false;
         ShowTicketMode = false;
     }
 
-    private void CancelUpdateRequest()
+    private void CancelPromoteTicket()
     {
-        PromoteRequestMode = false;
+        PromoteTicketMode = false;
     }
 
 
@@ -462,10 +445,31 @@
         ShowImplTaskMode = true;
     }
 
+    private async Task StartImplementation(ImplementationTask task)
+    {
+        task.Start = DateTime.Now;
+        task.CurrentHandler = userConfig.User;
+        actPossibleStates = stateMatrix.getAllowedTransitions(task.StateId);
+        if(actPossibleStates.Count == 1 && actPossibleStates[0] >= stateMatrix.LowestStartedState && actPossibleStates[0] < stateMatrix.LowestEndState)
+        {
+            task.StateId = actPossibleStates[0];
+        }
+        await UpdateTaskStateInDb(task);
+        List<int> taskStates = new List<int>();
+        foreach (RequestTask reqTask in actTicket.Tasks)
+        {
+            foreach(var implTask in reqTask.ImplementationTasks)
+            {
+                taskStates.Add(implTask.StateId);
+            }
+        }
+        actTicket.StateId = stateMatrix.getRequestStateFromTaskStates(taskStates);
+        await UpdateTicket(false);
+        ImplementTask(task);
+    }
+
     private void ImplementTask(ImplementationTask task)
     {
-        task.CurrentHandler = userConfig.User;
-        task.Start = DateTime.Now;
         ImplementTaskMode = true;
         ShowImplTask(task);
     }
@@ -480,7 +484,7 @@
         }
         else
         {
-            promoteTaskMode = true;
+            PromoteImplTaskMode = true;
         }
     }
 
@@ -488,7 +492,7 @@
     {
         try
         {
-            promoteTaskMode = false;
+            PromoteImplTaskMode = false;
             actImplTask.CurrentHandler = userConfig.User;
             await UpdateTaskStateInDb(actImplTask);
             ShowImplTaskMode = false;
@@ -508,7 +512,7 @@
 
     private void CancelSaveImplTask()
     {
-        promoteTaskMode = false;
+        PromoteImplTaskMode = false;
     }
 
     private void ShowImplElement(ImplementationElement element)
@@ -531,6 +535,8 @@
             {
                 id = task.Id,
                 state = task.StateId,
+                start = task.Start,
+                stop = task.Stop,
                 handler = task.CurrentHandler?.DbId
             };
             int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateImplementationTaskState, Variables)).UpdatedId;

@@ -18,14 +18,7 @@
         <Column TableItem="RequestTicket" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
-                    @if (context.StateId < stateMatrix.LowestEndState)
-                    {
-                        <button class="btn btn-sm btn-warning" @onclick="() => PlanRequest(context)">@(userConfig.GetText("plan"))</button>
-                    }
-                    else
-                    {
-                        <button class="btn btn-sm btn-primary" @onclick="() => ShowRequestDetails(context)">@(userConfig.GetText("details"))</button>
-                    }
+                    <button class="btn btn-sm btn-primary" @onclick="() => ShowTicketDetails(context)">@(userConfig.GetText("details"))</button>
                 </div>
             </Template>
         </Column>
@@ -64,9 +57,20 @@
                         <Column TableItem="RequestTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                             <Template>
                                 <div class="btn-group">
-                                    @if (context.StateId < stateMatrix.LowestEndState)
+                                    @if (context.StateId < stateMatrix.LowestStartedState)
                                     {
-                                        <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => PlanTask(context)">@(userConfig.GetText("plan"))</button>
+                                        <AuthorizeView Roles="admin, planner, fw-admin">
+                                            <Authorized Context="ctx">
+                                                <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => StartPlanning(context)">@(userConfig.GetText("start_planning"))</button>
+                                            </Authorized>
+                                            <NotAuthorized Context="ctx">
+                                                <button class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("start_planning"))</button>
+                                            </NotAuthorized> 
+                                        </AuthorizeView>
+                                    }
+                                    else if (context.StateId < stateMatrix.LowestEndState)
+                                    {
+                                        <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => PlanTask(context)">@(userConfig.GetText("continue_planning"))</button>
                                     }
                                     else
                                     {
@@ -92,14 +96,14 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            @if (PlanRequestMode)
+            @if (actTicket.StateId >= stateMatrix.LowestStartedState && actTicket.StateId < stateMatrix.LowestEndState)
             {
                 <AuthorizeView Roles="admin, planner, fw-admin">
                     <Authorized>
-                        <button class="btn btn-sm btn-primary" @onclick="InitSaveRequest">@(userConfig.GetText("save"))</button>
+                        <button class="btn btn-sm btn-primary" @onclick="PromoteTicket">@(userConfig.GetText("promote_ticket"))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("promote_ticket"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
             }
@@ -108,9 +112,9 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("save_request"))" Show="@PromoteRequestMode" OnClose="() => PromoteRequestMode = false">
+<PopUp Title="@(userConfig.GetText("promote_ticket"))" Show="@PromoteTicketMode" OnClose="() => PromoteTicketMode = false">
     <Body>
-        @if (PromoteRequestMode)
+        @if (PromoteTicketMode)
         {
             <div class="form-group row">
                 <label for="promoteRequest" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("promote_to")):</label>
@@ -129,13 +133,13 @@
         <div class="btn-group">
             <AuthorizeView Roles="admin, planner, fw-admin">
                 <Authorized>
-                    <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveRequest">@(userConfig.GetText("save"))</button>
+                    <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => UpdateTicket()">@(userConfig.GetText("save"))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                 </NotAuthorized> 
             </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="CancelSaveRequest">@(userConfig.GetText("cancel"))</button>
+            <button class="btn btn-sm btn-secondary" @onclick="CancelPromoteTicket">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -713,8 +717,7 @@
     private List<RequestTicket> requests = new List<RequestTicket>();
 
     private bool ShowTicketMode = false;
-    private bool PlanRequestMode = false;
-    private bool PromoteRequestMode = false;
+    private bool PromoteTicketMode = false;
     private bool PlanTaskMode = false;
     private bool ShowReqTaskMode = false;
     private bool ShowReqElementMode = false;
@@ -764,19 +767,6 @@
                 to_state = stateMatrix.LowestEndState,
             };
             requests = await apiConnection.SendQueryAsync<List<RequestTicket>>(FWO.Api.Client.Queries.RequestQueries.getTickets, Variables);
-            @* requests.Add(new RequestTicket()
-                {
-                    Id=1, Title="DummyReq", CreationDate=DateTime.Now, StateId=49, Requester=new UiUser(){Name="Dummy"},
-                    Tasks = new List<RequestTask>()
-                        {
-                            new RequestTask () {Id=1, Title="Task1", StateId=49, 
-                                                Elements = new List<RequestElement>()
-                                                {
-                                                    new RequestElement(){Id=1, Ip="127.0.0.0", Port=123, Field="Src"}
-                                                }},
-                            new RequestTask () {Id=2, Title="Task2", StateId=49}
-                        }
-                });         *@
         }
         catch (Exception exception)
         {
@@ -784,20 +774,13 @@
         }
     }
 
-
-    private void PlanRequest(RequestTicket ticket)
-    {
-        PlanRequestMode = true;
-        ShowRequestDetails(ticket);
-    }
-
-    private void ShowRequestDetails(RequestTicket ticket)
+    private void ShowTicketDetails(RequestTicket ticket)
     {
         actTicket = new RequestTicket(ticket);
         ShowTicketMode = true;
     }
 
-    private async Task InitSaveRequest()
+    private async Task PromoteTicket()
     {
         if(actTicket.Tasks.Count > 0)
         {
@@ -810,7 +793,7 @@
             {
                 actTicket.StateId = stateMatrix.getRequestStateFromTaskStates(taskStates);
             }
-            await SaveRequest();
+            await UpdateTicket();
         }
         else
         {
@@ -818,20 +801,20 @@
             if(actPossibleStates.Count == 1)
             {
                 actTicket.StateId = actPossibleStates[0];
-                await SaveRequest();
+                await UpdateTicket();
             }
             else
             {
-                PromoteRequestMode = true;
+                PromoteTicketMode = true;
             }
         }
     }
 
-    private async Task SaveRequest()
+    private async Task UpdateTicket(bool closeAfter = true)
     {
         try
         {           
-            PromoteRequestMode = false;
+            PromoteTicketMode = false;
             if (actTicket.Sanitize())
             {
                 DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("U0001"), true);
@@ -852,7 +835,9 @@
                 else
                 {
                     requests[requests.FindIndex(x => x.Id == actTicket.Id)] = actTicket;
-                    PlanRequestMode = false;
+                }
+                if (closeAfter)
+                {
                     ShowTicketMode = false;
                 }
             }
@@ -875,17 +860,37 @@
     
     private void CancelRequest()
     {
-        PlanRequestMode = false;
         ShowTicketMode = false;
     }
 
-    private void CancelSaveRequest()
+    private void CancelPromoteTicket()
     {
-        PromoteRequestMode = false;
+        PromoteTicketMode = false;
+    }
+
+    private async Task StartPlanning(RequestTask task)
+    {
+        task.Start = DateTime.Now;
+        task.CurrentHandler = userConfig.User;
+        actPossibleStates = stateMatrix.getAllowedTransitions(task.StateId);
+        if(actPossibleStates.Count == 1 && actPossibleStates[0] >= stateMatrix.LowestStartedState && actPossibleStates[0] < stateMatrix.LowestEndState)
+        {
+            task.StateId = actPossibleStates[0];
+        }
+        await UpdateReqTaskInDb(task);
+        List<int> taskStates = new List<int>();
+        foreach (RequestTask tsk in actTicket.Tasks)
+        {
+            taskStates.Add(tsk.StateId);
+        }
+        actTicket.StateId = stateMatrix.getRequestStateFromTaskStates(taskStates);
+        await UpdateTicket(false);
+        PlanTask(task);
     }
 
     private void PlanTask(RequestTask task)
     {
+        task.CurrentHandler = userConfig.User;
         PlanTaskMode = true;
         ShowReqTask(task);
     }
@@ -921,11 +926,11 @@
             }
             if (CheckTaskValues())
             {    
-                if (actReqTask.Start == null && actReqTask.StateId >= stateMatrix.LowestStartedState)
+                @* if (actReqTask.Start == null && actReqTask.StateId >= stateMatrix.LowestStartedState)
                 {
                     actReqTask.Start = DateTime.Now;
                     actReqTask.CurrentHandler = userConfig.User;
-                }
+                } *@
                 if (actReqTask.Stop == null && actReqTask.StateId >= stateMatrix.LowestEndState)
                 {
                     actReqTask.Stop = DateTime.Now;

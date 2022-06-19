@@ -611,6 +611,14 @@ INSERT INTO txt VALUES ('valid_to', 		    'German',	'G&uuml;ltig bis');
 INSERT INTO txt VALUES ('valid_to', 		    'English',	'Valid to');
 INSERT INTO txt VALUES ('add_approval',         'German', 	'Genehmigung hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_approval',         'English', 	'Add approval');
+INSERT INTO txt VALUES ('approver',             'German', 	'Genehmiger');
+INSERT INTO txt VALUES ('approver',             'English',  'Approver');
+INSERT INTO txt VALUES ('approved',             'German', 	'Genehmigt');
+INSERT INTO txt VALUES ('approved',             'English',  'Approved');
+INSERT INTO txt VALUES ('opened',               'German', 	'Ge&ouml;ffnet');
+INSERT INTO txt VALUES ('opened',               'English',  'Opened');
+INSERT INTO txt VALUES ('deadline',             'German', 	'Deadline');
+INSERT INTO txt VALUES ('deadline',             'English',  'Deadline');
 
 
 -- recertification

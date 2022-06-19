@@ -55,10 +55,6 @@
                     <label class="col-sm-8">@actTicket.Id</label>
                 </div>
                 <div class="form-group row">
-                    <label for="taskId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
-                    <label class="col-sm-8">@states.Name[actTicket.StateId]</label>
-                </div>
-                <div class="form-group row">
                     <label for="ticketTitle" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("title"))*:</label>
                     @if (EditTicketMode)
                     {
@@ -88,6 +84,10 @@
                         <label class="col-sm-8">@actTicket.Reason</label>
                     }
                 </div>
+                <div class="form-group row">
+                    <label for="taskId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
+                    <label class="col-sm-8">@states.Name[actTicket.StateId]</label>
+                </div>
 
                 @(userConfig.GetText("tasks"))
                 @if (EditTicketMode)
@@ -107,12 +107,18 @@
                                     else
                                     {
                                         <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowTask(context)">@(userConfig.GetText("details"))</button>
+                                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowApprovals(context)">@(userConfig.GetText("approvals"))</button>
                                     }
                                 </div>
                             </Template>
                         </Column>
                         <Column TableItem="RequestTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
                         <Column TableItem="RequestTask" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true" />
+                        <Column TableItem="RequestTask" Title="@(userConfig.GetText("owner"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" >
+                            <Template>
+                                @(context.OwnerList())
+                            </Template>
+                        </Column>
                         <Column TableItem="RequestTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
                             <Template>
                                 @(states.Name[context.StateId])
@@ -160,10 +166,6 @@
         {
             <form>
                 <div class="form-group row">
-                    <label for="taskId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
-                    <label class="col-sm-8">@states.Name[actTask.StateId]</label>
-                </div>
-                <div class="form-group row">
                     <label for="taskTitle" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("title"))*:</label>
                     @if (EditTicketMode)
                     {
@@ -175,6 +177,10 @@
                     {
                         <label class="col-sm-8">@actTask.Title</label>
                     }
+                </div>
+                <div class="form-group row">
+                    <label for="taskId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
+                    <label class="col-sm-8">@states.Name[actTask.StateId]</label>
                 </div>
                 <div class="form-group row">
                     <label for="taskType" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("type"))*:</label>
@@ -290,6 +296,10 @@
                 @if (actTask.StateId >= stateMatrix.LowestEndState)
                 {
                     <div class="form-group row">
+                        <label for="taskPlanner" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("planner")):</label>
+                        <label class="col-sm-8">@actTask.CurrentHandler?.Name</label>
+                    </div>
+                    <div class="form-group row">
                         <label for="taskComment" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
                         <label class="col-sm-8">@actTask.FwAdminComments</label>
                     </div>                       
@@ -375,6 +385,33 @@
                 </NotAuthorized> 
             </AuthorizeView>
             <button class="btn btn-sm btn-secondary" @onclick="CancelTask">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText("approvals"))" Show="@ShowApprovalMode" XLarge="true" OnClose="() => ShowApprovalMode = false">
+    <Body>
+        @if (ShowApprovalMode)
+        {
+            <div class="m-2">
+                <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="RequestApproval" Items="actTask.Approvals" PageSize="0" ColumnReorder="true">
+                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("opened"))" Field="@(x => x.DateOpened)" Sortable="true" Filterable="true" />
+                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("deadline"))" Field="@(x => x.Deadline)" Sortable="true" Filterable="true" />
+                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("approved"))" Field="@(x => x.ApprovalDate)" Sortable="true" Filterable="true" />
+                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("approver"))" Field="@(x => x.ApproverDn)" Sortable="true" Filterable="true" />
+                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="true" >
+                        <Template>
+                            @(states.Name[context.StateId])
+                        </Template>
+                    </Column>
+                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("comment"))" Field="@(x => x.Comment)" Sortable="true" Filterable="true" />
+                </Table>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button class="btn btn-sm btn-secondary" @onclick="CancelTask">@(userConfig.GetText("ok"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -553,6 +590,7 @@
     private bool AddTaskMode = false;
     private bool ShowTaskMode = false;
     private bool DeleteTaskMode = false;
+    private bool ShowApprovalMode = false;
     private bool AddElementMode = false;
     private bool ShowElementMode = false;
     private bool DeleteElementMode = false;
@@ -800,8 +838,14 @@
         AddTaskMode = false;
         ShowTaskMode = false;
         DeleteTaskMode = false;
+        ShowApprovalMode = false;
     }
 
+    private void ShowApprovals(RequestTask task)
+    {
+        actTask = new RequestTask(task);
+        ShowApprovalMode = true;
+    }
 
     private void AddElement()
     {

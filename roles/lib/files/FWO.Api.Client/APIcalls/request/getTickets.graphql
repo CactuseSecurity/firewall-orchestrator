@@ -92,6 +92,19 @@ query getTickets ($from_state: Int!, $to_state: Int!){
 	      approval_deadline
         state_id
       }
+      owners: request_owners {
+        owner: owner {
+          id
+          name
+          dn
+          group_dn
+          is_default
+          tenant_id
+          recert_interval
+          next_recert_date
+          app_id_external
+        }
+      }
     }
   }
 }

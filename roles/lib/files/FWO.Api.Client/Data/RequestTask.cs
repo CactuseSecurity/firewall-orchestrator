@@ -20,6 +20,9 @@ namespace FWO.Api.Data
         [JsonProperty("request_approvals"), JsonPropertyName("request_approvals")]
         public List<RequestApproval> Approvals { get; set; } = new List<RequestApproval>();
 
+        [JsonProperty("owners"), JsonPropertyName("owners")]
+        public List<RequestOwnerDataHelper> Owners { get; set; } = new List<RequestOwnerDataHelper>();
+
         public RequestTask()
         { }
 
@@ -30,6 +33,17 @@ namespace FWO.Api.Data
             Elements = task.Elements;
             ImplementationTasks = task.ImplementationTasks;
             Approvals = task.Approvals;
+            Owners = task.Owners;
+        }
+
+        public string OwnerList()
+        {
+            List<string> ownerNames = new List<string>();
+            foreach(var owner in Owners)
+            {
+                ownerNames.Add(owner.Owner.Name);
+            }
+            return string.Join(", ", ownerNames);
         }
     }
 }

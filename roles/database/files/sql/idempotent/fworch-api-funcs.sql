@@ -95,31 +95,3 @@ AS $function$
   GROUP BY u.user_id
   ORDER BY MAX(user_name), u.user_id
 $function$;
-
-CREATE OR REPLACE FUNCTION public.get_owners_per_task(integer)
-    RETURNS SETOF owner 
-    LANGUAGE 'plpgsql'
-    COST 100
-    STABLE 
-    ROWS 1000
-AS $BODY$
-DECLARE
-	i_task_id ALIAS FOR $1;
-    i_id integer;
-    v_name Varchar;
-    v_dn Varchar;
-    v_group_dn Varchar;
-    b_default boolean;
-    i_tenant_id integer;
-    i_recert_interval integer;
-	t_next_recert_date Timestamp;
-    v_app_id_external varchar;
-BEGIN
-    FOR i_id, v_name, v_dn, v_group_dn, b_default, i_tenant_id, i_recert_interval, t_next_recert_date, v_app_id_external
-    IN SELECT id, name, dn, group_dn, is_default, tenant_id, recert_interval, next_recert_date, app_id_external FROM request.task JOIN request_owner USING (request_task_id) LEFT JOIN owner ON (request_owner.owner_id=owner.id) WHERE request.task.id=i_task_id
-    LOOP
-        RETURN NEXT ROW (i_id, v_name, v_dn, v_group_dn, b_default, i_tenant_id, i_recert_interval, t_next_recert_date, v_app_id_external);
-    END LOOP;
-    RETURN;
-END;
-$BODY$;

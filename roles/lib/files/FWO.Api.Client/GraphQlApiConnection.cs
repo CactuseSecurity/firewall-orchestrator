@@ -38,7 +38,7 @@ namespace FWO.Api.Client
             graphQlClient = new GraphQLHttpClient(new GraphQLHttpClientOptions()
             {
                 EndPoint = new Uri(this.ApiServerUri),
-                HttpMessageHandler = Handler,
+                HttpMessageHandler = Handler, 
                 UseWebSocketForQueriesAndMutations = false, // TODO: Use websockets for performance reasons          
                 ConfigureWebsocketOptions = webSocketOptions => webSocketOptions.RemoteCertificateValidationCallback += (message, cert, chain, errors) => true
             }, ApiConstants.UseSystemTextJsonSerializer ? new SystemTextJsonSerializer() : new NewtonsoftJsonSerializer());

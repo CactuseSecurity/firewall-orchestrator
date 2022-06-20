@@ -53,11 +53,6 @@
     </div>
 }
 
-<div class="footer alert alert-info">
-    <button @onclick="() => OnPermissionsChanged(null, userConfig.User.Dn)">Debug</button>
-</div>
-
-
 @code
 {
     Action<Exception?, string, string, bool>? DisplayMessageInUiFunction;

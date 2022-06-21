@@ -4,6 +4,8 @@ mutation updateRequestTaskState(
   $start: timestamp
   $stop: timestamp
   $handler: Int
+  $recentHandler: Int
+  $assignedGroup : String
   $comment: String
   ) {
   update_request_task_by_pk(
@@ -13,6 +15,8 @@ mutation updateRequestTaskState(
     start: $start
     stop: $stop
     current_handler: $handler
+    recent_handler: $recentHandler
+    assigned_group: $assignedGroup
     fw_admin_comments: $comment
   }) {
     UpdatedId: id

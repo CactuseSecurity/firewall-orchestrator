@@ -619,6 +619,8 @@ INSERT INTO txt VALUES ('opened',               'German', 	'Ge&ouml;ffnet');
 INSERT INTO txt VALUES ('opened',               'English',  'Opened');
 INSERT INTO txt VALUES ('deadline',             'German', 	'Deadline');
 INSERT INTO txt VALUES ('deadline',             'English',  'Deadline');
+INSERT INTO txt VALUES ('assign_to', 			'German',	'Weiterleiten an');
+INSERT INTO txt VALUES ('assign_to', 			'English',	'Assign to');
 
 
 -- recertification

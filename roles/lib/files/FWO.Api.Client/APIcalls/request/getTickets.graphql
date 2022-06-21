@@ -33,6 +33,10 @@ query getTickets ($from_state: Int!, $to_state: Int!){
       current_handler: uiuser{
         uiuser_username
       }
+      recent_handler: uiuser{
+        uiuser_username
+      }
+      assigned_group
       target_begin_date
       target_end_date
       fw_admin_comments

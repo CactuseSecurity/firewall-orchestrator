@@ -65,6 +65,12 @@ namespace FWO.Api.Data
         [JsonProperty("current_handler"), JsonPropertyName("current_handler")]
         public UiUser? CurrentHandler { get; set; }
 
+        [JsonProperty("recent_handler"), JsonPropertyName("recent_handler")]
+        public UiUser? RecentHandler { get; set; }
+
+        [JsonProperty("assigned_group"), JsonPropertyName("assigned_group")]
+        public string? AssignedGroup { get; set; }
+
         [JsonProperty("target_begin_date"), JsonPropertyName("target_begin_date")]
         public DateTime? TargetBeginDate { get; set; }
 
@@ -95,6 +101,8 @@ namespace FWO.Api.Data
             Reason = task.Reason;
             LastRecertDate = task.LastRecertDate;
             CurrentHandler = task.CurrentHandler;
+            RecentHandler = task.RecentHandler;
+            AssignedGroup = task.AssignedGroup;
             TargetBeginDate = task.TargetBeginDate;
             TargetEndDate = task.TargetEndDate;
             FwAdminComments = task.FwAdminComments;
@@ -106,6 +114,7 @@ namespace FWO.Api.Data
             Title = Sanitizer.SanitizeMand(Title, ref shortened);
             Reason = Sanitizer.SanitizeOpt(Reason, ref shortened);
             FwAdminComments = Sanitizer.SanitizeOpt(FwAdminComments, ref shortened);
+            AssignedGroup = Sanitizer.SanitizeLdapNameOpt(FwAdminComments, ref shortened);
             return shortened;
         }
     }

@@ -3,11 +3,13 @@
 @using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.Ui.Services
+@using FWO.Middleware.Client
 
 @page "/request/plannings"
 @attribute [Authorize(Roles = "admin, planner, auditor, fw-admin")]
 
 @inject ApiConnection apiConnection
+@inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 
 <h3>@(userConfig.GetText("plannings"))</h3>
@@ -34,7 +36,7 @@
     </Table>
 </div>
 
-<PopUp Title="@(userConfig.GetText("request") + ": " + actTicket.Title)" Show="@ShowTicketMode" Large="true" OnClose="() => ShowTicketMode = false">
+<PopUp Title="@(userConfig.GetText("request") + ": " + actTicket.Title)" Show="@ShowTicketMode" XLarge="true" OnClose="() => ShowTicketMode = false">
     <Body>
         @if (ShowTicketMode)
         {
@@ -76,6 +78,7 @@
                                     {
                                         <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowReqTask(context)">@(userConfig.GetText("details"))</button>
                                     }
+                                    <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignTask(context)">@(userConfig.GetText("assign"))</button>
                                 </div>
                             </Template>
                         </Column>
@@ -140,6 +143,42 @@
                 </NotAuthorized> 
             </AuthorizeView>
             <button class="btn btn-sm btn-secondary" @onclick="CancelPromoteTicket">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText("task") + ": " + actReqTask.Title)" Show="@AssignTaskMode" Large="true" OnClose="() => AssignTaskMode = false">
+    <Body>
+        @if (AssignTaskMode)
+        {
+            <form>
+                <form class="form-group row">
+                    <label for="roleInternalGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("assign_to")):</label>
+                    <div class="col-sm-8">
+                        <select id="roleInternalGroup" class="form-control-sm col-sm" @bind="actReqTask.AssignedGroup">
+                            @foreach (var group in userAndGroupList)
+                            {
+                                <option value="@group.Dn">@(group.Name)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-sm-2">
+                        <AuthorizeView Roles="admin">
+                            <Authorized>
+                                <button class="btn btn-sm btn-success" @onclick="() => AssignGroup()" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                            </Authorized>
+                            <NotAuthorized>
+                                <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
+                            </NotAuthorized> 
+                        </AuthorizeView>
+                    </div>
+                </form>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button class="btn btn-sm btn-secondary" @onclick="CancelTask">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -719,6 +758,7 @@
     private bool ShowTicketMode = false;
     private bool PromoteTicketMode = false;
     private bool PlanTaskMode = false;
+    private bool AssignTaskMode = false;
     private bool ShowReqTaskMode = false;
     private bool ShowReqElementMode = false;
     private bool promoteTaskMode = false;
@@ -731,6 +771,7 @@
     private bool AddImplElementMode = false;
     private bool SearchImplElementMode = false;
     private bool DeleteImplElementMode = false;
+
 
     private RequestTicket actTicket = new RequestTicket();
     private RequestTask actReqTask = new RequestTask();
@@ -746,6 +787,7 @@
     private List<IpProtocol> ipProtos = new List<IpProtocol>();
     private List<RuleAction> ruleActions = new List<RuleAction>();
     private List<Tracking> trackings = new List<Tracking>();
+    private List<UiUser> userAndGroupList = new List<UiUser>();
 
 
     protected override async Task OnInitializedAsync()
@@ -760,6 +802,7 @@
             ipProtos = await apiConnection.SendQueryAsync<List<IpProtocol>>(FWO.Api.Client.Queries.StmQueries.getIpProtocols);
             ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(FWO.Api.Client.Queries.StmQueries.getRuleActions);
             trackings = await apiConnection.SendQueryAsync<List<Tracking>>(FWO.Api.Client.Queries.StmQueries.getTracking);
+            userAndGroupList = await RoleAccess.GetRoleMembers(middlewareClient, "planner");
 
             var Variables = new
             {
@@ -888,6 +931,19 @@
         PlanTask(task);
     }
 
+    private void AssignTask(RequestTask task)
+    {
+        actReqTask = task;
+        AssignTaskMode = true;
+    }
+
+    private async Task AssignGroup()
+    {
+        actReqTask.RecentHandler = actReqTask.CurrentHandler;
+        await UpdateReqTaskInDb(actReqTask);
+        AssignTaskMode = false;
+    }
+
     private void PlanTask(RequestTask task)
     {
         task.CurrentHandler = userConfig.User;
@@ -966,6 +1022,7 @@
     {
         PlanTaskMode = false;
         ShowReqTaskMode = false;
+        AssignTaskMode = false;
     }
 
     private void CancelSaveTask()
@@ -1174,6 +1231,8 @@
                 start = task.Start,
                 stop = task.Stop,
                 handler = task.CurrentHandler?.DbId,
+                recentHandler = task.RecentHandler?.DbId,
+                assignedGroup = task.AssignedGroup
                 comment = task.FwAdminComments
             };
             int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequestTaskState, Variables)).UpdatedId;

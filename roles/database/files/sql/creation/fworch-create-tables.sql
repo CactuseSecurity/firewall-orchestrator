@@ -989,6 +989,8 @@ create table if not exists request.task
     reason text,
 	last_recert_date Timestamp,
 	current_handler int,
+	recent_handler int,
+	assigned_group varchar,
 	target_begin_date Timestamp,
 	target_end_date Timestamp,
 	fw_admin_comments varchar

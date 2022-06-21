@@ -47,6 +47,8 @@ create table if not exists request.task
     reason text,
     last_recert_date Timestamp,
 	current_handler int,
+    recent_handler int,
+    assigned_group varchar,
 	target_begin_date Timestamp,
 	target_end_date Timestamp,
 	fw_admin_comments varchar
@@ -190,6 +192,7 @@ ALTER TABLE request.task DROP CONSTRAINT IF EXISTS request_task_service_foreign_
 ALTER TABLE request.task DROP CONSTRAINT IF EXISTS request_task_object_foreign_key;
 ALTER TABLE request.task DROP CONSTRAINT IF EXISTS request_task_usergrp_foreign_key;
 ALTER TABLE request.task DROP CONSTRAINT IF EXISTS request_task_handler_foreign_key;
+ALTER TABLE request.task DROP CONSTRAINT IF EXISTS request_task_recent_handler_foreign_key;
 --- request.element ---
 ALTER TABLE request.element DROP CONSTRAINT IF EXISTS request_element_request_task_foreign_key;
 ALTER TABLE request.element DROP CONSTRAINT IF EXISTS request_element_proto_foreign_key;
@@ -245,6 +248,7 @@ ALTER TABLE request.task ADD CONSTRAINT request_task_service_foreign_key FOREIGN
 ALTER TABLE request.task ADD CONSTRAINT request_task_object_foreign_key FOREIGN KEY (nw_obj_grp_id) REFERENCES object(obj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.task ADD CONSTRAINT request_task_usergrp_foreign_key FOREIGN KEY (user_grp_id) REFERENCES usr(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.task ADD CONSTRAINT request_task_handler_foreign_key FOREIGN KEY (current_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.task ADD CONSTRAINT request_task_recent_handler_foreign_key FOREIGN KEY (recent_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- request.element ---
 ALTER TABLE request.element ADD CONSTRAINT request_element_request_task_foreign_key FOREIGN KEY (task_id) REFERENCES request.task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.element ADD CONSTRAINT request_element_proto_foreign_key FOREIGN KEY (ip_proto_id) REFERENCES stm_ip_proto(ip_proto_id) ON UPDATE RESTRICT ON DELETE CASCADE;

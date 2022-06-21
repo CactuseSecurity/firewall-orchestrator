@@ -11675,6 +11675,12 @@
             {
               "table": {
                 "schema": "public",
+                "name": "view_tenant_rules"
+              }
+            },              
+            {
+              "table": {
+                "schema": "public",
                 "name": "view_undocumented_change_counter"
               }
             },

@@ -290,6 +290,38 @@ def import_json_config(fwo_api_base_url, jwt, mgm_id, query_variables):
         return 1
 
 
+def delete_import_object_tables(fwo_api_base_url, jwt, query_variables):
+    logger = getFwoLogger()
+    delete_mutation = """
+        mutation deleteImportData($importId: bigint!)  {
+            delete_import_object(where: {control_id: {_eq: $importId}}) {
+                affected_rows
+            }
+            delete_import_rule(where: {control_id: {_eq: $importId}}) {
+                affected_rows
+            }
+            delete_import_service(where: {control_id: {_eq: $importId}}) {
+                affected_rows
+            }
+            delete_import_user(where: {control_id: {_eq: $importId}}) {
+                affected_rows
+            }
+        }
+    """
+    try:
+        delete_result = call(fwo_api_base_url, jwt, delete_mutation,
+                             query_variables=query_variables, role='importer')
+        changes_in_delete_import_tables =  \
+            int(delete_result['data']['delete_import_object']['affected_rows']) + \
+            int(delete_result['data']['delete_import_rule']['affected_rows']) + \
+            int(delete_result['data']['delete_import_service']['affected_rows']) + \
+            int(delete_result['data']['delete_import_user']['affected_rows'])
+    except:
+        logger.exception("failed to delete from import_ tables")
+        return -1  # indicating error
+    return changes_in_delete_import_tables
+
+
 def delete_json_config_in_import_table(fwo_api_base_url, jwt, query_variables):
     logger = getFwoLogger()
     delete_mutation = """

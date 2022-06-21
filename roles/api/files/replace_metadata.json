@@ -2791,6 +2791,14 @@
                     "check": null
                   }
                 }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "filter": {}
+                  }
+                }
               ]
             },
             {
@@ -2848,6 +2856,26 @@
                     "backend_only": false
                   }
                 }
+              ],
+              "select_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "control_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "filter": {}
+                  }
+                }
               ]
             },
             {
@@ -2893,6 +2921,26 @@
                     ]
                   }
                 }
+              ],
+              "select_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "control_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "filter": {}
+                  }
+                }
               ]
             },
             {
@@ -2936,6 +2984,26 @@
                       "user_scope"
                     ],
                     "backend_only": false
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "control_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "filter": {}
                   }
                 }
               ]
@@ -11602,12 +11670,6 @@
               "table": {
                 "schema": "public",
                 "name": "view_svc_changes"
-              }
-            },
-            {
-              "table": {
-                "schema": "public",
-                "name": "view_tenant_rules"
               }
             },
             {

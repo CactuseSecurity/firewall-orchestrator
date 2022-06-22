@@ -1232,7 +1232,7 @@
                 stop = task.Stop,
                 handler = task.CurrentHandler?.DbId,
                 recentHandler = task.RecentHandler?.DbId,
-                assignedGroup = task.AssignedGroup
+                assignedGroup = task.AssignedGroup,
                 comment = task.FwAdminComments
             };
             int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequestTaskState, Variables)).UpdatedId;

@@ -337,6 +337,8 @@ insert into config (config_key, config_value, config_user) VALUES ('importSuppre
 insert into config (config_key, config_value, config_user) VALUES ('sessionTimeout', '240', 0) ON CONFLICT DO NOTHING;
 -- insert into config (config_key, config_value, config_user) VALUES ('maxMessages', '3', 0) ON CONFLICT DO NOTHING;
 
+insert into config (config_key, config_value, config_user) VALUES ('stateMatrix', '{"config_value":{"0":{"matrix":{"0":[0,49,620],"49":[49,620],"620":[620]},"derived_states":{"0":0,"49":49,"620":620},"lowest_input_state":0,"lowest_start_state":0,"lowest_end_state":49,"active":true},"1":{"matrix":{"49":[99,610],"60":[60,99,610],"99":[99],"610":[610]},"derived_states":{"49":49,"60":60,"99":99,"610":610},"lowest_input_state":49,"lowest_start_state":60,"lowest_end_state":99,"active":true},"2":{"matrix":{"99":[110],"110":[110,120,130,149],"120":[120,110,130,149],"130":[130,110,120,149,610],"149":[149],"610":[610]},"derived_states":{"99":99,"110":110,"120":110,"130":110,"149":149,"610":610},"lowest_input_state":99,"lowest_start_state":110,"lowest_end_state":149,"active":true},"4":{"matrix":{"149":[210],"210":[210,220,249],"220":[220,210,249,610],"249":[249],"610":[610]},"derived_states":{"149":149,"210":210,"220":210,"249":249,"610":610},"lowest_input_state":149,"lowest_start_state":210,"lowest_end_state":249,"active":true}}}', 0) ON CONFLICT DO NOTHING;
+
 insert into request.state (id,name) VALUES (0,'Draft') ON CONFLICT DO NOTHING;
 insert into request.state (id,name) VALUES (49,'Requested') ON CONFLICT DO NOTHING;
 

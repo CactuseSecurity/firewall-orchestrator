@@ -514,9 +514,7 @@ Create index IF NOT EXISTS idx_nw_object_limits_mgm_id on nw_object_limits (mgm_
 
 
 DROP MATERIALIZED VIEW IF EXISTS view_tenant_rules;
-
-
-CREATE MATERIALIZED VIEW view_tenant_rules AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS view_tenant_rules AS
     select tenant_rules.* from (
         SELECT rule.*, tenant_network.tenant_id
             FROM rule
@@ -542,7 +540,7 @@ Create index IF NOT EXISTS idx_view_tenant_rules_tenant_id on view_tenant_rules(
 Create index IF NOT EXISTS idx_view_tenant_rules_mgm_id on view_tenant_rules(mgm_id);
 
 REFRESH MATERIALIZED VIEW view_tenant_rules;
-
+GRANT SELECT ON TABLE view_tenant_rules TO GROUP secuadmins, reporters;
 /*
 
 	query filterRulesByTenant($importId: bigint) {

@@ -10115,152 +10115,28 @@
                   }
                 },
                 {
-                  "table": {
-                    "schema": "public",
-                    "name": "tenant_network"
-                  },
-                  "object_relationships": [
-                    {
-                      "name": "tenant",
-                      "using": {
-                        "foreign_key_constraint_on": "tenant_id"
+                  "name": "tenant_networks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "tenant_id",
+                      "table": {
+                        "schema": "public",
+                        "name": "tenant_network"
                       }
                     }
-                  ],
-                  "insert_permissions": [
-                    {
-                      "role": "fw-admin",
-                      "permission": {
-                        "check": {},
-                        "columns": [
-                          "tenant_net_id",
-                          "tenant_net_name",
-                          "tenant_net_ip",
-                          "tenant_net_ip_end",
-                          "tenant_id",
-                          "tenant_net_comment",
-                          "tenant_net_create"
-                        ]
+                  }
+                },
+                {
+                  "name": "tenant_to_devices",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "tenant_id",
+                      "table": {
+                        "schema": "public",
+                        "name": "tenant_to_device"
                       }
                     }
-                  ],
-                  "select_permissions": [
-                    {
-                      "role": "auditor",
-                      "permission": {
-                        "columns": [
-                          "tenant_net_id",
-                          "tenant_net_name",
-                          "tenant_net_ip",
-                          "tenant_net_ip_end",
-                          "tenant_id",
-                          "tenant_net_comment",
-                          "tenant_net_create"
-                        ],
-                        "filter": {},
-                        "allow_aggregations": true
-                      }
-                    },
-                    {
-                      "role": "fw-admin",
-                      "permission": {
-                        "columns": [
-                          "tenant_net_id",
-                          "tenant_net_name",
-                          "tenant_net_ip",
-                          "tenant_net_ip_end",
-                          "tenant_id",
-                          "tenant_net_comment",
-                          "tenant_net_create"
-                        ],
-                        "filter": {},
-                        "allow_aggregations": true
-                      }
-                    },
-                    {
-                      "role": "recertifier",
-                      "permission": {
-                        "columns": [
-                          "tenant_net_id",
-                          "tenant_net_name",
-                          "tenant_net_ip",
-                          "tenant_net_ip_end",
-                          "tenant_id",
-                          "tenant_net_comment",
-                          "tenant_net_create"
-                        ],
-                        "filter": {
-                          "tenant_id": {
-                            "_eq": "x-hasura-tenant-id"
-                          }
-                        },
-                        "allow_aggregations": true
-                      }
-                    },
-                    {
-                      "role": "reporter",
-                      "permission": {
-                        "columns": [
-                          "tenant_net_id",
-                          "tenant_net_name",
-                          "tenant_net_ip",
-                          "tenant_net_ip_end",
-                          "tenant_id",
-                          "tenant_net_comment",
-                          "tenant_net_create"
-                        ],
-                        "filter": {
-                          "tenant_id": {
-                            "_eq": "x-hasura-tenant-id"
-                          }
-                        },
-                        "allow_aggregations": true
-                      }
-                    },
-                    {
-                      "role": "reporter-viewall",
-                      "permission": {
-                        "columns": [
-                          "tenant_net_id",
-                          "tenant_net_name",
-                          "tenant_net_ip",
-                          "tenant_net_ip_end",
-                          "tenant_id",
-                          "tenant_net_comment",
-                          "tenant_net_create"
-                        ],
-                        "filter": {},
-                        "allow_aggregations": true
-                      }
-                    }
-                  ],
-                  "update_permissions": [
-                    {
-                      "role": "fw-admin",
-                      "permission": {
-                        "columns": [
-                          "tenant_net_id",
-                          "tenant_net_name",
-                          "tenant_net_ip",
-                          "tenant_net_ip_end",
-                          "tenant_id",
-                          "tenant_net_comment",
-                          "tenant_net_create"
-                        ],
-                        "filter": {},
-                        "check": {}
-                      }
-                    }
-                  ],
-                  "delete_permissions": [
-                    {
-                      "role": "fw-admin",
-                      "permission": {
-                        "backend_only": false,
-                        "filter": {}
-                      }
-                    }
-                  ]
+                  }
                 },
                 {
                   "name": "tickets",

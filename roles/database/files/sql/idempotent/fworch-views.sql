@@ -541,6 +541,8 @@ CREATE MATERIALIZED VIEW view_tenant_rules AS
 Create index IF NOT EXISTS idx_view_tenant_rules_tenant_id on view_tenant_rules(tenant_id);
 Create index IF NOT EXISTS idx_view_tenant_rules_mgm_id on view_tenant_rules(mgm_id);
 
+REFRESH MATERIALIZED VIEW view_tenant_rules;
+
 /*
 
 	query filterRulesByTenant($importId: bigint) {

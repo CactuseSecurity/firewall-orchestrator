@@ -100,3 +100,21 @@ query filterRulesByTenant($importId: bigint) {
     tenant_id
   }
 }
+
+query filterRulesByTenantWithoutAnyRulesWithCount($importId: bigint) {
+  view_tenant_rules_aggregate 
+  (where: {access_rule: {_eq: true}, rule_last_seen: {_gte: $importId}, rule_create: {_lte: $importId}, _and: [{rule_src: {_neq: "all"}}, {rule_dst: {_neq: "all"}}, {rule_src: {_neq: "Any"}}, {rule_dst: {_neq: "Any"}}]})
+  {
+    aggregate {
+      count
+    }
+  }
+  view_tenant_rules(where: {access_rule: {_eq: true}, rule_last_seen: {_gte: $importId}, rule_create: {_lte: $importId}, _and: [{rule_src: {_neq: "all"}}, {rule_dst: {_neq: "all"}}, {rule_src: {_neq: "Any"}}, {rule_dst: {_neq: "Any"}}]}) {
+    rule_id
+    rule_src
+    rule_dst
+    rule_create
+    rule_last_seen
+    tenant_id
+  }
+}

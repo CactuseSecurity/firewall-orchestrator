@@ -266,7 +266,7 @@ BEGIN
 					ELSE
 						SELECT INTO r_debug rule_id,user_id FROM rule_to WHERE rule_id=r_rule.rule_id AND user_id=r_obj.user_id AND active;
 						IF NOT FOUND THEN
-							v_result_single := 'mgmt ' || CAST(i_mgm_id AS VARCHAR) || ', dev ' || CAST(i_dev_id AS VARCHAR) || ', fail 3 (dst user not found in rule_from), id=' || CAST(r_obj.user_id AS VARCHAR) || ', uid=' || v_current_obj;
+							v_result_single := 'mgmt ' || CAST(i_mgm_id AS VARCHAR) || ', dev ' || CAST(i_dev_id AS VARCHAR) || ', fail 3 (dst user not found in rule_to), id=' || CAST(r_obj.user_id AS VARCHAR) || ', uid=' || v_current_obj;
 							v_result := v_result || v_result_single || '; ';
 							RAISE NOTICE '%', v_result_single;
 							-- --                        1                    2         3         4               5              6           7

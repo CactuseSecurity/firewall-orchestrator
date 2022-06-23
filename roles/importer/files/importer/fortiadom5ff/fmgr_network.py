@@ -35,6 +35,10 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt
                 obj.update({ 'obj_typ': 'ip_range' })
                 obj.update({ 'obj_ip': obj_orig['startip'] })
                 obj.update({ 'obj_ip_end': obj_orig['endip'] })
+            elif 'start-ip' in obj_orig: # standard ip range object
+                obj.update({ 'obj_typ': 'ip_range' })
+                obj.update({ 'obj_ip': obj_orig['start-ip'] })
+                obj.update({ 'obj_ip_end': obj_orig['end-ip'] })
             elif 'extip' in obj_orig: # vip object, simplifying to a single ip
                 obj.update({ 'obj_typ': 'host' })
                 if 'extip' not in obj_orig or len(obj_orig['extip'])==0:

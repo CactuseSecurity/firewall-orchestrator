@@ -135,7 +135,7 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0, prox
 
         # only run if this is the correct import module
         if mgm_details['importerHostname'] != gethostname():
-            logger.debug("import_management - this host (" + gethostname() + ") is not responsible for importing management " + str(mgm_id))
+            logger.info("import_management - this host (" + gethostname() + ") is not responsible for importing management " + str(mgm_id))
             return ""
 
         current_import_id = -1
@@ -311,15 +311,19 @@ def complete_import(current_import_id, error_string, start_time, mgm_details, ch
         if fwo_api.delete_json_config_in_import_table(fwo_config['fwo_api_base_url'], jwt, {"importId": current_import_id})<0:
             error_count += 1
     except:
-        logger.error("import_management - unspecified error cleaning up: " + str(traceback.format_exc()))
-        raise
+        logger.error("import_management - unspecified error cleaning up import_config: " + str(traceback.format_exc()))
+
+    try: # CLEANUP: delete data of this import from import_object/rule/service/user tables
+        if fwo_api.delete_import_object_tables(fwo_config['fwo_api_base_url'], jwt, {"importId": current_import_id})<0:
+            error_count += 1
+    except:
+        logger.error("import_management - unspecified error cleaning up import_ object tables: " + str(traceback.format_exc()))
 
     try: # finalize import by unlocking it
         error_count += fwo_api.unlock_import(fwo_config['fwo_api_base_url'], jwt, int(
             mgm_details['id']), datetime.datetime.now().isoformat(), current_import_id, error_count, change_count)
     except:
         logger.error("import_management - unspecified error while unlocking import: " + str(traceback.format_exc()))
-        raise
 
     import_result = "import_management: import no. " + str(current_import_id) + \
             " for management " + mgm_details['name'] + ' (id=' + str(mgm_details['id']) + ")" + \

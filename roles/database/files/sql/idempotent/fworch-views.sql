@@ -516,7 +516,7 @@ Create index IF NOT EXISTS idx_nw_object_limits_mgm_id on nw_object_limits (mgm_
 DROP MATERIALIZED VIEW IF EXISTS view_tenant_rule_tos CASCADE;
 
 CREATE MATERIALIZED VIEW view_tenant_rule_tos AS
-    select view_tenant_rule_tos.* from (
+    select tenant_rule_tos.* from (
         SELECT DISTINCT rule_to.*, rule.mgm_id, rule.dev_id, tenant_network.tenant_id
             FROM rule_to
 								LEFT JOIN rule ON (rule_to.rule_id=rule.rule_id) -- is this really necessary? (enables check for x-hasura-visible-managements and x-hasura-visible-devices in this view)
@@ -524,11 +524,12 @@ CREATE MATERIALIZED VIEW view_tenant_rule_tos AS
                 LEFT JOIN object ON (rule_to.obj_id=object.obj_id)
                 LEFT JOIN tenant_network ON
                     (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip)
-    ) AS view_tenant_rule_tos;
+    ) AS tenant_rule_tos;
 
 -- adding indexes for view
 Create index IF NOT EXISTS idx_view_tenant_rule_tos_tenant_id on view_tenant_rule_tos(tenant_id);
 Create index IF NOT EXISTS idx_view_tenant_rule_tos_rule_to_id on view_tenant_rule_tos(rule_to_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_view_tenant_rule_tos_unique ON view_tenant_rule_tos(rule_to_id, tenant_id);
 
 
 
@@ -548,26 +549,36 @@ CREATE MATERIALIZED VIEW view_tenant_rule_froms AS
 -- adding indexes for view
 Create index IF NOT EXISTS idx_view_tenant_rule_froms_tenant_id on view_tenant_rule_froms(tenant_id);
 Create index IF NOT EXISTS idx_view_tenant_rule_froms_rule_from_id on view_tenant_rule_froms(rule_from_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_view_tenant_rule_froms_unique ON view_tenant_rule_froms(rule_from_id, tenant_id);
 
 
 DROP MATERIALIZED VIEW IF EXISTS view_tenant_rules;
 
 CREATE MATERIALIZED VIEW view_tenant_rules AS
     select tenant_rules.* from (
-        SELECT rule.*, view_tenant_rule_tos.tenant_id
+        SELECT rule.*, tenant_network.tenant_id
             FROM rule
-                LEFT JOIN view_tenant_rule_tos ON (NOT rule_src_neg AND rule.rule_id=view_tenant_rule_tos.rule_id)
+                LEFT JOIN rule_to ON (rule.rule_id=rule_to.rule_id)
+                LEFT JOIN objgrp_flat ON (rule_to.obj_id=objgrp_flat_id)
+                LEFT JOIN object ON (objgrp_flat_member_id=object.obj_id)
+                LEFT JOIN tenant_network ON
+                    ( NOT rule_dst_neg AND (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip))
                 WHERE rule_head_text IS NULL
             UNION
-        SELECT rule.*, view_tenant_rule_froms.tenant_id
+        SELECT rule.*, tenant_network.tenant_id
             FROM rule
-                LEFT JOIN view_tenant_rule_froms ON (NOT rule_src_neg AND rule.rule_id=view_tenant_rule_froms.rule_id)
+                LEFT JOIN rule_from ON (rule.rule_id=rule_from.rule_id)
+                LEFT JOIN objgrp_flat ON (rule_from.obj_id=objgrp_flat.objgrp_flat_id)
+                LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
+                LEFT JOIN tenant_network ON
+                    ( NOT rule_src_neg AND (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip) )
                 WHERE rule_head_text IS NULL
     ) AS tenant_rules;
 
 -- adding indexes for view
 Create index IF NOT EXISTS idx_view_tenant_rules_tenant_id on view_tenant_rules(tenant_id);
 Create index IF NOT EXISTS idx_view_tenant_rules_mgm_id on view_tenant_rules(mgm_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_view_tenant_rules_unique ON view_tenant_rules(rule_id, tenant_id);
 
 
 
@@ -629,12 +640,7 @@ EXECUTE FUNCTION refresh_view_tenant_rules();
 
 CREATE TRIGGER refresh_view_tenant_rules
 AFTER INSERT OR UPDATE OR DELETE OR TRUNCATE
-ON view_tenant_rule_tos FOR EACH STATEMENT
-EXECUTE FUNCTION refresh_view_tenant_rules();
-
-CREATE TRIGGER refresh_view_tenant_rules
-AFTER INSERT OR UPDATE OR DELETE OR TRUNCATE
-ON view_tenant_rule_froms FOR EACH STATEMENT
+ON tenant_network FOR EACH STATEMENT
 EXECUTE FUNCTION refresh_view_tenant_rules();
 
 /*

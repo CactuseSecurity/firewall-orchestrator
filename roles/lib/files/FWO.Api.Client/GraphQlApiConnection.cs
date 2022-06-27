@@ -18,17 +18,16 @@ namespace FWO.Api.Client
     public class GraphQlApiConnection : ApiConnection
     {
         // Server URL
-        public readonly string APIServerURI;
+        public string ApiServerUri { get; private set; }
 
-        private readonly GraphQLHttpClient graphQlClient;
+        private GraphQLHttpClient graphQlClient;
 
         private string? jwt;
 
-        public GraphQlApiConnection(string APIServerURI, string? jwt = null)
+        private void Initialize(string ApiServerUri)
         {
             // Save Server URI
-            this.APIServerURI = APIServerURI;
-            this.jwt = jwt;
+            this.ApiServerUri = ApiServerUri;
 
             // Allow all certificates | TODO: REMOVE IF SERVER GOT VALID CERTIFICATE
             HttpClientHandler Handler = new HttpClientHandler
@@ -38,19 +37,25 @@ namespace FWO.Api.Client
 
             graphQlClient = new GraphQLHttpClient(new GraphQLHttpClientOptions()
             {
-                EndPoint = new Uri(APIServerURI),
-                HttpMessageHandler = Handler,
+                EndPoint = new Uri(this.ApiServerUri),
+                HttpMessageHandler = Handler, 
                 UseWebSocketForQueriesAndMutations = false, // TODO: Use websockets for performance reasons          
                 ConfigureWebsocketOptions = webSocketOptions => webSocketOptions.RemoteCertificateValidationCallback += (message, cert, chain, errors) => true
             }, ApiConstants.UseSystemTextJsonSerializer ? new SystemTextJsonSerializer() : new NewtonsoftJsonSerializer());
 
             // 1 hour timeout
             graphQlClient.HttpClient.Timeout = new TimeSpan(1, 0, 0);
+        }
 
-            if (jwt != null)
-            {
-                SetAuthHeader(jwt);
-            }
+        public GraphQlApiConnection(string ApiServerUri, string jwt)
+        {
+            Initialize(ApiServerUri);
+            SetAuthHeader(jwt);
+        }
+
+        public GraphQlApiConnection(string ApiServerUri)
+        {
+            Initialize(ApiServerUri);
         }
 
         public override void SetAuthHeader(string jwt)
@@ -69,7 +74,6 @@ namespace FWO.Api.Client
         /// <param name="variables"></param>
         /// <param name="operationName"></param>
         /// <returns><typeparamref name="QueryResponseType"/></returns>
-
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
         {
             try
@@ -85,6 +89,11 @@ namespace FWO.Api.Client
 
                     foreach (GraphQLError error in response.Errors)
                     {
+                        if (error.Message == "Jwt expired.")
+                        {
+                            // JwtEventService
+                        }
+
                         Log.WriteError("API Connection", $"Error while sending query to GraphQL API. Caught by GraphQL client library. \nMessage: {error.Message}");
                         errorMessage += $"{error.Message}\n";
                     }

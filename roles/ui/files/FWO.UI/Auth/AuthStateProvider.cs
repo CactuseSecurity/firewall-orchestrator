@@ -79,7 +79,7 @@ namespace FWO.Ui.Auth
                 // Add jwt expiry timer
                 JwtReader reader = new JwtReader(jwt);
                 reader.Validate();
-                JwtEventService.AddJwtTimer(userConfig.User.Dn, (int)reader.TimeUntilExpiry().TotalMilliseconds - 1000 * 60 * 5);
+                JwtEventService.AddJwtTimer(userConfig.User.Dn, (int)reader.TimeUntilExpiry().TotalMilliseconds - 1000 * 60 * userConfig.SessionTimeoutNoticePeriod);
             }
             return apiAuthResponse;
         }

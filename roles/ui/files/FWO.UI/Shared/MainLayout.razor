@@ -92,18 +92,12 @@
         alertSubscription = apiConnection.GetSubscription<List<Alert>>(ApiExceptionHandler, OnAlertUpdate, MonitorQueries.subscribeAlertChanges);
     }
 
-    private void OnAlertUpdate(List<Alert> alerts)
-    {
-        showAlert = alerts.Count() > 0;
-        InvokeAsync(StateHasChanged);
-    }
-
     private void OnPermissionsChanged(object? sender, string userDn)
     {
         if (userDn == userConfig.User.Dn)
         {
             showReloginInput = true;
-            ShowMessage("Permissions", "Your permissions have been changed. Re-login to update your permissions.", MessageType.Info, showtime: -1);
+            ShowMessage(userConfig.GetText("permissions_title"), userConfig.GetText("permissions_text"), MessageType.Info, showtime: -1);
         }
     }
 
@@ -112,13 +106,13 @@
         if (userDn == userConfig.User.Dn)
         {
             showReloginInput = true;
-            ShowMessage("Jwt Expiry", "Your jwt is about to expire. Re-login to create a new jwt.", MessageType.Info, showtime: -1);
+            ShowMessage(userConfig.GetText("jwt_expiry_title"), userConfig.GetText("jwt_expiry_text"), MessageType.Info, showtime: -1);
         }
     }
 
     private async Task Relogin()
     {
-        string errorMessage = "Re-login unsuccessful. See log for details!";
+        string errorMessage = userConfig.GetText("relogin_error");
 
         if (password == null)
         {
@@ -146,6 +140,12 @@
 
         reloginErrorMessage = errorMessage;
         reloginCssClass = "is-invalid";
+    }
+    
+    private void OnAlertUpdate(List<Alert> alerts)
+    {
+        showAlert = alerts.Count() > 0;
+        InvokeAsync(StateHasChanged);
     }
 
     private void ShowMessage(string title, string message, MessageType type, int? showtime = null)

@@ -6,6 +6,7 @@ insert into uiuser (uiuser_id, uiuser_username, uuid) VALUES (0,'default', 'defa
 
 insert into config (config_key, config_value, config_user) VALUES ('DefaultLanguage', 'English', 0);
 insert into config (config_key, config_value, config_user) VALUES ('sessionTimeout', '720', 0);
+insert into config (config_key, config_value, config_user) VALUES ('sessionTimeoutNoticePeriod', '60', 0); -- in minutes before expiry
 -- insert into config (config_key, config_value, config_user) VALUES ('maxMessages', '3', 0);
 insert into config (config_key, config_value, config_user) VALUES ('elementsPerFetch', '100', 0);
 insert into config (config_key, config_value, config_user) VALUES ('maxInitialFetchesRightSidebar', '10', 0);

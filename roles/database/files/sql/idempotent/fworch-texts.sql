@@ -66,7 +66,7 @@ INSERT INTO txt VALUES ('coming_soon',		    'English', 	'(coming soon)');
 INSERT INTO txt VALUES ('in_progress',		    'German', 	'in Arbeit');
 INSERT INTO txt VALUES ('in_progress',		    'English', 	'in progress');
 
--- login
+-- (re)login
 INSERT INTO txt VALUES ('login', 				'German',	'Anmelden');
 INSERT INTO txt VALUES ('login', 				'English',	'Login');
 INSERT INTO txt VALUES ('username', 			'German',	'Nutzername');
@@ -79,6 +79,14 @@ INSERT INTO txt VALUES ('old_password', 		'German',	'Altes Passwort');
 INSERT INTO txt VALUES ('old_password', 		'English',	'Old Password');
 INSERT INTO txt VALUES ('new_password', 		'German',	'Neues Passwort');
 INSERT INTO txt VALUES ('new_password', 		'English',	'New Password');
+INSERT INTO txt VALUES ('jwt_expiry_title',     'German', 	'JWT abgelaufen');
+INSERT INTO txt VALUES ('jwt_expiry_title',     'English', 	'JWT expired');
+INSERT INTO txt VALUES ('jwt_expiry_text',		'German', 	'Your jwt (session token) is about to expire. Re-login to create a new jwt.');
+INSERT INTO txt VALUES ('jwt_expiry_text',		'English', 	'Ihr Jwt (Session Token) ist kurz davor abzulaufen. Bitte geben Sie ihr Passwort ein, um einen neuen Jwt zu erzeugen.');
+INSERT INTO txt VALUES ('permissions_title',	'German', 	'Berechtigungen');
+INSERT INTO txt VALUES ('permissions_title',	'English', 	'Permissions');
+INSERT INTO txt VALUES ('permissions_text',		'German', 	'Ihre Berechtigungen wurden ge&auml;ndert. Bitte geben Sie Ihr Passwort ein, um Ihre Berechtigungen zu aktualisieren!');
+INSERT INTO txt VALUES ('permissions_text',		'English', 	'Your permissions have been changed. Re-login to update your permissions.');
 
 -- navigation
 INSERT INTO txt VALUES ('reporting', 			'German',	'Reporting');
@@ -771,6 +779,8 @@ INSERT INTO txt VALUES ('minCollapseAllDevices','German', 	'Devices zu Beginn ei
 INSERT INTO txt VALUES ('minCollapseAllDevices','English', 	'Devices collapsed at beginning from');
 INSERT INTO txt VALUES ('sessionTimeout',       'German', 	'Sitzungs-Timeout (in Minuten)');
 INSERT INTO txt VALUES ('sessionTimeout',       'English', 	'Session timeout (in minutes)');
+INSERT INTO txt VALUES ('sessionTimeoutNoticePeriod', 'German','Benachrichtigung vor Sitzungs-Timeout (in Minuten)');
+INSERT INTO txt VALUES ('sessionTimeoutNoticePeriod', 'English','Warning before session timeout (in minutes)');
 INSERT INTO txt VALUES ('maxMessages',          'German', 	'Max Anzahl Nachrichten');
 INSERT INTO txt VALUES ('maxMessages',          'English', 	'Max number of messages');
 INSERT INTO txt VALUES ('messageViewTime',      'German', 	'Nachrichten-Anzeigedauer (in Sekunden)');
@@ -1435,6 +1445,9 @@ INSERT INTO txt VALUES ('E5415', 'German',  'Passwort muss mindestens ein Sonder
 INSERT INTO txt VALUES ('E5415', 'English', 'Password must contain at least one special character (!?(){}=~$%&amp;#*-+.,_)');
 INSERT INTO txt VALUES ('E5421', 'German',  'Schl&uuml;ssel nicht gefunden oder Wert nicht konvertierbar: Wert wird gesetzt auf: ');
 INSERT INTO txt VALUES ('E5421', 'English', 'Key not found or could not convert value to int: taking value: ');
+
+INSERT INTO txt VALUES ('E6001', 'German', 	'Der Relogin war nicht erfolgreich. Haben Sie ein falsches Passwort eingegeben? Schauen Sie f&uuml;r Details bitte in die Logs.');
+INSERT INTO txt VALUES ('E6001', 'English', 'Re-login unsuccessful. Did you enter a wrong password? See log for details!');
 
 INSERT INTO txt VALUES ('E7001', 'German',  'Aktion wurde bereits durchgef&uuml;hrt');
 INSERT INTO txt VALUES ('E7001', 'English', 'Action has already been processed');

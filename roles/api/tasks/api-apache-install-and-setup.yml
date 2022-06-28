@@ -1,7 +1,11 @@
 
 - block:
     - name: Install webserver packages
-      package: name={{ webserver_package_name }} state=present
+      package: name={{ item }} state=present
+      with_items:
+        - "{{ webserver_package_name }}"
+        - libapache2-mod-wsgi
+      environment: "{{ proxy_env }}"
 
     - set_fact: api_server_name="{{ ansible_hostname }}"          #  this only works for importer = backend
 

@@ -4,7 +4,7 @@
       package: name={{ item }} state=present
       with_items:
         - "{{ webserver_package_name }}"
-        - libapache2-mod-wsgi
+        - "{{ wsgi_package_name }}"
       environment: "{{ proxy_env }}"
 
     - set_fact: api_server_name="{{ ansible_hostname }}"          #  this only works for importer = backend

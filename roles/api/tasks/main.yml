@@ -14,6 +14,12 @@
     group: "{{ fworch_group }}"
   become: yes
 
+- name: install acl
+  package:
+    name: acl
+    state: present
+  become: yes
+
 - name: install apache2
   import_tasks: api-apache-install-and-setup.yml
 

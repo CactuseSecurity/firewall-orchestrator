@@ -14,6 +14,7 @@
         - proxy_http
         - ssl
         - proxy_wstunnel
+        - wsgi
 
     - name: copy mw httpd config file to mw target
       template:

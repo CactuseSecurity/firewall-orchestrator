@@ -4,7 +4,7 @@
       package: name={{ item }} state=present
       with_items:
         - "{{ webserver_package_name }}"
-        - libapache2-mod-wsgi
+        - "{{ wsgi_package_name }}"
       environment: "{{ proxy_env }}"
 
     - name: enable apache modules proxy proxy_http ssl

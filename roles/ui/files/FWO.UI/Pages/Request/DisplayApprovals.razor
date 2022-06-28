@@ -1,0 +1,62 @@
+@using FWO.Api.Client
+@using FWO.Config.Api
+@using FWO.Ui.Services
+
+
+@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, auditor, fw-admin")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+
+<PopUp Title="@(userConfig.GetText("approvals"))" Show="@Display" XLarge="true" OnClose="() => Display = false">
+    <Body>
+        @if (Display)
+        {
+            <div class="m-2">
+                <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="RequestApproval" Items="Approvals" PageSize="0" ColumnReorder="true">
+                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("opened"))" Field="@(x => x.DateOpened)" Sortable="true" Filterable="true" />
+                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("deadline"))" Field="@(x => x.Deadline)" Sortable="true" Filterable="true" />
+                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("approved"))" Field="@(x => x.ApprovalDate)" Sortable="true" Filterable="true" />
+                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("approver"))" Field="@(x => x.ApproverDn)" Sortable="true" Filterable="true" />
+                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="true" >
+                        <Template>
+                            @(States.Name[context.StateId])
+                        </Template>
+                    </Column>
+                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("comment"))" Field="@(x => x.Comment)" Sortable="true" Filterable="true" />
+                </Table>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("ok"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public List<RequestApproval> Approvals { get; set; } = new List<RequestApproval>();
+
+    [Parameter]
+    public RequestStateDict States { get; set; } = new RequestStateDict();
+
+
+    private void Cancel()
+    {
+        Display = false;
+    }
+}

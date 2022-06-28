@@ -569,6 +569,8 @@ INSERT INTO txt VALUES ('delete_element',       'German', 	'Element l&ouml;schen
 INSERT INTO txt VALUES ('delete_element',       'English', 	'Delete element');
 INSERT INTO txt VALUES ('requester', 			'German',	'Antragsteller');
 INSERT INTO txt VALUES ('requester', 			'English',	'Requester');
+INSERT INTO txt VALUES ('promote', 		        'German',	'Status &auml;ndern');
+INSERT INTO txt VALUES ('promote', 		        'English',	'Promote');
 INSERT INTO txt VALUES ('promote_to', 			'German',	'Status &auml;ndern');
 INSERT INTO txt VALUES ('promote_to', 			'English',	'Promote to');
 INSERT INTO txt VALUES ('closed', 				'German',	'Geschlossen');
@@ -589,6 +591,8 @@ INSERT INTO txt VALUES ('approval', 			'German',	'Genehmigung');
 INSERT INTO txt VALUES ('approval', 			'English',	'Approval');
 INSERT INTO txt VALUES ('approve', 			    'German',	'Genehmigen');
 INSERT INTO txt VALUES ('approve', 			    'English',	'Approve');
+INSERT INTO txt VALUES ('save_approval',        'German', 	'Genehmigung speichern');
+INSERT INTO txt VALUES ('save_approval',        'English', 	'Save approval');
 INSERT INTO txt VALUES ('start_approval',       'German', 	'Genehmigung beginnen');
 INSERT INTO txt VALUES ('start_approval',       'English', 	'Start approval');
 INSERT INTO txt VALUES ('continue_approval',    'German', 	'Genehmigung fortsetzen');
@@ -625,6 +629,8 @@ INSERT INTO txt VALUES ('deadline',             'German', 	'Deadline');
 INSERT INTO txt VALUES ('deadline',             'English',  'Deadline');
 INSERT INTO txt VALUES ('assign_to', 			'German',	'Weiterleiten an');
 INSERT INTO txt VALUES ('assign_to', 			'English',	'Assign to');
+INSERT INTO txt VALUES ('assign_group', 		'German',	'Gruppe zuweisen');
+INSERT INTO txt VALUES ('assign_group', 		'English',	'Assign group');
 
 
 -- recertification
@@ -1620,6 +1626,8 @@ INSERT INTO txt VALUES ('E8008', 'German',  'Element konnte nicht gel&ouml;scht 
 INSERT INTO txt VALUES ('E8008', 'English', 'Element could not be deleted');
 INSERT INTO txt VALUES ('E8009', 'German',  'Genehmigung konnte nicht angelegt werden');
 INSERT INTO txt VALUES ('E8009', 'English', 'Approval could not be created');
+INSERT INTO txt VALUES ('E8010', 'German',  'Bitte Gruppe ausw&auml;hlen');
+INSERT INTO txt VALUES ('E8010', 'English', 'Please select group');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');

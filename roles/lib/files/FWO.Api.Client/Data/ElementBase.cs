@@ -1,5 +1,7 @@
 ﻿using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
+using System.Net;
+using Microsoft.AspNetCore.HttpOverrides;
 
 namespace FWO.Api.Data
 {
@@ -14,6 +16,7 @@ namespace FWO.Api.Data
     {
         [JsonProperty("ip"), JsonPropertyName("ip")]
         public string Ip { get; set; } = "";
+        // public IPNetwork Ip { get; set; } = new IPNetwork(new IPAddress(0), 32);
 
         [JsonProperty("port"), JsonPropertyName("port")]
         public int Port { get; set; }
@@ -55,7 +58,7 @@ namespace FWO.Api.Data
         public bool Sanitize()
         {
             bool shortened = false;
-            Ip = Sanitizer.SanitizeMand(Ip, ref shortened);
+            // Ip = Sanitizer.SanitizeMand(Ip, ref shortened);
             Field = Sanitizer.SanitizeMand(Field, ref shortened);
             return shortened;
         }

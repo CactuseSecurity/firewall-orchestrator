@@ -1,0 +1,38 @@
+﻿@using FWO.Api.Client
+@using FWO.Config.Api
+
+@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, auditor, fw-admin")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    
+    public async Task UpdateReqTaskInDb(RequestTask task, ApiConnection apiConnection)
+    {
+        try
+        {
+            var Variables = new
+            {
+                id = task.Id,
+                state = task.StateId,
+                start = task.Start,
+                stop = task.Stop,
+                handler = task.CurrentHandler?.DbId,
+                comment = task.FwAdminComments
+            };
+            int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequestTaskState, Variables)).UpdatedId;
+            if(udId != task.Id)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_task"), userConfig.GetText("E8004"), true);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("save_task"), "", true);
+        }
+    }
+}

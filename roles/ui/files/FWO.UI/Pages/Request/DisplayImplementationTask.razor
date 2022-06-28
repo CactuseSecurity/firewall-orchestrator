@@ -1,0 +1,802 @@
+@using FWO.Api.Client
+@using FWO.Config.Api
+@using FWO.Ui.Services
+
+@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, auditor, fw-admin")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+
+<PopUp Title="@(userConfig.GetText("task") + ": " + ImplTask.ImplTaskNumber)" Show="@Display" Large="true" OnClose="() => {Display = false; AddMode = false; EditMode = false;}">
+    <Body>
+        @if (Display)
+        {
+            <form>
+                <div class="form-group row">
+                    <label for="taskDevId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("device"))*:</label>
+                    @if (EditMode)
+                    {
+                        <div class="col-sm-8">
+                            <select id="taskDevId" class="form-control form-control-sm" @bind="ImplTask.DeviceId">
+                                @foreach (Device device in devices)
+                                {
+                                    <option value="@device.Id">@(device.Name)</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@(ImplTask.DeviceId != null && ImplTask.DeviceId != 0 ? devices[devices.FindIndex(x => x.Id == ImplTask.DeviceId)].Name : "")</label>
+                    }
+                </div>
+                <div class="form-group row">
+                    <label for="taskReqAction" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("action"))*:</label>
+                    @if (EditMode)
+                    {
+                        <div class="col-sm-8">
+                            <select id="taskReqAction" class="form-control form-control-sm" @bind="ImplTask.ImplAction">
+                                @foreach (string action in Enum.GetNames(typeof(RequestAction)))
+                                {
+                                    <option value="@action">@(userConfig.GetText(action))</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@(userConfig.GetText(ImplTask.ImplAction))</label>
+                    }
+                </div>
+                <div class="form-group row">
+                    <label for="taskRuleAction" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("rule_action")):</label>
+                    @if (EditMode)
+                    {
+                        <div class="col-sm-8">
+                            <select id="taskRuleAction" class="form-control form-control-sm" @bind="ImplTask.RuleAction">
+                                @foreach (var action in ruleActions)
+                                {
+                                    <option value="@action.Id">@(action.Name)</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@(((ImplTask.RuleAction != null) ? ruleActions.Find(x => x.Id == ImplTask.RuleAction)?.Name : ""))</label>
+                    }
+                </div>
+                <div class="form-group row">
+                    <label for="taskRuleTracking" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("track")):</label>
+                    @if (EditMode)
+                    {
+                        <div class="col-sm-8">
+                            <select id="taskRuleTracking" class="form-control form-control-sm" @bind="ImplTask.Tracking">
+                                @foreach (var track in trackings)
+                                {
+                                    <option value="@track.Id">@(track.Name)</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@(((ImplTask.Tracking != null) ? trackings.Find(x => x.Id == ImplTask.Tracking)?.Name : ""))</label>
+                    }
+                </div>
+                <div class="form-group row">
+                    <label for="taskRuleValidFrom" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("valid_from")):</label>
+                    @if (EditMode)
+                    {
+                        <div class="col-sm-8">
+                            <input id="taskRuleValidFrom" type="date" class="form-control form-control-sm" @bind="ImplTask.TargetBeginDate" />
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@ImplTask.TargetBeginDate?.ToString("d")</label>
+                    }
+                </div>
+                <div class="form-group row">
+                    <label for="taskRuleValidTo" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("valid_to")):</label>
+                    @if (EditMode)
+                    {
+                        <div class="col-sm-8">
+                            <input id="taskRuleValidTo" type="date" class="form-control form-control-sm" @bind="ImplTask.TargetEndDate" />
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@ImplTask.TargetEndDate?.ToString("d")</label>
+                    }
+                </div>
+                <div class="form-group row">
+                    <label for="taskComment" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
+                    @if (EditMode || ImplementMode)
+                    {
+                        <div class="col-sm-8">
+                            <input id="taskComment" type="text" class="form-control form-control-sm" @bind="ImplTask.FwAdminComments" />
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@ImplTask.FwAdminComments</label>
+                    }
+                </div>
+                @(userConfig.GetText("elements"))
+                @if (EditMode)
+                {
+                    <div class="btn-group">
+                        <button class="btn btn-success m-2" @onclick:preventDefault @onclick="SearchImplElement">@(userConfig.GetText("search_element"))</button>
+                        <button class="btn btn-success m-2" @onclick:preventDefault @onclick="AddImplElement">@(userConfig.GetText("add_element"))</button>
+                    </div>
+                }
+                <div class="m-2">
+                    <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="ImplementationElement" Items="ImplTask.ImplElements" PageSize="0" ColumnReorder="true">
+                        <Column TableItem="ImplementationElement" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                            <Template>
+                                <div class="btn-group">
+                                    @if (EditMode)
+                                    {
+                                        <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => EditImplElement(context)">@(userConfig.GetText("edit"))</button>
+                                        <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteImplElement(context)">@(userConfig.GetText("delete"))</button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowImplElement(context)">@(userConfig.GetText("details"))</button>
+                                    }
+                                </div>
+                            </Template>
+                        </Column>
+                        <Column TableItem="ImplementationElement" Title="@(userConfig.GetText("action"))" Field="@(x => x.ImplAction)" Sortable="true" Filterable="true" >
+                            <Template>
+                                @(userConfig.GetText(context.ImplAction))
+                            </Template>
+                        </Column>
+                        <Column TableItem="ImplementationElement" Title="@(userConfig.GetText("type"))" Field="@(x => x.Field)" Sortable="true" Filterable="true" />
+                        <Column TableItem="ImplementationElement" Title="@(userConfig.GetText("ip"))" Field="@(x => x.Ip)" Sortable="true" Filterable="true" />
+                        <Column TableItem="ImplementationElement" Title="@(userConfig.GetText("port"))" Field="@(x => x.Port)" Sortable="true" Filterable="true" />
+                        <Column TableItem="ImplementationElement" Title="@(userConfig.GetText("protocol"))" Field="@(x => x.ProtoId)" Sortable="true" Filterable="true" >
+                            <Template>
+                                @(((context.ProtoId != null) ? ipProtos.Find(x => x.Id == context.ProtoId)?.Name : ""))
+                            </Template>
+                        </Column>
+                </Table>
+                </div>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            @if (EditMode)
+            {
+                <AuthorizeView Roles="admin, planner, fw-admin">
+                    <Authorized>
+                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveImplTask">@(userConfig.GetText("save"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+            }
+            else if (ImplementMode)
+            {
+                <AuthorizeView Roles="admin, implementer, fw-admin">
+                    <Authorized>
+                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteImplTask">@(userConfig.GetText("promote_task"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("promote_task"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+            }
+            <button class="btn btn-sm btn-secondary" @onclick="CancelImplTask">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText("element") + ": " + actImplElement.Id)" Show="@ShowImplElementMode" Large="true" OnClose="() => ShowImplElementMode = false">
+    <Body>
+        @if (ShowImplElementMode)
+        {
+            <form>
+                <div class="form-group row">
+                    <label for="elementAction" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("action"))*:</label>
+                    @if (EditImplElementMode) 
+                    {
+                        <div class="col-sm-8">
+                            <select id="elementAction" class="form-control form-control-sm" @bind="actImplElement.ImplAction">
+                                @foreach (string action in Enum.GetNames(typeof(RequestAction)))
+                                {
+                                    <option value="@action">@(userConfig.GetText(action))</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@(userConfig.GetText(actImplElement.ImplAction))</label>
+                    }              
+                </div>
+                <div class="form-group row">
+                    <label for="elementField" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("type"))*:</label>
+                    @if (EditImplElementMode) 
+                    {
+                        <div class="col-sm-8">
+                            <select id="elementField" class="form-control form-control-sm" @bind="actImplElement.Field">
+                                @foreach (string type in Enum.GetNames(typeof(RuleField)))
+                                {
+                                    <option value="@type">@(userConfig.GetText(type))</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@actImplElement.Field</label>
+                    }              
+                </div>
+                <div class="form-group row">
+                    <label for="elementIp" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ip"))*:</label>
+                    @if (EditImplElementMode) 
+                    {
+                        <div class="col-sm-8">
+                            <input id="elementIp" type="text" class="form-control form-control-sm" @bind="actImplElement.Ip" />
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@actImplElement.Ip</label>
+                    }              
+                </div>
+                <div class="form-group row">
+                    <label for="elementPort" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
+                    @if (EditImplElementMode) 
+                    {
+                        <div class="col-sm-8">
+                            <input id="elementPort" type="text" class="form-control form-control-sm" @bind="actImplElement.Port" />
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@actImplElement.Port</label>
+                    }              
+                </div>
+                <div class="form-group row">
+                    <label for="elementProto" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("protocol")):</label>
+                    @if (EditImplElementMode)
+                    {
+                        <div class="col-sm-8">
+                            <select id="elementProto" class="form-control form-control-sm" @bind="actImplElement.ProtoId">
+                                @foreach (var proto in ipProtos)
+                                {
+                                    <option value="@proto.Id">@(proto.Name)</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@(((actImplElement.ProtoId != null) ? ipProtos.Find(x => x.Id == actImplElement.ProtoId)?.Name : ""))</label>
+                    }
+                </div>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            @if (EditImplElementMode)
+            {
+                <AuthorizeView Roles="admin, planner, fw-admin">
+                    <Authorized>
+                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveImplElement">@(userConfig.GetText("save"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+            }
+            <button class="btn btn-sm btn-secondary" @onclick="CancelImplElement">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText("search_element"))" Show="@SearchImplElementMode" Large="true" OnClose="() => SearchImplElementMode = false">
+    <Body>
+        @if (SearchImplElementMode)
+        {
+            <form>
+                <div class="form-group row">
+                    <label for="elementObject" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("object")):</label>
+                    <div class="col-sm-8">
+                        <select id="elementObject" class="form-control form-control-sm" @bind="actImplElement.NetworkId">
+                            @foreach (NetworkObject nwObject in nwObjects)
+                            {
+                                <option value="@nwObject.Id">@(nwObject.Name)</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            @if (EditImplElementMode)
+            {
+                <AuthorizeView Roles="admin, planner, fw-admin">
+                    <Authorized>
+                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveImplElement">@(userConfig.GetText("save"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+            }
+            <button class="btn btn-sm btn-secondary" @onclick="CancelImplElement">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText("delete_element"))" Show="@DeleteImplElementMode" OnClose="() => DeleteImplElementMode = false">
+    <Body>
+        @if (DeleteImplElementMode)
+        {
+            <p>@(userConfig.GetText("U8001")) @(actImplElement.Ip)?</p>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="admin, planner, fw-admin">
+                <Authorized>
+                    <button class="btn btn-sm btn-danger" @onclick="ConfDeleteImplElement">@(userConfig.GetText("delete"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button class="btn btn-sm btn-secondary" @onclick="CancelImplElement">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PromoteObject @bind-Display="PromoteImplTaskMode" Save="PromoteImplTask" StatefulObject="ImplTask" PossibleStates="possibleStates" States="States"></PromoteObject>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    
+    [Parameter]
+    public WorkflowPhases Phase { get; set; } = WorkflowPhases.planning;
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public bool EditMode { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> EditModeChanged { get; set; }
+
+    [Parameter]
+    public bool AddMode { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> AddModeChanged { get; set; }
+
+    [Parameter]
+    public bool ImplementMode { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> ImplementModeChanged { get; set; }
+
+    [Parameter]
+    public ImplementationTask ImplTask { get; set; } = new ImplementationTask();
+
+    [Parameter]
+    public StateMatrix StateMatrix { get; set; } = new StateMatrix();
+
+    [Parameter]
+    public RequestStateDict States { get; set; } = new RequestStateDict();
+
+    [Parameter]
+    public RequestTask ReqTask { get; set; } = new RequestTask();
+
+    [Parameter]
+    public EventCallback<RequestTask> ReqTaskChanged { get; set; }
+
+
+    private List<NetworkObject> nwObjects = new List<NetworkObject>();
+    private List<IpProtocol> ipProtos = new List<IpProtocol>();
+    private List<RuleAction> ruleActions = new List<RuleAction>();
+    private List<Tracking> trackings = new List<Tracking>();
+    private List<Device> devices = new List<Device>();
+    
+    private ImplementationElement actImplElement = new ImplementationElement();
+    private List<int> possibleStates = new List<int>();
+    private bool PromoteImplTaskMode = false;
+    private bool ShowImplElementMode = false;
+    private bool EditImplElementMode = false;
+    private bool AddImplElementMode = false;
+    private bool SearchImplElementMode = false;
+    private bool DeleteImplElementMode = false;
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // nwObjects = await apiConnection.SendQueryAsync<List<NetworkObject>>(FWO.Api.Client.Queries.ObjectQueries.getNetworkObjects);
+            ipProtos = await apiConnection.SendQueryAsync<List<IpProtocol>>(FWO.Api.Client.Queries.StmQueries.getIpProtocols);
+            ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(FWO.Api.Client.Queries.StmQueries.getRuleActions);
+            trackings = await apiConnection.SendQueryAsync<List<Tracking>>(FWO.Api.Client.Queries.StmQueries.getTracking);
+            devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private async Task SaveImplTask()
+    {
+        try
+        {
+            if (ImplTask.Sanitize())
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_task"), userConfig.GetText("U0001"), true);
+            }
+            if (CheckTaskValues())
+            {
+                if (AddMode)
+                {
+                    ImplTask.Id = await AddTaskToDb(ImplTask);
+                    ReqTask.ImplementationTasks.Add(ImplTask);
+                }
+                else
+                {
+                    await UpdateTaskInDb(ImplTask);
+                    ReqTask.ImplementationTasks[ReqTask.ImplementationTasks.FindIndex(x => x.ImplTaskNumber == ImplTask.ImplTaskNumber)] = ImplTask;
+                }
+                Display = false;
+                EditMode = false;
+                AddMode = false;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("save_task"), "", true);
+        }
+    }
+
+    private bool CheckTaskValues()
+    {
+        @* if (ImplTask. == null || ImplTask. == "")
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
+            return false;
+        } *@
+        return true;
+    }
+
+    private void CancelImplTask()
+    {
+        Display = false;
+        EditMode = false;
+        AddMode = false;
+    }
+
+    private async Task InitPromoteImplTask()
+    {
+        possibleStates = StateMatrix.getAllowedTransitions(ImplTask.StateId);
+        if(possibleStates.Count == 1)
+        {
+            ImplTask.StateId = possibleStates[0];
+            await SaveImplTask();
+        }
+        else
+        {
+            PromoteImplTaskMode = true;
+        }
+    }
+
+    private async Task PromoteImplTask(StatefulObject implTask)
+    {
+        try
+        {
+            ImplTask.StateId = implTask.StateId;
+            PromoteImplTaskMode = false;
+            ImplTask.CurrentHandler = userConfig.User;
+            await UpdateTaskStateInDb(ImplTask);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("save_task"), "", true);
+        }
+    }
+
+    private void SearchImplElement()
+    {
+        actImplElement = new ImplementationElement();
+        SearchImplElementMode = true;
+    }
+
+    private void ShowImplElement(ImplementationElement element)
+    {
+        actImplElement = new ImplementationElement(element);
+        ShowImplElementMode = true;
+    }
+
+    private void EditImplElement(ImplementationElement element)
+    {
+        EditImplElementMode = true;
+        ShowImplElement(element);
+    }
+
+    private void AddImplElement()
+    {
+        AddImplElementMode = true;
+        EditImplElement(new ImplementationElement());
+    }
+
+    private async Task SaveImplElement()
+    {
+        try
+        {
+            if (actImplElement.Sanitize())
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_element"), userConfig.GetText("U0001"), true);
+            }
+            if (CheckElementValues())
+            {    
+                if (AddImplElementMode)
+                {
+                    if(ImplTask.Id > 0)
+                    {
+                        actImplElement.ImplTaskId = ImplTask.Id;
+                        actImplElement.Id = await AddElementToDb(actImplElement);
+                    }
+                    ImplTask.ImplElements.Add(actImplElement);
+                }
+                else
+                {
+                    if(actImplElement.Id > 0)
+                    {
+                        await UpdateElementInDb(actImplElement);
+                    }
+                    ImplTask.ImplElements[ImplTask.ImplElements.FindIndex(x => x.Id == actImplElement.Id)] = actImplElement;
+                }
+                ShowImplElementMode = false;
+                EditImplElementMode = false;
+                AddImplElementMode = false;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("save_element"), "", true);
+        }
+    }
+
+    private bool CheckElementValues()
+    {
+        if (actImplElement.Ip == null || actImplElement.Ip == "")
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("save_element"), userConfig.GetText("E5102"), true);
+            return false;
+        }
+        if (actImplElement.Port < 1 || actImplElement.Port > 65535)
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("save_element"), userConfig.GetText("E5103"), true);
+            return false;
+        }
+        return true;
+    }
+
+    private void DeleteImplElement(ImplementationElement element)
+    {
+        actImplElement = element;
+        DeleteImplElementMode = true;
+    }
+
+    private async Task ConfDeleteImplElement()
+    {
+        if(actImplElement.Id > 0)
+        {
+            await DeleteElementFromDb(actImplElement);
+        }
+        ImplTask.ImplElements.Remove(actImplElement);
+        DeleteImplElementMode = false;
+    }
+
+    private void CancelImplElement()
+    {
+        AddImplElementMode = false;
+        EditImplElementMode = false;
+        ShowImplElementMode = false;
+        SearchImplElementMode = false;
+        DeleteImplElementMode = false;
+    }
+
+        private async Task<int> AddTaskToDb(ImplementationTask task)
+    {
+        int returnId = 0;
+        try
+        {
+            var Variables = new
+            {
+                reqTaskId = task.ReqTaskId,
+                implIaskNumber = task.ImplTaskNumber,
+                state = task.StateId,
+                device = task.DeviceId,
+                implAction = task.ImplAction,
+                ruleAction = task.RuleAction,
+                tracking = task.Tracking,
+                handler = task.CurrentHandler?.DbId,
+                validFrom = task.TargetBeginDate,
+                validTo = task.TargetEndDate,
+                comment = task.FwAdminComments
+            };
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newImplementationTask, Variables)).ReturnIds;
+            if (returnIds == null)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("add_task"), userConfig.GetText("E8003"), true);
+            }
+            else
+            {
+                returnId = returnIds[0].NewId;
+                foreach(var element in task.ImplElements)
+                {
+                    element.ImplTaskId = returnId;
+                    await AddElementToDb(element);
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("add_task"), "", true);
+        }
+        return returnId;
+    }
+
+    private async Task UpdateTaskInDb(ImplementationTask task)
+    {
+        try
+        {
+            var Variables = new
+            {
+                id = task.Id,
+                reqTaskId = task.ReqTaskId,
+                implIaskNumber = task.ImplTaskNumber,
+                state = task.StateId,
+                device = task.DeviceId,
+                implAction = task.ImplAction,
+                ruleAction = task.RuleAction,
+                tracking = task.Tracking,
+                handler = task.CurrentHandler?.DbId,
+                validFrom = task.TargetBeginDate,
+                validTo = task.TargetEndDate,
+                comment = task.FwAdminComments
+            };
+            int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateImplementationTask, Variables)).UpdatedId;
+            if(udId != task.Id)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_task"), userConfig.GetText("E8004"), true);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("save_task"), "", true);
+        }
+    }
+
+    private async Task<int> AddElementToDb(ImplementationElement element)
+    {
+        int returnId = 0;
+        try
+        {
+            var Variables = new
+            {
+                implementationAction = element.ImplAction,
+                implTaskId = element.ImplTaskId,
+                ip = element.Ip,
+                port = element.Port,
+                proto = element.ProtoId,
+                network_obj_id = element.NetworkId,
+                service_id = element.ServiceId,
+                field = element.Field,
+                user_id = element.UserId,
+                original_nat_id = element.OriginalNatId
+            };
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newImplementationElement, Variables)).ReturnIds;
+            if (returnIds == null)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("add_element"), userConfig.GetText("E8006"), true);
+            }
+            else
+            {
+                returnId = returnIds[0].NewId;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("add_element"), "", true);
+        }
+        return returnId;
+    }
+
+    private async Task UpdateElementInDb(ImplementationElement element)
+    {
+        try
+        {
+            var Variables = new
+            {
+                id = element.Id,                
+                implementationAction = element.ImplAction,
+                implTaskId = element.ImplTaskId,
+                ip = element.Ip,
+                port = element.Port,
+                proto = element.ProtoId,
+                network_obj_id = element.NetworkId,
+                service_id = element.ServiceId,
+                field = element.Field,
+                user_id = element.UserId,
+                original_nat_id = element.OriginalNatId
+            };
+            int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateImplementationElement, Variables)).UpdatedId;
+            if(udId != element.Id)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_element"), userConfig.GetText("E8007"), true);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("save_element"), "", true);
+        }
+    }
+
+    private async Task DeleteElementFromDb(ImplementationElement element)
+    {
+        try
+        {
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.deleteImplementationElement, new { id = element.Id })).DeletedId;
+            if(delId != element.Id)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("delete_element"), userConfig.GetText("E8008"), true);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_element"), "", true);
+        }
+    }
+        
+    private async Task UpdateTaskStateInDb(ImplementationTask task)
+    {
+        try
+        {
+            var Variables = new
+            {
+                id = task.Id,
+                state = task.StateId,
+                start = task.Start,
+                stop = task.Stop,
+                handler = task.CurrentHandler?.DbId
+            };
+            int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateImplementationTaskState, Variables)).UpdatedId;
+            if(udId != task.Id)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_task"), userConfig.GetText("E8004"), true);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("save_task"), "", true);
+        }
+    }
+}

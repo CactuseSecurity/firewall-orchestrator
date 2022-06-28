@@ -1,0 +1,72 @@
+@using FWO.Api.Client
+@using FWO.Config.Api
+@using FWO.Ui.Services
+
+@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, auditor, fw-admin")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+
+<PopUp Title="@(userConfig.GetText("promote"))" Show="@Display" OnClose="() => Display = false">
+    <Body>
+        @if (Display)
+        {
+            <div class="form-group row">
+                <label for="promoteObject" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("promote_to")):</label>
+                <div class="col-sm-8">
+                    <select id="promoteObject" class="form-control form-control-sm" @bind="StatefulObject.StateId">
+                        @foreach (int state in PossibleStates)
+                        {
+                            <option value="@state">@(States.Name[state])</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="admin, requester, approver, planner, implementer, fw-admin">
+                <Authorized>
+                    <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => {Save(StatefulObject); Display = false;}">@(userConfig.GetText("save"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public Func<StatefulObject, Task>? Save { get; set; }
+
+    [Parameter]
+    public StatefulObject StatefulObject { get; set; } = new StatefulObject();
+
+    [Parameter]
+    public List<int> PossibleStates { get; set; } = new List<int>();
+
+    [Parameter]
+    public RequestStateDict States { get; set; } = new RequestStateDict();
+
+
+    private void Cancel()
+    {
+        Display = false;
+    }
+}

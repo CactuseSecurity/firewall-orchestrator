@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class ImplementationTask
+    public class ImplementationTask: StatefulObject
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
@@ -13,9 +13,6 @@ namespace FWO.Api.Data
 
         [JsonProperty("implementation_task_number"), JsonPropertyName("implementation_task_number")]
         public int ImplTaskNumber { get; set; }
-
-        [JsonProperty("state_id"), JsonPropertyName("state_id")]
-        public int StateId { get; set; }
 
         [JsonProperty("device_id"), JsonPropertyName("device_id")]
         public int? DeviceId { get; set; }

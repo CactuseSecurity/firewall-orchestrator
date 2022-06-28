@@ -1,0 +1,138 @@
+@using FWO.Api.Client
+@using FWO.Config.Api
+@using FWO.Ui.Services
+@using FWO.Middleware.Client
+
+
+@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, auditor, fw-admin")]
+
+@inject ApiConnection apiConnection
+@inject MiddlewareClient middlewareClient
+@inject UserConfig userConfig
+
+<PopUp Title="@(userConfig.GetText("task") + ": " + ReqTask.Title)" Show="@Display" Large="true" OnClose="() => Display = false">
+    <Body>
+        @if (Display)
+        {
+            <form>
+                <form class="form-group row">
+                    <label for="roleInternalGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("assign_to")):</label>
+                    <div class="col-sm-8">
+                        <select id="roleInternalGroup" class="form-control-sm col-sm" @bind="ReqTask.AssignedGroup">
+                            @foreach (var group in userAndGroupList)
+                            {
+                                <option value="@group.Dn">@(group.Name)</option>
+                            }
+                        </select>
+                    </div>
+                    @if(userAndGroupList.Count > 0)
+                    {
+                        <div class="col-sm-2">
+
+                            <AuthorizeView Roles="admin">
+                                <Authorized>
+                                    <button class="btn btn-sm btn-success" @onclick="() => AssignGroup()" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                                </Authorized>
+                                <NotAuthorized>
+                                    <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
+                                </NotAuthorized> 
+                            </AuthorizeView>
+                        </div>
+                    }
+                </form>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public RequestTask ReqTask { get; set; } = new RequestTask();
+
+    [Parameter]
+    public EventCallback<RequestTask> ReqTaskChanged { get; set; }
+
+    [Parameter]
+    public WorkflowPhases Phase { get; set; } = WorkflowPhases.planning;
+
+
+    private List<UiUser> userAndGroupList = new List<UiUser>();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            userAndGroupList = await RoleAccess.GetRoleMembers(middlewareClient, "planner");
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_requests"), "", true);
+        }
+    }
+
+    private async Task AssignGroup()
+    {
+        ReqTask.RecentHandler = ReqTask.CurrentHandler;
+        if(CheckValues())
+        {
+            await UpdateReqTaskInDb(ReqTask);
+            Display = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        Display = false;
+    }
+
+    private bool CheckValues()
+    {
+        if (ReqTask.AssignedGroup == null || ReqTask.AssignedGroup == "")
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("assign_group"), userConfig.GetText("E8010"), true);
+            return false;
+        }
+        return true;
+    }
+
+    private async Task UpdateReqTaskInDb(RequestTask task)
+    {
+        try
+        {
+            var Variables = new
+            {
+                id = task.Id,
+                handler = task.CurrentHandler?.DbId,
+                recentHandler = task.RecentHandler?.DbId,
+                assignedGroup = task.AssignedGroup,
+                comment = task.FwAdminComments
+            };
+            int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequestTaskState, Variables)).UpdatedId;
+            if(udId != task.Id)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("assign_group"), userConfig.GetText("E8004"), true);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("assign_group"), "", true);
+        }
+    }
+}

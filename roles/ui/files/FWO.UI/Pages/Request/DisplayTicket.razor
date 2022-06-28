@@ -1,0 +1,646 @@
+@using FWO.Api.Client
+@using FWO.Config.Api
+@using FWO.Ui.Services
+
+@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, auditor, fw-admin")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+
+<PopUp Title="@(userConfig.GetText("request") + ": " + Ticket.Title)" Show="@Display" XLarge="true" OnClose="() => Close()">
+    <Body>
+        @if (Display)
+        {
+            <form>
+                <div class="form-group row">
+                    <label for="ticketId" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                    <label class="col-sm-1">@Ticket.Id</label>
+                    <label for="ticketTitle" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("title"))*:</label>
+                    @if (EditMode)
+                    {
+                        <div class="col-sm-9">
+                            <input id="ticketTitle" type="text" class="form-control form-control-sm" @bind="Ticket.Title" />
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-9">@Ticket.Title</label>
+                    }
+                </div>
+
+                <div class="form-group row">
+                    <label for="ticketState" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
+                    <label class="col-sm-2">@States.Name[Ticket.StateId]</label>
+                    <label for="ticketRequester" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("requester")):</label>
+                    <label class="col-sm-2">@Ticket.Requester?.Name</label>
+                </div>
+                <div class="form-group row">
+                    <label for="ticketReason" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
+                    @if (EditMode)
+                    {
+                        <div class="col-sm-11">
+                            <input id="ticketReason" type="text" class="form-control form-control-sm" @bind="Ticket.Reason" />
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-11">@Ticket.Reason</label>
+                    }
+                </div>
+ 
+                @if(Phase != WorkflowPhases.implementation)
+                {
+                    <h5>@(userConfig.GetText("tasks"))</h5>
+                    @if (EditMode)
+                    {
+                        <button class="btn btn-success m-2" @onclick:preventDefault @onclick="AddReqTask">@(userConfig.GetText("add_task"))</button>
+                    }
+                    <div class="m-2">
+                        <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="RequestTask" Items="Ticket.Tasks" PageSize="0" ColumnReorder="true">
+                            <Column TableItem="RequestTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                                <Template>
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowReqTask(context)">@(userConfig.GetText("details"))</button>
+                                        @if (EditMode)
+                                        {
+                                            <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => EditReqTask(context)">@(userConfig.GetText("edit"))</button>
+                                            <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteReqTask(context)">@(userConfig.GetText("delete"))</button>
+                                        }
+                                        else if (Phase == WorkflowPhases.request)
+                                        {
+                                            <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowApprovals(context)">@(userConfig.GetText("approvals"))</button>
+                                        }
+                                        else if (context.StateId < StateMatrix.LowestStartedState)
+                                        {
+                                            <AuthorizeView Roles="admin, approver, planner, fw-admin">
+                                                <Authorized Context="ctx">
+                                                    <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => StartPhase(context)">@(userConfig.GetText("start_" + Phase.ToString()))</button>
+                                                </Authorized>
+                                                <NotAuthorized Context="ctx">
+                                                    <button class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("start_" + Phase.ToString()))</button>
+                                                </NotAuthorized> 
+                                            </AuthorizeView>
+                                        }
+                                        else if (context.StateId < StateMatrix.LowestEndState)
+                                        {
+                                            <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => {SetContinueEnv(context); ContinuePhase(context);}">@(userConfig.GetText("continue_" + Phase.ToString()))</button>
+                                            @if(Phase == WorkflowPhases.planning)
+                                            {
+                                                <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignTask(context)">@(userConfig.GetText("assign"))</button>
+                                            }
+                                        }
+                                    </div>
+                                </Template>
+                            </Column>
+                            <Column TableItem="RequestTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+                            <Column TableItem="RequestTask" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true" />
+                            <Column TableItem="RequestTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
+                                <Template>
+                                    @(States.Name[context.StateId])
+                                </Template>
+                            </Column>
+                            @if(Phase != WorkflowPhases.approval)
+                            {
+                                <Column TableItem="RequestTask" Title="@(userConfig.GetText("planner"))" Field="@(x => x.CurrentHandler.Name)" Sortable="true" Filterable="true" />
+                                <Column TableItem="RequestTask" Title="@(userConfig.GetText("start"))" Field="@(x => x.Start)" Sortable="true" Filterable="true" />
+                                <Column TableItem="RequestTask" Title="@(userConfig.GetText("stop"))" Field="@(x => x.Stop)" Sortable="true" Filterable="true" />
+                            }
+                        </Table>
+                    </div>
+                }
+                else
+                {
+                    <h5>@(userConfig.GetText("implementation_tasks"))</h5>
+                    <div class="m-2">
+                        <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="ImplementationTask" Items="AllImplTasks" PageSize="0" ColumnReorder="true">
+                            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                                <Template>
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowImplTask(implTask)">@(userConfig.GetText("details"))</button>
+                                        @if (implTask.StateId < StateMatrix.LowestStartedState)
+                                        {
+                                            <AuthorizeView Roles="admin, implementer, fw-admin">
+                                                <Authorized Context="ctx">
+                                                    <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => StartImplPhase(implTask)">@(userConfig.GetText("start_" + Phase.ToString()))</button>
+                                                </Authorized>
+                                                <NotAuthorized Context="ctx">
+                                                    <button class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("start_" + Phase.ToString()))</button>
+                                                </NotAuthorized> 
+                                            </AuthorizeView>
+                                        }
+                                        else if (implTask.StateId < StateMatrix.LowestEndState)
+                                        {
+                                            <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => {SetContinueImplEnv(implTask); ContinueImplPhase(implTask);}">@(userConfig.GetText("continue_" + Phase.ToString()))</button>
+                                        }
+                                    </div>
+                                </Template>
+                            </Column>
+                            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("task"))" Field="@(x => x.ReqTaskId)" Sortable="true" Filterable="true" />
+                            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("number"))" Field="@(x => x.ImplTaskNumber)" Sortable="true" Filterable="true" />
+                            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("device"))" Field="@(x => x.DeviceId)" Sortable="true">
+                                <Template>
+                                    @(implTask.DeviceId != null && implTask.DeviceId != 0 ? devices[devices.FindIndex(x => x.Id == implTask.DeviceId)].Name : "")
+                                </Template>
+                            </Column>
+                            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
+                                <Template>
+                                    @(States.Name[implTask.StateId])
+                                </Template>
+                            </Column>
+                            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("implementer"))" Field="@(x => x.CurrentHandler.Name)" Sortable="true" Filterable="true" />
+                        </Table>
+                    </div>
+                }
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            @if(EditMode)
+            {
+                <AuthorizeView Roles="admin, requester, fw-admin">
+                    <Authorized>
+                        <button class="btn btn-sm btn-primary" @onclick="InitSaveTicket">@(userConfig.GetText("save"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+            }
+            else if (CheckPromoteTicket())
+            {
+                <AuthorizeView Roles="admin, requester, approver, planner, implementer, fw-admin">
+                    <Authorized>
+                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="PromoteTicket">@(userConfig.GetText("promote_ticket"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("promote_ticket"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+            }
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText("delete_task"))" Show="@DeleteReqTaskMode" OnClose="() => DeleteReqTaskMode = false">
+    <Body>
+        @if (DeleteReqTaskMode)
+        {
+            <p>@(userConfig.GetText("U8002")) @(actTask.Title)?</p>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="admin, requester, fw-admin">
+                <Authorized>
+                    <button class="btn btn-sm btn-danger" @onclick="ConfDeleteReqTask">@(userConfig.GetText("delete"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button class="btn btn-sm btn-secondary" @onclick="CancelDelete">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<DisplayRequestTask Phase="Phase" @bind-Display="ShowReqTaskMode" @bind-EditMode="EditReqTaskMode" @bind-AddMode="AddReqTaskMode" 
+    ReqTask="actTask" StateMatrix="StateMatrix" States="States" @bind-Ticket="Ticket"></DisplayRequestTask>
+<DisplayImplementationTask Phase="Phase" @bind-Display="ShowImplTaskMode" @bind-ImplementMode="ImplementMode" 
+    ImplTask="actImplTask" StateMatrix="StateMatrix" States="States" @bind-ReqTask="actTask"></DisplayImplementationTask>
+<AssignTask @bind-Display="AssignTaskMode" @bind-ReqTask="actTask"></AssignTask>
+<DisplayApprovals @bind-Display="ShowApprovalMode" Approvals="actTask.Approvals" States="States"></DisplayApprovals>
+<PromoteObject @bind-Display="SaveTicketMode" Save="SaveTicket" StatefulObject="Ticket" PossibleStates="possibleStates" States="States"></PromoteObject>
+<PromoteObject @bind-Display="PromoteTicketMode" Save="UpdateTicketState" StatefulObject="Ticket" PossibleStates="possibleStates" States="States"></PromoteObject>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    
+    [Parameter]
+    public WorkflowPhases Phase { get; set; } = WorkflowPhases.approval;
+
+    [Parameter]
+    public Func<RequestTask, Task>? StartPhase { get; set; }
+
+    [Parameter]
+    public Func<RequestTask, Task>? ContinuePhase { get; set; }
+
+    [Parameter]
+    public Func<ImplementationTask, Task>? StartImplPhase { get; set; }
+
+    [Parameter]
+    public Func<ImplementationTask, Task>? ContinueImplPhase { get; set; }
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public bool AddMode { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> AddModeChanged { get; set; }
+
+    [Parameter]
+    public bool EditMode { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> EditModeChanged { get; set; }
+
+    [Parameter]
+    public bool ImplementMode { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> ImplementModeChanged { get; set; }
+
+    [Parameter]
+    public RequestTicket Ticket { get; set; } = new RequestTicket();
+
+    [Parameter]
+    public EventCallback<RequestTicket> TicketChanged { get; set; }
+
+    [Parameter]
+    public List<ImplementationTask>? AllImplTasks { get; set; } = new List<ImplementationTask>();
+
+    [Parameter]
+    public StateMatrix StateMatrix { get; set; } = new StateMatrix();
+
+    [Parameter]
+    public RequestStateDict States { get; set; } = new RequestStateDict();
+
+    [Parameter]
+    public List<RequestTicket> Requests { get; set; } = new List<RequestTicket>();
+
+    [Parameter]
+    public EventCallback<List<RequestTicket>> RequestsChanged { get; set; }
+
+    private RequestTask actTask = new RequestTask();
+    private ImplementationTask actImplTask = new ImplementationTask();
+    private List<int> possibleStates = new List<int>();
+    private List<Device> devices = new List<Device>();
+    private bool ShowReqTaskMode = false;
+    private bool EditReqTaskMode = false;
+    private bool AddReqTaskMode = false;
+    private bool DeleteReqTaskMode = false;
+    private bool ShowApprovalMode = false;
+    private bool ShowImplTaskMode = false;
+    private bool AssignTaskMode = false;
+    private bool PromoteTicketMode = false;
+    private bool SaveTicketMode = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private void Close()
+    {
+        AddMode = false;
+        EditMode = false;
+        Display = false;
+    }
+
+    private void Reset()
+    {
+        PromoteTicketMode = false;
+        SaveTicketMode = false;
+        ShowReqTaskMode = false;
+        ShowImplTaskMode = false;
+        AssignTaskMode = false;
+        ShowApprovalMode = false;
+        AddReqTaskMode = false;
+        EditReqTaskMode = false;
+    }
+
+    private void Cancel()
+    {
+        Reset();
+        Close();
+    }
+
+    private void SetContinueEnv(RequestTask task)
+    {
+        actTask = task;
+        Reset();
+        ShowReqTaskMode = (Phase == WorkflowPhases.planning);
+    }
+
+    private void SetContinueImplEnv(ImplementationTask task)
+    {
+        actImplTask = task;
+        Reset();
+        ShowImplTaskMode = (Phase == WorkflowPhases.implementation);
+    }
+
+    private void AddReqTask()
+    {
+        actTask = new RequestTask(){ TicketId = Ticket.Id };
+        Reset();
+        AddReqTaskMode = true;
+        EditReqTaskMode = true;
+        ShowReqTaskMode = true;
+        StateHasChanged();
+    }
+
+    private void EditReqTask(RequestTask task)
+    {
+        actTask = task;
+        Reset();
+        EditReqTaskMode = true;
+        ShowReqTaskMode = true;
+        StateHasChanged();
+    }
+
+    private void ShowReqTask(RequestTask task)
+    {
+        actTask = task;
+        Reset();
+        ShowReqTaskMode = true;
+        StateHasChanged();
+    }
+
+    private void DeleteReqTask(RequestTask task)
+    {
+        actTask = task;
+        Reset();
+        DeleteReqTaskMode = true;
+    }
+
+    private async Task ConfDeleteReqTask()
+    {
+        if(actTask.Id > 0)
+        {
+            await DeleteReqTaskFromDb(actTask);
+        }
+
+        Ticket.Tasks.Remove(actTask);
+        // todo: adapt TaskNumbers of following tasks?
+        DeleteReqTaskMode = false;
+    }
+
+    private void CancelDelete()
+    {
+        DeleteReqTaskMode = false;
+    }
+
+    private void ShowApprovals(RequestTask task)
+    {
+        Reset();
+        actTask = task;
+        ShowApprovalMode = true;
+    }
+
+    private void ShowImplTask(ImplementationTask task)
+    {
+        Reset();
+        actImplTask = task;
+        ShowImplTaskMode = true;
+    }
+
+    private void AssignTask(RequestTask task)
+    {
+        Reset();
+        actTask = task;
+        AssignTaskMode = true;
+    }
+
+    private async Task PromoteTicket()
+    {
+        possibleStates = StateMatrix.getAllowedTransitions(Ticket.StateId);
+        if(possibleStates.Count == 1)
+        {
+            Ticket.StateId = possibleStates[0];
+            await UpdateTicketState(Ticket);
+        }
+        else
+        {
+            Reset();
+            PromoteTicketMode = true;
+            StateHasChanged();
+        }
+    }
+
+    private bool CheckPromoteTicket()
+    {
+        if (Ticket.StateId < StateMatrix.LowestStartedState || Ticket.StateId >= StateMatrix.LowestEndState)
+        {
+            return false;
+        }
+        int oldState = Ticket.StateId;
+        if(Ticket.Tasks.Count > 0)
+        {
+            List<int> taskStates = new List<int>();
+            foreach (RequestTask task in Ticket.Tasks)
+            {
+                taskStates.Add(task.StateId);
+            }
+            Ticket.StateId = StateMatrix.getRequestStateFromTaskStates(taskStates);
+            if(Ticket.StateId == oldState)
+            {
+                return false;
+            }
+            return true;
+        }
+        else
+        {
+            possibleStates = StateMatrix.getAllowedTransitions(Ticket.StateId);
+            if(possibleStates.Count == 1 && possibleStates[0] == oldState)
+            {
+                return false;
+            }
+            return true;
+        }
+    }
+
+    private async Task InitSaveTicket()
+    {
+        possibleStates = StateMatrix.getAllowedTransitions(Ticket.StateId);
+        if(Ticket.Tasks.Count == 0)
+        {
+            await SaveTicket(Ticket);
+        }
+        else if(possibleStates.Count == 1)
+        {
+            Ticket.StateId = possibleStates[0];
+            await SaveTicket(Ticket);
+        }
+        else
+        {
+            SaveTicketMode = true;
+        }
+    }
+
+    private async Task SaveTicket(StatefulObject ticket)
+    {
+        try
+        {
+            Ticket.StateId = ticket.StateId;
+            if (Ticket.Sanitize())
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("U0001"), true);
+            }
+            if (CheckRequestValues())
+            {
+                foreach(RequestTask task in Ticket.Tasks)
+                {
+                    task.StateId = Ticket.StateId;
+                }
+
+                if (AddMode)
+                {                  
+                    // insert new ticket
+                    Ticket.CreationDate = DateTime.Now;
+                    Ticket.Requester = userConfig.User;
+                    Ticket.Id = await AddTicketToDb(Ticket);
+                }
+                else
+                {
+                    // Update existing ticket
+                    await UpdateTicketInDb(Ticket);
+                }
+                Reset();
+                Close();
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("save_request"), "", true);
+        }
+    }
+
+    private bool CheckRequestValues()
+    {
+        if (Ticket.Title == null || Ticket.Title == "")
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("E5102"), true);
+            return false;
+        }
+        return true;
+    }
+    
+    private async Task UpdateTicketState(StatefulObject ticket)
+    {
+        try
+        {           
+            Ticket.StateId = ticket.StateId;
+            if (Phase == WorkflowPhases.implementation && Ticket.StateId >= StateMatrix.LowestEndState)
+            {
+                Ticket.CompletionDate = DateTime.Now;
+            }
+
+            // Update existing ticket state
+            var Variables = new
+            {
+                id = Ticket.Id,
+                state = Ticket.StateId,
+                closed = Ticket.CompletionDate
+            };
+            int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateTicketState, Variables)).UpdatedId;
+            if(udId != Ticket.Id)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("promote_ticket"), userConfig.GetText("E8002"), true);
+            }
+            else
+            {
+                Requests[Requests.FindIndex(x => x.Id == Ticket.Id)] = Ticket;
+                Reset();
+                Close();
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("promote_ticket"), "", true);
+        }
+    }
+
+    private async Task<int> AddTicketToDb(RequestTicket ticket)
+    {
+        int returnId = 0;
+        try
+        {
+            var Variables = new
+            {
+                title = ticket.Title,
+                state = ticket.StateId,
+                reason = ticket.Reason,
+                requesterId = ticket.Requester?.DbId,
+                requestTasks = new RequestTicketWriter(ticket)
+            };
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newTicket, Variables)).ReturnIds;
+            if (returnIds == null)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("E8001"), true);
+            }
+            else
+            {
+                returnId = returnIds[0].NewId;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("save_request"), "", true);
+        }
+        return returnId;
+    }
+
+    private async Task UpdateTicketInDb(RequestTicket ticket)
+    {
+        try
+        {
+            var Variables = new
+            {
+                id = ticket.Id,
+                title = ticket.Title,
+                state = ticket.StateId,
+                reason = ticket.Reason
+            };
+            int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateTicket, Variables)).UpdatedId;
+            if(udId != ticket.Id)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("E8002"), true);
+            }
+            else
+            {
+                foreach(RequestTask task in ticket.Tasks)
+                {
+                    await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequestTaskState, new {id = task.Id, state = task.StateId});
+                }
+                Requests[Requests.FindIndex(x => x.Id == ticket.Id)] = ticket;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("save_request"), "", true);
+        }
+    }
+
+    private async Task DeleteReqTaskFromDb(RequestTask task)
+    {
+        try
+        {
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.deleteRequestTask, new { id = task.Id })).DeletedId;
+            if(delId != task.Id)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("delete_task"), userConfig.GetText("E8005"), true);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_task"), "", true);
+        }
+    }
+}

@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class RequestTicketBase
+    public class RequestTicketBase: StatefulObject
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
@@ -16,9 +16,6 @@ namespace FWO.Api.Data
 
         [JsonProperty("date_completed"), JsonPropertyName("date_completed")]
         public DateTime? CompletionDate { get; set; }
-
-        [JsonProperty("state_id"), JsonPropertyName("state_id")]
-        public int StateId { get; set; }
 
         [JsonProperty("requester"), JsonPropertyName("requester")]
         public UiUser? Requester { get; set; }
@@ -65,8 +62,8 @@ namespace FWO.Api.Data
         {
             bool shortened = false;
             Title = Sanitizer.SanitizeMand(Title, ref shortened);
-            RequesterDn = Sanitizer.SanitizeLdapNameOpt(RequesterDn, ref shortened);
-            RequesterGroup = Sanitizer.SanitizeLdapNameOpt(RequesterGroup, ref shortened);
+            RequesterDn = Sanitizer.SanitizeLdapPathOpt(RequesterDn, ref shortened);
+            RequesterGroup = Sanitizer.SanitizeLdapPathOpt(RequesterGroup, ref shortened);
             Reason = Sanitizer.SanitizeOpt(Reason, ref shortened);
             ExternalTicketId = Sanitizer.SanitizeOpt(ExternalTicketId, ref shortened);
             return shortened;

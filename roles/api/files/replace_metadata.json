@@ -10666,6 +10666,18 @@
                   }
                 },
                 {
+                  "name": "tasks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "current_handler",
+                      "table": {
+                        "schema": "implementation",
+                        "name": "task"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "tickets",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -11957,6 +11969,12 @@
                   "name": "uiuser",
                   "using": {
                     "foreign_key_constraint_on": "current_handler"
+                  }
+                },
+                {
+                  "name": "uiuserByRecentHandler",
+                  "using": {
+                    "foreign_key_constraint_on": "recent_handler"
                   }
                 },
                 {

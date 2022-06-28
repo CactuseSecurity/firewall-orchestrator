@@ -1,5 +1,7 @@
 ﻿using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
+using System.Net;
+using Microsoft.AspNetCore.HttpOverrides;
 
 namespace FWO.Api.Data
 {
@@ -44,6 +46,48 @@ namespace FWO.Api.Data
                 ownerNames.Add(owner.Owner.Name);
             }
             return string.Join(", ", ownerNames);
+        }
+
+        public RuleElement? RuleElement(RuleField field)
+        {
+            RuleElement? element = null;
+            RequestElement? reqElem = Elements.FirstOrDefault(x => x.Field == field.ToString());
+            if (reqElem != null)
+            {
+                element = new RuleElement()
+                {
+                    ReqElemId = reqElem.Id,
+                    Ip = reqElem.Ip,
+                    Port = reqElem.Port,
+                    ProtoId = reqElem.ProtoId,
+                    NetworkId = reqElem.NetworkId
+                };
+            }
+            return element;
+        }
+    }
+
+    public class RuleElement
+    {
+        public int ReqElemId { get; set; }
+        public string Ip { get; set; } = "";
+        // public IPNetwork Ip { get; set; } = new IPNetwork(new IPAddress(0), 32);
+        public int Port { get; set; }
+        public int? ProtoId { get; set; }
+        public long? NetworkId { get; set; }
+
+        public RequestElement ToElement(RuleField field)
+        {
+            RequestElement element = new RequestElement()
+            {
+                Id = ReqElemId,
+                Field = field.ToString(),
+                Ip = Ip,
+                Port = Port,
+                ProtoId = ProtoId,
+                NetworkId = NetworkId
+            };
+            return element;
         }
     }
 }

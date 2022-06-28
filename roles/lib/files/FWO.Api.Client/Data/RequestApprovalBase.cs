@@ -55,8 +55,8 @@ namespace FWO.Api.Data
         public bool Sanitize()
         {
             bool shortened = false;
-            ApproverGroup = Sanitizer.SanitizeLdapNameOpt(ApproverGroup, ref shortened);
-            ApproverDn = Sanitizer.SanitizeLdapNameOpt(ApproverDn, ref shortened);
+            ApproverGroup = Sanitizer.SanitizeLdapPathOpt(ApproverGroup, ref shortened);
+            ApproverDn = Sanitizer.SanitizeLdapPathOpt(ApproverDn, ref shortened);
             Comment = Sanitizer.SanitizeOpt(Comment, ref shortened);
             return shortened;
         }

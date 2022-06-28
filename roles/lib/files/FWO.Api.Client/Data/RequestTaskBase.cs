@@ -18,16 +18,13 @@ namespace FWO.Api.Data
         modify
     }
 
-    public class RequestTaskBase
+    public class RequestTaskBase : StatefulObject
     {
         [JsonProperty("title"), JsonPropertyName("title")]
         public string Title { get; set; } = "";
 
         [JsonProperty("task_number"), JsonPropertyName("task_number")]
         public int TaskNumber { get; set; }
-
-        [JsonProperty("state_id"), JsonPropertyName("state_id")]
-        public int StateId { get; set; }
 
         [JsonProperty("task_type"), JsonPropertyName("task_type")]
         public string TaskType { get; set; } = "access";
@@ -114,7 +111,7 @@ namespace FWO.Api.Data
             Title = Sanitizer.SanitizeMand(Title, ref shortened);
             Reason = Sanitizer.SanitizeOpt(Reason, ref shortened);
             FwAdminComments = Sanitizer.SanitizeOpt(FwAdminComments, ref shortened);
-            AssignedGroup = Sanitizer.SanitizeLdapNameOpt(FwAdminComments, ref shortened);
+            AssignedGroup = Sanitizer.SanitizeLdapPathOpt(FwAdminComments, ref shortened);
             return shortened;
         }
     }

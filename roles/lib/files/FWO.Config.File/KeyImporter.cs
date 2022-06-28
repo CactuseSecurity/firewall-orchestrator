@@ -46,6 +46,7 @@ namespace FWO.Config.File
             catch (Exception exception)
             {
                 Log.WriteError("Extract Key", $"unexpected error while trying to extract rsakey from PEM formatted key {rawKey}.", exception);
+                throw;
             }
 
             return rsaKey;
@@ -69,6 +70,7 @@ namespace FWO.Config.File
             catch (Exception exception)
             {
                 Log.WriteError("Key extraction", "Error while trying to read key from file.", exception);
+                throw;
             }
           
             Log.WriteDebug("Key extraction", "Key was succesfully extracted.");

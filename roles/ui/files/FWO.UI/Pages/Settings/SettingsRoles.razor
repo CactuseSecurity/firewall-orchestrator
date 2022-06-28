@@ -6,6 +6,7 @@
 @using FWO.Middleware.Client
 @using FWO.Config.Api
 @using FWO.Middleware.RequestParameters
+@using FWO.Ui.Services
 @using RestSharp
 
 @page "/settings/roles"
@@ -229,7 +230,7 @@
     private string selectedGroup = "";
     private int selectedLdapId;
     private string searchPattern = "";
-    
+
     private Role actRole = new Role();
 
     private bool AddMode = false;
@@ -404,6 +405,7 @@
                     roles[roles.FindIndex(x => x.Name == actRole.Name)] = actRole;
                     AddMode = false;
                     SearchMode = false;
+                    JwtEventService.PermissionsChanged(user.Dn);
                 }
             }
             catch (System.Exception exception)

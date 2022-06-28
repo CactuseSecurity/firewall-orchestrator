@@ -29,6 +29,7 @@ namespace FWO.Middleware.Server
 
             UiUserHandler uiUserHandler = new UiUserHandler(CreateJWTMiddlewareServer());
             JwtMinutesValid = await uiUserHandler.GetExpirationTime();
+
             ClaimsIdentity subject;
             if (user != null)
                 subject = GetClaims(await uiUserHandler.HandleUiUserAtLogin(user));

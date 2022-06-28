@@ -108,5 +108,13 @@ namespace FWO.Middleware.Client
 
             return jwt.Claims.ToArray();
         }
+
+        public TimeSpan TimeUntilExpiry()
+        {
+            if (jwt == null)
+                throw new ArgumentNullException(nameof(jwt), "Jwt was not validated yet.");
+
+            return jwt.ValidTo - DateTime.UtcNow;
+        }
     }
 }

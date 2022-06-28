@@ -30,7 +30,6 @@ namespace FWO.Middleware.Server
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
             globalConfig.OnChange += GlobalConfig_OnChange;
-
             startScheduleTimer();
         }
 

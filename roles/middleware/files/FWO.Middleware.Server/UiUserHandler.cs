@@ -27,7 +27,7 @@ namespace FWO.Middleware.Server
 
         public async Task<int> GetExpirationTime()
         {
-            int expirationTime = 240;
+            int expirationTime = 60 * 12;
             try
             {
                 List<ConfExpirationTime> resultList = await apiConn.SendQueryAsync<List<ConfExpirationTime>>(ConfigQueries.getConfigItemByKey, new { key = "sessionTimeout" });

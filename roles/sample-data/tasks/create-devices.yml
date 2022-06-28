@@ -48,7 +48,7 @@
           END IF; END $do$ 
       when: sample_role_purpose is not match('test')
 
-    - name: insert test CPR7x device
+    - name: insert test CPR7x gateway
       postgresql_query:
         db: "{{ fworch_db_name }}"
         query: >
@@ -70,7 +70,7 @@
           END IF; END $do$ 
       when: sample_role_purpose is match('test')
 
-    - name: insert test check point R8x device
+    - name: insert test check point R8x gateway
       postgresql_query:
         db: "{{ fworch_db_name }}"
         query: >

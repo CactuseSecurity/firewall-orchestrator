@@ -13,7 +13,6 @@
         - proxy_http
         - ssl
         - proxy_wstunnel
-        - wsgi
 
     - name: copy api httpd config file to api target
       template:

@@ -136,7 +136,6 @@
         - proxy_http
         - rewrite
         - proxy_wstunnel
-        - wsgi
       ignore_errors: true
 
     - name: uninstall all packages for fworch, keeping git and ansible

@@ -53,10 +53,13 @@
       upgrade: dist
     when: ansible_facts['distribution'] == "Red Hat" or ansible_facts['distribution'] == "CentOS"
 
-  - name: install packages rsync
+  - name: install packages rsync, acl (for non-root user in ansible)
     package:
-      name: "rsync"
+      name: "{{ item }}"
       state: present
+    loop:
+      - rsync
+      - acl
 
   - name: install rsyslog
     import_tasks: install_syslog.yml

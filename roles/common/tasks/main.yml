@@ -125,7 +125,7 @@
     when: ansible_facts['distribution']|lower == 'debian'
 
   - set_fact:
-      wsgi_package_name: {{ wsgi_package_name }}-py3
+      wsgi_package_name: "{{ wsgi_package_name }}-py3"
     when: ansible_facts['distribution']|lower == 'debian' and distribution_version|int>10
 
   - name: copy iso.conf to target

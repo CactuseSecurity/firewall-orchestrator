@@ -4,13 +4,12 @@
   include_tasks: setup-sample-import.yml
   when: "installation_mode=='new' or sample_role_purpose is match('test')"
 
-- name: install packages acl and postgresql-client for adding sample devices to db
+- name: install package postgresql-client for adding sample devices to db
   package:
     name: "{{ item }}"
     state: present
   loop:
     - postgresql-client
-    - acl
   become: yes
 
 - name: add localhost hostkey to known_hosts

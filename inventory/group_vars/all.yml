@@ -112,6 +112,7 @@ api_log_level: info
 ### apache: both package and dir name (needed both on ui and api hosts):
 webserver_package_name: apache2
 http_conf_dir: /etc/{{ webserver_package_name }}/sites-available/
+wsgi_package_name: libapache2-mod-wsgi
 
 ################# testing #########################
 test_dir: "{{ fworch_home }}/test"

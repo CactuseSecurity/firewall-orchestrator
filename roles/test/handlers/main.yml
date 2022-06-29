@@ -1,10 +1,4 @@
 ---
-- name: install package acl
-  package:
-    name: acl
-    state: present
-  become: yes
-
 - name: delete test user and dir
   user:
     name: test

@@ -53,10 +53,13 @@
       upgrade: dist
     when: ansible_facts['distribution'] == "Red Hat" or ansible_facts['distribution'] == "CentOS"
 
-  - name: install packages rsync
+  - name: install packages rsync, acl (for non-root user in ansible)
     package:
-      name: "rsync"
+      name: "{{ item }}"
       state: present
+    loop:
+      - rsync
+      - acl
 
   - name: install rsyslog
     import_tasks: install_syslog.yml
@@ -117,6 +120,13 @@
       owner: "{{ fworch_user }}"
       group: "{{ fworch_group }}"
       mode: '0700'
+
+  - set_fact: distribution_version="{{ ansible_facts['distribution_version'] | regex_replace('\.\d$','') }}"
+    when: ansible_facts['distribution']|lower == 'debian'
+
+  - set_fact:
+      wsgi_package_name: "{{ wsgi_package_name }}-py3"
+    when: ansible_facts['distribution']|lower == 'debian' and distribution_version|int>10
 
   - name: copy iso.conf to target
     copy:

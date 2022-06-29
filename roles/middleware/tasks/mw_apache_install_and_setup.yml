@@ -4,17 +4,8 @@
       package: name={{ item }} state=present
       with_items:
         - "{{ webserver_package_name }}"
-        - libapache2-mod-wsgi
+        - "{{ wsgi_package_name }}"
       environment: "{{ proxy_env }}"
-
-    - name: enable apache modules proxy proxy_http ssl
-      apache2_module: state=present name={{ item }}
-      loop:
-        - rewrite
-        - proxy
-        - proxy_http
-        - ssl
-        - proxy_wstunnel
 
     - name: copy mw httpd config file to mw target
       template:
@@ -39,6 +30,22 @@
         openssl_cert: "{{ openssl_cert_path }}/server.crt"
       when: installation_mode == "new"
 
+    - name: copy cert to /etc/ssl/certs/ to make it acceptable
+      copy:
+        src: "/etc/apache2/ssl/server.crt"
+        dest: "/etc/ssl/certs/"
+        remote_src: yes
+      when: installation_mode == "new"
+
+    - name: enable apache modules proxy proxy_http ssl
+      apache2_module: state=present name={{ item }}
+      loop:
+        - rewrite
+        - proxy
+        - proxy_http
+        - ssl
+        - proxy_wstunnel
+
     - name: enable {{ product_name }} middleware apache site
       command: "a2ensite {{ product_name }}-mw"
       register: testoutput
@@ -48,7 +55,6 @@
         path: "/etc/apache2/ports.conf"
         line: "Listen {{ middleware_web_listener_port }}"
         insertafter: "<IfModule ssl_module>"
-
 
     - name: restart apache
       service:

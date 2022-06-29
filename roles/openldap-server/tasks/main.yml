@@ -100,6 +100,7 @@
       src: config.ldif.j2
       dest: "{{ openldap_server_app_path }}/slapd.d/config.ldif"
       force: no
+      mode: 0640
 
   - name: Configure LDAP protocol, URI and port
     lineinfile:

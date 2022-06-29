@@ -26,7 +26,7 @@
         path: "{{ fworch_home }}/ui"
       when: installation_mode == "upgrade"
 
-    - name: install libs needed for pdf creator nuget packet HakanL/WkHtmlToPdf-DotNet
+    - name: install libs needed for pdf creator nuget packet HakanL/WkHtmlToPdf-DotNet and acl
       package:
         name: "{{ item }}"
         state: present
@@ -34,6 +34,7 @@
         - libgdiplus
         - libc6-dev
         - libjpeg62
+        - acl
       
     - name: create ui dir
       file:

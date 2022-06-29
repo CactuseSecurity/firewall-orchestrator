@@ -9,22 +9,6 @@
 
     - set_fact: api_server_name="{{ ansible_hostname }}"          #  this only works for importer = backend
 
-    - name: enable apache modules proxy proxy_http ssl rewrite proxy_wstunnel
-      apache2_module: state=present name={{ item }}
-      loop:
-        - rewrite
-        - proxy
-        - proxy_http
-        - ssl
-        - proxy_wstunnel
-
-    - name: copy api httpd config file to api target
-      template:
-        src: "httpd.conf.j2"
-        dest: "{{ http_conf_dir }}/{{ product_name }}-api.conf"
-        owner: root
-        group: root
-
     - name: create apache certificates
       include_role:
         name: openssl-cert
@@ -46,7 +30,25 @@
         src: "/etc/apache2/ssl/server.crt"
         dest: "/etc/ssl/certs/"
         remote_src: yes
+      when: installation_mode == "new"
   
+    - name: enable apache modules proxy proxy_http ssl rewrite proxy_wstunnel
+      apache2_module: state=present name={{ item }}
+      loop:
+        - rewrite
+        - proxy
+        - proxy_http
+        - ssl
+        - proxy_wstunnel
+
+    - name: copy api httpd config file to api target
+      template:
+        src: "httpd.conf.j2"
+        dest: "{{ http_conf_dir }}/{{ product_name }}-api.conf"
+        owner: root
+        group: root
+
+
     - name: enable {{ product_name }} web site
       command: "a2ensite {{ product_name }}-api"
 

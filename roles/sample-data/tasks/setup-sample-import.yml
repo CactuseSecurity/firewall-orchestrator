@@ -23,7 +23,7 @@
         state: present
         regex: "ansible-generated"
 
-    - name: correct sample-data users authorized_keys file acls
+    - name: correct sample-data users authorized_keys file permissions
       file:
         path: "{{ sample_config_user_home }}/.ssh/authorized_keys"
         owner: "{{ sample_config_user }}"

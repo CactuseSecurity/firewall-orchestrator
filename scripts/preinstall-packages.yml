@@ -42,13 +42,13 @@
 
 ########## docker for api ##################
 
-    - name: add apt signing key for docker
-      apt_key:
+    - name: adding docker apt signing key
+      get_url:
         url: https://download.docker.com/linux/ubuntu/gpg
-        state: present
-      environment:
-        https_proxy: "{{ https_proxy }}"
-      when: https_proxy is defined
+        dest: /etc/apt/trusted.gpg.d/docker.asc
+        force: yes
+        mode: "0644"
+      environment: "{{ proxy_env }}"
 
     - name: add docker repo
       lineinfile:
@@ -70,13 +70,17 @@
 
 ########## dotnet ##################
 
-    # - set_fact:
-    #     distribution_version: "{{ ansible_facts['distribution_version'] }}"
-    #   when: ansible_facts['distribution']|lower == 'ubuntu'
+    - set_fact: 
+        distribution_version: "debian/11"
+        when: ansible_facts['distribution']|lower == 'debian' and ansible_facts['distribution_version'] == '11'
 
     - set_fact: 
         distribution_version: "debian/10"
-        when: ansible_facts['distribution']|lower == 'debian'
+        when: ansible_facts['distribution']|lower == 'debian' and ansible_facts['distribution_version'] == '10'
+
+    - set_fact: 
+        distribution_version: "ubuntu/22.04"
+        when: ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_version'] == '22.04'
 
     - set_fact: 
         distribution_version: "ubuntu/20.04"

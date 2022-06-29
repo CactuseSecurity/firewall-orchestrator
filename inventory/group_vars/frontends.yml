@@ -1,6 +1,4 @@
 
-# webserver_package_name: "apache2" 
-# http_conf_dir: /etc/{{ webserver_package_name }}/sites-available/
 ui_port: 5000
 ui_web_port: 443
 ui_app_name: "{{ product_name }}"

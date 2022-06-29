@@ -22,10 +22,10 @@ the following was tested with Ubuntu 20.04
           sudo systemctl restart postgresql
 
 - on the clinet side:
-  - add pgadmin repo
+  - add pgadmin repo (here Ubuntu 22.04 - jammy)
 
           sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 8881B2A8210976F2
-          sudo sh -c "echo 'deb https://ftp.postgresql.org/pub/pgadmin/pgadmin4/apt/focal pgadmin4 main' > /etc/apt/sources.list.d/pgadmin4.list"
+          sudo sh -c "echo 'deb https://ftp.postgresql.org/pub/pgadmin/pgadmin4/apt/jammy pgadmin4 main' > /etc/apt/sources.list.d/pgadmin4.list"
           sudo apt update
 
   - install pgadmin

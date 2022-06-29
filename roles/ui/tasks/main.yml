@@ -34,6 +34,7 @@
         - libgdiplus
         - libc6-dev
         - libjpeg62
+        - xfonts-75dpi
       
     - name: create ui dir
       file:

@@ -6,6 +6,24 @@
         - "{{ ansible_version.string is version_compare('2.8', '>=') }}"
       msg: Ansible 2.8 or above is required
 
+  - name: update operating system packages .deb based
+    apt:
+      upgrade: dist
+    when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian"
+
+  - name: update operating system packages .rpm based (untested)
+    yum:
+      upgrade: dist
+    when: ansible_facts['distribution'] == "Red Hat" or ansible_facts['distribution'] == "CentOS"
+
+  - name: install packages rsync, acl (for non-root user in ansible)
+    package:
+      name: "{{ item }}"
+      state: present
+    loop:
+      - rsync
+      - acl
+
   - name: check for existing main config file {{ fworch_conf_file }}
     stat:
       path: "{{ fworch_conf_file }}"
@@ -42,24 +60,6 @@
   - name: include redhat install basics
     include_tasks: redhat_preps.yml
     when: installation_mode == "new" and ansible_os_family == "RedHat"
-
-  - name: update operating system packages .deb based
-    apt:
-      upgrade: dist
-    when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian"
-
-  - name: update operating system packages .rpm based (untested)
-    yum:
-      upgrade: dist
-    when: ansible_facts['distribution'] == "Red Hat" or ansible_facts['distribution'] == "CentOS"
-
-  - name: install packages rsync, acl (for non-root user in ansible)
-    package:
-      name: "{{ item }}"
-      state: present
-    loop:
-      - rsync
-      - acl
 
   - name: install rsyslog
     import_tasks: install_syslog.yml
@@ -121,12 +121,12 @@
       group: "{{ fworch_group }}"
       mode: '0700'
 
-  - set_fact: distribution_version="{{ ansible_facts['distribution_version'] | regex_replace('\.\d$','') }}"
-    when: ansible_facts['distribution']|lower == 'debian'
-
   - set_fact:
       wsgi_package_name: "{{ wsgi_package_name }}-py3"
-    when: ansible_facts['distribution']|lower == 'debian' and distribution_version|int>10
+    when: | 
+      (ansible_facts['distribution']|lower == 'debian' and ansible_facts['distribution_version'] is version_compare('10', '>'))
+      or 
+      (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_version'] is version_compare('20', '>'))
 
   - name: copy iso.conf to target
     copy:

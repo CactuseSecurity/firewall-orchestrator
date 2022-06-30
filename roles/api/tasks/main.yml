@@ -35,6 +35,15 @@
     group: "{{ fworch_group }}"
   become: yes
 
+- name: create api bin
+  file:
+    path: "{{ api_home }}/bin"
+    state: directory
+    mode: "0755"
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
+  become: yes
+
 - name: install apache2
   import_tasks: api-apache-install-and-setup.yml
 

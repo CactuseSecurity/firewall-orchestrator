@@ -131,6 +131,7 @@
       - "{{ api_port }}:{{ api_port }}"
     env:
       "{{ hasura_env }}"
+    container_default_behavior: no_defaults
   register: docker_return
   become: yes
   become_user: "{{ fworch_user }}"

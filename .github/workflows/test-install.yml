@@ -21,9 +21,25 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  test_ubuntu:
+  test_ubuntu_18:
     name: test build on merge
-    runs-on: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04]
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: do test install in case of merged pull request
+      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e 'run_on_github=yes testkeys=yes' --skip-tags test site.yml -K
+
+  test_ubuntu_20:
+    name: test build on merge
+    runs-on: buntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: do test install in case of merged pull request
+      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e 'run_on_github=yes testkeys=yes' --skip-tags test site.yml -K
+
+  test_ubuntu_22:
+    name: test build on merge
+    runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
     - name: do test install in case of merged pull request

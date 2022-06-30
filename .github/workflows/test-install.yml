@@ -23,7 +23,7 @@ on:
 jobs:
   build:
     name: test build on merge
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
     - name: do test install in case of merged pull request
@@ -31,7 +31,7 @@ jobs:
 
   review:
     name: Review code
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
     - name: do test install in case of reviewable PR

@@ -26,4 +26,3 @@
 - name: install upgrades
   include_tasks: upgrade/{{ item }}.yml
   loop: "{{ upgrade_files | sort }}"
-  become: yes

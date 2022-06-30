@@ -58,13 +58,12 @@
     group: "{{ fworch_group }}"
   become: yes
 
-- name: create /usr/local/bin
-  file:
-    path: /usr/local/bin
-    state: directory
-    mode: "0755"
-  become: yes
+- name: check for existing hasura cli file
+  stat:
+    path: "{{ api_hasura_cli_bin }}"
+  register: api_cli_check
 
+# only download new version of api cli, when not restoring from backup:
 - name: download {{ api_hasura_version }} hasura cli binary
   get_url:
     url: "https://github.com/hasura/graphql-engine/releases/download/{{ api_hasura_version }}/cli-hasura-linux-amd64"
@@ -75,6 +74,7 @@
     group: "{{ fworch_group }}"
   environment: "{{ proxy_env }}"
   become: yes
+  when: not api_cli_check.stat.exists 
 
 - name: initialize hasura cli directory
   command: "{{ api_hasura_cli_bin }} init {{ product_name }} --skip-update-check --endpoint http://{{ api_ip_address }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
@@ -170,8 +170,6 @@
     enabled: yes
   become: yes
 
-# api config (metadata)
-
 - name:  wait for hasura port to become available
   wait_for:
     port: "{{ api_port }}"
@@ -180,7 +178,21 @@
     delay: 10
     timeout: 25
 
-- name: import API metadata via metadata API directly
+- name: check for existing hasura metadata file
+  stat:
+    path: "{{ api_home }}/{{ product_name }}/migrations/metadata.json"
+  register: api_metadata_check
+
+- name: import hasura metadata from remote file (restore old metadata)
+  command: "{{ api_hasura_cli_bin }} metadata apply"
+  args:
+    chdir: "{{ api_home }}/{{ product_name }}"
+  become: yes
+  become_user: "{{ fworch_user }}"
+  environment: "{{ proxy_env }}"
+  when: api_metadata_check.stat.exists 
+
+- name: import API metadata via metadata API directly from local file
   uri: 
     url: "http://{{ api_ip_address }}:{{ api_port }}/v1/metadata"
     method: POST
@@ -191,3 +203,15 @@
       x-hasura-admin-secret: "{{ api_hasura_admin_secret }}"
       x-hasura-role: "admin"
     body: "{{ lookup('file','replace_metadata.json') | from_json }}"
+  when: not api_metadata_check.stat.exists 
+
+- name: copy hasura metadata json to cli directory for restore of old version in next upgrade
+  copy:
+     src: hasura_metadata.json
+     dest: "{{ api_home }}/{{ product_name }}/migrations/metadata.json"
+     backup: yes
+     mode: "0644"
+     owner: "{{ fworch_user }}"
+     group: "{{ fworch_group }}"
+  become: yes
+  when: not api_metadata_check.stat.exists 

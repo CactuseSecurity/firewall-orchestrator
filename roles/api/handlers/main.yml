@@ -14,7 +14,10 @@
     path: "{{ fworch_home }}/backup_api"
   listen: "api handler"
   become: yes
-    
+
+- name: restore from backup
+  include_tasks: hasura-install.yml
+
 - name: fail message
   debug:
     msg:

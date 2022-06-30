@@ -41,6 +41,15 @@
     group: "{{ fworch_user}}"
   become: yes
 
+- name: copy fwo_api.py 
+  copy:
+    src: roles/importer/files/importer/fwo_api.py
+    dest: "{{ fworch_home }}/scripts/fwo_api.py"
+    mode: "0644"
+    owner: "{{ fworch_user}}"
+    group: "{{ fworch_user}}"
+  become: yes
+
 - name: api create documentation
   import_tasks: api-create-docu.yml
   when: api_docu | bool

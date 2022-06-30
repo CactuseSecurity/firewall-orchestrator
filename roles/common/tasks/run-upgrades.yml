@@ -24,6 +24,6 @@
       - "all_upgrades_available: {{ all_upgrades_available }}"
 
 - name: install upgrades
-  include: upgrade/{{ item }}.yml
+  include_tasks: upgrade/{{ item }}.yml
   loop: "{{ upgrade_files | sort }}"
   become: yes

@@ -17,7 +17,8 @@
 
 - name: restore from backup
   include_tasks: hasura-install.yml
-
+  listen: "api handler"
+  
 - name: fail message
   debug:
     msg:

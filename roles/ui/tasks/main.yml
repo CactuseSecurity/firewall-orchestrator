@@ -54,9 +54,9 @@
 
   become: yes
 
-- include: ui_apache_install_and_setup.yml
+- include_tasks: ui_apache_install_and_setup.yml
 
-- include: ui_install_dot_net.yml
+- include_tasks: ui_install_dot_net.yml
 
 - name: include upgrade script
   import_tasks: run-upgrades.yml

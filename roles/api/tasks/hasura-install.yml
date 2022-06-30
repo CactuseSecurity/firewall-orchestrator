@@ -207,7 +207,7 @@
 
 - name: copy hasura metadata json to cli directory for restore of old version in next upgrade
   copy:
-     src: hasura_metadata.json
+     src: replace_metadata.json
      dest: "{{ api_home }}/{{ product_name }}/migrations/metadata.json"
      backup: yes
      mode: "0644"

@@ -8,6 +8,7 @@
     dest: "{{ api_hasura_cli_bin }}"
     remote_src: yes
   when: installation_mode == "upgrade"
+  become: yes
 
 # cp current api_metadata to fworch_home/api
 - name: download {{ api_hasura_version }} hasura cli binary

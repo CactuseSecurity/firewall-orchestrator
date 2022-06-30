@@ -19,6 +19,7 @@
     dest: "{{ fworch_home }}/backup_api"
   delegate_to: "{{ inventory_hostname }}"
   when: api_dir_check.stat.exists and installation_mode == "upgrade"
+  become: yes
 
 - name: remove api home
   file:

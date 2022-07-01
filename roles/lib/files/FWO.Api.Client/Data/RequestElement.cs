@@ -12,7 +12,7 @@ namespace FWO.Api.Data
         public int TaskId { get; set; }
 
         [JsonProperty("request_action"), JsonPropertyName("request_action")]
-        public string RequestAction { get; set; } = "create";
+        public string RequestAction { get; set; } = FWO.Api.Data.RequestAction.create.ToString();
 
         public RequestElement()
         { }

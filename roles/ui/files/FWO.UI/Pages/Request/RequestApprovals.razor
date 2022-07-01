@@ -114,7 +114,7 @@
         {
             task.StateId = actPossibleStates[0];
         }
-        await UpdateReqTaskInDb(task);
+        await UpdateReqTaskStateInDb(task);
         await UpdateTicketFromTasks();
         await InitApproveTask(task);
     }
@@ -171,9 +171,9 @@
         }
         if (approvalStates.Count > 0)
         {
-            actTask.StateId = stateMatrix.getRequestStateFromTaskStates(approvalStates);
+            actTask.StateId = stateMatrix.getDerivedStateFromSubStates(approvalStates);
         }
-        await UpdateReqTaskInDb(actTask);
+        await UpdateReqTaskStateInDb(actTask);
     }
 
     private async Task UpdateTicketFromTasks()
@@ -183,11 +183,11 @@
         {
             taskStates.Add(tsk.StateId);
         }
-        actTicket.StateId = stateMatrix.getRequestStateFromTaskStates(taskStates);
-        await UpdateTicketInDb();
+        actTicket.StateId = stateMatrix.getDerivedStateFromSubStates(taskStates);
+        await UpdateTicketStateInDb();
     }
 
-    private async Task UpdateTicketInDb()
+    private async Task UpdateTicketStateInDb()
     {
         try
         {           
@@ -217,7 +217,7 @@
         }
     }
 
-    private async Task UpdateReqTaskInDb(RequestTask task)
+    private async Task UpdateReqTaskStateInDb(RequestTask task)
     {
         try
         {

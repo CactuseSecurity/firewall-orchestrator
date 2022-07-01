@@ -16,6 +16,7 @@ query getTickets ($from_state: Int!, $to_state: Int!){
     external_ticket_source
     tasks: tasks{
       id
+      ticket_id
       title
       task_number
       state_id
@@ -42,6 +43,7 @@ query getTickets ($from_state: Int!, $to_state: Int!){
       fw_admin_comments
       elements: elements{
         id
+        task_id
         request_action
         ip
         port
@@ -54,6 +56,7 @@ query getTickets ($from_state: Int!, $to_state: Int!){
       }
       implementation_tasks: tasks{
         id
+        request_task_id
         implementation_task_number
         state_id
         device_id
@@ -73,6 +76,7 @@ query getTickets ($from_state: Int!, $to_state: Int!){
         fw_admin_comments
         elements: elements{
           id
+          implementation_task_id
           implementation_action
           ip
           port
@@ -86,6 +90,7 @@ query getTickets ($from_state: Int!, $to_state: Int!){
       }
       request_approvals: approvals{
         id
+        task_id
         date_opened
         approver_group
         approval_date

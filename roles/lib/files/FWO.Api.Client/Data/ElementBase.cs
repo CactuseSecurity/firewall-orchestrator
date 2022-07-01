@@ -1,7 +1,7 @@
 ﻿using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
 using System.Net;
-using Microsoft.AspNetCore.HttpOverrides;
+using NetTools;
 
 namespace FWO.Api.Data
 {
@@ -15,8 +15,13 @@ namespace FWO.Api.Data
     public class ElementBase
     {
         [JsonProperty("ip"), JsonPropertyName("ip")]
-        public string Ip { get; set; } = "";
-        // public IPNetwork Ip { get; set; } = new IPNetwork(new IPAddress(0), 32);
+        public string IpString { get; set; } = "";
+
+        public IPAddressRange Ip
+        {
+            get => IPAddressRange.Parse(IpString);
+            set => IpString = value.ToCidrString();
+        }
 
         [JsonProperty("port"), JsonPropertyName("port")]
         public int Port { get; set; }

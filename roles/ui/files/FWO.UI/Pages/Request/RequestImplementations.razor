@@ -92,7 +92,7 @@
                 taskStates.Add(implTask.StateId);
             }
         }
-        actTicket.StateId = stateMatrix.getRequestStateFromTaskStates(taskStates);
+        actTicket.StateId = stateMatrix.getDerivedStateFromSubStates(taskStates);
         await UpdateTicketStateInDb();
         await ImplementTask(task);
     }
@@ -100,6 +100,7 @@
     private async Task ImplementTask(ImplementationTask task)
     {
         ImplementTaskMode = true;
+        StateHasChanged();
     }
 
     private async Task UpdateTicketStateInDb()

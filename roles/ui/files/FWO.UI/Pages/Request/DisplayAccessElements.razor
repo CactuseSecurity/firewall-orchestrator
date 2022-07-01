@@ -1,0 +1,197 @@
+@using FWO.Api.Client
+@using FWO.Config.Api
+@using FWO.Ui.Services
+
+@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, auditor, fw-admin")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+
+<div class="form-group row">
+    <label for="taskSource" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("source")):</label>
+    <label for="sourceElementObject" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("object")):</label>
+    @if (EditMode)
+    {
+        <div class="col-sm-2">
+            <select id="sourceElementObject" class="form-control form-control-sm" @bind="Source.NetworkId">
+                @foreach (var nwObject in nwObjects)
+                {
+                    <option value="@nwObject.Id">@(nwObject.Name)</option>
+                }
+            </select>
+        </div>
+    }
+    else
+    {
+        <label class="col-sm-2">@((Source.NetworkId != null) ? nwObjects.Find(x => x.Id == Source.NetworkId)?.Name : "")</label>
+    }
+    <label for="taskSourceIp" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("ip")):</label>
+    @if (EditMode)
+    {
+        <div class="col-sm-2">
+            <input type="text" class="form-control form-control-sm" @bind="Source.IpString" />
+        </div>
+    }
+    else
+    {
+        <label class="col-sm-2">@Source.IpString</label>
+    }
+    <label for="taskSourcePort" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("port")):</label>
+    @if (EditMode)
+    {
+        <div class="col-sm-1">
+            <input id="taskSourcePort" type="text" class="form-control form-control-sm" @bind="Source.Port" />
+        </div>
+    }
+    else
+    {
+        <label class="col-sm-1">@Source.Port</label>
+    }
+</div>
+<div class="form-group row">
+    <label for="taskDest" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("destination")):</label>
+    <label for="destElementObject" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("object")):</label>
+    @if (EditMode)
+    {
+        <div class="col-sm-2">
+            <select id="destElementObject" class="form-control form-control-sm" @bind="Destination.NetworkId">
+                @foreach (var nwObject in nwObjects)
+                {
+                    <option value="@nwObject.Id">@(nwObject.Name)</option>
+                }
+            </select>
+        </div>
+    }
+    else
+    {
+        <label class="col-sm-2">@((Destination.NetworkId != null) ? nwObjects.Find(x => x.Id == Destination.NetworkId)?.Name : "")</label>
+    }
+    <label for="taskDestIp" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("ip")):</label>
+    @if (EditMode)
+    {
+        <div class="col-sm-2">
+            <input type="text" class="form-control form-control-sm" @bind="Destination.IpString" />
+        </div>
+    }
+    else
+    {
+        <label class="col-sm-2">@Destination.IpString</label>
+    }
+    <label for="taskDestPort" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("port")):</label>
+    @if (EditMode)
+    {
+        <div class="col-sm-1">
+            <input id="taskDestPort" type="text" class="form-control form-control-sm" @bind="Destination.Port" />
+        </div>
+    }
+    else
+    {
+        <label class="col-sm-1">@Destination.Port</label>
+    }
+</div>
+<div class="form-group row">
+    <label for="taskService" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("service")):</label>
+    <label for="serviceElementObject" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("object")):</label>
+    @if (EditMode)
+    {
+        <div class="col-sm-2">
+            <select id="serviceElementObject" class="form-control form-control-sm" @bind="Service.ServiceId">
+                @foreach (var nwService in nwServices)
+                {
+                    <option value="@nwService.Id">@(nwService.Name)</option>
+                }
+            </select>
+        </div>
+    }
+    else
+    {
+        <label class="col-sm-2">@((Service.ServiceId != null) ? nwServices.Find(x => x.Id == Service.ServiceId)?.Name : "")</label>
+    }
+    <label for="taskServiceIp" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("ip")):</label>
+    @if (EditMode)
+    {
+        <div class="col-sm-2">
+            <input type="text" class="form-control form-control-sm" @bind="Service.IpString" />
+        </div>
+    }
+    else
+    {
+        <label class="col-sm-2">@Service.IpString</label>
+    }
+    <label for="taskServicePort" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("port")):</label>
+    @if (EditMode)
+    {
+        <div class="col-sm-1">
+            <input id="taskServicePort" type="text" class="form-control form-control-sm" @bind="Service.Port" />
+        </div>
+    }
+    else
+    {
+        <label class="col-sm-1">@Service.Port</label>
+    }
+    <label for="taskServiceProto" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("protocol")):</label>
+    @if (EditMode)
+    {
+        <div class="col-sm-1">
+            <select id="taskServiceProto" class="form-control form-control-sm" @bind="Service.ProtoId">
+                @foreach (var proto in ipProtos)
+                {
+                    <option value="@proto.Id">@(proto.Name)</option>
+                }
+            </select>
+        </div>
+    }
+    else
+    {
+        <label class="col-sm-2">@((Service.ProtoId != null) ? ipProtos.Find(x => x.Id == Service.ProtoId)?.Name : "")</label>
+    }
+</div>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+
+    [Parameter]
+    public RuleElement Source { get; set; } = new RuleElement();
+
+    [Parameter]
+    public EventCallback<RuleElement> SourceChanged { get; set; }
+
+    [Parameter]
+    public RuleElement Destination { get; set; } = new RuleElement();
+
+    [Parameter]
+    public EventCallback<RuleElement> DestinationChanged { get; set; }
+
+    [Parameter]
+    public RuleElement Service { get; set; } = new RuleElement();
+
+    [Parameter]
+    public EventCallback<RuleElement> ServiceChanged { get; set; }
+
+    [Parameter]
+    public bool EditMode { get; set; } = false;
+
+
+    private List<IpProtocol> ipProtos = new List<IpProtocol>();
+    private List<NetworkObject> nwObjects = new List<NetworkObject>();
+    private List<NetworkService> nwServices = new List<NetworkService>();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            ipProtos = await apiConnection.SendQueryAsync<List<IpProtocol>>(FWO.Api.Client.Queries.StmQueries.getIpProtocols);
+            // nwObjects = await apiConnection.SendQueryAsync<List<NetworkObject>>(FWO.Api.Client.Queries.ObjectQueries.getNetworkObjects);
+            // nwServices = await apiConnection.SendQueryAsync<List<NetworkObject>>(FWO.Api.Client.Queries.ObjectQueries.getNetworkServices);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+}

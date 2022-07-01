@@ -1,0 +1,55 @@
+@using FWO.Api.Client
+@using FWO.Config.Api
+
+@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, auditor, fw-admin")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+
+<PopUp Title="@(userConfig.GetText("delete"))" Show="@Display" OnClose="() => Display = false">
+    <Body>
+        @if (Display)
+        {
+            <p>@(userConfig.GetText("U8001")) @(ObjName)?</p>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="admin, requester, approver, planner, implementer, fw-admin">
+                <Authorized>
+                    <button class="btn btn-sm btn-danger" @onclick="Delete">@(userConfig.GetText("delete"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public Func<Task> Delete { get; set; }
+
+    [Parameter]
+    public string ObjName { get; set; } = "";
+
+
+    private void Cancel()
+    {
+        Display = false;
+    }
+}

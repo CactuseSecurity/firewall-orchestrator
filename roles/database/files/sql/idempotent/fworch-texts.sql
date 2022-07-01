@@ -639,6 +639,10 @@ INSERT INTO txt VALUES ('assign_to', 			'German',	'Weiterleiten an');
 INSERT INTO txt VALUES ('assign_to', 			'English',	'Assign to');
 INSERT INTO txt VALUES ('assign_group', 		'German',	'Gruppe zuweisen');
 INSERT INTO txt VALUES ('assign_group', 		'English',	'Assign group');
+INSERT INTO txt VALUES ('assigned', 			'German',	'Zugewiesen');
+INSERT INTO txt VALUES ('assigned', 			'English',	'Assigned');
+INSERT INTO txt VALUES ('back_to', 			    'German',	'Zur&uuml;ck zu');
+INSERT INTO txt VALUES ('back_to', 			    'English',	'Back to');
 
 
 -- recertification
@@ -1399,10 +1403,8 @@ INSERT INTO txt VALUES ('U7401', 'English', 'View the past autodiscovery message
 INSERT INTO txt VALUES ('U7501', 'German',  'Archiv der Nachrichten der t&auml;glichen Checks');
 INSERT INTO txt VALUES ('U7501', 'English', 'View the past daily check messages');
 
-INSERT INTO txt VALUES ('U8001', 'German',  'Sind sie sicher, dass sie folgendes Element l&ouml;schen wollen: ');
-INSERT INTO txt VALUES ('U8001', 'English', 'Are you sure you want to delete element: ');
-INSERT INTO txt VALUES ('U8002', 'German',  'Sind sie sicher, dass sie folgende Aufgabe l&ouml;schen wollen: ');
-INSERT INTO txt VALUES ('U8002', 'English', 'Are you sure you want to delete task: ');
+INSERT INTO txt VALUES ('U8001', 'German',  'Sind sie sicher, dass sie l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U8001', 'English', 'Are you sure you want to delete: ');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');

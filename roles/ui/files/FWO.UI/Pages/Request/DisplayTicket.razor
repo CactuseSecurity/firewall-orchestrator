@@ -103,6 +103,11 @@
                             @if(Phase != WorkflowPhases.approval)
                             {
                                 <Column TableItem="RequestTask" Title="@(userConfig.GetText("planner"))" Field="@(x => x.CurrentHandler.Name)" Sortable="true" Filterable="true" />
+                                <Column TableItem="RequestTask" Title="@(userConfig.GetText("assigned"))" Field="@(x => x.AssignedGroup)" Sortable="true" Filterable="true" >
+                                    <Template>
+                                        @(new DistName(context.AssignedGroup).UserName)
+                                    </Template>
+                                </Column>
                                 <Column TableItem="RequestTask" Title="@(userConfig.GetText("start"))" Field="@(x => x.Start)" Sortable="true" Filterable="true" />
                                 <Column TableItem="RequestTask" Title="@(userConfig.GetText("stop"))" Field="@(x => x.Stop)" Sortable="true" Filterable="true" />
                             }
@@ -136,6 +141,7 @@
                                     </div>
                                 </Template>
                             </Column>
+                            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
                             <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("task"))" Field="@(x => x.ReqTaskId)" Sortable="true" Filterable="true" />
                             <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("number"))" Field="@(x => x.ImplTaskNumber)" Sortable="true" Filterable="true" />
                             <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("device"))" Field="@(x => x.DeviceId)" Sortable="true">
@@ -184,36 +190,15 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("delete_task"))" Show="@DeleteReqTaskMode" OnClose="() => DeleteReqTaskMode = false">
-    <Body>
-        @if (DeleteReqTaskMode)
-        {
-            <p>@(userConfig.GetText("U8002")) @(actTask.Title)?</p>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <AuthorizeView Roles="admin, requester, fw-admin">
-                <Authorized>
-                    <button class="btn btn-sm btn-danger" @onclick="ConfDeleteReqTask">@(userConfig.GetText("delete"))</button>
-                </Authorized>
-                <NotAuthorized>
-                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                </NotAuthorized> 
-            </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="CancelDelete">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
-
-<DisplayRequestTask Phase="Phase" @bind-Display="ShowReqTaskMode" @bind-EditMode="EditReqTaskMode" @bind-AddMode="AddReqTaskMode" 
+<DisplayRequestTask Phase="Phase" @bind-Display="ShowReqTaskMode" @bind-EditMode="EditReqTaskMode" @bind-AddMode="AddReqTaskMode" @bind-PlanMode="PlanMode"
     ReqTask="actTask" StateMatrix="StateMatrix" States="States" @bind-Ticket="Ticket"></DisplayRequestTask>
 <DisplayImplementationTask Phase="Phase" @bind-Display="ShowImplTaskMode" @bind-ImplementMode="ImplementMode" 
     ImplTask="actImplTask" StateMatrix="StateMatrix" States="States" @bind-ReqTask="actTask"></DisplayImplementationTask>
 <AssignTask @bind-Display="AssignTaskMode" @bind-ReqTask="actTask"></AssignTask>
 <DisplayApprovals @bind-Display="ShowApprovalMode" Approvals="actTask.Approvals" States="States"></DisplayApprovals>
 <PromoteObject @bind-Display="SaveTicketMode" Save="SaveTicket" StatefulObject="Ticket" PossibleStates="possibleStates" States="States"></PromoteObject>
-<PromoteObject @bind-Display="PromoteTicketMode" Save="UpdateTicketState" StatefulObject="Ticket" PossibleStates="possibleStates" States="States"></PromoteObject>
+<PromoteObject @bind-Display="PromoteTicketMode" Save="UpdateTicketStateInDb" StatefulObject="Ticket" PossibleStates="possibleStates" States="States"></PromoteObject>
+<DeleteObject @bind-Display="DeleteReqTaskMode" Delete="ConfDeleteReqTask" ObjName="actTask.Title"></DeleteObject>
 
 
 @code
@@ -253,6 +238,12 @@
 
     [Parameter]
     public EventCallback<bool> EditModeChanged { get; set; }
+
+    [Parameter]
+    public bool PlanMode { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> PlanModeChanged { get; set; }
 
     [Parameter]
     public bool ImplementMode { get; set; } = false;
@@ -311,6 +302,7 @@
     {
         AddMode = false;
         EditMode = false;
+        PlanMode = false;
         Display = false;
     }
 
@@ -324,6 +316,7 @@
         ShowApprovalMode = false;
         AddReqTaskMode = false;
         EditReqTaskMode = false;
+        DeleteReqTaskMode = false;
     }
 
     private void Cancel()
@@ -424,7 +417,7 @@
         if(possibleStates.Count == 1)
         {
             Ticket.StateId = possibleStates[0];
-            await UpdateTicketState(Ticket);
+            await UpdateTicketStateInDb(Ticket);
         }
         else
         {
@@ -448,7 +441,7 @@
             {
                 taskStates.Add(task.StateId);
             }
-            Ticket.StateId = StateMatrix.getRequestStateFromTaskStates(taskStates);
+            Ticket.StateId = StateMatrix.getDerivedStateFromSubStates(taskStates);
             if(Ticket.StateId == oldState)
             {
                 return false;
@@ -505,7 +498,7 @@
                     // insert new ticket
                     Ticket.CreationDate = DateTime.Now;
                     Ticket.Requester = userConfig.User;
-                    Ticket.Id = await AddTicketToDb(Ticket);
+                    await AddTicketToDb(Ticket);
                 }
                 else
                 {
@@ -532,7 +525,7 @@
         return true;
     }
     
-    private async Task UpdateTicketState(StatefulObject ticket)
+    private async Task UpdateTicketStateInDb(StatefulObject ticket)
     {
         try
         {           
@@ -567,9 +560,8 @@
         }
     }
 
-    private async Task<int> AddTicketToDb(RequestTicket ticket)
+    private async Task AddTicketToDb(RequestTicket ticket)
     {
-        int returnId = 0;
         try
         {
             var Variables = new
@@ -587,14 +579,14 @@
             }
             else
             {
-                returnId = returnIds[0].NewId;
+                ticket.Id = returnIds[0].NewId;
+                Requests.Add(ticket);
             }
         }
         catch (Exception exception)
         {
             DisplayMessageInUi!(exception, userConfig.GetText("save_request"), "", true);
         }
-        return returnId;
     }
 
     private async Task UpdateTicketInDb(RequestTicket ticket)
@@ -617,6 +609,7 @@
             {
                 foreach(RequestTask task in ticket.Tasks)
                 {
+                    task.StateId = ticket.StateId;
                     await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequestTaskState, new {id = task.Id, state = task.StateId});
                 }
                 Requests[Requests.FindIndex(x => x.Id == ticket.Id)] = ticket;

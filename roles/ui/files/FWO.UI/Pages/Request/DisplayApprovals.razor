@@ -18,7 +18,11 @@
                     <Column TableItem="RequestApproval" Title="@(userConfig.GetText("opened"))" Field="@(x => x.DateOpened)" Sortable="true" Filterable="true" />
                     <Column TableItem="RequestApproval" Title="@(userConfig.GetText("deadline"))" Field="@(x => x.Deadline)" Sortable="true" Filterable="true" />
                     <Column TableItem="RequestApproval" Title="@(userConfig.GetText("approved"))" Field="@(x => x.ApprovalDate)" Sortable="true" Filterable="true" />
-                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("approver"))" Field="@(x => x.ApproverDn)" Sortable="true" Filterable="true" />
+                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("approver"))" Field="@(x => x.ApproverDn)" Sortable="true" Filterable="true" >
+                        <Template>
+                            @(new DistName(context.ApproverDn).UserName)
+                        </Template>
+                    </Column>
                     <Column TableItem="RequestApproval" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="true" >
                         <Template>
                             @(States.Name[context.StateId])

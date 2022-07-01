@@ -18,7 +18,7 @@
     StateMatrix ="stateMatrix" States="states"></DisplayOverview>
 
 <DisplayTicket Phase="WorkflowPhases.planning" StartPhase="StartPlanning" ContinuePhase="PlanTask"
-    @bind-Display="ShowTicketMode" @bind-EditMode="PlanningMode" @bind-Ticket="actTicket" 
+    @bind-Display="ShowTicketMode" @bind-PlanMode="PlanningMode" @bind-Ticket="actTicket" 
     StateMatrix ="stateMatrix" States="states" @bind-Requests="requests"></DisplayTicket>
 
 
@@ -76,14 +76,14 @@
         {
             task.StateId = actPossibleStates[0];
         }
-        await UpdateReqTaskInDb(task);
+        await UpdateReqTaskStateInDb(task);
         List<int> taskStates = new List<int>();
         foreach (RequestTask tsk in actTicket.Tasks)
         {
             taskStates.Add(tsk.StateId);
         }
-        actTicket.StateId = stateMatrix.getRequestStateFromTaskStates(taskStates);
-        await UpdateTicket();
+        actTicket.StateId = stateMatrix.getDerivedStateFromSubStates(taskStates);
+        await UpdateTicketStateInDb();
         PlanTask(task);
     }
 
@@ -95,7 +95,7 @@
         StateHasChanged();
     }
 
-    private async Task UpdateReqTaskInDb(RequestTask task)
+    private async Task UpdateReqTaskStateInDb(RequestTask task)
     {
         try
         {
@@ -122,7 +122,7 @@
         }
     }
 
-    private async Task UpdateTicket()
+    private async Task UpdateTicketStateInDb()
     {
         try
         {           

@@ -55,7 +55,7 @@ namespace FWO.Ui.Services
             return statesOut;
         }
 
-        public int getRequestStateFromTaskStates(List<int> statesIn)
+        public int getDerivedStateFromSubStates(List<int> statesIn)
         {
             if(statesIn.Count == 0)
             {

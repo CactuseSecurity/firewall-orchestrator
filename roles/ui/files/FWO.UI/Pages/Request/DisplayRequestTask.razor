@@ -85,6 +85,7 @@
                     {
                         <div class="col-sm-2">
                             <select id="taskRuleAction" class="form-control form-control-sm" @bind="ReqTask.RuleAction">
+                                <option value="null">-</option>
                                 @foreach (var action in ruleActions)
                                 {
                                     <option value="@action.Id">@(action.Name)</option>
@@ -101,6 +102,7 @@
                     {
                         <div class="col-sm-2">
                             <select id="taskRuleTracking" class="form-control form-control-sm" @bind="ReqTask.Tracking">
+                                <option value="null">-</option>
                                 @foreach (var track in trackings)
                                 {
                                     <option value="@track.Id">@(track.Name)</option>
@@ -135,100 +137,15 @@
                         <label class="col-sm-2">@ReqTask.TargetEndDate?.ToString("d")</label>
                     }
                 </div>
-                <div class="form-group row">
-                    <label for="taskSource" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("source")):</label>
-                    <label for="taskSourceIp" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("ip")):</label>
-                    @if (EditMode)
-                    {
-                        <div class="col-sm-2">
-                            <input id="taskSourceIp" type="text" class="form-control form-control-sm" @bind="actSource.Ip" />
-                        </div>
-                    }
-                    else
-                    {
-                        <label class="col-sm-2">@actSource.Ip</label>
-                    }
-                    <label for="taskSourcePort" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("port")):</label>
-                    @if (EditMode)
-                    {
-                        <div class="col-sm-1">
-                            <input id="taskSourcePort" type="text" class="form-control form-control-sm" @bind="actSource.Port" />
-                        </div>
-                    }
-                    else
-                    {
-                        <label class="col-sm-1">@actSource.Port</label>
-                    }
-                </div>
-                <div class="form-group row">
-                    <label for="taskDest" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("destination")):</label>
-                    <label for="taskDestIp" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("ip")):</label>
-                    @if (EditMode)
-                    {
-                        <div class="col-sm-2">
-                            <input id="taskDestIp" type="text" class="form-control form-control-sm" @bind="actDestination.Ip" />
-                        </div>
-                    }
-                    else
-                    {
-                        <label class="col-sm-2">@actDestination.Ip</label>
-                    }
-                    <label for="taskDestPort" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("port")):</label>
-                    @if (EditMode)
-                    {
-                        <div class="col-sm-1">
-                            <input id="taskDestPort" type="text" class="form-control form-control-sm" @bind="actDestination.Port" />
-                        </div>
-                    }
-                    else
-                    {
-                        <label class="col-sm-1">@actDestination.Port</label>
-                    }
-                </div>
-                <div class="form-group row">
-                    <label for="taskService" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("service")):</label>
-                    <label for="taskServiceIp" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("ip")):</label>
-                    @if (EditMode)
-                    {
-                        <div class="col-sm-2">
-                            <input id="taskServiceIp" type="text" class="form-control form-control-sm" @bind="actService.Ip" />
-                        </div>
-                    }
-                    else
-                    {
-                        <label class="col-sm-2">@actService.Ip</label>
-                    }
-                    <label for="taskServicePort" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("port")):</label>
-                    @if (EditMode)
-                    {
-                        <div class="col-sm-1">
-                            <input id="taskServicePort" type="text" class="form-control form-control-sm" @bind="actService.Port" />
-                        </div>
-                    }
-                    else
-                    {
-                        <label class="col-sm-1">@actService.Port</label>
-                    }
-                    <label for="taskServiceProto" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("protocol")):</label>
-                    @if (EditMode)
-                    {
-                        <div class="col-sm-2">
-                            <select id="taskServiceProto" class="form-control form-control-sm" @bind="actService.ProtoId">
-                                @foreach (var proto in ipProtos)
-                                {
-                                    <option value="@proto.Id">@(proto.Name)</option>
-                                }
-                            </select>
-                        </div>
-                    }
-                    else
-                    {
-                        <label class="col-sm-2">@((actService.ProtoId != null) ? ipProtos.Find(x => x.Id == actService.ProtoId)?.Name : "")</label>
-                    }
-                </div>
+
+                @if(ReqTask.TaskType == TaskType.access.ToString())
+                {
+                    <DisplayAccessElements @bind-Source="actSource" @bind-Destination="actDestination" @bind-Service="actService" EditMode="EditMode"></DisplayAccessElements>
+                }
+
                 <div class="form-group row">
                     <label for="taskComment" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
-                    @if (Phase == WorkflowPhases.planning && EditMode)
+                    @if (PlanMode)
                     {
                         <div class="col-sm-11">
                             <input id="taskComment" type="text" class="form-control form-control-sm" @bind="ReqTask.FwAdminComments" />
@@ -239,10 +156,10 @@
                         <label class="col-sm-11">@ReqTask.FwAdminComments</label>
                     }
                 </div>
-                @if(Phase > WorkflowPhases.approval)
+                @if(Phase == WorkflowPhases.planning || ReqTask.ImplementationTasks.Count > 0)
                 {
                     <h5>@(userConfig.GetText("implementation_tasks"))</h5>
-                    @if (Phase == WorkflowPhases.planning && EditMode)
+                    @if (PlanMode)
                     {
                         <button class="btn btn-success m-2" @onclick:preventDefault @onclick="AddImplTask">@(userConfig.GetText("create_implementation"))</button>
                     }
@@ -252,7 +169,7 @@
                                 <Template>
                                     <div class="btn-group">
                                         <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowImplTask(context)">@(userConfig.GetText("details"))</button>
-                                        @if (EditMode && context.StateId < StateMatrix.LowestEndState)
+                                        @if (PlanMode && context.StateId < StateMatrix.LowestEndState)
                                         {
                                             <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => EditImplTask(context)">@(userConfig.GetText("edit"))</button>
                                             <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteImplTask(context)">@(userConfig.GetText("delete"))</button>
@@ -282,52 +199,27 @@
         <div class="btn-group">
             @if (EditMode)
             {
-                @if (Phase == WorkflowPhases.request)
-                {
-                    <AuthorizeView Roles="admin, requester, fw-admin">
-                        <Authorized>
-                            <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveReqTask">@(userConfig.GetText("save"))</button>
-                        </Authorized>
-                        <NotAuthorized>
-                            <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-                        </NotAuthorized> 
-                    </AuthorizeView>
-                }
-                else
-                {
-                    <AuthorizeView Roles="admin, approver, planner, implementer, fw-admin">
-                        <Authorized>
-                            <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="PromoteReqTask">@(userConfig.GetText("promote_task"))</button>
-                        </Authorized>
-                        <NotAuthorized>
-                            <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("promote_task"))</button>
-                        </NotAuthorized> 
-                    </AuthorizeView>
-                }
+                <AuthorizeView Roles="admin, requester, fw-admin">
+                    <Authorized>
+                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveReqTask">@(userConfig.GetText("save"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+            }
+            else if (PlanMode)
+            {
+                <AuthorizeView Roles="admin, approver, planner, implementer, fw-admin">
+                    <Authorized>
+                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="PromoteReqTask">@(userConfig.GetText("promote_task"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("promote_task"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
             }
             <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
-
-<PopUp Title="@(userConfig.GetText("delete_task"))" Show="@DeleteImplTaskMode" OnClose="() => DeleteImplTaskMode = false">
-    <Body>
-        @if (DeleteImplTaskMode)
-        {
-            <p>@(userConfig.GetText("U8002")) @(actImplTask.ImplTaskNumber)?</p>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <AuthorizeView Roles="admin, planner, fw-admin">
-                <Authorized>
-                    <button class="btn btn-sm btn-danger" @onclick="ConfDeleteImplTask">@(userConfig.GetText("delete"))</button>
-                </Authorized>
-                <NotAuthorized>
-                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                </NotAuthorized> 
-            </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="CancelImplTask">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -336,6 +228,7 @@
     ImplTask="actImplTask" StateMatrix="StateMatrix" States="States" @bind-ReqTask="ReqTask"></DisplayImplementationTask>
 
 <PromoteObject @bind-Display="PromoteTaskMode" Save="UpdateReqTaskState" StatefulObject="ReqTask" PossibleStates="possibleStates" States="States"></PromoteObject>
+<DeleteObject @bind-Display="DeleteImplTaskMode" Delete="ConfDeleteImplTask" ObjName="@(actImplTask.ImplTaskNumber.ToString())"></DeleteObject>
 
 @code
 {
@@ -364,6 +257,12 @@
     public EventCallback<bool> AddModeChanged { get; set; }
 
     [Parameter]
+    public bool PlanMode { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> PlanModeChanged { get; set; }
+
+    [Parameter]
     public RequestTask ReqTask { get; set; } = new RequestTask();
 
     [Parameter]
@@ -379,7 +278,6 @@
     public EventCallback<RequestTicket> TicketChanged { get; set; }
 
 
-    private List<IpProtocol> ipProtos = new List<IpProtocol>();
     private List<RuleAction> ruleActions = new List<RuleAction>();
     private List<Tracking> trackings = new List<Tracking>();
     private List<Device> devices = new List<Device>();
@@ -401,7 +299,6 @@
     {
         try
         {
-            ipProtos = await apiConnection.SendQueryAsync<List<IpProtocol>>(FWO.Api.Client.Queries.StmQueries.getIpProtocols);
             ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(FWO.Api.Client.Queries.StmQueries.getRuleActions);
             trackings = await apiConnection.SendQueryAsync<List<Tracking>>(FWO.Api.Client.Queries.StmQueries.getTracking);
             devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
@@ -432,19 +329,15 @@
     {
         AddMode = false;
         EditMode = false;
+        PlanMode = false;
         Display = false;
-    }
-
-    private void ResetExt()
-    {
-        ShowImplTaskMode = false;
-        PromoteTaskMode = false;
-        DeleteImplTaskMode = false;
     }
 
     private void Reset()
     {
-        ResetExt();
+        ShowImplTaskMode = false;
+        PromoteTaskMode = false;
+        DeleteImplTaskMode = false;
         AddImplTaskMode = false;
         EditImplTaskMode = false;
     }
@@ -454,8 +347,6 @@
         Reset();
         Close();
     }
-
-
 
     private bool CheckElementValues()
     {
@@ -474,30 +365,36 @@
 
     private void AddImplTask()
     {
-        AddImplTaskMode = true;
-        EditImplTask(new ImplementationTask(ReqTask)
+        actImplTask = new ImplementationTask(ReqTask)
             {
                 ImplTaskNumber = ReqTask.ImplementationTasks.Count + 1,
                 DeviceId = (devices.Count > 0 ? devices[0].Id : 0)
-            });
+            };
+        Reset();
+        AddImplTaskMode = true;
+        EditImplTaskMode = true;
+        ShowImplTaskMode = true;
     }
 
     private void EditImplTask(ImplementationTask task)
     {
+        actImplTask = task;
+        Reset();
         EditImplTaskMode = true;
-        ShowImplTask(task);
+        ShowImplTaskMode = true;
     }
 
     private void ShowImplTask(ImplementationTask task)
     {
-        ResetExt();
         actImplTask = task;
+        Reset();
         ShowImplTaskMode = true;
     }
 
     private void DeleteImplTask(ImplementationTask task)
     {
         actImplTask = task;
+        Reset();
         DeleteImplTaskMode = true;
     }
 
@@ -505,14 +402,6 @@
     {
         await DeleteImplTaskFromDb(actImplTask);
         ReqTask.ImplementationTasks.Remove(actImplTask);
-        DeleteImplTaskMode = false;
-    }
-
-    private void CancelImplTask()
-    {
-        ShowImplTaskMode = false;
-        EditImplTaskMode = false;
-        AddImplTaskMode = false;
         DeleteImplTaskMode = false;
     }
 
@@ -546,16 +435,16 @@
 
     private void AddElements()
     {
-        ReqTask.Elements.Add(actSource.ToElement(RuleField.source));
-        ReqTask.Elements.Add(actDestination.ToElement(RuleField.destination));
-        ReqTask.Elements.Add(actService.ToElement(RuleField.service));
+        ReqTask.Elements.Add(actSource.ToReqElement(RuleField.source));
+        ReqTask.Elements.Add(actDestination.ToReqElement(RuleField.destination));
+        ReqTask.Elements.Add(actService.ToReqElement(RuleField.service));
     }
 
     private void UpdateElements()
     {
-        ReqTask.Elements[ReqTask.Elements.FindIndex(x => x.Id == actSource.ReqElemId)] = actSource.ToElement(RuleField.source);
-        ReqTask.Elements[ReqTask.Elements.FindIndex(x => x.Id == actDestination.ReqElemId)] = actDestination.ToElement(RuleField.destination);
-        ReqTask.Elements[ReqTask.Elements.FindIndex(x => x.Id == actService.ReqElemId)] = actService.ToElement(RuleField.service);
+        ReqTask.Elements[ReqTask.Elements.FindIndex(x => x.Id == actSource.ElemId)] = actSource.ToReqElement(RuleField.source);
+        ReqTask.Elements[ReqTask.Elements.FindIndex(x => x.Id == actDestination.ElemId)] = actDestination.ToReqElement(RuleField.destination);
+        ReqTask.Elements[ReqTask.Elements.FindIndex(x => x.Id == actService.ElemId)] = actService.ToReqElement(RuleField.service);
     }
 
     private async Task SaveReqTask()
@@ -631,13 +520,13 @@
                 foreach(ImplementationTask implTask in ReqTask.ImplementationTasks)
                 {
                     implTask.StateId = ReqTask.StateId;
-                    await UpdateImplTaskInDb(implTask);
+                    await UpdateImplTaskStateInDb(implTask);
                 }
             }
 
             Ticket.Tasks[Ticket.Tasks.FindIndex(x => x.Id == ReqTask.Id)] = ReqTask;
-            PromoteTaskMode = false;
-            StateHasChanged();
+            Reset();
+            Close();
         }
         catch (Exception exception)
         {
@@ -721,7 +610,6 @@
                 {
                     await UpdateReqElementInDb(element);
                 }
-
             }
         }
         catch (Exception exception)
@@ -755,7 +643,7 @@
         }
     }
 
-    private async Task UpdateImplTaskInDb(ImplementationTask task)
+    private async Task UpdateImplTaskStateInDb(ImplementationTask task)
     {
         try
         {
@@ -801,7 +689,7 @@
             {
                 requestAction = element.RequestAction,
                 taskId = element.TaskId,
-                ip = element.Ip,
+                ip = element.Ip.ToCidrString(),
                 port = element.Port,
                 proto = element.ProtoId,
                 network_obj_id = element.NetworkId,
@@ -836,7 +724,7 @@
                 id = element.Id,                
                 requestAction = element.RequestAction,
                 taskId = element.TaskId,
-                ip = element.Ip,
+                ip = element.Ip.ToCidrString(),
                 port = element.Port,
                 proto = element.ProtoId,
                 network_obj_id = element.NetworkId,

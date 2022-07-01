@@ -28,7 +28,6 @@
                     @if(userAndGroupList.Count > 0)
                     {
                         <div class="col-sm-2">
-
                             <AuthorizeView Roles="admin">
                                 <Authorized>
                                     <button class="btn btn-sm btn-success" @onclick="() => AssignGroup()" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
@@ -40,6 +39,21 @@
                         </div>
                     }
                 </form>
+                @if(ReqTask.RecentHandler != null && ReqTask.RecentHandler != ReqTask.CurrentHandler)
+                {
+                    <form class="form-group row">
+                        <label for="roleInternalGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("back_to")):</label>
+                        <label class="col-sm-8">@ReqTask.RecentHandler.Name</label>
+                        <AuthorizeView Roles="admin">
+                            <Authorized>
+                                <button class="btn btn-sm btn-success" @onclick="() => AssignBack()" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                            </Authorized>
+                            <NotAuthorized>
+                                <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
+                            </NotAuthorized> 
+                        </AuthorizeView>
+                    </form>
+                }
             </form>
         }
     </Body>
@@ -97,6 +111,14 @@
         }
     }
 
+    private async Task AssignBack()
+    {
+        ReqTask.AssignedGroup = ReqTask.RecentHandler?.Dn;
+        ReqTask.RecentHandler = ReqTask.CurrentHandler;
+        await UpdateReqTaskInDb(ReqTask);
+        Display = false;
+    }
+
     private void Cancel()
     {
         Display = false;
@@ -119,6 +141,7 @@
             var Variables = new
             {
                 id = task.Id,
+                state = task.StateId,
                 handler = task.CurrentHandler?.DbId,
                 recentHandler = task.RecentHandler?.DbId,
                 assignedGroup = task.AssignedGroup,

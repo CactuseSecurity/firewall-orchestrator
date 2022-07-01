@@ -95,5 +95,24 @@ namespace FWO.Api.Data
             return shortened;
         }
 
+        public RuleElement? RuleElement(RuleField field)
+        {
+            RuleElement? element = null;
+            ImplementationElement? implElem = ImplElements.FirstOrDefault(x => x.Field == field.ToString());
+            if (implElem != null)
+            {
+                element = new RuleElement()
+                {
+                    ElemId = implElem.Id,
+                    TaskId = implElem.ImplTaskId,
+                    Ip = implElem.Ip,
+                    Port = implElem.Port,
+                    ProtoId = implElem.ProtoId,
+                    NetworkId = implElem.NetworkId,
+                    ServiceId = implElem.ServiceId
+                };
+            }
+            return element;
+        }
     }
 }

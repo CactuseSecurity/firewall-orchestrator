@@ -115,7 +115,7 @@
       hasura_env
   when: debug_level > '1'
 
-- name: start hasura container
+- name: start hasura container ansible 2.10 and higher
   docker_container:
     name: "{{ api_container_name }}"
     image: hasura/graphql-engine:{{ api_hasura_version }}
@@ -137,6 +137,31 @@
   become: yes
   become_user: "{{ fworch_user }}"
   environment: "{{ proxy_env }}"
+  when: ansible_version.string is version_compare('2.10', '>=')
+
+
+- name: start hasura container pre ansible 2.1ß 
+  docker_container:
+    name: "{{ api_container_name }}"
+    image: hasura/graphql-engine:{{ api_hasura_version }}
+    state: started
+    network_mode: host
+    networks_cli_compatible: yes
+    log_driver: syslog
+    log_options:
+      syslog-address: "{{ syslog_proto }}://{{ syslog_host }}:{{ syslog_port }}"
+      syslog-facility: daemon
+      tag: "{{ api_container_name }}"
+    recreate: yes
+    exposed_ports:
+      - "{{ api_port }}:{{ api_port }}"
+    env:
+      "{{ hasura_env }}"
+  register: docker_return
+  become: yes
+  become_user: "{{ fworch_user }}"
+  environment: "{{ proxy_env }}"
+  when: ansible_version.string is version_compare('2.10', '<')
 
 - name: show docker result
   debug:

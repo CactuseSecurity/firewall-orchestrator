@@ -10,7 +10,7 @@
   when: installation_mode == "upgrade"
   become: yes
 
-# cp current api_metadata to fworch_home/api
+# initially cp current api_metadata to fworch_home/api
 - name: download {{ api_hasura_version }} hasura cli binary
   get_url:
     url: "https://github.com/hasura/graphql-engine/releases/download/{{ api_hasura_version }}/cli-hasura-linux-amd64"

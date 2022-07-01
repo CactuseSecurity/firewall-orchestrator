@@ -1,0 +1,24 @@
+- debug: 
+    msg:
+      - "running v5.7.1 upgrade script"
+
+- name: cp hasura cli from /usr/local/bin to fworch_home/api/bin
+  copy:
+    src: "/usr/local/bin/hasura"
+    dest: "{{ api_hasura_cli_bin }}"
+    remote_src: yes
+  when: installation_mode == "upgrade"
+  become: yes
+
+# initially cp current api_metadata to fworch_home/api
+- name: download {{ api_hasura_version }} hasura cli binary
+  get_url:
+    url: "https://github.com/hasura/graphql-engine/releases/download/{{ api_hasura_version }}/cli-hasura-linux-amd64"
+    dest: "{{ api_hasura_cli_bin }}"
+    force: yes
+    mode: "0755"
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
+  environment: "{{ proxy_env }}"
+  become: yes
+  when: not api_cli_check.stat.exists 

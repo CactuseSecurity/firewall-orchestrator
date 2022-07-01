@@ -22,6 +22,7 @@
         - libgdiplus
         - libc6-dev
         - libjpeg62
+        - xfonts-75dpi
 
     - name: backup lib dir
       synchronize:

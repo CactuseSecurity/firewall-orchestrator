@@ -31,8 +31,6 @@ git clone https://github.com/CactuseSecurity/firewall-orchestrator.git
 ```console
 cd firewall-orchestrator; ansible-playbook site.yml -K
 ```
-Note: The installation (i.e. the connection to the target machine) is only done in root context (sudo) to secure the writing of temporary files when becoming a non-priviledged user (e.g. postgres).
-
 
 Enter sudo password when prompted "BECOME or SUDO password:"
 

@@ -139,7 +139,6 @@
   environment: "{{ proxy_env }}"
   when: ansible_version.string is version_compare('2.10', '>=')
 
-
 - name: start hasura container pre ansible 2.1ß 
   docker_container:
     name: "{{ api_container_name }}"

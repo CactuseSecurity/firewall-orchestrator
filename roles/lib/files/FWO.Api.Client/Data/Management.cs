@@ -168,7 +168,7 @@ namespace FWO.Api.Data
             ImportUser = Sanitizer.SanitizeOpt(ImportUser, ref shortened);
             ConfigPath = Sanitizer.SanitizeMand(ConfigPath, ref shortened);
             ImporterHostname = Sanitizer.SanitizeMand(ImporterHostname, ref shortened);
-            Comment = Sanitizer.SanitizeOpt(Comment, ref shortened);
+            Comment = Sanitizer.SanitizeCommentOpt(Comment, ref shortened);
             PublicKey = Sanitizer.SanitizeKeyOpt(PublicKey, ref shortened);
             Secret = (DeviceType.IsLegacyDevType() ? Sanitizer.SanitizeKeyMand(Secret, ref shortened) : Sanitizer.SanitizePasswMand(Secret, ref shortened));
             return shortened;

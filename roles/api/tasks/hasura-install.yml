@@ -185,15 +185,6 @@
     path: "{{ api_home }}/{{ product_name }}"
   register: api_metadata_check
 
-# - name: import hasura metadata from remote file (restore old metadata)
-#   command: "{{ api_hasura_cli_bin }} metadata apply"
-#   args:
-#     chdir: "{{ api_home }}/{{ product_name }}"
-#   become: yes
-#   become_user: "{{ fworch_user }}"
-#   environment: "{{ proxy_env }}"
-#   when: api_metadata_check.stat.exists 
-
 - name: import API metadata via metadata API directly from local file
   uri: 
     url: "http://{{ api_ip_address }}:{{ api_port }}/v1/metadata"
@@ -206,14 +197,3 @@
       x-hasura-role: "admin"
     body: "{{ lookup('file','replace_metadata.json') | from_json }}"
   when: not api_metadata_check.stat.exists 
-
-# - name: copy hasura metadata json to cli directory for restore of old version in next upgrade
-#   copy:
-#      src: replace_metadata.json
-#      dest: "{{ api_home }}/{{ product_name }}/migrations/metadata.json"
-#      backup: yes
-#      mode: "0644"
-#      owner: "{{ fworch_user }}"
-#      group: "{{ fworch_group }}"
-#   become: yes
-#   when: not api_metadata_check.stat.exists 

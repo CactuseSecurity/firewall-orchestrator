@@ -1,4 +1,26 @@
 # this playbook sets up the api
+
+- name: initialize handler for datarecovery
+  set_fact:
+    api_handler_guard: start
+  changed_when: true
+  notify:
+  - api handler
+  when: installation_mode == "upgrade"
+
+- name: check for api dir
+  stat:
+    path: "{{ fworch_home }}/api"
+  register: api_dir_check
+
+- name: backup api dir
+  synchronize:
+    src: "{{ fworch_home }}/api"
+    dest: "{{ fworch_home }}/backup_api"
+  delegate_to: "{{ inventory_hostname }}"
+  when: api_dir_check.stat.exists and installation_mode == "upgrade"
+  become: yes
+
 - name: remove api home
   file:
     path: "{{ api_home }}"
@@ -8,6 +30,15 @@
 - name: create api home
   file:
     path: "{{ api_home }}"
+    state: directory
+    mode: "0755"
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
+  become: yes
+
+- name: create api bin
+  file:
+    path: "{{ api_home }}/bin"
     state: directory
     mode: "0755"
     owner: "{{ fworch_user }}"
@@ -41,7 +72,7 @@
     group: "{{ fworch_user}}"
   become: yes
 
-- name: copy fwo_api.py 
+- name: copy fwo_api.py for scripting from importer
   copy:
     src: roles/importer/files/importer/fwo_api.py
     dest: "{{ fworch_home }}/scripts/fwo_api.py"
@@ -53,8 +84,11 @@
 - name: api create documentation
   import_tasks: api-create-docu.yml
   when: api_docu | bool
-- name: remove api home
-  file:
-    path: "{{ api_home }}"
-    state: absent
+
+- name: finalize handler for datarecovery
+  set_fact:
+    api_handler_guard: stop
+  changed_when: true
+  notify: "api handler"
+  when: installation_mode == "upgrade"
   become: yes

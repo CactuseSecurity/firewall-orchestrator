@@ -337,34 +337,39 @@ insert into config (config_key, config_value, config_user) VALUES ('importSuppre
 insert into config (config_key, config_value, config_user) VALUES ('sessionTimeout', '240', 0) ON CONFLICT DO NOTHING;
 -- insert into config (config_key, config_value, config_user) VALUES ('maxMessages', '3', 0) ON CONFLICT DO NOTHING;
 
-insert into config (config_key, config_value, config_user) VALUES ('stateMatrix', '{"config_value":{"0":{"matrix":{"0":[0,49,620],"49":[49,620],"620":[620]},"derived_states":{"0":0,"49":49,"620":620},"lowest_input_state":0,"lowest_start_state":0,"lowest_end_state":49,"active":true},"1":{"matrix":{"49":[99,610],"60":[60,99,610],"99":[99],"610":[610]},"derived_states":{"49":49,"60":60,"99":99,"610":610},"lowest_input_state":49,"lowest_start_state":60,"lowest_end_state":99,"active":true},"2":{"matrix":{"99":[110],"110":[110,120,130,149],"120":[120,110,130,149],"130":[130,110,120,149,610],"149":[149],"610":[610]},"derived_states":{"99":99,"110":110,"120":110,"130":110,"149":149,"610":610},"lowest_input_state":99,"lowest_start_state":110,"lowest_end_state":149,"active":true},"4":{"matrix":{"149":[210],"210":[210,220,249],"220":[220,210,249,610],"249":[249],"610":[610]},"derived_states":{"149":149,"210":210,"220":210,"249":249,"610":610},"lowest_input_state":149,"lowest_start_state":210,"lowest_end_state":249,"active":true}}}', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('stateMatrix', '{"config_value":{"0":{"matrix":{"0":[0,49,620],"49":[49,620],"620":[620]},"derived_states":{"0":0,"49":49,"620":620},"lowest_input_state":0,"lowest_start_state":0,"lowest_end_state":49,"active":true},"1":{"matrix":{"49":[60],"60":[60,99,610],"99":[99],"610":[610]},"derived_states":{"49":49,"60":60,"99":99,"610":610},"lowest_input_state":49,"lowest_start_state":60,"lowest_end_state":99,"active":true},"2":{"matrix":{"99":[110],"110":[110,120,130,149],"120":[120,110,130,149],"130":[130,110,120,149,610],"149":[149],"610":[610]},"derived_states":{"99":99,"110":110,"120":110,"130":110,"149":149,"610":610},"lowest_input_state":99,"lowest_start_state":110,"lowest_end_state":149,"active":true},"3":{"matrix":{"149":[160],"160":[160,199,610],"199":[199],"610":[610]},"derived_states":{"149":149,"160":160,"199":199,"610":610},"lowest_input_state":149,"lowest_start_state":160,"lowest_end_state":199,"active":false},"4":{"matrix":{"149":[210],"210":[210,220,249],"220":[220,210,249,610],"249":[249],"610":[610]},"derived_states":{"149":149,"210":210,"220":210,"249":249,"610":610},"lowest_input_state":149,"lowest_start_state":210,"lowest_end_state":249,"active":true},"5":{"matrix":{"249":[260],"260":[260,270,299],"270":[210,270,260,299,610],"299":[299],"610":[610]},"derived_states":{"249":249,"260":260,"270":260,"299":299,"610":610},"lowest_input_state":249,"lowest_start_state":260,"lowest_end_state":299,"active":true},"6":{"matrix":{"299":[310],"310":[310,349,400],"349":[349],"400":[400]},"derived_states":{"299":299,"310":310,"349":349,"400":400},"lowest_input_state":299,"lowest_start_state":310,"lowest_end_state":349,"active":false}}}', 0) ON CONFLICT DO NOTHING;
 
 insert into request.state (id,name) VALUES (0,'Draft') ON CONFLICT DO NOTHING;
 insert into request.state (id,name) VALUES (49,'Requested') ON CONFLICT DO NOTHING;
 
-insert into request.state (id,name) VALUES (50,'ToApproveRequest') ON CONFLICT DO NOTHING;
-insert into request.state (id,name) VALUES (60,'RequestInApproval') ON CONFLICT DO NOTHING;
-insert into request.state (id,name) VALUES (99,'RequestApproved') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (50,'To Approve') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (60,'In Approval') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (99,'Approved') ON CONFLICT DO NOTHING;
 
-insert into request.state (id,name) VALUES (100,'ToPlan') ON CONFLICT DO NOTHING;
-insert into request.state (id,name) VALUES (110,'InPlanning') ON CONFLICT DO NOTHING;
-insert into request.state (id,name) VALUES (120,'WaitForApproval') ON CONFLICT DO NOTHING;
-insert into request.state (id,name) VALUES (130,'ComplianceViolation') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (100,'To Plan') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (110,'In Planning') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (120,'Wait For Approval') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (130,'Compliance Violation') ON CONFLICT DO NOTHING;
 insert into request.state (id,name) VALUES (149,'Planned') ON CONFLICT DO NOTHING;
 
-insert into request.state (id,name) VALUES (150,'ToApprovePlan') ON CONFLICT DO NOTHING;
-insert into request.state (id,name) VALUES (160,'PlanInApproval') ON CONFLICT DO NOTHING;
-insert into request.state (id,name) VALUES (199,'PlanApproved') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (150,'To Verify Plan') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (160,'Plan In Verification') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (199,'Plan Verified') ON CONFLICT DO NOTHING;
 
-insert into request.state (id,name) VALUES (200,'ToImplement') ON CONFLICT DO NOTHING;
-insert into request.state (id,name) VALUES (210,'InImplementation') ON CONFLICT DO NOTHING;
-insert into request.state (id,name) VALUES (220,'ImplementationTrouble') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (200,'To Implement') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (210,'In Implementation') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (220,'Implementation Trouble') ON CONFLICT DO NOTHING;
 insert into request.state (id,name) VALUES (249,'Implemented') ON CONFLICT DO NOTHING;
 
-insert into request.state (id,name) VALUES (250,'ToVerify') ON CONFLICT DO NOTHING;
-insert into request.state (id,name) VALUES (260,'InVerification') ON CONFLICT DO NOTHING;
-insert into request.state (id,name) VALUES (270,'FurtherWorkRequested') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (250,'To Review') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (260,'In Review') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (270,'Further Work Requested') ON CONFLICT DO NOTHING;
 insert into request.state (id,name) VALUES (299,'Verified') ON CONFLICT DO NOTHING;
+
+insert into request.state (id,name) VALUES (300,'To Recertify') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (310,'In Recertification') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (349,'Recertified') ON CONFLICT DO NOTHING;
+insert into request.state (id,name) VALUES (400,'Decertified') ON CONFLICT DO NOTHING;
 
 insert into request.state (id,name) VALUES (500,'InProgress') ON CONFLICT DO NOTHING;
 

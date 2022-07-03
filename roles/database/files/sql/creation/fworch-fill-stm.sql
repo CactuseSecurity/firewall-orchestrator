@@ -33,7 +33,7 @@ insert into config (config_key, config_value, config_user) VALUES ('pwNumberRequ
 insert into config (config_key, config_value, config_user) VALUES ('pwSpecialCharactersRequired', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('maxImportDuration', '4', 0);
 insert into config (config_key, config_value, config_user) VALUES ('maxImportInterval', '12', 0);
-insert into config (config_key, config_value, config_user) VALUES ('stateMatrix', '{"config_value":{"0":{"matrix":{"0":[0,49,620],"49":[49,620],"620":[620]},"derived_states":{"0":0,"49":49,"620":620},"lowest_input_state":0,"lowest_start_state":0,"lowest_end_state":49,"active":true},"1":{"matrix":{"49":[99,610],"60":[60,99,610],"99":[99],"610":[610]},"derived_states":{"49":49,"60":60,"99":99,"610":610},"lowest_input_state":49,"lowest_start_state":60,"lowest_end_state":99,"active":true},"2":{"matrix":{"99":[110],"110":[110,120,130,149],"120":[120,110,130,149],"130":[130,110,120,149,610],"149":[149],"610":[610]},"derived_states":{"99":99,"110":110,"120":110,"130":110,"149":149,"610":610},"lowest_input_state":99,"lowest_start_state":110,"lowest_end_state":149,"active":true},"4":{"matrix":{"149":[210],"210":[210,220,249],"220":[220,210,249,610],"249":[249],"610":[610]},"derived_states":{"149":149,"210":210,"220":210,"249":249,"610":610},"lowest_input_state":149,"lowest_start_state":210,"lowest_end_state":249,"active":true}}}', 0);
+insert into config (config_key, config_value, config_user) VALUES ('stateMatrix', '{"config_value":{"0":{"matrix":{"0":[0,49,620],"49":[49,620],"620":[620]},"derived_states":{"0":0,"49":49,"620":620},"lowest_input_state":0,"lowest_start_state":0,"lowest_end_state":49,"active":true},"1":{"matrix":{"49":[60],"60":[60,99,610],"99":[99],"610":[610]},"derived_states":{"49":49,"60":60,"99":99,"610":610},"lowest_input_state":49,"lowest_start_state":60,"lowest_end_state":99,"active":true},"2":{"matrix":{"99":[110],"110":[110,120,130,149],"120":[120,110,130,149],"130":[130,110,120,149,610],"149":[149],"610":[610]},"derived_states":{"99":99,"110":110,"120":110,"130":110,"149":149,"610":610},"lowest_input_state":99,"lowest_start_state":110,"lowest_end_state":149,"active":true},"3":{"matrix":{"149":[160],"160":[160,199,610],"199":[199],"610":[610]},"derived_states":{"149":149,"160":160,"199":199,"610":610},"lowest_input_state":149,"lowest_start_state":160,"lowest_end_state":199,"active":false},"4":{"matrix":{"149":[210],"210":[210,220,249],"220":[220,210,249,610],"249":[249],"610":[610]},"derived_states":{"149":149,"210":210,"220":210,"249":249,"610":610},"lowest_input_state":149,"lowest_start_state":210,"lowest_end_state":249,"active":true},"5":{"matrix":{"249":[260],"260":[260,270,299],"270":[210,270,260,299,610],"299":[299],"610":[610]},"derived_states":{"249":249,"260":260,"270":260,"299":299,"610":610},"lowest_input_state":249,"lowest_start_state":260,"lowest_end_state":299,"active":true},"6":{"matrix":{"299":[310],"310":[310,349,400],"349":[349],"400":[400]},"derived_states":{"299":299,"310":310,"349":349,"400":400},"lowest_input_state":299,"lowest_start_state":310,"lowest_end_state":349,"active":false}}}', 0);
 
 INSERT INTO "report_format" ("report_format_name") VALUES ('json');
 INSERT INTO "report_format" ("report_format_name") VALUES ('pdf');
@@ -398,9 +398,9 @@ where dev_typ_id=2;
 insert into request.state (id,name) VALUES (0,'Draft');
 insert into request.state (id,name) VALUES (49,'Requested');
 
-insert into request.state (id,name) VALUES (50,'To Approve Request');
-insert into request.state (id,name) VALUES (60,'Request In Approval');
-insert into request.state (id,name) VALUES (99,'Request Approved');
+insert into request.state (id,name) VALUES (50,'To Approve');
+insert into request.state (id,name) VALUES (60,'In Approval');
+insert into request.state (id,name) VALUES (99,'Approved');
 
 insert into request.state (id,name) VALUES (100,'To Plan');
 insert into request.state (id,name) VALUES (110,'In Planning');
@@ -408,19 +408,24 @@ insert into request.state (id,name) VALUES (120,'Wait For Approval');
 insert into request.state (id,name) VALUES (130,'Compliance Violation');
 insert into request.state (id,name) VALUES (149,'Planned');
 
-insert into request.state (id,name) VALUES (150,'To Approve Plan');
-insert into request.state (id,name) VALUES (160,'Plan In Approval');
-insert into request.state (id,name) VALUES (199,'Plan Approved');
+insert into request.state (id,name) VALUES (150,'To Verify Plan');
+insert into request.state (id,name) VALUES (160,'Plan In Verification');
+insert into request.state (id,name) VALUES (199,'Plan Verified');
 
 insert into request.state (id,name) VALUES (200,'To Implement');
 insert into request.state (id,name) VALUES (210,'In Implementation');
 insert into request.state (id,name) VALUES (220,'Implementation Trouble');
 insert into request.state (id,name) VALUES (249,'Implemented');
 
-insert into request.state (id,name) VALUES (250,'To Verify');
-insert into request.state (id,name) VALUES (260,'In Verification');
+insert into request.state (id,name) VALUES (250,'To Review');
+insert into request.state (id,name) VALUES (260,'In Review');
 insert into request.state (id,name) VALUES (270,'Further Work Requested');
 insert into request.state (id,name) VALUES (299,'Verified');
+
+insert into request.state (id,name) VALUES (300,'To Recertify');
+insert into request.state (id,name) VALUES (310,'In Recertification');
+insert into request.state (id,name) VALUES (349,'Recertified');
+insert into request.state (id,name) VALUES (400,'Decertified');
 
 insert into request.state (id,name) VALUES (500,'InProgress');
 

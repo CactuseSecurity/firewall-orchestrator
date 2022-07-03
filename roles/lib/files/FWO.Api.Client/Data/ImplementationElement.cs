@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
+using NetTools;
 
 namespace FWO.Api.Data
 {
@@ -14,6 +15,13 @@ namespace FWO.Api.Data
         [JsonProperty("implementation_action"), JsonPropertyName("implementation_action")]
         public string ImplAction { get; set; } = "create";
 
+        public IPAddressRange Ip
+        {
+            get => IPAddressRange.Parse(IpString);
+            set => IpString = value.ToCidrString();
+        }
+
+
         public ImplementationElement()
         { }
 
@@ -22,6 +30,7 @@ namespace FWO.Api.Data
             Id = element.Id;
             ImplTaskId = element.ImplTaskId;
             ImplAction = element.ImplAction;
+            Ip = element.Ip;
         }
 
         public ImplementationElement(RequestElement element)

@@ -1,7 +1,5 @@
 ﻿using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
-using System.Net;
-using NetTools;
 
 namespace FWO.Api.Data
 {
@@ -16,12 +14,6 @@ namespace FWO.Api.Data
     {
         [JsonProperty("ip"), JsonPropertyName("ip")]
         public string IpString { get; set; } = "";
-
-        public IPAddressRange Ip
-        {
-            get => IPAddressRange.Parse(IpString);
-            set => IpString = value.ToCidrString();
-        }
 
         [JsonProperty("port"), JsonPropertyName("port")]
         public int Port { get; set; }
@@ -50,7 +42,7 @@ namespace FWO.Api.Data
 
         public ElementBase(ElementBase element)
         {
-            Ip = element.Ip;
+            IpString = element.IpString;
             Port = element.Port;
             ProtoId = element.ProtoId;
             NetworkId = element.NetworkId;

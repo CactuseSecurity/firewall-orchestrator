@@ -195,6 +195,9 @@
     public ImplementationTask ImplTask { get; set; } = new ImplementationTask();
 
     [Parameter]
+    public EventCallback<ImplementationTask> ImplTaskChanged { get; set; }
+
+    [Parameter]
     public StateMatrix StateMatrix { get; set; } = new StateMatrix();
 
     [Parameter]
@@ -244,9 +247,9 @@
 
     private void InitElements()
     {
-        actSource = ImplTask.RuleElement(RuleField.source) ?? new RuleElement();
-        actDestination = ImplTask.RuleElement(RuleField.destination) ?? new RuleElement();
-        actService = ImplTask.RuleElement(RuleField.service) ?? new RuleElement();
+        actSource = ImplTask.getRuleElement(RuleField.source) ?? new RuleElement();
+        actDestination = ImplTask.getRuleElement(RuleField.destination) ?? new RuleElement();
+        actService = ImplTask.getRuleElement(RuleField.service) ?? new RuleElement();
     }
 
     private void AddElements()

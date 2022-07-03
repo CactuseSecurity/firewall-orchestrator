@@ -10,7 +10,7 @@
 
 <div class="form-group row">
     <label for="taskSource" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("source")):</label>
-    <label for="sourceElementObject" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("object")):</label>
+    <label for="sourceElementObject" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("network_objects")):</label>
     @if (EditMode)
     {
         <div class="col-sm-2">
@@ -51,7 +51,7 @@
 </div>
 <div class="form-group row">
     <label for="taskDest" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("destination")):</label>
-    <label for="destElementObject" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("object")):</label>
+    <label for="destElementObject" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("network_objects")):</label>
     @if (EditMode)
     {
         <div class="col-sm-2">
@@ -92,7 +92,7 @@
 </div>
 <div class="form-group row">
     <label for="taskService" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("service")):</label>
-    <label for="serviceElementObject" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("object")):</label>
+    <label for="serviceElementObject" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("network_services")):</label>
     @if (EditMode)
     {
         <div class="col-sm-2">

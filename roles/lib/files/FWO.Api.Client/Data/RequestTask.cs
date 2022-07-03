@@ -47,7 +47,7 @@ namespace FWO.Api.Data
             return string.Join(", ", ownerNames);
         }
 
-        public RuleElement? RuleElement(RuleField field)
+        public RuleElement? getRuleElement(RuleField field)
         {
             RuleElement? element = null;
             RequestElement? reqElem = Elements.FirstOrDefault(x => x.Field == field.ToString());

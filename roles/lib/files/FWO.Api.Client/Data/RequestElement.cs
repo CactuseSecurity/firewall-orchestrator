@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
+using NetTools;
 
 namespace FWO.Api.Data
 {
@@ -14,14 +15,21 @@ namespace FWO.Api.Data
         [JsonProperty("request_action"), JsonPropertyName("request_action")]
         public string RequestAction { get; set; } = FWO.Api.Data.RequestAction.create.ToString();
 
+        public IPAddressRange Ip
+        {
+            get => IPAddressRange.Parse(IpString);
+            set => IpString = value.ToCidrString();
+        }
+
         public RequestElement()
         { }
 
         public RequestElement(RequestElement element) : base (element)
         {
-            RequestAction = element.RequestAction;
             Id = element.Id;
             TaskId = element.TaskId;
+            RequestAction = element.RequestAction;
+            Ip = element.Ip;
         }
     }
 }

@@ -95,7 +95,7 @@ namespace FWO.Api.Data
             return shortened;
         }
 
-        public RuleElement? RuleElement(RuleField field)
+        public RuleElement? getRuleElement(RuleField field)
         {
             RuleElement? element = null;
             ImplementationElement? implElem = ImplElements.FirstOrDefault(x => x.Field == field.ToString());

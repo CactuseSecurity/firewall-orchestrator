@@ -100,9 +100,17 @@
                                     @(States.Name[context.StateId])
                                 </Template>
                             </Column>
-                            @if(Phase != WorkflowPhases.approval)
+                            <Column TableItem="RequestTask" Title="@(userConfig.GetText("current_handler"))" Field="@(x => x.CurrentHandler.Name)" Sortable="true" Filterable="true" />
+                            @if(Phase == WorkflowPhases.approval)
                             {
-                                <Column TableItem="RequestTask" Title="@(userConfig.GetText("planner"))" Field="@(x => x.CurrentHandler.Name)" Sortable="true" Filterable="true" />
+                                <Column TableItem="RequestTask" Title="@(userConfig.GetText("deadline"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
+                                    <Template>
+                                        @(context.Approvals.FirstOrDefault(x => x.InitialApproval)?.Deadline)
+                                    </Template>
+                                </Column>
+                            }
+                            else
+                            {
                                 <Column TableItem="RequestTask" Title="@(userConfig.GetText("assigned"))" Field="@(x => x.AssignedGroup)" Sortable="true" Filterable="true" >
                                     <Template>
                                         @(new DistName(context.AssignedGroup).UserName)
@@ -155,6 +163,8 @@
                                 </Template>
                             </Column>
                             <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("implementer"))" Field="@(x => x.CurrentHandler.Name)" Sortable="true" Filterable="true" />
+                            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("start"))" Field="@(x => x.Start)" Sortable="true" Filterable="true" />
+                            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("stop"))" Field="@(x => x.Stop)" Sortable="true" Filterable="true" />
                         </Table>
                     </div>
                 }
@@ -191,14 +201,14 @@
 </PopUp>
 
 <DisplayRequestTask Phase="Phase" @bind-Display="ShowReqTaskMode" @bind-EditMode="EditReqTaskMode" @bind-AddMode="AddReqTaskMode" @bind-PlanMode="PlanMode"
-    ReqTask="actTask" StateMatrix="StateMatrix" States="States" @bind-Ticket="Ticket"></DisplayRequestTask>
+    @bind-ReqTask="actTask" StateMatrix="StateMatrix" States="States" @bind-Ticket="Ticket"></DisplayRequestTask>
 <DisplayImplementationTask Phase="Phase" @bind-Display="ShowImplTaskMode" @bind-ImplementMode="ImplementMode" 
-    ImplTask="actImplTask" StateMatrix="StateMatrix" States="States" @bind-ReqTask="actTask"></DisplayImplementationTask>
+    @bind-ImplTask="actImplTask" StateMatrix="StateMatrix" States="States" @bind-ReqTask="actTask"></DisplayImplementationTask>
 <AssignTask @bind-Display="AssignTaskMode" @bind-ReqTask="actTask"></AssignTask>
 <DisplayApprovals @bind-Display="ShowApprovalMode" Approvals="actTask.Approvals" States="States"></DisplayApprovals>
 <PromoteObject @bind-Display="SaveTicketMode" Save="SaveTicket" StatefulObject="Ticket" PossibleStates="possibleStates" States="States"></PromoteObject>
 <PromoteObject @bind-Display="PromoteTicketMode" Save="UpdateTicketStateInDb" StatefulObject="Ticket" PossibleStates="possibleStates" States="States"></PromoteObject>
-<DeleteObject @bind-Display="DeleteReqTaskMode" Delete="ConfDeleteReqTask" ObjName="actTask.Title"></DeleteObject>
+<DeleteObject @bind-Display="DeleteReqTaskMode" Delete="ConfDeleteReqTask" ObjName="@actTask.Title"></DeleteObject>
 
 
 @code
@@ -272,7 +282,7 @@
     [Parameter]
     public EventCallback<List<RequestTicket>> RequestsChanged { get; set; }
 
-    private RequestTask actTask = new RequestTask();
+    private RequestTask actTask { get; set; } = new RequestTask();
     private ImplementationTask actImplTask = new ImplementationTask();
     private List<int> possibleStates = new List<int>();
     private List<Device> devices = new List<Device>();

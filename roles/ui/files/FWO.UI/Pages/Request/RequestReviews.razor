@@ -3,19 +3,19 @@
 @using FWO.Config.Api
 @using FWO.Ui.Services
 
-@page "/request/implementations"
-@attribute [Authorize(Roles = "admin, implementer, auditor, fw-admin")]
+@page "/request/reviews"
+@attribute [Authorize(Roles = "admin, reviewer, auditor, fw-admin")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<h3>@(userConfig.GetText("implementations"))</h3>
+<h3>@(userConfig.GetText("reviews"))</h3>
 <hr />
-<DisplayOverview Phase="WorkflowPhases.implementation" @bind-Requests="requests" ShowTicketDetails="ShowTicketDetails" 
+<DisplayOverview Phase="WorkflowPhases.review" @bind-Requests="requests" ShowTicketDetails="ShowTicketDetails" 
     StateMatrix ="stateMatrix" States="states"></DisplayOverview>
 
-<DisplayTicket Phase="WorkflowPhases.implementation" StartImplPhase="StartImplementation" ContinueImplPhase="ImplementTask" 
-    @bind-Display="ShowTicketMode" @bind-ImplementMode="ImplementTaskMode" @bind-Ticket="actTicket" AllImplTasks="allImplTasks" 
+<DisplayTicket Phase="WorkflowPhases.review" StartImplPhase="StartReview" ContinueImplPhase="ReviewTask" 
+    @bind-Display="ShowTicketMode" @bind-ImplementMode="ReviewTaskMode" @bind-Ticket="actTicket" AllImplTasks="allImplTasks" 
     StateMatrix ="stateMatrix" States="states" @bind-Requests="requests"></DisplayTicket>
 
 
@@ -27,7 +27,7 @@
     private List<RequestTicket> requests = new List<RequestTicket>();
 
     private bool ShowTicketMode = false;
-    private bool ImplementTaskMode = false;
+    private bool ReviewTaskMode = false;
   
     private RequestTicket actTicket = new RequestTicket();
     private List<ImplementationTask> allImplTasks = new List<ImplementationTask>();
@@ -41,7 +41,7 @@
     {
         try
         {
-            await stateMatrix.Init(WorkflowPhases.implementation, apiConnection);
+            await stateMatrix.Init(WorkflowPhases.review, apiConnection);
             await states.Init(apiConnection);
 
             var Variables = new
@@ -73,9 +73,8 @@
         StateHasChanged();
     }
     
-    private async Task StartImplementation(ImplementationTask task)
+    private async Task StartReview(ImplementationTask task)
     {
-        task.Start = DateTime.Now;
         task.CurrentHandler = userConfig.User;
         actPossibleStates = stateMatrix.getAllowedTransitions(task.StateId);
         if(actPossibleStates.Count == 1 && actPossibleStates[0] >= stateMatrix.LowestStartedState && actPossibleStates[0] < stateMatrix.LowestEndState)
@@ -93,12 +92,12 @@
         }
         actTicket.StateId = stateMatrix.getDerivedStateFromSubStates(taskStates);
         await UpdateTicketStateInDb();
-        await ImplementTask(task);
+        await ReviewTask(task);
     }
 
-    private async Task ImplementTask(ImplementationTask task)
+    private async Task ReviewTask(ImplementationTask task)
     {
-        ImplementTaskMode = true;
+        ReviewTaskMode = true;
         StateHasChanged();
     }
 
@@ -106,7 +105,7 @@
     {
         try
         {           
-            if (!stateMatrix.PhaseActive[WorkflowPhases.review] && actTicket.StateId >= stateMatrix.LowestEndState)
+            if (actTicket.StateId >= stateMatrix.LowestEndState)
             {
                 actTicket.CompletionDate = DateTime.Now;
             }
@@ -141,8 +140,6 @@
             {
                 id = task.Id,
                 state = task.StateId,
-                start = task.Start,
-                stop = task.Stop,
                 handler = task.CurrentHandler?.DbId
             };
             int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateImplementationTaskState, Variables)).UpdatedId;

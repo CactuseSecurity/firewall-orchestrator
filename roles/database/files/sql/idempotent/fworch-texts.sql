@@ -115,6 +115,8 @@ INSERT INTO txt VALUES ('plannings', 			'German',	'Planungen');
 INSERT INTO txt VALUES ('plannings', 			'English',	'Plannings');
 INSERT INTO txt VALUES ('implementations', 		'German',	'Implementierungen');
 INSERT INTO txt VALUES ('implementations', 		'English',	'Implementations');
+INSERT INTO txt VALUES ('reviews', 		        'German',	'Reviews');
+INSERT INTO txt VALUES ('reviews', 		        'English',	'Reviews');
 INSERT INTO txt VALUES ('scheduling', 			'German',	'Scheduling');
 INSERT INTO txt VALUES ('scheduling', 			'English',	'Scheduling');
 INSERT INTO txt VALUES ('archive', 				'German',	'Archiv');
@@ -643,7 +645,8 @@ INSERT INTO txt VALUES ('assigned', 			'German',	'Zugewiesen');
 INSERT INTO txt VALUES ('assigned', 			'English',	'Assigned');
 INSERT INTO txt VALUES ('back_to', 			    'German',	'Zur&uuml;ck zu');
 INSERT INTO txt VALUES ('back_to', 			    'English',	'Back to');
-
+INSERT INTO txt VALUES ('current_handler', 		'German',	'Aktueller Bearbeiter');
+INSERT INTO txt VALUES ('current_handler', 	    'English',	'Current handler');
 
 -- recertification
 INSERT INTO txt VALUES ('recertify',		    'German', 	'Rezertifizieren');

@@ -189,6 +189,8 @@
                                 </Template>
                             </Column>
                             <Column TableItem="ImplementationTask" Title="@(userConfig.GetText("implementer"))" Field="@(x => x.CurrentHandler.Name)" Sortable="true" Filterable="true" />
+                            <Column TableItem="ImplementationTask" Title="@(userConfig.GetText("start"))" Field="@(x => x.Start)" Sortable="true" Filterable="true" />
+                            <Column TableItem="ImplementationTask" Title="@(userConfig.GetText("stop"))" Field="@(x => x.Stop)" Sortable="true" Filterable="true" />
                         </Table>
                     </div>
                 }
@@ -225,7 +227,7 @@
 </PopUp>
 
 <DisplayImplementationTask Phase="Phase" @bind-Display="ShowImplTaskMode" @bind-EditMode="EditImplTaskMode" @bind-AddMode="AddImplTaskMode" 
-    ImplTask="actImplTask" StateMatrix="StateMatrix" States="States" @bind-ReqTask="ReqTask"></DisplayImplementationTask>
+    @bind-ImplTask="actImplTask" StateMatrix="StateMatrix" States="States" @bind-ReqTask="ReqTask"></DisplayImplementationTask>
 
 <PromoteObject @bind-Display="PromoteTaskMode" Save="UpdateReqTaskState" StatefulObject="ReqTask" PossibleStates="possibleStates" States="States"></PromoteObject>
 <DeleteObject @bind-Display="DeleteImplTaskMode" Delete="ConfDeleteImplTask" ObjName="@(actImplTask.ImplTaskNumber.ToString())"></DeleteObject>
@@ -264,6 +266,9 @@
 
     [Parameter]
     public RequestTask ReqTask { get; set; } = new RequestTask();
+
+    [Parameter]
+    public EventCallback<RequestTask> ReqTaskChanged { get; set; }
 
     [Parameter]
     public StateMatrix StateMatrix { get; set; } = new StateMatrix();
@@ -320,9 +325,9 @@
 
     private void InitElements()
     {
-        actSource = ReqTask.RuleElement(RuleField.source) ?? new RuleElement();
-        actDestination = ReqTask.RuleElement(RuleField.destination) ?? new RuleElement();
-        actService = ReqTask.RuleElement(RuleField.service) ?? new RuleElement();
+        actSource = ReqTask.getRuleElement(RuleField.source) ?? new RuleElement();
+        actDestination = ReqTask.getRuleElement(RuleField.destination) ?? new RuleElement();
+        actService = ReqTask.getRuleElement(RuleField.service) ?? new RuleElement();
     }
 
     private void Close()
@@ -427,7 +432,7 @@
             StateId = StateMatrix.LowestEndState,
             // ApproverGroup = get from owner ???,
             TenantId = Ticket.TenantId, // ??
-            // Deadline = DateTime.Now.AddDays(30), // config/input ??
+            Deadline = DateTime.Now.AddDays(30), // config/input ??
             InitialApproval = true
         };
         ReqTask.Approvals.Add(approval);

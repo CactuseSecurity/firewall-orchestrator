@@ -10,7 +10,10 @@ namespace FWO.Ui.Services
         request = 0,
         approval = 1,
         planning = 2,
-        implementation = 4
+        verification = 3,
+        implementation = 4,
+        review = 5,
+        recertification = 6
     }
 
     public class StateMatrix
@@ -33,6 +36,8 @@ namespace FWO.Ui.Services
         [JsonProperty("active"), JsonPropertyName("active")]
         public bool Active { get; set; }
 
+        public Dictionary<WorkflowPhases, bool> PhaseActive = new Dictionary<WorkflowPhases, bool>();
+
         public async Task Init(WorkflowPhases phase, ApiConnection apiConnection)
         {
             GlobalStateMatrix glbStateMatrix = new GlobalStateMatrix();
@@ -43,6 +48,10 @@ namespace FWO.Ui.Services
             LowestStartedState = glbStateMatrix.GlobalMatrix[phase].LowestStartedState;
             LowestEndState = glbStateMatrix.GlobalMatrix[phase].LowestEndState;
             Active = glbStateMatrix.GlobalMatrix[phase].Active;
+            foreach (var phas in glbStateMatrix.GlobalMatrix)
+            {
+                PhaseActive.Add(phas.Key,glbStateMatrix.GlobalMatrix[phas.Key].Active);
+            }
         }
 
         public List<int> getAllowedTransitions(int stateIn)
@@ -115,6 +124,7 @@ namespace FWO.Ui.Services
     {
         [JsonProperty("config_value"), JsonPropertyName("config_value")]
         public Dictionary<WorkflowPhases, StateMatrix> GlobalMatrix { get; set; } = new Dictionary<WorkflowPhases, StateMatrix>();
+
 
         public async Task Init(ApiConnection apiConnection)
         {

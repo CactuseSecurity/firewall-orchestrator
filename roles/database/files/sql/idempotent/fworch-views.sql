@@ -553,8 +553,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_view_tenant_rule_froms_unique ON view_tena
 
 
 DROP MATERIALIZED VIEW IF EXISTS view_tenant_rules;
-
-CREATE MATERIALIZED VIEW view_tenant_rules AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS view_tenant_rules AS
     select tenant_rules.* from (
         SELECT rule.*, tenant_network.tenant_id
             FROM rule

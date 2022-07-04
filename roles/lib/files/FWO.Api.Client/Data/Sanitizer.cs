@@ -99,6 +99,34 @@ namespace FWO.Api.Data
             return output;
         }
 
+        // Comments may contain everything but quotes (EOL chars are allowed)
+        public static string? SanitizeCommentOpt(string? input, ref bool shortened)
+        {
+            if (input!=null)
+            {
+                 return SanitizeCommentMand(input, ref shortened);
+            }
+            else return null;
+        }
+
+        public static string SanitizeCommentMand(string input, ref bool shortened)
+        {
+            string output = Regex.Replace(input, @"[""'']", "").Trim();
+            string ignorableChangeCompareString = output + "\n";
+            if (input!=null)
+            {
+                if(output.Length < input.Length) // there is always an EOL char added in text fields
+                {
+                    if(ignorableChangeCompareString != input )
+                    {
+                        shortened = true;
+                    }
+                }
+
+            }
+            return output;
+        }
+
         public static string? SanitizeKeyOpt(string? input, ref bool shortened)
         {
             if (input != null)

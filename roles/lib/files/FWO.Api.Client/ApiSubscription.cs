@@ -38,11 +38,16 @@ namespace FWO.Api.Client
                 {
                     try
                     {
-                        JObject data = (JObject)response.Data;
-                        JProperty prop = (JProperty)(data.First ?? throw new Exception($"Could not retrieve unique result attribute from Json.\nJson: {response.Data}"));
-                        JToken result = prop.Value;
-                        SubscriptionResponseType returnValue = result.ToObject<SubscriptionResponseType>() ?? throw new Exception($"Could not convert result from Json to {typeof(SubscriptionResponseType)}.\nJson: {response.Data}");
-                        OnUpdate(returnValue);
+                        // If repsonse.Data == null -> Jwt expired - connection was closed
+                        // Leads to this method getting called again (bug?)
+                        if (response.Data != null) 
+                        {
+                            JObject data = (JObject)response.Data;
+                            JProperty prop = (JProperty)(data.First ?? throw new Exception($"Could not retrieve unique result attribute from Json.\nJson: {response.Data}"));
+                            JToken result = prop.Value;
+                            SubscriptionResponseType returnValue = result.ToObject<SubscriptionResponseType>() ?? throw new Exception($"Could not convert result from Json to {typeof(SubscriptionResponseType)}.\nJson: {response.Data}");
+                            OnUpdate(returnValue);
+                        }
                     }
                     catch (Exception ex)
                     {

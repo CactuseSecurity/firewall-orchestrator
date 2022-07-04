@@ -302,15 +302,15 @@ insert into config (config_key, config_value, config_user) VALUES ('sessionTimeo
 -- add tenant_network demo data
 DO $do$ BEGIN
     IF EXISTS (SELECT tenant_id FROM tenant WHERE tenant_name='tenant1_demo') THEN
-    IF NOT EXISTS (SELECT * FROM tenant_network LEFT JOIN tenant USING (tenant_id) WHERE tenant_name='tenant1_demo' and tenant_net_ip='10.222.0.32/27') THEN
-        insert into tenant_network (tenant_id, tenant_net_ip, tenant_net_comment) 
-        VALUES ((SELECT tenant_id FROM tenant WHERE tenant_name='tenant1_demo'), '10.222.0.32/27', 'demo network for tenant 2') ON CONFLICT DO NOTHING;
+        IF NOT EXISTS (SELECT * FROM tenant_network LEFT JOIN tenant USING (tenant_id) WHERE tenant_name='tenant1_demo' and tenant_net_ip='10.222.0.32/27') THEN
+            insert into tenant_network (tenant_id, tenant_net_ip, tenant_net_comment) 
+            VALUES ((SELECT tenant_id FROM tenant WHERE tenant_name='tenant1_demo'), '10.222.0.32/27', 'demo network for tenant 1') ON CONFLICT DO NOTHING;
+        END IF;
     END IF;
-    END IF;
-    IF EXISTS (SELECT tenant_id FROM tenant WHERE tenant_name='tenant1_demo') THEN
-    IF NOT EXISTS (SELECT * FROM tenant_network LEFT JOIN tenant USING (tenant_id) WHERE tenant_name='tenant2_demo' and tenant_net_ip='10.0.0.48/29') THEN
-        insert into tenant_network (tenant_id, tenant_net_ip, tenant_net_comment) 
-        VALUES ((SELECT tenant_id FROM tenant WHERE tenant_name='tenant2_demo'), '10.0.0.48/29', 'demo network for tenant 3') ON CONFLICT DO NOTHING;
-    END IF;
+    IF EXISTS (SELECT tenant_id FROM tenant WHERE tenant_name='tenant2_demo') THEN
+        IF NOT EXISTS (SELECT * FROM tenant_network LEFT JOIN tenant USING (tenant_id) WHERE tenant_name='tenant2_demo' and tenant_net_ip='10.0.0.48/29') THEN
+            insert into tenant_network (tenant_id, tenant_net_ip, tenant_net_comment) 
+            VALUES ((SELECT tenant_id FROM tenant WHERE tenant_name='tenant2_demo'), '10.0.0.48/29', 'demo network for tenant 2') ON CONFLICT DO NOTHING;
+        END IF;
     END IF;
 END $do$ 

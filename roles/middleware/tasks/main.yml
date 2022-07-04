@@ -40,9 +40,10 @@
       owner: "{{ fworch_user }}"
       group: "{{ fworch_group }}"
 
-  - name: install python3-openssl for openssl key generation
+  - name: install python3-openssl for openssl key generation and unprivileged user
     package:
       name: "{{ item }}"
+      state: present
     loop:
       - python3-cryptography
       - python3-openssl
@@ -55,6 +56,7 @@
       - libgdiplus
       - libc6-dev
       - libjpeg62
+      - xfonts-75dpi
   
   become: yes
 

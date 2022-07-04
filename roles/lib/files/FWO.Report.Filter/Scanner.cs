@@ -127,7 +127,7 @@ namespace FWO.Report.Filter
             {
                 foreach (Token validToken in whitespaceTokens)
                 {
-                    if (potentialTokenText == validToken.Text)
+                    if (potentialTokenText.ToLower() == validToken.Text.ToLower())
                     {
                         tokens.Add(new Token(beginPosition..(beginPosition + potentialTokenText.Length), potentialTokenText, validToken.Kind));
                         return tokens;
@@ -137,7 +137,7 @@ namespace FWO.Report.Filter
 
             foreach (Token validToken in noWhitespaceTokens)
             {
-                if (potentialTokenText.EndsWith(validToken.Text))
+                if (potentialTokenText.ToLower().EndsWith(validToken.Text.ToLower()))
                 {
                     Token realToken = validToken;
 
@@ -145,7 +145,7 @@ namespace FWO.Report.Filter
                     {
                         foreach (Token longerToken in noWhitespaceTokens)
                         {
-                            if (longerToken != validToken && (potentialTokenText + input[beginPosition + potentialTokenText.Length]).EndsWith(longerToken.Text))
+                            if (longerToken != validToken && (potentialTokenText + input[beginPosition + potentialTokenText.Length]).ToLower().EndsWith(longerToken.Text.ToLower()))
                             {
                                 position++;
                                 realToken = longerToken;
@@ -170,28 +170,6 @@ namespace FWO.Report.Filter
 
                     tokens.Add(new Token((beginPosition + potentialTokenText.Length - realToken.Text.Length)..(beginPosition + potentialTokenText.Length), realToken.Text, realToken.Kind));
                     break;
-                    //for (int i = potentialTokenText.Length - validToken.Text.Length; i > 0; i--)
-                    //{
-                    //    List<Token> potentialTokens = TryExtractToken(beginPosition, potentialTokenText[..i], true);
-                    //    if (potentialTokens.Count > 0)
-                    //    {
-                    //        tokens.AddRange(potentialTokens);
-                    //        if (!string.IsNullOrWhiteSpace(potentialTokenText[i..^validToken.Text.Length]))
-                    //        {
-                    //            tokens.Add(new Token((beginPosition + i)..(beginPosition + potentialTokenText.Length - validToken.Text.Length), potentialTokenText[i..^validToken.Text.Length], TokenKind.Value));
-                    //        }
-                    //        break;
-                    //    }
-                    //}
-
-                    //if (tokens.Count == 0 && !string.IsNullOrWhiteSpace(potentialTokenText[..^validToken.Text.Length]))
-                    //{
-                    //    tokens.Add(new Token(beginPosition..(beginPosition + potentialTokenText.Length - validToken.Text.Length), potentialTokenText[..^validToken.Text.Length], TokenKind.Value));
-                    //}
-
-                    //tokens.Add(new Token((beginPosition + potentialTokenText.Length - validToken.Text.Length)..(beginPosition + potentialTokenText.Length), validToken.Text, realTokenKind));
-
-                    //return tokens;
                 }
             }       
 

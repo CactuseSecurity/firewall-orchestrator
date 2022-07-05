@@ -12,12 +12,13 @@
 
 <h3>@(userConfig.GetText("approvals"))</h3>
 <hr />
-<DisplayOverview Phase="WorkflowPhases.approval" @bind-Requests="requests" ShowTicketDetails="ShowTicketDetails" 
+<DisplayOverview Phase="WorkflowPhases.approval" Requests="requests" ShowTicketDetails="ShowTicketDetails" 
     StateMatrix ="stateMatrix" States="states"></DisplayOverview>
 
-<DisplayTicket Phase="WorkflowPhases.approval" StartPhase="StartApproval" ContinuePhase="InitApproveTask"
-    @bind-Display="ShowTicketMode" @bind-EditMode="EditMode" @bind-Ticket="actTicket" 
-    StateMatrix ="stateMatrix" States="states" @bind-Requests="requests"></DisplayTicket>
+<DisplayTicket Phase="WorkflowPhases.approval" DbAcc="dbAcc" StateMatrix ="stateMatrix" States="states" 
+    ResetParent="Reset" StartPhase="StartApproval" ContinuePhase="InitApproveTask"
+    @bind-Display="ShowTicketMode" @bind-EditMode="EditMode" 
+    @bind-Ticket="actTicket" @bind-Requests="requests"></DisplayTicket>
 
 <PopUp Title="@(userConfig.GetText("save_task"))" Show="@ApproveTaskMode" OnClose="() => ApproveTaskMode = false">
     <Body>
@@ -62,6 +63,7 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
     
+    private RequestDbAccess dbAcc;
     private List<RequestTicket> requests = new List<RequestTicket>();
 
     private bool ShowTicketMode = false;
@@ -84,14 +86,8 @@
         {
             await stateMatrix.Init(WorkflowPhases.approval, apiConnection);
             await states.Init(apiConnection);
-
-            var Variables = new
-            {
-                from_state = stateMatrix.LowestInputState,
-                to_state = stateMatrix.LowestEndState,
-            };
-            requests = await apiConnection.SendQueryAsync<List<RequestTicket>>(FWO.Api.Client.Queries.RequestQueries.getTickets, Variables);
-            // todo: filter own approvals
+            dbAcc = new RequestDbAccess(DisplayMessageInUi, userConfig, apiConnection){};
+            requests = await dbAcc.FetchTickets(stateMatrix);
         }
         catch (Exception exception)
         {
@@ -99,9 +95,17 @@
         }
     }
 
+    private async Task Reset()
+    {
+        ShowTicketMode = false;
+        ApproveTaskMode = false;
+        EditMode = false;
+        requests = await dbAcc.FetchTickets(stateMatrix);
+    }
+
     private async Task ShowTicketDetails(RequestTicket ticket)
     {
-        actTicket = new RequestTicket(ticket);
+        actTicket = ticket;
         ShowTicketMode = true;
         StateHasChanged();
     }
@@ -114,8 +118,8 @@
         {
             task.StateId = actPossibleStates[0];
         }
-        await UpdateReqTaskStateInDb(task);
-        await UpdateTicketFromTasks();
+        await dbAcc.UpdateReqTaskStateInDb(task);
+        await dbAcc.UpdateTicketStateFromTasks(actTicket, requests, stateMatrix);
         await InitApproveTask(task);
     }
    
@@ -146,10 +150,9 @@
             {
                 DisplayMessageInUi!(null, userConfig.GetText("save_approval"), userConfig.GetText("U0001"), true);
             }
-            await UpdateApprovalInDb(actApproval);
-
-            await UpdateTaskFromApprovals();
-            await UpdateTicketFromTasks();
+            await dbAcc.UpdateApprovalInDb(actApproval);
+            await dbAcc.UpdateTaskStateFromApprovals(actTask, stateMatrix);
+            await dbAcc.UpdateTicketStateFromTasks(actTicket, requests, stateMatrix);
         }
         catch (Exception exception)
         {
@@ -160,106 +163,5 @@
     private void CancelApproveTask()
     {
         ApproveTaskMode = false;
-    }
-
-    private async Task UpdateTaskFromApprovals()
-    {
-        List<int> approvalStates = new List<int>();
-        foreach (var approval in actTask.Approvals)
-        {
-            approvalStates.Add(approval.StateId);
-        }
-        if (approvalStates.Count > 0)
-        {
-            actTask.StateId = stateMatrix.getDerivedStateFromSubStates(approvalStates);
-        }
-        await UpdateReqTaskStateInDb(actTask);
-    }
-
-    private async Task UpdateTicketFromTasks()
-    {
-        List<int> taskStates = new List<int>();
-        foreach (RequestTask tsk in actTicket.Tasks)
-        {
-            taskStates.Add(tsk.StateId);
-        }
-        actTicket.StateId = stateMatrix.getDerivedStateFromSubStates(taskStates);
-        await UpdateTicketStateInDb();
-    }
-
-    private async Task UpdateTicketStateInDb()
-    {
-        try
-        {           
-            if (actTicket.Sanitize())
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("U0001"), true);
-            }
-            // Update existing ticket state
-            var Variables = new
-            {
-                id = actTicket.Id,
-                state = actTicket.StateId
-            };
-            int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateTicketState, Variables)).UpdatedId;
-            if(udId != actTicket.Id)
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("E8002"), true);
-            }
-            else
-            {
-                requests[requests.FindIndex(x => x.Id == actTicket.Id)] = actTicket;
-            }
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_request"), "", true);
-        }
-    }
-
-    private async Task UpdateReqTaskStateInDb(RequestTask task)
-    {
-        try
-        {
-            var Variables = new
-            {
-                id = task.Id,
-                state = task.StateId,
-                handler = task.CurrentHandler?.DbId,
-            };
-            int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequestTaskState, Variables)).UpdatedId;
-            if(udId != task.Id)
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("save_task"), userConfig.GetText("E8004"), true);
-            }
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_task"), "", true);
-        }
-    }
-
-    private async Task UpdateApprovalInDb(RequestApproval approval)
-    {
-        try
-        {
-            var Variables = new
-            {
-                id = approval.Id,
-                state = approval.StateId,
-                approvalDate = approval.ApprovalDate,
-                approver = approval.ApproverDn,  // todo: Dn or uiuser??
-                comment = approval.Comment
-            };
-            int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateApproval, Variables)).UpdatedId;
-            if(udId != approval.Id)
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("save_approval"), userConfig.GetText("E8004"), true);
-            }
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_approval"), "", true);
-        }
     }
 }

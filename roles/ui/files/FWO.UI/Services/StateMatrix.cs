@@ -37,6 +37,7 @@ namespace FWO.Ui.Services
         public bool Active { get; set; }
 
         public Dictionary<WorkflowPhases, bool> PhaseActive = new Dictionary<WorkflowPhases, bool>();
+        public bool IsLastActivePhase { get; set; } = true;
 
         public async Task Init(WorkflowPhases phase, ApiConnection apiConnection)
         {
@@ -50,7 +51,11 @@ namespace FWO.Ui.Services
             Active = glbStateMatrix.GlobalMatrix[phase].Active;
             foreach (var phas in glbStateMatrix.GlobalMatrix)
             {
-                PhaseActive.Add(phas.Key,glbStateMatrix.GlobalMatrix[phas.Key].Active);
+                PhaseActive.Add(phas.Key, glbStateMatrix.GlobalMatrix[phas.Key].Active);
+                if(glbStateMatrix.GlobalMatrix[phas.Key].Active && phas.Key > phase)
+                {
+                    IsLastActivePhase = false;
+                }
             }
         }
 
@@ -117,7 +122,11 @@ namespace FWO.Ui.Services
             {
                 stateOut = LowestStartedState;
             }
-            return DerivedStates[stateOut];
+            if(DerivedStates.ContainsKey(stateOut))
+            {
+                return DerivedStates[stateOut];
+            }
+            return stateOut;
         }
     }
     public class GlobalStateMatrix

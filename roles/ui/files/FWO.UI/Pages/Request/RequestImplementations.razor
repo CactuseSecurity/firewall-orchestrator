@@ -11,12 +11,13 @@
 
 <h3>@(userConfig.GetText("implementations"))</h3>
 <hr />
-<DisplayOverview Phase="WorkflowPhases.implementation" @bind-Requests="requests" ShowTicketDetails="ShowTicketDetails" 
+<DisplayOverview Phase="WorkflowPhases.implementation" Requests="requests" ShowTicketDetails="ShowTicketDetails" 
     StateMatrix ="stateMatrix" States="states"></DisplayOverview>
 
-<DisplayTicket Phase="WorkflowPhases.implementation" StartImplPhase="StartImplementation" ContinueImplPhase="ImplementTask" 
-    @bind-Display="ShowTicketMode" @bind-ImplementMode="ImplementTaskMode" @bind-Ticket="actTicket" AllImplTasks="allImplTasks" 
-    StateMatrix ="stateMatrix" States="states" @bind-Requests="requests"></DisplayTicket>
+<DisplayTicket Phase="WorkflowPhases.implementation" DbAcc="dbAcc" StateMatrix ="stateMatrix" States="states"
+    ResetParent="Reset" StartImplPhase="StartImplementation" ContinueImplPhase="ImplementTask" 
+    @bind-Display="ShowTicketMode" @bind-ImplementMode="ImplementTaskMode" 
+    AllImplTasks="allImplTasks" @bind-Ticket="actTicket" @bind-Requests="requests"></DisplayTicket>
 
 
 @code
@@ -24,6 +25,7 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
     
+    private RequestDbAccess dbAcc;
     private List<RequestTicket> requests = new List<RequestTicket>();
 
     private bool ShowTicketMode = false;
@@ -43,13 +45,8 @@
         {
             await stateMatrix.Init(WorkflowPhases.implementation, apiConnection);
             await states.Init(apiConnection);
-
-            var Variables = new
-            {
-                from_state = stateMatrix.LowestInputState,
-                to_state = stateMatrix.LowestEndState,
-            };
-            requests = await apiConnection.SendQueryAsync<List<RequestTicket>>(FWO.Api.Client.Queries.RequestQueries.getTickets, Variables);
+            dbAcc = new RequestDbAccess(DisplayMessageInUi, userConfig, apiConnection){};
+            requests = await dbAcc.FetchTickets(stateMatrix);
         }
         catch (Exception exception)
         {
@@ -57,9 +54,16 @@
         }
     }
 
+    private async Task Reset()
+    {
+        ShowTicketMode = false;
+        ImplementTaskMode = false;
+        requests = await dbAcc.FetchTickets(stateMatrix);
+    }
+
     private async Task ShowTicketDetails(RequestTicket ticket)
     {
-        actTicket = new RequestTicket(ticket);
+        actTicket = ticket;
         allImplTasks = new List<ImplementationTask>();
         foreach(var reqTask in actTicket.Tasks)
         {
@@ -82,17 +86,8 @@
         {
             task.StateId = actPossibleStates[0];
         }
-        await UpdateImplTaskStateInDb(task);
-        List<int> taskStates = new List<int>();
-        foreach (RequestTask reqTask in actTicket.Tasks)
-        {
-            foreach(var implTask in reqTask.ImplementationTasks)
-            {
-                taskStates.Add(implTask.StateId);
-            }
-        }
-        actTicket.StateId = stateMatrix.getDerivedStateFromSubStates(taskStates);
-        await UpdateTicketStateInDb();
+        await dbAcc.UpdateImplTaskStateInDb(task);
+        await dbAcc.UpdateTicketStateFromImplTasks(actTicket, requests, stateMatrix);
         await ImplementTask(task);
     }
 
@@ -100,60 +95,5 @@
     {
         ImplementTaskMode = true;
         StateHasChanged();
-    }
-
-    private async Task UpdateTicketStateInDb()
-    {
-        try
-        {           
-            if (!stateMatrix.PhaseActive[WorkflowPhases.review] && actTicket.StateId >= stateMatrix.LowestEndState)
-            {
-                actTicket.CompletionDate = DateTime.Now;
-            }
-            // Update existing ticket state
-            var Variables = new
-            {
-                id = actTicket.Id,
-                state = actTicket.StateId,
-                closed = actTicket.CompletionDate
-            };
-            int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateTicketState, Variables)).UpdatedId;
-            if(udId != actTicket.Id)
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("E8002"), true);
-            }
-            else
-            {
-                requests[requests.FindIndex(x => x.Id == actTicket.Id)] = actTicket;
-            }
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_request"), "", true);
-        }
-    }
-
-    private async Task UpdateImplTaskStateInDb(ImplementationTask task)
-    {
-        try
-        {
-            var Variables = new
-            {
-                id = task.Id,
-                state = task.StateId,
-                start = task.Start,
-                stop = task.Stop,
-                handler = task.CurrentHandler?.DbId
-            };
-            int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateImplementationTaskState, Variables)).UpdatedId;
-            if(udId != task.Id)
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("save_task"), userConfig.GetText("E8004"), true);
-            }
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_task"), "", true);
-        }
     }
 }

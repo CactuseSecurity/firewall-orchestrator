@@ -15,11 +15,13 @@
 
 <button class="btn btn-success m-2" @onclick="AddTicket">@(userConfig.GetText("add_new_request"))</button>
 
-<DisplayOverview Phase="WorkflowPhases.request" @bind-Requests="requests" ShowTicketDetails="ShowTicketDetails" 
+<DisplayOverview Phase="WorkflowPhases.request" Requests="requests" ShowTicketDetails="ShowTicketDetails" 
     EditTicket="EditTicket" StateMatrix ="stateMatrix" States="states"></DisplayOverview>
 
-<DisplayTicket Phase="WorkflowPhases.request" @bind-Display="ShowTicketMode" @bind-AddMode="AddTicketMode" @bind-EditMode="EditTicketMode" 
-    @bind-Ticket="actTicket" StateMatrix ="stateMatrix" States="states" @bind-Requests="requests"></DisplayTicket>
+<DisplayTicket Phase="WorkflowPhases.request" DbAcc="dbAcc" StateMatrix ="stateMatrix" States="states" 
+    ResetParent="Reset" 
+    @bind-Display="ShowTicketMode" @bind-AddMode="AddTicketMode" @bind-EditMode="EditTicketMode" 
+    @bind-Ticket="actTicket" @bind-Requests="requests"></DisplayTicket>
 
 
 @code
@@ -27,6 +29,7 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
     
+    private RequestDbAccess dbAcc;
     private List<RequestTicket> requests = new List<RequestTicket>();
 
     private bool ShowTicketMode = false;
@@ -46,7 +49,8 @@
         {
             await stateMatrix.Init(WorkflowPhases.request, apiConnection);
             await states.Init(apiConnection);
-            await FetchTickets();
+            dbAcc = new RequestDbAccess(DisplayMessageInUi, userConfig, apiConnection){};
+            requests = await dbAcc.FetchTickets(stateMatrix);
         }
         catch (Exception exception)
         {
@@ -54,21 +58,13 @@
         }
     }
 
-    private async Task FetchTickets()
+    private async Task Reset()
     {
-        try
-        {
-            var Variables = new
-            {
-                from_state = stateMatrix.LowestInputState,
-                to_state = 999,
-            };
-            requests = await apiConnection.SendQueryAsync<List<RequestTicket>>(FWO.Api.Client.Queries.RequestQueries.getTickets, Variables);
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_requests"), "", true);
-        }
+        ShowTicketMode = false;
+        AddTicketMode = false;
+        EditTicketMode = false;
+        requests = await dbAcc.FetchTickets(stateMatrix);
+        StateHasChanged();
     }
 
     private async Task AddTicket()

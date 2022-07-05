@@ -16,7 +16,7 @@
                 <label for="promoteObject" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("promote_to")):</label>
                 <div class="col-sm-8">
                     <select id="promoteObject" class="form-control form-control-sm" @bind="StatefulObject.StateId">
-                        @foreach (int state in PossibleStates)
+                        @foreach (int state in possibleStates)
                         {
                             <option value="@state">@(States.Name[state])</option>
                         }
@@ -47,10 +47,10 @@
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
     
     [Parameter]
-    public bool Display { get; set; } = false;
+    public bool Promote { get; set; } = false;
 
     [Parameter]
-    public EventCallback<bool> DisplayChanged { get; set; }
+    public EventCallback<bool> PromoteChanged { get; set; }
 
     [Parameter]
     public Func<StatefulObject, Task>? Save { get; set; }
@@ -59,14 +59,35 @@
     public StatefulObject StatefulObject { get; set; } = new StatefulObject();
 
     [Parameter]
-    public List<int> PossibleStates { get; set; } = new List<int>();
+    public StateMatrix StateMatrix { get; set; } = new StateMatrix();
 
     [Parameter]
     public RequestStateDict States { get; set; } = new RequestStateDict();
 
 
+    private bool Display { get; set; } = false;
+    private List<int> possibleStates = new List<int>();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Promote)
+        {
+            possibleStates = StateMatrix.getAllowedTransitions(StatefulObject.StateId);
+            if(possibleStates.Count == 1)
+            {
+                StatefulObject.StateId = possibleStates[0];
+                await Save(StatefulObject);
+            }
+            else
+            {
+                Display = true;
+            }
+        }
+    }
+
     private void Cancel()
     {
         Display = false;
+        Promote = false;
     }
 }

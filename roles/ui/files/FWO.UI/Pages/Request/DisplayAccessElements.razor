@@ -10,7 +10,6 @@
 
 <div class="form-group row">
     <label for="taskSource" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("source")):</label>
-    <label for="sourceElementObject" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("network_objects")):</label>
     @if (EditMode)
     {
         <div class="col-sm-2">
@@ -26,32 +25,8 @@
     {
         <label class="col-sm-2">@((Source.NetworkId != null) ? nwObjects.Find(x => x.Id == Source.NetworkId)?.Name : "")</label>
     }
-    <label for="taskSourceIp" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("ip")):</label>
-    @if (EditMode)
-    {
-        <div class="col-sm-2">
-            <input type="text" class="form-control form-control-sm" @bind="Source.IpString" />
-        </div>
-    }
-    else
-    {
-        <label class="col-sm-2">@Source.IpString</label>
-    }
-    <label for="taskSourcePort" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("port")):</label>
-    @if (EditMode)
-    {
-        <div class="col-sm-1">
-            <input id="taskSourcePort" type="text" class="form-control form-control-sm" @bind="Source.Port" />
-        </div>
-    }
-    else
-    {
-        <label class="col-sm-1">@Source.Port</label>
-    }
-</div>
-<div class="form-group row">
+
     <label for="taskDest" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("destination")):</label>
-    <label for="destElementObject" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("network_objects")):</label>
     @if (EditMode)
     {
         <div class="col-sm-2">
@@ -67,32 +42,8 @@
     {
         <label class="col-sm-2">@((Destination.NetworkId != null) ? nwObjects.Find(x => x.Id == Destination.NetworkId)?.Name : "")</label>
     }
-    <label for="taskDestIp" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("ip")):</label>
-    @if (EditMode)
-    {
-        <div class="col-sm-2">
-            <input type="text" class="form-control form-control-sm" @bind="Destination.IpString" />
-        </div>
-    }
-    else
-    {
-        <label class="col-sm-2">@Destination.IpString</label>
-    }
-    <label for="taskDestPort" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("port")):</label>
-    @if (EditMode)
-    {
-        <div class="col-sm-1">
-            <input id="taskDestPort" type="text" class="form-control form-control-sm" @bind="Destination.Port" />
-        </div>
-    }
-    else
-    {
-        <label class="col-sm-1">@Destination.Port</label>
-    }
-</div>
-<div class="form-group row">
+
     <label for="taskService" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("service")):</label>
-    <label for="serviceElementObject" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("network_services")):</label>
     @if (EditMode)
     {
         <div class="col-sm-2">
@@ -108,7 +59,32 @@
     {
         <label class="col-sm-2">@((Service.ServiceId != null) ? nwServices.Find(x => x.Id == Service.ServiceId)?.Name : "")</label>
     }
-    <label for="taskServiceIp" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("ip")):</label>
+
+</div>
+<div class="form-group row">
+    <label for="taskService" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("source")):</label>
+    @if (EditMode)
+    {
+        <div class="col-sm-2">
+            <input type="text" class="form-control form-control-sm" @bind="Source.IpString" />
+        </div>
+    }
+    else
+    {
+        <label class="col-sm-2">@Source.IpString</label>
+    }
+    <label for="taskDest" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("destination")):</label>
+    @if (EditMode)
+    {
+        <div class="col-sm-2">
+            <input type="text" class="form-control form-control-sm" @bind="Destination.IpString" />
+        </div>
+    }
+    else
+    {
+        <label class="col-sm-2">@Destination.IpString</label>
+    }
+    <label for="taskService" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("service")):</label>
     @if (EditMode)
     {
         <div class="col-sm-2">

@@ -647,6 +647,8 @@ INSERT INTO txt VALUES ('back_to', 			    'German',	'Zur&uuml;ck zu');
 INSERT INTO txt VALUES ('back_to', 			    'English',	'Back to');
 INSERT INTO txt VALUES ('current_handler', 		'German',	'Aktueller Bearbeiter');
 INSERT INTO txt VALUES ('current_handler', 	    'English',	'Current handler');
+INSERT INTO txt VALUES ('review', 			    'German',	'Review');
+INSERT INTO txt VALUES ('review', 			    'English',	'Review');
 
 -- recertification
 INSERT INTO txt VALUES ('recertify',		    'German', 	'Rezertifizieren');

@@ -214,22 +214,24 @@
             {
                 <AuthorizeView Roles="admin, approver, planner, implementer, fw-admin">
                     <Authorized>
-                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="PromoteReqTask">@(userConfig.GetText("promote_task"))</button>
+                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteReqTask">@(userConfig.GetText("promote_task"))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("promote_task"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
             }
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            <button class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
 
-<DisplayImplementationTask Phase="Phase" @bind-Display="ShowImplTaskMode" @bind-EditMode="EditImplTaskMode" @bind-AddMode="AddImplTaskMode" 
-    @bind-ImplTask="actImplTask" StateMatrix="StateMatrix" States="States" @bind-ReqTask="ReqTask"></DisplayImplementationTask>
+<DisplayImplementationTask Phase="Phase" DbAcc="DbAcc" StateMatrix="StateMatrix" States="States" 
+    @bind-Display="ShowImplTaskMode" @bind-EditMode="EditImplTaskMode" @bind-AddMode="AddImplTaskMode" 
+    AddImplTask="AddImplTaskToReqTask" ChangeImplTask="ChangeImplTaskInReqTask"
+    @bind-ImplTask="actImplTask" @bind-ReqTask="ReqTask" @bind-Ticket="Ticket" @bind-Requests="Requests"></DisplayImplementationTask>
 
-<PromoteObject @bind-Display="PromoteTaskMode" Save="UpdateReqTaskState" StatefulObject="ReqTask" PossibleStates="possibleStates" States="States"></PromoteObject>
+<PromoteObject @bind-Promote="PromoteReqTaskMode" Save="PromoteReqTask" StatefulObject="ReqTask" StateMatrix="StateMatrix" States="States"></PromoteObject>
 <DeleteObject @bind-Display="DeleteImplTaskMode" Delete="ConfDeleteImplTask" ObjName="@(actImplTask.ImplTaskNumber.ToString())"></DeleteObject>
 
 @code
@@ -239,6 +241,15 @@
     
     [Parameter]
     public WorkflowPhases Phase { get; set; } = WorkflowPhases.request;
+
+    [Parameter]
+    public RequestDbAccess DbAcc { get; set; }
+
+    [Parameter]
+    public StateMatrix StateMatrix { get; set; } = new StateMatrix();
+
+    [Parameter]
+    public RequestStateDict States { get; set; } = new RequestStateDict();
 
     [Parameter]
     public bool Display { get; set; } = false;
@@ -265,22 +276,28 @@
     public EventCallback<bool> PlanModeChanged { get; set; }
 
     [Parameter]
+    public Func<RequestTask, Task> AddReqTask { get; set; }
+    
+    [Parameter]
+    public Func<RequestTask, Task> ChangeReqTask { get; set; }
+
+    [Parameter]
     public RequestTask ReqTask { get; set; } = new RequestTask();
 
     [Parameter]
     public EventCallback<RequestTask> ReqTaskChanged { get; set; }
 
     [Parameter]
-    public StateMatrix StateMatrix { get; set; } = new StateMatrix();
-
-    [Parameter]
-    public RequestStateDict States { get; set; } = new RequestStateDict();
-
-    [Parameter]
     public RequestTicket Ticket { get; set; } = new RequestTicket();
 
     [Parameter]
     public EventCallback<RequestTicket> TicketChanged { get; set; }
+
+    [Parameter]
+    public List<RequestTicket> Requests { get; set; } = new List<RequestTicket>();
+
+    [Parameter]
+    public EventCallback<List<RequestTicket>> RequestsChanged { get; set; }
 
 
     private List<RuleAction> ruleActions = new List<RuleAction>();
@@ -294,7 +311,7 @@
     private bool EditImplTaskMode = false;
     private bool AddImplTaskMode = false;
     private bool DeleteImplTaskMode = false;
-    private bool PromoteTaskMode = false;
+    private bool PromoteReqTaskMode = false;
 
     RuleElement actSource = new RuleElement();
     RuleElement actDestination = new RuleElement();
@@ -332,53 +349,50 @@
 
     private void Close()
     {
+        Reset();
         AddMode = false;
         EditMode = false;
         PlanMode = false;
         Display = false;
+        StateHasChanged();
     }
 
     private void Reset()
     {
         ShowImplTaskMode = false;
-        PromoteTaskMode = false;
+        PromoteReqTaskMode = false;
         DeleteImplTaskMode = false;
         AddImplTaskMode = false;
         EditImplTaskMode = false;
     }
 
-    private void Cancel()
-    {
-        Reset();
-        Close();
-    }
-
-    private bool CheckElementValues()
-    {
-        @* if (actReqElement.Ip == null || actReqElement.Ip == "")
-        {
-            DisplayMessageInUi!(null, userConfig.GetText("save_element"), userConfig.GetText("E5102"), true);
-            return false;
-        } *@
-        if (actReqElement.Port < 1 || actReqElement.Port > 65535)
-        {
-            DisplayMessageInUi!(null, userConfig.GetText("save_element"), userConfig.GetText("E5103"), true);
-            return false;
-        }
-        return true;
-    }
-
     private void AddImplTask()
     {
         actImplTask = new ImplementationTask(ReqTask)
-            {
-                ImplTaskNumber = ReqTask.ImplementationTasks.Count + 1,
-                DeviceId = (devices.Count > 0 ? devices[0].Id : 0)
-            };
+                        {
+                            ImplTaskNumber = ReqTask.ImplementationTasks.Count + 1,
+                            DeviceId = (devices.Count > 0 ? devices[0].Id : 0)
+                        };
         Reset();
         AddImplTaskMode = true;
         EditImplTaskMode = true;
         ShowImplTaskMode = true;
+    }
+    
+    private async Task AddImplTaskToReqTask(ImplementationTask task)
+    {
+        task.Id = await DbAcc.AddImplTaskToDb(task);
+        ReqTask.ImplementationTasks.Add(task);
+        Reset();
+        StateHasChanged();
+    }
+
+    private async Task ChangeImplTaskInReqTask(ImplementationTask task)
+    {
+        await DbAcc.UpdateImplTaskInDb(task);
+        ReqTask.ImplementationTasks[ReqTask.ImplementationTasks.FindIndex(x => x.ImplTaskNumber == task.ImplTaskNumber)] = task;
+        Reset();
+        StateHasChanged();
     }
 
     private void EditImplTask(ImplementationTask task)
@@ -405,25 +419,50 @@
 
     private async Task ConfDeleteImplTask()
     {
-        await DeleteImplTaskFromDb(actImplTask);
+        await DbAcc.DeleteImplTaskFromDb(actImplTask);
         ReqTask.ImplementationTasks.Remove(actImplTask);
         DeleteImplTaskMode = false;
     }
 
-    private async Task PromoteReqTask()
+    private async Task InitPromoteReqTask()
     {
-        possibleStates = StateMatrix.getAllowedTransitions(ReqTask.StateId);
-        if(possibleStates.Count == 1)
-        {
-            ReqTask.StateId = possibleStates[0];
-            await UpdateReqTaskState(ReqTask);
-        }
-        else
-        {
-            Reset();
-            PromoteTaskMode = true;
-        }
+        Reset();
+        PromoteReqTaskMode = true;
     }
+
+    private async Task PromoteReqTask(StatefulObject task)
+    {
+        try
+        {
+            ReqTask.StateId = task.StateId;
+            if (ReqTask.Start == null && ReqTask.StateId >= StateMatrix.LowestStartedState)
+            {
+                ReqTask.Start = DateTime.Now;
+                ReqTask.CurrentHandler = userConfig.User;
+            }
+            if (Phase == WorkflowPhases.planning && ReqTask.Stop == null && ReqTask.StateId >= StateMatrix.LowestEndState)
+            {
+                ReqTask.Stop = DateTime.Now;
+            }
+            await DbAcc.UpdateReqTaskStateInDb(ReqTask);
+
+            if(Phase == WorkflowPhases.planning)
+            {
+                foreach(ImplementationTask implTask in ReqTask.ImplementationTasks)
+                {
+                    implTask.StateId = ReqTask.StateId;
+                    await DbAcc.UpdateImplTaskStateInDb(implTask);
+                }
+            }
+
+            Ticket.Tasks[Ticket.Tasks.FindIndex(x => x.Id == ReqTask.Id)] = ReqTask;
+            Close();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("promote_task"), "", true);
+        }
+    }  
 
     private void AddApproval()
     {
@@ -460,32 +499,25 @@
             {
                 DisplayMessageInUi!(null, userConfig.GetText("save_task"), userConfig.GetText("U0001"), true);
             }
-            if (CheckTaskValues())
+            if (AddMode)
             {
-                if (AddMode)
+                AddElements();
+                AddApproval();
+                if (CheckTaskValues())
                 {
-                    AddElements();
-                    AddApproval();
                     ReqTask.TaskNumber = Ticket.Tasks.Count + 1;
-
-                    if (Ticket.Id > 0) // ticket already created -> write directly to db
-                    {
-                        ReqTask.TicketId = Ticket.Id;
-                        ReqTask.Id = await AddReqTaskToDb(ReqTask);
-                    }
-                    Ticket.Tasks.Add(ReqTask);
+                    await AddReqTask(ReqTask);
+                    Close();
                 }
-                else
+            }
+            else
+            {
+                UpdateElements();
+                if (CheckTaskValues())
                 {
-                    UpdateElements();
-                    if(ReqTask.Id > 0)
-                    {
-                        await UpdateReqTaskInDb(ReqTask);
-                    }
-                    Ticket.Tasks[Ticket.Tasks.FindIndex(x => x.Id == ReqTask.Id)] = ReqTask;
+                    await ChangeReqTask(ReqTask);
+                    Close();
                 }
-                Reset();
-                Close();
             }
         }
         catch (Exception exception)
@@ -501,283 +533,22 @@
             DisplayMessageInUi!(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
             return false;
         }
+        foreach (var reqElem in ReqTask.Elements)
+        {
+            if (reqElem.NetworkId == null && reqElem.ServiceId == null)
+            {
+                if (reqElem.IpString == null || reqElem.IpString == "")
+                {
+                    DisplayMessageInUi!(null, userConfig.GetText("save_element"), userConfig.GetText("E5102"), true);
+                    return false;
+                }
+                if (reqElem.Port < 1 || reqElem.Port > 65535)
+                {
+                    DisplayMessageInUi!(null, userConfig.GetText("save_element"), userConfig.GetText("E5103"), true);
+                    return false;
+                }
+            }
+        }
         return true;
-    }
-
-    private async Task UpdateReqTaskState(StatefulObject task)
-    {
-        try
-        {
-            ReqTask.StateId = task.StateId;
-            if (ReqTask.Start == null && ReqTask.StateId >= StateMatrix.LowestStartedState)
-            {
-                ReqTask.Start = DateTime.Now;
-                ReqTask.CurrentHandler = userConfig.User;
-            }
-            if (Phase == WorkflowPhases.planning && ReqTask.Stop == null && ReqTask.StateId >= StateMatrix.LowestEndState)
-            {
-                ReqTask.Stop = DateTime.Now;
-            }
-            await UpdateReqTaskStateInDb(ReqTask);
-
-            if(Phase == WorkflowPhases.planning)
-            {
-                foreach(ImplementationTask implTask in ReqTask.ImplementationTasks)
-                {
-                    implTask.StateId = ReqTask.StateId;
-                    await UpdateImplTaskStateInDb(implTask);
-                }
-            }
-
-            Ticket.Tasks[Ticket.Tasks.FindIndex(x => x.Id == ReqTask.Id)] = ReqTask;
-            Reset();
-            Close();
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("promote_task"), "", true);
-        }
-    }  
-
-
-    private async Task<int> AddReqTaskToDb(RequestTask task)
-    {
-        int returnId = 0;
-        try
-        {
-            var Variables = new
-            {
-                title = task.Title,
-                ticketId = task.TicketId,
-                taskNumber = task.TaskNumber,
-                state = task.StateId,
-                taskType = task.TaskType,
-                requestAction = task.RequestAction,
-                ruleAction = task.RuleAction,
-                tracking = task.Tracking,
-                validFrom = task.TargetBeginDate,
-                validTo = task.TargetEndDate,
-                reason = task.Reason
-            };
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newRequestTask, Variables)).ReturnIds;
-            if (returnIds == null)
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("add_task"), userConfig.GetText("E8003"), true);
-            }
-            else
-            {
-                returnId = returnIds[0].NewId;
-                foreach(var element in task.Elements)
-                {
-                    element.TaskId = returnId;
-                    await AddReqElementToDb(element);
-                }
-                foreach(var approval in task.Approvals)
-                {
-                    approval.TaskId = returnId;
-                    await AddApprovalToDb(approval);
-                }
-            }
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("add_task"), "", true);
-        }
-        return returnId;
-    }
-
-    private async Task UpdateReqTaskInDb(RequestTask task)
-    {
-        try
-        {
-            var Variables = new
-            {
-                id = task.Id,
-                title = task.Title,
-                taskNumber = task.TaskNumber,
-                state = task.StateId,
-                taskType = task.TaskType,
-                requestAction = task.RequestAction,
-                ruleAction = task.RuleAction,
-                tracking = task.Tracking,
-                validFrom = task.TargetBeginDate,
-                validTo = task.TargetEndDate,
-                reason = task.Reason
-            };
-            int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequestTask, Variables)).UpdatedId;
-            if(udId != task.Id)
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("save_task"), userConfig.GetText("E8004"), true);
-            }
-            else
-            {
-                foreach(var element in task.Elements)
-                {
-                    await UpdateReqElementInDb(element);
-                }
-            }
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_task"), "", true);
-        }
-    }
-        
-    private async Task UpdateReqTaskStateInDb(RequestTask task)
-    {
-        try
-        {
-            var Variables = new
-            {
-                id = task.Id,
-                state = task.StateId,
-                start = task.Start,
-                stop = task.Stop,
-                handler = task.CurrentHandler?.DbId,
-                comment = task.FwAdminComments
-            };
-            int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequestTaskState, Variables)).UpdatedId;
-            if(udId != task.Id)
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("save_task"), userConfig.GetText("E8004"), true);
-            }
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_task"), "", true);
-        }
-    }
-
-    private async Task UpdateImplTaskStateInDb(ImplementationTask task)
-    {
-        try
-        {
-            var Variables = new
-            {
-                id = task.Id,
-                state = task.StateId,
-            };
-            int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateImplementationTaskState, Variables)).UpdatedId;
-            if(udId != task.Id)
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("save_task"), userConfig.GetText("E8004"), true);
-            }
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_task"), "", true);
-        }
-    }
-
-    private async Task DeleteImplTaskFromDb(ImplementationTask task)
-    {
-        try
-        {
-            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.deleteImplementationTask, new { id = task.Id })).DeletedId;
-            if(delId != task.Id)
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("delete_task"), userConfig.GetText("E8005"), true);
-            }
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_task"), "", true);
-        }
-    }
-
-    private async Task<int> AddReqElementToDb(RequestElement element)
-    {
-        int returnId = 0;
-        try
-        {
-            var Variables = new
-            {
-                requestAction = element.RequestAction,
-                taskId = element.TaskId,
-                ip = element.Ip.ToCidrString(),
-                port = element.Port,
-                proto = element.ProtoId,
-                network_obj_id = element.NetworkId,
-                service_id = element.ServiceId,
-                field = element.Field,
-                user_id = element.UserId,
-                original_nat_id = element.OriginalNatId
-            };
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newRequestElement, Variables)).ReturnIds;
-            if (returnIds == null)
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("add_element"), userConfig.GetText("E8006"), true);
-            }
-            else
-            {
-                returnId = returnIds[0].NewId;
-            }
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("add_element"), "", true);
-        }
-        return returnId;
-    }
-
-    private async Task UpdateReqElementInDb(RequestElement element)
-    {
-        try
-        {
-            var Variables = new
-            {
-                id = element.Id,                
-                requestAction = element.RequestAction,
-                taskId = element.TaskId,
-                ip = element.Ip.ToCidrString(),
-                port = element.Port,
-                proto = element.ProtoId,
-                network_obj_id = element.NetworkId,
-                service_id = element.ServiceId,
-                field = element.Field,
-                user_id = element.UserId,
-                original_nat_id = element.OriginalNatId
-            };
-            int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequestElement, Variables)).UpdatedId;
-            if(udId != element.Id)
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("save_element"), userConfig.GetText("E8007"), true);
-            }
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_element"), "", true);
-        }
-    }
-
-    private async Task<int> AddApprovalToDb(RequestApproval approval)
-    {
-        int returnId = 0;
-        try
-        {
-            var Variables = new
-            {
-                taskId = approval.TaskId,
-                state = approval.StateId,
-                approverGroup = approval.ApproverGroup,
-                tenant = approval.TenantId,
-                deadline = approval.Deadline,
-                initialApproval = approval.InitialApproval
-            };
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newApproval, Variables)).ReturnIds;
-            if (returnIds == null)
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("add_approval"), userConfig.GetText("E8009"), true);
-            }
-            else
-            {
-                returnId = returnIds[0].NewId;
-            }
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("add_approval"), "", true);
-        }
-        return returnId;
     }
 }

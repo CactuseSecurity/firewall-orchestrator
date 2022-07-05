@@ -47,9 +47,6 @@
     public List<RequestTicket> Requests { get; set; } = new List<RequestTicket>();
 
     [Parameter]
-    public EventCallback<List<RequestTicket>> RequestsChanged { get; set; }
-
-    [Parameter]
     public Func<RequestTicket, Task> ShowTicketDetails { get; set; }
 
     [Parameter]

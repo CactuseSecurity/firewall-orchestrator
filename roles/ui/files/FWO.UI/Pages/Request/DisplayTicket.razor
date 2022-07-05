@@ -48,7 +48,7 @@
                         <label class="col-sm-11">@Ticket.Reason</label>
                     }
                 </div>
- 
+
                 @if(Phase != WorkflowPhases.implementation)
                 {
                     <h5>@(userConfig.GetText("tasks"))</h5>
@@ -188,26 +188,29 @@
             {
                 <AuthorizeView Roles="admin, requester, approver, planner, implementer, fw-admin">
                     <Authorized>
-                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="PromoteTicket">@(userConfig.GetText("promote_ticket"))</button>
+                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteTicket">@(userConfig.GetText("promote_ticket"))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("promote_ticket"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
             }
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            <button class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
 
-<DisplayRequestTask Phase="Phase" @bind-Display="ShowReqTaskMode" @bind-EditMode="EditReqTaskMode" @bind-AddMode="AddReqTaskMode" @bind-PlanMode="PlanMode"
-    @bind-ReqTask="actTask" StateMatrix="StateMatrix" States="States" @bind-Ticket="Ticket"></DisplayRequestTask>
-<DisplayImplementationTask Phase="Phase" @bind-Display="ShowImplTaskMode" @bind-ImplementMode="ImplementMode" 
-    @bind-ImplTask="actImplTask" StateMatrix="StateMatrix" States="States" @bind-ReqTask="actTask"></DisplayImplementationTask>
+<DisplayRequestTask Phase="Phase" DbAcc="DbAcc" StateMatrix="StateMatrix" States="States" 
+    @bind-Display="ShowReqTaskMode" @bind-EditMode="EditReqTaskMode" @bind-AddMode="AddReqTaskMode" @bind-PlanMode="PlanMode"
+    AddReqTask="AddReqTaskToTicket" ChangeReqTask="ChangeReqTaskInTicket" 
+    @bind-ReqTask="actTask" @bind-Ticket="Ticket" @bind-Requests="Requests"></DisplayRequestTask>
+<DisplayImplementationTask Phase="Phase" DbAcc="DbAcc" StateMatrix="StateMatrix" States="States"
+    @bind-Display="ShowImplTaskMode" @bind-ImplementMode="ImplementMode"
+    @bind-ImplTask="actImplTask" @bind-ReqTask="actTask" @bind-Ticket="Ticket" @bind-Requests="Requests"></DisplayImplementationTask>
 <AssignTask @bind-Display="AssignTaskMode" @bind-ReqTask="actTask"></AssignTask>
 <DisplayApprovals @bind-Display="ShowApprovalMode" Approvals="actTask.Approvals" States="States"></DisplayApprovals>
-<PromoteObject @bind-Display="SaveTicketMode" Save="SaveTicket" StatefulObject="Ticket" PossibleStates="possibleStates" States="States"></PromoteObject>
-<PromoteObject @bind-Display="PromoteTicketMode" Save="UpdateTicketStateInDb" StatefulObject="Ticket" PossibleStates="possibleStates" States="States"></PromoteObject>
+<PromoteObject @bind-Promote="SaveTicketMode" Save="SaveTicket" StatefulObject="Ticket" StateMatrix="StateMatrix" States="States"></PromoteObject>
+<PromoteObject @bind-Promote="PromoteTicketMode" Save="PromoteTicket" StatefulObject="Ticket" StateMatrix="StateMatrix" States="States"></PromoteObject>
 <DeleteObject @bind-Display="DeleteReqTaskMode" Delete="ConfDeleteReqTask" ObjName="@actTask.Title"></DeleteObject>
 
 
@@ -218,6 +221,18 @@
     
     [Parameter]
     public WorkflowPhases Phase { get; set; } = WorkflowPhases.approval;
+
+    [Parameter]
+    public RequestDbAccess DbAcc { get; set; }
+
+    [Parameter]
+    public StateMatrix StateMatrix { get; set; } = new StateMatrix();
+
+    [Parameter]
+    public RequestStateDict States { get; set; } = new RequestStateDict();
+
+    [Parameter]
+    public Func<Task> ResetParent { get; set; }
 
     [Parameter]
     public Func<RequestTask, Task>? StartPhase { get; set; }
@@ -262,19 +277,13 @@
     public EventCallback<bool> ImplementModeChanged { get; set; }
 
     [Parameter]
+    public List<ImplementationTask>? AllImplTasks { get; set; } = new List<ImplementationTask>();
+
+    [Parameter]
     public RequestTicket Ticket { get; set; } = new RequestTicket();
 
     [Parameter]
     public EventCallback<RequestTicket> TicketChanged { get; set; }
-
-    [Parameter]
-    public List<ImplementationTask>? AllImplTasks { get; set; } = new List<ImplementationTask>();
-
-    [Parameter]
-    public StateMatrix StateMatrix { get; set; } = new StateMatrix();
-
-    [Parameter]
-    public RequestStateDict States { get; set; } = new RequestStateDict();
 
     [Parameter]
     public List<RequestTicket> Requests { get; set; } = new List<RequestTicket>();
@@ -310,13 +319,16 @@
 
     private void Close()
     {
+        ResetParent();
+        Reset();
         AddMode = false;
         EditMode = false;
         PlanMode = false;
         Display = false;
+        StateHasChanged();
     }
 
-    private void Reset()
+    private bool Reset()
     {
         PromoteTicketMode = false;
         SaveTicketMode = false;
@@ -327,12 +339,7 @@
         AddReqTaskMode = false;
         EditReqTaskMode = false;
         DeleteReqTaskMode = false;
-    }
-
-    private void Cancel()
-    {
-        Reset();
-        Close();
+        return true;
     }
 
     private void SetContinueEnv(RequestTask task)
@@ -359,12 +366,35 @@
         StateHasChanged();
     }
 
+    private async Task AddReqTaskToTicket(RequestTask task)
+    {
+        if (Ticket.Id > 0) // ticket already created -> write directly to db
+        {
+            task.TicketId = Ticket.Id;
+            task.Id = await DbAcc.AddReqTaskToDb(task);
+        }
+        Ticket.Tasks.Add(task);
+        Reset();
+        StateHasChanged();
+    }
+
     private void EditReqTask(RequestTask task)
     {
         actTask = task;
         Reset();
         EditReqTaskMode = true;
         ShowReqTaskMode = true;
+        StateHasChanged();
+    }
+
+    private async Task ChangeReqTaskInTicket(RequestTask task)
+    {
+        if(task.Id > 0)
+        {
+            await DbAcc.UpdateReqTaskInDb(task);
+        }
+        Ticket.Tasks[Ticket.Tasks.FindIndex(x => x.Id == task.Id)] = task;
+        Reset();
         StateHasChanged();
     }
 
@@ -387,7 +417,7 @@
     {
         if(actTask.Id > 0)
         {
-            await DeleteReqTaskFromDb(actTask);
+            await DbAcc.DeleteReqTaskFromDb(actTask);
         }
 
         Ticket.Tasks.Remove(actTask);
@@ -419,22 +449,6 @@
         Reset();
         actTask = task;
         AssignTaskMode = true;
-    }
-
-    private async Task PromoteTicket()
-    {
-        possibleStates = StateMatrix.getAllowedTransitions(Ticket.StateId);
-        if(possibleStates.Count == 1)
-        {
-            Ticket.StateId = possibleStates[0];
-            await UpdateTicketStateInDb(Ticket);
-        }
-        else
-        {
-            Reset();
-            PromoteTicketMode = true;
-            StateHasChanged();
-        }
     }
 
     private bool CheckPromoteTicket()
@@ -469,21 +483,42 @@
         }
     }
 
+    private async Task InitPromoteTicket()
+    {
+        Reset();
+        PromoteTicketMode = true;
+    }
+
+    private async Task PromoteTicket(StatefulObject ticket)
+    {
+        try
+        {           
+            Ticket.StateId = ticket.StateId;
+            if (Phase == WorkflowPhases.implementation && Ticket.StateId >= StateMatrix.LowestEndState)
+            {
+                Ticket.CompletionDate = DateTime.Now;
+            }
+
+            Requests = await DbAcc.UpdateTicketStateInDb(Ticket, Requests);
+            Close();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("promote_ticket"), "", true);
+        }
+    }
+
     private async Task InitSaveTicket()
     {
-        possibleStates = StateMatrix.getAllowedTransitions(Ticket.StateId);
         if(Ticket.Tasks.Count == 0)
         {
             await SaveTicket(Ticket);
         }
-        else if(possibleStates.Count == 1)
-        {
-            Ticket.StateId = possibleStates[0];
-            await SaveTicket(Ticket);
-        }
         else
         {
+            Reset();
             SaveTicketMode = true;
+            StateHasChanged();
         }
     }
 
@@ -508,14 +543,13 @@
                     // insert new ticket
                     Ticket.CreationDate = DateTime.Now;
                     Ticket.Requester = userConfig.User;
-                    await AddTicketToDb(Ticket);
+                    Requests = await DbAcc.AddTicketToDb(Ticket, Requests);
                 }
                 else
                 {
                     // Update existing ticket
-                    await UpdateTicketInDb(Ticket);
+                    Requests = await DbAcc.UpdateTicketInDb(Ticket, Requests);
                 }
-                Reset();
                 Close();
             }
         }
@@ -533,117 +567,5 @@
             return false;
         }
         return true;
-    }
-    
-    private async Task UpdateTicketStateInDb(StatefulObject ticket)
-    {
-        try
-        {           
-            Ticket.StateId = ticket.StateId;
-            if (Phase == WorkflowPhases.implementation && Ticket.StateId >= StateMatrix.LowestEndState)
-            {
-                Ticket.CompletionDate = DateTime.Now;
-            }
-
-            // Update existing ticket state
-            var Variables = new
-            {
-                id = Ticket.Id,
-                state = Ticket.StateId,
-                closed = Ticket.CompletionDate
-            };
-            int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateTicketState, Variables)).UpdatedId;
-            if(udId != Ticket.Id)
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("promote_ticket"), userConfig.GetText("E8002"), true);
-            }
-            else
-            {
-                Requests[Requests.FindIndex(x => x.Id == Ticket.Id)] = Ticket;
-                Reset();
-                Close();
-            }
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("promote_ticket"), "", true);
-        }
-    }
-
-    private async Task AddTicketToDb(RequestTicket ticket)
-    {
-        try
-        {
-            var Variables = new
-            {
-                title = ticket.Title,
-                state = ticket.StateId,
-                reason = ticket.Reason,
-                requesterId = ticket.Requester?.DbId,
-                requestTasks = new RequestTicketWriter(ticket)
-            };
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newTicket, Variables)).ReturnIds;
-            if (returnIds == null)
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("E8001"), true);
-            }
-            else
-            {
-                ticket.Id = returnIds[0].NewId;
-                Requests.Add(ticket);
-            }
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_request"), "", true);
-        }
-    }
-
-    private async Task UpdateTicketInDb(RequestTicket ticket)
-    {
-        try
-        {
-            var Variables = new
-            {
-                id = ticket.Id,
-                title = ticket.Title,
-                state = ticket.StateId,
-                reason = ticket.Reason
-            };
-            int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateTicket, Variables)).UpdatedId;
-            if(udId != ticket.Id)
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("E8002"), true);
-            }
-            else
-            {
-                foreach(RequestTask task in ticket.Tasks)
-                {
-                    task.StateId = ticket.StateId;
-                    await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequestTaskState, new {id = task.Id, state = task.StateId});
-                }
-                Requests[Requests.FindIndex(x => x.Id == ticket.Id)] = ticket;
-            }
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_request"), "", true);
-        }
-    }
-
-    private async Task DeleteReqTaskFromDb(RequestTask task)
-    {
-        try
-        {
-            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.deleteRequestTask, new { id = task.Id })).DeletedId;
-            if(delId != task.Id)
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("delete_task"), userConfig.GetText("E8005"), true);
-            }
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_task"), "", true);
-        }
     }
 }

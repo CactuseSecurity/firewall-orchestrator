@@ -52,6 +52,7 @@ namespace FWO.Config.Api
             semaphoreSlim.Wait();
             try
             {
+                Log.WriteDebug("Config subscription update", "New config values received from config subscription");
                 RawConfigItems = configItems;
                 Update(configItems);
                 OnChange?.Invoke(this, configItems);
@@ -139,7 +140,7 @@ namespace FWO.Config.Api
             finally { semaphoreSlim.Release(); }
         }
 
-        protected void SubscriptionExceptionHandler(Exception exception)
+        protected static void SubscriptionExceptionHandler(Exception exception)
         {
             Log.WriteError("Config Subscription", "Config subscription lead to error.", exception);
         }

@@ -28,9 +28,7 @@ namespace FWO.Ui
             services.AddServerSideBlazor();
 
             services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
-
             services.AddScoped<CircuitHandlerService, CircuitHandlerService>();
-            services.AddScoped<PermissionEventService >();
 
             string ApiUri = ConfigFile.ApiServerUri;
             string MiddlewareUri = ConfigFile.MiddlewareServerUri;
@@ -38,8 +36,8 @@ namespace FWO.Ui
 
             services.AddScoped<ApiConnection>(_ => new GraphQlApiConnection(ApiUri));
             services.AddScoped<MiddlewareClient>(_ => new MiddlewareClient(MiddlewareUri));
+            
             // create "anonymous" (empty) jwt
-
             MiddlewareClient middlewareClient = new MiddlewareClient(MiddlewareUri);
             ApiConnection apiConn = new GraphQlApiConnection(ApiUri);
 

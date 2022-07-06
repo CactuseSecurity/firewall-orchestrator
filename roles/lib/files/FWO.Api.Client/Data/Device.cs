@@ -94,7 +94,7 @@ namespace FWO.Api.Data
             LocalRulebase = Sanitizer.SanitizeOpt(LocalRulebase, ref shortened);
             GlobalRulebase = Sanitizer.SanitizeOpt(GlobalRulebase, ref shortened);
             Package = Sanitizer.SanitizeOpt(Package, ref shortened);
-            Comment = Sanitizer.SanitizeOpt(Comment, ref shortened);
+            Comment = Sanitizer.SanitizeCommentOpt(Comment, ref shortened);
             return shortened;
         }
     }

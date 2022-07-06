@@ -3,3 +3,6 @@
 # - report test
 
 # pg_prove -U postgres /pgjwt/test.sql
+
+- debug:
+    msg: starting database integration tests

@@ -21,7 +21,7 @@
         await sessionStorage.DeleteAsync("jwt");
         ((AuthStateProvider)AuthService).Deauthenticate();
 
-        Log.WriteAudit($"Logout from \"{user.Name}\"", $"User \"{user.Name}\" with DN: \"{user.Dn}\" logged out.");
+        Log.WriteAudit($"Logout", $"User \"{user.Name}\" with DN: \"{user.Dn}\" logged out.");
         circuitHandler.User = null;
 
         NavigationManager.NavigateTo("");

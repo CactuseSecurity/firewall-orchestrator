@@ -32,6 +32,12 @@
             <input id="sessionTimeout" type="number" class="form-control form-control-sm w-100" @bind="configData!.SessionTimeout" />
         </div>
     </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="sessionTimeoutNoticePeriod" class="col-form-label col-sm-4">@(userConfig.GetText("sessionTimeoutNoticePeriod")):</label>
+        <div class="col-sm-2">
+            <input id="sessionTimeoutNoticePeriod" type="number" class="form-control form-control-sm w-100" @bind="configData!.SessionTimeoutNoticePeriod" />
+        </div>
+    </form>
     @* <form class="form-inline" onsubmit="return false">
         <label for="maxMessages" class="col-form-label col-sm-4">@(userConfig.GetText("maxMessages"))*:</label>
         <div class="col-sm-2">

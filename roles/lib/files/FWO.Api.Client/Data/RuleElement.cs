@@ -12,7 +12,7 @@ namespace FWO.Api.Data
             get => Ip.ToCidrString();
             set => Parse(value);
         }
-        public int Port { get; set; }
+        public int Port { get; set; } = 1;
         public int? ProtoId { get; set; } = 6;
         public long? NetworkId { get; set; }
         public long? ServiceId { get; set; }

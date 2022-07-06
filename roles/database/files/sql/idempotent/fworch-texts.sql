@@ -709,6 +709,10 @@ INSERT INTO txt VALUES ('standards',		    'German', 	'Standardeinstellungen');
 INSERT INTO txt VALUES ('standards',		    'English', 	'Defaults');
 INSERT INTO txt VALUES ('password_policy',      'German', 	'Passworteinstellungen');
 INSERT INTO txt VALUES ('password_policy',      'English', 	'Password Policy');
+INSERT INTO txt VALUES ('state_definitions',	'German', 	'Statusdefinitionen');
+INSERT INTO txt VALUES ('state_definitions',	'English', 	'State Definitions');
+INSERT INTO txt VALUES ('customizing',		    'German', 	'Einstellungen');
+INSERT INTO txt VALUES ('customizing',		    'English', 	'Customizing');
 INSERT INTO txt VALUES ('personal',             'German', 	'Pers&ouml;nlich');
 INSERT INTO txt VALUES ('personal',             'English', 	'Personal');
 INSERT INTO txt VALUES ('language',             'German', 	'Sprache');
@@ -947,6 +951,10 @@ INSERT INTO txt VALUES ('ruleRemovalGracePeriod','German', 	'Frist zum L&ouml;sc
 INSERT INTO txt VALUES ('ruleRemovalGracePeriod','English', 'Rule Removal Grace Period (in days)');
 INSERT INTO txt VALUES ('commentRequired',      'German', 	'Kommentar Pflichtfeld');
 INSERT INTO txt VALUES ('commentRequired',      'English',  'Comment Required');
+INSERT INTO txt VALUES ('reqAvailableTaskTypes','German', 	'Verf&uuml;gbare Auftragstypen');
+INSERT INTO txt VALUES ('reqAvailableTaskTypes','English', 	'Available Task Types');
+INSERT INTO txt VALUES ('reqApprovalDeadline',  'German', 	'Deadline f&uuml;r Genehmigungen (in Tagen)');
+INSERT INTO txt VALUES ('reqApprovalDeadline',  'English', 	'Approval deadline (in days)');
 INSERT INTO txt VALUES ('language_settings',    'German', 	'Spracheinstellungen');
 INSERT INTO txt VALUES ('language_settings',    'English', 	'Language Settings');
 INSERT INTO txt VALUES ('apply_changes',        'German', 	'&Auml;nderungen anwenden');
@@ -1377,8 +1385,10 @@ INSERT INTO txt VALUES ('U5311', 'German',  'Verwaltung der Standard-Voreinstell
 INSERT INTO txt VALUES ('U5311', 'English', 'Set default values for all users and some technical parameters');
 INSERT INTO txt VALUES ('U5312', 'German',  'Verwaltung der Passwortregeln');
 INSERT INTO txt VALUES ('U5312', 'English', 'Set the policy for all user passwords');
-INSERT INTO txt VALUES ('U5313', 'German',  'Definition des Auftrags-Workflows inklusive Statusdefinitionen. Vorsicht bei &Auml;nderungen an einem bereits verwendeten Workflow!');
-INSERT INTO txt VALUES ('U5313', 'English', 'Define the request workflow including state definitions. Be careful when changing workflow already in use!');
+INSERT INTO txt VALUES ('U5313', 'German',  'Definition der Statusdefinitionen f&uuml;r den Auftrags-Workflow. Vorsicht bei &Auml;nderungen an einem bereits verwendeten Workflow!');
+INSERT INTO txt VALUES ('U5313', 'English', 'Define the state definitions of the request workflow. Be careful when changing workflow already in use!');
+INSERT INTO txt VALUES ('U5314', 'German',  'Verwaltung der Einstellungen f&uuml;r den Auftrags-Workflow. Vorsicht bei &Auml;nderungen an einem bereits verwendeten Workflow!');
+INSERT INTO txt VALUES ('U5314', 'English', 'Customize the request workflow. Be careful when changing workflow already in use!');
 
 INSERT INTO txt VALUES ('U5401', 'German',  'Passwort ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5401', 'English', 'Password changed.');

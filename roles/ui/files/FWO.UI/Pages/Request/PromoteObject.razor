@@ -23,13 +23,22 @@
                     </select>
                 </div>
             </div>
+            @if(WithComment)
+            {
+                <div class="form-group row">
+                    <label for="optComment" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
+                    <div class="col-sm-8">
+                        <input id="optComment" type="text" class="form-control form-control-sm" @bind="optComm" />
+                    </div>
+                </div>
+            }
         }
     </Body>
     <Footer>
         <div class="btn-group">
             <AuthorizeView Roles="admin, requester, approver, planner, implementer, fw-admin">
                 <Authorized>
-                    <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => {Save(StatefulObject); Display = false;}">@(userConfig.GetText("save"))</button>
+                    <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => {StatefulObject.SetOptComment(optComm); Save(StatefulObject); Display = false;}">@(userConfig.GetText("save"))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
@@ -53,6 +62,9 @@
     public EventCallback<bool> PromoteChanged { get; set; }
 
     [Parameter]
+    public bool WithComment { get; set; } = false;
+
+    [Parameter]
     public Func<StatefulObject, Task>? Save { get; set; }
 
     [Parameter]
@@ -67,16 +79,26 @@
 
     private bool Display { get; set; } = false;
     private List<int> possibleStates = new List<int>();
+    private string? optComm;
 
     protected override async Task OnParametersSetAsync()
     {
         if (Promote)
         {
+            optComm = StatefulObject.OptComment();
             possibleStates = StateMatrix.getAllowedTransitions(StatefulObject.StateId);
             if(possibleStates.Count == 1)
             {
+                int oldState = StatefulObject.StateId;
                 StatefulObject.StateId = possibleStates[0];
-                await Save(StatefulObject);
+                if(WithComment && oldState >= StateMatrix.LowestStartedState)
+                {
+                    Display = true;
+                }
+                else
+                {
+                    await Save(StatefulObject);
+                }
             }
             else
             {

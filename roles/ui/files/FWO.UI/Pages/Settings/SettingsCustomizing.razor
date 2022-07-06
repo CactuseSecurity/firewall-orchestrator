@@ -1,0 +1,114 @@
+﻿@using FWO.Api.Client
+@using FWO.Config.Api
+@using FWO.Config.Api.Data
+@using System.Text.Json
+
+
+@page "/settings/customizing"
+@attribute [Authorize(Roles = "admin, auditor")]
+
+@inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+
+<h3>@(userConfig.GetText("customizing"))</h3>
+@(userConfig.GetText("U5314"))
+<hr />
+
+@if (InitComplete && configData != null)
+{
+    <form class="form-inline" onsubmit="return false">
+        <label for="availableTaskTypes" class="col-form-label col-sm-2">@(userConfig.GetText("reqAvailableTaskTypes")):</label>
+        @foreach (TaskType type in Enum.GetValues(typeof(TaskType)))
+        {
+            <div class="form-group col-sm-2">
+                <input id="type" type="checkbox" @bind="taskTypesActiveDict[type]" />
+                <label for="type" class="col-form-label ">@(userConfig.GetText(type.ToString()))</label>
+            </div>
+        }
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="approvalDeadline" class="col-form-label col-sm-2">@(userConfig.GetText("reqApprovalDeadline")):</label>
+        <div class="col-sm-2">
+            <input id="approvalDeadline" type="number" class="form-control form-control-sm w-100" @bind="configData!.ReqApprovalDeadline" />
+        </div>
+    </form>
+    <hr />
+    <AuthorizeView Roles="admin">
+        <Authorized>
+            <button class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+        </Authorized>
+        <NotAuthorized>
+            <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+        </NotAuthorized> 
+    </AuthorizeView>
+    <br><br>
+}
+else
+{
+    <div class="spinner-border" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+}
+
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+
+    private ConfigData? configData;
+    private bool InitComplete = false;
+
+    private List<TaskType> availableTaskTypes { get; set; } = new List<TaskType>();
+    private Dictionary<TaskType, bool> taskTypesActiveDict = new Dictionary<TaskType, bool>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            configData = await globalConfig.GetEditableConfig();
+            availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<TaskType>>(configData.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
+            taskTypesActiveDict = new Dictionary<TaskType, bool>();
+            foreach(TaskType type in Enum.GetValues(typeof(TaskType)))
+            {
+                taskTypesActiveDict.Add(type, availableTaskTypes.Contains(type));
+            }
+            InitComplete = true;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+        }
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            if (configData != null)
+            {
+                availableTaskTypes = new List<TaskType>();
+                foreach(TaskType type in taskTypesActiveDict.Keys)
+                {
+                    if (taskTypesActiveDict[type])
+                    {
+                        availableTaskTypes.Add(type);
+                    }
+                }
+                configData.ReqAvailableTaskTypes = JsonSerializer.Serialize(availableTaskTypes);
+                await globalConfig.WriteToDatabase(configData, apiConnection);
+                DisplayMessageInUi!(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
+            }
+            else
+            {
+                throw new Exception("Data saved before loaded. This should be impossible.");
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("change_default"), "", true);
+        }
+    }
+}

@@ -81,11 +81,10 @@ namespace FWO.Api.Data
         public RequestTaskBase()
         { }
 
-        public RequestTaskBase(RequestTaskBase task)
+        public RequestTaskBase(RequestTaskBase task) : base(task)
         {
             Title = task.Title;
             TaskNumber = task.TaskNumber;
-            StateId = task.StateId;
             TaskType = task.TaskType;
             RequestAction = task.RequestAction;
             RuleAction = task.RuleAction;

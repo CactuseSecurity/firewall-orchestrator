@@ -34,9 +34,9 @@
                     {
                         <div class="col-sm-2">
                             <select id="taskType" class="form-control form-control-sm" @bind="ReqTask.TaskType">
-                                @foreach (string type in Enum.GetNames(typeof(TaskType)))
+                                @foreach (TaskType type in availableTaskTypes)
                                 {
-                                    <option value="@type">@(userConfig.GetText(type))</option>
+                                    <option value="@type">@(userConfig.GetText(type.ToString()))</option>
                                 }
                             </select>
                         </div>
@@ -299,7 +299,7 @@
     [Parameter]
     public EventCallback<List<RequestTicket>> RequestsChanged { get; set; }
 
-
+    private List<TaskType> availableTaskTypes { get; set; } = new List<TaskType>();
     private List<RuleAction> ruleActions = new List<RuleAction>();
     private List<Tracking> trackings = new List<Tracking>();
     private List<Device> devices = new List<Device>();
@@ -321,6 +321,7 @@
     {
         try
         {
+            availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<TaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
             ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(FWO.Api.Client.Queries.StmQueries.getRuleActions);
             trackings = await apiConnection.SendQueryAsync<List<Tracking>>(FWO.Api.Client.Queries.StmQueries.getTracking);
             devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
@@ -471,7 +472,7 @@
             StateId = StateMatrix.LowestEndState,
             // ApproverGroup = get from owner ???,
             TenantId = Ticket.TenantId, // ??
-            Deadline = DateTime.Now.AddDays(30), // config/input ??
+            Deadline = userConfig.ReqApprovalDeadline > 0 ? DateTime.Now.AddDays(userConfig.ReqApprovalDeadline) : null,
             InitialApproval = true
         };
         ReqTask.Approvals.Add(approval);
@@ -535,14 +536,14 @@
         }
         foreach (var reqElem in ReqTask.Elements)
         {
-            if (reqElem.NetworkId == null && reqElem.ServiceId == null)
+            if (ReqTask.TaskType == TaskType.access.ToString() && reqElem.NetworkId == null && reqElem.ServiceId == null)
             {
                 if (reqElem.IpString == null || reqElem.IpString == "")
                 {
                     DisplayMessageInUi!(null, userConfig.GetText("save_element"), userConfig.GetText("E5102"), true);
                     return false;
                 }
-                if (reqElem.Port < 1 || reqElem.Port > 65535)
+                if (reqElem.Field == RuleField.service.ToString() && reqElem.Port < 1 || reqElem.Port > 65535)
                 {
                     DisplayMessageInUi!(null, userConfig.GetText("save_element"), userConfig.GetText("E5103"), true);
                     return false;

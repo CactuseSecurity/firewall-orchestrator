@@ -42,13 +42,12 @@ namespace FWO.Api.Data
         public RequestTicketBase()
         { }
 
-        public RequestTicketBase(RequestTicketBase ticket)
+        public RequestTicketBase(RequestTicketBase ticket) : base(ticket)
         {
             Id = ticket.Id;
             Title = ticket.Title;
             CreationDate = ticket.CreationDate;
             CompletionDate = ticket.CompletionDate;
-            StateId = ticket.StateId;
             Requester = ticket.Requester;
             RequesterDn = ticket.RequesterDn;
             RequesterGroup = ticket.RequesterGroup;

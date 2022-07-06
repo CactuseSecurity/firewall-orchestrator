@@ -1,14 +1,6 @@
-﻿using FWO.Logging;
-using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Reflection;
-using System.Text;
+﻿using Newtonsoft.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 
 namespace FWO.Config.Api.Data
 {
@@ -105,6 +97,13 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("maxImportInterval"), JsonPropertyName("maxImportInterval")]
         public int MaxImportInterval { get; set; } = 12;
+
+        [JsonProperty("reqAvailableTaskTypes"), JsonPropertyName("reqAvailableTaskTypes")]
+        public string ReqAvailableTaskTypes { get; set; } = "";
+
+        [JsonProperty("reqApprovalDeadline"), JsonPropertyName("reqApprovalDeadline")]
+        public int ReqApprovalDeadline { get; set; } = 7;
+
 
         public ConfigData(bool editable = false)
         {

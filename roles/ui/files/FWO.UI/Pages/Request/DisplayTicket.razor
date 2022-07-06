@@ -207,7 +207,7 @@
 <DisplayImplementationTask Phase="Phase" DbAcc="DbAcc" StateMatrix="StateMatrix" States="States"
     @bind-Display="ShowImplTaskMode" @bind-ImplementMode="ImplementMode"
     @bind-ImplTask="actImplTask" @bind-ReqTask="actTask" @bind-Ticket="Ticket" @bind-Requests="Requests"></DisplayImplementationTask>
-<AssignTask @bind-Display="AssignTaskMode" @bind-ReqTask="actTask"></AssignTask>
+<AssignTask DbAcc="DbAcc" @bind-Display="AssignTaskMode" @bind-ReqTask="actTask"></AssignTask>
 <DisplayApprovals @bind-Display="ShowApprovalMode" Approvals="actTask.Approvals" States="States"></DisplayApprovals>
 <PromoteObject @bind-Promote="SaveTicketMode" Save="SaveTicket" StatefulObject="Ticket" StateMatrix="StateMatrix" States="States"></PromoteObject>
 <PromoteObject @bind-Promote="PromoteTicketMode" Save="PromoteTicket" StatefulObject="Ticket" StateMatrix="StateMatrix" States="States"></PromoteObject>

@@ -77,6 +77,9 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
     [Parameter]
+    public RequestDbAccess DbAcc { get; set; }
+
+    [Parameter]
     public RequestTask ReqTask { get; set; } = new RequestTask();
 
     [Parameter]
@@ -106,7 +109,7 @@
         ReqTask.RecentHandler = ReqTask.CurrentHandler;
         if(CheckValues())
         {
-            await UpdateReqTaskInDb(ReqTask);
+            await DbAcc.UpdateReqTaskStateInDb(ReqTask);
             Display = false;
         }
     }
@@ -115,7 +118,7 @@
     {
         ReqTask.AssignedGroup = ReqTask.RecentHandler?.Dn;
         ReqTask.RecentHandler = ReqTask.CurrentHandler;
-        await UpdateReqTaskInDb(ReqTask);
+        await DbAcc.UpdateReqTaskStateInDb(ReqTask);
         Display = false;
     }
 
@@ -132,30 +135,5 @@
             return false;
         }
         return true;
-    }
-
-    private async Task UpdateReqTaskInDb(RequestTask task)
-    {
-        try
-        {
-            var Variables = new
-            {
-                id = task.Id,
-                state = task.StateId,
-                handler = task.CurrentHandler?.DbId,
-                recentHandler = task.RecentHandler?.DbId,
-                assignedGroup = task.AssignedGroup,
-                comment = task.FwAdminComments
-            };
-            int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequestTaskState, Variables)).UpdatedId;
-            if(udId != task.Id)
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("assign_group"), userConfig.GetText("E8004"), true);
-            }
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("assign_group"), "", true);
-        }
     }
 }

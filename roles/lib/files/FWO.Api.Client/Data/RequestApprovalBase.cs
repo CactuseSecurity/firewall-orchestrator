@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class RequestApprovalBase
+    public class RequestApprovalBase : StatefulObject
     {
         [JsonProperty("date_opened"), JsonPropertyName("date_opened")]
         public DateTime DateOpened { get; set; } = DateTime.Now;
@@ -32,14 +32,11 @@ namespace FWO.Api.Data
         [JsonProperty("initial_approval"), JsonPropertyName("initial_approval")]
         public bool InitialApproval { get; set; } = true;
 
-        [JsonProperty("state_id"), JsonPropertyName("state_id")]
-        public int StateId { get; set; }
-
 
         public RequestApprovalBase()
         { }
 
-        public RequestApprovalBase(RequestApprovalBase approval)
+        public RequestApprovalBase(RequestApprovalBase approval) : base(approval)
         {
             DateOpened = approval.DateOpened;
             ApprovalDate = approval.ApprovalDate;
@@ -49,8 +46,7 @@ namespace FWO.Api.Data
             TenantId = approval.TenantId;
             Comment = approval.Comment;
             InitialApproval = approval.InitialApproval;
-            StateId = approval.StateId;
-        }
+         }
 
         public bool Sanitize()
         {

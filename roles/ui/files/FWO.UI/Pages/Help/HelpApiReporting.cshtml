@@ -69,41 +69,7 @@ curl --request POST \
 
 
 {"data":{"insert_report_schedule":{"returning" : [{"report_schedule_id":40}]}}}
-        </pre>        
-
-        <li>@userConfig.GetText("H6907")</li>
-        <pre>
-curl --request POST \
-            --url https://localhost:9443/api/v1/graphql \
-            --header 'content-type: application/json' \
-            --header 'x-hasura-role: reporter-viewall' \
-            --header 'Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6InJlcHNjaGVkIiwieC1oYXN1cmEtdXNlci1pZCI6IjciLCJ4LWhhc3VyYS11dWlkIjoidWlkPXJlcHNjaGVkLG91PXRlbmFudDAsb3U9b3BlcmF0b3Isb3U9dXNlcixkYz1md29yY2gsZGM9aW50ZXJuYWwiLCJ4LWhhc3VyYS10ZW5hbnQtaWQiOiIxIiwieC1oYXN1cmEtdmlzaWJsZS1tYW5hZ2VtZW50cyI6InsgMiw2LDEsNSB9IiwieC1oYXN1cmEtdmlzaWJsZS1kZXZpY2VzIjoieyAxLDIsNSw2IH0iLCJyb2xlIjoicmVwb3J0ZXItdmlld2FsbCIsIngtaGFzdXJhLWFsbG93ZWQtcm9sZXMiOlsicmVwb3J0ZXItdmlld2FsbCJdLCJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiJyZXBvcnRlci12aWV3YWxsIiwibmJmIjoxNjM3MzE5ODQ1LCJleHAiOjE2MzczMzQzMDUsImlhdCI6MTYzNzMxOTg0NSwiaXNzIjoiRldPIE1pZGRsZXdhcmUgTW9kdWxlIiwiYXVkIjoiRldPIn0.dff3-c5zdWdrgOBTcIkRX4XCzY7cwKnW1deYPBucIMhvzALs2tUi7y57k9HGz4wUYAUsIUA5J7n6MnK4-0UsDia7CmPD_nDKlOO00maBT_8qusB9WvLa2Adg_nGCdMl47kQXIbdHDKupqW_C9IDwendjEcOd0SJCR0FQl8SjgnzCjj-LQw_yZlcEn19wduD8TDTrbwae3DS_4foynH92KbiI-5BswT4CyyYQJTfZ4TU_qm1EiAHzj2DdW-B5_VnyS0nFTRc_0eG7L-TQp3sPML_5ymwfrg8cm5Dh3VAW0pQckTaG6SOpTU3oFiyiQ-K-XP63s317l_NiFPMdp_SQCQ' \
-            --data '
-            {
-            "variables":  {"reportScheduleId": 40 },
-            "query": "query getLatestReportPerScheduleId($reportScheduleId: bigint) { report_schedule(where: {report_schedule_id: {_eq: $reportScheduleId}}) { report_schedule_id report_template { reports_aggregate { aggregate { max { report_start_time report_id } } } } } }"}'
-
-
-{
-  "data": {
-    "report_schedule": [
-      {
-        "report_schedule_id": 40,
-        "report_template": {
-          "reports_aggregate": {
-            "aggregate": {
-              "max": {
-                "report_start_time": "2021-11-19T15:00:20.724957",
-                "report_id": 5
-              }
-            }
-          }
-        }
-      }
-    ]
-  }
-}
-        </pre>        
+        </pre>            
 
         <li>@userConfig.GetText("H6903")</li>
         <pre>
@@ -114,11 +80,28 @@ curl --request POST \
             --header 'Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6InJlcHNjaGVkIiwieC1oYXN1cmEtdXNlci1pZCI6IjciLCJ4LWhhc3VyYS11dWlkIjoidWlkPXJlcHNjaGVkLG91PXRlbmFudDAsb3U9b3BlcmF0b3Isb3U9dXNlcixkYz1md29yY2gsZGM9aW50ZXJuYWwiLCJ4LWhhc3VyYS10ZW5hbnQtaWQiOiIxIiwieC1oYXN1cmEtdmlzaWJsZS1tYW5hZ2VtZW50cyI6InsgMiw2LDEsNSB9IiwieC1oYXN1cmEtdmlzaWJsZS1kZXZpY2VzIjoieyAxLDIsNSw2IH0iLCJyb2xlIjoicmVwb3J0ZXItdmlld2FsbCIsIngtaGFzdXJhLWFsbG93ZWQtcm9sZXMiOlsicmVwb3J0ZXItdmlld2FsbCJdLCJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiJyZXBvcnRlci12aWV3YWxsIiwibmJmIjoxNjM3MzE5ODQ1LCJleHAiOjE2MzczMzQzMDUsImlhdCI6MTYzNzMxOTg0NSwiaXNzIjoiRldPIE1pZGRsZXdhcmUgTW9kdWxlIiwiYXVkIjoiRldPIn0.dff3-c5zdWdrgOBTcIkRX4XCzY7cwKnW1deYPBucIMhvzALs2tUi7y57k9HGz4wUYAUsIUA5J7n6MnK4-0UsDia7CmPD_nDKlOO00maBT_8qusB9WvLa2Adg_nGCdMl47kQXIbdHDKupqW_C9IDwendjEcOd0SJCR0FQl8SjgnzCjj-LQw_yZlcEn19wduD8TDTrbwae3DS_4foynH92KbiI-5BswT4CyyYQJTfZ4TU_qm1EiAHzj2DdW-B5_VnyS0nFTRc_0eG7L-TQp3sPML_5ymwfrg8cm5Dh3VAW0pQckTaG6SOpTU3oFiyiQ-K-XP63s317l_NiFPMdp_SQCQ' \
             --data '
             {
-            "variables": { "reportId": 5 },
-            "query": "query getReportJson($reportId: bigint!) { report(where: {report_id: {_eq: $reportId}}) { report_json } } "}'
+            "variables": { "reportScheduleId": 5 },
+            "query": "query reportsBySchedule($reportScheduleId: bigint!) { report_schedule(where: {report_schedule_id: {_eq: $reportScheduleId}}) { report_schedule_id report_schedule_name report_template { latest_report: reports(order_by: {report_id: desc}, limit: 1) { report_id report_name report_start_time report_json }}}}"}'
 
-
-{"data":{"report":[{"report_json":"[\n  {\n    \"id\": 2,\n    \"name\": \"checkpoint_demo\",\n    \"hostname\": null,\n    \"user\": null,\n    \"secret\": null,\n    \"configPath\": null,\n    \"importerHostname\": null,\n    \"port\": 0,\n    \"sshPublicKey\": null,\n    \"importDisabled\": false,\n    \"forceInitialImport\": false,\n    \"hideInUi\": false,\n    \"comment\": null,\n    \"debugLevel\": null,\n    \"tenant_id\": 0,\n    \"devices\": [\n      {\n        \"id\": 2,\n        \"name\": \"checkpoint_demo\",\n        \"deviceType\": null,\n        \"management\": null,\n        \"local_rulebase_name\": null,\n        \"global_rulebase_name\": null,\n        \"package_name\": null,\n        \"importDisabled\": false,\n        \"hideInUi\": false,\n        \"comment\": null,\n        \"rules\": [],\n        \"changelog_rules\": null,\n        \"rules_aggregate\": null,\n        \"selected\": false\n      }\n    ],\n    \"networkObjects\": null,\n    \"serviceObjects\": null,\n    \"userObjects\": null,\n    \"reportNetworkObjects\": null,\n    \"reportServiceObjects\": null,\n    \"reportUserObjects\": null,\n    \"deviceType\": null,\n    \"import\": {\n      \"aggregate\": {\n        \"max\": {\n          \"id\": 1\n        }\n      }\n    },\n    \"RelevantImportId\": null,\n    \"Ignore\": false,\n    \"ReportedRuleIds\": null,\n    \"ReportedNetworkServiceIds\": null,\n    \"objects_aggregate\": {\n      \"aggregate\": {\n        \"count\": 0\n      }\n    },\n    \"services_aggregate\": {\n      \"aggregate\": {\n        \"count\": 0\n      }\n    },\n    \"usrs_aggregate\": {\n      \"aggregate\": {\n        \"count\": 0\n      }\n    },\n    \"rules_aggregate\": {\n      \"aggregate\": {\n        \"count\": 0\n      }\n    }\n  },\n  {\n    \"id\": 1,\n    \"name\": \"fortigate_demo\",\n    \"hostname\": null,\n    \"user\": null,\n    \"secret\": null,\n    \"configPath\": ... snip ...  \"rules_aggregate\": {\n      \"aggregate\": {\n        \"count\": 0\n      }\n    }\n  }\n]"}]}
-        </pre>        
+{
+  "data": {
+    "report_schedule": [
+      {
+        "report_schedule_id": 2,
+        "report_schedule_name": "reportNew",
+        "report_template": {
+          "latest_report": [
+            {
+              "report_id": 4,
+              "report_name": "reportNew_07.07.2022",
+              "report_start_time": "2022-07-07T15:09:13.900092",
+              "report_json": "[snip]"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}        </pre>        
     </ol>
 </div>

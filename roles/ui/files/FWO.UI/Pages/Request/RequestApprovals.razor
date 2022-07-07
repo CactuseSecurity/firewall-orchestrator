@@ -65,6 +65,7 @@
         ApproveTaskMode = false;
         EditMode = false;
         requests = await dbAcc.FetchTickets(stateMatrix);
+        StateHasChanged();
     }
 
     private async Task ShowTicketDetails(RequestTicket ticket)
@@ -91,6 +92,7 @@
     {
         actTask = task;
         actApproval = actTask.Approvals[0];  // todo: select own approvals
+        actApproval.SetOptComment(actApproval.Comment);
         ApproveTaskMode = true;
         StateHasChanged();
     }
@@ -113,6 +115,8 @@
             await dbAcc.UpdateApprovalInDb(actApproval);
             await dbAcc.UpdateTaskStateFromApprovals(actTask, stateMatrix);
             await dbAcc.UpdateTicketStateFromTasks(actTicket, requests, stateMatrix);
+            ApproveTaskMode = false;
+            StateHasChanged();
         }
         catch (Exception exception)
         {

@@ -3,7 +3,7 @@
 @using FWO.Config.Api
 @using FWO.Ui.Services
 
-@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, auditor, fw-admin")]
+@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -143,7 +143,7 @@
             }
             else if (ImplementMode)
             {
-                <AuthorizeView Roles="admin, implementer, fw-admin">
+                <AuthorizeView Roles="admin, implementer, reviewer, fw-admin">
                     <Authorized>
                         <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteImplTask">@(userConfig.GetText("promote_task"))</button>
                     </Authorized>
@@ -205,6 +205,9 @@
     
     [Parameter]
     public Func<ImplementationTask, Task>? ChangeImplTask { get; set; }
+
+    [Parameter]
+    public Func<StatefulObject, Task>? PromoteImplTask { get; set; }
 
     [Parameter]
     public ImplementationTask ImplTask { get; set; } = new ImplementationTask();
@@ -352,23 +355,5 @@
     private async Task InitPromoteImplTask()
     {
         PromoteImplTaskMode = true;
-    }
-
-    private async Task PromoteImplTask(StatefulObject implTask)
-    {
-        try
-        {
-            ImplTask.StateId = implTask.StateId;
-            PromoteImplTaskMode = false;
-            ImplTask.CurrentHandler = userConfig.User;
-            await DbAcc.UpdateImplTaskStateInDb(ImplTask);
-            await DbAcc.UpdateReqTaskStateFromImplTasks(ReqTask, StateMatrix);
-            await DbAcc.UpdateTicketStateFromTasks(Ticket, Requests, StateMatrix);
-            //ReqTask.ImplementationTasks[ReqTask.ImplementationTasks.FindIndex(x => x.ImplTaskNumber == ImplTask.ImplTaskNumber)] = ImplTask;
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_task"), "", true);
-        }
     }
 }

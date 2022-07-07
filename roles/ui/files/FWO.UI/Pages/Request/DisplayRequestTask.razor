@@ -2,7 +2,7 @@
 @using FWO.Config.Api
 @using FWO.Ui.Services
 
-@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, auditor, fw-admin")]
+@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -212,7 +212,7 @@
             }
             else if (PlanMode)
             {
-                <AuthorizeView Roles="admin, approver, planner, implementer, fw-admin">
+                <AuthorizeView Roles="admin, approver, planner, implementer, reviewer, fw-admin">
                     <Authorized>
                         <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteReqTask">@(userConfig.GetText("promote_task"))</button>
                     </Authorized>
@@ -280,6 +280,9 @@
     
     [Parameter]
     public Func<RequestTask, Task> ChangeReqTask { get; set; }
+
+    [Parameter]
+    public Func<StatefulObject, Task> PromoteReqTask { get; set; }
 
     [Parameter]
     public RequestTask ReqTask { get; set; } = new RequestTask();
@@ -430,40 +433,6 @@
         Reset();
         PromoteReqTaskMode = true;
     }
-
-    private async Task PromoteReqTask(StatefulObject task)
-    {
-        try
-        {
-            ReqTask.StateId = task.StateId;
-            if (ReqTask.Start == null && ReqTask.StateId >= StateMatrix.LowestStartedState)
-            {
-                ReqTask.Start = DateTime.Now;
-                ReqTask.CurrentHandler = userConfig.User;
-            }
-            if (Phase == WorkflowPhases.planning && ReqTask.Stop == null && ReqTask.StateId >= StateMatrix.LowestEndState)
-            {
-                ReqTask.Stop = DateTime.Now;
-            }
-            await DbAcc.UpdateReqTaskStateInDb(ReqTask);
-
-            if(Phase == WorkflowPhases.planning)
-            {
-                foreach(ImplementationTask implTask in ReqTask.ImplementationTasks)
-                {
-                    implTask.StateId = ReqTask.StateId;
-                    await DbAcc.UpdateImplTaskStateInDb(implTask);
-                }
-            }
-
-            Ticket.Tasks[Ticket.Tasks.FindIndex(x => x.Id == ReqTask.Id)] = ReqTask;
-            Close();
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("promote_task"), "", true);
-        }
-    }  
 
     private void AddApproval()
     {

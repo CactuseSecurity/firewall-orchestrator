@@ -61,6 +61,7 @@
         ShowTicketMode = false;
         PlanningMode = false;
         requests = await dbAcc.FetchTickets(stateMatrix);
+        StateHasChanged();
     }
 
     private async Task ShowTicketDetails(RequestTicket ticket)

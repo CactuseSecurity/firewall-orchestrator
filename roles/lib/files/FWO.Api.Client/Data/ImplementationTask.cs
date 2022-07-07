@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class ImplementationTask: StatefulObject
+    public class ImplementationTask: TaskBase
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
@@ -18,40 +18,7 @@ namespace FWO.Api.Data
         public int? DeviceId { get; set; }
 
         [JsonProperty("implementation_action"), JsonPropertyName("implementation_action")]
-        public string ImplAction { get; set; } = "create";
-
-        [JsonProperty("rule_action"), JsonPropertyName("rule_action")]
-        public int? RuleAction { get; set; }
-
-        [JsonProperty("rule_tracking"), JsonPropertyName("rule_tracking")]
-        public int? Tracking { get; set; }
-
-        [JsonProperty("start"), JsonPropertyName("start")]
-        public DateTime? Start { get; set; }
-
-        [JsonProperty("stop"), JsonPropertyName("stop")]
-        public DateTime? Stop { get; set; }
-
-        [JsonProperty("svc_grp_id"), JsonPropertyName("svc_grp_id")]
-        public int? ServiceGroupId { get; set; }
-
-        [JsonProperty("nw_obj_grp_id"), JsonPropertyName("nw_obj_grp_id")]
-        public int? NetworkGroupId { get; set; }
-
-        [JsonProperty("user_grp_id "), JsonPropertyName("user_grp_id ")]
-        public int? UserGroupId { get; set; }
-
-        [JsonProperty("current_handler"), JsonPropertyName("current_handler")]
-        public UiUser? CurrentHandler { get; set; }
-
-        [JsonProperty("target_begin_date"), JsonPropertyName("target_begin_date")]
-        public DateTime? TargetBeginDate { get; set; }
-
-        [JsonProperty("target_end_date"), JsonPropertyName("target_end_date")]
-        public DateTime? TargetEndDate { get; set; }
-
-        [JsonProperty("fw_admin_comments"), JsonPropertyName("fw_admin_comments")]
-        public string? FwAdminComments { get; set; }
+        public string ImplAction { get; set; } = FWO.Api.Data.RequestAction.create.ToString();
 
         [JsonProperty("elements"), JsonPropertyName("elements")]
         public List<ImplementationElement> ImplElements { get; set; } = new List<ImplementationElement>();
@@ -88,9 +55,9 @@ namespace FWO.Api.Data
             }
         }
 
-        public bool Sanitize()
+        public override bool Sanitize()
         {
-            bool shortened = false;
+            bool shortened = base.Sanitize();
             FwAdminComments = Sanitizer.SanitizeOpt(FwAdminComments, ref shortened);
             return shortened;
         }

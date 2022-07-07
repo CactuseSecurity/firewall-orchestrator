@@ -52,7 +52,7 @@ namespace FWO.Api.Data
             OriginalNatId = element.OriginalNatId;
         }
 
-        public bool Sanitize()
+        public virtual bool Sanitize()
         {
             bool shortened = false;
             // Ip = Sanitizer.SanitizeMand(Ip, ref shortened);

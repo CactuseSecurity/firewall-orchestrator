@@ -45,7 +45,7 @@ namespace FWO.Api.Data
             ExtAppId = owner.ExtAppId;
         }
 
-        public bool Sanitize()
+        public virtual bool Sanitize()
         {
             bool shortened = false;
             Name = Sanitizer.SanitizeMand(Name, ref shortened);

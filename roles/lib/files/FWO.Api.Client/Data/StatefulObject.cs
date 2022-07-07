@@ -28,9 +28,10 @@ namespace FWO.Api.Data
             StateId = obj.StateId;
         }
 
-        public bool Sanitize()
+        public virtual bool Sanitize()
         {
             bool shortened = false;
+            optComment = Sanitizer.SanitizeOpt(optComment, ref shortened);
             return shortened;
         }
     }

@@ -2,7 +2,7 @@
 @using FWO.Config.Api
 @using FWO.Ui.Services
 
-@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, auditor, fw-admin")]
+@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -49,7 +49,7 @@
                     }
                 </div>
 
-                @if(Phase != WorkflowPhases.implementation)
+                @if(Phase < WorkflowPhases.implementation)
                 {
                     <h5>@(userConfig.GetText("tasks"))</h5>
                     @if (EditMode)
@@ -67,27 +67,27 @@
                                             <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => EditReqTask(context)">@(userConfig.GetText("edit"))</button>
                                             <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteReqTask(context)">@(userConfig.GetText("delete"))</button>
                                         }
-                                        else if (Phase == WorkflowPhases.request)
+                                        @if (Phase > WorkflowPhases.request)
                                         {
                                             <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowApprovals(context)">@(userConfig.GetText("approvals"))</button>
-                                        }
-                                        else if (context.StateId < StateMatrix.LowestStartedState)
-                                        {
-                                            <AuthorizeView Roles="admin, approver, planner, fw-admin">
-                                                <Authorized Context="ctx">
-                                                    <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => StartPhase(context)">@(userConfig.GetText("start_" + Phase.ToString()))</button>
-                                                </Authorized>
-                                                <NotAuthorized Context="ctx">
-                                                    <button class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("start_" + Phase.ToString()))</button>
-                                                </NotAuthorized> 
-                                            </AuthorizeView>
-                                        }
-                                        else if (context.StateId < StateMatrix.LowestEndState)
-                                        {
-                                            <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => {SetContinueEnv(context); ContinuePhase(context);}">@(userConfig.GetText("continue_" + Phase.ToString()))</button>
-                                            @if(Phase == WorkflowPhases.planning)
+                                            @if (context.StateId < StateMatrix.LowestStartedState)
                                             {
-                                                <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignTask(context)">@(userConfig.GetText("assign"))</button>
+                                                <AuthorizeView Roles="admin, approver, planner, implementer, reviewer, fw-admin">
+                                                    <Authorized Context="ctx">
+                                                        <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => StartPhase(context)">@(userConfig.GetText("start_" + Phase.ToString()))</button>
+                                                    </Authorized>
+                                                    <NotAuthorized Context="ctx">
+                                                        <button class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("start_" + Phase.ToString()))</button>
+                                                    </NotAuthorized> 
+                                                </AuthorizeView>
+                                            }
+                                            else if (context.StateId < StateMatrix.LowestEndState)
+                                            {
+                                                <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => {SetContinueEnv(context); ContinuePhase(context);}">@(userConfig.GetText("continue_" + Phase.ToString()))</button>
+                                                @if(Phase == WorkflowPhases.planning)
+                                                {
+                                                    <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignTask(context)">@(userConfig.GetText("assign"))</button>
+                                                }
                                             }
                                         }
                                     </div>
@@ -133,7 +133,7 @@
                                         <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowImplTask(implTask)">@(userConfig.GetText("details"))</button>
                                         @if (implTask.StateId < StateMatrix.LowestStartedState)
                                         {
-                                            <AuthorizeView Roles="admin, implementer, fw-admin">
+                                            <AuthorizeView Roles="admin, implementer, reviewer, fw-admin">
                                                 <Authorized Context="ctx">
                                                     <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => StartImplPhase(implTask)">@(userConfig.GetText("start_" + Phase.ToString()))</button>
                                                 </Authorized>
@@ -186,7 +186,7 @@
             }
             else if (CheckPromoteTicket())
             {
-                <AuthorizeView Roles="admin, requester, approver, planner, implementer, fw-admin">
+                <AuthorizeView Roles="admin, requester, approver, planner, implementer, reviewer, fw-admin">
                     <Authorized>
                         <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteTicket">@(userConfig.GetText("promote_ticket"))</button>
                     </Authorized>
@@ -202,10 +202,11 @@
 
 <DisplayRequestTask Phase="Phase" DbAcc="DbAcc" StateMatrix="StateMatrix" States="States" 
     @bind-Display="ShowReqTaskMode" @bind-EditMode="EditReqTaskMode" @bind-AddMode="AddReqTaskMode" @bind-PlanMode="PlanMode"
-    AddReqTask="AddReqTaskToTicket" ChangeReqTask="ChangeReqTaskInTicket" 
+    AddReqTask="AddReqTaskToTicket" ChangeReqTask="ChangeReqTaskInTicket" PromoteReqTask="PromoteReqTask"
     @bind-ReqTask="actTask" @bind-Ticket="Ticket" @bind-Requests="Requests"></DisplayRequestTask>
 <DisplayImplementationTask Phase="Phase" DbAcc="DbAcc" StateMatrix="StateMatrix" States="States"
     @bind-Display="ShowImplTaskMode" @bind-ImplementMode="ImplementMode"
+    PromoteImplTask="PromoteImplTask"
     @bind-ImplTask="actImplTask" @bind-ReqTask="actTask" @bind-Ticket="Ticket" @bind-Requests="Requests"></DisplayImplementationTask>
 <AssignTask DbAcc="DbAcc" @bind-Display="AssignTaskMode" @bind-ReqTask="actTask"></AssignTask>
 <DisplayApprovals @bind-Display="ShowApprovalMode" Approvals="actTask.Approvals" States="States"></DisplayApprovals>
@@ -349,11 +350,12 @@
         ShowReqTaskMode = (Phase == WorkflowPhases.planning);
     }
 
-    private void SetContinueImplEnv(ImplementationTask task)
+    private void SetContinueImplEnv(ImplementationTask implTask)
     {
-        actImplTask = task;
+        actImplTask = implTask;
+        actTask = Ticket.Tasks.FirstOrDefault(x => x.Id == actImplTask.ReqTaskId);
         Reset();
-        ShowImplTaskMode = (Phase == WorkflowPhases.implementation);
+        ShowImplTaskMode = (Phase >= WorkflowPhases.implementation);
     }
 
     private void AddReqTask()
@@ -398,6 +400,42 @@
         StateHasChanged();
     }
 
+    private async Task PromoteReqTask(StatefulObject task)
+    {
+        try
+        {
+            actTask.StateId = task.StateId;
+            if (actTask.Start == null && actTask.StateId >= StateMatrix.LowestStartedState)
+            {
+                actTask.Start = DateTime.Now;
+                actTask.CurrentHandler = userConfig.User;
+            }
+            if (Phase == WorkflowPhases.planning && actTask.Stop == null && actTask.StateId >= StateMatrix.LowestEndState)
+            {
+                actTask.Stop = DateTime.Now;
+            }
+            await DbAcc.UpdateReqTaskStateInDb(actTask);
+
+            if(Phase == WorkflowPhases.planning)
+            {
+                foreach(ImplementationTask implTask in actTask.ImplementationTasks)
+                {
+                    implTask.StateId = actTask.StateId;
+                    await DbAcc.UpdateImplTaskStateInDb(implTask);
+                }
+            }
+            
+            await DbAcc.UpdateTicketStateFromTasks(Ticket, Requests, StateMatrix);
+            Ticket.Tasks[Ticket.Tasks.FindIndex(x => x.Id == actTask.Id)] = actTask;
+            Reset();
+            StateHasChanged();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("promote_task"), "", true);
+        }
+    }
+
     private void ShowReqTask(RequestTask task)
     {
         actTask = task;
@@ -425,11 +463,6 @@
         DeleteReqTaskMode = false;
     }
 
-    private void CancelDelete()
-    {
-        DeleteReqTaskMode = false;
-    }
-
     private void ShowApprovals(RequestTask task)
     {
         Reset();
@@ -442,6 +475,26 @@
         Reset();
         actImplTask = task;
         ShowImplTaskMode = true;
+    }
+
+    private async Task PromoteImplTask(StatefulObject implTask)
+    {
+        try
+        {
+            actImplTask.StateId = implTask.StateId;
+            actImplTask.CurrentHandler = userConfig.User;
+            await DbAcc.UpdateImplTaskStateInDb(actImplTask);
+            await DbAcc.UpdateReqTaskStateFromImplTasks(actTask, StateMatrix);
+            actTask.ImplementationTasks[actTask.ImplementationTasks.FindIndex(x => x.Id == actImplTask.Id)] = actImplTask;
+            await DbAcc.UpdateTicketStateFromTasks(Ticket, Requests, StateMatrix);
+            Ticket.Tasks[Ticket.Tasks.FindIndex(x => x.Id == actTask.Id)] = actTask;
+            Reset();
+            StateHasChanged();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("save_task"), "", true);
+        }
     }
 
     private void AssignTask(RequestTask task)

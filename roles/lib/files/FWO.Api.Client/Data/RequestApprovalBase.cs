@@ -48,9 +48,9 @@ namespace FWO.Api.Data
             InitialApproval = approval.InitialApproval;
          }
 
-        public bool Sanitize()
+        public override bool Sanitize()
         {
-            bool shortened = false;
+            bool shortened = base.Sanitize();
             ApproverGroup = Sanitizer.SanitizeLdapPathOpt(ApproverGroup, ref shortened);
             ApproverDn = Sanitizer.SanitizeLdapPathOpt(ApproverDn, ref shortened);
             Comment = Sanitizer.SanitizeOpt(Comment, ref shortened);

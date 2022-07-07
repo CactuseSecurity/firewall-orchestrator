@@ -57,9 +57,9 @@ namespace FWO.Api.Data
             ExternalTicketSource = ticket.ExternalTicketSource;
         }
 
-        public bool Sanitize()
+        public override bool Sanitize()
         {
-            bool shortened = false;
+            bool shortened = base.Sanitize();
             Title = Sanitizer.SanitizeMand(Title, ref shortened);
             RequesterDn = Sanitizer.SanitizeLdapPathOpt(RequesterDn, ref shortened);
             RequesterGroup = Sanitizer.SanitizeLdapPathOpt(RequesterGroup, ref shortened);

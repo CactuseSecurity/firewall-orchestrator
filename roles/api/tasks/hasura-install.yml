@@ -222,8 +222,3 @@
     body: "{{ lookup('file','replace_metadata.json') | from_json }}"
   when: not api_rollback_is_running | bool
 # do not install latest metadata in case of rollback
-
-#  when: installation_mode=="new" or not api_metadata_check.stat.exists
-
-# install latest metadata in case of fresh install
-# also install latest metadata file in upgrade scenario when there is no (old) local file on the server 

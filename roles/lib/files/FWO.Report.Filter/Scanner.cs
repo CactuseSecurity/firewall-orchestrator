@@ -141,11 +141,13 @@ namespace FWO.Report.Filter
                 {
                     Token realToken = validToken;
 
+                    // Handle longer tokens (look ahead = 2)
                     if (!IsWhitespaceOrEnd(beginPosition + potentialTokenText.Length))
                     {
                         foreach (Token longerToken in noWhitespaceTokens)
                         {
-                            if (longerToken != validToken && (potentialTokenText + input[beginPosition + potentialTokenText.Length]).EndsWith(longerToken.Text))
+                            if (longerToken.Text.Length == validToken.Text.Length + 1 &&
+                                (potentialTokenText + input[beginPosition + potentialTokenText.Length]).ToLower().EndsWith(longerToken.Text.ToLower()))
                             {
                                 position++;
                                 realToken = longerToken;

@@ -79,5 +79,12 @@ namespace FWO.Test.Filter
         {
             var res = Compiler.Compile("disabled == true", ReportType.Rules);
         }
+
+
+        [Test]
+        public void Brackets()
+        {
+            var res = Compiler.Compile("src=a&(dst=c)", ReportType.Rules);
+        }
     }
 }

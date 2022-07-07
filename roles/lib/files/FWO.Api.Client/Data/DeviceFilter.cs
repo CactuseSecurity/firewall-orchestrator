@@ -184,5 +184,10 @@ namespace FWO.Api.Data
             }
             return counter;
         }
+
+        public override string ToString()
+        {
+            return JsonConvert.SerializeObject(this);
+        }
     }
 }

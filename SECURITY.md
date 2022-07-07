@@ -38,5 +38,5 @@ A public disclosure date is negotiated by the security team and the bug submitte
 | 1.x     | :x:                |
 | 2.x     | :x:                |
 | 3.x     | :x:                |
-| 4.x     | :white_check_mark: (until 2021-12-31) |
+| 4.x     | :white_check_mark: (until 2022-12-31) |
 | 5.x     | :white_check_mark: |

@@ -18,7 +18,7 @@
 
 - name: decode dbadmin pwd
   set_fact:
-    api_user_password: "{{ api_user_password['content'] | b64decode }}"
+    api_user_password: "{{ api_user_password['content'] | b64decode | trim }}"
 
 - name: read jwt public key from file as JWT secret
   slurp:
@@ -46,12 +46,12 @@
 
 - name: set random hasura admin password
   set_fact:
-    api_hasura_admin_secret: "{{ random_generated_pw }}"
+    api_hasura_admin_secret: "{{ randomly_generated_pwd }}"
   when: testkeys is not defined or not testkeys|bool
 
 - name: write hasura admin password to secrets directory
   copy:
-    content: "{{ api_hasura_admin_secret }}"
+    content: "{{ api_hasura_admin_secret }}\n"
     dest: "{{ fworch_secrets_dir }}/hasura_admin_pwd"
     mode: '0600'
     owner: "{{ fworch_user }}"
@@ -139,7 +139,7 @@
   environment: "{{ proxy_env }}"
   when: ansible_version.string is version_compare('2.10', '>=')
 
-- name: start hasura container pre ansible 2.1ß 
+- name: start hasura container pre ansible 2.10
   docker_container:
     name: "{{ api_container_name }}"
     image: hasura/graphql-engine:{{ api_hasura_version }}
@@ -220,4 +220,5 @@
       x-hasura-admin-secret: "{{ api_hasura_admin_secret }}"
       x-hasura-role: "admin"
     body: "{{ lookup('file','replace_metadata.json') | from_json }}"
-  when: not api_metadata_check.stat.exists 
+  when: not api_rollback_is_running | bool
+# do not install latest metadata in case of rollback

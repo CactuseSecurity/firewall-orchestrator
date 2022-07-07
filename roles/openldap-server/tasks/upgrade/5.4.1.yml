@@ -6,5 +6,5 @@
   become: yes
 
 - name: upgrade olcAccess policy
-  command: "ldapmodify -H {{ openldap_url }} -D cn=config -y {{ fworch_secrets_dir }}/ldap_manager_pw.txt -x -f {{ middleware_ldif_dir }}/5.4.1.ldif"
+  command: "ldapmodify -H {{ openldap_url }} -D cn=config -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/5.4.1.ldif"
   become: yes

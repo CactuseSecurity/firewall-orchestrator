@@ -63,6 +63,7 @@ fworch_db_password_file: "{{ fworch_secrets_dir }}/fworch_db_pwd"
 ### middleware server 
 jwt_private_key_file: "{{ fworch_secrets_dir }}/jwt_private_key.pem"
 jwt_public_key_file: "{{ fworch_secrets_dir }}/jwt_public_key.pem"
+ldap_manager_pwd_file: "{{ fworch_secrets_dir }}/ldap_manager_pwd"
 
 middleware_hostname: "127.0.0.1"
 ldif_changetype: add
@@ -98,7 +99,7 @@ debug_level: "1"
 lib_dir: "{{ fworch_home }}/lib/files"
 
 ### password generation
-random_generated_pw: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters') }}"
+randomly_generated_pwd: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters') }}"
 
 ### logging
 syslog_proto: tcp

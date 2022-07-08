@@ -110,7 +110,7 @@
                 </div>
                 @if(ReqTask.TaskType == TaskType.access.ToString())
                 {
-                    <DisplayAccessElements @bind-Source="actSource" @bind-Destination="actDestination" @bind-Service="actService" EditMode="EditMode"></DisplayAccessElements>
+                    <DisplayAccessElements @bind-Sources="actSources" @bind-Destinations="actDestinations" @bind-Services="actServices" EditMode="EditMode"></DisplayAccessElements>
                 }
                 <div class="form-group row">
                     <label for="taskComment" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
@@ -242,9 +242,9 @@
     private List<int> possibleStates = new List<int>();
     private bool PromoteImplTaskMode = false;
 
-    RuleElement actSource = new RuleElement();
-    RuleElement actDestination = new RuleElement();
-    RuleElement actService = new RuleElement();
+    List<NwObjectElement> actSources = new List<NwObjectElement>();
+    List<NwObjectElement> actDestinations = new List<NwObjectElement>();
+    List<NwServiceElement> actServices = new List<NwServiceElement>();
 
 
     protected override async Task OnInitializedAsync()
@@ -271,9 +271,9 @@
 
     private void InitElements()
     {
-        actSource = ImplTask.getRuleElement(RuleField.source) ?? new RuleElement();
-        actDestination = ImplTask.getRuleElement(RuleField.destination) ?? new RuleElement();
-        actService = ImplTask.getRuleElement(RuleField.service) ?? new RuleElement();
+        actSources = ImplTask.getNwObjectElements(AccessField.source);
+        actDestinations = ImplTask.getNwObjectElements(AccessField.destination);
+        actServices = ImplTask.getServiceElements();
     }
 
     private void Close()
@@ -283,19 +283,65 @@
         AddMode = false;
     }
 
-    private void AddElements()
-    {
-        // replace predefined fields
-        ImplTask.ImplElements[ImplTask.ImplElements.FindIndex(x => x.Field == RuleField.source.ToString())] = actSource.ToImplElement(RuleField.source);
-        ImplTask.ImplElements[ImplTask.ImplElements.FindIndex(x => x.Field == RuleField.destination.ToString())] = actDestination.ToImplElement(RuleField.destination);
-        ImplTask.ImplElements[ImplTask.ImplElements.FindIndex(x => x.Field == RuleField.service.ToString())] = actService.ToImplElement(RuleField.service);
-    }
-
     private void UpdateElements()
     {
-        ImplTask.ImplElements[ImplTask.ImplElements.FindIndex(x => x.Id == actSource.ElemId)] = actSource.ToImplElement(RuleField.source);
-        ImplTask.ImplElements[ImplTask.ImplElements.FindIndex(x => x.Id == actDestination.ElemId)] = actDestination.ToImplElement(RuleField.destination);
-        ImplTask.ImplElements[ImplTask.ImplElements.FindIndex(x => x.Id == actService.ElemId)] = actService.ToImplElement(RuleField.service);
+        foreach(var oldElem in ImplTask.ImplElements.Where(x => x.Field == AccessField.source.ToString()))
+        {
+            if(actSources.FirstOrDefault(x => x.ElemId == oldElem.Id) == null)
+            {
+                ImplTask.ImplElements.Remove(oldElem);
+            }
+        }
+        foreach(var source in actSources)
+        {
+            int? elemIdx = ImplTask.ImplElements.FindIndex(x => x.Id == source.ElemId);
+            if(elemIdx != null)
+            {
+                ImplTask.ImplElements[(int)elemIdx] = source.ToImplElement(AccessField.source);
+            }
+            else
+            {
+                ImplTask.ImplElements.Add(source.ToImplElement(AccessField.source));
+            }
+        }
+        foreach(var oldElem in ImplTask.ImplElements.Where(x => x.Field == AccessField.destination.ToString()))
+        {
+            if(actDestinations.FirstOrDefault(x => x.ElemId == oldElem.Id) == null)
+            {
+                ImplTask.ImplElements.Remove(oldElem);
+            }
+        }
+        foreach(var destination in actDestinations)
+        {
+            int? elemIdx = ImplTask.ImplElements.FindIndex(x => x.Id == destination.ElemId);
+            if(elemIdx != null)
+            {
+                ImplTask.ImplElements[(int)elemIdx] = destination.ToImplElement(AccessField.destination);
+            }
+            else
+            {
+                ImplTask.ImplElements.Add(destination.ToImplElement(AccessField.destination));
+            }
+        }
+        foreach(var oldElem in ImplTask.ImplElements.Where(x => x.Field == AccessField.service.ToString()))
+        {
+            if(actServices.FirstOrDefault(x => x.ElemId == oldElem.Id) == null)
+            {
+                ImplTask.ImplElements.Remove(oldElem);
+            }
+        }
+        foreach(var service in actServices)
+        {
+            int? elemIdx = ImplTask.ImplElements.FindIndex(x => x.Id == service.ElemId);
+            if(elemIdx != null)
+            {
+                ImplTask.ImplElements[(int)elemIdx] = service.ToImplElement(AccessField.service);
+            }
+            else
+            {
+                ImplTask.ImplElements.Add(service.ToImplElement(AccessField.service));
+            }
+        }
     }
 
     private async Task SaveImplTask()
@@ -306,23 +352,18 @@
             {
                 DisplayMessageInUi!(null, userConfig.GetText("save_task"), userConfig.GetText("U0001"), true);
             }
-            if (AddMode)
+            UpdateElements();
+            if (CheckTaskValues())
             {
-                AddElements();
-                if (CheckTaskValues())
+                if (AddMode)
                 {
                     await AddImplTask(ImplTask);
-                    Close();
                 }
-            }
-            else
-            {
-                UpdateElements();
-                if (CheckTaskValues())
+                else
                 {
                     await ChangeImplTask(ImplTask);
-                    Close();
                 }
+                Close();
             } 
         }
         catch (Exception exception)

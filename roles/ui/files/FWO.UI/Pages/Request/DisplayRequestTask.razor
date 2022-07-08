@@ -140,7 +140,7 @@
 
                 @if(ReqTask.TaskType == TaskType.access.ToString())
                 {
-                    <DisplayAccessElements @bind-Source="actSource" @bind-Destination="actDestination" @bind-Service="actService" EditMode="EditMode"></DisplayAccessElements>
+                    <DisplayAccessElements @bind-Sources="actSources" @bind-Destinations="actDestinations" @bind-Services="actServices" EditMode="EditMode"></DisplayAccessElements>
                 }
 
                 <div class="form-group row">
@@ -316,9 +316,9 @@
     private bool DeleteImplTaskMode = false;
     private bool PromoteReqTaskMode = false;
 
-    RuleElement actSource = new RuleElement();
-    RuleElement actDestination = new RuleElement();
-    RuleElement actService = new RuleElement();
+    List<NwObjectElement> actSources = new List<NwObjectElement>();
+    List<NwObjectElement> actDestinations = new List<NwObjectElement>();
+    List<NwServiceElement> actServices = new List<NwServiceElement>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -346,9 +346,9 @@
 
     private void InitElements()
     {
-        actSource = ReqTask.getRuleElement(RuleField.source) ?? new RuleElement();
-        actDestination = ReqTask.getRuleElement(RuleField.destination) ?? new RuleElement();
-        actService = ReqTask.getRuleElement(RuleField.service) ?? new RuleElement();
+        actSources = ReqTask.getNwObjectElements(AccessField.source);
+        actDestinations = ReqTask.getNwObjectElements(AccessField.destination);
+        actServices = ReqTask.getServiceElements();
     }
 
     private void Close()
@@ -447,18 +447,65 @@
         ReqTask.Approvals.Add(approval);
     }
 
-    private void AddElements()
-    {
-        ReqTask.Elements.Add(actSource.ToReqElement(RuleField.source));
-        ReqTask.Elements.Add(actDestination.ToReqElement(RuleField.destination));
-        ReqTask.Elements.Add(actService.ToReqElement(RuleField.service));
-    }
-
     private void UpdateElements()
     {
-        ReqTask.Elements[ReqTask.Elements.FindIndex(x => x.Id == actSource.ElemId)] = actSource.ToReqElement(RuleField.source);
-        ReqTask.Elements[ReqTask.Elements.FindIndex(x => x.Id == actDestination.ElemId)] = actDestination.ToReqElement(RuleField.destination);
-        ReqTask.Elements[ReqTask.Elements.FindIndex(x => x.Id == actService.ElemId)] = actService.ToReqElement(RuleField.service);
+        foreach(var oldElem in ReqTask.Elements.Where(x => x.Field == AccessField.source.ToString()))
+        {
+            if(actSources.FirstOrDefault(x => x.ElemId == oldElem.Id) == null)
+            {
+                ReqTask.Elements.Remove(oldElem);
+            }
+        }
+        foreach(var source in actSources)
+        {
+            int? elemIdx = ReqTask.Elements.FindIndex(x => x.Id == source.ElemId);
+            if(elemIdx != null)
+            {
+                ReqTask.Elements[(int)elemIdx] = source.ToReqElement(AccessField.source);
+            }
+            else
+            {
+                ReqTask.Elements.Add(source.ToReqElement(AccessField.source));
+            }
+        }
+        foreach(var oldElem in ReqTask.Elements.Where(x => x.Field == AccessField.destination.ToString()))
+        {
+            if(actDestinations.FirstOrDefault(x => x.ElemId == oldElem.Id) == null)
+            {
+                ReqTask.Elements.Remove(oldElem);
+            }
+        }
+        foreach(var destination in actDestinations)
+        {
+            int? elemIdx = ReqTask.Elements.FindIndex(x => x.Id == destination.ElemId);
+            if(elemIdx != null)
+            {
+                ReqTask.Elements[(int)elemIdx] = destination.ToReqElement(AccessField.destination);
+            }
+            else
+            {
+                ReqTask.Elements.Add(destination.ToReqElement(AccessField.destination));
+            }
+        }
+        foreach(var oldElem in ReqTask.Elements.Where(x => x.Field == AccessField.service.ToString()))
+        {
+            if(actServices.FirstOrDefault(x => x.ElemId == oldElem.Id) == null)
+            {
+                ReqTask.Elements.Remove(oldElem);
+            }
+        }
+        foreach(var service in actServices)
+        {
+            int? elemIdx = ReqTask.Elements.FindIndex(x => x.Id == service.ElemId);
+            if(elemIdx != null)
+            {
+                ReqTask.Elements[(int)elemIdx] = service.ToReqElement(AccessField.service);
+            }
+            else
+            {
+                ReqTask.Elements.Add(service.ToReqElement(AccessField.service));
+            }
+        }
     }
 
     private async Task SaveReqTask()
@@ -469,25 +516,21 @@
             {
                 DisplayMessageInUi!(null, userConfig.GetText("save_task"), userConfig.GetText("U0001"), true);
             }
-            if (AddMode)
+            UpdateElements();
+            if (CheckTaskValues())
             {
-                AddElements();
-                AddApproval();
-                if (CheckTaskValues())
+                if (AddMode)
                 {
+                    AddApproval();
                     ReqTask.TaskNumber = Ticket.Tasks.Count + 1;
                     await AddReqTask(ReqTask);
-                    Close();
+                    
                 }
-            }
-            else
-            {
-                UpdateElements();
-                if (CheckTaskValues())
+                else
                 {
                     await ChangeReqTask(ReqTask);
-                    Close();
                 }
+                Close();
             }
         }
         catch (Exception exception)
@@ -512,7 +555,7 @@
                     DisplayMessageInUi!(null, userConfig.GetText("save_element"), userConfig.GetText("E5102"), true);
                     return false;
                 }
-                if (reqElem.Field == RuleField.service.ToString() && reqElem.Port < 1 || reqElem.Port > 65535)
+                if (reqElem.Field == AccessField.service.ToString() && reqElem.Port < 1 || reqElem.Port > 65535)
                 {
                     DisplayMessageInUi!(null, userConfig.GetText("save_element"), userConfig.GetText("E5103"), true);
                     return false;

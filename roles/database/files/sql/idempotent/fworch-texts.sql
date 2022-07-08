@@ -389,7 +389,7 @@ INSERT INTO txt VALUES ('all',		            'German', 	'Alle');
 INSERT INTO txt VALUES ('all',		            'English', 	'All');
 INSERT INTO txt VALUES ('rule',		            'German', 	'Regel');
 INSERT INTO txt VALUES ('rule',		            'English', 	'Rule');
-INSERT INTO txt VALUES ('objects',		        'German', 	'Objekt');
+INSERT INTO txt VALUES ('objects',		        'German', 	'Objekte');
 INSERT INTO txt VALUES ('objects',		        'English', 	'Objects');
 INSERT INTO txt VALUES ('change_time',		    'German', 	'&Auml;nderungszeit');
 INSERT INTO txt VALUES ('change_time',		    'English', 	'Change Time');
@@ -649,6 +649,8 @@ INSERT INTO txt VALUES ('current_handler', 		'German',	'Aktueller Bearbeiter');
 INSERT INTO txt VALUES ('current_handler', 	    'English',	'Current handler');
 INSERT INTO txt VALUES ('review', 			    'German',	'Review');
 INSERT INTO txt VALUES ('review', 			    'English',	'Review');
+INSERT INTO txt VALUES ('obj', 			        'German', 	'Obj');
+INSERT INTO txt VALUES ('obj', 			        'English', 	'Obj');
 
 -- recertification
 INSERT INTO txt VALUES ('recertify',		    'German', 	'Rezertifizieren');

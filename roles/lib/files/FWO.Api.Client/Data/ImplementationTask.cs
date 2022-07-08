@@ -62,24 +62,43 @@ namespace FWO.Api.Data
             return shortened;
         }
 
-        public RuleElement? getRuleElement(RuleField field)
+        public List<NwObjectElement> getNwObjectElements(AccessField field)
         {
-            RuleElement? element = null;
-            ImplementationElement? implElem = ImplElements.FirstOrDefault(x => x.Field == field.ToString());
-            if (implElem != null)
+            List<NwObjectElement> elements = new List<NwObjectElement>();
+            foreach(var implElem in ImplElements)
             {
-                element = new RuleElement()
+                if (implElem.Field == field.ToString())
                 {
-                    ElemId = implElem.Id,
-                    TaskId = implElem.ImplTaskId,
-                    Ip = implElem.Ip,
-                    Port = implElem.Port,
-                    ProtoId = implElem.ProtoId,
-                    NetworkId = implElem.NetworkId,
-                    ServiceId = implElem.ServiceId
-                };
+                    elements.Add( new NwObjectElement()
+                    {
+                        ElemId = implElem.Id,
+                        TaskId = implElem.ImplTaskId,
+                        Ip = implElem.Ip,
+                        NetworkId = implElem.NetworkId
+                    });
+                }
             }
-            return element;
+            return elements;
+        }
+
+        public List<NwServiceElement> getServiceElements()
+        {
+            List<NwServiceElement> elements = new List<NwServiceElement>();
+            foreach(var implElem in ImplElements)
+            {
+                if (implElem.Field == AccessField.service.ToString())
+                {
+                    elements.Add( new NwServiceElement()
+                    {
+                        ElemId = implElem.Id,
+                        TaskId = implElem.ImplTaskId,
+                        Port = implElem.Port,
+                        ProtoId = implElem.ProtoId,
+                        ServiceId = implElem.ServiceId
+                    });
+                }
+            }
+            return elements;
         }
     }
 }

@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public enum RuleField
+    public enum AccessField
     {
         source, 
         destination, 

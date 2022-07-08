@@ -1,6 +1,5 @@
 ﻿using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
-using System.Net;
 
 namespace FWO.Api.Data
 {
@@ -47,24 +46,43 @@ namespace FWO.Api.Data
             return string.Join(", ", ownerNames);
         }
 
-        public RuleElement? getRuleElement(RuleField field)
+        public List<NwObjectElement> getNwObjectElements(AccessField field)
         {
-            RuleElement? element = null;
-            RequestElement? reqElem = Elements.FirstOrDefault(x => x.Field == field.ToString());
-            if (reqElem != null)
+            List<NwObjectElement> elements = new List<NwObjectElement>();
+            foreach(var reqElem in Elements)
             {
-                element = new RuleElement()
+                if (reqElem.Field == field.ToString())
                 {
-                    ElemId = reqElem.Id,
-                    TaskId = reqElem.TaskId,
-                    Ip = reqElem.Ip,
-                    Port = reqElem.Port,
-                    ProtoId = reqElem.ProtoId,
-                    NetworkId = reqElem.NetworkId,
-                    ServiceId = reqElem.ServiceId
-                };
+                    elements.Add( new NwObjectElement()
+                    {
+                        ElemId = reqElem.Id,
+                        TaskId = reqElem.TaskId,
+                        Ip = reqElem.Ip,
+                        NetworkId = reqElem.NetworkId
+                    });
+                }
             }
-            return element;
+            return elements;
+        }
+
+        public List<NwServiceElement> getServiceElements()
+        {
+            List<NwServiceElement> elements = new List<NwServiceElement>();
+            foreach(var implElem in Elements)
+            {
+                if (implElem.Field == AccessField.service.ToString())
+                {
+                    elements.Add( new NwServiceElement()
+                    {
+                        ElemId = implElem.Id,
+                        TaskId = implElem.TaskId,
+                        Port = implElem.Port,
+                        ProtoId = implElem.ProtoId,
+                        ServiceId = implElem.ServiceId
+                    });
+                }
+            }
+            return elements;
         }
     }
 }

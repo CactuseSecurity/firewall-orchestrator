@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
 
@@ -187,7 +188,12 @@ namespace FWO.Api.Data
 
         public override string ToString()
         {
-            return JsonConvert.SerializeObject(this);
+            StringBuilder result = new StringBuilder();
+            foreach (ManagementSelect management in Managements)
+            {
+                result.Append($"{management.Name} [{string.Join(", ", management.Devices.ConvertAll(device => device.Name))}]; ");
+            }
+            return result.ToString();
         }
     }
 }

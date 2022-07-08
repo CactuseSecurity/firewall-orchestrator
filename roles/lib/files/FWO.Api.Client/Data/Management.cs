@@ -248,5 +248,10 @@ namespace FWO.Api.Data
             }
             return newObjects;
         }
+
+        public static string NameAndDeviceNames(this Management management)
+        {
+            return $"{management.Name} [{string.Join(", ", Array.ConvertAll(management.Devices, device => device.Name))}]";
+        }
     }
 }

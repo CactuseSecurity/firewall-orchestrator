@@ -21,6 +21,7 @@
             }
         </Template>
     </Column>
+    <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("id"))" Field="@(scheduledReport => scheduledReport.Id)" Sortable="true" Filterable="true"/>
     <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("name"))" Field="@(scheduledReport => scheduledReport.Name)" Sortable="true" Filterable="true"/>
     <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("start_time"))" Field="@(scheduledReport => scheduledReport.StartTime)" Sortable="true" Filterable="true"/>
     <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("repeat_interval"))" Field="@(scheduledReport => scheduledReport.RepeatOffset)">
@@ -47,6 +48,10 @@
     <Body>
         <div>
             <div class="form-group row">
+                <label for="scheduleId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                <div class="col-sm-8">
+                    <label class="col-sm-8">@scheduledReportInEdit.Id</label>
+                </div>
                 <label for="scheduleName" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
                 <div class="col-sm-8">
                     <input id="scheduleName" type="text" class="form-control form-control-sm" @bind="scheduledReportInEdit.Name" />

@@ -15,6 +15,11 @@
   listen: "api handler"
   become: yes
 
+# set variable to indicate that we are in rollback mode
+- set_fact:
+    api_rollback_is_running: true
+  listen: "api handler"
+
 - name: restore from backup
   include_tasks: hasura-install.yml
   listen: "api handler"

@@ -14,12 +14,12 @@
 
 - name: set dbadmin password randomly
   set_fact:
-    dbadmin_password: "{{ random_generated_pw }}"
+    dbadmin_password: "{{ randomly_generated_pwd }}"
   when: dbadmin_initial_password is not defined
 
 - name: write dbadmin_password password to secret directory
   copy:
-    content: "{{ dbadmin_password }}"
+    content: "{{ dbadmin_password }}\n"
     dest: "{{ dbadmin_password_file }}"
     mode: '0600'
     owner: "{{ fworch_user }}"
@@ -28,11 +28,11 @@
 
 - name: set fworch db password randomly
   set_fact:
-    fworch_db_password: "{{ random_generated_pw }}"
+    fworch_db_password: "{{ randomly_generated_pwd }}"
 
 - name: write fworch_db_password to secrets directory
   copy:
-    content: "{{ fworch_db_password }}"
+    content: "{{ fworch_db_password }}\n"
     dest: "{{ fworch_db_password_file }}"
     mode: '0600'
     owner: "{{ fworch_user }}"

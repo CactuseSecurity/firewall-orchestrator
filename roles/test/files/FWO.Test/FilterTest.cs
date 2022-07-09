@@ -49,6 +49,12 @@ namespace FWO.Test
         }
 
         [Test]
+        public void NotEquals()
+        {
+            var res = Compiler.Compile("(text!=cactus)", ReportType.Rules);
+        }
+
+        [Test]
         public void ExactEquals()
         {
             var res = Compiler.Compile("(text==cactus)", ReportType.Rules);

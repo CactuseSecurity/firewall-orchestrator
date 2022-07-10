@@ -158,7 +158,7 @@
     </Footer>
 </PopUp>
 
-<PromoteObject @bind-Promote="PromoteImplTaskMode" Save="PromoteImplTask" StatefulObject="ImplTask" StateMatrix="StateMatrix" States="States"></PromoteObject>
+<PromoteObject @bind-Promote="PromoteImplTaskMode" Save="ConfPromoteImplTask" StatefulObject="ImplTask" StateMatrix="StateMatrix" States="States"></PromoteObject>
 
 @code
 {
@@ -348,11 +348,6 @@
         {
             if (implElem.NetworkId == null && implElem.ServiceId == null)
             {
-                if (!implElem.Cidr.Valid)
-                {
-                    DisplayMessageInUi!(null, userConfig.GetText("save_element"), userConfig.GetText("E5102"), true);
-                    return false;
-                }
                 if (implElem.Port < 1 || implElem.Port > 65535)
                 {
                     DisplayMessageInUi!(null, userConfig.GetText("save_element"), userConfig.GetText("E5103"), true);
@@ -366,5 +361,11 @@
     private async Task InitPromoteImplTask()
     {
         PromoteImplTaskMode = true;
+    }
+
+    private async Task ConfPromoteImplTask(StatefulObject implTask)
+    {
+        PromoteImplTaskMode = false;
+        await PromoteImplTask(implTask);
     }
 }

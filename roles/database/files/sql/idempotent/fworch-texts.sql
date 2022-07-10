@@ -615,6 +615,10 @@ INSERT INTO txt VALUES ('start_implementation', 'German', 	'Implementierung begi
 INSERT INTO txt VALUES ('start_implementation', 'English', 	'Start implementation');
 INSERT INTO txt VALUES ('continue_implementation','German', 'Implementierung fortsetzen');
 INSERT INTO txt VALUES ('continue_implementation','English','Continue implementation');
+INSERT INTO txt VALUES ('start_review',         'German', 	'Review beginnen');
+INSERT INTO txt VALUES ('start_review',         'English', 	'Start review');
+INSERT INTO txt VALUES ('continue_review',      'German',   'Review fortsetzen');
+INSERT INTO txt VALUES ('continue_review',      'English',  'Continue review');
 INSERT INTO txt VALUES ('implement', 		    'German',	'Implementieren');
 INSERT INTO txt VALUES ('implement', 		    'English',	'Implement');
 INSERT INTO txt VALUES ('implementer', 		    'German',	'Implementierer');

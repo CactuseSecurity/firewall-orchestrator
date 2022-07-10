@@ -10,11 +10,15 @@ namespace FWO.Api.Data
 
 
         public RequestElementWriter()
-        { }
+        {}
 
         public RequestElementWriter(RequestElement element) : base(element)
         { 
             RequestAction = element.RequestAction;
+            if(element.Cidr != null)
+            {
+                CidrString = element.Cidr.CidrString;
+            }
         }
     }
 }

@@ -30,6 +30,10 @@ namespace FWO.Ui.Services
                     to_state = stateMatrix.LowestEndState,
                 };
                 requests = await ApiConnection.SendQueryAsync<List<RequestTicket>>(FWO.Api.Client.Queries.RequestQueries.getTickets, Variables);
+                foreach (var ticket in requests)
+                {
+                    ticket.UpdateCidrsInTaskElements();
+                }
             }
             catch (Exception exception)
             {
@@ -44,6 +48,7 @@ namespace FWO.Ui.Services
         {
             try
             {
+                ticket.UpdateCidrStringsInTaskElements();
                 var Variables = new
                 {
                     title = ticket.Title,
@@ -176,9 +181,22 @@ namespace FWO.Ui.Services
                 }
                 else
                 {
+                    foreach(var elem in task.RemovedElements)
+                    {
+                        await DeleteReqElementFromDb(elem.Id);
+                    }
+                    task.RemovedElements = new List<RequestElement>();
+
                     foreach(var element in task.Elements)
                     {
-                        await UpdateReqElementInDb(element);
+                        if(element.Id == 0)
+                        {
+                            element.Id = await AddReqElementToDb(element);
+                        }
+                        else
+                        {
+                            await UpdateReqElementInDb(element);
+                        }
                     }
                 }
             }
@@ -215,7 +233,7 @@ namespace FWO.Ui.Services
                 {
                     requestAction = element.RequestAction,
                     taskId = element.TaskId,
-                    ip = element.Ip.ToCidrString(),
+                    ip = (element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null),
                     port = element.Port,
                     proto = element.ProtoId,
                     network_obj_id = element.NetworkId,
@@ -250,7 +268,7 @@ namespace FWO.Ui.Services
                     id = element.Id,                
                     requestAction = element.RequestAction,
                     taskId = element.TaskId,
-                    ip = element.Ip.ToCidrString(),
+                    ip = (element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null),
                     port = element.Port,
                     proto = element.ProtoId,
                     network_obj_id = element.NetworkId,
@@ -268,6 +286,22 @@ namespace FWO.Ui.Services
             catch (Exception exception)
             {
                 DisplayMessageInUi!(exception, UserConfig.GetText("save_element"), "", true);
+            }
+        }
+
+        public async Task DeleteReqElementFromDb(int elementId)
+        {
+            try
+            {
+                int delId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.deleteRequestElement, new { id = elementId })).DeletedId;
+                if(delId != elementId)
+                {
+                    DisplayMessageInUi!(null, UserConfig.GetText("delete_element"), UserConfig.GetText("E8008"), true);
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi!(exception, UserConfig.GetText("delete_element"), "", true);
             }
         }
 
@@ -397,9 +431,22 @@ namespace FWO.Ui.Services
                 }
                 else
                 {
+                    foreach(var elem in task.RemovedElements)
+                    {
+                        await DeleteImplElementFromDb(elem.Id);
+                    }
+                    task.RemovedElements = new List<ImplementationElement>();
+
                     foreach(var element in task.ImplElements)
                     {
-                        await UpdateImplElementInDb(element);
+                        if(element.Id == 0)
+                        {
+                            element.Id = await AddImplElementToDb(element);
+                        }
+                        else
+                        {
+                            await UpdateImplElementInDb(element);
+                        }
                     }
                 }
             }
@@ -437,7 +484,7 @@ namespace FWO.Ui.Services
                 {
                     implementationAction = element.ImplAction,
                     implTaskId = element.ImplTaskId,
-                    ip = element.Ip.ToCidrString(),
+                    ip = (element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null),
                     port = element.Port,
                     proto = element.ProtoId,
                     network_obj_id = element.NetworkId,
@@ -472,7 +519,7 @@ namespace FWO.Ui.Services
                     id = element.Id,                
                     implementationAction = element.ImplAction,
                     implTaskId = element.ImplTaskId,
-                    ip = element.Ip.ToCidrString(),
+                    ip = (element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null),
                     port = element.Port,
                     proto = element.ProtoId,
                     network_obj_id = element.NetworkId,
@@ -490,6 +537,22 @@ namespace FWO.Ui.Services
             catch (Exception exception)
             {
                 DisplayMessageInUi!(exception, UserConfig.GetText("save_element"), "", true);
+            }
+        }
+
+        public async Task DeleteImplElementFromDb(int elementId)
+        {
+            try
+            {
+                int delId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.deleteImplementationElement, new { id = elementId })).DeletedId;
+                if(delId != elementId)
+                {
+                    DisplayMessageInUi!(null, UserConfig.GetText("delete_element"), UserConfig.GetText("E8008"), true);
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi!(exception, UserConfig.GetText("delete_element"), "", true);
             }
         }
 

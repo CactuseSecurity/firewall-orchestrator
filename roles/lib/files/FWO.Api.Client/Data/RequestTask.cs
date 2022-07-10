@@ -23,6 +23,8 @@ namespace FWO.Api.Data
         [JsonProperty("owners"), JsonPropertyName("owners")]
         public List<RequestOwnerDataHelper> Owners { get; set; } = new List<RequestOwnerDataHelper>();
 
+        public List<RequestElement> RemovedElements { get; set; } = new List<RequestElement>();
+
         public RequestTask()
         { }
 
@@ -34,6 +36,7 @@ namespace FWO.Api.Data
             ImplementationTasks = task.ImplementationTasks;
             Approvals = task.Approvals;
             Owners = task.Owners;
+            RemovedElements = task.RemovedElements;
         }
 
         public string OwnerList()
@@ -57,7 +60,7 @@ namespace FWO.Api.Data
                     {
                         ElemId = reqElem.Id,
                         TaskId = reqElem.TaskId,
-                        Ip = reqElem.Ip,
+                        Cidr = new Cidr(reqElem.Cidr != null ? reqElem.Cidr.CidrString : ""),
                         NetworkId = reqElem.NetworkId
                     });
                 }

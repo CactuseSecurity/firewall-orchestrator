@@ -140,7 +140,8 @@
 
                 @if(ReqTask.TaskType == TaskType.access.ToString())
                 {
-                    <DisplayAccessElements @bind-Sources="actSources" @bind-Destinations="actDestinations" @bind-Services="actServices" EditMode="EditMode"></DisplayAccessElements>
+                    <DisplayAccessElements @bind-Sources="actSources" @bind-Destinations="actDestinations" @bind-Services="actServices" 
+                        TaskId="ReqTask.Id" EditMode="EditMode"></DisplayAccessElements>
                 }
 
                 <div class="form-group row">
@@ -449,62 +450,31 @@
 
     private void UpdateElements()
     {
-        foreach(var oldElem in ReqTask.Elements.Where(x => x.Field == AccessField.source.ToString()))
+        foreach(var oldElem in ReqTask.Elements.Where(x => x.Id > 0 && (x.Field == AccessField.source.ToString() || 
+            x.Field == AccessField.destination.ToString() || x.Field == AccessField.service.ToString())))
         {
-            if(actSources.FirstOrDefault(x => x.ElemId == oldElem.Id) == null)
+            if(actSources.FirstOrDefault(x => x.ElemId == oldElem.Id) == null && 
+                actDestinations.FirstOrDefault(x => x.ElemId == oldElem.Id) == null && 
+                actServices.FirstOrDefault(x => x.ElemId == oldElem.Id) == null)
             {
-                ReqTask.Elements.Remove(oldElem);
+                ReqTask.RemovedElements.Add(oldElem);
             }
         }
+
+        ReqTask.Elements.RemoveAll(x => (x.Field == AccessField.source.ToString() || 
+            x.Field == AccessField.destination.ToString() || x.Field == AccessField.service.ToString()));
+
         foreach(var source in actSources)
         {
-            int? elemIdx = ReqTask.Elements.FindIndex(x => x.Id == source.ElemId);
-            if(elemIdx != null)
-            {
-                ReqTask.Elements[(int)elemIdx] = source.ToReqElement(AccessField.source);
-            }
-            else
-            {
-                ReqTask.Elements.Add(source.ToReqElement(AccessField.source));
-            }
-        }
-        foreach(var oldElem in ReqTask.Elements.Where(x => x.Field == AccessField.destination.ToString()))
-        {
-            if(actDestinations.FirstOrDefault(x => x.ElemId == oldElem.Id) == null)
-            {
-                ReqTask.Elements.Remove(oldElem);
-            }
+            ReqTask.Elements.Add(source.ToReqElement(AccessField.source));
         }
         foreach(var destination in actDestinations)
         {
-            int? elemIdx = ReqTask.Elements.FindIndex(x => x.Id == destination.ElemId);
-            if(elemIdx != null)
-            {
-                ReqTask.Elements[(int)elemIdx] = destination.ToReqElement(AccessField.destination);
-            }
-            else
-            {
-                ReqTask.Elements.Add(destination.ToReqElement(AccessField.destination));
-            }
-        }
-        foreach(var oldElem in ReqTask.Elements.Where(x => x.Field == AccessField.service.ToString()))
-        {
-            if(actServices.FirstOrDefault(x => x.ElemId == oldElem.Id) == null)
-            {
-                ReqTask.Elements.Remove(oldElem);
-            }
+            ReqTask.Elements.Add(destination.ToReqElement(AccessField.destination));
         }
         foreach(var service in actServices)
         {
-            int? elemIdx = ReqTask.Elements.FindIndex(x => x.Id == service.ElemId);
-            if(elemIdx != null)
-            {
-                ReqTask.Elements[(int)elemIdx] = service.ToReqElement(AccessField.service);
-            }
-            else
-            {
-                ReqTask.Elements.Add(service.ToReqElement(AccessField.service));
-            }
+            ReqTask.Elements.Add(service.ToReqElement(AccessField.service));
         }
     }
 
@@ -550,11 +520,6 @@
         {
             if (ReqTask.TaskType == TaskType.access.ToString() && reqElem.NetworkId == null && reqElem.ServiceId == null)
             {
-                if (reqElem.IpString == null || reqElem.IpString == "")
-                {
-                    DisplayMessageInUi!(null, userConfig.GetText("save_element"), userConfig.GetText("E5102"), true);
-                    return false;
-                }
                 if (reqElem.Field == AccessField.service.ToString() && reqElem.Port < 1 || reqElem.Port > 65535)
                 {
                     DisplayMessageInUi!(null, userConfig.GetText("save_element"), userConfig.GetText("E5103"), true);

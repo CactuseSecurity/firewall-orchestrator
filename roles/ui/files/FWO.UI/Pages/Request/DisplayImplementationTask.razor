@@ -110,7 +110,8 @@
                 </div>
                 @if(ReqTask.TaskType == TaskType.access.ToString())
                 {
-                    <DisplayAccessElements @bind-Sources="actSources" @bind-Destinations="actDestinations" @bind-Services="actServices" EditMode="EditMode"></DisplayAccessElements>
+                    <DisplayAccessElements @bind-Sources="actSources" @bind-Destinations="actDestinations" @bind-Services="actServices" 
+                        TaskId="ReqTask.Id" EditMode="EditMode"></DisplayAccessElements>
                 }
                 <div class="form-group row">
                     <label for="taskComment" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
@@ -285,62 +286,31 @@
 
     private void UpdateElements()
     {
-        foreach(var oldElem in ImplTask.ImplElements.Where(x => x.Field == AccessField.source.ToString()))
+        foreach(var oldElem in ImplTask.ImplElements.Where(x => x.Id > 0 && (x.Field == AccessField.source.ToString() || 
+            x.Field == AccessField.destination.ToString() || x.Field == AccessField.service.ToString())))
         {
-            if(actSources.FirstOrDefault(x => x.ElemId == oldElem.Id) == null)
+            if(actSources.FirstOrDefault(x => x.ElemId == oldElem.Id) == null && 
+                actDestinations.FirstOrDefault(x => x.ElemId == oldElem.Id) == null && 
+                actServices.FirstOrDefault(x => x.ElemId == oldElem.Id) == null)
             {
-                ImplTask.ImplElements.Remove(oldElem);
+                ImplTask.RemovedElements.Add(oldElem);
             }
         }
+
+        ImplTask.ImplElements.RemoveAll(x => (x.Field == AccessField.source.ToString() || 
+            x.Field == AccessField.destination.ToString() || x.Field == AccessField.service.ToString()));
+
         foreach(var source in actSources)
         {
-            int? elemIdx = ImplTask.ImplElements.FindIndex(x => x.Id == source.ElemId);
-            if(elemIdx != null)
-            {
-                ImplTask.ImplElements[(int)elemIdx] = source.ToImplElement(AccessField.source);
-            }
-            else
-            {
-                ImplTask.ImplElements.Add(source.ToImplElement(AccessField.source));
-            }
-        }
-        foreach(var oldElem in ImplTask.ImplElements.Where(x => x.Field == AccessField.destination.ToString()))
-        {
-            if(actDestinations.FirstOrDefault(x => x.ElemId == oldElem.Id) == null)
-            {
-                ImplTask.ImplElements.Remove(oldElem);
-            }
+            ImplTask.ImplElements.Add(source.ToImplElement(AccessField.source));
         }
         foreach(var destination in actDestinations)
         {
-            int? elemIdx = ImplTask.ImplElements.FindIndex(x => x.Id == destination.ElemId);
-            if(elemIdx != null)
-            {
-                ImplTask.ImplElements[(int)elemIdx] = destination.ToImplElement(AccessField.destination);
-            }
-            else
-            {
-                ImplTask.ImplElements.Add(destination.ToImplElement(AccessField.destination));
-            }
-        }
-        foreach(var oldElem in ImplTask.ImplElements.Where(x => x.Field == AccessField.service.ToString()))
-        {
-            if(actServices.FirstOrDefault(x => x.ElemId == oldElem.Id) == null)
-            {
-                ImplTask.ImplElements.Remove(oldElem);
-            }
+            ImplTask.ImplElements.Add(destination.ToImplElement(AccessField.destination));
         }
         foreach(var service in actServices)
         {
-            int? elemIdx = ImplTask.ImplElements.FindIndex(x => x.Id == service.ElemId);
-            if(elemIdx != null)
-            {
-                ImplTask.ImplElements[(int)elemIdx] = service.ToImplElement(AccessField.service);
-            }
-            else
-            {
-                ImplTask.ImplElements.Add(service.ToImplElement(AccessField.service));
-            }
+            ImplTask.ImplElements.Add(service.ToImplElement(AccessField.service));
         }
     }
 
@@ -378,7 +348,7 @@
         {
             if (implElem.NetworkId == null && implElem.ServiceId == null)
             {
-                if (implElem.IpString == null || implElem.IpString == "")
+                if (!implElem.Cidr.Valid)
                 {
                     DisplayMessageInUi!(null, userConfig.GetText("save_element"), userConfig.GetText("E5102"), true);
                     return false;

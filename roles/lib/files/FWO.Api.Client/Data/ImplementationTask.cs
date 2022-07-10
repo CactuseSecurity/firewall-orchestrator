@@ -23,6 +23,7 @@ namespace FWO.Api.Data
         [JsonProperty("elements"), JsonPropertyName("elements")]
         public List<ImplementationElement> ImplElements { get; set; } = new List<ImplementationElement>();
 
+        public List<ImplementationElement> RemovedElements { get; set; } = new List<ImplementationElement>();
 
         public ImplementationTask()
         { }
@@ -73,7 +74,7 @@ namespace FWO.Api.Data
                     {
                         ElemId = implElem.Id,
                         TaskId = implElem.ImplTaskId,
-                        Ip = implElem.Ip,
+                        Cidr = new Cidr(implElem.Cidr != null ? implElem.Cidr.CidrString : ""),
                         NetworkId = implElem.NetworkId
                     });
                 }

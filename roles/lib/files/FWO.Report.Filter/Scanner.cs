@@ -12,8 +12,9 @@ namespace FWO.Report.Filter
         private int position;
         private const int lookAhead = 1;
 
-        static List<Token> whitespaceTokens = new List<Token>();
-        static List<Token> noWhitespaceTokens = new List<Token>();
+        private static Dictionary<string, TokenKind> whitespaceTokens = new Dictionary<string, TokenKind>();
+        private static Dictionary<string, TokenKind> noWhitespaceTokens = new Dictionary<string, TokenKind>();
+        private static int noWhitespaceTokenMaxLength = 0;
 
         public Scanner(string input)
         {
@@ -29,16 +30,17 @@ namespace FWO.Report.Filter
 
                 foreach (string tokenSyntax in validTokenSyntax.WhiteSpaceRequiered)
                 {
-                    whitespaceTokens.Add(new Token(0..0, tokenSyntax, tokenKind));
+                    whitespaceTokens[tokenSyntax.ToLower()] = tokenKind;
                 }
                 foreach (string tokenSyntax in validTokenSyntax.NoWhiteSpaceRequiered)
                 {
-                    noWhitespaceTokens.Add(new Token(0..0, tokenSyntax, tokenKind));
+                    noWhitespaceTokens[tokenSyntax.ToLower()] = tokenKind;
+                    if (tokenSyntax.Length > noWhitespaceTokenMaxLength)
+                    {
+                        noWhitespaceTokenMaxLength = tokenSyntax.Length;
+                    }
                 }
             }
-
-            whitespaceTokens.Sort((x, y) => x.Text.Length - y.Text.Length);
-            noWhitespaceTokens.Sort((x, y) => x.Text.Length - y.Text.Length);
         }
 
         public List<Token> Scan()
@@ -97,7 +99,7 @@ namespace FWO.Report.Filter
                     default:
                         tokenText += input[position];
 
-                        List<Token> newTokens = TryExtractToken(tokenBeginPosition, tokenText, IsWhitespaceOrEnd(position + 1));
+                        List<Token> newTokens = TryExtractToken(tokenBeginPosition, tokenText, IsWhitespaceOrEnd(position + 1), 0);
 
                         if (newTokens.Count > 0)
                         {
@@ -119,59 +121,56 @@ namespace FWO.Report.Filter
             return tokens;
         }
 
-        private List<Token> TryExtractToken(int beginPosition, string potentialTokenText, bool surroundedByWhitespace = false)
+        private List<Token> TryExtractToken(int beginPosition, string text, bool surroundedByWhitespace, int recusionDepth)
         {
+            if (recusionDepth > 1) {
+                throw new Exception("Internal error: Stackoverflow. Please report this error.");
+            }
+
             List<Token> tokens = new List<Token>();
            
             if (surroundedByWhitespace == true)
             {
-                foreach (Token validToken in whitespaceTokens)
+                if (whitespaceTokens.TryGetValue(text.ToLower(), out TokenKind tokenKind))
                 {
-                    if (potentialTokenText.ToLower() == validToken.Text.ToLower())
-                    {
-                        tokens.Add(new Token(beginPosition..(beginPosition + potentialTokenText.Length), potentialTokenText, validToken.Kind));
-                        return tokens;
-                    }
+                    tokens.Add(new Token(beginPosition..(beginPosition + text.Length), text, tokenKind));
+                    return tokens;
                 }
             }
 
-            foreach (Token validToken in noWhitespaceTokens)
+            for (int tokenLength = 1; tokenLength <= noWhitespaceTokenMaxLength && tokenLength <= text.Length; tokenLength++)
             {
-                if (potentialTokenText.ToLower().EndsWith(validToken.Text.ToLower()))
-                {
-                    Token realToken = validToken;
+                string tokenText = text[^tokenLength..^0].ToLower();
 
-                    if (!IsWhitespaceOrEnd(beginPosition + potentialTokenText.Length))
+                if (noWhitespaceTokens.TryGetValue(tokenText, out TokenKind tokenKind))
+                {
+                    if (!IsWhitespaceOrEnd(beginPosition + text.Length) &&
+                        noWhitespaceTokens.TryGetValue(tokenText + input[beginPosition + text.Length], out TokenKind realTokenKind))
                     {
-                        foreach (Token longerToken in noWhitespaceTokens)
-                        {
-                            if (longerToken != validToken && (potentialTokenText + input[beginPosition + potentialTokenText.Length]).ToLower().EndsWith(longerToken.Text.ToLower()))
-                            {
-                                position++;
-                                realToken = longerToken;
-                                potentialTokenText += input[beginPosition + potentialTokenText.Length];
-                                break;
-                            }
-                        }
+                        tokenLength++;
+                        position++;
+                        tokenKind = realTokenKind;
+                        tokenText += input[beginPosition + text.Length];
+                        text += input[beginPosition + text.Length];                      
                     }
 
-                    if (potentialTokenText.Length - realToken.Text.Length > 0)
+                    if (text.Length - tokenLength > 0)
                     {
-                        List<Token> potentialTokens = TryExtractToken(beginPosition, potentialTokenText[..(potentialTokenText.Length - realToken.Text.Length)], true);
+                        List<Token> potentialTokens = TryExtractToken(beginPosition, text[..(text.Length - tokenLength)], true, recusionDepth + 1);
                         if (potentialTokens.Count > 0)
                         {
                             tokens.AddRange(potentialTokens);
                         }
                         else
                         {
-                            tokens.Add(new Token(beginPosition..(beginPosition + potentialTokenText.Length - realToken.Text.Length), potentialTokenText[..^realToken.Text.Length], TokenKind.Value));
+                            tokens.Add(new Token(beginPosition..(beginPosition + text.Length - tokenLength), text[..^tokenLength], TokenKind.Value));
                         }
                     }
 
-                    tokens.Add(new Token((beginPosition + potentialTokenText.Length - realToken.Text.Length)..(beginPosition + potentialTokenText.Length), realToken.Text, realToken.Kind));
-                    break;
+                    tokens.Add(new Token((beginPosition + text.Length - tokenLength)..(beginPosition + text.Length), tokenText, tokenKind));
+                    return tokens;
                 }
-            }       
+            }
 
             return tokens;
         }

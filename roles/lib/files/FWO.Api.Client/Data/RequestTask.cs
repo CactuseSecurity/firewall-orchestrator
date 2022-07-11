@@ -25,6 +25,7 @@ namespace FWO.Api.Data
 
         public List<RequestElement> RemovedElements { get; set; } = new List<RequestElement>();
 
+
         public RequestTask()
         { }
 
@@ -47,6 +48,19 @@ namespace FWO.Api.Data
                 ownerNames.Add(owner.Owner.Name);
             }
             return string.Join(", ", ownerNames);
+        }
+
+        public int HighestImplTaskNumber()
+        {
+            int highestNumber = 0;
+            foreach(var task in ImplementationTasks)
+            {
+                if (task.ImplTaskNumber > highestNumber)
+                {
+                    highestNumber = task.ImplTaskNumber;
+                }
+            }
+            return highestNumber;
         }
 
         public List<NwObjectElement> getNwObjectElements(AccessField field)

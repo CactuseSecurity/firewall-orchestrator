@@ -15,11 +15,9 @@
     StateMatrix ="stateMatrix" States="states"></DisplayOverview>
 
 <DisplayTicket Phase="WorkflowPhases.approval" DbAcc="dbAcc" StateMatrix ="stateMatrix" States="states" 
-    ResetParent="Reset" StartPhase="StartApproval" ContinuePhase="InitApproveTask"
-    @bind-Display="ShowTicketMode" 
+    ResetParent="Reset" StartPhase="StartApproveTask" SetContinueEnv="ContApproveTask"
+    @bind-Display="ShowTicketMode" ApproveMode="ApproveTaskMode" 
     @bind-Ticket="actTicket" @bind-Requests="requests"></DisplayTicket>
-
-<PromoteObject @bind-Promote="ApproveTaskMode" WithComment="true" Save="ApproveTask" StatefulObject="actApproval" StateMatrix="stateMatrix" States="states"></PromoteObject>
 
 
 @code
@@ -32,12 +30,9 @@
 
     private bool ShowTicketMode = false;
     private bool ApproveTaskMode = false;
-    private bool EditMode = false;
 
     private RequestTicket actTicket = new RequestTicket();
     private RequestTask actTask = new RequestTask();
-    private RequestElement actReqElement = new RequestElement();
-    private RequestApproval actApproval = new RequestApproval();
 
     private RequestStateDict states = new RequestStateDict();
     private List<int> actPossibleStates = new List<int>();
@@ -63,7 +58,6 @@
     {
         ShowTicketMode = false;
         ApproveTaskMode = false;
-        EditMode = false;
         requests = await dbAcc.FetchTickets(stateMatrix);
         StateHasChanged();
     }
@@ -75,7 +69,7 @@
         StateHasChanged();
     }
 
-    public async Task StartApproval(RequestTask task)
+    public async Task StartApproveTask(RequestTask task)
     {
         task.CurrentHandler = userConfig.User;
         actPossibleStates = stateMatrix.getAllowedTransitions(task.StateId);
@@ -85,42 +79,12 @@
         }
         await dbAcc.UpdateReqTaskStateInDb(task);
         await dbAcc.UpdateTicketStateFromTasks(actTicket, requests, stateMatrix);
-        await InitApproveTask(task);
+        await ContApproveTask();
     }
    
-    private async Task InitApproveTask(RequestTask task)
+    private async Task ContApproveTask()
     {
-        actTask = task;
-        actApproval = actTask.Approvals[0];  // todo: select own approvals
-        actApproval.SetOptComment(actApproval.Comment);
         ApproveTaskMode = true;
         StateHasChanged();
-    }
-
-    private async Task ApproveTask(StatefulObject approval)
-    {
-        try
-        {
-            actApproval.StateId = approval.StateId;
-            actApproval.Comment = approval.OptComment();
-            if(actApproval.StateId >= stateMatrix.LowestEndState)
-            {
-                actApproval.ApprovalDate = DateTime.Now;
-                actApproval.ApproverDn = userConfig.User.Dn;
-            }
-            if (actApproval.Sanitize())
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("save_approval"), userConfig.GetText("U0001"), true);
-            }
-            await dbAcc.UpdateApprovalInDb(actApproval);
-            await dbAcc.UpdateTaskStateFromApprovals(actTask, stateMatrix);
-            await dbAcc.UpdateTicketStateFromTasks(actTicket, requests, stateMatrix);
-            ApproveTaskMode = false;
-            StateHasChanged();
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_approval"), "", true);
-        }
     }
 }

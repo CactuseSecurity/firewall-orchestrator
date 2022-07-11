@@ -8,7 +8,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("promote"))" Show="@Display" OnClose="() => Close()">
+<PopUp Title="@(userConfig.GetText("promote") + " " + (ObjectName != "" ? userConfig.GetText(ObjectName) : ""))" Show="@Display" OnClose="() => Close()">
     <Body>
         @if (Display)
         {
@@ -62,6 +62,9 @@
     public EventCallback<bool> PromoteChanged { get; set; }
 
     [Parameter]
+    public string ObjectName { get; set; } = "";
+
+    [Parameter]
     public bool WithComment { get; set; } = false;
 
     [Parameter]
@@ -104,6 +107,7 @@
             {
                 Display = true;
             }
+            Promote = false;
         }
     }
 

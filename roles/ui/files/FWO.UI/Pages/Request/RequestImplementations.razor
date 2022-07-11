@@ -15,8 +15,8 @@
     StateMatrix ="stateMatrix" States="states"></DisplayOverview>
 
 <DisplayTicket Phase="WorkflowPhases.implementation" DbAcc="dbAcc" StateMatrix ="stateMatrix" States="states"
-    ResetParent="Reset" StartImplPhase="StartImplementation" ContinueImplPhase="ImplementTask" 
-    @bind-Display="ShowTicketMode" @bind-ImplementMode="ImplementTaskMode" 
+    ResetParent="Reset" StartImplPhase="StartImplementation" SetContinueEnv="ContImplementTask" 
+    @bind-Display="ShowTicketMode" ImplementMode="ImplementTaskMode" 
     AllImplTasks="allImplTasks" @bind-Ticket="actTicket" @bind-Requests="requests"></DisplayTicket>
 
 
@@ -89,10 +89,10 @@
         }
         await dbAcc.UpdateImplTaskStateInDb(task);
         await dbAcc.UpdateTicketStateFromImplTasks(actTicket, requests, stateMatrix);
-        await ImplementTask(task);
+        await ContImplementTask();
     }
 
-    private async Task ImplementTask(ImplementationTask task)
+    private async Task ContImplementTask()
     {
         ImplementTaskMode = true;
         StateHasChanged();

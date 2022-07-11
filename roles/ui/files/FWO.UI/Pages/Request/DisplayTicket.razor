@@ -83,7 +83,7 @@
                                             }
                                             else if (context.StateId < StateMatrix.LowestEndState)
                                             {
-                                                <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => {SetContinueEnv(context); ContinuePhase(context);}">@(userConfig.GetText("continue_" + Phase.ToString()))</button>
+                                                <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => ContinuePhase(context)">@(userConfig.GetText("continue_" + Phase.ToString()))</button>
                                                 @if(Phase == WorkflowPhases.planning)
                                                 {
                                                     <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignTask(context)">@(userConfig.GetText("assign"))</button>
@@ -144,7 +144,7 @@
                                         }
                                         else if (implTask.StateId < StateMatrix.LowestEndState)
                                         {
-                                            <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => {SetContinueImplEnv(implTask); ContinueImplPhase(implTask);}">@(userConfig.GetText("continue_" + Phase.ToString()))</button>
+                                            <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => ContinueImplPhase(implTask)">@(userConfig.GetText("continue_" + Phase.ToString()))</button>
                                         }
                                     </div>
                                 </Template>
@@ -201,17 +201,17 @@
 </PopUp>
 
 <DisplayRequestTask Phase="Phase" DbAcc="DbAcc" StateMatrix="StateMatrix" States="States" 
-    @bind-Display="ShowReqTaskMode" @bind-EditMode="EditReqTaskMode" @bind-AddMode="AddReqTaskMode" @bind-PlanMode="PlanMode"
-    AddReqTask="AddReqTaskToTicket" ChangeReqTask="ChangeReqTaskInTicket" PromoteReqTask="PromoteReqTask"
-    @bind-ReqTask="actTask" @bind-Ticket="Ticket" @bind-Requests="Requests"></DisplayRequestTask>
+    @bind-Display="ShowReqTaskMode" EditMode="EditReqTaskMode" AddMode="AddReqTaskMode" ApproveMode="ApproveMode" PlanMode="PlanMode"
+    AddReqTask="AddReqTaskToTicket" ChangeReqTask="ChangeReqTaskInTicket" PromoteReqTask="PromoteReqTask" ApproveTask="ApproveTask"
+    @bind-ReqTask="actTask" Ticket="Ticket"></DisplayRequestTask>
 <DisplayImplementationTask Phase="Phase" DbAcc="DbAcc" StateMatrix="StateMatrix" States="States"
-    @bind-Display="ShowImplTaskMode" @bind-ImplementMode="ImplementMode"
+    @bind-Display="ShowImplTaskMode" ImplementMode="ImplementMode"
     PromoteImplTask="PromoteImplTask"
-    @bind-ImplTask="actImplTask" @bind-ReqTask="actTask" @bind-Ticket="Ticket" @bind-Requests="Requests"></DisplayImplementationTask>
+    @bind-ImplTask="actImplTask" ReqTask="actTask"></DisplayImplementationTask>
 <AssignTask DbAcc="DbAcc" @bind-Display="AssignTaskMode" @bind-ReqTask="actTask"></AssignTask>
 <DisplayApprovals @bind-Display="ShowApprovalMode" Approvals="actTask.Approvals" States="States"></DisplayApprovals>
-<PromoteObject @bind-Promote="SaveTicketMode" Save="SaveTicket" StatefulObject="Ticket" StateMatrix="StateMatrix" States="States"></PromoteObject>
-<PromoteObject @bind-Promote="PromoteTicketMode" Save="PromoteTicket" StatefulObject="Ticket" StateMatrix="StateMatrix" States="States"></PromoteObject>
+<PromoteObject @bind-Promote="SaveTicketMode" ObjectName="ticket" Save="SaveTicket" StatefulObject="Ticket" StateMatrix="StateMatrix" States="States"></PromoteObject>
+<PromoteObject @bind-Promote="PromoteTicketMode" ObjectName="ticket" Save="PromoteTicket" StatefulObject="Ticket" StateMatrix="StateMatrix" States="States"></PromoteObject>
 <DeleteObject @bind-Display="DeleteReqTaskMode" Delete="ConfDeleteReqTask" ObjName="@actTask.Title"></DeleteObject>
 
 
@@ -239,13 +239,10 @@
     public Func<RequestTask, Task>? StartPhase { get; set; }
 
     [Parameter]
-    public Func<RequestTask, Task>? ContinuePhase { get; set; }
+    public Func<Task>? SetContinueEnv { get; set; }
 
     [Parameter]
     public Func<ImplementationTask, Task>? StartImplPhase { get; set; }
-
-    [Parameter]
-    public Func<ImplementationTask, Task>? ContinueImplPhase { get; set; }
 
     [Parameter]
     public bool Display { get; set; } = false;
@@ -257,25 +254,16 @@
     public bool AddMode { get; set; } = false;
 
     [Parameter]
-    public EventCallback<bool> AddModeChanged { get; set; }
-
-    [Parameter]
     public bool EditMode { get; set; } = false;
 
     [Parameter]
-    public EventCallback<bool> EditModeChanged { get; set; }
+    public bool ApproveMode { get; set; } = false;
 
     [Parameter]
     public bool PlanMode { get; set; } = false;
 
     [Parameter]
-    public EventCallback<bool> PlanModeChanged { get; set; }
-
-    [Parameter]
     public bool ImplementMode { get; set; } = false;
-
-    [Parameter]
-    public EventCallback<bool> ImplementModeChanged { get; set; }
 
     [Parameter]
     public List<ImplementationTask>? AllImplTasks { get; set; } = new List<ImplementationTask>();
@@ -322,9 +310,6 @@
     {
         ResetParent();
         Reset();
-        AddMode = false;
-        EditMode = false;
-        PlanMode = false;
         Display = false;
         StateHasChanged();
     }
@@ -343,19 +328,21 @@
         return true;
     }
 
-    private void SetContinueEnv(RequestTask task)
+    private async Task ContinuePhase(RequestTask task)
     {
         actTask = task;
         Reset();
-        ShowReqTaskMode = (Phase == WorkflowPhases.planning);
+        await SetContinueEnv();
+        ShowReqTaskMode = true;
     }
 
-    private void SetContinueImplEnv(ImplementationTask implTask)
+    private async Task ContinueImplPhase(ImplementationTask implTask)
     {
         actImplTask = implTask;
         actTask = Ticket.Tasks.FirstOrDefault(x => x.Id == actImplTask.ReqTaskId);
         Reset();
-        ShowImplTaskMode = (Phase >= WorkflowPhases.implementation);
+        await SetContinueEnv();
+        ShowImplTaskMode = true;
     }
 
     private void AddReqTask()
@@ -620,5 +607,32 @@
             return false;
         }
         return true;
+    }
+
+    private async Task ApproveTask(StatefulObject approval, RequestApproval actApproval)
+    {
+        try
+        {
+            actApproval.StateId = approval.StateId;
+            actApproval.Comment = approval.OptComment();
+            if(actApproval.StateId >= StateMatrix.LowestEndState)
+            {
+                actApproval.ApprovalDate = DateTime.Now;
+                actApproval.ApproverDn = userConfig.User.Dn;
+            }
+            if (actApproval.Sanitize())
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_approval"), userConfig.GetText("U0001"), true);
+            }
+            await DbAcc.UpdateApprovalInDb(actApproval);
+            await DbAcc.UpdateTaskStateFromApprovals(actTask, StateMatrix);
+            await DbAcc.UpdateTicketStateFromTasks(Ticket, Requests, StateMatrix);
+            Reset();
+            StateHasChanged();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("save_approval"), "", true);
+        }
     }
 }

@@ -15,8 +15,8 @@
     StateMatrix ="stateMatrix" States="states"></DisplayOverview>
 
 <DisplayTicket Phase="WorkflowPhases.review" DbAcc="dbAcc" StateMatrix ="stateMatrix" States="states"
-    ResetParent="Reset" StartImplPhase="StartReview" ContinueImplPhase="ReviewTask" 
-    @bind-Display="ShowTicketMode" @bind-ImplementMode="ReviewTaskMode"
+    ResetParent="Reset" StartImplPhase="StartReviewTask" SetContinueEnv="ContReviewTask" 
+    @bind-Display="ShowTicketMode" ImplementMode="ReviewTaskMode"
     AllImplTasks="allImplTasks" @bind-Ticket="actTicket" @bind-Requests="requests"></DisplayTicket>
 
 
@@ -78,7 +78,7 @@
         StateHasChanged();
     }
     
-    private async Task StartReview(ImplementationTask task)
+    private async Task StartReviewTask(ImplementationTask task)
     {
         task.CurrentHandler = userConfig.User;
         actPossibleStates = stateMatrix.getAllowedTransitions(task.StateId);
@@ -88,10 +88,10 @@
         }
         await dbAcc.UpdateImplTaskStateInDb(task);
         await dbAcc.UpdateTicketStateFromImplTasks(actTicket, requests, stateMatrix);
-        await ReviewTask(task);
+        await ContReviewTask();
     }
 
-    private async Task ReviewTask(ImplementationTask task)
+    private async Task ContReviewTask()
     {
         ReviewTaskMode = true;
         StateHasChanged();

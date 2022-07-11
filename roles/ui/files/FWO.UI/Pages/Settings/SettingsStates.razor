@@ -96,7 +96,7 @@
     <hr />
     <AuthorizeView Roles="admin">
         <Authorized>
-            <button class="btn btn-sm btn-primary" @onclick="SaveMatrix" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+            <button class="btn btn-sm btn-primary" @onclick="InitSaveMatrix" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
         </Authorized>
         <NotAuthorized>
             <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
@@ -104,6 +104,28 @@
     </AuthorizeView>
     <br><br>
 
+    <PopUp Title="@(userConfig.GetText("save_settings"))" Show="@SaveMatrixMode" OnClose="() => SaveMatrixMode = false">
+        <Body>
+            @if (SaveMatrixMode)
+            {
+                <p>@(userConfig.GetText("U5315"))</p>
+            }
+        </Body>
+        <Footer>
+            <div class="btn-group">
+                <AuthorizeView Roles="admin">
+                    <Authorized>
+                        <button class="btn btn-sm btn-danger" @onclick="SaveMatrix">@(userConfig.GetText("save"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("save"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+                <button class="btn btn-sm btn-secondary" @onclick="CancelSaveMatrix">@(userConfig.GetText("cancel"))</button>
+            </div>
+        </Footer>
+    </PopUp>
+    
     <PopUp Title="@(userConfig.GetText("available_states"))" Show="@ShowStatesMode" OnClose="() => ShowStatesMode = false">
         <Body>
             @if (ShowStatesMode)
@@ -263,6 +285,7 @@ else
     private bool ShowStatesMode = false;
     private bool AddNewStateMode = false;
     private bool SelectStateMode = false;
+    private bool SaveMatrixMode = false;
     private bool EditTargetStatesMode = false;
     private bool InitComplete = false;
 
@@ -376,10 +399,16 @@ else
         SelectStateMode = false;
     }
 
+    private void InitSaveMatrix()
+    {
+        SaveMatrixMode = true;
+    }
+
     private async Task SaveMatrix()
     {
         try
         {
+            SaveMatrixMode = false;
             ConfigItem item = new ConfigItem 
             { 
                 Key = "stateMatrix", 
@@ -393,6 +422,11 @@ else
         {
             DisplayMessageInUi!(exception, userConfig.GetText("save_settings"), "", true);
         }
+    }
+        
+    private void CancelSaveMatrix()
+    {
+        SaveMatrixMode = false;
     }
 
     private void CancelShowStates()

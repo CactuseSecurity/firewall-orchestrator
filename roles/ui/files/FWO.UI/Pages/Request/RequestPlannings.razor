@@ -17,8 +17,8 @@
     StateMatrix ="stateMatrix" States="states"></DisplayOverview>
 
 <DisplayTicket Phase="WorkflowPhases.planning" DbAcc="dbAcc" StateMatrix ="stateMatrix" States="states"
-    ResetParent="Reset" StartPhase="StartPlanning" ContinuePhase="PlanTask"
-    @bind-Display="ShowTicketMode" @bind-PlanMode="PlanningMode" 
+    ResetParent="Reset" StartPhase="StartPlanTask" SetContinueEnv="ContPlanTask"
+    @bind-Display="ShowTicketMode" PlanMode="PlanningMode" 
     @bind-Ticket="actTicket" @bind-Requests="requests"></DisplayTicket>
 
 
@@ -71,7 +71,7 @@
         StateHasChanged();
     }
 
-    private async Task StartPlanning(RequestTask task)
+    private async Task StartPlanTask(RequestTask task)
     {
         task.Start = DateTime.Now;
         task.CurrentHandler = userConfig.User;
@@ -82,13 +82,11 @@
         }
         await dbAcc.UpdateReqTaskStateInDb(task);
         await dbAcc.UpdateTicketStateFromTasks(actTicket, requests, stateMatrix);
-        PlanTask(task);
+        ContPlanTask();
     }
 
-    private async Task PlanTask(RequestTask task)
+    private async Task ContPlanTask()
     {
-        actReqTask = task;
-        actReqTask.CurrentHandler = userConfig.User;
         PlanningMode = true;
         StateHasChanged();
     }

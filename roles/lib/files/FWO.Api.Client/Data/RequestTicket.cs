@@ -17,6 +17,19 @@ namespace FWO.Api.Data
             Tasks = ticket.Tasks;
         }
 
+        public int HighestTaskNumber()
+        {
+            int highestNumber = 0;
+            foreach(var task in Tasks)
+            {
+                if (task.TaskNumber > highestNumber)
+                {
+                    highestNumber = task.TaskNumber;
+                }
+            }
+            return highestNumber;
+        }
+
         public void UpdateCidrStringsInTaskElements()
         {
             foreach (RequestTask task in Tasks)

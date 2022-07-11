@@ -1395,6 +1395,8 @@ INSERT INTO txt VALUES ('U5313', 'German',  'Definition der Statusdefinitionen f
 INSERT INTO txt VALUES ('U5313', 'English', 'Define the state definitions of the request workflow. Be careful when changing workflow already in use!');
 INSERT INTO txt VALUES ('U5314', 'German',  'Verwaltung der Einstellungen f&uuml;r den Auftrags-Workflow. Vorsicht bei &Auml;nderungen an einem bereits verwendeten Workflow!');
 INSERT INTO txt VALUES ('U5314', 'English', 'Customize the request workflow. Be careful when changing workflow already in use!');
+INSERT INTO txt VALUES ('U5315', 'German',  'Sind sie sicher, dass sie die Einstellungen &auml;ndern wollen? &Auml;nderungen an bereits verwendeten Workflows k&ouml;nnen unerwartete Auswirkungen haben.');
+INSERT INTO txt VALUES ('U5315', 'English', 'Are you sure you want to change the settings? Changes on workflows already in use may have unexpected consequences.');
 
 INSERT INTO txt VALUES ('U5401', 'German',  'Passwort ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5401', 'English', 'Password changed.');

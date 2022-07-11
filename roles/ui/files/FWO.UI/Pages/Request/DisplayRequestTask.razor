@@ -213,7 +213,7 @@
             }
             else if (PlanMode)
             {
-                <AuthorizeView Roles="admin, approver, planner, implementer, reviewer, fw-admin">
+                <AuthorizeView Roles="admin, planner, fw-admin">
                     <Authorized>
                         <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteReqTask">@(userConfig.GetText("promote_task"))</button>
                     </Authorized>
@@ -222,17 +222,30 @@
                     </NotAuthorized> 
                 </AuthorizeView>
             }
+            else if (ApproveMode)
+            {
+                <AuthorizeView Roles="admin, approver, fw-admin">
+                    <Authorized>
+                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitApproveTask">@(userConfig.GetText("approve"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("approve"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+            }
+
             <button class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
 
 <DisplayImplementationTask Phase="Phase" DbAcc="DbAcc" StateMatrix="StateMatrix" States="States" 
-    @bind-Display="ShowImplTaskMode" @bind-EditMode="EditImplTaskMode" @bind-AddMode="AddImplTaskMode" 
+    @bind-Display="ShowImplTaskMode" EditMode="EditImplTaskMode" AddMode="AddImplTaskMode" 
     AddImplTask="AddImplTaskToReqTask" ChangeImplTask="ChangeImplTaskInReqTask"
-    @bind-ImplTask="actImplTask" @bind-ReqTask="ReqTask" @bind-Ticket="Ticket" @bind-Requests="Requests"></DisplayImplementationTask>
+    @bind-ImplTask="actImplTask" ReqTask="ReqTask"></DisplayImplementationTask>
 
-<PromoteObject @bind-Promote="PromoteReqTaskMode" Save="PromoteReqTask" StatefulObject="ReqTask" StateMatrix="StateMatrix" States="States"></PromoteObject>
+<PromoteObject @bind-Promote="PromoteReqTaskMode" ObjectName="task" Save="ConfPromoteReqTask" StatefulObject="ReqTask" StateMatrix="StateMatrix" States="States"></PromoteObject>
+<PromoteObject @bind-Promote="ApproveTaskMode" ObjectName="approval" WithComment="true" Save="ConfApproveTask" StatefulObject="actApproval" StateMatrix="StateMatrix" States="States"></PromoteObject>
 <DeleteObject @bind-Display="DeleteImplTaskMode" Delete="ConfDeleteImplTask" ObjName="@(actImplTask.ImplTaskNumber.ToString())"></DeleteObject>
 
 @code
@@ -262,19 +275,13 @@
     public bool EditMode { get; set; } = false;
 
     [Parameter]
-    public EventCallback<bool> EditModeChanged { get; set; }
-
-    [Parameter]
     public bool AddMode { get; set; } = false;
 
     [Parameter]
-    public EventCallback<bool> AddModeChanged { get; set; }
+    public bool ApproveMode { get; set; } = false;
 
     [Parameter]
     public bool PlanMode { get; set; } = false;
-
-    [Parameter]
-    public EventCallback<bool> PlanModeChanged { get; set; }
 
     [Parameter]
     public Func<RequestTask, Task> AddReqTask { get; set; }
@@ -286,6 +293,9 @@
     public Func<StatefulObject, Task> PromoteReqTask { get; set; }
 
     [Parameter]
+    public Func<StatefulObject, RequestApproval, Task> ApproveTask { get; set; }
+
+    [Parameter]
     public RequestTask ReqTask { get; set; } = new RequestTask();
 
     [Parameter]
@@ -294,14 +304,6 @@
     [Parameter]
     public RequestTicket Ticket { get; set; } = new RequestTicket();
 
-    [Parameter]
-    public EventCallback<RequestTicket> TicketChanged { get; set; }
-
-    [Parameter]
-    public List<RequestTicket> Requests { get; set; } = new List<RequestTicket>();
-
-    [Parameter]
-    public EventCallback<List<RequestTicket>> RequestsChanged { get; set; }
 
     private List<TaskType> availableTaskTypes { get; set; } = new List<TaskType>();
     private List<RuleAction> ruleActions = new List<RuleAction>();
@@ -310,12 +312,14 @@
     
     private RequestElement actReqElement = new RequestElement();
     private ImplementationTask actImplTask = new ImplementationTask();
+    private RequestApproval actApproval = new RequestApproval();
     private List<int> possibleStates = new List<int>();
     private bool ShowImplTaskMode = false;
     private bool EditImplTaskMode = false;
     private bool AddImplTaskMode = false;
     private bool DeleteImplTaskMode = false;
     private bool PromoteReqTaskMode = false;
+    private bool ApproveTaskMode = false;
 
     List<NwObjectElement> actSources = new List<NwObjectElement>();
     List<NwObjectElement> actDestinations = new List<NwObjectElement>();
@@ -355,9 +359,6 @@
     private void Close()
     {
         Reset();
-        AddMode = false;
-        EditMode = false;
-        PlanMode = false;
         Display = false;
         StateHasChanged();
     }
@@ -366,6 +367,7 @@
     {
         ShowImplTaskMode = false;
         PromoteReqTaskMode = false;
+        ApproveTaskMode = false;
         DeleteImplTaskMode = false;
         AddImplTaskMode = false;
         EditImplTaskMode = false;
@@ -375,7 +377,7 @@
     {
         actImplTask = new ImplementationTask(ReqTask)
                         {
-                            ImplTaskNumber = ReqTask.ImplementationTasks.Count + 1,
+                            ImplTaskNumber = ReqTask.HighestImplTaskNumber() + 1,
                             DeviceId = (devices.Count > 0 ? devices[0].Id : 0)
                         };
         Reset();
@@ -435,6 +437,26 @@
         PromoteReqTaskMode = true;
     }
 
+    private async Task ConfPromoteReqTask(StatefulObject task)
+    {
+        Reset();
+        await PromoteReqTask(task);
+    }
+
+    private async Task InitApproveTask()
+    {
+        actApproval = ReqTask.Approvals[0];  // todo: select own approvals
+        actApproval.SetOptComment(actApproval.Comment);
+        Reset();
+        ApproveTaskMode = true;
+    }
+
+    private async Task ConfApproveTask(StatefulObject approval)
+    {
+        Reset();
+        await ApproveTask(approval, actApproval);
+    }
+
     private void AddApproval()
     {
         RequestApproval approval = new RequestApproval()
@@ -492,7 +514,7 @@
                 if (AddMode)
                 {
                     AddApproval();
-                    ReqTask.TaskNumber = Ticket.Tasks.Count + 1;
+                    ReqTask.TaskNumber = Ticket.HighestTaskNumber() + 1;
                     await AddReqTask(ReqTask);
                     
                 }

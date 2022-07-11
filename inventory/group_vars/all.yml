@@ -56,8 +56,6 @@ redhat_arch: "{{ redhat_major_version }}-{{ arch }}"
 
 ### database stuff
 fworch_db_port: 5432
-# fworch_db_host: 10.1.1.83
-fworch_db_host: localhost
 fworch_db_name: fworchdb
 fworch_dbadmin_name: dbadmin
 dbadmin_password_file: "{{ fworch_secrets_dir }}/dbadmin_pwd"
@@ -68,7 +66,6 @@ jwt_private_key_file: "{{ fworch_secrets_dir }}/jwt_private_key.pem"
 jwt_public_key_file: "{{ fworch_secrets_dir }}/jwt_public_key.pem"
 ldap_manager_pwd_file: "{{ fworch_secrets_dir }}/ldap_manager_pwd"
 
-middleware_hostname: "127.0.0.1"
 ldif_changetype: add
 middleware_service_name: "{{ product_name }}-middleware"
 
@@ -106,7 +103,6 @@ randomly_generated_pwd: "{{ lookup('password', '/dev/null length=32 chars=ascii_
 
 ### logging
 syslog_proto: tcp
-syslog_host: localhost
 syslog_port: 514
 middleware_server_syslog_id: "{{ product_name }}.middleware-server"
 ui_syslog_id: "{{ product_name }}-ui"

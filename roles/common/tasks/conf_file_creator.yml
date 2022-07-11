@@ -29,6 +29,10 @@
       old_version: "{{ config.product_version }}"
     when: already_installed and installation_mode == "upgrade"
 
+- name: get the middleware fqdn
+  set_fact:
+    middleware_hostname: hostvars['{{ groups['middlewareserver'].0 }}']['ansible_facts']['fqdn']
+
   - name: set config values
     set_fact:
       config_json:

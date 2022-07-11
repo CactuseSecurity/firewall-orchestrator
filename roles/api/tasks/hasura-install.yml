@@ -85,10 +85,6 @@
   environment: "{{ proxy_env }}"
   when: not api_cli_check.stat.exists
 
-- name: get the database server fqdn
-  set_fact:
-    fworch_db_host: hostvars['{{ groups['databaseserver'].0 }}']['ansible_facts']['fqdn']
-
 - name: set hasura env variable
   set_fact:
     hasura_env:
@@ -118,10 +114,6 @@
     var:
       hasura_env
   when: debug_level > '1'
-
-- name: get the logserver fqdn
-  set_fact:
-    syslog_host: hostvars['{{ groups['logserver'].0 }}']['ansible_facts']['fqdn']
 
 - name: start hasura container ansible 2.10 and higher
   docker_container:

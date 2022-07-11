@@ -39,10 +39,6 @@
         - ssl
         - proxy_wstunnel
 
-    - name: get the ui server fqdn
-      set_fact:
-        ui_hostname: hostvars['{{ groups['frontends'].0 }}']['ansible_facts']['fqdn']
-
     - name: copy ui httpd config file to ui target
       template:
         src: "httpd.conf"

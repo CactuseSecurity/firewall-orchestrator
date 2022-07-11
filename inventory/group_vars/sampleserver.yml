@@ -1,7 +1,6 @@
 
 sample_config_user: fworchsample
 sample_config_user_home: "/home/{{ sample_config_user }}"
-import_sample_server: localhost
 sample_data_rate: medium
 sample_role_purpose: demo
 sample_fortigate_name: fortigate_demo

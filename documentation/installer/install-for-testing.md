@@ -33,6 +33,11 @@ Set debug level for extended debugging info during installation.
 
 ```console
 ansible-playbook site.yml -e "debug_level='2'" -K
+
+Set dotnet installation mode to "debug" as follows (default = Release)
+### Debugging dotnet applications
+```console
+ansible-playbook/ site.yml -e "dotnet_mode=Debug" -K
 ```
 ## Running integration tests after installation/upgrade
 

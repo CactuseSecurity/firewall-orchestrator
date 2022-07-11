@@ -107,6 +107,7 @@
         clearAllText = userConfig.GetText("clear_all");
         collapseAllText = userConfig.GetText("collapse_all");
         expandAllText = userConfig.GetText("expand_all");
+        DeviceFilter.Managements?.Sort((a, b) => a.Name?.CompareTo(b.Name) ?? -1);
         if(Environment == "Cert")
         {
             cssClass += "-35";

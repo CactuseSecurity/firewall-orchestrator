@@ -38,25 +38,25 @@
 ### Root password
   - name: Check if manager password exist
     stat:
-      path: "{{ fworch_secrets_dir }}/ldap_manager_pw.txt"
+      path: "{{ ldap_manager_pwd_file }}"
     register: is_manger_pw_present_flag
 
   - name: Decide on random manager password
     set_fact:
-      openldap_server_random_rootpw: "{{ random_generated_pw }}"
+      openldap_server_random_rootpw: "{{ randomly_generated_pwd }}"
     when: not is_manger_pw_present_flag.stat.exists
 
   - name: Write random manager password to file
     copy:
       content: "{{ openldap_server_random_rootpw }}"
-      dest: "{{ fworch_secrets_dir }}/ldap_manager_pw.txt"
+      dest: "{{ ldap_manager_pwd_file }}"
       mode: '0600'
       owner: "{{ fworch_user }}"
       group: "{{ fworch_group }}"
     when: not is_manger_pw_present_flag.stat.exists
 
   - name: Generate the root password hash for the config
-    command: "slappasswd -T {{ fworch_secrets_dir }}/ldap_manager_pw.txt"
+    command: "slappasswd -T {{ ldap_manager_pwd_file }}"
     register: root_password
 
 ### TLS

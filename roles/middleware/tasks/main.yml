@@ -95,12 +95,12 @@
 
 - name: set UI admin password randomly
   set_fact:
-    admin_password: "{{ random_generated_pw }}"
+    admin_password: "{{ randomly_generated_pwd }}"
   when: (testkeys is not defined or not testkeys|bool) and installation_mode == 'new'
 
 - name: write ui admin_password to secrets directory
   copy:
-    content: "{{ admin_password }}"
+    content: "{{ admin_password }}\n"
     dest: "{{ ui_admin_password_file }}"
     mode: '0600'
     owner: "{{ fworch_user }}"
@@ -119,12 +119,12 @@
 
 - name: set importer user password randomly
   set_fact:
-    importer_password: "{{ random_generated_pw }}"
+    importer_password: "{{ randomly_generated_pwd }}"
   when: (testkeys is not defined or not testkeys|bool) and installation_mode == 'new'
 
 - name: write importer_password to secrets directory
   copy:
-    content: "{{ importer_password }}"
+    content: "{{ importer_password }}\n"
     dest: "{{ importer_password_file }}"
     mode: '0600'
     owner: "{{ fworch_user }}"

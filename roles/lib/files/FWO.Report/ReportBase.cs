@@ -42,6 +42,7 @@ namespace FWO.Report
     <body>
         <h2>##Title##</h2>
         <p>Filter: ##Filter## - ##GeneratedOn##: ##Date##</p>
+        <p>Devices: ##DeviceFilter##</p>
         <hr>
         ##Body##
     </body>
@@ -96,11 +97,12 @@ namespace FWO.Report
         {
             if (string.IsNullOrEmpty(htmlExport))
             {
-                HtmlTemplate = HtmlTemplate.Replace("##Body##", htmlReport.ToString());
                 HtmlTemplate = HtmlTemplate.Replace("##Title##", title);
                 HtmlTemplate = HtmlTemplate.Replace("##Filter##", filter);
                 HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
                 HtmlTemplate = HtmlTemplate.Replace("##GeneratedOn##", userConfig.GetText("generated_on"));
+                HtmlTemplate = HtmlTemplate.Replace("##DeviceFilter##", string.Join("; ", Array.ConvertAll(Managements, management => management.NameAndDeviceNames())));
+                HtmlTemplate = HtmlTemplate.Replace("##Body##", htmlReport.ToString());
                 htmlExport = HtmlTemplate.ToString();
             }
             return htmlExport;

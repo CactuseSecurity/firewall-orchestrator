@@ -159,18 +159,16 @@
     <Body>
         @if (AddDeviceMode)
         {
-            <form>
-                <form class="form-inline">
-                    <label for="tenantDevice" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("gateways")):</label>
-                    <div class="col-sm-8">
-                        <select id="tenantDevice" class="form-control form-control-sm" @bind="selectedDevice">
-                            @foreach (Device device in remainingDevices)
-                            {
-                                <option value="@device.Id">@(device.Name)</option>
-                            }
-                        </select>
-                    </div>
-                </form>
+            <form class="form-inline">
+                <label for="tenantDevice" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("gateways")):</label>
+                <div class="col-sm-8">
+                    <select id="tenantDevice" class="form-control form-control-sm" @bind="selectedDevice">
+                        @foreach (Device device in remainingDevices)
+                        {
+                            <option value="@device.Id">@(device.Name)</option>
+                        }
+                    </select>
+                </div>
             </form>
         }
     </Body>
@@ -313,7 +311,7 @@
 
             devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
-                        
+
         }
         catch (Exception exception)
         {
@@ -332,7 +330,7 @@
     {
         EditTenant(new Tenant());
         AddTenantMode = true;
-     }
+    }
 
     private async Task SaveTenant()
     {
@@ -484,6 +482,7 @@
         {
             actTenant = tenant;
             remainingDevices = devices.FindAll(x => !Array.Exists(actTenant.TenantDevices, y => y.VisibleDevice.Id == x.Id));
+            remainingDevices.Sort((a, b) => a.Name?.CompareTo(b.Name) ?? -1);
             if(remainingDevices.Count == 0)
             {
                 DisplayMessageInUi!(null, userConfig.GetText("add_device_to_tenant"), userConfig.GetText("E5271"), true);

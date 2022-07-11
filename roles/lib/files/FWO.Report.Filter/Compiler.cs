@@ -1,5 +1,6 @@
 using FWO.Report.Filter.Ast;
 using FWO.Api.Data;
+using FWO.Logging;
 
 namespace FWO.Report.Filter
 {
@@ -19,6 +20,7 @@ namespace FWO.Report.Filter
 
         public static DynGraphqlQuery Compile(string input, ReportType? reportType = null, DeviceFilter? deviceFilter = null, TimeFilter? timeFilter = null, bool detailed = false)
         {
+            Log.WriteDebug("Filter", $"Input: \"{input}\", Report Type: \"${reportType}\", Device Filter: \"{deviceFilter}\"");
             return DynGraphqlQuery.GenerateQuery(input, CompileToAst(input), deviceFilter, timeFilter, reportType, detailed);
         }
     }

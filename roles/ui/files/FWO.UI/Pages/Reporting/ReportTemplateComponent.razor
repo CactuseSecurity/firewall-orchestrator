@@ -135,7 +135,8 @@
     {
         try
         {
-            reportTemplates = (await apiConnection.SendQueryAsync<ReportTemplate[]>(ReportQueries.getReportTemplates)).ToList();
+            var parameters = new { userId = userConfig.User.DbId };
+            reportTemplates = (await apiConnection.SendQueryAsync<ReportTemplate[]>(ReportQueries.getReportTemplates, new { userId = userConfig.User.DbId })).ToList();
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)

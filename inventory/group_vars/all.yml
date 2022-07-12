@@ -29,12 +29,12 @@ fworch_conf_file: "{{ fworch_conf_dir }}/fworch.json"
 fworch_secrets_dir: "{{ fworch_conf_dir }}/secrets"
 
 # set your proxy here:
-http_proxy: ""
+http_proxy: "{{ lookup('env','http_proxy') }}"
 http_proxy_import_parameter: ""
 # use the following syntax for authenticated proxy access:
 # http_proxy=http://USERNAME:PASSWORD@1.2.3.4:8080/
-https_proxy: "{{ http_proxy }}"
-proxy_exceptions: "127.0.0.1, localhost"
+https_proxy: "{{ lookup('env','https_proxy') }}"
+proxy_exceptions: "{{ lookup('env','no_proxy') }}"
 proxy_env:
         http_proxy: "{{ http_proxy }}"
         https_proxy: "{{ https_proxy }}"

@@ -21,7 +21,7 @@
   when: not https_proxy == ""
 
 - name: make test checkpoint import
-  command: "python3 import-mgm.py -m{{ test_checkpoint_mgm_id.query_result.0.mgm_id }} -ihttps://fwodemodata.cactus.de/demo04_cpr8x.json {{ http_proxy_import_parameter }}"
+  command: "python3 ./import-mgm.py -m{{ test_checkpoint_mgm_id.query_result.0.mgm_id }} -ihttps://fwodemodata.cactus.de/demo04_cpr8x.json {{ http_proxy_import_parameter }}" -s
   args:
     chdir: "{{ fworch_home }}/importer"
   become: yes

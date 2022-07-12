@@ -85,7 +85,7 @@ def login(user, password, user_management_api_base_url, method='api/Authenticati
     try:
         response = session.post(user_management_api_base_url + method, data=json.dumps(payload))
     except requests.exceptions.RequestException:
-        raise common.FwoApiLoginFailed ("fwo_api: error during login to url: " + str(user_management_api_base_url) + " with user " + user + ", proxies: " + str(fwo_globals.proxy)) from None
+        raise common.FwoApiLoginFailed ("fwo_api: error during login to url: " + str(user_management_api_base_url) + " with user " + user) from None
 
     if response.text is not None and response.status_code==200:
         return response.text

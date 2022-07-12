@@ -9,8 +9,8 @@ parser.add_argument('-u', '--user', metavar='api_user', default='fworch',
                     help='user for connecting to Check Point R8x management server, default=fworch')
 parser.add_argument('-p', '--port', metavar='api_port', default='443',
                     help='port for connecting to Check Point R8x management server, default=443')
-parser.add_argument('-x', '--proxy', metavar='proxy_string', default='',
-                    help='proxy server string to use, e.g. 1.2.3.4:8080; default=empty')
+# parser.add_argument('-x', '--proxy', metavar='proxy_string', default='',
+#                     help='proxy server string to use, e.g. 1.2.3.4:8080; default=empty')
 parser.add_argument('-l', '--layer', metavar='policy_layer_name(s)', required=True,
                     help='name of policy layer to create rules in')
 parser.add_argument('-n', '--number_of_test_objs', metavar='number_of_objs_to_create', default=3,
@@ -21,7 +21,7 @@ args = parser.parse_args()
 
 api_host = args.hostname
 api_password = args.password
-proxy_string = {"http": args.proxy, "https": args.proxy}
+# proxy_string = {"http": args.proxy, "https": args.proxy}
 offset = 0
 limit = 100
 details_level = "full"  # 'standard'
@@ -38,8 +38,7 @@ def api_call(ip_addr, port, command, json_payload, sid_a):
         request_headers = {'Content-Type': 'application/json'}
     else:
         request_headers = {'Content-Type': 'application/json', 'X-chkp-sid': sid_a}
-    r = requests.post(url, data=json.dumps(json_payload), headers=request_headers, verify=ssl_verification,
-                      proxies=proxy_string)
+    r = requests.post(url, data=json.dumps(json_payload), headers=request_headers, verify=ssl_verification)
     return r.json()
 
 

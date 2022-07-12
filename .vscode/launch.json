@@ -54,7 +54,7 @@
                 "-d4",
                 "-f",
                 "-s",
-                "-xhttp://admffm:3128",
+                //"-xhttp://admffm:3128",
                 //"-ihttps://fwodemodata.cactus.de/big/4krulescp_038cbb702e17b79e4f1cfe7a95076d5d.json"
                 //"-xhttp://10.6.1.10:3128",
                 "-ihttps://fwodemodata.cactus.de/demo04_cpr8x.json"

@@ -90,7 +90,7 @@ class ImportRecursionLimitReached(Exception):
 #     trigger import from json into csv and from there into destination tables
 #     release mgmt for import via FWORCH API call (also removing import_id y data from import_tables?)
 #     no changes: remove import_control?
-def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0, proxy_in=None, 
+def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0, 
         in_file=None, limit=150, force=False, clearManagementData=False, suppress_cert_warnings_in=None):
 
     error_count = 0
@@ -117,8 +117,7 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0, prox
         return "unspecified error during FWO API login"
 
     # set global https connection values
-    fwo_globals.setGlobalValues (proxy_in=proxy_in, suppress_cert_warnings_in=suppress_cert_warnings_in, 
-        verify_certs_in=ssl_verification, fwo_api_url=fwo_config['fwo_api_base_url'])
+    fwo_globals.setGlobalValues (suppress_cert_warnings_in=suppress_cert_warnings_in, verify_certs_in=ssl_verification)
     if fwo_globals.verify_certs is None:    # not defined via parameter
         fwo_globals.verify_certs = fwo_api.get_config_value(fwo_config['fwo_api_base_url'], jwt, key='importCheckCertificates')=='True'
     if fwo_globals.suppress_cert_warnings is None:    # not defined via parameter

@@ -5,15 +5,15 @@ debug_level=0
 
 
 def setGlobalValues (
-        proxy_in=None,
+        # proxy_in=None,
         verify_certs_in=None, 
         suppress_cert_warnings_in=None,
         debug_level_in = 0,
-        fwo_api_url = None
+        # fwo_api_url = None
     ):
     global verify_certs
     global suppress_cert_warnings
-    global proxy
+    # global proxy
     global debug_level
     verify_certs = verify_certs_in
     suppress_cert_warnings = suppress_cert_warnings_in

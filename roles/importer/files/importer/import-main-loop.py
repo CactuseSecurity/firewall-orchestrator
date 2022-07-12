@@ -30,8 +30,8 @@ if __name__ == '__main__':
         description='Run import loop across all managements to read configuration from FW managements via API calls')
     parser.add_argument('-d', '--debug', metavar='debug_level', default='0',
                         help='Debug Level: 0=off, 1=send debug to console, 2=send debug to file, 3=keep temporary config files; default=0')
-    parser.add_argument('-x', '--proxy', metavar='proxy_string',
-                        help='proxy server string to use, e.g. http://1.2.3.4:8080')
+    # parser.add_argument('-x', '--proxy', metavar='proxy_string',
+    #                     help='proxy server string to use, e.g. http://1.2.3.4:8080')
     parser.add_argument('-v', "--verify_certificates", action='store_true', default = None, 
                         help = "verify certificates")
     parser.add_argument('-s', "--suppress_certificate_warnings", action='store_true', default = None, 
@@ -46,9 +46,9 @@ if __name__ == '__main__':
     fwo_config = fwo_config.readConfig()
     fwo_globals.setGlobalValues(verify_certs_in=args.verify_certificates, 
         suppress_cert_warnings_in=args.suppress_certificate_warnings,
-        proxy_in=args.proxy,
-        debug_level_in=args.debug,
-        fwo_api_url=fwo_config['fwo_api_base_url'])
+        # proxy_in=args.proxy,
+        debug_level_in=args.debug)
+        # fwo_api_url=fwo_config['fwo_api_base_url'])
     if args.suppress_certificate_warnings:
         requests.packages.urllib3.disable_warnings()
 

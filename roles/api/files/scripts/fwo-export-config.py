@@ -36,8 +36,6 @@ parser.add_argument('-u', '--user', metavar='user_name', default='admin', help='
 parser.add_argument('-p', '--password', metavar='password_file', default=base_dir + '/etc/secrets/ui_admin_pwd', help='username for getting fworch config (default=$FWORCH_HOME/etc/secrets/ui_admin_pwd')
 parser.add_argument('-d', '--debug', metavar='debug_level', default='0',
                     help='Debug Level: 0=off, 1=send debug to console, 2=send debug to file, 3=keep temporary config files; default=0')
-# parser.add_argument('-x', '--proxy', metavar='proxy_string',
-#                     help='proxy server string to use, e.g. http://1.2.3.4:8080')
 parser.add_argument('-s', '--ssl', metavar='ssl_verification_mode', default='',
                     help='[ca]certfile, if value not set, ssl check is off"; default=empty/off')
 parser.add_argument('-f', '--format', metavar='output_format', default='graphql',

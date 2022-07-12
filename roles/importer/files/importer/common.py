@@ -169,7 +169,6 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0,
                         session = requests.Session()
                         session.headers = { 'Content-Type': 'application/json' }
                         session.verify=fwo_globals.verify_certs
-                        # session.proxies=fwo_globals.proxy     # using os environment
                         r = session.get(in_file, )
                         r.raise_for_status()
                         full_config_json = json.loads(r.content)

@@ -32,7 +32,7 @@ def cp_api_call(url, command, json_payload, sid, show_progress=False):
         logger.debug("using sid: " + sid )
 
     try:
-         r = requests.post(url, json=json_payload, headers=request_headers, verify=fwo_globals.verify_certs) # , proxies=fwo_globals.proxy)
+         r = requests.post(url, json=json_payload, headers=request_headers, verify=fwo_globals.verify_certs)
     except requests.exceptions.RequestException as e:
         raise Exception("error, url: " + str(url))
         
@@ -64,7 +64,7 @@ def login(user, password, api_host, api_port, domain):
     if "sid" not in response:
         exception_text = "\ngetter ERROR: did not receive a sid during login, " + \
             "api call: api_host: " + str(api_host) + ", api_port: " + str(api_port) + ", base_url: " + str(base_url) + \
-            ", ssl_verification: " + str(fwo_globals.verify_certs) # + ", proxy_string: " + str(fwo_globals.proxy)
+            ", ssl_verification: " + str(fwo_globals.verify_certs)
         raise  FwLoginFailed(exception_text)
     return response["sid"]
 

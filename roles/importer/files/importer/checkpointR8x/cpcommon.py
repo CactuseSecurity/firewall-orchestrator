@@ -81,7 +81,7 @@ def get_basic_config (config_json, mgm_details, force=False, config_filename=Non
 
     # top level dict start, sid contains the domain information, so only sending domain during login
     if sid is None:  # if sid was not passed, login and get it
-        sid = getter.login(api_user,api_password,api_host,api_port,api_domain,ssl_verification) # , proxy)
+        sid = getter.login(api_user,api_password,api_host,api_port,api_domain,ssl_verification)
     v_url = getter.get_api_url (sid, api_host, api_port, api_user, base_url, limit, test_version, ssl_verification, debug_level=debug_level)
 
     config_json.update({'rulebases': [], 'nat_rulebases': [] })

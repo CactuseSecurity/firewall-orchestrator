@@ -20,7 +20,7 @@ def api_call(url, command, json_payload, sid, show_progress=False, method=''):
         method = 'get'
     json_payload.update({"method": method})
 
-    r = requests.post(url, data=json.dumps(json_payload), headers=request_headers, verify=fwo_globals.verify_certs) # , proxies=fwo_globals.proxy)
+    r = requests.post(url, data=json.dumps(json_payload), headers=request_headers, verify=fwo_globals.verify_certs)
     if r is None:
         if 'pass' in json.dumps(json_payload):
             exception_text = "error while sending api_call containing credential information to url '" + str(url)

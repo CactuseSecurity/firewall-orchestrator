@@ -22,7 +22,6 @@ parser.add_argument('password', metavar='api_password', help='password for manag
 parser.add_argument('-u', '--user', metavar='api_user', default='itsecorg', help='user for connecting to Check Point R8x management server, default=itsecorg')
 parser.add_argument('-p', '--port', metavar='api_port', default='443', help='port for connecting to Check Point R8x management server, default=443')
 parser.add_argument('-v', '--version', metavar='api_version', default='', help='api version to use for connecting to Check Point R8x management server, default=empty, meaning latest api version, valid values: 1.0, 1.1, 1.2, ... ')
-# parser.add_argument('-x', '--proxy', metavar='proxy_string', default='', help='proxy server string to use, e.g. 1.2.3.4:8080; default=empty')
 args = parser.parse_args()
 
 api_host=args.hostname
@@ -32,7 +31,6 @@ if args.version == '':
 else:
     api_version='v' + args.version
 
-# proxy_string = { "http"  : args.proxy, "https" : args.proxy }
 details_level="full"    # 'standard'
 ssl_verification=True
 use_object_dictionary='false'
@@ -44,7 +42,7 @@ def api_call(ip_addr, port, command, json_payload, sid):
         request_headers = {'Content-Type' : 'application/json'}
     else:
         request_headers = {'Content-Type' : 'application/json', 'X-chkp-sid' : sid}
-    r = requests.post(url, data=json.dumps(json_payload), headers=request_headers, verify=ssl_verification) # , proxies=proxy_string)
+    r = requests.post(url, data=json.dumps(json_payload), headers=request_headers, verify=ssl_verification)
     return r.json()
 
 def login(user,password,api_host,api_port):

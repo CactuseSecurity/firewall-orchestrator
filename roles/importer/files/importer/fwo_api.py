@@ -12,7 +12,6 @@ import datetime
 import common
 from fwo_log import getFwoLogger
 import fwo_globals
-import os
 
 details_level = "full"    # 'standard'
 use_object_dictionary = 'false'
@@ -48,7 +47,6 @@ def call(url, jwt, query, query_variables="", role="reporter", show_progress=Fal
         session.verify = False
     else: 
         session.verify = fwo_globals.verify_certs
-    # session.proxies = fwo_globals.proxy
     session.headers = request_headers
 
     try:
@@ -79,7 +77,6 @@ def login(user, password, user_management_api_base_url, method='api/Authenticati
         session.verify = False
     else: 
         session.verify = fwo_globals.verify_certs
-    # session.proxies = fwo_globals.proxy - using os settings
     session.headers = request_headers
 
     try:
@@ -92,7 +89,7 @@ def login(user, password, user_management_api_base_url, method='api/Authenticati
     else:
         error_txt = "fwo_api: ERROR: did not receive a JWT during login" + \
                         ", api_url: " + str(user_management_api_base_url) + \
-                        ", ssl_verification: " + str(fwo_globals.verify_certs) # + ", proxy_string: " + str(fwo_globals.proxy)
+                        ", ssl_verification: " + str(fwo_globals.verify_certs)
         raise common.FwoApiLoginFailed(error_txt)
 
 

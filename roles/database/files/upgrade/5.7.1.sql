@@ -1,4 +1,9 @@
 -- create schema
+-- to re-init request module database changes, manually issue the following commands before upgrading to 5.7.1:
+-- drop schema implementation CASCADE;
+-- drop schema request CASCADE;
+-- note: this will delete all ticket data
+
 create schema if not exists request;
 create schema if not exists implementation;
 
@@ -314,3 +319,5 @@ DO $do$ BEGIN
         END IF;
     END IF;
 END $do$ 
+
+insert into config (config_key, config_value, config_user) VALUES ('sessionTimeoutNoticePeriod', '60', 0) ON CONFLICT DO NOTHING;

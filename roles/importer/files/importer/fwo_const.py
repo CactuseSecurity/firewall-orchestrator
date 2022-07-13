@@ -21,6 +21,7 @@ fwo_config_filename = base_dir + '/etc/fworch.json'
 importer_pwd_file = base_dir + '/etc/secrets/importer_pwd'
 import_tmp_path = base_dir + '/tmp/import'
 fwo_config_filename = base_dir + '/etc/fworch.json'
+max_recursion_level = 25 # do not call a function recursively more than this
 
 # how many objects (network, services, rules, ...) should be sent to the FWO API in one go?
 # should be between 500 and 2.000 in production (results in a max obj number of max. 5 x this value - nwobj/svc/rules/...)

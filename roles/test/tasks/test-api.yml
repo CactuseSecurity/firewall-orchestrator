@@ -3,7 +3,7 @@
 # - block:
 #   - name: test api health
 #     uri:
-#       url: https://{{ api_ip_address }}:{{ api_web_port }}/api/healthz
+#       url: https://{{ api_hostname }}:{{ api_web_port }}/api/healthz
 #       method: GET
 #       headers:
 #         Content-Type: application/json
@@ -24,7 +24,7 @@
 
 - name: test api version
   uri:
-    url: https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/version
+    url: https://{{ api_hostname }}:{{ api_web_port }}/api/v1/version
     method: GET
     headers:
       Content-Type: application/json
@@ -44,7 +44,7 @@
 
 - name: test anonymous api access
   uri:
-    url: https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql
+    url: https://{{ api_hostname }}:{{ api_web_port }}/api/v1/graphql
     method: POST
     headers:
       Content-Type: application/json
@@ -81,7 +81,7 @@
 
 - name: test anonymous api access with JWT
   uri:
-    url: https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql
+    url: https://{{ api_hostname }}:{{ api_web_port }}/api/v1/graphql
     method: POST
     headers:
       Content-Type: application/json
@@ -114,7 +114,7 @@
 
 - name: test hasura-admin api access
   uri:
-    url: https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql
+    url: https://{{ api_hostname }}:{{ api_web_port }}/api/v1/graphql
     method: POST
     headers:
       Content-Type: application/json

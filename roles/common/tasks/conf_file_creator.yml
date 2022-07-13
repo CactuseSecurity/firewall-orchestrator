@@ -35,7 +35,7 @@
         product_version: "{{ product_version }}"
         fworch_home: "{{ fworch_home }}"
         dotnet_mode: "{{ dotnet_mode }}" 
-        api_uri: "https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql"
+        api_uri: "https://{{ api_hostname }}:{{ api_web_port }}/api/v1/graphql"
         api_hasura_jwt_alg: "{{ api_hasura_jwt_alg }}"
         middleware_native_uri: "http://{{ middleware_hostname }}:{{ middleware_internal_port }}/"
         middleware_uri: "{{ middleware_uri }}"

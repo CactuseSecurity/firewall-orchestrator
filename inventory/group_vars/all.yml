@@ -7,6 +7,21 @@ ansible_python_interpreter: /usr/bin/python3
 ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 product_name: fworch
 
+### host information
+ui_server: "{{ groups['frontends'].0 }}" #todo: this could be more then one
+middleware_server: "{{ groups['middlewareserver'].0 }}"
+log_server: "{{ groups['logserver'].0 }}"
+databaseserver_server: "{{ groups['databaseserver'].0 }}"
+importer_server: "{{ groups['importers'].0 }}" #todo: this could be more then one
+api_server: "{{ groups['apiserver'].0 }}"
+
+ui_hostname: "{{ hostvars[ui_server]['ansible_facts']['fqdn'] }}"
+middleware_hostname: "{{ hostvars[middleware_server]['ansible_facts']['fqdn'] }}"
+syslog_host: "{{ hostvars[log_server]['ansible_facts']['fqdn'] }}"
+fworch_db_host: "{{ hostvars[databaseserver_server]['ansible_facts']['fqdn'] }}"
+importer_hostname: "{{ hostvars[importer_server]['ansible_facts']['fqdn'] }}"
+api_hostname: "{{ hostvars[api_server]['ansible_facts']['fqdn'] }}"
+
 # installation_mode options:
 #   new (default) - assumes that no fworch is installed on the target devices - fails if it finds an installation
 #   uninstall     - runs uninstall-fworch.yml
@@ -49,7 +64,7 @@ proxy_env:
 test_packages:
   - postgresql-client
   - curl
-server_admin: "root@{{ api_ip_address }}"
+server_admin: "root@{{ api_hostname }}"
 arch: x86_64
 redhat_major_version: "8"
 redhat_arch: "{{ redhat_major_version }}-{{ arch }}"
@@ -71,12 +86,11 @@ middleware_service_name: "{{ product_name }}-middleware"
 
 
 # middleware web server
-middleware_server_name: 127.0.0.1
 middleware_web_listener_port: 8888
-middleware_uri: "https://{{ middleware_server_name }}:{{ middleware_web_listener_port }}/"
+middleware_uri: "https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/"
 ##### application server data
 middleware_internal_port: 8880
-# currently not used: web_server_name: "{{ middleware_server_name }}"
+# currently not used: web_server_name: "{{ middleware_hostname }}"
 
 ui_admin_password_file: "{{ fworch_secrets_dir }}/ui_admin_pwd"
 ui_admin_testonly_password: "fworch.1"
@@ -84,11 +98,10 @@ ui_admin_testonly_password: "fworch.1"
 ### database & api
 api_service_name: fworch-hasura-docker-api
 api_container_name: "{{ product_name }}-api"
-api_ip_address: "127.0.0.1"
 api_web_port: 9443
 api_hasura_jwt_alg: "RS256"
 api_hasura_jwt_secret: "fake-jwt-secret-for-github-install"
-api_uri: "https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql"
+api_uri: "https://{{ api_hostname }}:{{ api_web_port }}/api/v1/graphql"
 
 ### dotnet
 dotnet_deb_name: "packages-microsoft-prod.deb"

@@ -57,14 +57,6 @@
     loop:
       - bin
 
-  - name: read host information from hosts.yml
-    set_fact:
-      ui_hostname: hostvars['{{ groups['frontends'].0 }}']['ansible_facts']['fqdn']
-      middleware_hostname: hostvars['{{ groups['middlewareserver'].0 }}']['ansible_facts']['fqdn']
-      syslog_host: hostvars['{{ groups['logserver'].0 }}']['ansible_facts']['fqdn']
-      fworch_db_host: hostvars['{{ groups['databaseserver'].0 }}']['ansible_facts']['fqdn']
-      importer_hostname: hostvars['{{ groups['importers'].0 }}']['ansible_facts']['fqdn'] #todo: this could be more then one
-
   - name: include redhat install basics
     include_tasks: redhat_preps.yml
     when: installation_mode == "new" and ansible_os_family == "RedHat"

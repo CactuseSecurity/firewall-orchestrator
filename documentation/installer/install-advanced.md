@@ -44,7 +44,7 @@ If instead you need to individually need to set a proxy before installation/upgr
 export http_proxy=http://proxy.int:3128
 export https_proxy=http://proxy.int:3128
 export no_proxy=127.0.0.1,localhost
-ansible-playbook -e "http_proxy=http://proxy.int:3128 https_proxy=http://proxy.int:3128 no_proxy=127.0.0.1,localhost" site.yml -K
+ansible-playbook site.yml -K
 ```
 
 Use the following syntax for authenticated proxy access:

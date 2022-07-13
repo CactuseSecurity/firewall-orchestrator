@@ -27,20 +27,29 @@ installation_mode options:
 
 ### Installation behind a proxy (no direct Internet connection)
 
-e.g. with IP 1.2.3.4, listening on port 3128<br>
-
-All proxy configuration must be mode in the operating system's environment, e.g. create a file /etc/profile.d/proxy.sh with the following content:
+By default, during installation or upgrade the proxy settings are read from the OS environment of the installer host.
+For example you may have a global system-wide config file /etc/profile.d/proxy.sh with the following content:
 
 ```console
 export http_proxy=http://proxy.int:3128
 export https_proxy=http://proxy.int:3128
 export no_proxy=127.0.0.1,localhost
-
 ```
 
-use the following syntax for authenticated proxy access:
+Also make sure that your proxy is configured in your .gitconfig to be able to do the initial repo cloning.
+See https://gist.github.com/evantoli/f8c23a37eb3558ab8765.
 
-    http_proxy=http://USERNAME:PASSWORD@1.2.3.4:8080/
+If instead you need to individually need to set a proxy before installation/upgrade, use the following comamnds in your terminal:
+```console
+export http_proxy=http://proxy.int:3128
+export https_proxy=http://proxy.int:3128
+export no_proxy=127.0.0.1,localhost
+ansible-playbook -e "http_proxy=http://proxy.int:3128 https_proxy=http://proxy.int:3128 no_proxy=127.0.0.1,localhost" site.yml -K
+```
+
+Use the following syntax for authenticated proxy access:
+
+    export http_proxy=http://USERNAME:PASSWORD@proxy.int:8080/
 
 Note that the following domains must be reachable through the proxy:
 
@@ -80,7 +89,7 @@ ansible-playbook -e "install_syslog=no" site.yml -K
 
 Here is a sample config you can use for configuring your already running syslog:
 
-variables:
+variables (already set in inventory):
 ```console
 product_name: fworch
 middleware_server_syslog_id: "{{ product_name }}.middleware-server"
@@ -145,7 +154,9 @@ ansible-playbook -e "api_docu=yes" site.yml -K
 
 api docu can then be accessed at <https://server/api_schema/index.html>
 
-## User interface communication modes
+## User interface 
+
+### Communication modes
 
 The following options exist for communication to the UI:
 - standard: with http-->https rewrite and websockets (this is the default value)
@@ -158,7 +169,7 @@ Example:
 ansible-playbook -e "ui_comm_mode=no_ws" site.yml -K
 ```
 
-## User interface server name and aliases
+### Specifying server name and aliases
 
 To make sure that firewall orchestrator UI webserver responds to the correct DNS name, you may add the following parameters:
 
@@ -171,7 +182,7 @@ Example to set fwodemo.cactus.de and two additional aliases as websrver names:
 ansible-playbook -e "ui_server_name=fwodemo.cactus.de ui_server_alias=' fwo1.cactus.de fwo2.cactus.de'" site.yml -K
 ```
 
-## User interface Server Alias string
+### Server Alias string
 
 To be able to configure your webserver name, you may add the following parameter:
 
@@ -201,7 +212,7 @@ put the hosts into the correct section (`[frontends]`, `[backends]`, `[importers
 
 make sure all target hosts meet the requirements for ansible (user with pub key auth & full sudo rights)
 
-modify isohome/etc/iso.conf on frontend(s):
+modify isohome/etc/iso.conf on frontend(s) - only needed for legacy (perl-based) importers:
 
 enter the address of the database backend server, e.g.
 

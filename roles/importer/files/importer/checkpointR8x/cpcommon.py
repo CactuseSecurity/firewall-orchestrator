@@ -68,7 +68,7 @@ def get_ip_of_obj(obj, mgm_id=None):
 ##################### 2nd-level functions ###################################
 
 def get_basic_config (config_json, mgm_details, force=False, config_filename=None,
-    proxy=None, limit=150, details_level='full', test_version='off', debug_level=0, ssl_verification=True, sid=None):
+    limit=150, details_level='full', test_version='off', debug_level=0, ssl_verification=True, sid=None):
     logger = getFwoLogger()
 
     api_host = mgm_details['hostname']
@@ -81,8 +81,8 @@ def get_basic_config (config_json, mgm_details, force=False, config_filename=Non
 
     # top level dict start, sid contains the domain information, so only sending domain during login
     if sid is None:  # if sid was not passed, login and get it
-        sid = getter.login(api_user,api_password,api_host,api_port,api_domain,ssl_verification, proxy)
-    v_url = getter.get_api_url (sid, api_host, api_port, api_user, base_url, limit, test_version, ssl_verification, proxy, debug_level=debug_level)
+        sid = getter.login(api_user,api_password,api_host,api_port,api_domain,ssl_verification)
+    v_url = getter.get_api_url (sid, api_host, api_port, api_user, base_url, limit, test_version, ssl_verification, debug_level=debug_level)
 
     config_json.update({'rulebases': [], 'nat_rulebases': [] })
     show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary,'details-level':details_level}

@@ -12,7 +12,7 @@ This includes:
 Note: the relevant secrets are displayed at the very end of the installation. They can also be found in the etc/secrets directory.
 
 ```console
-sudo ansible-playbook/ site.yml -e "testkeys=yes" -K
+ansible-playbook/ site.yml -e "testkeys=yes" -K
 ```
 
 A static jwt key helps with debugging c# code in visual studio (code) - you can use a static backend (ldap & api) with these keys.

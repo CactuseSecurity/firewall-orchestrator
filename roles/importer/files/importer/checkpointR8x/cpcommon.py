@@ -189,7 +189,7 @@ def enrich_config (config, mgm_details, limit=150, details_level='full', noapi=F
     while found_new_inline_layers is True:
         # sweep existing rules for inline layer links
         inline_layers = []
-        for rulebase in config['rulebases']:
+        for rulebase in config['rulebases'] + config['nat_rulebases']:
             getter.get_inline_layer_names_from_rulebase(rulebase, inline_layers)
 
         if len(inline_layers) == len(old_inline_layers):
@@ -212,7 +212,7 @@ def enrich_config (config, mgm_details, limit=150, details_level='full', noapi=F
     nw_uids_from_rulebase = []
     svc_uids_from_rulebase = []
 
-    for rulebase in config['rulebases']:
+    for rulebase in config['rulebases'] + config['nat_rulebases']:
         if fwo_globals.debug_level>5:
             logger.debug ( "Searching for all uids in rulebase: " + rulebase['layername'] )
         getter.collect_uids_from_rulebase(rulebase, nw_uids_from_rulebase, svc_uids_from_rulebase, "top_level")

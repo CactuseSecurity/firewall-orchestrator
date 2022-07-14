@@ -50,14 +50,14 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m13",
+                "-m52",
                 "-d4",
                 "-f",
-                "-s",
+                "-s"
                 //"-xhttp://admffm:3128",
                 //"-ihttps://fwodemodata.cactus.de/big/4krulescp_038cbb702e17b79e4f1cfe7a95076d5d.json"
                 //"-xhttp://10.6.1.10:3128",
-                "-ihttps://fwodemodata.cactus.de/demo04_cpr8x.json"
+                //"-ihttps://fwodemodata.cactus.de/demo04_cpr8x.json"
                 //"-c",
                 //  41 - lab fortimanager
                 //"-i/home/tim/Downloads/mgm_id_9_config_native.json.anon"

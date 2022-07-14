@@ -14,5 +14,5 @@ def setGlobalValues (
     global debug_level
     verify_certs = verify_certs_in
     suppress_cert_warnings = suppress_cert_warnings_in
-    debug_level = debug_level_in
+    debug_level = int(debug_level_in)
  

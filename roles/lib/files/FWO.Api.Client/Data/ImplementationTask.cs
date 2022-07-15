@@ -14,9 +14,6 @@ namespace FWO.Api.Data
         [JsonProperty("implementation_task_number"), JsonPropertyName("implementation_task_number")]
         public int ImplTaskNumber { get; set; }
 
-        [JsonProperty("device_id"), JsonPropertyName("device_id")]
-        public int? DeviceId { get; set; }
-
         [JsonProperty("implementation_action"), JsonPropertyName("implementation_action")]
         public string ImplAction { get; set; } = FWO.Api.Data.RequestAction.create.ToString();
 

@@ -51,7 +51,8 @@ create table if not exists request.task
     assigned_group varchar,
 	target_begin_date Timestamp,
 	target_end_date Timestamp,
-	fw_admin_comments varchar
+	fw_admin_comments varchar,
+    device_id int
 );
 
 create table if not exists request.element 
@@ -249,6 +250,7 @@ ALTER TABLE request.task ADD CONSTRAINT request_task_object_foreign_key FOREIGN 
 ALTER TABLE request.task ADD CONSTRAINT request_task_usergrp_foreign_key FOREIGN KEY (user_grp_id) REFERENCES usr(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.task ADD CONSTRAINT request_task_handler_foreign_key FOREIGN KEY (current_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.task ADD CONSTRAINT request_task_recent_handler_foreign_key FOREIGN KEY (recent_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.task ADD CONSTRAINT request_task_device_foreign_key FOREIGN KEY (device_id) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- request.element ---
 ALTER TABLE request.element ADD CONSTRAINT request_element_request_task_foreign_key FOREIGN KEY (task_id) REFERENCES request.task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.element ADD CONSTRAINT request_element_proto_foreign_key FOREIGN KEY (ip_proto_id) REFERENCES stm_ip_proto(ip_proto_id) ON UPDATE RESTRICT ON DELETE CASCADE;
@@ -340,6 +342,7 @@ insert into config (config_key, config_value, config_user) VALUES ('sessionTimeo
 insert into config (config_key, config_value, config_user) VALUES ('stateMatrix', '{"config_value":{"0":{"matrix":{"0":[0,49,620],"49":[49,620],"620":[620]},"derived_states":{"0":0,"49":49,"620":620},"lowest_input_state":0,"lowest_start_state":0,"lowest_end_state":49,"active":true},"1":{"matrix":{"49":[60],"60":[60,99,610],"99":[99],"610":[610]},"derived_states":{"49":49,"60":60,"99":99,"610":610},"lowest_input_state":49,"lowest_start_state":60,"lowest_end_state":99,"active":true},"2":{"matrix":{"99":[110],"110":[110,120,130,149],"120":[120,110,130,149],"130":[130,110,120,149,610],"149":[149],"610":[610]},"derived_states":{"99":99,"110":110,"120":110,"130":110,"149":149,"610":610},"lowest_input_state":99,"lowest_start_state":110,"lowest_end_state":149,"active":true},"3":{"matrix":{"149":[160],"160":[160,199,610],"199":[199],"610":[610]},"derived_states":{"149":149,"160":160,"199":199,"610":610},"lowest_input_state":149,"lowest_start_state":160,"lowest_end_state":199,"active":false},"4":{"matrix":{"149":[210],"210":[210,220,249],"220":[220,210,249,610],"249":[249],"610":[610]},"derived_states":{"149":149,"210":210,"220":210,"249":249,"610":610},"lowest_input_state":149,"lowest_start_state":210,"lowest_end_state":249,"active":true},"5":{"matrix":{"249":[260],"260":[260,270,299],"270":[210,270,260,299,610],"299":[299],"610":[610]},"derived_states":{"249":249,"260":260,"270":260,"299":299,"610":610},"lowest_input_state":249,"lowest_start_state":260,"lowest_end_state":299,"active":true},"6":{"matrix":{"299":[310],"310":[310,349,400],"349":[349],"400":[400]},"derived_states":{"299":299,"310":310,"349":349,"400":400},"lowest_input_state":299,"lowest_start_state":310,"lowest_end_state":349,"active":false}}}', 0) ON CONFLICT DO NOTHING;
 insert into config (config_key, config_value, config_user) VALUES ('reqAvailableTaskTypes', '[0]', 0) ON CONFLICT DO NOTHING;
 insert into config (config_key, config_value, config_user) VALUES ('reqApprovalDeadline', '7', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('reqAutoCreateImplTasks', 'never', 0) ON CONFLICT DO NOTHING;
 
 insert into request.state (id,name) VALUES (0,'Draft') ON CONFLICT DO NOTHING;
 insert into request.state (id,name) VALUES (49,'Requested') ON CONFLICT DO NOTHING;

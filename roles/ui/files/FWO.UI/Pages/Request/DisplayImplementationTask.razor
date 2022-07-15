@@ -169,9 +169,6 @@
     public WorkflowPhases Phase { get; set; } = WorkflowPhases.planning;
 
     [Parameter]
-    public RequestDbAccess DbAcc { get; set; }
-
-    [Parameter]
     public StateMatrix StateMatrix { get; set; } = new StateMatrix();
 
     [Parameter]

@@ -144,19 +144,54 @@
                         TaskId="ReqTask.Id" EditMode="EditMode"></DisplayAccessElements>
                 }
 
-                <div class="form-group row">
-                    <label for="taskComment" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
-                    @if (PlanMode)
+                @if(!StateMatrix.PhaseActive[WorkflowPhases.planning] && userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask)
+                {
+                    <div class="form-group row">
+                        <label for="taskComment" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
+                        @if (PlanMode)
+                        {
+                            <div class="col-sm-8">
+                                <input id="taskComment" type="text" class="form-control form-control-sm" @bind="ReqTask.FwAdminComments" />
+                            </div>
+                        }
+                        else
+                        {
+                            <label class="col-sm-8">@ReqTask.FwAdminComments</label>
+                        }
+                    </div>
+                    <label for="taskDevId" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("device"))*:</label>
+                    @if (EditMode)
                     {
-                        <div class="col-sm-11">
-                            <input id="taskComment" type="text" class="form-control form-control-sm" @bind="ReqTask.FwAdminComments" />
+                        <div class="col-sm-2">
+                            <select id="taskDevId" class="form-control form-control-sm" @bind="ReqTask.DeviceId">
+                                @foreach (Device device in devices)
+                                {
+                                    <option value="@device.Id">@(device.Name)</option>
+                                }
+                            </select>
                         </div>
                     }
                     else
                     {
-                        <label class="col-sm-11">@ReqTask.FwAdminComments</label>
+                        <label class="col-sm-2">@(ReqTask.DeviceId != null && ReqTask.DeviceId != 0 ? devices[devices.FindIndex(x => x.Id == ReqTask.DeviceId)].Name : "")</label>
                     }
-                </div>
+                }
+                else
+                {
+                    <div class="form-group row">
+                        <label for="taskComment" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
+                        @if (PlanMode)
+                        {
+                            <div class="col-sm-11">
+                                <input id="taskComment" type="text" class="form-control form-control-sm" @bind="ReqTask.FwAdminComments" />
+                            </div>
+                        }
+                        else
+                        {
+                            <label class="col-sm-11">@ReqTask.FwAdminComments</label>
+                        }
+                    </div>
+                }
                 @if(Phase == WorkflowPhases.planning || ReqTask.ImplementationTasks.Count > 0)
                 {
                     <h5>@(userConfig.GetText("implementation_tasks"))</h5>
@@ -173,7 +208,7 @@
                                         @if (PlanMode && context.StateId < StateMatrix.LowestEndState)
                                         {
                                             <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => EditImplTask(context)">@(userConfig.GetText("edit"))</button>
-                                            <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteImplTask(context)">@(userConfig.GetText("delete"))</button>
+                                            <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => InitDeleteImplTask(context)">@(userConfig.GetText("delete"))</button>
                                         }
                                     </div>
                                 </Template>
@@ -239,9 +274,9 @@
     </Footer>
 </PopUp>
 
-<DisplayImplementationTask Phase="Phase" DbAcc="DbAcc" StateMatrix="StateMatrix" States="States" 
+<DisplayImplementationTask Phase="Phase" StateMatrix="StateMatrix" States="States" 
     @bind-Display="ShowImplTaskMode" EditMode="EditImplTaskMode" AddMode="AddImplTaskMode" 
-    AddImplTask="AddImplTaskToReqTask" ChangeImplTask="ChangeImplTaskInReqTask"
+    AddImplTask="ConfAddImplTaskToReqTask" ChangeImplTask="ConfChangeImplTaskInReqTask"
     @bind-ImplTask="actImplTask" ReqTask="ReqTask"></DisplayImplementationTask>
 
 <PromoteObject @bind-Promote="PromoteReqTaskMode" ObjectName="task" Save="ConfPromoteReqTask" StatefulObject="ReqTask" StateMatrix="StateMatrix" States="States"></PromoteObject>
@@ -255,9 +290,6 @@
     
     [Parameter]
     public WorkflowPhases Phase { get; set; } = WorkflowPhases.request;
-
-    [Parameter]
-    public RequestDbAccess DbAcc { get; set; }
 
     [Parameter]
     public StateMatrix StateMatrix { get; set; } = new StateMatrix();
@@ -294,6 +326,15 @@
 
     [Parameter]
     public Func<StatefulObject, RequestApproval, Task> ApproveTask { get; set; }
+
+    [Parameter]
+    public Func<ImplementationTask, Task> AddImplTaskToReqTask { get; set; }
+
+    [Parameter]
+    public Func<ImplementationTask, Task> ChangeImplTaskInReqTask { get; set; }
+
+    [Parameter]
+    public Func<ImplementationTask, Task> DeleteImplTask { get; set; }
 
     [Parameter]
     public RequestTask ReqTask { get; set; } = new RequestTask();
@@ -373,6 +414,13 @@
         EditImplTaskMode = false;
     }
 
+    private void ShowImplTask(ImplementationTask task)
+    {
+        actImplTask = task;
+        Reset();
+        ShowImplTaskMode = true;
+    }
+
     private void AddImplTask()
     {
         actImplTask = new ImplementationTask(ReqTask)
@@ -386,20 +434,10 @@
         ShowImplTaskMode = true;
     }
     
-    private async Task AddImplTaskToReqTask(ImplementationTask task)
+    private async Task ConfAddImplTaskToReqTask(ImplementationTask task)
     {
-        task.Id = await DbAcc.AddImplTaskToDb(task);
-        ReqTask.ImplementationTasks.Add(task);
         Reset();
-        StateHasChanged();
-    }
-
-    private async Task ChangeImplTaskInReqTask(ImplementationTask task)
-    {
-        await DbAcc.UpdateImplTaskInDb(task);
-        ReqTask.ImplementationTasks[ReqTask.ImplementationTasks.FindIndex(x => x.ImplTaskNumber == task.ImplTaskNumber)] = task;
-        Reset();
-        StateHasChanged();
+        await AddImplTaskToReqTask(task);
     }
 
     private void EditImplTask(ImplementationTask task)
@@ -410,14 +448,13 @@
         ShowImplTaskMode = true;
     }
 
-    private void ShowImplTask(ImplementationTask task)
+    private async Task ConfChangeImplTaskInReqTask(ImplementationTask task)
     {
-        actImplTask = task;
         Reset();
-        ShowImplTaskMode = true;
+        await ChangeImplTaskInReqTask(task);
     }
 
-    private void DeleteImplTask(ImplementationTask task)
+    private void InitDeleteImplTask(ImplementationTask task)
     {
         actImplTask = task;
         Reset();
@@ -426,9 +463,8 @@
 
     private async Task ConfDeleteImplTask()
     {
-        await DbAcc.DeleteImplTaskFromDb(actImplTask);
-        ReqTask.ImplementationTasks.Remove(actImplTask);
-        DeleteImplTaskMode = false;
+        Reset();
+        await DeleteImplTask(actImplTask);
     }
 
     private async Task InitPromoteReqTask()

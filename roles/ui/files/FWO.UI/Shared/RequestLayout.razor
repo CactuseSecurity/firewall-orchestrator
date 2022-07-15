@@ -1,56 +1,77 @@
 ﻿@using FWO.Config.Api
 @using FWO.Config.Api.Data
+@using FWO.Ui.Services
+@using FWO.Api.Client
 
 @inherits LayoutComponentBase
 @layout MainLayout
 
 @inject UserConfig userConfig
+@inject ApiConnection apiConnection
 
-<Sidebar PositionLeft="true" Collapsible="false" Resizeable="false" SidebarCssClass="navbar-dark bg-dark" @bind-Width="sidebarWidth">
-    <div class="m-2 mt-4">
-        <ul class="navbar-nav flex-column">
-            <li class="nav-item px-2">
-                <h5>@(userConfig.GetText("requests"))</h5>
-            </li>
-            <AuthorizeView Roles="admin, requester, auditor, fw-admin">
+@if(InitComplete)
+{
+    <Sidebar PositionLeft="true" Collapsible="false" Resizeable="false" SidebarCssClass="navbar-dark bg-dark" @bind-Width="sidebarWidth">
+        <div class="m-2 mt-4">
+            <ul class="navbar-nav flex-column">
+                <h4>@(userConfig.GetText("workflow"))</h4>
                 <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="request/tickets">
-                        <span class="oi oi-comment-square"></span> @(userConfig.GetText("tickets"))
-                    </NavLink>
+                    <h5>@(userConfig.GetText("requests"))</h5>
                 </li>
-            </AuthorizeView>
-            <AuthorizeView Roles="admin, approver, auditor, fw-admin">
-                <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="request/approvals">
-                        <span class="oi oi-check"></span> @(userConfig.GetText("approvals"))
-                    </NavLink>
-                </li>
-            </AuthorizeView>
-            <AuthorizeView Roles="admin, planner, auditor, fw-admin">
-                <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="request/plannings">
-                        <span class="oi oi-project"></span> @(userConfig.GetText("plannings"))
-                    </NavLink>
-                </li>
-            </AuthorizeView>
-            <AuthorizeView Roles="admin, implementer, auditor, fw-admin">
-                <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="request/implementations">
-                        <span class="oi oi-task"></span> @(userConfig.GetText("implementations"))
-                    </NavLink>
-                </li>
-            </AuthorizeView>
-            <AuthorizeView Roles="admin, reviewer, auditor, fw-admin">
-                <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="request/reviews">
-                        <span class="oi oi-check"></span> @(userConfig.GetText("reviews"))
-                    </NavLink>
-                </li>
-            </AuthorizeView>
-        </ul>
-    </div>
-</Sidebar>
-
+                @if(stateMatrix.PhaseActive[WorkflowPhases.request])
+                {
+                    <AuthorizeView Roles="admin, requester, auditor, fw-admin">
+                        <li class="nav-item px-2">
+                            <NavLink class="nav-link" href="request/tickets">
+                                <span class="oi oi-comment-square"></span> @(userConfig.GetText("tickets"))
+                            </NavLink>
+                        </li>
+                    </AuthorizeView>
+                }
+                @if(stateMatrix.PhaseActive[WorkflowPhases.approval])
+                {
+                    <AuthorizeView Roles="admin, approver, auditor, fw-admin">
+                        <li class="nav-item px-2">
+                            <NavLink class="nav-link" href="request/approvals">
+                                <span class="oi oi-check"></span> @(userConfig.GetText("approvals"))
+                            </NavLink>
+                        </li>
+                    </AuthorizeView>
+                }
+                @if(stateMatrix.PhaseActive[WorkflowPhases.planning])
+                {
+                    <AuthorizeView Roles="admin, planner, auditor, fw-admin">
+                        <li class="nav-item px-2">
+                            <NavLink class="nav-link" href="request/plannings">
+                                <span class="oi oi-project"></span> @(userConfig.GetText("plannings"))
+                            </NavLink>
+                        </li>
+                    </AuthorizeView>
+                }
+                @if(stateMatrix.PhaseActive[WorkflowPhases.implementation])
+                {
+                    <AuthorizeView Roles="admin, implementer, auditor, fw-admin">
+                        <li class="nav-item px-2">
+                            <NavLink class="nav-link" href="request/implementations">
+                                <span class="oi oi-task"></span> @(userConfig.GetText("implementations"))
+                            </NavLink>
+                        </li>
+                    </AuthorizeView>
+                }
+                @if(stateMatrix.PhaseActive[WorkflowPhases.review])
+                {
+                    <AuthorizeView Roles="admin, reviewer, auditor, fw-admin">
+                        <li class="nav-item px-2">
+                            <NavLink class="nav-link" href="request/reviews">
+                                <span class="oi oi-check"></span> @(userConfig.GetText("reviews"))
+                            </NavLink>
+                        </li>
+                    </AuthorizeView>
+                }
+            </ul>
+        </div>
+    </Sidebar>
+}
     
 <div style="margin-left: @($"{sidebarWidth + 20}px");">
     @Body
@@ -59,10 +80,14 @@
 @code
 {
     private int sidebarWidth = 250;
+    private StateMatrix stateMatrix = new StateMatrix();
+    private bool InitComplete = false;
     
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         userConfig.OnChange += OnChange;
+        await stateMatrix.Init(WorkflowPhases.request, apiConnection);
+        InitComplete = true;
     }
 
     private void OnChange(Config _, ConfigItem[] __)

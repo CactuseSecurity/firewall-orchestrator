@@ -18,7 +18,7 @@
 @if (InitComplete && configData != null)
 {
     <form class="form-inline" onsubmit="return false">
-        <label for="availableTaskTypes" class="col-form-label col-sm-2">@(userConfig.GetText("reqAvailableTaskTypes")):</label>
+        <label for="availableTaskTypes" class="col-form-label col-sm-3">@(userConfig.GetText("reqAvailableTaskTypes")):</label>
         @foreach (TaskType type in Enum.GetValues(typeof(TaskType)))
         {
             <div class="form-group col-sm-2">
@@ -28,11 +28,23 @@
         }
     </form>
     <form class="form-inline" onsubmit="return false">
-        <label for="approvalDeadline" class="col-form-label col-sm-2">@(userConfig.GetText("reqApprovalDeadline")):</label>
+        <label for="approvalDeadline" class="col-form-label col-sm-3">@(userConfig.GetText("reqApprovalDeadline")):</label>
         <div class="col-sm-2">
             <input id="approvalDeadline" type="number" class="form-control form-control-sm w-100" @bind="configData!.ReqApprovalDeadline" />
         </div>
     </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="autoCreateImplTasks" class="col-form-label col-sm-3">@(userConfig.GetText("reqAutoCreateImplTasks")):</label>
+        <div class="col-sm-2">
+            <select id="autoCreateImplTasks" class="form-control form-control-sm" @bind="configData!.ReqAutoCreateImplTasks">
+                @foreach (AutoCreateImplTaskOptions acitOption in Enum.GetValues(typeof(AutoCreateImplTaskOptions)))
+                {
+                    <option value="@acitOption">@(userConfig.GetText(acitOption.ToString()))</option>
+                }
+            </select>
+        </div>
+    </form>
+
     <hr />
     <AuthorizeView Roles="admin">
         <Authorized>

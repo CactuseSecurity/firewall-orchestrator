@@ -993,7 +993,8 @@ create table if not exists request.task
 	assigned_group varchar,
 	target_begin_date Timestamp,
 	target_end_date Timestamp,
-	fw_admin_comments varchar
+	fw_admin_comments varchar,
+	device_id int
 );
 
 create table if not exists request.element 

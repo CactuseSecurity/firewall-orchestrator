@@ -20,6 +20,8 @@ namespace FWO.Api.Data
 
     public class TaskBase : StatefulObject
     {
+        [JsonProperty("device_id"), JsonPropertyName("device_id")]
+        public int? DeviceId { get; set; }
 
         // [JsonProperty("task_number"), JsonPropertyName("task_number")]
         // public int TaskNumber { get; set; }
@@ -75,6 +77,7 @@ namespace FWO.Api.Data
 
         public TaskBase(TaskBase task) : base(task)
         {
+            DeviceId = task.DeviceId;
             // TaskNumber = task.TaskNumber;
             // TaskType = task.TaskType;
             // RequestAction = task.RequestAction;

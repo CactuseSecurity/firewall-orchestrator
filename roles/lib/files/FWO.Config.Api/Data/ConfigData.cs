@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using FWO.Api.Data;
 
 namespace FWO.Config.Api.Data
 {
@@ -103,6 +104,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("reqApprovalDeadline"), JsonPropertyName("reqApprovalDeadline")]
         public int ReqApprovalDeadline { get; set; } = 7;
+
+        [JsonProperty("reqAutoCreateImplTasks"), JsonPropertyName("reqAutoCreateImplTasks")]
+        public AutoCreateImplTaskOptions ReqAutoCreateImplTasks { get; set; } = AutoCreateImplTaskOptions.never;
 
 
         public ConfigData(bool editable = false)

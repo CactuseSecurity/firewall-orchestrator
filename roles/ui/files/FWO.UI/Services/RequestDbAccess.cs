@@ -604,12 +604,16 @@ namespace FWO.Ui.Services
                 taskStates.Add(tsk.StateId);
             }
             ticket.StateId = stateMatrix.getDerivedStateFromSubStates(taskStates);
+            await UpdateTicketState(ticket, requests, stateMatrix);
+        }
+
+        public async Task<List<RequestTicket>> UpdateTicketState(RequestTicket ticket, List<RequestTicket> requests, StateMatrix stateMatrix)
+        {
             if (stateMatrix.IsLastActivePhase && ticket.StateId >= stateMatrix.LowestEndState)
             {
                 ticket.CompletionDate = DateTime.Now;
             }
-
-            await UpdateTicketStateInDb(ticket, requests);
+            return await UpdateTicketStateInDb(ticket, requests);
         }
 
         public async Task<List<RequestTicket>> UpdateTicketStateInDb(RequestTicket ticket, List<RequestTicket> requests)

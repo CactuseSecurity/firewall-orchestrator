@@ -10,6 +10,15 @@ namespace FWO.Api.Data
         obj_group, 
         rule_modify
     }
+    
+    public enum AutoCreateImplTaskOptions
+    {
+        never, 
+        onlyForOneDevice, 
+        forEachDevice, 
+        enterInReqTask
+    }
+
 
     public class RequestTaskBase : TaskBase
     {

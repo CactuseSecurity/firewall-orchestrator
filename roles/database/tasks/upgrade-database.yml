@@ -43,8 +43,8 @@
 
 - name: include upgrades as postgresql_query is not available in all ansible versions
   include_tasks: upgrade_database_new.yml
-  when: ansible_version.string is version_compare('2.10', '>=')
+  when: ansible_version.string is version('2.10', '>=')
 
 - name: include upgrades as postgresql_query is not available in all ansible versions
   include_tasks: upgrade_database_old.yml
-  when: ansible_version.string is version_compare('2.10', '<=')
+  when: ansible_version.string is version('2.10', '<=')

@@ -207,14 +207,15 @@ def enrich_config (config, mgm_details, limit=150, details_level='full', noapi=F
     # next phase: how to logically link layer guard with rules in layer? --> AND of src, dst & svc between layer guard and each rule in layer?
 
     #################################################################################
-    # get object data which is only contained as uid in config by making addtional api calls
+    # get object data which is only contained as uid in config by making additional api calls
     # get all object uids (together with type) from all rules in fields src, dst, svc
     nw_uids_from_rulebase = []
     svc_uids_from_rulebase = []
 
     for rulebase in config['rulebases'] + config['nat_rulebases']:
         if fwo_globals.debug_level>5:
-            logger.debug ( "Searching for all uids in rulebase: " + rulebase['layername'] )
+            if 'layername' in rulebase:
+                logger.debug ( "Searching for all uids in rulebase: " + rulebase['layername'] )
         getter.collect_uids_from_rulebase(rulebase, nw_uids_from_rulebase, svc_uids_from_rulebase, "top_level")
 
     # remove duplicates from uid lists

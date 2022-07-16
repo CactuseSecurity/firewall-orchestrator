@@ -49,6 +49,12 @@ namespace FWO.Test
         }
 
         [Test]
+        public void NotEquals()
+        {
+            var res = Compiler.Compile("(text!=cactus)", ReportType.Rules);
+        }
+
+        [Test]
         public void ExactEquals()
         {
             var res = Compiler.Compile("(text==cactus)", ReportType.Rules);
@@ -78,6 +84,13 @@ namespace FWO.Test
         public void Disabled()
         {
             var res = Compiler.Compile("disabled == true", ReportType.Rules);
+        }
+
+
+        [Test]
+        public void Brackets()
+        {
+            var res = Compiler.Compile("src=a&(dst=c)", ReportType.Rules);
         }
     }
 }

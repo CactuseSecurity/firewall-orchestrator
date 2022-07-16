@@ -12,7 +12,7 @@ This includes:
 Note: the relevant secrets are displayed at the very end of the installation. They can also be found in the etc/secrets directory.
 
 ```console
-sudo ansible-playbook/ site.yml -e "testkeys=yes" -K
+ansible-playbook/ site.yml -e "testkeys=yes" -K
 ```
 
 A static jwt key helps with debugging c# code in visual studio (code) - you can use a static backend (ldap & api) with these keys.
@@ -33,6 +33,11 @@ Set debug level for extended debugging info during installation.
 
 ```console
 ansible-playbook site.yml -e "debug_level='2'" -K
+
+Set dotnet installation mode to "debug" as follows (default = Release)
+### Debugging dotnet applications
+```console
+ansible-playbook/ site.yml -e "dotnet_mode=Debug" -K
 ```
 ## Running integration tests after installation/upgrade
 

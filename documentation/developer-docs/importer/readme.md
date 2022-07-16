@@ -12,12 +12,12 @@ fw_module = importlib.import_module("." + fw_module_name, pkg_name)
 
 # get config from FW API and write it into config2import if it has changed:
 
-    config_changed_since_last_import = fw_module.has_config_changed(mgm_details, debug_level=debug_level, ssl_verification=ssl, proxy=proxy, force=force)
+    config_changed_since_last_import = fw_module.has_config_changed(mgm_details, debug_level=debug_level, ssl_verification=ssl, force=force)
 
     if config_changed_since_last_import:
         get_config_response = fw_module.get_config( 
                         config2import, full_config_json,  current_import_id, mgm_details, debug_level=debug_level, 
-                        ssl_verification=ssl, proxy=proxy, limit=limit, force=force, jwt=jwt)
+                        ssl_verification=ssl, limit=limit, force=force, jwt=jwt)
 
 # now we import config2import via the FWO API:
 error_count += fwo_api.import_json_config(fwo_api_base_url, jwt, args.mgm_id, {

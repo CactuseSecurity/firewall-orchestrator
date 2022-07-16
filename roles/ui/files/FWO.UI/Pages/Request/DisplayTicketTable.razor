@@ -5,8 +5,13 @@
 
 @inject UserConfig userConfig
 
+@if(Phase == WorkflowPhases.request)
+{
+    <button class="btn btn-success m-2" @onclick="AddTicket">@(userConfig.GetText("add_new_request"))</button>
+}
+
 <div class="m-2">
-    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="RequestTicket" Items="Requests" PageSize="0" ColumnReorder="true">
+    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="RequestTicket" Items="ReqHandler.TicketList" PageSize="0" ColumnReorder="true">
         <Column TableItem="RequestTicket" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
@@ -34,6 +39,9 @@
     </Table>
 </div>
 
+<DisplayTicket Phase="Phase" StateMatrix ="StateMatrix" States="States" ReqHandler="ReqHandler" ResetParent="Reset" 
+    StartPhase="StartPhase" StartImplPhase="StartImplPhase" AllImplTasks="AllImplTasks"/>
+
 
 @code
 {
@@ -44,17 +52,44 @@
     public WorkflowPhases Phase { get; set; } = WorkflowPhases.request;
 
     [Parameter]
-    public List<RequestTicket> Requests { get; set; } = new List<RequestTicket>();
+    public StateMatrix StateMatrix { get; set; } = new StateMatrix();
+
+    [Parameter]
+    public RequestStateDict States { get; set; } = new RequestStateDict();
+
+    [Parameter]
+    public RequestHandler ReqHandler { get; set; }
+
+    [Parameter]
+    public Func<Task> ResetParent { get; set; }
+
+    [Parameter]
+    public List<ImplementationTask>? AllImplTasks { get; set; }
 
     [Parameter]
     public Func<RequestTicket, Task> ShowTicketDetails { get; set; }
 
     [Parameter]
-    public Func<RequestTicket, Task>? EditTicket { get; set; }
+    public Func<RequestTask, Task>? StartPhase { get; set; }
 
     [Parameter]
-    public StateMatrix StateMatrix { get; set; } = new StateMatrix();
+    public Func<ImplementationTask, Task>? StartImplPhase { get; set; }
 
-    [Parameter]
-    public RequestStateDict States { get; set; } = new RequestStateDict();
+
+    private async Task Reset()
+    {
+        ReqHandler.ResetTicketActions();
+        await ResetParent();
+        StateHasChanged();
+    }
+
+    private async Task AddTicket()
+    {
+        ReqHandler.SelectTicket(new RequestTicket(), ObjAction.add);
+    }
+
+    private async Task EditTicket(RequestTicket ticket)
+    {
+        ReqHandler.SelectTicket(ticket, ObjAction.edit);
+    }
 }

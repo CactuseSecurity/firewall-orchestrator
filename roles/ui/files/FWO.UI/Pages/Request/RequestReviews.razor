@@ -11,13 +11,12 @@
 
 <h3>@(userConfig.GetText("reviews"))</h3>
 <hr />
-<DisplayOverview Phase="WorkflowPhases.review" Requests="requests" ShowTicketDetails="ShowTicketDetails" 
-    StateMatrix ="stateMatrix" States="states"></DisplayOverview>
-
-<DisplayTicket Phase="WorkflowPhases.review" DbAcc="dbAcc" StateMatrix ="stateMatrix" States="states"
-    ResetParent="Reset" StartImplPhase="StartReviewTask" SetContinueEnv="ContReviewTask" 
-    @bind-Display="ShowTicketMode" ImplementMode="ReviewTaskMode"
-    AllImplTasks="allImplTasks" @bind-Ticket="actTicket" @bind-Requests="requests"></DisplayTicket>
+@if(InitComplete)
+{
+    <DisplayTicketTable Phase="WorkflowPhases.review" StateMatrix ="stateMatrix" States="states" ReqHandler="reqHandler" 
+        ResetParent="Reset" AllImplTasks="allImplTasks"
+        ShowTicketDetails="ShowTicketDetails" StartImplPhase="StartReviewTask"/>
+}
 
 
 @code
@@ -25,18 +24,17 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
     
+    private RequestHandler reqHandler;
     private RequestDbAccess dbAcc;
-    private List<RequestTicket> requests = new List<RequestTicket>();
-
-    private bool ShowTicketMode = false;
-    private bool ReviewTaskMode = false;
-  
+    
     private RequestTicket actTicket = new RequestTicket();
     private List<ImplementationTask> allImplTasks = new List<ImplementationTask>();
+    private List<Device> devices = new List<Device>();
 
     private RequestStateDict states = new RequestStateDict();
     private List<int> actPossibleStates = new List<int>();
     private StateMatrix stateMatrix = new StateMatrix();
+    private bool InitComplete = false;
 
 
     protected override async Task OnInitializedAsync()
@@ -45,8 +43,14 @@
         {
             await stateMatrix.Init(WorkflowPhases.review, apiConnection);
             await states.Init(apiConnection);
+
             dbAcc = new RequestDbAccess(DisplayMessageInUi, userConfig, apiConnection){};
-            requests = await dbAcc.FetchTickets(stateMatrix);
+            devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
+            reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, dbAcc, stateMatrix, devices, WorkflowPhases.review){};
+            await reqHandler.Init();
+            reqHandler.SetContinueEnv(ObjAction.review);
+    
+            InitComplete = true;
         }
         catch (Exception exception)
         {
@@ -56,17 +60,14 @@
 
     private async Task Reset()
     {
-        ShowTicketMode = false;
-        ReviewTaskMode = false;
-        requests = await dbAcc.FetchTickets(stateMatrix);
-        StateHasChanged();
+        // await reqHandler.Init();
     }
 
     private async Task ShowTicketDetails(RequestTicket ticket)
     {
-        actTicket = ticket;
+        reqHandler.SetTicketEnv(ticket);
         allImplTasks = new List<ImplementationTask>();
-        foreach(var reqTask in actTicket.Tasks)
+        foreach(var reqTask in reqHandler.ActTicket.Tasks)
         {
             foreach(var implTask in reqTask.ImplementationTasks)
             {
@@ -74,8 +75,7 @@
                 allImplTasks.Add(implTask);
             }
         }
-        ShowTicketMode = true;
-        StateHasChanged();
+        reqHandler.SetTicketOpt(ObjAction.display);
     }
     
     private async Task StartReviewTask(ImplementationTask task)
@@ -87,13 +87,7 @@
             task.StateId = actPossibleStates[0];
         }
         await dbAcc.UpdateImplTaskStateInDb(task);
-        await dbAcc.UpdateTicketStateFromImplTasks(actTicket, requests, stateMatrix);
-        await ContReviewTask();
-    }
-
-    private async Task ContReviewTask()
-    {
-        ReviewTaskMode = true;
-        StateHasChanged();
+        await dbAcc.UpdateTicketStateFromImplTasks(reqHandler.ActTicket, reqHandler.TicketList, stateMatrix);
+        reqHandler.SetImplTaskOpt(ObjAction.review);
     }
 }

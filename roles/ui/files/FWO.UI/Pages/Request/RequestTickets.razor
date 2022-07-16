@@ -13,34 +13,23 @@
 <h3>@(userConfig.GetText("tickets"))</h3>
 <hr />
 
-<button class="btn btn-success m-2" @onclick="AddTicket">@(userConfig.GetText("add_new_request"))</button>
-
-<DisplayOverview Phase="WorkflowPhases.request" Requests="requests" ShowTicketDetails="ShowTicketDetails" 
-    EditTicket="EditTicket" StateMatrix ="stateMatrix" States="states"></DisplayOverview>
-
-<DisplayTicket Phase="WorkflowPhases.request" DbAcc="dbAcc" StateMatrix ="stateMatrix" States="states" 
-    ResetParent="Reset" 
-    @bind-Display="ShowTicketMode" AddMode="AddTicketMode" EditMode="EditTicketMode" 
-    @bind-Ticket="actTicket" @bind-Requests="requests"></DisplayTicket>
-
+@if(InitComplete)
+{
+    <DisplayTicketTable Phase="WorkflowPhases.request" StateMatrix ="stateMatrix" States="states" ReqHandler="reqHandler" 
+        ResetParent="Reset" ShowTicketDetails="ShowTicketDetails"/>
+}
 
 @code
 {
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
     
+    private RequestHandler reqHandler;
     private RequestDbAccess dbAcc;
-    private List<RequestTicket> requests = new List<RequestTicket>();
-
-    private bool ShowTicketMode = false;
-    private bool AddTicketMode = false;
-    private bool EditTicketMode = false;
-    private List<int> actPossibleStates = new List<int>();
-
-    private RequestTicket actTicket = new RequestTicket();
-
+    private List<Device> devices = new List<Device>();
     private RequestStateDict states = new RequestStateDict();
     private StateMatrix stateMatrix = new StateMatrix();
+    private bool InitComplete = false;
 
 
     protected override async Task OnInitializedAsync()
@@ -49,8 +38,12 @@
         {
             await stateMatrix.Init(WorkflowPhases.request, apiConnection);
             await states.Init(apiConnection);
+
             dbAcc = new RequestDbAccess(DisplayMessageInUi, userConfig, apiConnection){};
-            requests = await dbAcc.FetchTickets(stateMatrix);
+            devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
+            reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, dbAcc, stateMatrix, devices, WorkflowPhases.request){};
+            await reqHandler.Init();
+            InitComplete = true;
         }
         catch (Exception exception)
         {
@@ -60,37 +53,11 @@
 
     private async Task Reset()
     {
-        ShowTicketMode = false;
-        AddTicketMode = false;
-        EditTicketMode = false;
-        requests = await dbAcc.FetchTickets(stateMatrix);
-        StateHasChanged();
-    }
-
-    private async Task AddTicket()
-    {
-        actTicket = new RequestTicket();
-        AddTicketMode = true;
-        EditTicketMode = true;
-        ShowTicketMode = true;
-        StateHasChanged();
-    }
-
-    private async Task EditTicket(RequestTicket ticket)
-    {
-        actTicket = ticket;
-        AddTicketMode = false;
-        EditTicketMode = true;
-        ShowTicketMode = true;
-        StateHasChanged();
+        await reqHandler.Init();
     }
 
     private async Task ShowTicketDetails(RequestTicket ticket)
     {
-        actTicket = ticket;
-        AddTicketMode = false;
-        EditTicketMode = false;
-        ShowTicketMode = true;
-        StateHasChanged();
+        reqHandler.SelectTicket(ticket, ObjAction.display);
     }
 }

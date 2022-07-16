@@ -1,0 +1,486 @@
+﻿using FWO.Api.Data;
+using FWO.Config.Api;
+
+
+namespace FWO.Ui.Services
+{
+    public enum ObjAction
+    {
+        display,
+        edit,
+        add,
+        delete,
+        promote,
+        assign,
+        approve,
+        plan,
+        implement,
+        review,
+        displayApprovals
+    }
+
+    public class RequestHandler
+    {
+        public List<RequestTicket> TicketList { get; set; } = new List<RequestTicket>();
+        public RequestTicket ActTicket { get; set; } = new RequestTicket();
+        public RequestTask ActReqTask { get; set; } = new RequestTask();
+        public ImplementationTask ActImplTask { get; set; } = new ImplementationTask();
+        public List<Device> Devices = new List<Device>();
+
+        public bool DisplayTicketMode = false;
+        public bool EditTicketMode = false;
+        public bool AddTicketMode = false;
+        public bool PromoteTicketMode = false;
+
+        public bool DisplayReqTaskMode = false;
+        public bool EditReqTaskMode = false;
+        public bool AddReqTaskMode = false;
+        public bool DeleteReqTaskMode = false;
+        public bool PromoteReqTaskMode = false;
+        public bool PlanReqTaskMode = false;
+        public bool AssignReqTaskMode = false;
+        public bool ApproveReqTaskMode = false;
+        public bool DisplayApprovalMode = false;
+
+        public bool DisplayImplTaskMode = false;
+        public bool EditImplTaskMode = false;
+        public bool AddImplTaskMode = false;
+        public bool DeleteImplTaskMode = false;
+        public bool PromoteImplTaskMode = false;
+        public bool ImplementImplTaskMode = false;
+
+        private Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+        private UserConfig userConfig;
+        private StateMatrix stateMatrix = new StateMatrix();
+        private RequestDbAccess dbAcc;
+        private WorkflowPhases phase = WorkflowPhases.request;
+
+        private ObjAction contOption = ObjAction.display;
+
+
+        public RequestHandler(Action<Exception?, string, string, bool> displayMessageInUi, UserConfig userConfig, 
+            RequestDbAccess dbAcc, StateMatrix stateMatrix, List<Device> devices, WorkflowPhases phase)
+        {
+            this.DisplayMessageInUi = displayMessageInUi;
+            this.userConfig = userConfig;
+            this.stateMatrix = stateMatrix;
+            this.dbAcc = dbAcc;
+            this.Devices = devices;
+            this.phase = phase;
+            Init();
+        }
+
+        public async Task Init()
+        {
+            TicketList = await dbAcc.FetchTickets(stateMatrix);
+        }
+
+        public void SetContinueEnv(ObjAction action)
+        {
+            contOption = action;
+        }
+
+        public void ContinuePhase(RequestTask reqTask)
+        {
+            SelectReqTask(reqTask, contOption);
+        }
+
+        private void ContinueImplPhase(ImplementationTask implTask)
+        {
+            SelectImplTask(implTask, contOption);
+        }
+
+
+        // Tickets
+
+        public void SelectTicket (RequestTicket ticket, ObjAction action)
+        {
+            SetTicketEnv(ticket);
+            SetTicketOpt(action);
+        }
+
+        public void SetTicketEnv (RequestTicket ticket)
+        {
+            ActTicket = ticket;
+        }
+
+        public void SetTicketOpt(ObjAction action)
+        {
+            DisplayTicketMode = (action == ObjAction.display || action == ObjAction.edit || action == ObjAction.add);
+            EditTicketMode = (action == ObjAction.edit || action == ObjAction.add);
+            AddTicketMode = action == ObjAction.add;
+            PromoteTicketMode = action == ObjAction.promote;
+        }
+
+        public void ResetTicketActions()
+        {
+            DisplayTicketMode = false;
+            EditTicketMode = false;
+            AddTicketMode = false;
+            PromoteTicketMode = false;
+        }
+
+        public async Task SaveTicket(StatefulObject ticket)
+        {
+            try
+            {
+                ActTicket.StateId = ticket.StateId;
+                if (ActTicket.Sanitize())
+                {
+                    DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("U0001"), true);
+                }
+                if (CheckTicketValues())
+                {
+                    foreach(RequestTask reqTask in ActTicket.Tasks)
+                    {
+                        reqTask.StateId = ActTicket.StateId;
+                    }
+
+                    if (AddTicketMode)
+                    {                  
+                        // insert new ticket
+                        ActTicket.CreationDate = DateTime.Now;
+                        ActTicket.Requester = userConfig.User;
+                        TicketList = await dbAcc.AddTicketToDb(ActTicket, TicketList);
+                    }
+                    else
+                    {
+                        // Update existing ticket
+                        TicketList = await dbAcc.UpdateTicketInDb(ActTicket, TicketList);
+                    }
+                    ResetTicketActions();
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi!(exception, userConfig.GetText("save_request"), "", true);
+            }
+        }
+
+        public async Task PromoteTicket(StatefulObject ticket)
+        {
+            try
+            {
+                ActTicket.StateId = ticket.StateId;
+                bool alreadyExistingImplTask = false;
+                foreach (var reqTask in ActTicket.Tasks)
+                {
+                    if (reqTask.ImplementationTasks.Count > 0)
+                    {
+                        alreadyExistingImplTask = true;
+                    }
+                }
+                if(phase <= WorkflowPhases.approval && ActTicket.Tasks.Count > 0 && !alreadyExistingImplTask &&
+                    !stateMatrix.PhaseActive[WorkflowPhases.planning] && ActTicket.StateId == stateMatrix.LowestEndState)
+                {
+                    await AutoCreateImplTasks();
+                }
+                TicketList = await dbAcc.UpdateTicketState(ActTicket, TicketList, stateMatrix);
+                ResetTicketActions();
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi!(exception, userConfig.GetText("promote_ticket"), "", true);
+            }
+        }
+
+
+        // Request Tasks
+        
+        public void SelectReqTask (RequestTask reqTask, ObjAction action)
+        {
+            SetReqTaskEnv(reqTask);
+            SetReqTaskOpt(action);
+        }
+
+        public void SetReqTaskEnv (RequestTask reqTask)
+        {
+            ActReqTask = reqTask;
+            RequestTicket? tick = TicketList.FirstOrDefault(x => x.Id == ActReqTask.TicketId);
+            if(tick != null)
+            {
+                ActTicket = tick;
+            }
+        }
+
+        public void SetReqTaskOpt(ObjAction action)
+        {
+            DisplayReqTaskMode = (action == ObjAction.display || action == ObjAction.edit || action == ObjAction.add || action == ObjAction.plan);
+            EditReqTaskMode = (action == ObjAction.edit || action == ObjAction.add);
+            AddReqTaskMode = action == ObjAction.add;
+            DeleteReqTaskMode = action == ObjAction.delete;
+            PromoteReqTaskMode = action == ObjAction.promote;
+            PlanReqTaskMode = action == ObjAction.plan;
+            AssignReqTaskMode = action == ObjAction.assign;
+            ApproveReqTaskMode = action == ObjAction.approve;
+            DisplayApprovalMode = action == ObjAction.displayApprovals;
+        }
+
+        public void ResetReqTaskActions()
+        {
+            DisplayReqTaskMode = false;
+            EditReqTaskMode = false;
+            AddReqTaskMode = false;
+            DeleteReqTaskMode = false;
+            PromoteReqTaskMode = false;
+            PlanReqTaskMode = false;
+            AssignReqTaskMode = false;
+            ApproveReqTaskMode = false;
+            DisplayApprovalMode = false;
+        }
+
+        public async Task AssignGroup()
+        {
+            ActReqTask.RecentHandler = ActReqTask.CurrentHandler;
+            if(CheckAssignValues())
+            {
+                await dbAcc.UpdateReqTaskStateInDb(ActReqTask);
+            }
+            AssignReqTaskMode = false;
+        }
+
+        public async Task AssignBack()
+        {
+            ActReqTask.AssignedGroup = ActReqTask.RecentHandler?.Dn;
+            ActReqTask.RecentHandler = ActReqTask.CurrentHandler;
+            await dbAcc.UpdateReqTaskStateInDb(ActReqTask);
+            AssignReqTaskMode = false;
+        }
+
+        public async Task AddReqTask()
+        {
+            if (ActTicket.Id > 0) // ticket already created -> write directly to db
+            {
+                ActReqTask.TicketId = ActTicket.Id;
+                ActReqTask.Id = await dbAcc.AddReqTaskToDb(ActReqTask);
+            }
+            ActTicket.Tasks.Add(ActReqTask);
+        }
+
+        public async Task ChangeReqTask()
+        {
+            if(ActReqTask.Id > 0)
+            {
+                await dbAcc.UpdateReqTaskInDb(ActReqTask);
+            }
+            ActTicket.Tasks[ActTicket.Tasks.FindIndex(x => x.Id == ActReqTask.Id)] = ActReqTask;
+        }
+
+        public async Task ConfDeleteReqTask()
+        {
+            if(ActReqTask.Id > 0)
+            {
+                await dbAcc.DeleteReqTaskFromDb(ActReqTask);
+            }
+
+            ActTicket.Tasks.Remove(ActReqTask);
+            // todo: adapt TaskNumbers of following tasks?
+            DeleteReqTaskMode = false;
+        }
+
+        public async Task PromoteReqTask(StatefulObject reqTask)
+        {
+            try
+            {
+                ActReqTask.StateId = reqTask.StateId;
+                if (ActReqTask.Start == null && ActReqTask.StateId >= stateMatrix.LowestStartedState)
+                {
+                    ActReqTask.Start = DateTime.Now;
+                    ActReqTask.CurrentHandler = userConfig.User;
+                }
+                if (phase == WorkflowPhases.planning && ActReqTask.Stop == null && ActReqTask.StateId >= stateMatrix.LowestEndState)
+                {
+                    ActReqTask.Stop = DateTime.Now;
+                }
+                await dbAcc.UpdateReqTaskStateInDb(ActReqTask);
+
+                if(phase == WorkflowPhases.planning)
+                {
+                    foreach(ImplementationTask implTask in ActReqTask.ImplementationTasks)
+                    {
+                        implTask.StateId = ActReqTask.StateId;
+                        await dbAcc.UpdateImplTaskStateInDb(implTask);
+                    }
+                }
+                
+                await dbAcc.UpdateTicketStateFromTasks(ActTicket, TicketList, stateMatrix);
+                ActTicket.Tasks[ActTicket.Tasks.FindIndex(x => x.Id == ActReqTask.Id)] = ActReqTask;
+                PromoteReqTaskMode = false;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi!(exception, userConfig.GetText("promote_task"), "", true);
+            }
+        } 
+
+        public async Task ApproveTask(StatefulObject approval, RequestApproval actApproval)
+        {
+            try
+            {
+                actApproval.StateId = approval.StateId;
+                actApproval.Comment = approval.OptComment();
+                if(actApproval.StateId >= stateMatrix.LowestEndState)
+                {
+                    actApproval.ApprovalDate = DateTime.Now;
+                    actApproval.ApproverDn = userConfig.User.Dn;
+                }
+                if (actApproval.Sanitize())
+                {
+                    DisplayMessageInUi!(null, userConfig.GetText("save_approval"), userConfig.GetText("U0001"), true);
+                }
+                await dbAcc.UpdateApprovalInDb(actApproval);
+                await dbAcc.UpdateTaskStateFromApprovals(ActReqTask, stateMatrix);
+                await dbAcc.UpdateTicketStateFromTasks(ActTicket, TicketList, stateMatrix);
+                ApproveReqTaskMode = false;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi!(exception, userConfig.GetText("save_approval"), "", true);
+            }
+        }
+
+
+        // Implementation Tasks
+
+        public void SelectImplTask(ImplementationTask implTask, ObjAction action)
+        {
+            SetImplTaskEnv(implTask);
+            SetImplTaskOpt(action);
+        }
+
+        public void SetImplTaskEnv(ImplementationTask implTask)
+        {
+            ActImplTask = implTask;
+            RequestTicket? tick = TicketList.FirstOrDefault(x => x.Id == ActImplTask.TicketId);
+            if(tick != null)
+            {
+                ActTicket = tick;
+                RequestTask? reqTask = ActTicket.Tasks.FirstOrDefault(x => x.Id == ActImplTask.ReqTaskId);
+                if(reqTask != null)
+                {
+                    ActReqTask = reqTask;
+                }
+            }
+        }
+
+        public void SetImplTaskOpt(ObjAction action)
+        {
+            DisplayImplTaskMode = (action == ObjAction.display || action == ObjAction.edit || action == ObjAction.add || action == ObjAction.implement);
+            EditImplTaskMode = (action == ObjAction.edit || action == ObjAction.add);
+            AddImplTaskMode = action == ObjAction.add;
+            DeleteImplTaskMode = action == ObjAction.delete;
+            PromoteImplTaskMode = action == ObjAction.promote;
+            ImplementImplTaskMode = action == ObjAction.implement;
+        }
+
+        public void ResetImplTaskActions()
+        {
+            DisplayImplTaskMode = false;
+            EditImplTaskMode = false;
+            AddImplTaskMode = false;
+            DeleteImplTaskMode = false;
+            PromoteImplTaskMode = false;
+            ImplementImplTaskMode = false;
+        }
+
+        public async Task AddImplTask()
+        {
+            ActImplTask.Id = await dbAcc.AddImplTaskToDb(ActImplTask);
+            ActReqTask.ImplementationTasks.Add(ActImplTask);
+        }
+
+        public async Task ChangeImplTask()
+        {
+            await dbAcc.UpdateImplTaskInDb(ActImplTask);
+            ActReqTask.ImplementationTasks[ActReqTask.ImplementationTasks.FindIndex(x => x.ImplTaskNumber == ActImplTask.ImplTaskNumber)] = ActImplTask;
+        }
+
+        public async Task PromoteImplTask(StatefulObject implTask)
+        {
+            try
+            {
+                ActImplTask.StateId = implTask.StateId;
+                ActImplTask.CurrentHandler = userConfig.User;
+                await dbAcc.UpdateImplTaskStateInDb(ActImplTask);
+                SetImplTaskEnv(ActImplTask);
+                await dbAcc.UpdateReqTaskStateFromImplTasks(ActReqTask, stateMatrix);
+                ActReqTask.ImplementationTasks[ActReqTask.ImplementationTasks.FindIndex(x => x.Id == ActImplTask.Id)] = ActImplTask;
+                await dbAcc.UpdateTicketStateFromTasks(ActTicket, TicketList, stateMatrix);
+                ActTicket.Tasks[ActTicket.Tasks.FindIndex(x => x.Id == ActReqTask.Id)] = ActReqTask;
+                PromoteImplTaskMode = false;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi!(exception, userConfig.GetText("save_task"), "", true);
+            }
+        }
+
+        public async Task ConfDeleteImplTask()
+        {
+            await dbAcc.DeleteImplTaskFromDb(ActImplTask);
+            ActReqTask.ImplementationTasks.Remove(ActImplTask);
+            DeleteImplTaskMode = false;
+        }
+
+        private async Task AutoCreateImplTasks()
+        {
+            foreach(var reqTask in ActTicket.Tasks)
+            {
+                ImplementationTask newImplTask;
+                switch (userConfig.ReqAutoCreateImplTasks)
+                {
+                    case AutoCreateImplTaskOptions.never:
+                        break;
+                    case AutoCreateImplTaskOptions.onlyForOneDevice:
+                        if(Devices.Count == 1)
+                        {
+                            newImplTask = new ImplementationTask(reqTask)
+                                { ImplTaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = Devices[0].Id };
+                            newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
+                            reqTask.ImplementationTasks.Add(newImplTask);
+                        }
+                        break;
+                    case AutoCreateImplTaskOptions.forEachDevice:
+                        foreach(var device in Devices)
+                        {
+                            newImplTask = new ImplementationTask(reqTask)
+                            { ImplTaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = device.Id };
+                            newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
+                            reqTask.ImplementationTasks.Add(newImplTask);
+                        }
+                        break;
+                    case AutoCreateImplTaskOptions.enterInReqTask:
+                        newImplTask = new ImplementationTask(reqTask)
+                            { ImplTaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = reqTask.DeviceId };
+                        newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
+                        reqTask.ImplementationTasks.Add(newImplTask);
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+
+
+        // checks
+        private bool CheckTicketValues()
+        {
+            if (ActTicket.Title == null || ActTicket.Title == "")
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("E5102"), true);
+                return false;
+            }
+            return true;
+        }
+
+        private bool CheckAssignValues()
+        {
+            if (ActReqTask.AssignedGroup == null || ActReqTask.AssignedGroup == "")
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("assign_group"), userConfig.GetText("E8010"), true);
+                return false;
+            }
+            return true;
+        }
+    }
+}

@@ -11,13 +11,12 @@
 
 <h3>@(userConfig.GetText("approvals"))</h3>
 <hr />
-<DisplayOverview Phase="WorkflowPhases.approval" Requests="requests" ShowTicketDetails="ShowTicketDetails" 
-    StateMatrix ="stateMatrix" States="states"></DisplayOverview>
 
-<DisplayTicket Phase="WorkflowPhases.approval" DbAcc="dbAcc" StateMatrix ="stateMatrix" States="states" 
-    ResetParent="Reset" StartPhase="StartApproveTask" SetContinueEnv="ContApproveTask"
-    @bind-Display="ShowTicketMode" ApproveMode="ApproveTaskMode" 
-    @bind-Ticket="actTicket" @bind-Requests="requests"></DisplayTicket>
+@if(InitComplete)
+{
+    <DisplayTicketTable Phase="WorkflowPhases.approval" StateMatrix ="stateMatrix" States="states" ReqHandler="reqHandler" 
+        ResetParent="Reset" ShowTicketDetails="ShowTicketDetails" StartPhase="StartApproveTask"/>
+}
 
 
 @code
@@ -25,18 +24,15 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
     
+    private RequestHandler reqHandler;
     private RequestDbAccess dbAcc;
-    private List<RequestTicket> requests = new List<RequestTicket>();
-
-    private bool ShowTicketMode = false;
-    private bool ApproveTaskMode = false;
-
-    private RequestTicket actTicket = new RequestTicket();
-    private RequestTask actTask = new RequestTask();
+    private List<Device> devices = new List<Device>();
 
     private RequestStateDict states = new RequestStateDict();
     private List<int> actPossibleStates = new List<int>();
     private StateMatrix stateMatrix = new StateMatrix();
+    private bool InitComplete = false;
+
 
 
     protected override async Task OnInitializedAsync()
@@ -45,8 +41,14 @@
         {
             await stateMatrix.Init(WorkflowPhases.approval, apiConnection);
             await states.Init(apiConnection);
+
             dbAcc = new RequestDbAccess(DisplayMessageInUi, userConfig, apiConnection){};
-            requests = await dbAcc.FetchTickets(stateMatrix);
+            devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
+            reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, dbAcc, stateMatrix, devices, WorkflowPhases.approval){};
+            await reqHandler.Init();
+            reqHandler.SetContinueEnv(ObjAction.approve);
+    
+            InitComplete = true;
         }
         catch (Exception exception)
         {
@@ -56,17 +58,12 @@
 
     private async Task Reset()
     {
-        ShowTicketMode = false;
-        ApproveTaskMode = false;
-        requests = await dbAcc.FetchTickets(stateMatrix);
-        StateHasChanged();
+        // await reqHandler.Init();
     }
 
     private async Task ShowTicketDetails(RequestTicket ticket)
     {
-        actTicket = ticket;
-        ShowTicketMode = true;
-        StateHasChanged();
+        reqHandler.SelectTicket(ticket, ObjAction.display);
     }
 
     public async Task StartApproveTask(RequestTask task)
@@ -78,13 +75,7 @@
             task.StateId = actPossibleStates[0];
         }
         await dbAcc.UpdateReqTaskStateInDb(task);
-        await dbAcc.UpdateTicketStateFromTasks(actTicket, requests, stateMatrix);
-        await ContApproveTask();
-    }
-   
-    private async Task ContApproveTask()
-    {
-        ApproveTaskMode = true;
-        StateHasChanged();
+        await dbAcc.UpdateTicketStateFromTasks(reqHandler.ActTicket, reqHandler.TicketList, stateMatrix);
+        reqHandler.SetReqTaskOpt(ObjAction.approve);
     }
 }

@@ -9,172 +9,69 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("request") + ": " + Ticket.Title)" Show="@Display" XLarge="true" OnClose="() => Close()">
+<PopUp Title="@(userConfig.GetText("request") + ": " + ReqHandler.ActTicket.Title)" Show="@ReqHandler.DisplayTicketMode" XLarge="true" OnClose="() => Close()">
     <Body>
-        @if (Display)
+        @if (ReqHandler.DisplayTicketMode)
         {
             <form>
                 <div class="form-group row">
                     <label for="ticketId" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
-                    <label class="col-sm-1">@Ticket.Id</label>
+                    <label class="col-sm-1">@ReqHandler.ActTicket.Id</label>
                     <label for="ticketTitle" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("title"))*:</label>
-                    @if (EditMode)
+                    @if (ReqHandler.EditTicketMode)
                     {
                         <div class="col-sm-9">
-                            <input id="ticketTitle" type="text" class="form-control form-control-sm" @bind="Ticket.Title" />
+                            <input id="ticketTitle" type="text" class="form-control form-control-sm" @bind="ReqHandler.ActTicket.Title" />
                         </div>
                     }
                     else
                     {
-                        <label class="col-sm-9">@Ticket.Title</label>
+                        <label class="col-sm-9">@ReqHandler.ActTicket.Title</label>
                     }
                 </div>
 
                 <div class="form-group row">
                     <label for="ticketState" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
-                    <label class="col-sm-2">@States.Name[Ticket.StateId]</label>
+                    <label class="col-sm-2">@States.Name[ReqHandler.ActTicket.StateId]</label>
                     <label for="ticketRequester" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("requester")):</label>
-                    <label class="col-sm-2">@Ticket.Requester?.Name</label>
+                    <label class="col-sm-2">@ReqHandler.ActTicket.Requester?.Name</label>
                 </div>
                 <div class="form-group row">
                     <label for="ticketReason" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
-                    @if (EditMode)
+                    @if (ReqHandler.EditTicketMode)
                     {
                         <div class="col-sm-11">
-                            <input id="ticketReason" type="text" class="form-control form-control-sm" @bind="Ticket.Reason" />
+                            <input id="ticketReason" type="text" class="form-control form-control-sm" @bind="ReqHandler.ActTicket.Reason" />
                         </div>
                     }
                     else
                     {
-                        <label class="col-sm-11">@Ticket.Reason</label>
+                        <label class="col-sm-11">@ReqHandler.ActTicket.Reason</label>
                     }
                 </div>
 
                 @if(Phase < WorkflowPhases.implementation)
                 {
                     <h5>@(userConfig.GetText("tasks"))</h5>
-                    @if (EditMode)
-                    {
-                        <button class="btn btn-success m-2" @onclick:preventDefault @onclick="AddReqTask">@(userConfig.GetText("add_task"))</button>
-                    }
-                    <div class="m-2">
-                        <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="RequestTask" Items="Ticket.Tasks" PageSize="0" ColumnReorder="true">
-                            <Column TableItem="RequestTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
-                                <Template>
-                                    <div class="btn-group">
-                                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowReqTask(context)">@(userConfig.GetText("details"))</button>
-                                        @if (EditMode)
-                                        {
-                                            <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => EditReqTask(context)">@(userConfig.GetText("edit"))</button>
-                                            <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteReqTask(context)">@(userConfig.GetText("delete"))</button>
-                                        }
-                                        @if (Phase > WorkflowPhases.request)
-                                        {
-                                            <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowApprovals(context)">@(userConfig.GetText("approvals"))</button>
-                                            @if (context.StateId < StateMatrix.LowestStartedState)
-                                            {
-                                                <AuthorizeView Roles="admin, approver, planner, implementer, reviewer, fw-admin">
-                                                    <Authorized Context="ctx">
-                                                        <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => StartPhase(context)">@(userConfig.GetText("start_" + Phase.ToString()))</button>
-                                                    </Authorized>
-                                                    <NotAuthorized Context="ctx">
-                                                        <button class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("start_" + Phase.ToString()))</button>
-                                                    </NotAuthorized> 
-                                                </AuthorizeView>
-                                            }
-                                            else if (context.StateId < StateMatrix.LowestEndState)
-                                            {
-                                                <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => ContinuePhase(context)">@(userConfig.GetText("continue_" + Phase.ToString()))</button>
-                                                @if(Phase == WorkflowPhases.planning)
-                                                {
-                                                    <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignTask(context)">@(userConfig.GetText("assign"))</button>
-                                                }
-                                            }
-                                        }
-                                    </div>
-                                </Template>
-                            </Column>
-                            <Column TableItem="RequestTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
-                            <Column TableItem="RequestTask" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true" />
-                            <Column TableItem="RequestTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
-                                <Template>
-                                    @(States.Name[context.StateId])
-                                </Template>
-                            </Column>
-                            <Column TableItem="RequestTask" Title="@(userConfig.GetText("current_handler"))" Field="@(x => x.CurrentHandler.Name)" Sortable="true" Filterable="true" />
-                            @if(Phase == WorkflowPhases.approval)
-                            {
-                                <Column TableItem="RequestTask" Title="@(userConfig.GetText("deadline"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
-                                    <Template>
-                                        @(context.Approvals.FirstOrDefault(x => x.InitialApproval)?.Deadline)
-                                    </Template>
-                                </Column>
-                            }
-                            else
-                            {
-                                <Column TableItem="RequestTask" Title="@(userConfig.GetText("assigned"))" Field="@(x => x.AssignedGroup)" Sortable="true" Filterable="true" >
-                                    <Template>
-                                        @(new DistName(context.AssignedGroup).UserName)
-                                    </Template>
-                                </Column>
-                                <Column TableItem="RequestTask" Title="@(userConfig.GetText("start"))" Field="@(x => x.Start)" Sortable="true" Filterable="true" />
-                                <Column TableItem="RequestTask" Title="@(userConfig.GetText("stop"))" Field="@(x => x.Stop)" Sortable="true" Filterable="true" />
-                            }
-                        </Table>
-                    </div>
+
+                    <DisplayReqTaskTable Phase="Phase" StateMatrix="StateMatrix" States="States" 
+                        ReqHandler="ReqHandler" ResetParent="Reset" 
+                        StartPhase="StartPhase"/>
                 }
                 else
                 {
                     <h5>@(userConfig.GetText("implementation_tasks"))</h5>
-                    <div class="m-2">
-                        <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="ImplementationTask" Items="AllImplTasks" PageSize="0" ColumnReorder="true">
-                            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
-                                <Template>
-                                    <div class="btn-group">
-                                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowImplTask(implTask)">@(userConfig.GetText("details"))</button>
-                                        @if (implTask.StateId < StateMatrix.LowestStartedState)
-                                        {
-                                            <AuthorizeView Roles="admin, implementer, reviewer, fw-admin">
-                                                <Authorized Context="ctx">
-                                                    <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => StartImplPhase(implTask)">@(userConfig.GetText("start_" + Phase.ToString()))</button>
-                                                </Authorized>
-                                                <NotAuthorized Context="ctx">
-                                                    <button class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("start_" + Phase.ToString()))</button>
-                                                </NotAuthorized> 
-                                            </AuthorizeView>
-                                        }
-                                        else if (implTask.StateId < StateMatrix.LowestEndState)
-                                        {
-                                            <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => ContinueImplPhase(implTask)">@(userConfig.GetText("continue_" + Phase.ToString()))</button>
-                                        }
-                                    </div>
-                                </Template>
-                            </Column>
-                            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
-                            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("task"))" Field="@(x => x.ReqTaskId)" Sortable="true" Filterable="true" />
-                            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("number"))" Field="@(x => x.ImplTaskNumber)" Sortable="true" Filterable="true" />
-                            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("device"))" Field="@(x => x.DeviceId)" Sortable="true">
-                                <Template>
-                                    @(implTask.DeviceId != null && implTask.DeviceId != 0 ? devices[devices.FindIndex(x => x.Id == implTask.DeviceId)].Name : "")
-                                </Template>
-                            </Column>
-                            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
-                                <Template>
-                                    @(States.Name[implTask.StateId])
-                                </Template>
-                            </Column>
-                            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("implementer"))" Field="@(x => x.CurrentHandler.Name)" Sortable="true" Filterable="true" />
-                            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("start"))" Field="@(x => x.Start)" Sortable="true" Filterable="true" />
-                            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("stop"))" Field="@(x => x.Stop)" Sortable="true" Filterable="true" />
-                        </Table>
-                    </div>
+
+                    <DisplayImplTaskTable Phase="Phase" StateMatrix="StateMatrix" States="States" 
+                        ReqHandler="ReqHandler" ResetParent="Reset" AllImplTasks="AllImplTasks"
+                        StartImplPhase="StartImplPhase"/>
                 }
             </form>
         }
     </Body>
     <Footer>
         <div class="btn-group">
-            @if(EditMode)
+            @if(ReqHandler.EditTicketMode)
             {
                 <AuthorizeView Roles="admin, requester, fw-admin">
                     <Authorized>
@@ -196,25 +93,13 @@
                     </NotAuthorized> 
                 </AuthorizeView>
             }
-            <button class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+            <button class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
 
-<DisplayRequestTask Phase="Phase" StateMatrix="StateMatrix" States="States" 
-    @bind-Display="ShowReqTaskMode" EditMode="EditReqTaskMode" AddMode="AddReqTaskMode" ApproveMode="ApproveMode" PlanMode="PlanMode"
-    AddReqTask="AddReqTaskToTicket" ChangeReqTask="ChangeReqTaskInTicket" PromoteReqTask="PromoteReqTask" ApproveTask="ApproveTask"
-    AddImplTaskToReqTask="AddImplTaskToReqTask" ChangeImplTaskInReqTask="ChangeImplTaskInReqTask" DeleteImplTask="DeleteImplTask"
-    @bind-ReqTask="actReqTask" Ticket="Ticket"></DisplayRequestTask>
-<DisplayImplementationTask Phase="Phase" StateMatrix="StateMatrix" States="States"
-    @bind-Display="ShowImplTaskMode" ImplementMode="ImplementMode"
-    PromoteImplTask="PromoteImplTask"
-    @bind-ImplTask="actImplTask" ReqTask="actReqTask"></DisplayImplementationTask>
-<AssignTask DbAcc="DbAcc" @bind-Display="AssignTaskMode" @bind-ReqTask="actReqTask"></AssignTask>
-<DisplayApprovals @bind-Display="ShowApprovalMode" Approvals="actReqTask.Approvals" States="States"></DisplayApprovals>
-<PromoteObject @bind-Promote="SaveTicketMode" ObjectName="ticket" Save="SaveTicket" StatefulObject="Ticket" StateMatrix="StateMatrix" States="States"></PromoteObject>
-<PromoteObject @bind-Promote="PromoteTicketMode" ObjectName="ticket" Save="PromoteTicket" StatefulObject="Ticket" StateMatrix="StateMatrix" States="States"></PromoteObject>
-<DeleteObject @bind-Display="DeleteReqTaskMode" Delete="ConfDeleteReqTask" ObjName="@actReqTask.Title"></DeleteObject>
+<PromoteObject @bind-Promote="SaveTicketMode" ResetParent="Reset" ObjectName="ticket" Save="ReqHandler.SaveTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="StateMatrix" States="States"></PromoteObject>
+<PromoteObject @bind-Promote="ReqHandler.PromoteTicketMode" ResetParent="Reset" ObjectName="ticket" Save="ReqHandler.PromoteTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="StateMatrix" States="States"></PromoteObject>
 
 
 @code
@@ -226,289 +111,61 @@
     public WorkflowPhases Phase { get; set; } = WorkflowPhases.approval;
 
     [Parameter]
-    public RequestDbAccess DbAcc { get; set; }
-
-    [Parameter]
     public StateMatrix StateMatrix { get; set; } = new StateMatrix();
 
     [Parameter]
     public RequestStateDict States { get; set; } = new RequestStateDict();
 
     [Parameter]
+    public RequestHandler ReqHandler { get; set; }
+    
+    [Parameter]
     public Func<Task> ResetParent { get; set; }
+
+    [Parameter]
+    public List<ImplementationTask>? AllImplTasks { get; set; }
 
     [Parameter]
     public Func<RequestTask, Task>? StartPhase { get; set; }
 
     [Parameter]
-    public Func<Task>? SetContinueEnv { get; set; }
-
-    [Parameter]
     public Func<ImplementationTask, Task>? StartImplPhase { get; set; }
 
-    [Parameter]
-    public bool Display { get; set; } = false;
-
-    [Parameter]
-    public EventCallback<bool> DisplayChanged { get; set; }
-
-    [Parameter]
-    public bool AddMode { get; set; } = false;
-
-    [Parameter]
-    public bool EditMode { get; set; } = false;
-
-    [Parameter]
-    public bool ApproveMode { get; set; } = false;
-
-    [Parameter]
-    public bool PlanMode { get; set; } = false;
-
-    [Parameter]
-    public bool ImplementMode { get; set; } = false;
-
-    [Parameter]
-    public List<ImplementationTask>? AllImplTasks { get; set; } = new List<ImplementationTask>();
-
-    [Parameter]
-    public RequestTicket Ticket { get; set; } = new RequestTicket();
-
-    [Parameter]
-    public EventCallback<RequestTicket> TicketChanged { get; set; }
-
-    [Parameter]
-    public List<RequestTicket> Requests { get; set; } = new List<RequestTicket>();
-
-    [Parameter]
-    public EventCallback<List<RequestTicket>> RequestsChanged { get; set; }
 
     private RequestTask actReqTask { get; set; } = new RequestTask();
     private ImplementationTask actImplTask = new ImplementationTask();
     private List<int> possibleStates = new List<int>();
-    private List<Device> devices = new List<Device>();
-    private bool ShowReqTaskMode = false;
-    private bool EditReqTaskMode = false;
-    private bool AddReqTaskMode = false;
-    private bool DeleteReqTaskMode = false;
-    private bool ShowApprovalMode = false;
-    private bool ShowImplTaskMode = false;
-    private bool AssignTaskMode = false;
-    private bool PromoteTicketMode = false;
     private bool SaveTicketMode = false;
 
-    protected override async Task OnInitializedAsync()
-    {
-        try
-        {
-            devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
-        }
-    }
 
     private void Close()
     {
         ResetParent();
-        Reset();
-        Display = false;
-        StateHasChanged();
     }
 
-    private bool Reset()
+    private async Task Reset()
     {
-        PromoteTicketMode = false;
         SaveTicketMode = false;
-        ShowReqTaskMode = false;
-        ShowImplTaskMode = false;
-        AssignTaskMode = false;
-        ShowApprovalMode = false;
-        AddReqTaskMode = false;
-        EditReqTaskMode = false;
-        DeleteReqTaskMode = false;
-        return true;
-    }
-
-    private async Task ContinuePhase(RequestTask reqTask)
-    {
-        actReqTask = reqTask;
-        Reset();
-        await SetContinueEnv();
-        ShowReqTaskMode = true;
-    }
-
-    private async Task ContinueImplPhase(ImplementationTask implTask)
-    {
-        actImplTask = implTask;
-        actReqTask = Ticket.Tasks.FirstOrDefault(x => x.Id == actImplTask.ReqTaskId);
-        Reset();
-        await SetContinueEnv();
-        ShowImplTaskMode = true;
-    }
-
-    private void AddReqTask()
-    {
-        actReqTask = new RequestTask(){ TicketId = Ticket.Id };
-        Reset();
-        AddReqTaskMode = true;
-        EditReqTaskMode = true;
-        ShowReqTaskMode = true;
+        ReqHandler.ResetTicketActions();
         StateHasChanged();
-    }
-
-    private async Task AddReqTaskToTicket(RequestTask reqTask)
-    {
-        if (Ticket.Id > 0) // ticket already created -> write directly to db
-        {
-            reqTask.TicketId = Ticket.Id;
-            reqTask.Id = await DbAcc.AddReqTaskToDb(reqTask);
-        }
-        Ticket.Tasks.Add(reqTask);
-        Reset();
-        StateHasChanged();
-    }
-
-    private void EditReqTask(RequestTask reqTask)
-    {
-        actReqTask = reqTask;
-        Reset();
-        EditReqTaskMode = true;
-        ShowReqTaskMode = true;
-        StateHasChanged();
-    }
-
-    private async Task ChangeReqTaskInTicket(RequestTask reqTask)
-    {
-        if(reqTask.Id > 0)
-        {
-            await DbAcc.UpdateReqTaskInDb(reqTask);
-        }
-        Ticket.Tasks[Ticket.Tasks.FindIndex(x => x.Id == reqTask.Id)] = reqTask;
-        Reset();
-        StateHasChanged();
-    }
-
-    private async Task PromoteReqTask(StatefulObject reqTask)
-    {
-        try
-        {
-            actReqTask.StateId = reqTask.StateId;
-            if (actReqTask.Start == null && actReqTask.StateId >= StateMatrix.LowestStartedState)
-            {
-                actReqTask.Start = DateTime.Now;
-                actReqTask.CurrentHandler = userConfig.User;
-            }
-            if (Phase == WorkflowPhases.planning && actReqTask.Stop == null && actReqTask.StateId >= StateMatrix.LowestEndState)
-            {
-                actReqTask.Stop = DateTime.Now;
-            }
-            await DbAcc.UpdateReqTaskStateInDb(actReqTask);
-
-            if(Phase == WorkflowPhases.planning)
-            {
-                foreach(ImplementationTask implTask in actReqTask.ImplementationTasks)
-                {
-                    implTask.StateId = actReqTask.StateId;
-                    await DbAcc.UpdateImplTaskStateInDb(implTask);
-                }
-            }
-            
-            await DbAcc.UpdateTicketStateFromTasks(Ticket, Requests, StateMatrix);
-            Ticket.Tasks[Ticket.Tasks.FindIndex(x => x.Id == actReqTask.Id)] = actReqTask;
-            Reset();
-            StateHasChanged();
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("promote_task"), "", true);
-        }
-    }
-
-    private void ShowReqTask(RequestTask reqTask)
-    {
-        actReqTask = reqTask;
-        Reset();
-        ShowReqTaskMode = true;
-        StateHasChanged();
-    }
-
-    private void DeleteReqTask(RequestTask reqTask)
-    {
-        actReqTask = reqTask;
-        Reset();
-        DeleteReqTaskMode = true;
-    }
-
-    private async Task ConfDeleteReqTask()
-    {
-        if(actReqTask.Id > 0)
-        {
-            await DbAcc.DeleteReqTaskFromDb(actReqTask);
-        }
-
-        Ticket.Tasks.Remove(actReqTask);
-        // todo: adapt TaskNumbers of following tasks?
-        DeleteReqTaskMode = false;
-    }
-
-    private void ShowApprovals(RequestTask reqTask)
-    {
-        Reset();
-        actReqTask = reqTask;
-        ShowApprovalMode = true;
-    }
-
-    private void ShowImplTask(ImplementationTask implTask)
-    {
-        Reset();
-        actImplTask = implTask;
-        ShowImplTaskMode = true;
-    }
-
-    private async Task PromoteImplTask(StatefulObject implTask)
-    {
-        try
-        {
-            actImplTask.StateId = implTask.StateId;
-            actImplTask.CurrentHandler = userConfig.User;
-            await DbAcc.UpdateImplTaskStateInDb(actImplTask);
-            await DbAcc.UpdateReqTaskStateFromImplTasks(actReqTask, StateMatrix);
-            actReqTask.ImplementationTasks[actReqTask.ImplementationTasks.FindIndex(x => x.Id == actImplTask.Id)] = actImplTask;
-            await DbAcc.UpdateTicketStateFromTasks(Ticket, Requests, StateMatrix);
-            Ticket.Tasks[Ticket.Tasks.FindIndex(x => x.Id == actReqTask.Id)] = actReqTask;
-            Reset();
-            StateHasChanged();
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_task"), "", true);
-        }
-    }
-
-    private void AssignTask(RequestTask reqTask)
-    {
-        Reset();
-        actReqTask = reqTask;
-        AssignTaskMode = true;
     }
 
     private bool CheckPromoteTicket()
     {
-        if (Ticket.StateId < StateMatrix.LowestStartedState || Ticket.StateId >= StateMatrix.LowestEndState)
+        if (ReqHandler.ActTicket.StateId < StateMatrix.LowestStartedState || ReqHandler.ActTicket.StateId >= StateMatrix.LowestEndState)
         {
             return false;
         }
-        int oldState = Ticket.StateId;
-        if(Ticket.Tasks.Count > 0)
+        int oldState = ReqHandler.ActTicket.StateId;
+        if(ReqHandler.ActTicket.Tasks.Count > 0)
         {
             List<int> taskStates = new List<int>();
-            foreach (RequestTask reqTask in Ticket.Tasks)
+            foreach (RequestTask reqTask in ReqHandler.ActTicket.Tasks)
             {
                 taskStates.Add(reqTask.StateId);
             }
-            Ticket.StateId = StateMatrix.getDerivedStateFromSubStates(taskStates);
-            if(Ticket.StateId == oldState)
+            ReqHandler.ActTicket.StateId = StateMatrix.getDerivedStateFromSubStates(taskStates);
+            if(ReqHandler.ActTicket.StateId == oldState)
             {
                 return false;
             }
@@ -516,7 +173,7 @@
         }
         else
         {
-            possibleStates = StateMatrix.getAllowedTransitions(Ticket.StateId);
+            possibleStates = StateMatrix.getAllowedTransitions(ReqHandler.ActTicket.StateId);
             if(possibleStates.Count == 1 && possibleStates[0] == oldState)
             {
                 return false;
@@ -527,173 +184,19 @@
 
     private async Task InitPromoteTicket()
     {
-        Reset();
-        PromoteTicketMode = true;
-    }
-
-    private async Task PromoteTicket(StatefulObject ticket)
-    {
-        try
-        {
-            Ticket.StateId = ticket.StateId;
-            if(Phase == WorkflowPhases.request && !StateMatrix.PhaseActive[WorkflowPhases.planning] && Ticket.StateId == StateMatrix.LowestEndState)
-            {
-                await AutoCreateImplTasks();
-            }
-            Requests = await DbAcc.UpdateTicketState(Ticket, Requests, StateMatrix);
-            Close();
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("promote_ticket"), "", true);
-        }
-    }
-
-    private async Task AutoCreateImplTasks()
-    {
-        if(Phase == WorkflowPhases.request && !StateMatrix.PhaseActive[WorkflowPhases.planning])
-        {
-            foreach(var reqTask in Ticket.Tasks)
-            {
-                ImplementationTask newImplTask;
-                switch (userConfig.ReqAutoCreateImplTasks)
-                {
-                    case AutoCreateImplTaskOptions.never:
-                        break;
-                    case AutoCreateImplTaskOptions.onlyForOneDevice:
-                        if(devices.Count == 1)
-                        {
-                            newImplTask = new ImplementationTask(reqTask)
-                                { ImplTaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = devices[0].Id };
-                            newImplTask.Id = await DbAcc.AddImplTaskToDb(newImplTask);
-                            reqTask.ImplementationTasks.Add(newImplTask);
-                        }
-                        break;
-                    case AutoCreateImplTaskOptions.forEachDevice:
-                        foreach(var device in devices)
-                        {
-                            newImplTask = new ImplementationTask(reqTask)
-                            { ImplTaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = device.Id };
-                            newImplTask.Id = await DbAcc.AddImplTaskToDb(newImplTask);
-                            reqTask.ImplementationTasks.Add(newImplTask);
-                        }
-                        break;
-                    case AutoCreateImplTaskOptions.enterInReqTask:
-                        newImplTask = new ImplementationTask(reqTask)
-                            { ImplTaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = reqTask.DeviceId };
-                        newImplTask.Id = await DbAcc.AddImplTaskToDb(newImplTask);
-                        reqTask.ImplementationTasks.Add(newImplTask);
-                        break;
-                    default:
-                        break;
-                }
-            }
-        }
+        ReqHandler.SetTicketOpt(ObjAction.promote);
     }
 
     private async Task InitSaveTicket()
     {
-        if(Ticket.Tasks.Count == 0)
+        if(ReqHandler.ActTicket.Tasks.Count == 0)
         {
-            await SaveTicket(Ticket);
+            await ReqHandler.SaveTicket(ReqHandler.ActTicket);
+            StateHasChanged();
         }
         else
         {
-            Reset();
             SaveTicketMode = true;
-            StateHasChanged();
         }
-    }
-
-    public async Task SaveTicket(StatefulObject ticket)
-    {
-        try
-        {
-            Ticket.StateId = ticket.StateId;
-            if (Ticket.Sanitize())
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("U0001"), true);
-            }
-            if (CheckRequestValues())
-            {
-                foreach(RequestTask reqTask in Ticket.Tasks)
-                {
-                    reqTask.StateId = Ticket.StateId;
-                }
-
-                if (AddMode)
-                {                  
-                    // insert new ticket
-                    Ticket.CreationDate = DateTime.Now;
-                    Ticket.Requester = userConfig.User;
-                    Requests = await DbAcc.AddTicketToDb(Ticket, Requests);
-                }
-                else
-                {
-                    // Update existing ticket
-                    Requests = await DbAcc.UpdateTicketInDb(Ticket, Requests);
-                }
-                Close();
-            }
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_request"), "", true);
-        }
-    }
-
-    private bool CheckRequestValues()
-    {
-        if (Ticket.Title == null || Ticket.Title == "")
-        {
-            DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("E5102"), true);
-            return false;
-        }
-        return true;
-    }
-
-    private async Task ApproveTask(StatefulObject approval, RequestApproval actApproval)
-    {
-        try
-        {
-            actApproval.StateId = approval.StateId;
-            actApproval.Comment = approval.OptComment();
-            if(actApproval.StateId >= StateMatrix.LowestEndState)
-            {
-                actApproval.ApprovalDate = DateTime.Now;
-                actApproval.ApproverDn = userConfig.User.Dn;
-            }
-            if (actApproval.Sanitize())
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("save_approval"), userConfig.GetText("U0001"), true);
-            }
-            await DbAcc.UpdateApprovalInDb(actApproval);
-            await DbAcc.UpdateTaskStateFromApprovals(actReqTask, StateMatrix);
-            await DbAcc.UpdateTicketStateFromTasks(Ticket, Requests, StateMatrix);
-            Reset();
-            StateHasChanged();
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_approval"), "", true);
-        }
-    }
-
-    public async Task AddImplTaskToReqTask(ImplementationTask implTask)
-    {
-        implTask.Id = await DbAcc.AddImplTaskToDb(implTask);
-        actReqTask.ImplementationTasks.Add(implTask);
-    }
-
-    public async Task ChangeImplTaskInReqTask(ImplementationTask implTask)
-    {
-        await DbAcc.UpdateImplTaskInDb(implTask);
-        actReqTask.ImplementationTasks[actReqTask.ImplementationTasks.FindIndex(x => x.ImplTaskNumber == implTask.ImplTaskNumber)] = implTask;
-    }
-
-    public async Task DeleteImplTask(ImplementationTask implTask)
-    {
-        await DbAcc.DeleteImplTaskFromDb(implTask);
-        actReqTask.ImplementationTasks.Remove(implTask);
     }
 }

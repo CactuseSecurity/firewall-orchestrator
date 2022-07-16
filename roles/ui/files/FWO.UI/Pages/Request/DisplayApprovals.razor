@@ -35,7 +35,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("ok"))</button>
+            <button class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Cancel">@(userConfig.GetText("ok"))</button>
         </div>
     </Footer>
 </PopUp>

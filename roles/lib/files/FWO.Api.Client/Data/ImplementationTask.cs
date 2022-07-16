@@ -21,6 +21,7 @@ namespace FWO.Api.Data
         public List<ImplementationElement> ImplElements { get; set; } = new List<ImplementationElement>();
 
         public List<ImplementationElement> RemovedElements { get; set; } = new List<ImplementationElement>();
+        public int TicketId { get; set; }
 
         public ImplementationTask()
         { }

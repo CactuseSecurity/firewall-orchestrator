@@ -44,7 +44,7 @@
                     <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                 </NotAuthorized> 
             </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+            <button class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -60,6 +60,9 @@
 
     [Parameter]
     public EventCallback<bool> PromoteChanged { get; set; }
+
+    [Parameter]
+    public Func<Task> ResetParent { get; set; }
 
     [Parameter]
     public string ObjectName { get; set; } = "";
@@ -101,6 +104,7 @@
                 else
                 {
                     await Save(StatefulObject);
+                    Close();
                 }
             }
             else
@@ -115,5 +119,6 @@
     {
         Display = false;
         Promote = false;
+        ResetParent();
     }
 }

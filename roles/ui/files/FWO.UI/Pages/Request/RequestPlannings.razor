@@ -13,13 +13,12 @@
 
 <h3>@(userConfig.GetText("plannings"))</h3>
 <hr />
-<DisplayOverview Phase="WorkflowPhases.planning" Requests="requests" ShowTicketDetails="ShowTicketDetails" 
-    StateMatrix ="stateMatrix" States="states"></DisplayOverview>
 
-<DisplayTicket Phase="WorkflowPhases.planning" DbAcc="dbAcc" StateMatrix ="stateMatrix" States="states"
-    ResetParent="Reset" StartPhase="StartPlanTask" SetContinueEnv="ContPlanTask"
-    @bind-Display="ShowTicketMode" PlanMode="PlanningMode" 
-    @bind-Ticket="actTicket" @bind-Requests="requests"></DisplayTicket>
+@if(InitComplete)
+{
+    <DisplayTicketTable Phase="WorkflowPhases.planning" StateMatrix ="stateMatrix" States="states" ReqHandler="reqHandler" 
+        ResetParent="Reset" ShowTicketDetails="ShowTicketDetails" StartPhase="StartPlanTask"/>
+}
 
 
 @code
@@ -27,11 +26,9 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
+    private RequestHandler reqHandler;
     private RequestDbAccess dbAcc;
-    private List<RequestTicket> requests = new List<RequestTicket>();
-
-    private bool ShowTicketMode = false;
-    private bool PlanningMode = false;
+    private List<Device> devices = new List<Device>();
 
     private RequestTicket actTicket = new RequestTicket();
     private RequestTask actReqTask = new RequestTask();
@@ -39,6 +36,7 @@
     private RequestStateDict states = new RequestStateDict();
     private List<int> actPossibleStates = new List<int>();
     private StateMatrix stateMatrix = new StateMatrix();
+    private bool InitComplete = false;
 
 
     protected override async Task OnInitializedAsync()
@@ -47,8 +45,14 @@
         {
             await stateMatrix.Init(WorkflowPhases.planning, apiConnection);
             await states.Init(apiConnection);
+
             dbAcc = new RequestDbAccess(DisplayMessageInUi, userConfig, apiConnection){};
-            requests = await dbAcc.FetchTickets(stateMatrix);
+            devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
+            reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, dbAcc, stateMatrix, devices, WorkflowPhases.planning){};
+            await reqHandler.Init();
+            reqHandler.SetContinueEnv(ObjAction.plan);
+    
+            InitComplete = true;
         }
         catch (Exception exception)
         {
@@ -58,17 +62,12 @@
 
     private async Task Reset()
     {
-        ShowTicketMode = false;
-        PlanningMode = false;
-        requests = await dbAcc.FetchTickets(stateMatrix);
-        StateHasChanged();
+        // await reqHandler.Init();
     }
 
     private async Task ShowTicketDetails(RequestTicket ticket)
     {
-        actTicket = ticket;
-        ShowTicketMode = true;
-        StateHasChanged();
+        reqHandler.SelectTicket(ticket, ObjAction.display);
     }
 
     private async Task StartPlanTask(RequestTask task)
@@ -81,13 +80,7 @@
             task.StateId = actPossibleStates[0];
         }
         await dbAcc.UpdateReqTaskStateInDb(task);
-        await dbAcc.UpdateTicketStateFromTasks(actTicket, requests, stateMatrix);
-        ContPlanTask();
-    }
-
-    private async Task ContPlanTask()
-    {
-        PlanningMode = true;
-        StateHasChanged();
+        await dbAcc.UpdateTicketStateFromTasks(reqHandler.ActTicket, reqHandler.TicketList, stateMatrix);
+        reqHandler.SetReqTaskOpt(ObjAction.plan);
     }
 }

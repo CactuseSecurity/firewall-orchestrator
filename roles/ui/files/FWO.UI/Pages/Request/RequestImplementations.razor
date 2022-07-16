@@ -11,32 +11,55 @@
 
 <h3>@(userConfig.GetText("implementations"))</h3>
 <hr />
-<DisplayOverview Phase="WorkflowPhases.implementation" Requests="requests" ShowTicketDetails="ShowTicketDetails" 
-    StateMatrix ="stateMatrix" States="states"></DisplayOverview>
 
-<DisplayTicket Phase="WorkflowPhases.implementation" DbAcc="dbAcc" StateMatrix ="stateMatrix" States="states"
-    ResetParent="Reset" StartImplPhase="StartImplementation" SetContinueEnv="ContImplementTask" 
-    @bind-Display="ShowTicketMode" ImplementMode="ImplementTaskMode" 
-    AllImplTasks="allImplTasks" @bind-Ticket="actTicket" @bind-Requests="requests"></DisplayTicket>
+@if(InitComplete)
+{
+    <div class="form-group row">
+        <label for="taskDevId" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("device")):</label>
+        <div class="col-sm-2">
+            <select id="taskDevId" class="form-control form-control-sm" @bind="DeviceId">
+                <option value="-1">@(userConfig.GetText("tickets"))</option>
+                <option value="0">@(userConfig.GetText("all"))</option>
+                @foreach (Device device in devices)
+                {
+                    <option value="@device.Id">@(device.Name)</option>
+                }
+            </select>
+        </div>
+        <button class="btn btn-sm btn-primary" @onclick="SelectDevice">@(userConfig.GetText("select"))</button>
+    </div>
 
+    @if(DisplayTickets)
+    {
+        <DisplayTicketTable Phase="WorkflowPhases.implementation" StateMatrix ="stateMatrix" States="states" ReqHandler="reqHandler" 
+            ResetParent="Reset" AllImplTasks="allImplTasks"
+            ShowTicketDetails="ShowTicketDetails" StartImplPhase="StartImplementTask"/>
+    }
+    else
+    {
+        <DisplayImplTaskTable Phase="WorkflowPhases.implementation" StateMatrix="stateMatrix" States="states" 
+            ReqHandler="reqHandler" ResetParent="Reset" AllImplTasks="allImplTasks"
+            StartImplPhase="StartImplementTask"/>
+    }
+}
 
 @code
 {
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
     
+    private RequestHandler reqHandler;
     private RequestDbAccess dbAcc;
-    private List<RequestTicket> requests = new List<RequestTicket>();
-
-    private bool ShowTicketMode = false;
-    private bool ImplementTaskMode = false;
-  
-    private RequestTicket actTicket = new RequestTicket();
+    private bool DisplayTickets = true;
+    private int DeviceId = -1;
+    private List<Device> devices = new List<Device>();
+      
     private List<ImplementationTask> allImplTasks = new List<ImplementationTask>();
 
     private RequestStateDict states = new RequestStateDict();
     private List<int> actPossibleStates = new List<int>();
     private StateMatrix stateMatrix = new StateMatrix();
+    private bool InitComplete = false;
 
 
     protected override async Task OnInitializedAsync()
@@ -45,8 +68,14 @@
         {
             await stateMatrix.Init(WorkflowPhases.implementation, apiConnection);
             await states.Init(apiConnection);
+
             dbAcc = new RequestDbAccess(DisplayMessageInUi, userConfig, apiConnection){};
-            requests = await dbAcc.FetchTickets(stateMatrix);
+            devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
+            reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, dbAcc, stateMatrix, devices, WorkflowPhases.implementation){};
+            await reqHandler.Init();
+            reqHandler.SetContinueEnv(ObjAction.implement);
+    
+            InitComplete = true;
         }
         catch (Exception exception)
         {
@@ -54,19 +83,40 @@
         }
     }
 
+    private async Task SelectDevice()
+    {
+        allImplTasks = new List<ImplementationTask>();
+        if(DeviceId != -1)
+        {
+            foreach(var ticket in reqHandler.TicketList)
+            {
+                foreach(var reqTask in ticket.Tasks)
+                {
+                    foreach(var implTask in reqTask.ImplementationTasks)
+                    {
+                        if (DeviceId == 0 || implTask.DeviceId == DeviceId)
+                        {
+                            implTask.TicketId = ticket.Id;
+                            implTask.ReqTaskId = reqTask.Id;
+                            allImplTasks.Add(implTask);
+                        }
+                    }
+                }
+            }
+        }
+        DisplayTickets = (DeviceId == -1);
+    }
+
     private async Task Reset()
     {
-        ShowTicketMode = false;
-        ImplementTaskMode = false;
-        requests = await dbAcc.FetchTickets(stateMatrix);
-        StateHasChanged();
+        // await reqHandler.Init();
     }
 
     private async Task ShowTicketDetails(RequestTicket ticket)
     {
-        actTicket = ticket;
+        reqHandler.SetTicketEnv(ticket);
         allImplTasks = new List<ImplementationTask>();
-        foreach(var reqTask in actTicket.Tasks)
+        foreach(var reqTask in reqHandler.ActTicket.Tasks)
         {
             foreach(var implTask in reqTask.ImplementationTasks)
             {
@@ -74,12 +124,12 @@
                 allImplTasks.Add(implTask);
             }
         }
-        ShowTicketMode = true;
-        StateHasChanged();
+        reqHandler.SetTicketOpt(ObjAction.display);
     }
     
-    private async Task StartImplementation(ImplementationTask task)
+    private async Task StartImplementTask(ImplementationTask task)
     {
+        reqHandler.SetImplTaskEnv(task);
         task.Start = DateTime.Now;
         task.CurrentHandler = userConfig.User;
         actPossibleStates = stateMatrix.getAllowedTransitions(task.StateId);
@@ -88,13 +138,7 @@
             task.StateId = actPossibleStates[0];
         }
         await dbAcc.UpdateImplTaskStateInDb(task);
-        await dbAcc.UpdateTicketStateFromImplTasks(actTicket, requests, stateMatrix);
-        await ContImplementTask();
-    }
-
-    private async Task ContImplementTask()
-    {
-        ImplementTaskMode = true;
-        StateHasChanged();
+        await dbAcc.UpdateTicketStateFromImplTasks(reqHandler.ActTicket, reqHandler.TicketList, stateMatrix);
+        reqHandler.SetImplTaskOpt(ObjAction.implement);
     }
 }

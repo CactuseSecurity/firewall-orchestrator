@@ -10,15 +10,15 @@
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("task") + ": " + ReqTask.Title)" Show="@Display" Large="true" OnClose="() => Display = false">
+<PopUp Title="@(userConfig.GetText("task") + ": " + ReqHandler.ActReqTask.Title)" Show="@Display" Large="true" OnClose="() => Display = false">
     <Body>
         @if (Display)
         {
             <form>
                 <form class="form-group row">
-                    <label for="roleInternalGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("assign_to")):</label>
+                    <label for="assignedGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("assign_to")):</label>
                     <div class="col-sm-8">
-                        <select id="roleInternalGroup" class="form-control-sm col-sm" @bind="ReqTask.AssignedGroup">
+                        <select id="assignedGroup" class="form-control-sm col-sm" @bind="ReqHandler.ActReqTask.AssignedGroup">
                             @foreach (var group in userAndGroupList)
                             {
                                 <option value="@group.Dn">@(group.Name)</option>
@@ -30,7 +30,7 @@
                         <div class="col-sm-2">
                             <AuthorizeView Roles="admin">
                                 <Authorized>
-                                    <button class="btn btn-sm btn-success" @onclick="() => AssignGroup()" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                                    <button class="btn btn-sm btn-success" @onclick="() => ReqHandler.AssignGroup()" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                                 </Authorized>
                                 <NotAuthorized>
                                     <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
@@ -39,14 +39,14 @@
                         </div>
                     }
                 </form>
-                @if(ReqTask.RecentHandler != null && ReqTask.RecentHandler != ReqTask.CurrentHandler)
+                @if(ReqHandler.ActReqTask.RecentHandler != null && ReqHandler.ActReqTask.RecentHandler != ReqHandler.ActReqTask.CurrentHandler)
                 {
                     <form class="form-group row">
-                        <label for="roleInternalGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("back_to")):</label>
-                        <label class="col-sm-8">@ReqTask.RecentHandler.Name</label>
+                        <label for="backAsssignedGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("back_to")):</label>
+                        <label id="backAsssignedGroup" class="col-sm-8">@ReqHandler.ActReqTask.RecentHandler.Name</label>
                         <AuthorizeView Roles="admin">
                             <Authorized>
-                                <button class="btn btn-sm btn-success" @onclick="() => AssignBack()" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                                <button class="btn btn-sm btn-success" @onclick="() => ReqHandler.AssignBack()" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                             </Authorized>
                             <NotAuthorized>
                                 <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
@@ -59,7 +59,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            <button class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -77,17 +77,8 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
     [Parameter]
-    public RequestDbAccess DbAcc { get; set; }
-
-    [Parameter]
-    public RequestTask ReqTask { get; set; } = new RequestTask();
-
-    [Parameter]
-    public EventCallback<RequestTask> ReqTaskChanged { get; set; }
-
-    [Parameter]
-    public WorkflowPhases Phase { get; set; } = WorkflowPhases.planning;
-
+    public RequestHandler ReqHandler { get; set; }
+ 
 
     private List<UiUser> userAndGroupList = new List<UiUser>();
 
@@ -104,36 +95,8 @@
         }
     }
 
-    private async Task AssignGroup()
-    {
-        ReqTask.RecentHandler = ReqTask.CurrentHandler;
-        if(CheckValues())
-        {
-            await DbAcc.UpdateReqTaskStateInDb(ReqTask);
-            Display = false;
-        }
-    }
-
-    private async Task AssignBack()
-    {
-        ReqTask.AssignedGroup = ReqTask.RecentHandler?.Dn;
-        ReqTask.RecentHandler = ReqTask.CurrentHandler;
-        await DbAcc.UpdateReqTaskStateInDb(ReqTask);
-        Display = false;
-    }
-
     private void Cancel()
     {
         Display = false;
-    }
-
-    private bool CheckValues()
-    {
-        if (ReqTask.AssignedGroup == null || ReqTask.AssignedGroup == "")
-        {
-            DisplayMessageInUi!(null, userConfig.GetText("assign_group"), userConfig.GetText("E8010"), true);
-            return false;
-        }
-        return true;
     }
 }

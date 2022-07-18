@@ -1,10 +1,10 @@
 - block: 
 
   - name: assert ansible version
-    assert:
-      that:
-        - "{{   when: ansible_version is version('2.8', '>=') }}"
+    fail:
       msg: Ansible 2.8 or above is required
+    when: ansible_version.full is version('2.8', '<')
+
 
   - name: update operating system packages .deb based
     apt:
@@ -124,9 +124,11 @@
   - set_fact:
       wsgi_package_name: "{{ wsgi_package_name }}-py3"
     when: | 
-      (ansible_facts['distribution']|lower == 'debian' and ansible_facts['distribution_version'] is version('10', '>'))
+      (ansible_facts['distribution']|lower == 'debian' and ansible_facts['distribution_major_version'] == 'testing')
       or 
-      (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_version'] is version('20', '>'))
+      (ansible_facts['distribution']|lower == 'debian' and ansible_facts['distribution_major_version'] is version('10', '>'))
+      or 
+      (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version'] is version('20', '>'))
 
   - name: copy iso.conf to target
     copy:

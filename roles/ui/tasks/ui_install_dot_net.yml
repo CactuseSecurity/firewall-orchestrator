@@ -1,11 +1,13 @@
 - block:
 
-    - set_fact: distribution_version="{{ ansible_facts['distribution_version'] }}"
-      when: ansible_facts['distribution']|lower == 'ubuntu'
-
-    - set_fact: distribution_version="{{ ansible_facts['distribution_version'] | regex_replace('\.\d$','') }}"
+    - set_fact: distribution_version="{{ ansible_facts['distribution_major_version'] }}"    
       when: ansible_facts['distribution']|lower == 'debian'
 
+    - set_fact: distribution_version="{{ ansible_facts['distribution_version'] }}"    
+      when: ansible_facts['distribution']|lower == 'ubuntu'
+
+    - set_fact: distribution_version="11"    
+      when: ansible_facts['distribution']|lower == 'debian' and ansible_facts['distribution_major_version'] == 'testing'
     - name: get package list from ms {{ dotnet_deb_name }}
       get_url:
         url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ distribution_version }}/{{ dotnet_deb_name }}"

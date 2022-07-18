@@ -72,11 +72,11 @@
 
     - set_fact: 
         distribution_version: "debian/11"
-        when: ansible_facts['distribution']|lower == 'debian' and ansible_facts['distribution_version'] == '11'
+        when: ansible_facts['distribution']|lower == 'debian' and ansible_facts['distribution_major_version'] == '11'
 
     - set_fact: 
         distribution_version: "debian/10"
-        when: ansible_facts['distribution']|lower == 'debian' and ansible_facts['distribution_version'] == '10'
+        when: ansible_facts['distribution']|lower == 'debian' and ansible_facts['distribution_major_version'] == '10'
 
     - set_fact: 
         distribution_version: "ubuntu/22.04"

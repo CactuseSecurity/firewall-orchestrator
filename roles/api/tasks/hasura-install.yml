@@ -137,7 +137,7 @@
   become: yes
   become_user: "{{ fworch_user }}"
   environment: "{{ proxy_env }}"
-  when: ansible_version.string is version_compare('2.10', '>=')
+  when: ansible_version.full is version('2.10', '>=')
 
 - name: start hasura container pre ansible 2.10
   docker_container:
@@ -160,7 +160,7 @@
   become: yes
   become_user: "{{ fworch_user }}"
   environment: "{{ proxy_env }}"
-  when: ansible_version.string is version_compare('2.10', '<')
+  when: ansible_version.full is version('2.10', '<')
 
 - name: show docker result
   debug:

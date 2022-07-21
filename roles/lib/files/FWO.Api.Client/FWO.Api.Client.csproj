@@ -8,7 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="GraphQL.Client" Version="5.0.2" />
-    <PackageReference Include="GraphQL.Client.Serializer.Newtonsoft" Version="5.0.1" />
+    <PackageReference Include="GraphQL.Client.Serializer.Newtonsoft" Version="5.0.2" />
     <PackageReference Include="GraphQL.Client.Serializer.SystemTextJson" Version="5.0.2" />
   </ItemGroup>
 

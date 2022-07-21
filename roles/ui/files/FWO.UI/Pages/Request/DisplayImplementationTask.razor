@@ -158,7 +158,7 @@
     </Footer>
 </PopUp>
 
-<PromoteObject @bind-Promote="ReqHandler.PromoteImplTaskMode" ResetParent="Reset" ObjectName="task" Save="ConfPromoteImplTask" StatefulObject="ReqHandler.ActImplTask" StateMatrix="StateMatrix" States="States"></PromoteObject>
+<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Reset" ObjectName="task" Save="ConfPromoteImplTask" StatefulObject="ReqHandler.ActImplTask" StateMatrix="StateMatrix" States="States"></PromoteObject>
 
 @code
 {
@@ -187,7 +187,7 @@
     List<NwObjectElement> actSources = new List<NwObjectElement>();
     List<NwObjectElement> actDestinations = new List<NwObjectElement>();
     List<NwServiceElement> actServices = new List<NwServiceElement>();
-
+    
 
     protected override async Task OnInitializedAsync()
     {
@@ -304,7 +304,7 @@
 
     private async Task InitPromoteImplTask()
     {
-        ReqHandler.SetImplTaskOpt(ObjAction.promote);
+        ReqHandler.SetImplTaskOpt(ObjAction.displayPromote);
     }
 
     private async Task ConfPromoteImplTask(StatefulObject implTask)

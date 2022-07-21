@@ -65,7 +65,7 @@
 
 <DisplayImplementationTask Phase="Phase" ReqHandler="ReqHandler" ResetParent="Reset" StateMatrix="StateMatrix" States="States"></DisplayImplementationTask>
 
-<DeleteObject @bind-Display="ReqHandler.DeleteImplTaskMode" Delete="ReqHandler.ConfDeleteImplTask" ObjName="@(ReqHandler.ActImplTask.ImplTaskNumber.ToString())"></DeleteObject>
+<DeleteObject @bind-Display="ReqHandler.DisplayDeleteMode" Delete="ReqHandler.ConfDeleteImplTask" ObjName="@(ReqHandler.ActImplTask.ImplTaskNumber.ToString())"></DeleteObject>
 
 
 @code
@@ -95,11 +95,6 @@
     public Func<ImplementationTask, Task>? StartImplPhase { get; set; }
 
 
-    private bool ShowImplTaskMode = false;
-    private bool EditImplTaskMode = false;
-    private bool DeleteImplTaskMode = false;
- 
-
     private async Task Reset()
     {
         ReqHandler.ResetImplTaskActions();
@@ -128,7 +123,7 @@
 
     private void DeleteImplTask(ImplementationTask task)
     {
-        ReqHandler.SelectImplTask(task, ObjAction.delete);
+        ReqHandler.SelectImplTask(task, ObjAction.displayDelete);
     }
 
     private async Task ContinueImplPhase(ImplementationTask implTask)

@@ -244,8 +244,8 @@
     </Footer>
 </PopUp>
 
-<PromoteObject @bind-Promote="ReqHandler.PromoteReqTaskMode" ResetParent="Reset" ObjectName="task" Save="ConfPromoteReqTask" StatefulObject="ReqHandler.ActReqTask" StateMatrix="StateMatrix" States="States"></PromoteObject>
-<PromoteObject @bind-Promote="ReqHandler.ApproveReqTaskMode" ResetParent="Reset" ObjectName="approval" WithComment="true" Save="ConfApproveTask" StatefulObject="actApproval" StateMatrix="StateMatrix" States="States"></PromoteObject>
+<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Reset" ObjectName="task" Save="ConfPromoteReqTask" StatefulObject="ReqHandler.ActReqTask" StateMatrix="StateMatrix" States="States"></PromoteObject>
+<PromoteObject @bind-Promote="ReqHandler.DisplayApproveMode" ResetParent="Reset" ObjectName="approval" WithComment="true" Save="ConfApproveTask" StatefulObject="actApproval" StateMatrix="StateMatrix" States="States"></PromoteObject>
 
 @code
 {
@@ -287,6 +287,7 @@
     List<NwObjectElement> actSources = new List<NwObjectElement>();
     List<NwObjectElement> actDestinations = new List<NwObjectElement>();
     List<NwServiceElement> actServices = new List<NwServiceElement>();
+    
 
     protected override async Task OnInitializedAsync()
     {
@@ -326,12 +327,13 @@
     private async Task Reset()
     {
         ReqHandler.ResetReqTaskActions();
+        ResetParent();
         StateHasChanged();
     }
 
     private async Task InitPromoteReqTask()
     {
-        ReqHandler.SetReqTaskOpt(ObjAction.promote);
+        ReqHandler.SetReqTaskOpt(ObjAction.displayPromote);
     }
 
     private async Task ConfPromoteReqTask(StatefulObject task)
@@ -343,7 +345,7 @@
     {
         actApproval = ReqHandler.ActReqTask.Approvals[0];  // todo: select own approvals
         actApproval.SetOptComment(actApproval.Comment);
-        ReqHandler.SetReqTaskOpt(ObjAction.approve);
+        ReqHandler.SetReqTaskOpt(ObjAction.displayApprove);
     }
 
     private async Task ConfApproveTask(StatefulObject approval)

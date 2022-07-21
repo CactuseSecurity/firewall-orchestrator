@@ -74,6 +74,7 @@
         {
             task.StateId = actPossibleStates[0];
         }
+        reqHandler.SetReqTaskEnv(task);
         await dbAcc.UpdateReqTaskStateInDb(task);
         await dbAcc.UpdateTicketStateFromTasks(reqHandler.ActTicket, reqHandler.TicketList, stateMatrix);
         reqHandler.SetReqTaskOpt(ObjAction.approve);

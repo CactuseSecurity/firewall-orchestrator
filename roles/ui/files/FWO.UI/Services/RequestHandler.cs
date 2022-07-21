@@ -9,14 +9,16 @@ namespace FWO.Ui.Services
         display,
         edit,
         add,
-        delete,
-        promote,
-        assign,
         approve,
         plan,
         implement,
         review,
-        displayApprovals
+        displayAssign,
+        displayApprovals,
+        displayApprove,
+        displayPromote,
+        displayDelete,
+        displaySaveTicket
     }
 
     public class RequestHandler
@@ -30,24 +32,24 @@ namespace FWO.Ui.Services
         public bool DisplayTicketMode = false;
         public bool EditTicketMode = false;
         public bool AddTicketMode = false;
-        public bool PromoteTicketMode = false;
 
         public bool DisplayReqTaskMode = false;
         public bool EditReqTaskMode = false;
         public bool AddReqTaskMode = false;
-        public bool DeleteReqTaskMode = false;
-        public bool PromoteReqTaskMode = false;
         public bool PlanReqTaskMode = false;
-        public bool AssignReqTaskMode = false;
         public bool ApproveReqTaskMode = false;
-        public bool DisplayApprovalMode = false;
 
         public bool DisplayImplTaskMode = false;
         public bool EditImplTaskMode = false;
         public bool AddImplTaskMode = false;
-        public bool DeleteImplTaskMode = false;
-        public bool PromoteImplTaskMode = false;
         public bool ImplementImplTaskMode = false;
+
+        public bool DisplayAssignMode = false;
+        public bool DisplayApprovalMode = false;
+        public bool DisplayApproveMode = false;
+        public bool DisplayPromoteMode = false;
+        public bool DisplaySaveTicketMode = false;
+        public bool DisplayDeleteMode = false;
 
         private Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
         private UserConfig userConfig;
@@ -109,7 +111,8 @@ namespace FWO.Ui.Services
             DisplayTicketMode = (action == ObjAction.display || action == ObjAction.edit || action == ObjAction.add);
             EditTicketMode = (action == ObjAction.edit || action == ObjAction.add);
             AddTicketMode = action == ObjAction.add;
-            PromoteTicketMode = action == ObjAction.promote;
+            DisplayPromoteMode = action == ObjAction.displayPromote;
+            DisplaySaveTicketMode = action == ObjAction.displaySaveTicket;
         }
 
         public void ResetTicketActions()
@@ -117,7 +120,8 @@ namespace FWO.Ui.Services
             DisplayTicketMode = false;
             EditTicketMode = false;
             AddTicketMode = false;
-            PromoteTicketMode = false;
+            DisplayPromoteMode = false;
+            DisplaySaveTicketMode = false;
         }
 
         public async Task SaveTicket(StatefulObject ticket)
@@ -205,15 +209,17 @@ namespace FWO.Ui.Services
 
         public void SetReqTaskOpt(ObjAction action)
         {
-            DisplayReqTaskMode = (action == ObjAction.display || action == ObjAction.edit || action == ObjAction.add || action == ObjAction.plan);
+            DisplayReqTaskMode = (action == ObjAction.display || action == ObjAction.edit || action == ObjAction.add || action == ObjAction.approve || action == ObjAction.plan);
             EditReqTaskMode = (action == ObjAction.edit || action == ObjAction.add);
             AddReqTaskMode = action == ObjAction.add;
-            DeleteReqTaskMode = action == ObjAction.delete;
-            PromoteReqTaskMode = action == ObjAction.promote;
             PlanReqTaskMode = action == ObjAction.plan;
-            AssignReqTaskMode = action == ObjAction.assign;
             ApproveReqTaskMode = action == ObjAction.approve;
+            
+            DisplayAssignMode = action == ObjAction.displayAssign;
             DisplayApprovalMode = action == ObjAction.displayApprovals;
+            DisplayApproveMode = action == ObjAction.displayApprove;
+            DisplayPromoteMode = action == ObjAction.displayPromote;
+            DisplayDeleteMode = action == ObjAction.displayDelete;
         }
 
         public void ResetReqTaskActions()
@@ -221,12 +227,14 @@ namespace FWO.Ui.Services
             DisplayReqTaskMode = false;
             EditReqTaskMode = false;
             AddReqTaskMode = false;
-            DeleteReqTaskMode = false;
-            PromoteReqTaskMode = false;
             PlanReqTaskMode = false;
-            AssignReqTaskMode = false;
             ApproveReqTaskMode = false;
+
+            DisplayAssignMode = false;
             DisplayApprovalMode = false;
+            DisplayApproveMode = false;
+            DisplayPromoteMode = false;
+            DisplayDeleteMode = false;
         }
 
         public async Task AssignGroup()
@@ -236,7 +244,7 @@ namespace FWO.Ui.Services
             {
                 await dbAcc.UpdateReqTaskStateInDb(ActReqTask);
             }
-            AssignReqTaskMode = false;
+            DisplayAssignMode = false;
         }
 
         public async Task AssignBack()
@@ -244,7 +252,7 @@ namespace FWO.Ui.Services
             ActReqTask.AssignedGroup = ActReqTask.RecentHandler?.Dn;
             ActReqTask.RecentHandler = ActReqTask.CurrentHandler;
             await dbAcc.UpdateReqTaskStateInDb(ActReqTask);
-            AssignReqTaskMode = false;
+            DisplayAssignMode = false;
         }
 
         public async Task AddReqTask()
@@ -275,7 +283,7 @@ namespace FWO.Ui.Services
 
             ActTicket.Tasks.Remove(ActReqTask);
             // todo: adapt TaskNumbers of following tasks?
-            DeleteReqTaskMode = false;
+            DisplayDeleteMode = false;
         }
 
         public async Task PromoteReqTask(StatefulObject reqTask)
@@ -305,7 +313,7 @@ namespace FWO.Ui.Services
                 
                 await dbAcc.UpdateTicketStateFromTasks(ActTicket, TicketList, stateMatrix);
                 ActTicket.Tasks[ActTicket.Tasks.FindIndex(x => x.Id == ActReqTask.Id)] = ActReqTask;
-                PromoteReqTaskMode = false;
+                DisplayPromoteMode = false;
             }
             catch (Exception exception)
             {
@@ -368,9 +376,10 @@ namespace FWO.Ui.Services
             DisplayImplTaskMode = (action == ObjAction.display || action == ObjAction.edit || action == ObjAction.add || action == ObjAction.implement);
             EditImplTaskMode = (action == ObjAction.edit || action == ObjAction.add);
             AddImplTaskMode = action == ObjAction.add;
-            DeleteImplTaskMode = action == ObjAction.delete;
-            PromoteImplTaskMode = action == ObjAction.promote;
             ImplementImplTaskMode = action == ObjAction.implement;
+
+            DisplayPromoteMode = action == ObjAction.displayPromote;
+            DisplayDeleteMode = action == ObjAction.displayDelete;
         }
 
         public void ResetImplTaskActions()
@@ -378,9 +387,10 @@ namespace FWO.Ui.Services
             DisplayImplTaskMode = false;
             EditImplTaskMode = false;
             AddImplTaskMode = false;
-            DeleteImplTaskMode = false;
-            PromoteImplTaskMode = false;
             ImplementImplTaskMode = false;
+
+            DisplayPromoteMode = false;
+            DisplayDeleteMode = false;
         }
 
         public async Task AddImplTask()
@@ -407,7 +417,7 @@ namespace FWO.Ui.Services
                 ActReqTask.ImplementationTasks[ActReqTask.ImplementationTasks.FindIndex(x => x.Id == ActImplTask.Id)] = ActImplTask;
                 await dbAcc.UpdateTicketStateFromTasks(ActTicket, TicketList, stateMatrix);
                 ActTicket.Tasks[ActTicket.Tasks.FindIndex(x => x.Id == ActReqTask.Id)] = ActReqTask;
-                PromoteImplTaskMode = false;
+                DisplayPromoteMode = false;
             }
             catch (Exception exception)
             {
@@ -419,7 +429,7 @@ namespace FWO.Ui.Services
         {
             await dbAcc.DeleteImplTaskFromDb(ActImplTask);
             ActReqTask.ImplementationTasks.Remove(ActImplTask);
-            DeleteImplTaskMode = false;
+            DisplayDeleteMode = false;
         }
 
         private async Task AutoCreateImplTasks()

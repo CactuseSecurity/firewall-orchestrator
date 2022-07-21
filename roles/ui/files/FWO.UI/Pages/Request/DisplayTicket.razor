@@ -98,8 +98,8 @@
     </Footer>
 </PopUp>
 
-<PromoteObject @bind-Promote="SaveTicketMode" ResetParent="Reset" ObjectName="ticket" Save="ReqHandler.SaveTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="StateMatrix" States="States"></PromoteObject>
-<PromoteObject @bind-Promote="ReqHandler.PromoteTicketMode" ResetParent="Reset" ObjectName="ticket" Save="ReqHandler.PromoteTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="StateMatrix" States="States"></PromoteObject>
+<PromoteObject @bind-Promote="ReqHandler.DisplaySaveTicketMode" ResetParent="Reset" ObjectName="ticket" Save="ReqHandler.SaveTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="StateMatrix" States="States"></PromoteObject>
+<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Reset" ObjectName="ticket" Save="ReqHandler.PromoteTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="StateMatrix" States="States"></PromoteObject>
 
 
 @code
@@ -135,7 +135,6 @@
     private RequestTask actReqTask { get; set; } = new RequestTask();
     private ImplementationTask actImplTask = new ImplementationTask();
     private List<int> possibleStates = new List<int>();
-    private bool SaveTicketMode = false;
 
 
     private void Close()
@@ -145,8 +144,8 @@
 
     private async Task Reset()
     {
-        SaveTicketMode = false;
         ReqHandler.ResetTicketActions();
+        ResetParent();
         StateHasChanged();
     }
 
@@ -184,7 +183,7 @@
 
     private async Task InitPromoteTicket()
     {
-        ReqHandler.SetTicketOpt(ObjAction.promote);
+        ReqHandler.SetTicketOpt(ObjAction.displayPromote);
     }
 
     private async Task InitSaveTicket()
@@ -196,7 +195,7 @@
         }
         else
         {
-            SaveTicketMode = true;
+            ReqHandler.SetTicketOpt(ObjAction.displaySaveTicket);
         }
     }
 }

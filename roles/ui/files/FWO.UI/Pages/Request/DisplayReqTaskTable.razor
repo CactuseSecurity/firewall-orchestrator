@@ -77,8 +77,8 @@
 
 <DisplayRequestTask Phase="Phase" StateMatrix="StateMatrix" States="States" ReqHandler="ReqHandler"
     ResetParent="Reset" AllImplTasks="AllImplTasks" StartImplPhase="StartImplPhase"/>
-<AssignTask @bind-Display="ReqHandler.AssignReqTaskMode" ReqHandler="ReqHandler"/>
-<DeleteObject @bind-Display="ReqHandler.DeleteReqTaskMode" Delete="ReqHandler.ConfDeleteReqTask" ObjName="@ReqHandler.ActReqTask.Title"></DeleteObject>
+<AssignTask @bind-Display="ReqHandler.DisplayAssignMode" ReqHandler="ReqHandler"/>
+<DeleteObject @bind-Display="ReqHandler.DisplayDeleteMode" Delete="ReqHandler.ConfDeleteReqTask" ObjName="@ReqHandler.ActReqTask.Title"></DeleteObject>
 <DisplayApprovals @bind-Display="ReqHandler.DisplayApprovalMode" Approvals="ReqHandler.ActReqTask.Approvals" States="States"></DisplayApprovals>
 
 
@@ -140,12 +140,12 @@
 
     private async Task DeleteReqTask(RequestTask reqTask)
     {
-        ReqHandler.SelectReqTask(reqTask, ObjAction.delete);
+        ReqHandler.SelectReqTask(reqTask, ObjAction.displayDelete);
     }
 
     private async Task AssignTask(RequestTask reqTask)
     {
-        ReqHandler.SelectReqTask(reqTask, ObjAction.assign);
+        ReqHandler.SelectReqTask(reqTask, ObjAction.displayAssign);
     }
 
     private async Task ContinuePhase(RequestTask reqTask)

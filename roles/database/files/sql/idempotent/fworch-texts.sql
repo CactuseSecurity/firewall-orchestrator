@@ -661,6 +661,8 @@ INSERT INTO txt VALUES ('current_handler', 		'German',	'Aktueller Bearbeiter');
 INSERT INTO txt VALUES ('current_handler', 	    'English',	'Current handler');
 INSERT INTO txt VALUES ('review', 			    'German',	'Review');
 INSERT INTO txt VALUES ('review', 			    'English',	'Review');
+INSERT INTO txt VALUES ('verification', 		'German',	'Verifizierung');
+INSERT INTO txt VALUES ('verification', 		'English',	'Verification');
 INSERT INTO txt VALUES ('obj', 			        'German', 	'Obj');
 INSERT INTO txt VALUES ('obj', 			        'English', 	'Obj');
 

@@ -137,6 +137,7 @@
         {
             task.StateId = actPossibleStates[0];
         }
+        reqHandler.SetImplTaskEnv(task);
         await dbAcc.UpdateImplTaskStateInDb(task);
         await dbAcc.UpdateTicketStateFromImplTasks(reqHandler.ActTicket, reqHandler.TicketList, stateMatrix);
         reqHandler.SetImplTaskOpt(ObjAction.implement);

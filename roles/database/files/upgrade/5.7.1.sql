@@ -199,6 +199,7 @@ ALTER TABLE request.task DROP CONSTRAINT IF EXISTS request_task_object_foreign_k
 ALTER TABLE request.task DROP CONSTRAINT IF EXISTS request_task_usergrp_foreign_key;
 ALTER TABLE request.task DROP CONSTRAINT IF EXISTS request_task_handler_foreign_key;
 ALTER TABLE request.task DROP CONSTRAINT IF EXISTS request_task_recent_handler_foreign_key;
+ALTER TABLE request.task DROP CONSTRAINT IF EXISTS request_task_device_foreign_key;
 --- request.element ---
 ALTER TABLE request.element DROP CONSTRAINT IF EXISTS request_element_request_task_foreign_key;
 ALTER TABLE request.element DROP CONSTRAINT IF EXISTS request_element_proto_foreign_key;

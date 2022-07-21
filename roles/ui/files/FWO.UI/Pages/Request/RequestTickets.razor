@@ -16,7 +16,7 @@
 @if(InitComplete)
 {
     <DisplayTicketTable Phase="WorkflowPhases.request" StateMatrix ="stateMatrix" States="states" ReqHandler="reqHandler" 
-        ResetParent="Reset" ShowTicketDetails="ShowTicketDetails"/>
+        ResetParent="Reset"/>
 }
 
 @code
@@ -54,10 +54,5 @@
     private async Task Reset()
     {
         await reqHandler.Init();
-    }
-
-    private async Task ShowTicketDetails(RequestTicket ticket)
-    {
-        reqHandler.SelectTicket(ticket, ObjAction.display);
     }
 }

@@ -15,7 +15,7 @@
 @if(InitComplete)
 {
     <DisplayTicketTable Phase="WorkflowPhases.approval" StateMatrix ="stateMatrix" States="states" ReqHandler="reqHandler" 
-        ResetParent="Reset" ShowTicketDetails="ShowTicketDetails" StartPhase="StartApproveTask"/>
+        ResetParent="Reset" StartPhase="StartApproveTask"/>
 }
 
 
@@ -27,12 +27,9 @@
     private RequestHandler reqHandler;
     private RequestDbAccess dbAcc;
     private List<Device> devices = new List<Device>();
-
     private RequestStateDict states = new RequestStateDict();
-    private List<int> actPossibleStates = new List<int>();
     private StateMatrix stateMatrix = new StateMatrix();
     private bool InitComplete = false;
-
 
 
     protected override async Task OnInitializedAsync()
@@ -61,22 +58,8 @@
         // await reqHandler.Init();
     }
 
-    private async Task ShowTicketDetails(RequestTicket ticket)
+    public async Task StartApproveTask(RequestTask reqTask)
     {
-        reqHandler.SelectTicket(ticket, ObjAction.display);
-    }
-
-    public async Task StartApproveTask(RequestTask task)
-    {
-        task.CurrentHandler = userConfig.User;
-        actPossibleStates = stateMatrix.getAllowedTransitions(task.StateId);
-        if(actPossibleStates.Count == 1 && actPossibleStates[0] >= stateMatrix.LowestStartedState && actPossibleStates[0] < stateMatrix.LowestEndState)
-        {
-            task.StateId = actPossibleStates[0];
-        }
-        reqHandler.SetReqTaskEnv(task);
-        await dbAcc.UpdateReqTaskStateInDb(task);
-        await dbAcc.UpdateTicketStateFromTasks(reqHandler.ActTicket, reqHandler.TicketList, stateMatrix);
-        reqHandler.SetReqTaskOpt(ObjAction.approve);
+        await reqHandler.StartWorkOnReqTask(reqTask, ObjAction.approve);
     }
 }

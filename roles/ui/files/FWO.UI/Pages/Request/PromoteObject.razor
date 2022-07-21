@@ -38,7 +38,7 @@
         <div class="btn-group">
             <AuthorizeView Roles="admin, requester, approver, planner, implementer, reviewer, fw-admin">
                 <Authorized>
-                    <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => {StatefulObject.SetOptComment(optComm); Save(StatefulObject); Close();}">@(userConfig.GetText("save"))</button>
+                    <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="async () => {StatefulObject.SetOptComment(optComm); await Save(StatefulObject); await Close();}">@(userConfig.GetText("save"))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
@@ -115,10 +115,10 @@
         }
     }
 
-    private void Close()
+    private async Task Close()
     {
         Display = false;
         Promote = false;
-        ResetParent();
+        await ResetParent();
     }
 }

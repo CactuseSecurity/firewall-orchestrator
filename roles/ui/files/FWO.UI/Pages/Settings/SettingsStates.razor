@@ -23,11 +23,11 @@
         <hr />
         <div class="form-group row">
             <input id="phase" type="checkbox" @bind="globalStateMatrix.GlobalMatrix[phase].Active" />
-            <label for="phase" class="col-form-label col-sm-2">@(userConfig.GetText(phase.ToString()))</label>
+            <label for="phase" class="col-form-label col-sm-2"><h4>@(userConfig.GetText(phase.ToString()))</h4></label>
         </div>
         @if(globalStateMatrix.GlobalMatrix[phase].Active)
         {
-            @(userConfig.GetText("allowed_transitions"))
+            <h5>@(userConfig.GetText("allowed_transitions"))</h5>
             <button class="btn btn-sm btn-success" @onclick="() => AddStateToPhase(phase)">@(userConfig.GetText("add_state"))</button>
 
             <div class="m-2">
@@ -57,7 +57,7 @@
                     </Column>
                 </Table>
             </div>
-            @(userConfig.GetText("special_states"))
+            <h5>@(userConfig.GetText("special_states"))</h5>
             <div class="form-group row">
                 <label for="lowestInputState" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_input_state")):</label>
                 <div class="col-sm-8">

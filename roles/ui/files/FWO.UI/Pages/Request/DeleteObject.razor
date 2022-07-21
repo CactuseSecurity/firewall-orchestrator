@@ -18,7 +18,7 @@
         <div class="btn-group">
             <AuthorizeView Roles="admin, requester, approver, planner, implementer, fw-admin">
                 <Authorized>
-                    <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="Delete">@(userConfig.GetText("delete"))</button>
+                    <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="async () => { await Delete(); await Close();}">@(userConfig.GetText("delete"))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
@@ -45,11 +45,20 @@
     public Func<Task> Delete { get; set; }
 
     [Parameter]
+    public Func<Task> ResetParent { get; set; }
+
+    [Parameter]
     public string ObjName { get; set; } = "";
 
 
     private void Cancel()
     {
         Display = false;
+    }
+
+    private async Task Close()
+    {
+        Display = false;
+        await ResetParent();
     }
 }

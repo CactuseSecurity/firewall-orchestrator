@@ -32,8 +32,7 @@
     @if(DisplayTickets)
     {
         <DisplayTicketTable Phase="WorkflowPhases.implementation" StateMatrix ="stateMatrix" States="states" ReqHandler="reqHandler" 
-            ResetParent="Reset" AllImplTasks="allImplTasks"
-            ShowTicketDetails="ShowTicketDetails" StartImplPhase="StartImplementTask"/>
+            ResetParent="Reset" StartImplPhase="StartImplementTask"/>
     }
     else
     {
@@ -50,16 +49,14 @@
     
     private RequestHandler reqHandler;
     private RequestDbAccess dbAcc;
-    private bool DisplayTickets = true;
-    private int DeviceId = -1;
     private List<Device> devices = new List<Device>();
-      
-    private List<ImplementationTask> allImplTasks = new List<ImplementationTask>();
-
     private RequestStateDict states = new RequestStateDict();
-    private List<int> actPossibleStates = new List<int>();
     private StateMatrix stateMatrix = new StateMatrix();
     private bool InitComplete = false;
+
+    private bool DisplayTickets = true;
+    private int DeviceId = -1;
+    private List<ImplementationTask> allImplTasks = new List<ImplementationTask>();
 
 
     protected override async Task OnInitializedAsync()
@@ -111,35 +108,10 @@
     {
         // await reqHandler.Init();
     }
-
-    private async Task ShowTicketDetails(RequestTicket ticket)
-    {
-        reqHandler.SetTicketEnv(ticket);
-        allImplTasks = new List<ImplementationTask>();
-        foreach(var reqTask in reqHandler.ActTicket.Tasks)
-        {
-            foreach(var implTask in reqTask.ImplementationTasks)
-            {
-                implTask.ReqTaskId = reqTask.Id;
-                allImplTasks.Add(implTask);
-            }
-        }
-        reqHandler.SetTicketOpt(ObjAction.display);
-    }
     
-    private async Task StartImplementTask(ImplementationTask task)
+    private async Task StartImplementTask(ImplementationTask implTask)
     {
-        reqHandler.SetImplTaskEnv(task);
-        task.Start = DateTime.Now;
-        task.CurrentHandler = userConfig.User;
-        actPossibleStates = stateMatrix.getAllowedTransitions(task.StateId);
-        if(actPossibleStates.Count == 1 && actPossibleStates[0] >= stateMatrix.LowestStartedState && actPossibleStates[0] < stateMatrix.LowestEndState)
-        {
-            task.StateId = actPossibleStates[0];
-        }
-        reqHandler.SetImplTaskEnv(task);
-        await dbAcc.UpdateImplTaskStateInDb(task);
-        await dbAcc.UpdateTicketStateFromImplTasks(reqHandler.ActTicket, reqHandler.TicketList, stateMatrix);
-        reqHandler.SetImplTaskOpt(ObjAction.implement);
+        implTask.Start = DateTime.Now;
+        await reqHandler.StartWorkOnImplTask(implTask, ObjAction.implement);
     }
 }

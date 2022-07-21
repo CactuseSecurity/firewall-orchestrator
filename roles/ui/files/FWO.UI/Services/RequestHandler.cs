@@ -28,6 +28,7 @@ namespace FWO.Ui.Services
         public RequestTask ActReqTask { get; set; } = new RequestTask();
         public ImplementationTask ActImplTask { get; set; } = new ImplementationTask();
         public List<Device> Devices = new List<Device>();
+        public List<ImplementationTask> AllImplTasks = new List<ImplementationTask>();
 
         public bool DisplayTicketMode = false;
         public bool EditTicketMode = false;
@@ -104,13 +105,28 @@ namespace FWO.Ui.Services
         public void SetTicketEnv (RequestTicket ticket)
         {
             ActTicket = ticket;
+            AllImplTasks = new List<ImplementationTask>();
+            foreach(var reqTask in ActTicket.Tasks)
+            {
+                foreach(var implTask in reqTask.ImplementationTasks)
+                {
+                    implTask.TicketId = ActTicket.Id;
+                    implTask.ReqTaskId = reqTask.Id;
+                    AllImplTasks.Add(implTask);
+                }
+            }
         }
 
         public void SetTicketOpt(ObjAction action)
         {
+            ResetTicketActions();
             DisplayTicketMode = (action == ObjAction.display || action == ObjAction.edit || action == ObjAction.add);
             EditTicketMode = (action == ObjAction.edit || action == ObjAction.add);
             AddTicketMode = action == ObjAction.add;
+        }
+
+        public void SetTicketPopUpOpt(ObjAction action)
+        {
             DisplayPromoteMode = action == ObjAction.displayPromote;
             DisplaySaveTicketMode = action == ObjAction.displaySaveTicket;
         }
@@ -197,6 +213,12 @@ namespace FWO.Ui.Services
             SetReqTaskOpt(action);
         }
 
+        public void SelectReqTaskPopUp (RequestTask reqTask, ObjAction action)
+        {
+            SetReqTaskEnv(reqTask);
+            SetReqTaskPopUpOpt(action);
+        }
+
         public void SetReqTaskEnv (RequestTask reqTask)
         {
             ActReqTask = reqTask;
@@ -209,12 +231,16 @@ namespace FWO.Ui.Services
 
         public void SetReqTaskOpt(ObjAction action)
         {
+            ResetReqTaskActions();
             DisplayReqTaskMode = (action == ObjAction.display || action == ObjAction.edit || action == ObjAction.add || action == ObjAction.approve || action == ObjAction.plan);
             EditReqTaskMode = (action == ObjAction.edit || action == ObjAction.add);
             AddReqTaskMode = action == ObjAction.add;
             PlanReqTaskMode = action == ObjAction.plan;
             ApproveReqTaskMode = action == ObjAction.approve;
-            
+        }
+
+        public void SetReqTaskPopUpOpt(ObjAction action)
+        {
             DisplayAssignMode = action == ObjAction.displayAssign;
             DisplayApprovalMode = action == ObjAction.displayApprovals;
             DisplayApproveMode = action == ObjAction.displayApprove;
@@ -235,6 +261,20 @@ namespace FWO.Ui.Services
             DisplayApproveMode = false;
             DisplayPromoteMode = false;
             DisplayDeleteMode = false;
+        }
+
+        public async Task StartWorkOnReqTask(RequestTask reqTask, ObjAction action)
+        {
+            reqTask.CurrentHandler = userConfig.User;
+            List<int> actPossibleStates = stateMatrix.getAllowedTransitions(reqTask.StateId);
+            if(actPossibleStates.Count == 1 && actPossibleStates[0] >= stateMatrix.LowestStartedState && actPossibleStates[0] < stateMatrix.LowestEndState)
+            {
+                reqTask.StateId = actPossibleStates[0];
+            }
+            SetReqTaskEnv(reqTask);
+            await dbAcc.UpdateReqTaskStateInDb(reqTask);
+            await dbAcc.UpdateTicketStateFromTasks(ActTicket, TicketList, stateMatrix);
+            SetReqTaskOpt(action);
         }
 
         public async Task AssignGroup()
@@ -356,6 +396,12 @@ namespace FWO.Ui.Services
             SetImplTaskOpt(action);
         }
 
+        public void SelectReqImplPopUp (ImplementationTask implTask, ObjAction action)
+        {
+            SetImplTaskEnv(implTask);
+            SetImplTaskPopUpOpt(action);
+        }
+
         public void SetImplTaskEnv(ImplementationTask implTask)
         {
             ActImplTask = implTask;
@@ -373,11 +419,15 @@ namespace FWO.Ui.Services
 
         public void SetImplTaskOpt(ObjAction action)
         {
+            ResetImplTaskActions();
             DisplayImplTaskMode = (action == ObjAction.display || action == ObjAction.edit || action == ObjAction.add || action == ObjAction.implement);
             EditImplTaskMode = (action == ObjAction.edit || action == ObjAction.add);
             AddImplTaskMode = action == ObjAction.add;
             ImplementImplTaskMode = action == ObjAction.implement;
-
+        }
+        
+        public void SetImplTaskPopUpOpt(ObjAction action)
+        {
             DisplayPromoteMode = action == ObjAction.displayPromote;
             DisplayDeleteMode = action == ObjAction.displayDelete;
         }
@@ -391,6 +441,20 @@ namespace FWO.Ui.Services
 
             DisplayPromoteMode = false;
             DisplayDeleteMode = false;
+        }
+
+        public async Task StartWorkOnImplTask(ImplementationTask implTask, ObjAction action)
+        {
+            implTask.CurrentHandler = userConfig.User;
+            List<int> actPossibleStates = stateMatrix.getAllowedTransitions(implTask.StateId);
+            if(actPossibleStates.Count == 1 && actPossibleStates[0] >= stateMatrix.LowestStartedState && actPossibleStates[0] < stateMatrix.LowestEndState)
+            {
+                implTask.StateId = actPossibleStates[0];
+            }
+            SetImplTaskEnv(implTask);
+            await dbAcc.UpdateImplTaskStateInDb(implTask);
+            await dbAcc.UpdateTicketStateFromImplTasks(ActTicket, TicketList, stateMatrix);
+            SetImplTaskOpt(action);
         }
 
         public async Task AddImplTask()

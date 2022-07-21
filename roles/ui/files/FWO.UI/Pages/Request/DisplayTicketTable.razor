@@ -40,7 +40,7 @@
 </div>
 
 <DisplayTicket Phase="Phase" StateMatrix ="StateMatrix" States="States" ReqHandler="ReqHandler" ResetParent="Reset" 
-    StartPhase="StartPhase" StartImplPhase="StartImplPhase" AllImplTasks="AllImplTasks"/>
+    StartPhase="StartPhase" StartImplPhase="StartImplPhase"/>
 
 
 @code
@@ -64,12 +64,6 @@
     public Func<Task> ResetParent { get; set; }
 
     [Parameter]
-    public List<ImplementationTask>? AllImplTasks { get; set; }
-
-    [Parameter]
-    public Func<RequestTicket, Task> ShowTicketDetails { get; set; }
-
-    [Parameter]
     public Func<RequestTask, Task>? StartPhase { get; set; }
 
     [Parameter]
@@ -81,6 +75,11 @@
         ReqHandler.ResetTicketActions();
         await ResetParent();
         StateHasChanged();
+    }
+
+    private async Task ShowTicketDetails(RequestTicket ticket)
+    {
+        ReqHandler.SelectTicket(ticket, ObjAction.display);
     }
 
     private async Task AddTicket()

@@ -76,10 +76,10 @@
 </div>
 
 <DisplayRequestTask Phase="Phase" StateMatrix="StateMatrix" States="States" ReqHandler="ReqHandler"
-    ResetParent="Reset" AllImplTasks="AllImplTasks" StartImplPhase="StartImplPhase"/>
-<AssignTask @bind-Display="ReqHandler.DisplayAssignMode" ReqHandler="ReqHandler"/>
-<DeleteObject @bind-Display="ReqHandler.DisplayDeleteMode" Delete="ReqHandler.ConfDeleteReqTask" ObjName="@ReqHandler.ActReqTask.Title"></DeleteObject>
-<DisplayApprovals @bind-Display="ReqHandler.DisplayApprovalMode" Approvals="ReqHandler.ActReqTask.Approvals" States="States"></DisplayApprovals>
+    ResetParent="Reset" StartImplPhase="StartImplPhase"/>
+<AssignTask @bind-Display="ReqHandler.DisplayAssignMode" ResetParent="Reset" ReqHandler="ReqHandler"/>
+<DeleteObject @bind-Display="ReqHandler.DisplayDeleteMode" ResetParent="Reset" Delete="ReqHandler.ConfDeleteReqTask" ObjName="@ReqHandler.ActReqTask.Title"/>
+<DisplayApprovals @bind-Display="ReqHandler.DisplayApprovalMode" Approvals="ReqHandler.ActReqTask.Approvals" States="States"/>
 
 
 @code
@@ -103,9 +103,6 @@
     public Func<Task> ResetParent { get; set; }
 
     [Parameter]
-    public List<ImplementationTask>? AllImplTasks { get; set; }
-
-    [Parameter]
     public Func<RequestTask, Task>? StartPhase { get; set; }
 
     [Parameter]
@@ -114,6 +111,7 @@
 
     private async Task Reset()
     {
+        await ResetParent();
         ReqHandler.ResetReqTaskActions();
         StateHasChanged();
     }
@@ -121,11 +119,6 @@
     private void ShowReqTask(RequestTask reqTask)
     {
         ReqHandler.SelectReqTask(reqTask, ObjAction.display);
-    }
-
-    private void ShowApprovals(RequestTask reqTask)
-    {
-        ReqHandler.SelectReqTask(reqTask, ObjAction.displayApprovals);
     }
 
     private async Task AddReqTask()
@@ -140,12 +133,17 @@
 
     private async Task DeleteReqTask(RequestTask reqTask)
     {
-        ReqHandler.SelectReqTask(reqTask, ObjAction.displayDelete);
+        ReqHandler.SelectReqTaskPopUp(reqTask, ObjAction.displayDelete);
+    }
+
+    private void ShowApprovals(RequestTask reqTask)
+    {
+        ReqHandler.SelectReqTaskPopUp(reqTask, ObjAction.displayApprovals);
     }
 
     private async Task AssignTask(RequestTask reqTask)
     {
-        ReqHandler.SelectReqTask(reqTask, ObjAction.displayAssign);
+        ReqHandler.SelectReqTaskPopUp(reqTask, ObjAction.displayAssign);
     }
 
     private async Task ContinuePhase(RequestTask reqTask)

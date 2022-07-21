@@ -9,7 +9,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("request") + ": " + ReqHandler.ActTicket.Title)" Show="@ReqHandler.DisplayTicketMode" XLarge="true" OnClose="() => Close()">
+<PopUp Title="@(userConfig.GetText("request") + ": " + ReqHandler.ActTicket.Title)" Show="@ReqHandler.DisplayTicketMode" XLarge="true" OnClose="async () => Close()">
     <Body>
         @if (ReqHandler.DisplayTicketMode)
         {
@@ -55,15 +55,14 @@
                     <h5>@(userConfig.GetText("tasks"))</h5>
 
                     <DisplayReqTaskTable Phase="Phase" StateMatrix="StateMatrix" States="States" 
-                        ReqHandler="ReqHandler" ResetParent="Reset" 
-                        StartPhase="StartPhase"/>
+                        ReqHandler="ReqHandler" ResetParent="Reset" StartPhase="StartPhase"/>
                 }
                 else
                 {
                     <h5>@(userConfig.GetText("implementation_tasks"))</h5>
 
                     <DisplayImplTaskTable Phase="Phase" StateMatrix="StateMatrix" States="States" 
-                        ReqHandler="ReqHandler" ResetParent="Reset" AllImplTasks="AllImplTasks"
+                        ReqHandler="ReqHandler" ResetParent="Reset" AllImplTasks="ReqHandler.AllImplTasks"
                         StartImplPhase="StartImplPhase"/>
                 }
             </form>
@@ -98,8 +97,8 @@
     </Footer>
 </PopUp>
 
-<PromoteObject @bind-Promote="ReqHandler.DisplaySaveTicketMode" ResetParent="Reset" ObjectName="ticket" Save="ReqHandler.SaveTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="StateMatrix" States="States"></PromoteObject>
-<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Reset" ObjectName="ticket" Save="ReqHandler.PromoteTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="StateMatrix" States="States"></PromoteObject>
+<PromoteObject @bind-Promote="ReqHandler.DisplaySaveTicketMode" ResetParent="Close" ObjectName="ticket" Save="ReqHandler.SaveTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="StateMatrix" States="States"/>
+<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Close" ObjectName="ticket" Save="ReqHandler.PromoteTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="StateMatrix" States="States"/>
 
 
 @code
@@ -123,9 +122,6 @@
     public Func<Task> ResetParent { get; set; }
 
     [Parameter]
-    public List<ImplementationTask>? AllImplTasks { get; set; }
-
-    [Parameter]
     public Func<RequestTask, Task>? StartPhase { get; set; }
 
     [Parameter]
@@ -137,15 +133,13 @@
     private List<int> possibleStates = new List<int>();
 
 
-    private void Close()
+    private async Task Close()
     {
-        ResetParent();
+        await ResetParent();
     }
 
     private async Task Reset()
     {
-        ReqHandler.ResetTicketActions();
-        ResetParent();
         StateHasChanged();
     }
 
@@ -183,7 +177,7 @@
 
     private async Task InitPromoteTicket()
     {
-        ReqHandler.SetTicketOpt(ObjAction.displayPromote);
+        ReqHandler.SetTicketPopUpOpt(ObjAction.displayPromote);
     }
 
     private async Task InitSaveTicket()
@@ -191,11 +185,11 @@
         if(ReqHandler.ActTicket.Tasks.Count == 0)
         {
             await ReqHandler.SaveTicket(ReqHandler.ActTicket);
-            StateHasChanged();
+            await Close();
         }
         else
         {
-            ReqHandler.SetTicketOpt(ObjAction.displaySaveTicket);
+            ReqHandler.SetTicketPopUpOpt(ObjAction.displaySaveTicket);
         }
     }
 }

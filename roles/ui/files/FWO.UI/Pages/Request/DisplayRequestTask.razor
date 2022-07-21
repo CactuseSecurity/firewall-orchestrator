@@ -8,7 +8,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("task") + ": " + ReqHandler.ActReqTask.Title)" Show="@ReqHandler.DisplayReqTaskMode" XLarge="true" OnClose="() => Close()">
+<PopUp Title="@(userConfig.GetText("task") + ": " + ReqHandler.ActReqTask.Title)" Show="@ReqHandler.DisplayReqTaskMode" XLarge="true" OnClose="async () => Close()">
     <Body>
         @if (ReqHandler.DisplayReqTaskMode)
         {
@@ -197,7 +197,7 @@
                     <h5>@(userConfig.GetText("implementation_tasks"))</h5>
 
                     <DisplayImplTaskTable Phase="Phase" StateMatrix="StateMatrix" States="States" 
-                        ReqHandler="ReqHandler" ResetParent="Reset" AllImplTasks="AllImplTasks"
+                        ReqHandler="ReqHandler" ResetParent="Reset" AllImplTasks="ReqHandler.ActReqTask.ImplementationTasks"
                         StartImplPhase="StartImplPhase"/>
                 }
             </form>
@@ -244,8 +244,8 @@
     </Footer>
 </PopUp>
 
-<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Reset" ObjectName="task" Save="ConfPromoteReqTask" StatefulObject="ReqHandler.ActReqTask" StateMatrix="StateMatrix" States="States"></PromoteObject>
-<PromoteObject @bind-Promote="ReqHandler.DisplayApproveMode" ResetParent="Reset" ObjectName="approval" WithComment="true" Save="ConfApproveTask" StatefulObject="actApproval" StateMatrix="StateMatrix" States="States"></PromoteObject>
+<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Close" ObjectName="task" Save="ConfPromoteReqTask" StatefulObject="ReqHandler.ActReqTask" StateMatrix="StateMatrix" States="States"/>
+<PromoteObject @bind-Promote="ReqHandler.DisplayApproveMode" ResetParent="Close" ObjectName="approval" WithComment="true" Save="ConfApproveTask" StatefulObject="actApproval" StateMatrix="StateMatrix" States="States"/>
 
 @code
 {
@@ -266,9 +266,6 @@
 
     [Parameter]
     public Func<Task> ResetParent { get; set; }
-
-    [Parameter]
-    public List<ImplementationTask>? AllImplTasks { get; set; }
 
     [Parameter]
     public Func<RequestTask, Task>? StartPhase { get; set; }
@@ -319,21 +316,19 @@
         actServices = ReqHandler.ActReqTask.getServiceElements();
     }
 
-    private void Close()
+    private async Task Close()
     {
-        ResetParent();
+        await ResetParent();
     }
 
     private async Task Reset()
     {
-        ReqHandler.ResetReqTaskActions();
-        ResetParent();
         StateHasChanged();
     }
 
     private async Task InitPromoteReqTask()
     {
-        ReqHandler.SetReqTaskOpt(ObjAction.displayPromote);
+        ReqHandler.SetReqTaskPopUpOpt(ObjAction.displayPromote);
     }
 
     private async Task ConfPromoteReqTask(StatefulObject task)
@@ -345,7 +340,7 @@
     {
         actApproval = ReqHandler.ActReqTask.Approvals[0];  // todo: select own approvals
         actApproval.SetOptComment(actApproval.Comment);
-        ReqHandler.SetReqTaskOpt(ObjAction.displayApprove);
+        ReqHandler.SetReqTaskPopUpOpt(ObjAction.displayApprove);
     }
 
     private async Task ConfApproveTask(StatefulObject approval)

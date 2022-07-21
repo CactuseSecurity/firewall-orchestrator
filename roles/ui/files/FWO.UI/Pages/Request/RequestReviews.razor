@@ -14,8 +14,7 @@
 @if(InitComplete)
 {
     <DisplayTicketTable Phase="WorkflowPhases.review" StateMatrix ="stateMatrix" States="states" ReqHandler="reqHandler" 
-        ResetParent="Reset" AllImplTasks="allImplTasks"
-        ShowTicketDetails="ShowTicketDetails" StartImplPhase="StartReviewTask"/>
+        ResetParent="Reset" StartImplPhase="StartReviewTask"/>
 }
 
 
@@ -26,13 +25,8 @@
     
     private RequestHandler reqHandler;
     private RequestDbAccess dbAcc;
-    
-    private RequestTicket actTicket = new RequestTicket();
-    private List<ImplementationTask> allImplTasks = new List<ImplementationTask>();
     private List<Device> devices = new List<Device>();
-
     private RequestStateDict states = new RequestStateDict();
-    private List<int> actPossibleStates = new List<int>();
     private StateMatrix stateMatrix = new StateMatrix();
     private bool InitComplete = false;
 
@@ -62,33 +56,9 @@
     {
         // await reqHandler.Init();
     }
-
-    private async Task ShowTicketDetails(RequestTicket ticket)
-    {
-        reqHandler.SetTicketEnv(ticket);
-        allImplTasks = new List<ImplementationTask>();
-        foreach(var reqTask in reqHandler.ActTicket.Tasks)
-        {
-            foreach(var implTask in reqTask.ImplementationTasks)
-            {
-                implTask.ReqTaskId = reqTask.Id;
-                allImplTasks.Add(implTask);
-            }
-        }
-        reqHandler.SetTicketOpt(ObjAction.display);
-    }
     
-    private async Task StartReviewTask(ImplementationTask task)
+    private async Task StartReviewTask(ImplementationTask implTask)
     {
-        task.CurrentHandler = userConfig.User;
-        actPossibleStates = stateMatrix.getAllowedTransitions(task.StateId);
-        if(actPossibleStates.Count == 1 && actPossibleStates[0] >= stateMatrix.LowestStartedState && actPossibleStates[0] < stateMatrix.LowestEndState)
-        {
-            task.StateId = actPossibleStates[0];
-        }
-        reqHandler.SetImplTaskEnv(task);
-        await dbAcc.UpdateImplTaskStateInDb(task);
-        await dbAcc.UpdateTicketStateFromImplTasks(reqHandler.ActTicket, reqHandler.TicketList, stateMatrix);
-        reqHandler.SetImplTaskOpt(ObjAction.review);
+        await reqHandler.StartWorkOnImplTask(implTask, ObjAction.review);
     }
 }

@@ -9,7 +9,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("implementation") + ": " + ReqHandler.ActImplTask.Id)" Show="@ReqHandler.DisplayImplTaskMode" XLarge="true" OnClose="() => Close()">
+<PopUp Title="@(userConfig.GetText("implementation") + ": " + ReqHandler.ActImplTask.Id)" Show="@ReqHandler.DisplayImplTaskMode" XLarge="true" OnClose="async () => Close()">
     <Body>
         @if (ReqHandler.DisplayImplTaskMode)
         {
@@ -158,7 +158,7 @@
     </Footer>
 </PopUp>
 
-<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Reset" ObjectName="task" Save="ConfPromoteImplTask" StatefulObject="ReqHandler.ActImplTask" StateMatrix="StateMatrix" States="States"></PromoteObject>
+<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Close" ObjectName="task" Save="ConfPromoteImplTask" StatefulObject="ReqHandler.ActImplTask" StateMatrix="StateMatrix" States="States"/>
 
 @code
 {
@@ -217,14 +217,13 @@
         actServices = ReqHandler.ActImplTask.getServiceElements();
     }
 
-    private void Close()
+    private async Task Close()
     {
-        ResetParent();
+        await ResetParent();
     }
 
     private async Task Reset()
     {
-        ReqHandler.ResetImplTaskActions();
         StateHasChanged();
     }
 
@@ -277,7 +276,7 @@
                 {
                     await ReqHandler.ChangeImplTask();
                 }
-                Close();
+                await Close();
             } 
         }
         catch (Exception exception)
@@ -304,7 +303,7 @@
 
     private async Task InitPromoteImplTask()
     {
-        ReqHandler.SetImplTaskOpt(ObjAction.displayPromote);
+        ReqHandler.SetImplTaskPopUpOpt(ObjAction.displayPromote);
     }
 
     private async Task ConfPromoteImplTask(StatefulObject implTask)

@@ -2,13 +2,11 @@
 @using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.Ui.Services
-@using FWO.Middleware.Client
 
 @page "/request/plannings"
 @attribute [Authorize(Roles = "admin, planner, auditor, fw-admin")]
 
 @inject ApiConnection apiConnection
-@inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 
 <h3>@(userConfig.GetText("plannings"))</h3>
@@ -17,7 +15,7 @@
 @if(InitComplete)
 {
     <DisplayTicketTable Phase="WorkflowPhases.planning" StateMatrix ="stateMatrix" States="states" ReqHandler="reqHandler" 
-        ResetParent="Reset" ShowTicketDetails="ShowTicketDetails" StartPhase="StartPlanTask"/>
+        ResetParent="Reset" StartPhase="StartPlanTask"/>
 }
 
 
@@ -29,12 +27,7 @@
     private RequestHandler reqHandler;
     private RequestDbAccess dbAcc;
     private List<Device> devices = new List<Device>();
-
-    private RequestTicket actTicket = new RequestTicket();
-    private RequestTask actReqTask = new RequestTask();
-    
     private RequestStateDict states = new RequestStateDict();
-    private List<int> actPossibleStates = new List<int>();
     private StateMatrix stateMatrix = new StateMatrix();
     private bool InitComplete = false;
 
@@ -65,23 +58,9 @@
         // await reqHandler.Init();
     }
 
-    private async Task ShowTicketDetails(RequestTicket ticket)
+    private async Task StartPlanTask(RequestTask reqTask)
     {
-        reqHandler.SelectTicket(ticket, ObjAction.display);
-    }
-
-    private async Task StartPlanTask(RequestTask task)
-    {
-        task.Start = DateTime.Now;
-        task.CurrentHandler = userConfig.User;
-        actPossibleStates = stateMatrix.getAllowedTransitions(task.StateId);
-        if(actPossibleStates.Count == 1 && actPossibleStates[0] >= stateMatrix.LowestStartedState && actPossibleStates[0] < stateMatrix.LowestEndState)
-        {
-            task.StateId = actPossibleStates[0];
-        }
-        reqHandler.SetReqTaskEnv(task);
-        await dbAcc.UpdateReqTaskStateInDb(task);
-        await dbAcc.UpdateTicketStateFromTasks(reqHandler.ActTicket, reqHandler.TicketList, stateMatrix);
-        reqHandler.SetReqTaskOpt(ObjAction.plan);
+        reqTask.Start = DateTime.Now;
+        await reqHandler.StartWorkOnReqTask(reqTask, ObjAction.plan);
     }
 }

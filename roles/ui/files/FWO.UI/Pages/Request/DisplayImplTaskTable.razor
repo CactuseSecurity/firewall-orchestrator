@@ -18,25 +18,25 @@
             <Template>
                 <div class="btn-group">
                     <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowImplTask(implTask)">@(userConfig.GetText("details"))</button>
-                    @if (implTask.StateId < StateMatrix.LowestStartedState)
+                    @if (ReqHandler.PlanReqTaskMode && implTask.StateId < StateMatrix.LowestEndState)
                     {
-                        <AuthorizeView Roles="admin, implementer, reviewer, fw-admin">
-                            <Authorized Context="ctx">
-                                <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => StartImplPhase(implTask)">@(userConfig.GetText("start_" + Phase.ToString()))</button>
-                            </Authorized>
-                            <NotAuthorized Context="ctx">
-                                <button class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("start_" + Phase.ToString()))</button>
-                            </NotAuthorized> 
-                        </AuthorizeView>
+                        <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => EditImplTask(implTask)">@(userConfig.GetText("edit"))</button>
+                        <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteImplTask(implTask)">@(userConfig.GetText("delete"))</button>
                     }
-                    else if (implTask.StateId < StateMatrix.LowestEndState)
+                    else if (Phase >= WorkflowPhases.implementation)
                     {
-                        @if (ReqHandler.PlanReqTaskMode)
+                        @if (implTask.StateId < StateMatrix.LowestStartedState)
                         {
-                            <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => EditImplTask(implTask)">@(userConfig.GetText("edit"))</button>
-                            <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteImplTask(implTask)">@(userConfig.GetText("delete"))</button>
+                            <AuthorizeView Roles="admin, implementer, reviewer, fw-admin">
+                                <Authorized Context="ctx">
+                                    <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => StartImplPhase(implTask)">@(userConfig.GetText("start_" + Phase.ToString()))</button>
+                                </Authorized>
+                                <NotAuthorized Context="ctx">
+                                    <button class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("start_" + Phase.ToString()))</button>
+                                </NotAuthorized> 
+                            </AuthorizeView>
                         }
-                        else if (Phase >= WorkflowPhases.implementation)
+                        else if (implTask.StateId < StateMatrix.LowestEndState)
                         {
                             <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => ContinueImplPhase(implTask)">@(userConfig.GetText("continue_" + Phase.ToString()))</button>
                         }
@@ -65,7 +65,7 @@
 
 <DisplayImplementationTask Phase="Phase" ReqHandler="ReqHandler" ResetParent="Reset" StateMatrix="StateMatrix" States="States"></DisplayImplementationTask>
 
-<DeleteObject @bind-Display="ReqHandler.DisplayDeleteMode" Delete="ReqHandler.ConfDeleteImplTask" ObjName="@(ReqHandler.ActImplTask.ImplTaskNumber.ToString())"></DeleteObject>
+<DeleteObject @bind-Display="ReqHandler.DisplayDeleteMode" ResetParent="Reset" Delete="ReqHandler.ConfDeleteImplTask" ObjName="@(ReqHandler.ActImplTask.ImplTaskNumber.ToString())"/>
 
 
 @code
@@ -97,6 +97,7 @@
 
     private async Task Reset()
     {
+        await ResetParent();
         ReqHandler.ResetImplTaskActions();
         StateHasChanged();
     }
@@ -123,7 +124,7 @@
 
     private void DeleteImplTask(ImplementationTask task)
     {
-        ReqHandler.SelectImplTask(task, ObjAction.displayDelete);
+        ReqHandler.SelectReqImplPopUp(task, ObjAction.displayDelete);
     }
 
     private async Task ContinueImplPhase(ImplementationTask implTask)

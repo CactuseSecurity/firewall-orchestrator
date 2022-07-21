@@ -259,7 +259,7 @@ def parse_nat_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id
         for chunk in src_rulebase['nat_rule_chunks']:
             if 'rulebase' in chunk:
                 for rules_chunk in chunk['rulebase']:
-                    rule_num  = parse_nat_rulebase_json(rules_chunk, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, debug_level=debug_level)
+                    rule_num  = parse_nat_rulebase_json(rules_chunk, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, debug_level=debug_level, recursion_level=recursion_level+1)
             else:
                 logger.warning("parse_rule: found no rulebase in chunk:\n" + json.dumps(chunk, indent=2))
     else:

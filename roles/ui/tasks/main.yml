@@ -35,6 +35,7 @@
         - libc6-dev
         - libjpeg62
         - xfonts-75dpi
+        - libssl1.1
       
     - name: create ui dir
       file:

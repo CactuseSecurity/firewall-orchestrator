@@ -158,23 +158,24 @@
                         {
                             <label class="col-sm-8">@ReqHandler.ActReqTask.FwAdminComments</label>
                         }
+                        <label for="taskDevId" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("device"))*:</label>
+                        @if (ReqHandler.EditReqTaskMode)
+                        {
+                            <div class="col-sm-2">
+                                <select id="taskDevId" class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.DeviceId">
+                                    <option value="null">-</option>
+                                    @foreach (Device device in ReqHandler.Devices)
+                                    {
+                                        <option value="@device.Id">@(device.Name)</option>
+                                    }
+                                </select>
+                            </div>
+                        }
+                        else
+                        {
+                            <label class="col-sm-2">@(ReqHandler.ActReqTask.DeviceId != null && ReqHandler.ActReqTask.DeviceId != 0 ? ReqHandler.Devices[ReqHandler.Devices.FindIndex(x => x.Id == ReqHandler.ActReqTask.DeviceId)].Name : "")</label>
+                        }
                     </div>
-                    <label for="taskDevId" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("device"))*:</label>
-                    @if (ReqHandler.EditReqTaskMode)
-                    {
-                        <div class="col-sm-2">
-                            <select id="taskDevId" class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.DeviceId">
-                                @foreach (Device device in ReqHandler.Devices)
-                                {
-                                    <option value="@device.Id">@(device.Name)</option>
-                                }
-                            </select>
-                        </div>
-                    }
-                    else
-                    {
-                        <label class="col-sm-2">@(ReqHandler.ActReqTask.DeviceId != null && ReqHandler.ActReqTask.DeviceId != 0 ? ReqHandler.Devices[ReqHandler.Devices.FindIndex(x => x.Id == ReqHandler.ActReqTask.DeviceId)].Name : "")</label>
-                    }
                 }
                 else
                 {

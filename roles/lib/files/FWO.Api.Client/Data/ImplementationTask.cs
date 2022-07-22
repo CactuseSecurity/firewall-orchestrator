@@ -44,6 +44,7 @@ namespace FWO.Api.Data
             TargetBeginDate = task.TargetBeginDate;
             TargetEndDate = task.TargetEndDate;
             FwAdminComments = task.FwAdminComments;
+            DeviceId = task.DeviceId;
             if (task.Elements != null && task.Elements.Count > 0)
             {
                 ImplElements = new List<ImplementationElement>();

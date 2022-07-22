@@ -41,6 +41,7 @@ query getTickets ($from_state: Int!, $to_state: Int!){
       target_begin_date
       target_end_date
       fw_admin_comments
+      device_id
       elements: elements{
         id
         task_id

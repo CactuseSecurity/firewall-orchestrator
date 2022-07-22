@@ -172,7 +172,8 @@ namespace FWO.Ui.Services
                     tracking = task.Tracking,
                     validFrom = task.TargetBeginDate,
                     validTo = task.TargetEndDate,
-                    reason = task.Reason
+                    reason = task.Reason,
+                    deviceId = task.DeviceId
                 };
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequestTask, Variables)).UpdatedId;
                 if(udId != task.Id)
@@ -557,64 +558,6 @@ namespace FWO.Ui.Services
         }
 
         // State changes
-
-        public async Task UpdateTaskStateFromApprovals(RequestTask reqTask, StateMatrix stateMatrix)
-        {
-            List<int> approvalStates = new List<int>();
-            foreach (var approval in reqTask.Approvals)
-            {
-                approvalStates.Add(approval.StateId);
-            }
-            if (approvalStates.Count > 0)
-            {
-                reqTask.StateId = stateMatrix.getDerivedStateFromSubStates(approvalStates);
-            }
-            await UpdateReqTaskStateInDb(reqTask);
-        }
-
-        public async Task UpdateTicketStateFromImplTasks(RequestTicket ticket, List<RequestTicket> requests, StateMatrix stateMatrix)
-        {
-            List<int> taskStates = new List<int>();
-            foreach (RequestTask reqTask in ticket.Tasks)
-            {
-                await UpdateReqTaskStateFromImplTasks(reqTask, stateMatrix);
-            }
-            await UpdateTicketStateFromTasks(ticket, requests, stateMatrix);
-        }
-
-        public async Task UpdateReqTaskStateFromImplTasks(RequestTask reqTask, StateMatrix stateMatrix)
-        {
-            List<int> implTaskStates = new List<int>();
-            foreach (var implTask in reqTask.ImplementationTasks)
-            {
-                implTaskStates.Add(implTask.StateId);
-            }
-            if (implTaskStates.Count > 0)
-            {
-                reqTask.StateId = stateMatrix.getDerivedStateFromSubStates(implTaskStates);
-            }
-            await UpdateReqTaskStateInDb(reqTask);
-        }
-
-        public async Task UpdateTicketStateFromTasks(RequestTicket ticket, List<RequestTicket> requests, StateMatrix stateMatrix)
-        {
-            List<int> taskStates = new List<int>();
-            foreach (RequestTask tsk in ticket.Tasks)
-            {
-                taskStates.Add(tsk.StateId);
-            }
-            ticket.StateId = stateMatrix.getDerivedStateFromSubStates(taskStates);
-            await UpdateTicketState(ticket, requests, stateMatrix);
-        }
-
-        public async Task<List<RequestTicket>> UpdateTicketState(RequestTicket ticket, List<RequestTicket> requests, StateMatrix stateMatrix)
-        {
-            if (stateMatrix.IsLastActivePhase && ticket.StateId >= stateMatrix.LowestEndState)
-            {
-                ticket.CompletionDate = DateTime.Now;
-            }
-            return await UpdateTicketStateInDb(ticket, requests);
-        }
 
         public async Task<List<RequestTicket>> UpdateTicketStateInDb(RequestTicket ticket, List<RequestTicket> requests)
         {

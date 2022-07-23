@@ -14,128 +14,193 @@
         {
             <form>
                 <div class="form-group row">
-                    <label for="taskId" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
-                    <label class="col-sm-1">@ReqHandler.ActReqTask.Id</label>
-                    <label for="taskTitle" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("title"))*:</label>
-                    @if (ReqHandler.EditReqTaskMode)
+                    <div class="col-sm-2">
+                        <div class="form-group row">
+                            <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                            <div class="col-sm-6">
+                                <label class="col-sm-12 border bg-secondary">@ReqHandler.ActReqTask.Id</label>
+                            </div>
+                        </div>
+                    </div>
+                    @if(!StateMatrix.PhaseActive[WorkflowPhases.planning] && userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask)
                     {
-                        <div class="col-sm-9">
-                            <input id="taskTitle" type="text" class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.Title" />
+                        <div class="col-sm-7">
+                            <div class="form-group row">
+                                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("title"))*:</label>
+                                <div class="col-sm-10">
+                                    <input type="text" class="form-control form-control-sm" readonly="@(!ReqHandler.EditReqTaskMode)" @bind="ReqHandler.ActReqTask.Title" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-3">
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("device"))*:</label>
+                                <div class="col-sm-8">
+                                    @if (ReqHandler.EditReqTaskMode)
+                                    {
+                                        <select class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.DeviceId">
+                                            <option value="null">-</option>
+                                            @foreach (Device device in ReqHandler.Devices)
+                                            {
+                                                <option value="@device.Id">@(device.Name)</option>
+                                            }
+                                        </select>
+                                    }
+                                    else
+                                    {
+                                        <label class="col-sm-12 h-100 border bg-secondary">@(ReqHandler.ActReqTask.DeviceId != null && ReqHandler.ActReqTask.DeviceId != 0 ? ReqHandler.Devices[ReqHandler.Devices.FindIndex(x => x.Id == ReqHandler.ActReqTask.DeviceId)].Name : "")</label>
+                                    }
+                                </div>
+                            </div>
                         </div>
                     }
                     else
                     {
-                        <label class="col-sm-9">@ReqHandler.ActReqTask.Title</label>
+                        <div class="col-sm-10">
+                            <div class="form-group row">
+                                <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("title"))*:</label>
+                                <div class="col-sm-11">
+                                    <input type="text" class="form-control form-control-sm" readonly="@(!ReqHandler.EditReqTaskMode)" @bind="ReqHandler.ActReqTask.Title" />
+                                </div>
+                            </div>
+                        </div>
                     }
                 </div>
                 <div class="form-group row">
-                    <label for="taskType" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("type"))*:</label>
-                    @if (ReqHandler.EditReqTaskMode)
-                    {
-                        <div class="col-sm-2">
-                            <select id="taskType" class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.TaskType">
-                                @foreach (TaskType type in availableTaskTypes)
+                    <div class="col-sm-3">
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("type"))*:</label>
+                            <div class="col-sm-8">
+                                @if (ReqHandler.EditReqTaskMode)
                                 {
-                                    <option value="@type">@(userConfig.GetText(type.ToString()))</option>
+                                    <select class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.TaskType">
+                                        @foreach (TaskType type in availableTaskTypes)
+                                        {
+                                            <option value="@type">@(userConfig.GetText(type.ToString()))</option>
+                                        }
+                                    </select>
                                 }
-                            </select>
-                        </div>
-                    }
-                    else
-                    {
-                        <label class="col-sm-2">@(userConfig.GetText(ReqHandler.ActReqTask.TaskType))</label>
-                    }
-                    <label for="taskReqAction" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("action"))*:</label>
-                    @if (ReqHandler.EditReqTaskMode)
-                    {
-                        <div class="col-sm-2">
-                            <select id="taskReqAction" class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.RequestAction">
-                                @foreach (string action in Enum.GetNames(typeof(RequestAction)))
+                                else
                                 {
-                                    <option value="@action">@(userConfig.GetText(action))</option>
+                                    <label class="col-sm-12 h-100 border bg-secondary">@(userConfig.GetText(ReqHandler.ActReqTask.TaskType))</label>
                                 }
-                            </select>
+                            </div>
                         </div>
-                    }
-                    else
-                    {
-                        <label class="col-sm-2">@(userConfig.GetText(ReqHandler.ActReqTask.RequestAction))</label>
-                    }
-                    <label for="taskState" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
-                    <label class="col-sm-2">@States.Name[ReqHandler.ActReqTask.StateId]</label>
-                    <label for="taskPlanner" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("planner")):</label>
-                    <label class="col-sm-2">@ReqHandler.ActReqTask.CurrentHandler?.Name</label>
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("action"))*:</label>
+                            <div class="col-sm-8">
+                                @if (ReqHandler.EditReqTaskMode)
+                                {
+                                    <select class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.RequestAction">
+                                        @foreach (string action in Enum.GetNames(typeof(RequestAction)))
+                                        {
+                                            <option value="@action">@(userConfig.GetText(action))</option>
+                                        }
+                                    </select>
+                                }
+                                else
+                                {
+                                    <label class="col-sm-12 h-100 border bg-secondary">@(userConfig.GetText(ReqHandler.ActReqTask.RequestAction))</label>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
+                            <div class="col-sm-8">
+                                <label class="col-sm-12 h-100 border bg-secondary">@States.Name[ReqHandler.ActReqTask.StateId]</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("handler")):</label>
+                            <div class="col-sm-8">
+                                <label class="col-sm-12 h-100 border bg-secondary">@ReqHandler.ActReqTask.CurrentHandler?.Name</label>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="form-group row">
-                    <label for="taskReason" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
-                    @if (ReqHandler.EditReqTaskMode)
-                    {
-                        <div class="col-sm-11">
-                            <input id="taskReason" type="text" class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.Reason" />
-                        </div>
-                    }
-                    else
-                    {
-                        <label class="col-sm-11">@ReqHandler.ActReqTask.Reason</label>
-                    }
+                    <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
+                    <div class="col-sm-11">
+                        <textarea rows="2" type="text" class="form-control form-control-sm" readonly="@(!ReqHandler.EditReqTaskMode)" @bind="ReqHandler.ActReqTask.Reason"/>   
+                    </div>
                 </div>
                 <div class="form-group row">
-                    <label for="taskRuleAction" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("rule_action")):</label>
-                    @if (ReqHandler.EditReqTaskMode)
-                    {
-                        <div class="col-sm-2">
-                            <select id="taskRuleAction" class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.RuleAction">
-                                <option value="null">-</option>
-                                @foreach (var action in ruleActions)
+                    <div class="col-sm-3">
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("rule_action"))*:</label>
+                            <div class="col-sm-8">
+                                @if (ReqHandler.EditReqTaskMode)
                                 {
-                                    <option value="@action.Id">@(action.Name)</option>
+                                    <select class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.RuleAction">
+                                        @foreach (var action in ruleActions)
+                                        {
+                                            <option value="@action.Id">@(action.Name)</option>
+                                        }
+                                    </select>
                                 }
-                            </select>
-                        </div>
-                    }
-                    else
-                    {
-                        <label class="col-sm-2">@(((ReqHandler.ActReqTask.RuleAction != null) ? ruleActions.Find(x => x.Id == ReqHandler.ActReqTask.RuleAction)?.Name : ""))</label>
-                    }
-                    <label for="taskRuleTracking" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("track")):</label>
-                    @if (ReqHandler.EditReqTaskMode)
-                    {
-                        <div class="col-sm-2">
-                            <select id="taskRuleTracking" class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.Tracking">
-                                <option value="null">-</option>
-                                @foreach (var track in trackings)
+                                else
                                 {
-                                    <option value="@track.Id">@(track.Name)</option>
+                                    <label class="col-sm-12 h-100 border bg-secondary">@(((ReqHandler.ActReqTask.RuleAction != null) ? ruleActions.Find(x => x.Id == ReqHandler.ActReqTask.RuleAction)?.Name : ""))</label>
                                 }
-                            </select>
+                            </div>
                         </div>
-                    }
-                    else
-                    {
-                        <label class="col-sm-2">@(((ReqHandler.ActReqTask.Tracking != null) ? trackings.Find(x => x.Id == ReqHandler.ActReqTask.Tracking)?.Name : ""))</label>
-                    }
-                    <label for="taskRuleValidFrom" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("valid_from")):</label>
-                    @if (ReqHandler.EditReqTaskMode)
-                    {
-                        <div class="col-sm-2">
-                            <input id="taskRuleValidFrom" type="date" class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.TargetBeginDate" />
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("track"))*:</label>
+                            <div class="col-sm-8">
+                                @if (ReqHandler.EditReqTaskMode)
+                                {
+                                    <select class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.Tracking">
+                                        @foreach (var track in trackings)
+                                        {
+                                            <option value="@track.Id">@(track.Name)</option>
+                                        }
+                                    </select>
+                                }
+                                else
+                                {
+                                    <label class="col-sm-12 h-100 border bg-secondary">@(((ReqHandler.ActReqTask.Tracking != null) ? trackings.Find(x => x.Id == ReqHandler.ActReqTask.Tracking)?.Name : ""))</label>
+                                }
+                            </div>
                         </div>
-                    }
-                    else
-                    {
-                        <label class="col-sm-2">@ReqHandler.ActReqTask.TargetBeginDate?.ToString("d")</label>
-                    }
-                    <label for="taskRuleValidTo" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("valid_to")):</label>
-                    @if (ReqHandler.EditReqTaskMode)
-                    {
-                        <div class="col-sm-2">
-                            <input id="taskRuleValidTo" type="date" class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.TargetEndDate" />
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_from")):</label>
+                            <div class="col-sm-8">
+                                @if (ReqHandler.EditReqTaskMode)
+                                {
+                                    <input type="date" class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.TargetBeginDate" />
+                                }
+                                else
+                                {
+                                    <label class="col-sm-12 h-100 border bg-secondary">@ReqHandler.ActReqTask.TargetBeginDate?.ToString("d")</label>
+                                }
+                            </div>
                         </div>
-                    }
-                    else
-                    {
-                        <label class="col-sm-2">@ReqHandler.ActReqTask.TargetEndDate?.ToString("d")</label>
-                    }
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_to")):</label>
+                            <div class="col-sm-8">
+                                @if (ReqHandler.EditReqTaskMode)
+                                {
+                                    <input type="date" class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.TargetEndDate" />
+                                }
+                                else
+                                {
+                                    <label class="col-sm-12 h-100 border bg-secondary">@ReqHandler.ActReqTask.TargetEndDate?.ToString("d")</label>
+                                }
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 @if(ReqHandler.ActReqTask.TaskType == TaskType.access.ToString())
@@ -144,55 +209,16 @@
                         TaskId="ReqHandler.ActReqTask.Id" EditMode="ReqHandler.EditReqTaskMode"></DisplayAccessElements>
                 }
 
-                @if(!StateMatrix.PhaseActive[WorkflowPhases.planning] && userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask)
+                @if(!ReqHandler.EditReqTaskMode)
                 {
                     <div class="form-group row">
-                        <label for="taskComment" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
-                        @if (ReqHandler.PlanReqTaskMode)
-                        {
-                            <div class="col-sm-8">
-                                <input id="taskComment" type="text" class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.FwAdminComments" />
-                            </div>
-                        }
-                        else
-                        {
-                            <label class="col-sm-8">@ReqHandler.ActReqTask.FwAdminComments</label>
-                        }
-                        <label for="taskDevId" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("device"))*:</label>
-                        @if (ReqHandler.EditReqTaskMode)
-                        {
-                            <div class="col-sm-2">
-                                <select id="taskDevId" class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.DeviceId">
-                                    <option value="null">-</option>
-                                    @foreach (Device device in ReqHandler.Devices)
-                                    {
-                                        <option value="@device.Id">@(device.Name)</option>
-                                    }
-                                </select>
-                            </div>
-                        }
-                        else
-                        {
-                            <label class="col-sm-2">@(ReqHandler.ActReqTask.DeviceId != null && ReqHandler.ActReqTask.DeviceId != 0 ? ReqHandler.Devices[ReqHandler.Devices.FindIndex(x => x.Id == ReqHandler.ActReqTask.DeviceId)].Name : "")</label>
-                        }
+                        <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
+                        <div class="col-sm-11">
+                            <textarea rows="2" type="text" class="form-control form-control-sm" readonly="@(!(ReqHandler.PlanReqTaskMode || ReqHandler.ApproveReqTaskMode))" @bind="ReqHandler.ActReqTask.FwAdminComments" />
+                        </div>
                     </div>
                 }
-                else
-                {
-                    <div class="form-group row">
-                        <label for="taskComment" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
-                        @if (ReqHandler.PlanReqTaskMode)
-                        {
-                            <div class="col-sm-11">
-                                <input id="taskComment" type="text" class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.FwAdminComments" />
-                            </div>
-                        }
-                        else
-                        {
-                            <label class="col-sm-11">@ReqHandler.ActReqTask.FwAdminComments</label>
-                        }
-                    </div>
-                }
+
                 @if(Phase == WorkflowPhases.planning || ReqHandler.ActReqTask.ImplementationTasks.Count > 0)
                 {
                     <h5>@(userConfig.GetText("implementation_tasks"))</h5>

@@ -1,5 +1,5 @@
 query getTickets ($from_state: Int!, $to_state: Int!){
-  request_ticket(where: {_and: [{state_id: {_gte: $from_state}},{state_id: {_lte: $to_state}}]}){
+  request_ticket(where: {_and: [{state_id: {_gte: $from_state}},{state_id: {_lte: $to_state}}]} order_by: { id: asc }){
     id
     title
     date_created

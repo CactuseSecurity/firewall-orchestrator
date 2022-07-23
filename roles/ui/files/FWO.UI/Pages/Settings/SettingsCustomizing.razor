@@ -28,6 +28,12 @@
         }
     </form>
     <form class="form-inline" onsubmit="return false">
+        <label for="allowObjSearch" class="col-form-label col-sm-3">@(userConfig.GetText("reqAllowObjectSearch")):</label>
+        <div class="col-sm-2">
+            <input id="allowObjSearch" type="checkbox" class="w-100" @bind="configData!.ReqAllowObjectSearch">
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
         <label for="approvalDeadline" class="col-form-label col-sm-3">@(userConfig.GetText("reqApprovalDeadline")):</label>
         <div class="col-sm-2">
             <input id="approvalDeadline" type="number" class="form-control form-control-sm w-100" @bind="configData!.ReqApprovalDeadline" />

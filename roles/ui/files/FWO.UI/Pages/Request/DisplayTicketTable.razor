@@ -84,7 +84,7 @@
 
     private async Task AddTicket()
     {
-        ReqHandler.SelectTicket(new RequestTicket(), ObjAction.add);
+        ReqHandler.SelectTicket(new RequestTicket(){ Requester = userConfig.User }, ObjAction.add);
     }
 
     private async Task EditTicket(RequestTicket ticket)

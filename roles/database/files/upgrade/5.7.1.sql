@@ -350,6 +350,7 @@ insert into config (config_key, config_value, config_user) VALUES ('stateMatrix'
 insert into config (config_key, config_value, config_user) VALUES ('reqAvailableTaskTypes', '[0]', 0) ON CONFLICT DO NOTHING;
 insert into config (config_key, config_value, config_user) VALUES ('reqApprovalDeadline', '7', 0) ON CONFLICT DO NOTHING;
 insert into config (config_key, config_value, config_user) VALUES ('reqAutoCreateImplTasks', 'never', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('reqAllowObjectSearch', 'False', 0) ON CONFLICT DO NOTHING;
 
 insert into request.state (id,name) VALUES (0,'Draft') ON CONFLICT DO NOTHING;
 insert into request.state (id,name) VALUES (49,'Requested') ON CONFLICT DO NOTHING;

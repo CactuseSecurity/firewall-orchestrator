@@ -102,6 +102,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("reqAvailableTaskTypes"), JsonPropertyName("reqAvailableTaskTypes")]
         public string ReqAvailableTaskTypes { get; set; } = "";
 
+        [JsonProperty("reqAllowObjectSearch"), JsonPropertyName("reqAllowObjectSearch")]
+        public bool ReqAllowObjectSearch { get; set; } = false;
+
         [JsonProperty("reqApprovalDeadline"), JsonPropertyName("reqApprovalDeadline")]
         public int ReqApprovalDeadline { get; set; } = 7;
 

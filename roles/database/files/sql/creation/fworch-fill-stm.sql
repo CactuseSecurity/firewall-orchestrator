@@ -37,6 +37,7 @@ insert into config (config_key, config_value, config_user) VALUES ('stateMatrix'
 insert into config (config_key, config_value, config_user) VALUES ('reqAvailableTaskTypes', '[0]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqApprovalDeadline', '7', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqAutoCreateImplTasks', 'never', 0);
+insert into config (config_key, config_value, config_user) VALUES ('reqAllowObjectSearch', 'False', 0);
 
 INSERT INTO "report_format" ("report_format_name") VALUES ('json');
 INSERT INTO "report_format" ("report_format_name") VALUES ('pdf');

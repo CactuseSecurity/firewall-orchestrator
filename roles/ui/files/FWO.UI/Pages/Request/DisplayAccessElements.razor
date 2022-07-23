@@ -8,12 +8,181 @@
 
 
 <hr />
-<div class="col-sm-11">
+<div class="form-group row">
+    <div class="col-sm-4">
+        <label for="taskSource" class="col-sm-12 col-form-label col-form-label-sm">@(userConfig.GetText("source")):</label>
+        @if (EditMode)
+        {
+            @foreach(var source in Sources.Where(x => (x.NetworkId != null && x.NetworkId != 0)))
+            {
+                <div class="form-group row">
+                    <label class="col-sm-2">@(userConfig.GetText("obj")):</label>
+                    <select id="sourceElementObject" class="col-sm-9 form-control form-control-sm" @bind="source.NetworkId">
+                        @foreach (var nwObject in nwObjects)
+                        {
+                            <option value="@nwObject.Id">@(nwObject.Name)</option>
+                        }
+                    </select>
+                    <button class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteSource(source)">x</button>
+                </div>
+            }
+            @foreach(var source in Sources.Where(x => (x.NetworkId == null || x.NetworkId == 0)))
+            {
+                <div class="form-group row">
+                    <label class="col-sm-2">@(userConfig.GetText("ip")):</label>
+                    <input type="text" class="col-sm-9 form-control form-control-sm" @bind="source.Cidr.CidrString" />
+                    <button class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteSource(source)">x</button>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="list-group">
+                @foreach(var source in Sources.Where(x => (x.NetworkId != null && x.NetworkId != 0)))
+                {
+                    <div class="list-group-item border bg-secondary">
+                        <label>@((source.NetworkId != null) ? nwObjects.Find(x => x.Id == source.NetworkId)?.Name : "")</label>
+                    </div>
+                }
+                @foreach(var source in Sources.Where(x => (x.NetworkId == null || x.NetworkId == 0)))
+                {
+                    <div class="list-group-item border bg-secondary">
+                        <label>@source.Cidr.CidrString</label>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+    <div class="col-sm-4">
+        <label for="taskDest" class="col-sm-12 col-form-label col-form-label-sm">@(userConfig.GetText("destination")):</label>
+        @if (EditMode)
+        {
+            @foreach(var destination in Destinations.Where(x => (x.NetworkId != null && x.NetworkId != 0)))
+            {
+                <div class="form-group row">
+                    <label class="col-sm-2">@(userConfig.GetText("obj")):</label>
+                    <select id="sourceElementObject" class="col-sm-9 form-control form-control-sm" @bind="destination.NetworkId">
+                        @foreach (var nwObject in nwObjects)
+                        {
+                            <option value="@nwObject.Id">@(nwObject.Name)</option>
+                        }
+                    </select>
+                    <button class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteDestination(destination)">x</button>
+                </div>
+            }
+            @foreach(var destination in Destinations.Where(x => (x.NetworkId == null || x.NetworkId == 0)))
+            {
+                <div class="form-group row">
+                    <label class="col-sm-2">@(userConfig.GetText("ip")):</label>
+                    <input type="text" class="col-sm-9 form-control form-control-sm" @bind="destination.Cidr.CidrString" />
+                    <button class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteDestination(destination)">x</button>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="list-group">
+                @foreach(var destination in Destinations.Where(x => (x.NetworkId != null && x.NetworkId != 0)))
+                {
+                    <div class="list-group-item border bg-secondary">
+                        <label>@((destination.NetworkId != null) ? nwObjects.Find(x => x.Id == destination.NetworkId)?.Name : "")</label>
+                    </div>
+                }
+                @foreach(var destination in Destinations.Where(x => (x.NetworkId == null || x.NetworkId == 0)))
+                {
+                    <div class="list-group-item border bg-secondary">
+                        <label>@destination.Cidr.CidrString</label>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+    <div class="col-sm-4">
+        <label for="taskService" class="col-sm-12 col-form-label col-form-label-sm">@(userConfig.GetText("service")):</label>
+        @if (EditMode)
+        {
+            @foreach(var service in Services.Where(x => (x.ServiceId != null && x.ServiceId != 0)))
+            {
+                <div class="form-group row">
+                    <label class="col-sm-2">@(userConfig.GetText("obj")):</label>
+                    <select id="serviceElementObject" class="col-sm-9 form-control form-control-sm" @bind="service.ServiceId">
+                        @foreach (var nwService in nwServices)
+                        {
+                            <option value="@nwService.Id">@(nwService.Name)</option>
+                        }
+                    </select>
+                    <button class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteService(service)">x</button>
+                </div>
+            }
+            @foreach(var service in Services.Where(x => (x.ServiceId == null || x.ServiceId == 0)))
+            {
+                <div class="form-group row">
+                    <label class="col-sm-2">@(userConfig.GetText("port")):</label>
+                    <input id="taskServicePort" type="number" class="col-sm-3 form-control form-control-sm" @bind="service.Port" />
+                    <label class="col-sm-3">@(userConfig.GetText("protocol")):</label>
+                    <select id="taskServiceProto" class="col-sm-3 form-control form-control-sm" @bind="service.ProtoId">
+                        @foreach (var proto in ipProtos)
+                        {
+                            <option value="@proto.Id">@(proto.Name)</option>
+                        }
+                    </select>
+                    <button class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteService(service)">x</button>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="list-group">
+                @foreach(var service in Services.Where(x => (x.ServiceId != null && x.ServiceId != 0)))
+                {
+                    <label class="list-group-item border bg-secondary">@((service.ServiceId != null) ? nwServices.Find(x => x.Id == service.ServiceId)?.Name : "")</label>
+                }
+                @foreach(var service in Services.Where(x => (x.ServiceId == null || x.ServiceId == 0)))
+                {
+                    <div class="list-group-item border bg-secondary">
+                        <label class="col-sm-5">@service.Port</label> / 
+                        <label class="col-sm-5">@((service.ProtoId != null) ? ipProtos.Find(x => x.Id == service.ProtoId)?.Name : "")</label>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+@if (EditMode)
+{
+    <hr />
     <div class="form-group row">
         <div class="col-sm-4">
-            <label for="taskSource" class="col-sm-12 col-form-label col-form-label-sm">@(userConfig.GetText("source")):</label>
-            @if (EditMode)
-            {
+            <div class="form-group row">
+                <label class="col-sm-2">@(userConfig.GetText("ip")):</label>
+                <input type="text" class="col-sm-10 form-control form-control-sm" placeholder="(insert new ip)" @bind="newSourceIpString"/>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="form-group row">
+                <label class="col-sm-2">@(userConfig.GetText("ip")):</label>
+                <input type="text" class="col-sm-10 form-control form-control-sm" placeholder="(insert new ip)" @bind="newDestinationIpString" />
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="form-group row">
+                <label class="col-sm-2">@(userConfig.GetText("port")):</label>
+                <input id="taskServicePort" type="number" class="col-sm-3 form-control form-control-sm" @bind="newServicePort" />
+                <label class="col-sm-3">@(userConfig.GetText("protocol")):</label>
+                <select id="taskServiceProto" class="col-sm-4 form-control form-control-sm" @bind="newServiceProtoId">
+                    <option value="null">(select protocol)</option>
+                    @foreach (var proto in ipProtos)
+                    {
+                        <option value="@proto.Id">@(proto.Name)</option>
+                    }
+                </select>
+            </div>
+        </div>
+    </div>
+    @if(userConfig.ReqAllowObjectSearch)
+    {
+        <div class="form-group row">
+            <div class="col-sm-4">
                 <div class="form-group row">
                     <label class="col-sm-2">@(userConfig.GetText("obj")):</label>
                     <select id="sourceElementObject" class="col-sm-10 form-control form-control-sm" @bind="newSourceNetworkId">
@@ -24,55 +193,8 @@
                         }
                     </select>
                 </div>
-                <div class="form-group row">
-                    <label class="col-sm-2">@(userConfig.GetText("ip")):</label>
-                    <input type="text" class="col-sm-10 form-control form-control-sm" placeholder="(insert new ip)" @bind="newSourceIpString"/>
-                </div>
-                <hr />
-                @foreach(var source in Sources.Where(x => (x.NetworkId != null && x.NetworkId != 0)))
-                {
-                    <div class="form-group row">
-                        <label class="col-sm-2">@(userConfig.GetText("obj")):</label>
-                        <select id="sourceElementObject" class="col-sm-9 form-control form-control-sm" @bind="source.NetworkId">
-                            @foreach (var nwObject in nwObjects)
-                            {
-                                <option value="@nwObject.Id">@(nwObject.Name)</option>
-                            }
-                        </select>
-                        <button class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteSource(source)">x</button>
-                    </div>
-                }
-                @foreach(var source in Sources.Where(x => (x.NetworkId == null || x.NetworkId == 0)))
-                {
-                    <div class="form-group row">
-                        <label class="col-sm-2">@(userConfig.GetText("ip")):</label>
-                        <input type="text" class="col-sm-9 form-control form-control-sm" @bind="source.Cidr.CidrString" />
-                        <button class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteSource(source)">x</button>
-                    </div>
-                }
-            }
-            else
-            {
-                @foreach(var source in Sources.Where(x => (x.NetworkId != null && x.NetworkId != 0)))
-                {
-                    <div class="form-group row">
-                        <label class="col-sm-2">@(userConfig.GetText("obj")):</label>
-                        <label class="col-sm-10">@((source.NetworkId != null) ? nwObjects.Find(x => x.Id == source.NetworkId)?.Name : "")</label>
-                    </div>
-                }
-                @foreach(var source in Sources.Where(x => (x.NetworkId == null || x.NetworkId == 0)))
-                {
-                    <div class="form-group row">
-                        <label class="col-sm-2">@(userConfig.GetText("ip")):</label>
-                        <label class="col-sm-10">@source.Cidr.CidrString</label>
-                    </div>
-                }
-            }
-        </div>
-        <div class="col-sm-4">
-            <label for="taskDest" class="col-sm-12 col-form-label col-form-label-sm">@(userConfig.GetText("destination")):</label>
-            @if (EditMode)
-            {
+            </div>
+            <div class="col-sm-4">
                 <div class="form-group row">
                     <label class="col-sm-2">@(userConfig.GetText("obj")):</label>
                     <select id="sourceElementObject" class="col-sm-10 form-control form-control-sm" @bind="newDestinationNetworkId">
@@ -83,55 +205,8 @@
                         }
                     </select>
                 </div>
-                <div class="form-group row">
-                    <label class="col-sm-2">@(userConfig.GetText("ip")):</label>
-                    <input type="text" class="col-sm-10 form-control form-control-sm" placeholder="(insert new ip)" @bind="newDestinationIpString" />
-                </div>
-                <hr />
-                @foreach(var destination in Destinations.Where(x => (x.NetworkId != null && x.NetworkId != 0)))
-                {
-                    <div class="form-group row">
-                        <label class="col-sm-2">@(userConfig.GetText("obj")):</label>
-                        <select id="sourceElementObject" class="col-sm-9 form-control form-control-sm" @bind="destination.NetworkId">
-                            @foreach (var nwObject in nwObjects)
-                            {
-                                <option value="@nwObject.Id">@(nwObject.Name)</option>
-                            }
-                        </select>
-                        <button class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteDestination(destination)">x</button>
-                    </div>
-                }
-                @foreach(var destination in Destinations.Where(x => (x.NetworkId == null || x.NetworkId == 0)))
-                {
-                    <div class="form-group row">
-                        <label class="col-sm-2">@(userConfig.GetText("ip")):</label>
-                        <input type="text" class="col-sm-9 form-control form-control-sm" @bind="destination.Cidr.CidrString" />
-                        <button class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteDestination(destination)">x</button>
-                    </div>
-                }
-            }
-            else
-            {
-                @foreach(var destination in Destinations.Where(x => (x.NetworkId != null && x.NetworkId != 0)))
-                {
-                    <div class="form-group row">
-                        <label class="col-sm-2">@(userConfig.GetText("obj")):</label>
-                        <label class="col-sm-10">@((destination.NetworkId != null) ? nwObjects.Find(x => x.Id == destination.NetworkId)?.Name : "")</label>
-                    </div>
-                }
-                @foreach(var destination in Destinations.Where(x => (x.NetworkId == null || x.NetworkId == 0)))
-                {
-                    <div class="form-group row">
-                        <label class="col-sm-2">@(userConfig.GetText("ip")):</label>
-                        <label class="col-sm-10">@destination.Cidr.CidrString</label>
-                    </div>
-                }
-            }
-        </div>
-        <div class="col-sm-4">
-            <label for="taskService" class="col-sm-12 col-form-label col-form-label-sm">@(userConfig.GetText("service")):</label>
-            @if (EditMode)
-            {
+            </div>
+            <div class="col-sm-4">
                 <div class="form-group row">
                     <label class="col-sm-2">@(userConfig.GetText("obj")):</label>
                     <select id="serviceElementObject" class="col-sm-10 form-control form-control-sm" @bind="newServiceId">
@@ -142,67 +217,10 @@
                         }
                     </select>
                 </div>
-                <div class="form-group row">
-                    <label class="col-sm-2">@(userConfig.GetText("port")):</label>
-                    <input id="taskServicePort" type="number" class="col-sm-3 form-control form-control-sm" @bind="newServicePort" />
-                    <label class="col-sm-3">@(userConfig.GetText("protocol")):</label>
-                    <select id="taskServiceProto" class="col-sm-4 form-control form-control-sm" @bind="newServiceProtoId">
-                        <option value="null">(select protocol)</option>
-                        @foreach (var proto in ipProtos)
-                        {
-                            <option value="@proto.Id">@(proto.Name)</option>
-                        }
-                    </select>
-                </div>
-                <hr />
-                @foreach(var service in Services.Where(x => (x.ServiceId != null && x.ServiceId != 0)))
-                {
-                    <div class="form-group row">
-                        <label class="col-sm-2">@(userConfig.GetText("obj")):</label>
-                        <select id="serviceElementObject" class="col-sm-9 form-control form-control-sm" @bind="service.ServiceId">
-                            @foreach (var nwService in nwServices)
-                            {
-                                <option value="@nwService.Id">@(nwService.Name)</option>
-                            }
-                        </select>
-                        <button class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteService(service)">x</button>
-                    </div>
-                }
-                @foreach(var service in Services.Where(x => (x.ServiceId == null || x.ServiceId == 0)))
-                {
-                    <div class="form-group row">
-                        <label class="col-sm-2">@(userConfig.GetText("port")):</label>
-                        <input id="taskServicePort" type="number" class="col-sm-3 form-control form-control-sm" @bind="service.Port" />
-                        <label class="col-sm-3">@(userConfig.GetText("protocol")):</label>
-                        <select id="taskServiceProto" class="col-sm-3 form-control form-control-sm" @bind="service.ProtoId">
-                            @foreach (var proto in ipProtos)
-                            {
-                                <option value="@proto.Id">@(proto.Name)</option>
-                            }
-                        </select>
-                        <button class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteService(service)">x</button>
-                    </div>
-                }
-            }
-            else
-            {
-                @foreach(var service in Services.Where(x => (x.ServiceId != null && x.ServiceId != 0)))
-                {
-                    <label>@((service.ServiceId != null) ? nwServices.Find(x => x.Id == service.ServiceId)?.Name : "")</label>
-                }
-                @foreach(var service in Services.Where(x => (x.ServiceId == null || x.ServiceId == 0)))
-                {
-                    <div class="form-group row">
-                        <label class="col-sm-2">@(userConfig.GetText("port")):</label>
-                        <label class="col-sm-3">@service.Port</label>
-                        <label class="col-sm-3">@(userConfig.GetText("protocol")):</label>
-                        <label class="col-sm-4">@((service.ProtoId != null) ? ipProtos.Find(x => x.Id == service.ProtoId)?.Name : "")</label>
-                    </div>
-                }
-            }
+            </div>
         </div>
-    </div>
-</div>
+    }
+}
 
 
 @code
@@ -367,7 +385,8 @@
     {
         try
         {
-            ipProtos = await apiConnection.SendQueryAsync<List<IpProtocol>>(FWO.Api.Client.Queries.StmQueries.getIpProtocols);
+            List<IpProtocol> ipProtosOrig = await apiConnection.SendQueryAsync<List<IpProtocol>>(FWO.Api.Client.Queries.StmQueries.getIpProtocols);
+            ipProtos = CustomSort(ipProtosOrig);
             // nwObjects = await apiConnection.SendQueryAsync<List<NetworkObject>>(FWO.Api.Client.Queries.ObjectQueries.getNetworkObjects);
             // nwServices = await apiConnection.SendQueryAsync<List<NetworkObject>>(FWO.Api.Client.Queries.ObjectQueries.getNetworkServices);
         }
@@ -375,6 +394,34 @@
         {
             DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
         }
+    }
+
+    private List<IpProtocol> CustomSort(List<IpProtocol> ListIn)
+    {
+        List<IpProtocol> ListOut = new List<IpProtocol>();
+        IpProtocol? tcp = ListIn.Find(x => x.Name.ToLower() == "tcp");
+        if(tcp != null)
+        {
+            ListOut.Add(tcp);
+            ListIn.Remove(tcp);
+        }
+        IpProtocol? udp = ListIn.Find(x => x.Name.ToLower() == "udp");
+        if(udp != null)
+        {
+            ListOut.Add(udp);
+            ListIn.Remove(udp);
+        }
+        IpProtocol? icmp = ListIn.Find(x => x.Name.ToLower() == "icmp");
+        if(icmp != null)
+        {
+            ListOut.Add(icmp);
+            ListIn.Remove(icmp);
+        }
+        foreach(var proto in ListIn.OrderBy(x => x.Name).ToList())
+        {
+            ListOut.Add(proto);
+        }
+        return ListOut;
     }
 
     private void DeleteSource(NwObjectElement obj)

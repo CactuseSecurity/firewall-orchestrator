@@ -15,39 +15,42 @@
         {
             <form>
                 <div class="form-group row">
-                    <label for="ticketId" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
-                    <label class="col-sm-1">@ReqHandler.ActTicket.Id</label>
+                    <div class="col-sm-2">
+                        <div class="form-group row">
+                            <label for="ticketId" class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                            <div class="col-sm-6">
+                                <label class="col-sm-12 border bg-secondary">@ReqHandler.ActTicket.Id</label>
+                            </div>
+                        </div>
+                    </div>
                     <label for="ticketTitle" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("title"))*:</label>
-                    @if (ReqHandler.EditTicketMode)
-                    {
-                        <div class="col-sm-9">
-                            <input id="ticketTitle" type="text" class="form-control form-control-sm" @bind="ReqHandler.ActTicket.Title" />
-                        </div>
-                    }
-                    else
-                    {
-                        <label class="col-sm-9">@ReqHandler.ActTicket.Title</label>
-                    }
-                </div>
-
-                <div class="form-group row">
-                    <label for="ticketState" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
-                    <label class="col-sm-2">@States.Name[ReqHandler.ActTicket.StateId]</label>
-                    <label for="ticketRequester" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("requester")):</label>
-                    <label class="col-sm-2">@ReqHandler.ActTicket.Requester?.Name</label>
+                    <div class="col-sm-9">
+                        <input id="ticketTitle" type="text" class="form-control form-control-sm" readonly="@(!ReqHandler.EditTicketMode)" @bind="ReqHandler.ActTicket.Title" />
+                    </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ticketReason" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
-                    @if (ReqHandler.EditTicketMode)
-                    {
-                        <div class="col-sm-11">
-                            <input id="ticketReason" type="text" class="form-control form-control-sm" @bind="ReqHandler.ActTicket.Reason" />
+                    <div class="col-sm-3">
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
+                            <div class="col-sm-8">
+                                <label class="col-sm-12 border bg-secondary">@States.Name[ReqHandler.ActTicket.StateId]</label>
+                            </div>
                         </div>
-                    }
-                    else
-                    {
-                        <label class="col-sm-11">@ReqHandler.ActTicket.Reason</label>
-                    }
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("requester")):</label>
+                            <div class="col-sm-8">
+                                <label class="col-sm-12 border bg-secondary">@ReqHandler.ActTicket.Requester?.Name</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
+                    <div class="col-sm-11">
+                        <textarea rows="3" type="text" class="form-control form-control-sm" readonly="@(!ReqHandler.EditTicketMode)" @bind="ReqHandler.ActTicket.Reason"/>   
+                    </div>
                 </div>
 
                 @if(Phase < WorkflowPhases.implementation)
@@ -128,8 +131,6 @@
     public Func<ImplementationTask, Task>? StartImplPhase { get; set; }
 
 
-    private RequestTask actReqTask { get; set; } = new RequestTask();
-    private ImplementationTask actImplTask = new ImplementationTask();
     private List<int> possibleStates = new List<int>();
 
 

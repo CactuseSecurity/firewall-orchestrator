@@ -15,11 +15,11 @@
 @if(InitComplete)
 {
     <div class="form-group row">
-        <label for="taskDevId" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("device")):</label>
+        <label for="taskDevId" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("view")):</label>
         <div class="col-sm-2">
             <select id="taskDevId" class="form-control form-control-sm" @bind="DeviceId">
                 <option value="-1">@(userConfig.GetText("tickets"))</option>
-                <option value="0">@(userConfig.GetText("all"))</option>
+                <option value="0">@(userConfig.GetText("all_devices"))</option>
                 @foreach (Device device in devices)
                 {
                     <option value="@device.Id">@(device.Name)</option>
@@ -37,7 +37,7 @@
     else
     {
         <DisplayImplTaskTable Phase="WorkflowPhases.implementation" StateMatrix="stateMatrix" States="states" 
-            ReqHandler="reqHandler" ResetParent="Reset" AllImplTasks="allImplTasks"
+            ReqHandler="reqHandler" ResetParent="Reset" AllImplTasks="allImplTasks" DeviceView="true"
             StartImplPhase="StartImplementTask"/>
     }
 }

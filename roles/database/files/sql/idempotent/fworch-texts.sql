@@ -659,12 +659,18 @@ INSERT INTO txt VALUES ('back_to', 			    'German',	'Zur&uuml;ck zu');
 INSERT INTO txt VALUES ('back_to', 			    'English',	'Back to');
 INSERT INTO txt VALUES ('current_handler', 		'German',	'Aktueller Bearbeiter');
 INSERT INTO txt VALUES ('current_handler', 	    'English',	'Current handler');
+INSERT INTO txt VALUES ('handler', 		        'German',	'Bearbeiter');
+INSERT INTO txt VALUES ('handler', 	            'English',	'Handler');
 INSERT INTO txt VALUES ('review', 			    'German',	'Review');
 INSERT INTO txt VALUES ('review', 			    'English',	'Review');
 INSERT INTO txt VALUES ('verification', 		'German',	'Verifizierung');
 INSERT INTO txt VALUES ('verification', 		'English',	'Verification');
 INSERT INTO txt VALUES ('obj', 			        'German', 	'Obj');
 INSERT INTO txt VALUES ('obj', 			        'English', 	'Obj');
+INSERT INTO txt VALUES ('view', 			    'German', 	'Ansicht');
+INSERT INTO txt VALUES ('view', 			    'English', 	'View');
+INSERT INTO txt VALUES ('all_devices',          'German', 	'Alle Ger&auml;te');
+INSERT INTO txt VALUES ('all_devices',          'English', 	'All Devices');
 
 -- recertification
 INSERT INTO txt VALUES ('recertify',		    'German', 	'Rezertifizieren');
@@ -969,6 +975,8 @@ INSERT INTO txt VALUES ('commentRequired',      'German', 	'Kommentar Pflichtfel
 INSERT INTO txt VALUES ('commentRequired',      'English',  'Comment Required');
 INSERT INTO txt VALUES ('reqAvailableTaskTypes','German', 	'Verf&uuml;gbare Auftragstypen');
 INSERT INTO txt VALUES ('reqAvailableTaskTypes','English', 	'Available Task Types');
+INSERT INTO txt VALUES ('reqAllowObjectSearch', 'German', 	'Objektsuche erlauben');
+INSERT INTO txt VALUES ('reqAllowObjectSearch', 'English', 	'Allow object search');
 INSERT INTO txt VALUES ('reqApprovalDeadline',  'German', 	'Deadline f&uuml;r Genehmigungen (in Tagen)');
 INSERT INTO txt VALUES ('reqApprovalDeadline',  'English', 	'Approval deadline (in days)');
 INSERT INTO txt VALUES ('reqAutoCreateImplTasks','German', 	'Autom. Erzeugen von Implementierungs-Auftr&auml;gen');

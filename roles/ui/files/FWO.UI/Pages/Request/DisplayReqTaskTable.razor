@@ -9,71 +9,74 @@
 {
     <button class="btn btn-success m-2" @onclick:preventDefault @onclick="AddReqTask">@(userConfig.GetText("add_task"))</button>
 }
-<div class="m-2">
-    <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="RequestTask" Items="ReqHandler.ActTicket.Tasks" PageSize="0" ColumnReorder="true">
-        <Column TableItem="RequestTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
-            <Template>
-                <div class="btn-group">
-                    <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowReqTask(context)">@(userConfig.GetText("details"))</button>
-                    @if (ReqHandler.EditTicketMode)
-                    {
-                        <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => EditReqTask(context)">@(userConfig.GetText("edit"))</button>
-                        <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteReqTask(context)">@(userConfig.GetText("delete"))</button>
-                    }
-                    @if (Phase > WorkflowPhases.request)
-                    {
-                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowApprovals(context)">@(userConfig.GetText("approvals"))</button>
-                        @if (context.StateId < StateMatrix.LowestStartedState)
+@if (ReqHandler.ActTicket.Tasks.Count > 0)
+{
+    <div class="m-2">
+        <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="RequestTask" Items="ReqHandler.ActTicket.Tasks" PageSize="0" ColumnReorder="true">
+            <Column TableItem="RequestTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                <Template>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowReqTask(context)">@(userConfig.GetText("details"))</button>
+                        @if (ReqHandler.EditTicketMode)
                         {
-                            <AuthorizeView Roles="admin, approver, planner, implementer, reviewer, fw-admin">
-                                <Authorized Context="ctx">
-                                    <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => StartPhase(context)">@(userConfig.GetText("start_" + Phase.ToString()))</button>
-                                </Authorized>
-                                <NotAuthorized Context="ctx">
-                                    <button class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("start_" + Phase.ToString()))</button>
-                                </NotAuthorized> 
-                            </AuthorizeView>
+                            <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => EditReqTask(context)">@(userConfig.GetText("edit"))</button>
+                            <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteReqTask(context)">@(userConfig.GetText("delete"))</button>
                         }
-                        else if (context.StateId < StateMatrix.LowestEndState)
+                        @if (Phase > WorkflowPhases.request)
                         {
-                            <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => ContinuePhase(context)">@(userConfig.GetText("continue_" + Phase.ToString()))</button>
-                            @if(Phase == WorkflowPhases.planning)
+                            <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowApprovals(context)">@(userConfig.GetText("approvals"))</button>
+                            @if (context.StateId < StateMatrix.LowestStartedState)
                             {
-                                <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignTask(context)">@(userConfig.GetText("assign"))</button>
+                                <AuthorizeView Roles="admin, approver, planner, implementer, reviewer, fw-admin">
+                                    <Authorized Context="ctx">
+                                        <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => StartPhase(context)">@(userConfig.GetText("start_" + Phase.ToString()))</button>
+                                    </Authorized>
+                                    <NotAuthorized Context="ctx">
+                                        <button class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("start_" + Phase.ToString()))</button>
+                                    </NotAuthorized> 
+                                </AuthorizeView>
+                            }
+                            else if (context.StateId < StateMatrix.LowestEndState)
+                            {
+                                <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => ContinuePhase(context)">@(userConfig.GetText("continue_" + Phase.ToString()))</button>
+                                @if(Phase == WorkflowPhases.planning)
+                                {
+                                    <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignTask(context)">@(userConfig.GetText("assign"))</button>
+                                }
                             }
                         }
-                    }
-                </div>
-            </Template>
-        </Column>
-        <Column TableItem="RequestTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
-        <Column TableItem="RequestTask" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true" />
-        <Column TableItem="RequestTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
-            <Template>
-                @(States.Name[context.StateId])
-            </Template>
-        </Column>
-        <Column TableItem="RequestTask" Title="@(userConfig.GetText("current_handler"))" Field="@(x => x.CurrentHandler.Name)" Sortable="true" Filterable="true" />
-        @if(Phase == WorkflowPhases.approval)
-        {
-            <Column TableItem="RequestTask" Title="@(userConfig.GetText("deadline"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
-                <Template>
-                    @(context.Approvals.FirstOrDefault(x => x.InitialApproval)?.Deadline)
+                    </div>
                 </Template>
             </Column>
-        }
-        else
-        {
-            <Column TableItem="RequestTask" Title="@(userConfig.GetText("assigned"))" Field="@(x => x.AssignedGroup)" Sortable="true" Filterable="true" >
+            <Column TableItem="RequestTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+            <Column TableItem="RequestTask" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true" />
+            <Column TableItem="RequestTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
                 <Template>
-                    @(new DistName(context.AssignedGroup).UserName)
+                    @(States.Name[context.StateId])
                 </Template>
             </Column>
-            <Column TableItem="RequestTask" Title="@(userConfig.GetText("start"))" Field="@(x => x.Start)" Sortable="true" Filterable="true" />
-            <Column TableItem="RequestTask" Title="@(userConfig.GetText("stop"))" Field="@(x => x.Stop)" Sortable="true" Filterable="true" />
-        }
-    </Table>
-</div>
+            <Column TableItem="RequestTask" Title="@(userConfig.GetText("current_handler"))" Field="@(x => x.CurrentHandler.Name)" Sortable="true" Filterable="true" />
+            @if(Phase == WorkflowPhases.approval)
+            {
+                <Column TableItem="RequestTask" Title="@(userConfig.GetText("deadline"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
+                    <Template>
+                        @(context.Approvals.FirstOrDefault(x => x.InitialApproval)?.Deadline)
+                    </Template>
+                </Column>
+            }
+            else
+            {
+                <Column TableItem="RequestTask" Title="@(userConfig.GetText("assigned"))" Field="@(x => x.AssignedGroup)" Sortable="true" Filterable="true" >
+                    <Template>
+                        @(new DistName(context.AssignedGroup).UserName)
+                    </Template>
+                </Column>
+                <Column TableItem="RequestTask" Title="@(userConfig.GetText("start"))" Field="@(x => x.Start)" Sortable="true" Filterable="true" />
+                <Column TableItem="RequestTask" Title="@(userConfig.GetText("stop"))" Field="@(x => x.Stop)" Sortable="true" Filterable="true" />
+            }
+        </Table>
+    </div>
+}
 
 <DisplayRequestTask Phase="Phase" StateMatrix="StateMatrix" States="States" ReqHandler="ReqHandler"
     ResetParent="Reset" StartImplPhase="StartImplPhase"/>
@@ -123,7 +126,7 @@
 
     private async Task AddReqTask()
     {
-        ReqHandler.SelectReqTask(new RequestTask(), ObjAction.add);
+        ReqHandler.SelectReqTask(new RequestTask(){ RuleAction = 1, Tracking = 1 }, ObjAction.add);
     }
 
     private async Task EditReqTask(RequestTask reqTask)

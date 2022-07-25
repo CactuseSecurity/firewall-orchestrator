@@ -39,7 +39,7 @@ export no_proxy=127.0.0.1,localhost
 Also make sure that your proxy is configured in your .gitconfig to be able to do the initial repo cloning.
 See https://gist.github.com/evantoli/f8c23a37eb3558ab8765.
 
-If instead you need to individually need to set a proxy before installation/upgrade, use the following comamnds in your terminal:
+If instead you need to individually set a proxy before installation/upgrade, use the following comamnds in your terminal:
 ```console
 export http_proxy=http://proxy.int:3128
 export https_proxy=http://proxy.int:3128

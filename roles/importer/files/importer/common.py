@@ -117,7 +117,7 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0,
         return "unspecified error during FWO API login"
 
     # set global https connection values
-    fwo_globals.setGlobalValues (suppress_cert_warnings_in=suppress_cert_warnings_in, verify_certs_in=ssl_verification)
+    fwo_globals.setGlobalValues (suppress_cert_warnings_in=suppress_cert_warnings_in, verify_certs_in=ssl_verification, debug_level_in=debug_level_in)
     if fwo_globals.verify_certs is None:    # not defined via parameter
         fwo_globals.verify_certs = fwo_api.get_config_value(fwo_config['fwo_api_base_url'], jwt, key='importCheckCertificates')=='True'
     if fwo_globals.suppress_cert_warnings is None:    # not defined via parameter

@@ -669,8 +669,10 @@ INSERT INTO txt VALUES ('obj', 			        'German', 	'Obj');
 INSERT INTO txt VALUES ('obj', 			        'English', 	'Obj');
 INSERT INTO txt VALUES ('view', 			    'German', 	'Ansicht');
 INSERT INTO txt VALUES ('view', 			    'English', 	'View');
-INSERT INTO txt VALUES ('all_devices',          'German', 	'Alle Ger&auml;te');
-INSERT INTO txt VALUES ('all_devices',          'English', 	'All Devices');
+INSERT INTO txt VALUES ('all_gateways',         'German', 	'Alle Gateways');
+INSERT INTO txt VALUES ('all_gateways',         'English', 	'All Gateways');
+INSERT INTO txt VALUES ('insert_ip',            'German', 	'IP einf&uuml;gen');
+INSERT INTO txt VALUES ('insert_ip',            'English', 	'Insert IP');
 
 -- recertification
 INSERT INTO txt VALUES ('recertify',		    'German', 	'Rezertifizieren');

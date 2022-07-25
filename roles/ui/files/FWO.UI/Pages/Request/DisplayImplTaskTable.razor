@@ -62,7 +62,7 @@
                 </Column>
             }
             <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("number"))" Field="@(x => x.ImplTaskNumber)" Sortable="true" Filterable="true" />
-            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("device"))" Field="@(x => x.DeviceId)" Sortable="true">
+            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("gateway"))" Field="@(x => x.DeviceId)" Sortable="true">
                 <Template>
                     @(implTask.DeviceId != null && implTask.DeviceId != 0 ? ReqHandler.Devices[ReqHandler.Devices.FindIndex(x => x.Id == implTask.DeviceId)].Name : "")
                 </Template>

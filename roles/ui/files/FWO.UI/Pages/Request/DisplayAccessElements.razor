@@ -8,7 +8,7 @@
 
 
 <hr />
-<div class="form-group row">
+<div class="form-group row col-sm-12">
     <div class="col-sm-4">
         <label for="taskSource" class="col-sm-12 col-form-label col-form-label-sm">@(userConfig.GetText("source")):</label>
         @if (EditMode)
@@ -150,76 +150,78 @@
 </div>
 @if (EditMode)
 {
-    <hr />
-    <div class="form-group row">
-        <div class="col-sm-4">
-            <div class="form-group row">
-                <label class="col-sm-2">@(userConfig.GetText("ip")):</label>
-                <input type="text" class="col-sm-10 form-control form-control-sm" placeholder="(insert new ip)" @bind="newSourceIpString"/>
+    <div class="bg-secondary">
+        <hr />
+        <div class="form-group row col-sm-12">
+            <div class="col-sm-4">
+                <div class="form-group row">
+                    <label class="col-sm-2">@(userConfig.GetText("ip")):</label>
+                    <input type="text" class="col-sm-10 form-control form-control-sm" placeholder="@(userConfig.GetText("insert_ip"))" @bind="newSourceIpString"/>
+                </div>
+            </div>
+            <div class="col-sm-4">
+                <div class="form-group row">
+                    <label class="col-sm-2">@(userConfig.GetText("ip")):</label>
+                    <input type="text" class="col-sm-10 form-control form-control-sm" placeholder="@(userConfig.GetText("insert_ip"))" @bind="newDestinationIpString" />
+                </div>
+            </div>
+            <div class="col-sm-4">
+                <div class="form-group row">
+                    <label class="col-sm-2">@(userConfig.GetText("port")):</label>
+                    <input id="taskServicePort" type="number" class="col-sm-3 form-control form-control-sm" @bind="newServicePort" />
+                    <label class="col-sm-3">@(userConfig.GetText("protocol")):</label>
+                    <select id="taskServiceProto" class="col-sm-4 form-control form-control-sm" @bind="newServiceProtoId">
+                        <option value="null"/>
+                        @foreach (var proto in ipProtos)
+                        {
+                            <option value="@proto.Id">@(proto.Name)</option>
+                        }
+                    </select>
+                </div>
             </div>
         </div>
-        <div class="col-sm-4">
-            <div class="form-group row">
-                <label class="col-sm-2">@(userConfig.GetText("ip")):</label>
-                <input type="text" class="col-sm-10 form-control form-control-sm" placeholder="(insert new ip)" @bind="newDestinationIpString" />
+        @if(userConfig.ReqAllowObjectSearch)
+        {
+            <div class="form-group row col-sm-12">
+                <div class="col-sm-4">
+                    <div class="form-group row">
+                        <label class="col-sm-2">@(userConfig.GetText("obj")):</label>
+                        <select id="sourceElementObject" class="col-sm-10 form-control form-control-sm" @bind="newSourceNetworkId">
+                            <option value="null"></option>
+                            @foreach (var nwObject in nwObjects)
+                            {
+                                <option value="@nwObject.Id">@(nwObject.Name)</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="form-group row">
+                        <label class="col-sm-2">@(userConfig.GetText("obj")):</label>
+                        <select id="sourceElementObject" class="col-sm-10 form-control form-control-sm" @bind="newDestinationNetworkId">
+                            <option value="null"></option>
+                            @foreach (var nwObject in nwObjects)
+                            {
+                                <option value="@nwObject.Id">@(nwObject.Name)</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="form-group row">
+                        <label class="col-sm-2">@(userConfig.GetText("obj")):</label>
+                        <select id="serviceElementObject" class="col-sm-10 form-control form-control-sm" @bind="newServiceId">
+                            <option value="null"></option>
+                            @foreach (var nwService in nwServices)
+                            {
+                                <option value="@nwService.Id">@(nwService.Name)</option>
+                            }
+                        </select>
+                    </div>
+                </div>
             </div>
-        </div>
-        <div class="col-sm-4">
-            <div class="form-group row">
-                <label class="col-sm-2">@(userConfig.GetText("port")):</label>
-                <input id="taskServicePort" type="number" class="col-sm-3 form-control form-control-sm" @bind="newServicePort" />
-                <label class="col-sm-3">@(userConfig.GetText("protocol")):</label>
-                <select id="taskServiceProto" class="col-sm-4 form-control form-control-sm" @bind="newServiceProtoId">
-                    <option value="null">(select protocol)</option>
-                    @foreach (var proto in ipProtos)
-                    {
-                        <option value="@proto.Id">@(proto.Name)</option>
-                    }
-                </select>
-            </div>
-        </div>
+        }
     </div>
-    @if(userConfig.ReqAllowObjectSearch)
-    {
-        <div class="form-group row">
-            <div class="col-sm-4">
-                <div class="form-group row">
-                    <label class="col-sm-2">@(userConfig.GetText("obj")):</label>
-                    <select id="sourceElementObject" class="col-sm-10 form-control form-control-sm" @bind="newSourceNetworkId">
-                        <option value="null">(select new object)</option>
-                        @foreach (var nwObject in nwObjects)
-                        {
-                            <option value="@nwObject.Id">@(nwObject.Name)</option>
-                        }
-                    </select>
-                </div>
-            </div>
-            <div class="col-sm-4">
-                <div class="form-group row">
-                    <label class="col-sm-2">@(userConfig.GetText("obj")):</label>
-                    <select id="sourceElementObject" class="col-sm-10 form-control form-control-sm" @bind="newDestinationNetworkId">
-                        <option value="null">(select new object)</option>
-                        @foreach (var nwObject in nwObjects)
-                        {
-                            <option value="@nwObject.Id">@(nwObject.Name)</option>
-                        }
-                    </select>
-                </div>
-            </div>
-            <div class="col-sm-4">
-                <div class="form-group row">
-                    <label class="col-sm-2">@(userConfig.GetText("obj")):</label>
-                    <select id="serviceElementObject" class="col-sm-10 form-control form-control-sm" @bind="newServiceId">
-                        <option value="null">(select new service)</option>
-                        @foreach (var nwService in nwServices)
-                        {
-                            <option value="@nwService.Id">@(nwService.Name)</option>
-                        }
-                    </select>
-                </div>
-            </div>
-        </div>
-    }
 }
 
 

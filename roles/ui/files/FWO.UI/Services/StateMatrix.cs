@@ -37,7 +37,7 @@ namespace FWO.Ui.Services
         public bool Active { get; set; }
 
         public Dictionary<WorkflowPhases, bool> PhaseActive = new Dictionary<WorkflowPhases, bool>();
-        public bool IsLastActivePhase { get; set; } = true;
+        public bool IsLastActivePhase = true;
 
         public async Task Init(WorkflowPhases phase, ApiConnection apiConnection)
         {
@@ -137,7 +137,7 @@ namespace FWO.Ui.Services
 
         public async Task Init(ApiConnection apiConnection)
         {
-            List<GlobalStateMatrixHelper> confData = await apiConnection.SendQueryAsync<List<GlobalStateMatrixHelper>>(ConfigQueries.getConfigItemByKey, new { key = "stateMatrix" });
+            List<GlobalStateMatrixHelper> confData = await apiConnection.SendQueryAsync<List<GlobalStateMatrixHelper>>(ConfigQueries.getConfigItemByKey, new { key = "reqStateMatrix" });
             GlobalStateMatrix glbStateMatrix = System.Text.Json.JsonSerializer.Deserialize<GlobalStateMatrix>(confData[0].ConfData) ?? throw new Exception("Config data could not be parsed.");
             GlobalMatrix = glbStateMatrix.GlobalMatrix;
         }

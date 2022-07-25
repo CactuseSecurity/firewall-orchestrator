@@ -19,7 +19,7 @@
         <div class="col-sm-2">
             <select id="taskDevId" class="form-control form-control-sm" @bind="DeviceId">
                 <option value="-1">@(userConfig.GetText("tickets"))</option>
-                <option value="0">@(userConfig.GetText("all_devices"))</option>
+                <option value="0">@(userConfig.GetText("all_gateways"))</option>
                 @foreach (Device device in devices)
                 {
                     <option value="@device.Id">@(device.Name)</option>

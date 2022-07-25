@@ -184,7 +184,7 @@ namespace FWO.Ui.Services
             try
             {
                 ActTicket.StateId = ticket.StateId;
-                TicketList = await UpdateTicketState(ActTicket, TicketList, stateMatrix);
+                await UpdateTicketState();
                 ResetTicketActions();
             }
             catch (Exception exception)
@@ -262,7 +262,7 @@ namespace FWO.Ui.Services
             }
             SetReqTaskEnv(reqTask);
             await dbAcc.UpdateReqTaskStateInDb(reqTask);
-            await UpdateTicketStateFromTasks(ActTicket, TicketList, stateMatrix);
+            await UpdateTicketStateFromTasks();
             SetReqTaskOpt(action);
         }
 
@@ -340,7 +340,7 @@ namespace FWO.Ui.Services
                     }
                 }
                 
-                await UpdateTicketStateFromTasks(ActTicket, TicketList, stateMatrix);
+                await UpdateTicketStateFromTasks();
                 ActTicket.Tasks[ActTicket.Tasks.FindIndex(x => x.Id == ActReqTask.Id)] = ActReqTask;
                 DisplayPromoteMode = false;
             }
@@ -366,8 +366,8 @@ namespace FWO.Ui.Services
                     DisplayMessageInUi!(null, userConfig.GetText("save_approval"), userConfig.GetText("U0001"), true);
                 }
                 await dbAcc.UpdateApprovalInDb(actApproval);
-                await UpdateTaskStateFromApprovals(ActReqTask, stateMatrix);
-                await UpdateTicketStateFromTasks(ActTicket, TicketList, stateMatrix);
+                await UpdateTaskStateFromApprovals();
+                await UpdateTicketStateFromTasks();
                 ApproveReqTaskMode = false;
                 DisplayApproveMode = false;
             }
@@ -443,7 +443,7 @@ namespace FWO.Ui.Services
             }
             SetImplTaskEnv(implTask);
             await dbAcc.UpdateImplTaskStateInDb(implTask);
-            await UpdateTicketStateFromImplTasks(ActTicket, TicketList, stateMatrix);
+            await UpdateTicketStateFromImplTasks();
             SetImplTaskOpt(action);
         }
 
@@ -467,9 +467,9 @@ namespace FWO.Ui.Services
                 ActImplTask.CurrentHandler = userConfig.User;
                 await dbAcc.UpdateImplTaskStateInDb(ActImplTask);
                 SetImplTaskEnv(ActImplTask);
-                await UpdateReqTaskStateFromImplTasks(ActReqTask, stateMatrix);
+                await UpdateReqTaskStateFromImplTasks(ActReqTask);
                 ActReqTask.ImplementationTasks[ActReqTask.ImplementationTasks.FindIndex(x => x.Id == ActImplTask.Id)] = ActImplTask;
-                await UpdateTicketStateFromTasks(ActTicket, TicketList, stateMatrix);
+                await UpdateTicketStateFromTasks();
                 ActTicket.Tasks[ActTicket.Tasks.FindIndex(x => x.Id == ActReqTask.Id)] = ActReqTask;
                 DisplayPromoteMode = false;
             }
@@ -528,31 +528,31 @@ namespace FWO.Ui.Services
 
         // State changes
 
-        public async Task UpdateTaskStateFromApprovals(RequestTask reqTask, StateMatrix stateMatrix)
+        public async Task UpdateTaskStateFromApprovals()
         {
             List<int> approvalStates = new List<int>();
-            foreach (var approval in reqTask.Approvals)
+            foreach (var approval in ActReqTask.Approvals)
             {
                 approvalStates.Add(approval.StateId);
             }
             if (approvalStates.Count > 0)
             {
-                reqTask.StateId = stateMatrix.getDerivedStateFromSubStates(approvalStates);
+                ActReqTask.StateId = stateMatrix.getDerivedStateFromSubStates(approvalStates);
             }
-            await dbAcc.UpdateReqTaskStateInDb(reqTask);
+            await dbAcc.UpdateReqTaskStateInDb(ActReqTask);
         }
 
-        public async Task UpdateTicketStateFromImplTasks(RequestTicket ticket, List<RequestTicket> requests, StateMatrix stateMatrix)
+        public async Task UpdateTicketStateFromImplTasks()
         {
             List<int> taskStates = new List<int>();
-            foreach (RequestTask reqTask in ticket.Tasks)
+            foreach (RequestTask reqTask in ActTicket.Tasks)
             {
-                await UpdateReqTaskStateFromImplTasks(reqTask, stateMatrix);
+                await UpdateReqTaskStateFromImplTasks(reqTask);
             }
-            await UpdateTicketStateFromTasks(ticket, requests, stateMatrix);
+            await UpdateTicketStateFromTasks();
         }
 
-        public async Task UpdateReqTaskStateFromImplTasks(RequestTask reqTask, StateMatrix stateMatrix)
+        public async Task UpdateReqTaskStateFromImplTasks(RequestTask reqTask)
         {
             List<int> implTaskStates = new List<int>();
             foreach (var implTask in reqTask.ImplementationTasks)
@@ -566,38 +566,39 @@ namespace FWO.Ui.Services
             await dbAcc.UpdateReqTaskStateInDb(reqTask);
         }
 
-        public async Task UpdateTicketStateFromTasks(RequestTicket ticket, List<RequestTicket> requests, StateMatrix stateMatrix)
+        public async Task UpdateTicketStateFromTasks()
         {
             List<int> taskStates = new List<int>();
-            foreach (RequestTask tsk in ticket.Tasks)
+            foreach (RequestTask tsk in ActTicket.Tasks)
             {
                 taskStates.Add(tsk.StateId);
             }
-            ticket.StateId = stateMatrix.getDerivedStateFromSubStates(taskStates);
-            await UpdateTicketState(ticket, requests, stateMatrix);
+            ActTicket.StateId = stateMatrix.getDerivedStateFromSubStates(taskStates);
+            await UpdateTicketState();
         }
 
-        public async Task<List<RequestTicket>> UpdateTicketState(RequestTicket ticket, List<RequestTicket> requests, StateMatrix stateMatrix)
+        public async Task UpdateTicketState()
         {
-            if (stateMatrix.IsLastActivePhase && ticket.StateId >= stateMatrix.LowestEndState)
+            if (stateMatrix.IsLastActivePhase && ActTicket.StateId >= stateMatrix.LowestEndState)
             {
-                ticket.CompletionDate = DateTime.Now;
+                ActTicket.CompletionDate = DateTime.Now;
             }
             bool alreadyExistingImplTask = false;
-            foreach (var reqTask in ticket.Tasks)
+            foreach (var reqTask in ActTicket.Tasks)
             {
                 if (reqTask.ImplementationTasks.Count > 0)
                 {
                     alreadyExistingImplTask = true;
                 }
             }
-            if(phase <= WorkflowPhases.approval && ticket.Tasks.Count > 0 && !alreadyExistingImplTask &&
-                !stateMatrix.PhaseActive[WorkflowPhases.planning] && ticket.StateId == stateMatrix.LowestEndState)
+            if(phase <= WorkflowPhases.approval && ActTicket.Tasks.Count > 0 && !alreadyExistingImplTask &&
+                !stateMatrix.PhaseActive[WorkflowPhases.planning] && ActTicket.StateId == stateMatrix.LowestEndState)
             {
                 await AutoCreateImplTasks();
             }
 
-            return await dbAcc.UpdateTicketStateInDb(ticket, requests);
+            await dbAcc.UpdateTicketStateInDb(ActTicket);
+            TicketList[TicketList.FindIndex(x => x.Id == ActTicket.Id)] = ActTicket;
         }
 
 

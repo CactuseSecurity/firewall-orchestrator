@@ -392,6 +392,7 @@ else
     private void RemoveStateFromPhase(WorkflowPhases phase, int key)
     {
         globalStateMatrix.GlobalMatrix[phase].Matrix.Remove(key);
+        globalStateMatrix.GlobalMatrix[phase].DerivedStates.Remove(key);
     }
 
     private void CancelSelect()

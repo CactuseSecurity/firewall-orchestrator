@@ -421,7 +421,10 @@
         }
         foreach(var proto in ListIn.OrderBy(x => x.Name).ToList())
         {
-            ListOut.Add(proto);
+            if (proto.Name.ToLower() != "unassigned")
+            {
+                ListOut.Add(proto);
+            }
         }
         return ListOut;
     }

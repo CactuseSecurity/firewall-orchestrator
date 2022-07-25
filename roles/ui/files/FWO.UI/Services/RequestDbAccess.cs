@@ -559,7 +559,7 @@ namespace FWO.Ui.Services
 
         // State changes
 
-        public async Task<List<RequestTicket>> UpdateTicketStateInDb(RequestTicket ticket, List<RequestTicket> requests)
+        public async Task UpdateTicketStateInDb(RequestTicket ticket)
         {
             try
             {
@@ -574,16 +574,11 @@ namespace FWO.Ui.Services
                 {
                     DisplayMessageInUi!(null, UserConfig.GetText("save_request"), UserConfig.GetText("E8002"), true);
                 }
-                else
-                {
-                    requests[requests.FindIndex(x => x.Id == ticket.Id)] = ticket;
-                }
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi!(exception, UserConfig.GetText("save_request"), "", true);
             }
-            return requests;
         }
 
         public async Task UpdateReqTaskStateInDb(RequestTask task)

@@ -83,68 +83,13 @@ namespace FWO.Report.Filter.Ast
         private static bool IsCidr(string cidr)
         {
             return IPAddressRange.TryParse(cidr, out IPAddressRange range);
-
-            //try
-            //{
-            //    // IPV4 only:
-
-            //    string[] IPA = SanitizeIp(cidr).Split('/');
-            //    if (IPA.Length == 2)
-            //    {
-            //        if (IPAddress.TryParse(IPA[0], out _))
-            //        {
-            //            if (int.TryParse(IPA[1], out int bitsInMask) == false)
-            //                return false;
-            //            else if (bitsInMask >= 0 && bitsInMask <= 32)
-            //                return true;
-            //        }
-            //    }
-            //    else if (IPA.Length == 1) // no / in string, simple IP
-            //    {
-            //        if (IPAddress.TryParse(cidr, out _))
-            //        {
-            //            return true;
-            //        }
-            //    }
-            //    // TODO: IPv6 handling
-            //    return false;
-            //}
-            //catch (Exception)
-            //{
-            //    Log.WriteDebug("Ip Address Parsing", "An exception occured while trying to parse an Ip address.");
-            //    return false;
-            //}
-        }
-
-        private static string ToIp(uint ip)
-        {
-            // TODO: IPv6 handling
-            return string.Format("{0}.{1}.{2}.{3}", ip >> 24, (ip >> 16) & 0xff, (ip >> 8) & 0xff, ip & 0xff);
-        }
-
-        private static (string, string) GetFirstAndLastIp(string cidr)
-        {
-            // TODO: IPv6 handling
-            string[] parts = SanitizeIp(cidr).Split('.', '/');
-
-            uint ipnum = (Convert.ToUInt32(parts[0]) << 24) |
-                (Convert.ToUInt32(parts[1]) << 16) |
-                (Convert.ToUInt32(parts[2]) << 8) |
-                Convert.ToUInt32(parts[3]);
-
-            int maskbits = Convert.ToInt32(parts[4]);
-            uint mask = 0xffffffff;
-            mask <<= (32 - maskbits);
-
-            uint ipstart = ipnum & mask;
-            uint ipend = ipnum | (mask ^ 0xffffffff);
-            return (ToIp(ipstart), ToIp(ipend));
         }
 
         private DynGraphqlQuery ExtractIpFilter(DynGraphqlQuery query, string location, string locationTable)
         {
-            string filterIP = SanitizeIp(Value.Text);
-            (string firstFilterIp, string lastFilterIp) = GetFirstAndLastIp(filterIP);
+            IPAddressRange filterIP = IPAddressRange.Parse(SanitizeIp(Value.Text));
+            string firstFilterIp = filterIP.Begin.ToString();
+            string lastFilterIp = filterIP.End.ToString();
             string QueryVarNameFirst1 = $"{location}IpLow" + query.parameterCounter;
             string QueryVarNameLast2 = $"{location}IpHigh" + query.parameterCounter++;
             query.QueryVariables[QueryVarNameFirst1] = firstFilterIp;

@@ -30,6 +30,8 @@ namespace FWO.Ui.Services
         public List<Device> Devices = new List<Device>();
         public List<ImplementationTask> AllImplTasks = new List<ImplementationTask>();
 
+        public bool ReadOnlyMode = false;
+
         public bool DisplayTicketMode = false;
         public bool EditTicketMode = false;
         public bool AddTicketMode = false;
@@ -73,9 +75,9 @@ namespace FWO.Ui.Services
             Init();
         }
 
-        public async Task Init()
+        public async Task Init(int viewOpt = 0)
         {
-            TicketList = await dbAcc.FetchTickets(stateMatrix);
+            TicketList = await dbAcc.FetchTickets(stateMatrix, viewOpt);
         }
 
         public void SetContinueEnv(ObjAction action)
@@ -367,6 +369,7 @@ namespace FWO.Ui.Services
                 await UpdateTaskStateFromApprovals(ActReqTask, stateMatrix);
                 await UpdateTicketStateFromTasks(ActTicket, TicketList, stateMatrix);
                 ApproveReqTaskMode = false;
+                DisplayApproveMode = false;
             }
             catch (Exception exception)
             {

@@ -18,31 +18,31 @@
 @if (InitComplete && configData != null)
 {
     <form class="form-inline" onsubmit="return false">
-        <label for="availableTaskTypes" class="col-form-label col-sm-3">@(userConfig.GetText("reqAvailableTaskTypes")):</label>
+        <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAvailableTaskTypes")):</label>
         @foreach (TaskType type in Enum.GetValues(typeof(TaskType)))
         {
             <div class="form-group col-sm-2">
-                <input id="type" type="checkbox" @bind="taskTypesActiveDict[type]" />
-                <label for="type" class="col-form-label ">@(userConfig.GetText(type.ToString()))</label>
+                <input type="checkbox" @bind="taskTypesActiveDict[type]" />
+                <label class="col-form-label">@(userConfig.GetText(type.ToString()))</label>
             </div>
         }
     </form>
     <form class="form-inline" onsubmit="return false">
-        <label for="allowObjSearch" class="col-form-label col-sm-3">@(userConfig.GetText("reqAllowObjectSearch")):</label>
+        <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAllowObjectSearch")):</label>
         <div class="col-sm-2">
-            <input id="allowObjSearch" type="checkbox" class="w-100" @bind="configData!.ReqAllowObjectSearch">
+            <input type="checkbox" @bind="configData!.ReqAllowObjectSearch">
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
-        <label for="approvalDeadline" class="col-form-label col-sm-3">@(userConfig.GetText("reqApprovalDeadline")):</label>
+        <label class="col-form-label col-sm-3">@(userConfig.GetText("reqApprovalDeadline")):</label>
         <div class="col-sm-2">
-            <input id="approvalDeadline" type="number" class="form-control form-control-sm w-100" @bind="configData!.ReqApprovalDeadline" />
+            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.ReqApprovalDeadline" />
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
-        <label for="autoCreateImplTasks" class="col-form-label col-sm-3">@(userConfig.GetText("reqAutoCreateImplTasks")):</label>
+        <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAutoCreateImplTasks")):</label>
         <div class="col-sm-2">
-            <select id="autoCreateImplTasks" class="form-control form-control-sm" @bind="configData!.ReqAutoCreateImplTasks">
+            <select class="form-control form-control-sm" @bind="configData!.ReqAutoCreateImplTasks">
                 @foreach (AutoCreateImplTaskOptions acitOption in Enum.GetValues(typeof(AutoCreateImplTaskOptions)))
                 {
                     <option value="@acitOption">@(userConfig.GetText(acitOption.ToString()))</option>

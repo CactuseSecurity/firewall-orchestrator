@@ -5,7 +5,7 @@
 
 @inject UserConfig userConfig
 
-@if(Phase == WorkflowPhases.request)
+@if(Phase == WorkflowPhases.request && !ReqHandler.ReadOnlyMode)
 {
     <button class="btn btn-success m-2" @onclick="AddTicket">@(userConfig.GetText("add_new_request"))</button>
 }
@@ -15,7 +15,7 @@
         <Column TableItem="RequestTicket" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
-                    @if (Phase == WorkflowPhases.request && context.StateId < StateMatrix.LowestEndState)
+                    @if (Phase == WorkflowPhases.request && context.StateId < StateMatrix.LowestEndState && !ReqHandler.ReadOnlyMode)
                     {
                         <button class="btn btn-sm btn-warning" @onclick="() => EditTicket(context)">@(userConfig.GetText("edit"))</button>
                     }

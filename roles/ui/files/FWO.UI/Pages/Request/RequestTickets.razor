@@ -10,11 +10,32 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<h3>@(userConfig.GetText("tickets"))</h3>
+<h3>@(userConfig.GetText("create_ticket"))</h3>
 <hr />
 
 @if(InitComplete)
 {
+    <AuthorizeView Roles="admin, fw-admin, auditor">
+        <div class="form-group row">
+            <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("view")):</label>
+            <div class="col-sm-2">
+                <select class="form-control form-control-sm" @bind="viewOpt">
+                    <option value="0">@(userConfig.GetText("create_ticket"))</option>
+                    <option value="1">@(userConfig.GetText("all_readonly"))</option>
+                </select>
+            </div>
+            <AuthorizeView Roles="admin, fw-admin">
+                <Authorized Context="ctx">
+                    <button class="btn btn-sm btn-primary" @onclick="Reset">@(userConfig.GetText("select"))</button>
+                </Authorized>
+                <NotAuthorized Context="ctx">
+                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("select"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+        </div>
+    </AuthorizeView>
+
+
     <DisplayTicketTable Phase="WorkflowPhases.request" StateMatrix ="stateMatrix" States="states" ReqHandler="reqHandler" 
         ResetParent="Reset"/>
 }
@@ -31,6 +52,8 @@
     private StateMatrix stateMatrix = new StateMatrix();
     private bool InitComplete = false;
 
+    private int viewOpt = 0;
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -42,7 +65,7 @@
             dbAcc = new RequestDbAccess(DisplayMessageInUi, userConfig, apiConnection){};
             devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
             reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, dbAcc, stateMatrix, devices, WorkflowPhases.request){};
-            await reqHandler.Init();
+            await reqHandler.Init(viewOpt);
             InitComplete = true;
         }
         catch (Exception exception)
@@ -53,6 +76,7 @@
 
     private async Task Reset()
     {
-        await reqHandler.Init();
+        reqHandler.ReadOnlyMode = viewOpt > 0;
+        await reqHandler.Init(viewOpt);
     }
 }

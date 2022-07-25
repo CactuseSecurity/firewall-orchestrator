@@ -18,7 +18,7 @@ namespace FWO.Ui.Services
             ApiConnection = apiConnection;
         }
 
-        public async Task<List<RequestTicket>> FetchTickets(StateMatrix stateMatrix)
+        public async Task<List<RequestTicket>> FetchTickets(StateMatrix stateMatrix, int viewOpt = 0)
         {
             List<RequestTicket> requests = new List<RequestTicket>();
             try
@@ -27,7 +27,7 @@ namespace FWO.Ui.Services
                 var Variables = new
                 {
                     from_state = stateMatrix.LowestInputState,
-                    to_state = stateMatrix.LowestEndState,
+                    to_state = (viewOpt == 0 ? stateMatrix.LowestEndState : 999)
                 };
                 requests = await ApiConnection.SendQueryAsync<List<RequestTicket>>(FWO.Api.Client.Queries.RequestQueries.getTickets, Variables);
                 foreach (var ticket in requests)

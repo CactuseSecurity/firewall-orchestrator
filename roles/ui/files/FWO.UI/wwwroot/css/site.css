@@ -205,4 +205,6 @@ app {
 
 .navbar-nav .active {
     font-weight: bold;
+    font-style: italic;
+
 }

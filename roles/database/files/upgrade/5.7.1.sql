@@ -1,4 +1,9 @@
 -- create schema
+-- to re-init request module database changes, manually issue the following commands before upgrading to 5.7.1:
+-- drop schema implementation CASCADE;
+-- drop schema request CASCADE;
+-- note: this will delete all ticket data
+
 create schema if not exists request;
 create schema if not exists implementation;
 
@@ -297,7 +302,7 @@ insert into config (config_key, config_value, config_user) VALUES ('importCheckC
 insert into config (config_key, config_value, config_user) VALUES ('importSuppressCertificateWarnings', 'True', 0) ON CONFLICT DO NOTHING;
 insert into config (config_key, config_value, config_user) VALUES ('sessionTimeout', '240', 0) ON CONFLICT DO NOTHING;
 -- insert into config (config_key, config_value, config_user) VALUES ('maxMessages', '3', 0) ON CONFLICT DO NOTHING;
-
+insert into config (config_key, config_value, config_user) VALUES ('sessionTimeoutNoticePeriod', '60', 0) ON CONFLICT DO NOTHING;
 
 -- add tenant_network demo data
 DO $do$ BEGIN

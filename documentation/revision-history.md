@@ -219,3 +219,7 @@ adding report template format fk and permissions
 
 ### 5.7.1
 - start ip-based tenant filtering
+- starting request module
+- support for new operating system debian testing
+- bugfix enrichable objects in CP NAT rules
+- bugfix filter line brackets

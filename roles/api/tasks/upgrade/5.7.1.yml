@@ -2,13 +2,14 @@
     msg:
       - "running v5.7.1 upgrade script"
 
-- name: cp hasura cli from /usr/local/bin to fworch_home/api/bin
+- name: cp hasura cli from old /usr/local/bin dir to fworch_home/api/bin
   copy:
     src: "/usr/local/bin/hasura"
     dest: "{{ api_hasura_cli_bin }}"
     remote_src: yes
   when: installation_mode == "upgrade"
   become: yes
+  ignore_errors: yes
 
 # initially cp current api_metadata to fworch_home/api
 - name: download {{ api_hasura_version }} hasura cli binary

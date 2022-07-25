@@ -23,18 +23,6 @@
   when: ansible_facts['distribution']|lower == 'debian' or ansible_facts['distribution']|lower == 'ubuntu'
   ignore_errors: true
 
-# - set_fact:
-#     distribution_version: "debian/10"
-#     when: ansible_facts['distribution']|lower == 'debian'
-
-# - set_fact:
-#     distribution_version: "ubuntu/20.04"
-#     when: ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_version'] == '20.04'
-
-# - set_fact:
-#     distribution_version: "ubuntu/18.04"
-#     when: ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_version'] == '18.04'
-
 - name: find out installed postgres version
   script: "get_pg_version.sh"
   register: pg_version_result

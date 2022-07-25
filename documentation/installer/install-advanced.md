@@ -35,7 +35,17 @@ sudo ansible-playbook -e "http_proxy=http://1.2.3.4:3128 https_proxy=http://1.2.
 
 use the following syntax for authenticated proxy access:
 
-    http_proxy=http://USERNAME:PASSWORD@1.2.3.4:8080/
+If instead you need to individually set a proxy before installation/upgrade, use the following comamnds in your terminal:
+```console
+export http_proxy=http://proxy.int:3128
+export https_proxy=http://proxy.int:3128
+export no_proxy=127.0.0.1,localhost
+ansible-playbook site.yml -K
+```
+
+Use the following syntax for authenticated proxy access:
+
+    export http_proxy=http://USERNAME:PASSWORD@proxy.int:8080/
 
 Note that the following domains must be reachable through the proxy:
 

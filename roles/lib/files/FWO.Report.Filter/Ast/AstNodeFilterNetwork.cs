@@ -74,7 +74,7 @@ namespace FWO.Report.Filter.Ast
                         {
                             cidr_str += "/128";
                         }
-                        if (cidr_str.IndexOf("/") == cidr_str.Length - 1) // wrong format (/ at the end, fixing this by adding 32 mask)
+                        if (cidr_str.IndexOf("/") == cidr_str.Length - 1) // wrong format (/ at the end, fixing this by adding 128 mask)
                         {
                             cidr_str += "128";
                         }

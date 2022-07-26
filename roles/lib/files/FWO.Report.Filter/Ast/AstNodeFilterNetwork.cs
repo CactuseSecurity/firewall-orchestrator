@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using FWO.Logging;
 
 namespace FWO.Report.Filter.Ast
 {
@@ -66,15 +67,34 @@ namespace FWO.Report.Filter.Ast
             {
                 if (ip != null)
                 {
-                    cidr_str = ip.ToString();
-                    if (cidr_str.IndexOf("/") < 0) // a single ip without mask
+                    if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
                     {
-                        cidr_str += "/32";
+                        cidr_str = ip.ToString();
+                        if (cidr_str.IndexOf("/") < 0) // a single ip without mask
+                        {
+                            cidr_str += "/128";
+                        }
+                        if (cidr_str.IndexOf("/") == cidr_str.Length - 1) // wrong format (/ at the end, fixing this by adding 32 mask)
+                        {
+                            cidr_str += "128";
+                        }
                     }
-                    if (cidr_str.IndexOf("/") == cidr_str.Length - 1) // wrong format (/ at the end, fixing this by adding 32 mask)
+                    else if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
                     {
-                        cidr_str += "32";
+                        cidr_str = ip.ToString();
+                        if (cidr_str.IndexOf("/") < 0) // a single ip without mask
+                        {
+                            cidr_str += "/32";
+                        }
+                        if (cidr_str.IndexOf("/") == cidr_str.Length - 1) // wrong format (/ at the end, fixing this by adding 32 mask)
+                        {
+                            cidr_str += "32";
+                        }
                     }
+                }
+                else 
+                {
+                  Log.WriteWarning("SanitizeIP", $"unexpected IP address family (neither v4 nor v6) found");
                 }
             }
             return cidr_str;

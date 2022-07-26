@@ -202,3 +202,9 @@ app {
 .nav-tabs {
     background-color: #d6d5d5;
 }
+
+.navbar-nav .active {
+    font-weight: bold;
+    font-style: italic;
+
+}

@@ -28,6 +28,11 @@
         </Column>
         <Column TableItem="RequestTicket" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
         <Column TableItem="RequestTicket" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true" />
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("tasks"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" >
+            <Template>
+                @(context.Tasks.Count)
+            </Template>
+        </Column>
         <Column TableItem="RequestTicket" Title="@(userConfig.GetText("requester"))" Field="@(x => x.Requester.Name)" Sortable="true" Filterable="true" />
         <Column TableItem="RequestTicket" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
             <Template>

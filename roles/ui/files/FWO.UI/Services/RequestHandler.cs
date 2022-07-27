@@ -447,6 +447,10 @@ namespace FWO.Ui.Services
             SetImplTaskEnv(implTask);
             await dbAcc.UpdateImplTaskStateInDb(implTask);
             ActReqTask.ImplementationTasks[ActReqTask.ImplementationTasks.FindIndex(x => x.Id == ActImplTask.Id)] = ActImplTask;
+            if(!stateMatrix.PhaseActive[WorkflowPhases.planning] && ActReqTask.Start == null)
+            {
+                ActReqTask.Start = ActImplTask.Start;
+            }
             await UpdateTicketStateFromImplTasks();
             SetImplTaskOpt(action);
         }
@@ -469,9 +473,17 @@ namespace FWO.Ui.Services
             {
                 ActImplTask.StateId = implTask.StateId;
                 ActImplTask.CurrentHandler = userConfig.User;
+                if (phase == WorkflowPhases.implementation && ActImplTask.Stop == null && ActImplTask.StateId >= stateMatrix.LowestEndState)
+                {
+                    ActImplTask.Stop = DateTime.Now;
+                }
                 await dbAcc.UpdateImplTaskStateInDb(ActImplTask);
                 SetImplTaskEnv(ActImplTask);
                 ActReqTask.ImplementationTasks[ActReqTask.ImplementationTasks.FindIndex(x => x.Id == ActImplTask.Id)] = ActImplTask;
+                if(!stateMatrix.PhaseActive[WorkflowPhases.planning] && ActReqTask.Stop == null)
+                {
+                    ActReqTask.Stop = ActImplTask.Stop;
+                }
                 await UpdateReqTaskStateFromImplTasks(ActReqTask);
                 ActTicket.Tasks[ActTicket.Tasks.FindIndex(x => x.Id == ActReqTask.Id)] = ActReqTask;
                 await UpdateTicketStateFromTasks();

@@ -24,8 +24,10 @@ svc_obj_scope = ['svc_obj_' + s1 + '_' +
                  s2 for s1 in scope for s2 in svc_obj_types]
 
 # zone_types = ['zones_global', 'zones_adom']
-user_types = ['users_global', 'users_adom']
-user_scope = ['user_objects']
+
+user_obj_types = ['user/local', 'user/group']
+user_scope = ['user_obj_' + s1 + '_' +
+                s2 for s1 in scope for s2 in user_obj_types]
 
 
 def has_config_changed(full_config, mgm_details, force=False):
@@ -93,6 +95,8 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
             full_config, config2import, current_import_id, nw_obj_scope, jwt=jwt, mgm_id=mgm_details['id'])
         fmgr_service.normalize_svcobjects(
             full_config, config2import, current_import_id, svc_obj_scope)
+        fmgr_user.normalize_users(
+            full_config, config2import, current_import_id, user_scope)
         fmgr_rule.normalize_access_rules(
             full_config, config2import, current_import_id, mgm_details=mgm_details, jwt=jwt)
         fmgr_rule.normalize_nat_rules(
@@ -115,17 +119,23 @@ def getObjects(sid, fm_api_url, raw_config, adom_name, limit, scope, nw_obj_type
 
         # get service objects:
         # service/custom is an undocumented API call!
-        options = []    # options = ['get reserved']
         for object_type in svc_obj_types:
             if s == 'adom':
                 adom_scope = 'adom/'+adom_name
             else:
                 adom_scope = s
             fmgr_getter.update_config_with_fortinet_api_call(
-                raw_config, sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/" + object_type, "svc_obj_" + s + "_" + object_type,limit=limit, options=options)
+                raw_config, sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/" + object_type, "svc_obj_" + s + "_" + object_type, limit=limit)
 
-    #    user: /pm/config/global/obj/user/local
-    fmgr_getter.update_config_with_fortinet_api_call(raw_config, sid, fm_api_url, "/pm/config/global/obj/user/local", "users_local", limit=limit)
+        # user: /pm/config/global/obj/user/local, /pm/config/global/obj/user/group
+        # get user objects:
+        for object_type in user_obj_types:
+            if s == 'adom':
+                adom_scope = 'adom/'+adom_name
+            else:
+                adom_scope = s
+            fmgr_getter.update_config_with_fortinet_api_call(
+                raw_config, sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/" + object_type, "user_obj_" + s + "_" + object_type, limit=limit)
 
 
 # def getZones(sid, fm_api_url, raw_config, adom_name, limit, debug_level):

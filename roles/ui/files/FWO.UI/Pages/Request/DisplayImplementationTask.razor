@@ -175,10 +175,10 @@
             {
                 <AuthorizeView Roles="admin, implementer, reviewer, fw-admin">
                     <Authorized>
-                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteImplTask">@(userConfig.GetText("promote_task"))</button>
+                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteImplTask">@(userConfig.GetText("change_state"))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("promote_task"))</button>
+                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("change_state"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
             }
@@ -295,7 +295,7 @@
                 DisplayMessageInUi!(null, userConfig.GetText("save_task"), userConfig.GetText("U0001"), true);
             }
             UpdateElements();
-            if (CheckTaskValues())
+            if (CheckImplTaskValues())
             {
                 if (ReqHandler.AddImplTaskMode)
                 {
@@ -314,7 +314,7 @@
         }
     }
 
-    private bool CheckTaskValues()
+    private bool CheckImplTaskValues()
     {
         foreach (var implElem in ReqHandler.ActImplTask.ImplElements)
         {

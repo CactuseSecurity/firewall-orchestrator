@@ -88,10 +88,10 @@
             {
                 <AuthorizeView Roles="admin, requester, approver, planner, implementer, reviewer, fw-admin">
                     <Authorized>
-                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteTicket">@(userConfig.GetText("promote_ticket"))</button>
+                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteTicket">@(userConfig.GetText("change_state"))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("promote_ticket"))</button>
+                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("change_state"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
             }
@@ -150,7 +150,6 @@
         {
             return false;
         }
-        int oldState = ReqHandler.ActTicket.StateId;
         if(ReqHandler.ActTicket.Tasks.Count > 0)
         {
             List<int> taskStates = new List<int>();
@@ -158,8 +157,8 @@
             {
                 taskStates.Add(reqTask.StateId);
             }
-            ReqHandler.ActTicket.StateId = StateMatrix.getDerivedStateFromSubStates(taskStates);
-            if(ReqHandler.ActTicket.StateId == oldState)
+            int newState = StateMatrix.getDerivedStateFromSubStates(taskStates);
+            if(newState == ReqHandler.ActTicket.StateId)
             {
                 return false;
             }
@@ -168,7 +167,7 @@
         else
         {
             possibleStates = StateMatrix.getAllowedTransitions(ReqHandler.ActTicket.StateId);
-            if(possibleStates.Count == 1 && possibleStates[0] == oldState)
+            if(possibleStates.Count == 1 && possibleStates[0] == ReqHandler.ActTicket.StateId)
             {
                 return false;
             }

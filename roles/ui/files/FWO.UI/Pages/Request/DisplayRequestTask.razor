@@ -22,7 +22,7 @@
                             </div>
                         </div>
                     </div>
-                    @if(!StateMatrix.PhaseActive[WorkflowPhases.planning] && userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask)
+                    @if(ReqHandler.ActReqTask.TaskType == TaskType.access.ToString() && !StateMatrix.PhaseActive[WorkflowPhases.planning] && userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask)
                     {
                         <div class="col-sm-7">
                             <div class="form-group row">
@@ -247,10 +247,10 @@
             {
                 <AuthorizeView Roles="admin, planner, fw-admin">
                     <Authorized>
-                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteReqTask">@(userConfig.GetText("promote_task"))</button>
+                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteReqTask">@(userConfig.GetText("change_state"))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("promote_task"))</button>
+                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("change_state"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
             }
@@ -365,9 +365,14 @@
 
     private async Task InitApproveTask()
     {
-        actApproval = ReqHandler.ActReqTask.Approvals[0];  // todo: select own approvals
+        if(ReqHandler.ActReqTask.Approvals.Count == 0)
+        {
+            AddApproval();
+        }
+        actApproval = ReqHandler.ActReqTask.Approvals.Last();  // todo: select own approvals
         actApproval.SetOptComment(actApproval.Comment);
         ReqHandler.SetReqTaskPopUpOpt(ObjAction.displayApprove);
+        StateHasChanged();
     }
 
     private async Task ConfApproveTask(StatefulObject approval)
@@ -456,14 +461,24 @@
             DisplayMessageInUi!(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
             return false;
         }
-        foreach (var reqElem in ReqHandler.ActReqTask.Elements)
+        if (ReqHandler.ActReqTask.TaskType == TaskType.access.ToString())
         {
-            if (ReqHandler.ActReqTask.TaskType == TaskType.access.ToString() && reqElem.NetworkId == null && reqElem.ServiceId == null)
+            if (actSources.Count == 0 || actDestinations.Count == 0 || actServices.Count == 0 ||
+                (!StateMatrix.PhaseActive[WorkflowPhases.planning] && userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask && 
+                (ReqHandler.ActReqTask.DeviceId == null || ReqHandler.ActReqTask.DeviceId == 0)))
             {
-                if (reqElem.Field == AccessField.service.ToString() && reqElem.Port < 1 || reqElem.Port > 65535)
+                DisplayMessageInUi!(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
+                return false;
+            }
+            foreach (var reqElem in ReqHandler.ActReqTask.Elements)
+            {
+                if (reqElem.NetworkId == null && reqElem.ServiceId == null)
                 {
-                    DisplayMessageInUi!(null, userConfig.GetText("save_element"), userConfig.GetText("E5103"), true);
-                    return false;
+                    if (reqElem.Field == AccessField.service.ToString() && reqElem.Port < 1 || reqElem.Port > 65535)
+                    {
+                        DisplayMessageInUi!(null, userConfig.GetText("save_element"), userConfig.GetText("E5103"), true);
+                        return false;
+                    }
                 }
             }
         }

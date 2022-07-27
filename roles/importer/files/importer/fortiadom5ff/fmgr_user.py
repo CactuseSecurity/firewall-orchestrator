@@ -8,6 +8,7 @@ def normalize_users(full_config, config2import, import_id, user_scope):
             type = 'simple'
             color = None
             member_names = None
+            comment = None
 
             if 'member' in user_orig:
                 type = 'group'
@@ -18,24 +19,18 @@ def normalize_users(full_config, config2import, import_id, user_scope):
             if 'name' in user_orig:
                 name = str(user_orig['name'])
             if 'comment' in user_orig:
-                name = str(user_orig['comment'])
-            if 'uid' in user_orig:
-                name = str(user_orig['uid'])
+                comment = str(user_orig['comment'])
             if 'color' in user_orig and str(user_orig['color']) != 0:
                 color = str(user_orig['color'])
-            
-            addUser(users, type, name, color, member_names, import_id)
 
-    config2import.update({'user_objects': users})
-
-
-def addUser(user_objects, type, name, color, member_names, import_id):
-    user_objects.extend([{'user_typ': type,
+            users.extend([{'user_typ': type,
                         'user_name': name, 
                         'user_color': color,
                         'user_uid': name, 
-                        'user_comment': None,
+                        'user_comment': comment,
                         'user_member_refs': member_names,
                         'user_member_names': member_names,
                         'control_id': import_id
-                        }])
+                        }])            
+
+    config2import.update({'user_objects': users})

@@ -4,7 +4,6 @@ sys.path.append(importer_base_dir + '/fortiadom5ff')
 import fmgr_user
 import fmgr_service
 import fmgr_zone
-import traceback
 import fmgr_rule
 import fmgr_network
 import fmgr_getter
@@ -41,12 +40,12 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
     else:
         parsing_config_only = True
 
+    # fmgr API login
     if not parsing_config_only:   # no native config was passed in, so getting it from FortiManager
         fm_api_url = 'https://' + \
             mgm_details['hostname'] + ':' + \
             str(mgm_details['port']) + '/jsonrpc'
-        api_domain = ''
-        sid = fmgr_getter.login(mgm_details['user'], mgm_details['secret'], mgm_details['hostname'], mgm_details['port'], api_domain)
+        sid = fmgr_getter.login(mgm_details['user'], mgm_details['secret'], fm_api_url)
         if sid is None:
             logger.ERROR('did not succeed in logging in to FortiManager API, no sid returned')
             return 1

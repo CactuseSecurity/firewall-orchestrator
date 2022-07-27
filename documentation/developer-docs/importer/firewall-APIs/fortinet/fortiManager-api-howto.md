@@ -1,5 +1,13 @@
 # Integrating Fortinet FortiManager 7.x
 
+## API Docs
+
+(need account)
+
+https://fndn.fortinet.net/index.php?/fortiapi/5-fortimanager/&_fromLogin=1
+
+
+
 ## user setup
 
 connect to FM via ssh (admin/empty password) and add the following config

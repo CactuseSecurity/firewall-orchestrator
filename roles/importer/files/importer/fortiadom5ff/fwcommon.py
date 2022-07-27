@@ -4,7 +4,6 @@ sys.path.append(importer_base_dir + '/fortiadom5ff')
 import fmgr_user
 import fmgr_service
 import fmgr_zone
-import traceback
 import fmgr_rule
 import fmgr_network
 import fmgr_getter
@@ -25,8 +24,10 @@ svc_obj_scope = ['svc_obj_' + s1 + '_' +
                  s2 for s1 in scope for s2 in svc_obj_types]
 
 # zone_types = ['zones_global', 'zones_adom']
-user_types = ['users_global', 'users_adom']
-user_scope = ['user_objects']
+
+user_obj_types = ['user/local', 'user/group']
+user_scope = ['user_obj_' + s1 + '_' +
+                s2 for s1 in scope for s2 in user_obj_types]
 
 
 def has_config_changed(full_config, mgm_details, force=False):
@@ -41,12 +42,12 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
     else:
         parsing_config_only = True
 
+    # fmgr API login
     if not parsing_config_only:   # no native config was passed in, so getting it from FortiManager
         fm_api_url = 'https://' + \
             mgm_details['hostname'] + ':' + \
             str(mgm_details['port']) + '/jsonrpc'
-        api_domain = ''
-        sid = fmgr_getter.login(mgm_details['user'], mgm_details['secret'], mgm_details['hostname'], mgm_details['port'], api_domain)
+        sid = fmgr_getter.login(mgm_details['user'], mgm_details['secret'], fm_api_url)
         if sid is None:
             logger.ERROR('did not succeed in logging in to FortiManager API, no sid returned')
             return 1
@@ -94,6 +95,8 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
             full_config, config2import, current_import_id, nw_obj_scope, jwt=jwt, mgm_id=mgm_details['id'])
         fmgr_service.normalize_svcobjects(
             full_config, config2import, current_import_id, svc_obj_scope)
+        fmgr_user.normalize_users(
+            full_config, config2import, current_import_id, user_scope)
         fmgr_rule.normalize_access_rules(
             full_config, config2import, current_import_id, mgm_details=mgm_details, jwt=jwt)
         fmgr_rule.normalize_nat_rules(
@@ -116,17 +119,23 @@ def getObjects(sid, fm_api_url, raw_config, adom_name, limit, scope, nw_obj_type
 
         # get service objects:
         # service/custom is an undocumented API call!
-        options = []    # options = ['get reserved']
         for object_type in svc_obj_types:
             if s == 'adom':
                 adom_scope = 'adom/'+adom_name
             else:
                 adom_scope = s
             fmgr_getter.update_config_with_fortinet_api_call(
-                raw_config, sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/" + object_type, "svc_obj_" + s + "_" + object_type,limit=limit, options=options)
+                raw_config, sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/" + object_type, "svc_obj_" + s + "_" + object_type, limit=limit)
 
-    #    user: /pm/config/global/obj/user/local
-    fmgr_getter.update_config_with_fortinet_api_call(raw_config, sid, fm_api_url, "/pm/config/global/obj/user/local", "users_local", limit=limit)
+        # user: /pm/config/global/obj/user/local, /pm/config/global/obj/user/group
+        # get user objects:
+        for object_type in user_obj_types:
+            if s == 'adom':
+                adom_scope = 'adom/'+adom_name
+            else:
+                adom_scope = s
+            fmgr_getter.update_config_with_fortinet_api_call(
+                raw_config, sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/" + object_type, "user_obj_" + s + "_" + object_type, limit=limit)
 
 
 # def getZones(sid, fm_api_url, raw_config, adom_name, limit, debug_level):

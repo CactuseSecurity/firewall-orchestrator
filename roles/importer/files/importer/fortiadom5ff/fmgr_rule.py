@@ -158,6 +158,7 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
                     rule.update({ 'rule_dst_refs': resolve_raw_objects(rule['rule_dst'], list_delimiter, full_config, 'name', 'uuid', \
                         rule_type=rule_table, jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object', mgm_id=mgm_details['id']) })
                     rule.update({ 'rule_svc_refs': rule['rule_svc'] }) # services do not have uids, so using name instead
+                    add_users_to_rule(rule_orig, rule)
 
                     xlate_rule = handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, import_id, localPkgName, device_name)
                     rules.append(rule)
@@ -233,7 +234,8 @@ def normalize_nat_rules(full_config, config2import, import_id, jwt=None):
                     rule.update({ 'parent_rule_id': None })
 
                     nat_rules.append(rule)
-                    
+                    add_users_to_rule(rule_orig, rule)
+
                     ############## now adding the xlate rule part ##########################
                     xlate_rule = dict(rule) # copy the original (match) rule
                     xlate_rule.update({'rule_src': '', 'rule_dst': '', 'rule_svc': ''})
@@ -450,3 +452,24 @@ def extract_nat_objects(nwobj_list, all_nwobjects):
         # if obj in all_nwobjects and 'obj_nat_ip' in all_nwobjects[obj]:
         #     nat_obj_list.append(obj)
     return nat_obj_list
+
+
+def add_users_to_rule(rule_orig, rule):
+    if 'groups' in rule_orig:
+        add_users(rule_orig['groups'], rule)
+    if 'users' in rule_orig:
+        add_users(rule_orig['users'], rule)
+
+
+def add_users(users, rule):
+    for user in users:
+        rule_src_with_users = []
+        for src in rule['rule_src'].split(list_delimiter):
+            rule_src_with_users.append(user + '@' + src)
+        rule['rule_src'] = list_delimiter.join(rule_src_with_users)
+
+        # here user ref is the user name itself
+        rule_src_refs_with_users = []
+        for src in rule['rule_src_refs'].split(list_delimiter):
+            rule_src_refs_with_users.append(user + '@' + src)
+        rule['rule_src_refs'] = list_delimiter.join(rule_src_refs_with_users)

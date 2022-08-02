@@ -34,6 +34,8 @@
         - libgdiplus
         - libc6-dev
         - libjpeg62
+        - fontconfig
+        - xfonts-base
         - xfonts-75dpi
         - libssl-dev
       

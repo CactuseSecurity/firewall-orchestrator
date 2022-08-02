@@ -1,10 +1,16 @@
-# Firewall Orchestrator Operations howto
+# Tips on Firewall Orchestrator Operations
 
-## logging
+
+## Monitoring and alerting
+
+Use /var/log/fworch/alert.log to generate alerts with the SIEM tool of your choice.
+
+## Logging
 
 All logs are written into the /var/log/fworch directory on the central backend system.
+We recommend using a separate partition for logs.
 
-View logs with the following command:
+View multiple logs at once with the following command:
 
 ```console
 tim@ubu2004test:~$ cd /var/log/fworch

@@ -57,7 +57,7 @@
       - libc6-dev
       - libjpeg62
       - xfonts-75dpi
-      - libssl1.1
+      - libssl-dev
   
   become: yes
 

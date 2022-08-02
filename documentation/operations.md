@@ -1,6 +1,14 @@
 # Tips on Firewall Orchestrator Operations
 
 
+## Backup / Restore
+
+We recommend to backup the following data:
+
+- PostgreSQL database fworchdb using a tool like pg_dump
+- directory /etc/fworch (which is a link to /usr/local/fworch/etc)
+- optionally any customized settings like /etc/syslog-ng.conf etc. which were not automatically created during the installation process
+
 ## Monitoring and alerting
 
 Use /var/log/fworch/alert.log to generate alerts with the SIEM tool of your choice.

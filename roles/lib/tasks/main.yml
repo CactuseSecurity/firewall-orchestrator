@@ -27,6 +27,26 @@
         - xfonts-75dpi
         - libssl-dev
 
+    - block:
+      - name: download wkhtmltox for ubuntu 22.04 only
+        get_url:
+          url: https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-2/wkhtmltox_0.12.6.1-2.jammy_amd64.deb
+          dest: "{{ fworch_home }}"
+          force: yes
+          mode: "0644"
+          owner: "{{ fworch_user }}"
+          group: "{{ fworch_group }}"
+        environment: "{{ proxy_env }}"
+
+      - name: install wkhtmltox for ubuntu 22.04 only
+        command: dpkg -i {{ fworch_home }}/wkhtmltox_0.12.6.1-2.jammy_amd64.deb
+
+      - name: remove wkhtmltox for ubuntu 22.04 only
+        file:
+          path: "{{ fworch_home }}/wkhtmltox_0.12.6.1-2.jammy_amd64.deb"
+          state: absent
+      when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_version'] == '22.04'
+
     - name: backup lib dir
       synchronize:
         src: "{{ fworch_home }}/lib"

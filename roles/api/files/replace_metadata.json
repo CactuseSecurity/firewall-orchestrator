@@ -2628,6 +2628,115 @@
             {
               "table": {
                 "schema": "public",
+                "name": "import_credential"
+              },
+              "array_relationships": [
+                {
+                  "name": "management",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "import_credential_id",
+                      "table": {
+                        "schema": "public",
+                        "name": "management"
+                      }
+                    }
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "is_key_pair",
+                      "credential_name",
+                      "username",
+                      "id",
+                      "public_key",
+                      "secret"
+                    ]
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "is_key_pair",
+                      "credential_name",
+                      "username",
+                      "id",
+                      "public_key",
+                      "secret"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "is_key_pair",
+                      "credential_name",
+                      "username",
+                      "id",
+                      "public_key",
+                      "secret"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "is_key_pair",
+                      "credential_name",
+                      "username",
+                      "id",
+                      "public_key",
+                      "secret"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "is_key_pair",
+                      "credential_name",
+                      "username",
+                      "id",
+                      "public_key",
+                      "secret"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  }
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "backend_only": false,
+                    "filter": {}
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "schema": "public",
                 "name": "import_full_config"
               },
               "object_relationships": [
@@ -3353,29 +3462,6 @@
               ],
               "insert_permissions": [
                 {
-                  "role": "auditor",
-                  "permission": {
-                    "check": {},
-                    "columns": [
-                      "data_issue_id",
-                      "import_id",
-                      "rule_id",
-                      "description",
-                      "object_name",
-                      "object_type",
-                      "object_uid",
-                      "rule_uid",
-                      "source",
-                      "suspected_cause",
-                      "issue_dev_id",
-                      "issue_mgm_id",
-                      "severity",
-                      "user_id",
-                      "issue_timestamp"
-                    ]
-                  }
-                },
-                {
                   "role": "importer",
                   "permission": {
                     "check": {},
@@ -3669,6 +3755,12 @@
               },
               "object_relationships": [
                 {
+                  "name": "import_credential",
+                  "using": {
+                    "foreign_key_constraint_on": "import_credential_id"
+                  }
+                },
+                {
                   "name": "management",
                   "using": {
                     "foreign_key_constraint_on": "multi_device_manager_id"
@@ -3944,23 +4036,21 @@
                       "do_not_import",
                       "force_initial_import",
                       "hide_in_gui",
+                      "last_import_attempt_successful",
                       "config_path",
                       "importer_hostname",
                       "last_import_md5_complete_config",
-                      "last_import_attempt",
-                      "last_import_attempt_successful",
                       "mgm_name",
                       "ssh_hostname",
-                      "ssh_user",
                       "debug_level",
                       "dev_typ_id",
+                      "import_credential_id",
                       "mgm_id",
                       "multi_device_manager_id",
                       "ssh_port",
                       "tenant_id",
                       "mgm_comment",
-                      "secret",
-                      "ssh_public_key",
+                      "last_import_attempt",
                       "mgm_create",
                       "mgm_update"
                     ]
@@ -3973,28 +4063,26 @@
                   "permission": {
                     "columns": [
                       "clearing_import_ran",
-                      "config_path",
-                      "debug_level",
-                      "dev_typ_id",
                       "do_not_import",
                       "force_initial_import",
                       "hide_in_gui",
+                      "last_import_attempt_successful",
+                      "config_path",
                       "importer_hostname",
                       "last_import_md5_complete_config",
-                      "last_import_attempt",
-                      "last_import_attempt_successful",
-                      "mgm_comment",
-                      "mgm_create",
-                      "mgm_id",
                       "mgm_name",
-                      "mgm_update",
-                      "multi_device_manager_id",
                       "ssh_hostname",
+                      "debug_level",
+                      "dev_typ_id",
+                      "import_credential_id",
+                      "mgm_id",
+                      "multi_device_manager_id",
                       "ssh_port",
-                      "secret",
-                      "ssh_public_key",
-                      "ssh_user",
-                      "tenant_id"
+                      "tenant_id",
+                      "mgm_comment",
+                      "last_import_attempt",
+                      "mgm_create",
+                      "mgm_update"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -4008,23 +4096,21 @@
                       "do_not_import",
                       "force_initial_import",
                       "hide_in_gui",
+                      "last_import_attempt_successful",
                       "config_path",
                       "importer_hostname",
                       "last_import_md5_complete_config",
-                      "last_import_attempt",
-                      "last_import_attempt_successful",
                       "mgm_name",
                       "ssh_hostname",
-                      "ssh_user",
                       "debug_level",
                       "dev_typ_id",
+                      "import_credential_id",
                       "mgm_id",
                       "multi_device_manager_id",
                       "ssh_port",
                       "tenant_id",
                       "mgm_comment",
-                      "secret",
-                      "ssh_public_key",
+                      "last_import_attempt",
                       "mgm_create",
                       "mgm_update"
                     ],
@@ -4037,28 +4123,26 @@
                   "permission": {
                     "columns": [
                       "clearing_import_ran",
-                      "config_path",
-                      "debug_level",
-                      "dev_typ_id",
                       "do_not_import",
                       "force_initial_import",
                       "hide_in_gui",
+                      "last_import_attempt_successful",
+                      "config_path",
                       "importer_hostname",
                       "last_import_md5_complete_config",
-                      "last_import_attempt",
-                      "last_import_attempt_successful",
-                      "mgm_comment",
-                      "mgm_create",
-                      "mgm_id",
                       "mgm_name",
-                      "mgm_update",
-                      "multi_device_manager_id",
                       "ssh_hostname",
+                      "debug_level",
+                      "dev_typ_id",
+                      "import_credential_id",
+                      "mgm_id",
+                      "multi_device_manager_id",
                       "ssh_port",
-                      "secret",
-                      "ssh_public_key",
-                      "ssh_user",
-                      "tenant_id"
+                      "tenant_id",
+                      "mgm_comment",
+                      "last_import_attempt",
+                      "mgm_create",
+                      "mgm_update"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -4072,27 +4156,26 @@
                       "do_not_import",
                       "force_initial_import",
                       "hide_in_gui",
+                      "last_import_attempt_successful",
                       "config_path",
                       "importer_hostname",
                       "last_import_md5_complete_config",
-                      "last_import_attempt",
-                      "last_import_attempt_successful",
                       "mgm_name",
                       "ssh_hostname",
-                      "ssh_user",
                       "debug_level",
                       "dev_typ_id",
+                      "import_credential_id",
                       "mgm_id",
                       "multi_device_manager_id",
                       "ssh_port",
                       "tenant_id",
                       "mgm_comment",
-                      "secret",
-                      "ssh_public_key",
+                      "last_import_attempt",
                       "mgm_create",
                       "mgm_update"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 },
                 {
@@ -4103,23 +4186,21 @@
                       "do_not_import",
                       "force_initial_import",
                       "hide_in_gui",
+                      "last_import_attempt_successful",
                       "config_path",
                       "importer_hostname",
                       "last_import_md5_complete_config",
-                      "last_import_attempt",
-                      "last_import_attempt_successful",
                       "mgm_name",
                       "ssh_hostname",
-                      "ssh_user",
                       "debug_level",
                       "dev_typ_id",
+                      "import_credential_id",
                       "mgm_id",
                       "multi_device_manager_id",
                       "ssh_port",
                       "tenant_id",
                       "mgm_comment",
-                      "secret",
-                      "ssh_public_key",
+                      "last_import_attempt",
                       "mgm_create",
                       "mgm_update"
                     ],
@@ -4139,23 +4220,21 @@
                       "do_not_import",
                       "force_initial_import",
                       "hide_in_gui",
+                      "last_import_attempt_successful",
                       "config_path",
                       "importer_hostname",
                       "last_import_md5_complete_config",
-                      "last_import_attempt",
-                      "last_import_attempt_successful",
                       "mgm_name",
                       "ssh_hostname",
-                      "ssh_user",
                       "debug_level",
                       "dev_typ_id",
+                      "import_credential_id",
                       "mgm_id",
                       "multi_device_manager_id",
                       "ssh_port",
                       "tenant_id",
                       "mgm_comment",
-                      "secret",
-                      "ssh_public_key",
+                      "last_import_attempt",
                       "mgm_create",
                       "mgm_update"
                     ],
@@ -4172,28 +4251,26 @@
                   "permission": {
                     "columns": [
                       "clearing_import_ran",
-                      "config_path",
-                      "debug_level",
-                      "dev_typ_id",
                       "do_not_import",
                       "force_initial_import",
                       "hide_in_gui",
+                      "last_import_attempt_successful",
+                      "config_path",
                       "importer_hostname",
                       "last_import_md5_complete_config",
-                      "last_import_attempt",
-                      "last_import_attempt_successful",
-                      "mgm_comment",
-                      "mgm_create",
-                      "mgm_id",
                       "mgm_name",
-                      "mgm_update",
-                      "multi_device_manager_id",
                       "ssh_hostname",
+                      "debug_level",
+                      "dev_typ_id",
+                      "import_credential_id",
+                      "mgm_id",
+                      "multi_device_manager_id",
                       "ssh_port",
-                      "secret",
-                      "ssh_public_key",
-                      "ssh_user",
-                      "tenant_id"
+                      "tenant_id",
+                      "mgm_comment",
+                      "last_import_attempt",
+                      "mgm_create",
+                      "mgm_update"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -4209,23 +4286,21 @@
                       "do_not_import",
                       "force_initial_import",
                       "hide_in_gui",
+                      "last_import_attempt_successful",
                       "config_path",
                       "importer_hostname",
                       "last_import_md5_complete_config",
-                      "last_import_attempt",
-                      "last_import_attempt_successful",
                       "mgm_name",
                       "ssh_hostname",
-                      "ssh_user",
                       "debug_level",
                       "dev_typ_id",
+                      "import_credential_id",
                       "mgm_id",
                       "multi_device_manager_id",
                       "ssh_port",
                       "tenant_id",
                       "mgm_comment",
-                      "secret",
-                      "ssh_public_key",
+                      "last_import_attempt",
                       "mgm_create",
                       "mgm_update"
                     ],

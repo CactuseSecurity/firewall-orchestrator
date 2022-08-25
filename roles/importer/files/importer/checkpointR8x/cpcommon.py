@@ -72,10 +72,10 @@ def get_basic_config (config_json, mgm_details, force=False, config_filename=Non
     logger = getFwoLogger()
 
     api_host = mgm_details['hostname']
-    api_user =  mgm_details['user']
+    api_user =  mgm_details['import_credential']['user']
     api_domain = mgm_details['configPath']
     api_port = str(mgm_details['port'])
-    api_password = mgm_details['secret']
+    api_password = mgm_details['import_credential']['secret']
     base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
     use_object_dictionary = 'false'
 
@@ -242,7 +242,7 @@ def enrich_config (config, mgm_details, limit=150, details_level='full', noapi=F
     if noapi == False:
         # if sid is None:
         # TODO: why is the re-genereation of a new sid necessary here?
-        sid = getter.login(mgm_details['user'],mgm_details['secret'],mgm_details['hostname'],mgm_details['port'],mgm_details['configPath'])
+        sid = getter.login(mgm_details['import_credential']['user'],mgm_details['import_credential']['secret'],mgm_details['hostname'],mgm_details['port'],mgm_details['configPath'])
         logger.debug ( "re-logged into api" )
 
         # if an object is not there:

@@ -61,11 +61,12 @@ Create table "management" -- contains an entry for each firewall management syst
 	"tenant_id" Integer,
 	"mgm_create" Timestamp NOT NULL Default now(),
 	"mgm_update" Timestamp NOT NULL Default now(),
-	"ssh_public_key" Text,
-	"secret" Text NOT NULL,
+	"import_credential_id" Integer NOT NULL,
+--	"ssh_public_key" Text,
+--	"secret" Text NOT NULL,
+--	"ssh_user" Varchar NOT NULL Default 'fworch',
 	"ssh_hostname" Varchar NOT NULL,
 	"ssh_port" Integer NOT NULL Default 22,
-	"ssh_user" Varchar NOT NULL Default 'fworch',
 	"last_import_md5_complete_config" Varchar Default 0,
 	"last_import_attempt" Timestamp,
 	"last_import_attempt_successful" Boolean NOT NULL Default false,
@@ -78,6 +79,16 @@ Create table "management" -- contains an entry for each firewall management syst
 	"debug_level" Integer,
 	"multi_device_manager_id" integer,		-- if this manager belongs to another multi_device_manager, then this id points to it
  primary key ("mgm_id")
+);
+
+create table if not exists import_credential
+(
+    id SERIAL PRIMARY KEY,
+    credential_name varchar NOT NULL,
+    is_key_pair BOOLEAN default FALSE,
+    username varchar NOT NULL,
+    secret text NOT NULL,
+	public_key Text
 );
 
 Create table "object"

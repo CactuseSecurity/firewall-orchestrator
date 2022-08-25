@@ -318,7 +318,7 @@ DO $do$ BEGIN
             VALUES ((SELECT tenant_id FROM tenant WHERE tenant_name='tenant2_demo'), '10.0.0.48/29', 'demo network for tenant 2') ON CONFLICT DO NOTHING;
         END IF;
     END IF;
-END $do$ 
+END $do$;
 
 ---------------------------------------------------------------------------------------
 -- adding import_credential table

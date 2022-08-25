@@ -12579,62 +12579,7 @@
             }
           }
         }
-      ],
-      "query_collections": [
-        {
-          "name": "allowed-queries",
-          "definition": {
-            "queries": [
-              {
-                "name": "getImports",
-                "query": "query MyQuery {\n  import_control(order_by: {control_id: desc}) {\n    control_id\n    changes_found\n    start_time\n    stop_time\n    successful_import\n    is_initial_import\n    last_change_in_config\n    mgm_id\n    import_errors\n  }\n  config\n}"
-              },
-              {
-                "name": "getImportConfig",
-                "query": "query MyQuery {\n  import_config {\n    config\n    import_id\n    mgm_id\n  }\n}"
-              }
-            ]
-          }
-        }
-      ],
-      "allowlist": [
-        {
-          "collection": "allowed-queries",
-          "scope": {
-            "global": true
-          }
-        }
-      ],
-      "rest_endpoints": [
-        {
-          "definition": {
-            "query": {
-              "collection_name": "allowed-queries",
-              "query_name": "getImportConfig"
-            }
-          },
-          "url": "getImportConfig",
-          "methods": [
-            "GET"
-          ],
-          "name": "getImportConfig",
-          "comment": null
-        },
-        {
-          "definition": {
-            "query": {
-              "collection_name": "allowed-queries",
-              "query_name": "getImports"
-            }
-          },
-          "url": "getImports",
-          "methods": [
-            "GET"
-          ],
-          "name": "getImports",
-          "comment": null
-        }
-      ]
+      ]    
     }
   }
 }

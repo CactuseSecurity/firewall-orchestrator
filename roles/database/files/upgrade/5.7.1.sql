@@ -346,32 +346,36 @@ DECLARE
     r_cred RECORD;
     i_cred_id INT;
 BEGIN
-    SELECT INTO i_cred_number COUNT(*) FROM import_credential;
+    SELECT INTO r_cred column_name FROM information_schema.columns WHERE table_name='management' and column_name='secret';
+    -- only migrate credentials if management table still contains "secret" column 
+    IF FOUND THEN
+        SELECT INTO i_cred_number COUNT(*) FROM import_credential;
 
-    IF i_cred_number=0 THEN
-        i_cred_number := 1;
-        FOR r_cred IN SELECT DISTINCT secret, ssh_user, ssh_public_key FROM management
-        LOOP
-            v_cred_number_string := 'credential' || CAST (i_cred_number AS VARCHAR);
-            IF r_cred.ssh_public_key IS NULL AND NOT r_cred.secret LIKE '-----BEGIN OPENSSH PRIVATE KEY-----%' THEN
-                INSERT INTO import_credential 
-                    (credential_name, is_key_pair, username, secret) 
-                    VALUES (v_cred_number_string, FALSE, r_cred.ssh_user, r_cred.secret)
-                    RETURNING id INTO i_cred_id;
-                UPDATE management 
-                    SET import_credential_id=i_cred_id
-                    WHERE secret=r_cred.secret AND ssh_user=r_cred.ssh_user;
-            ELSE
-                INSERT INTO import_credential
-                    (credential_name, is_key_pair, username, secret, public_key) 
-                    VALUES (v_cred_number_string, TRUE, r_cred.ssh_user, r_cred.secret, r_cred.ssh_public_key)
-                    RETURNING id INTO i_cred_id;
-                UPDATE management 
-                    SET import_credential_id=i_cred_id
-                    WHERE secret=r_cred.secret AND ssh_user=r_cred.ssh_user; -- AND ssh_public_key=r_cred.ssh_public_key;
-            END IF;
-            i_cred_number := i_cred_number + 1;
-        END LOOP;
+        IF i_cred_number=0 THEN
+            i_cred_number := 1;
+            FOR r_cred IN SELECT DISTINCT secret, ssh_user, ssh_public_key FROM management
+            LOOP
+                v_cred_number_string := 'credential' || CAST (i_cred_number AS VARCHAR);
+                IF r_cred.ssh_public_key IS NULL AND NOT r_cred.secret LIKE '-----BEGIN OPENSSH PRIVATE KEY-----%' THEN
+                    INSERT INTO import_credential 
+                        (credential_name, is_key_pair, username, secret) 
+                        VALUES (v_cred_number_string, FALSE, r_cred.ssh_user, r_cred.secret)
+                        RETURNING id INTO i_cred_id;
+                    UPDATE management 
+                        SET import_credential_id=i_cred_id
+                        WHERE secret=r_cred.secret AND ssh_user=r_cred.ssh_user;
+                ELSE
+                    INSERT INTO import_credential
+                        (credential_name, is_key_pair, username, secret, public_key) 
+                        VALUES (v_cred_number_string, TRUE, r_cred.ssh_user, r_cred.secret, r_cred.ssh_public_key)
+                        RETURNING id INTO i_cred_id;
+                    UPDATE management 
+                        SET import_credential_id=i_cred_id
+                        WHERE secret=r_cred.secret AND ssh_user=r_cred.ssh_user; -- AND ssh_public_key=r_cred.ssh_public_key;
+                END IF;
+                i_cred_number := i_cred_number + 1;
+            END LOOP;
+        END IF;
     END IF;
 END $do$;
 

@@ -1176,6 +1176,8 @@ INSERT INTO txt VALUES ('U5106', 'German',  'Der Import ist zwischenzeitlich dur
 INSERT INTO txt VALUES ('U5106', 'English', 'The import has finished inbetween');
 INSERT INTO txt VALUES ('U5107', 'German',  'Der Import wurde zur&uuml;ckgesetzt');
 INSERT INTO txt VALUES ('U5107', 'English', 'The import has been rolled back');
+INSERT INTO txt VALUES ('U5108', 'German',  'L&ouml;scht alle Beispiel-Logindaten (auf "_demo" endend)');
+INSERT INTO txt VALUES ('U5108', 'English', 'Deletes all sample credentials (ending with "_demo")');
 INSERT INTO txt VALUES ('U5111', 'German',  'Verwaltung aller verbundenen Managements');
 INSERT INTO txt VALUES ('U5111', 'English', 'Administrate the connected managements');
 INSERT INTO txt VALUES ('U5112', 'German',  'Verwaltung aller verbundenen Gateways');

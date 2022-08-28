@@ -474,8 +474,7 @@
     private bool CheckValues(Management mgm, string checkCause)
     {
         if (mgm.Name == null || mgm.Name == "" || 
-            mgm.Hostname == null || mgm.Hostname == "" || 
-            mgm.ImportCredentialId == null)
+            mgm.Hostname == null || mgm.Hostname == "")
         {
             DisplayMessageInUi!(null, checkCause, userConfig.GetText("E5102"), true);
             return false;

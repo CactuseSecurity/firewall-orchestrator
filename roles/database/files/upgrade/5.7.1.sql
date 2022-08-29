@@ -376,14 +376,14 @@ BEGIN
                 i_cred_number := i_cred_number + 1;
             END LOOP;
         END IF;
+        ALTER TABLE management DROP CONSTRAINT IF EXISTS management_import_credential_id_foreign_key;
+        ALTER TABLE management ADD CONSTRAINT management_import_credential_id_foreign_key FOREIGN KEY (import_credential_id) REFERENCES import_credential(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+        -- and delete management columns afterwards
+        -- need to remove all refs (API, etc.) first 
+        ALTER TABLE management DROP COLUMN IF EXISTS ssh_public_key;
+        ALTER TABLE management DROP COLUMN IF EXISTS secret;
+        ALTER TABLE management DROP COLUMN IF EXISTS ssh_user;
     END IF;
 END $do$;
 
-ALTER TABLE management DROP CONSTRAINT IF EXISTS management_import_credential_id_foreign_key;
-ALTER TABLE management ADD CONSTRAINT management_import_credential_id_foreign_key FOREIGN KEY (import_credential_id) REFERENCES import_credential(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
--- and delete management columns afterwards
--- need to remove all refs (API, etc.) first 
-ALTER TABLE management DROP COLUMN IF EXISTS ssh_public_key;
-ALTER TABLE management DROP COLUMN IF EXISTS secret;
-ALTER TABLE management DROP COLUMN IF EXISTS ssh_user;

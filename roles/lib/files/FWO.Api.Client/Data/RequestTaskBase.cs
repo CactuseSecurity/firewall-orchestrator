@@ -2,15 +2,7 @@
 using Newtonsoft.Json;
 
 namespace FWO.Api.Data
-{
-    public enum TaskType
-    {
-        access, 
-        svc_group, 
-        obj_group, 
-        rule_modify
-    }
-    
+{   
     public enum AutoCreateImplTaskOptions
     {
         never, 
@@ -27,9 +19,6 @@ namespace FWO.Api.Data
 
         [JsonProperty("task_number"), JsonPropertyName("task_number")]
         public int TaskNumber { get; set; }
-
-        [JsonProperty("task_type"), JsonPropertyName("task_type")]
-        public string TaskType { get; set; } = FWO.Api.Data.TaskType.access.ToString();
 
         [JsonProperty("request_action"), JsonPropertyName("request_action")]
         public string RequestAction { get; set; } = FWO.Api.Data.RequestAction.create.ToString();
@@ -54,7 +43,6 @@ namespace FWO.Api.Data
         {
             Title = task.Title;
             TaskNumber = task.TaskNumber;
-            TaskType = task.TaskType;
             RequestAction = task.RequestAction;
             Reason = task.Reason;
             LastRecertDate = task.LastRecertDate;

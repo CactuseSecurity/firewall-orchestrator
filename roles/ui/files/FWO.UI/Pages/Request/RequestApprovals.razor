@@ -14,7 +14,7 @@
 
 @if(InitComplete)
 {
-    <DisplayTicketTable Phase="WorkflowPhases.approval" StateMatrix ="stateMatrix" States="states" ReqHandler="reqHandler" 
+    <DisplayTicketTable Phase="WorkflowPhases.approval" States="states" ReqHandler="reqHandler" 
         ResetParent="Reset" StartPhase="StartApproveTask"/>
 }
 
@@ -28,7 +28,7 @@
     private RequestDbAccess dbAcc;
     private List<Device> devices = new List<Device>();
     private RequestStateDict states = new RequestStateDict();
-    private StateMatrix stateMatrix = new StateMatrix();
+    private StateMatrixDict stateMatrixDict = new StateMatrixDict();
     private bool InitComplete = false;
 
 
@@ -36,12 +36,12 @@
     {
         try
         {
-            await stateMatrix.Init(WorkflowPhases.approval, apiConnection);
+            await stateMatrixDict.Init(WorkflowPhases.approval, apiConnection);
             await states.Init(apiConnection);
 
             dbAcc = new RequestDbAccess(DisplayMessageInUi, userConfig, apiConnection){};
             devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
-            reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, dbAcc, stateMatrix, devices, WorkflowPhases.approval){};
+            reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, dbAcc, stateMatrixDict, devices, WorkflowPhases.approval){};
             await reqHandler.Init();
             reqHandler.SetContinueEnv(ObjAction.approve);
     

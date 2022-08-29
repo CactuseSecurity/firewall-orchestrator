@@ -22,7 +22,7 @@
                             </div>
                         </div>
                     </div>
-                    @if(ReqHandler.ActReqTask.TaskType == TaskType.access.ToString() && !StateMatrix.PhaseActive[WorkflowPhases.planning] && userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask)
+                    @if(ReqHandler.ActReqTask.TaskType == TaskType.access.ToString() && !ReqHandler.ActStateMatrix.PhaseActive[WorkflowPhases.planning] && userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask)
                     {
                         <div class="col-sm-7">
                             <div class="form-group row">
@@ -74,7 +74,7 @@
                                 @if (ReqHandler.EditReqTaskMode)
                                 {
                                     <select class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.TaskType">
-                                        @foreach (TaskType type in availableTaskTypes)
+                                        @foreach (TaskType type in availableTaskTypes.Where(x => x != TaskType.master))
                                         {
                                             <option value="@type">@(userConfig.GetText(type.ToString()))</option>
                                         }
@@ -130,81 +130,82 @@
                         <textarea rows="2" type="text" class="form-control form-control-sm" readonly="@(!ReqHandler.EditReqTaskMode)" @bind="ReqHandler.ActReqTask.Reason"/>   
                     </div>
                 </div>
-                <div class="form-group row">
-                    <div class="col-sm-3">
-                        <div class="form-group row">
-                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("rule_action"))*:</label>
-                            <div class="col-sm-8">
-                                @if (ReqHandler.EditReqTaskMode)
-                                {
-                                    <select class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.RuleAction">
-                                        @foreach (var action in ruleActions)
-                                        {
-                                            <option value="@action.Id">@(action.Name)</option>
-                                        }
-                                    </select>
-                                }
-                                else
-                                {
-                                    <label class="col-sm-12 h-100 border bg-secondary">@(((ReqHandler.ActReqTask.RuleAction != null) ? ruleActions.Find(x => x.Id == ReqHandler.ActReqTask.RuleAction)?.Name : ""))</label>
-                                }
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-sm-3">
-                        <div class="form-group row">
-                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("track"))*:</label>
-                            <div class="col-sm-8">
-                                @if (ReqHandler.EditReqTaskMode)
-                                {
-                                    <select class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.Tracking">
-                                        @foreach (var track in trackings)
-                                        {
-                                            <option value="@track.Id">@(track.Name)</option>
-                                        }
-                                    </select>
-                                }
-                                else
-                                {
-                                    <label class="col-sm-12 h-100 border bg-secondary">@(((ReqHandler.ActReqTask.Tracking != null) ? trackings.Find(x => x.Id == ReqHandler.ActReqTask.Tracking)?.Name : ""))</label>
-                                }
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-sm-3">
-                        <div class="form-group row">
-                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_from")):</label>
-                            <div class="col-sm-8">
-                                @if (ReqHandler.EditReqTaskMode)
-                                {
-                                    <input type="date" class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.TargetBeginDate" />
-                                }
-                                else
-                                {
-                                    <label class="col-sm-12 h-100 border bg-secondary">@ReqHandler.ActReqTask.TargetBeginDate?.ToString("d")</label>
-                                }
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-sm-3">
-                        <div class="form-group row">
-                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_to")):</label>
-                            <div class="col-sm-8">
-                                @if (ReqHandler.EditReqTaskMode)
-                                {
-                                    <input type="date" class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.TargetEndDate" />
-                                }
-                                else
-                                {
-                                    <label class="col-sm-12 h-100 border bg-secondary">@ReqHandler.ActReqTask.TargetEndDate?.ToString("d")</label>
-                                }
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 @if(ReqHandler.ActReqTask.TaskType == TaskType.access.ToString())
                 {
+                    <div class="form-group row">
+                        <div class="col-sm-3">
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("rule_action"))*:</label>
+                                <div class="col-sm-8">
+                                    @if (ReqHandler.EditReqTaskMode)
+                                    {
+                                        <select class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.RuleAction">
+                                            @foreach (var action in ruleActions)
+                                            {
+                                                <option value="@action.Id">@(action.Name)</option>
+                                            }
+                                        </select>
+                                    }
+                                    else
+                                    {
+                                        <label class="col-sm-12 h-100 border bg-secondary">@(((ReqHandler.ActReqTask.RuleAction != null) ? ruleActions.Find(x => x.Id == ReqHandler.ActReqTask.RuleAction)?.Name : ""))</label>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-3">
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("track"))*:</label>
+                                <div class="col-sm-8">
+                                    @if (ReqHandler.EditReqTaskMode)
+                                    {
+                                        <select class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.Tracking">
+                                            @foreach (var track in trackings)
+                                            {
+                                                <option value="@track.Id">@(track.Name)</option>
+                                            }
+                                        </select>
+                                    }
+                                    else
+                                    {
+                                        <label class="col-sm-12 h-100 border bg-secondary">@(((ReqHandler.ActReqTask.Tracking != null) ? trackings.Find(x => x.Id == ReqHandler.ActReqTask.Tracking)?.Name : ""))</label>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-3">
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_from")):</label>
+                                <div class="col-sm-8">
+                                    @if (ReqHandler.EditReqTaskMode)
+                                    {
+                                        <input type="date" class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.TargetBeginDate" />
+                                    }
+                                    else
+                                    {
+                                        <label class="col-sm-12 h-100 border bg-secondary">@ReqHandler.ActReqTask.TargetBeginDate?.ToString("d")</label>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-3">
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_to")):</label>
+                                <div class="col-sm-8">
+                                    @if (ReqHandler.EditReqTaskMode)
+                                    {
+                                        <input type="date" class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.TargetEndDate" />
+                                    }
+                                    else
+                                    {
+                                        <label class="col-sm-12 h-100 border bg-secondary">@ReqHandler.ActReqTask.TargetEndDate?.ToString("d")</label>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <DisplayAccessElements @bind-Sources="actSources" @bind-Destinations="actDestinations" @bind-Services="actServices" 
                         TaskId="ReqHandler.ActReqTask.Id" EditMode="ReqHandler.EditReqTaskMode"></DisplayAccessElements>
                 }
@@ -223,7 +224,7 @@
                 {
                     <h5>@(userConfig.GetText("implementation_tasks"))</h5>
 
-                    <DisplayImplTaskTable Phase="Phase" StateMatrix="StateMatrix" States="States" 
+                    <DisplayImplTaskTable Phase="Phase" States="States" 
                         ReqHandler="ReqHandler" ResetParent="Reset" AllImplTasks="ReqHandler.ActReqTask.ImplementationTasks"
                         StartImplPhase="StartImplPhase"/>
                 }
@@ -271,8 +272,8 @@
     </Footer>
 </PopUp>
 
-<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Close" ObjectName="task" Save="ConfPromoteReqTask" StatefulObject="ReqHandler.ActReqTask" StateMatrix="StateMatrix" States="States"/>
-<PromoteObject @bind-Promote="ReqHandler.DisplayApproveMode" ResetParent="Close" ObjectName="approval" WithComment="true" Save="ConfApproveTask" StatefulObject="actApproval" StateMatrix="StateMatrix" States="States"/>
+<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Close" ObjectName="task" Save="ConfPromoteReqTask" StatefulObject="ReqHandler.ActReqTask" StateMatrix="ReqHandler.ActStateMatrix" States="States"/>
+<PromoteObject @bind-Promote="ReqHandler.DisplayApproveMode" ResetParent="Close" ObjectName="approval" WithComment="true" Save="ConfApproveTask" StatefulObject="actApproval" StateMatrix="ReqHandler.ActStateMatrix" States="States"/>
 
 @code
 {
@@ -281,9 +282,6 @@
     
     [Parameter]
     public WorkflowPhases Phase { get; set; } = WorkflowPhases.request;
-
-    [Parameter]
-    public StateMatrix StateMatrix { get; set; } = new StateMatrix();
 
     [Parameter]
     public RequestStateDict States { get; set; } = new RequestStateDict();
@@ -384,7 +382,7 @@
     {
         RequestApproval approval = new RequestApproval()
         {
-            StateId = StateMatrix.LowestEndState,
+            StateId = ReqHandler.ActStateMatrix.LowestEndState,
             // ApproverGroup = get from owner ???,
             TenantId = ReqHandler.ActTicket.TenantId, // ??
             Deadline = userConfig.ReqApprovalDeadline > 0 ? DateTime.Now.AddDays(userConfig.ReqApprovalDeadline) : null,
@@ -439,13 +437,12 @@
                     AddApproval();
                     ReqHandler.ActReqTask.TaskNumber = ReqHandler.ActTicket.HighestTaskNumber() + 1;
                     await ReqHandler.AddReqTask();
-                    
                 }
                 else
                 {
                     await ReqHandler.ChangeReqTask();
                 }
-                Close();
+                await Close();
             }
         }
         catch (Exception exception)
@@ -464,7 +461,7 @@
         if (ReqHandler.ActReqTask.TaskType == TaskType.access.ToString())
         {
             if (actSources.Count == 0 || actDestinations.Count == 0 || actServices.Count == 0 ||
-                (!StateMatrix.PhaseActive[WorkflowPhases.planning] && userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask && 
+                (!ReqHandler.ActStateMatrix.PhaseActive[WorkflowPhases.planning] && userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask && 
                 (ReqHandler.ActReqTask.DeviceId == null || ReqHandler.ActReqTask.DeviceId == 0)))
             {
                 DisplayMessageInUi!(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);

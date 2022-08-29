@@ -541,6 +541,8 @@ INSERT INTO txt VALUES ('service', 			    'German', 	'Dienst');
 INSERT INTO txt VALUES ('service', 			    'English', 	'Service');
 INSERT INTO txt VALUES ('access', 			    'German', 	'Zugriff');
 INSERT INTO txt VALUES ('access', 			    'English', 	'Access');
+INSERT INTO txt VALUES ('generic',              'German', 	'Generisch');
+INSERT INTO txt VALUES ('generic',              'English', 	'Generic');
 INSERT INTO txt VALUES ('action', 				'German', 	'Aktion');
 INSERT INTO txt VALUES ('action', 				'English', 	'Action');
 INSERT INTO txt VALUES ('rule_action', 			'German', 	'Regel-Aktion');

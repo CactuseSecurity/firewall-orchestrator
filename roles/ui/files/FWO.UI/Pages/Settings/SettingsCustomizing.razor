@@ -21,10 +21,13 @@
         <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAvailableTaskTypes")):</label>
         @foreach (TaskType type in Enum.GetValues(typeof(TaskType)))
         {
-            <div class="form-group col-sm-2">
-                <input type="checkbox" @bind="taskTypesActiveDict[type]" />
-                <label class="col-form-label">@(userConfig.GetText(type.ToString()))</label>
-            </div>
+            @if(type != TaskType.master)
+            {
+                <div class="form-group col-sm-1">
+                    <input type="checkbox" @bind="taskTypesActiveDict[type]" />
+                    <label class="col-form-label">@(userConfig.GetText(type.ToString()))</label>
+                </div>
+            }
         }
     </form>
     <form class="form-inline" onsubmit="return false">

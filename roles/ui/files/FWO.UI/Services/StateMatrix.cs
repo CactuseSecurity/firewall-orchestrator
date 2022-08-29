@@ -1,5 +1,6 @@
 ﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Api.Data;
 using System.Text.Json.Serialization; 
 using Newtonsoft.Json; 
 
@@ -39,10 +40,10 @@ namespace FWO.Ui.Services
         public Dictionary<WorkflowPhases, bool> PhaseActive = new Dictionary<WorkflowPhases, bool>();
         public bool IsLastActivePhase = true;
 
-        public async Task Init(WorkflowPhases phase, ApiConnection apiConnection)
+        public async Task Init(WorkflowPhases phase, ApiConnection apiConnection, TaskType taskType = TaskType.access)
         {
             GlobalStateMatrix glbStateMatrix = new GlobalStateMatrix();
-            await glbStateMatrix.Init(apiConnection);
+            await glbStateMatrix.Init(apiConnection, taskType);
             Matrix = glbStateMatrix.GlobalMatrix[phase].Matrix;
             DerivedStates = glbStateMatrix.GlobalMatrix[phase].DerivedStates;
             LowestInputState = glbStateMatrix.GlobalMatrix[phase].LowestInputState;
@@ -135,9 +136,17 @@ namespace FWO.Ui.Services
         public Dictionary<WorkflowPhases, StateMatrix> GlobalMatrix { get; set; } = new Dictionary<WorkflowPhases, StateMatrix>();
 
 
-        public async Task Init(ApiConnection apiConnection)
+        public async Task Init(ApiConnection apiConnection, TaskType taskType = TaskType.master)
         {
-            List<GlobalStateMatrixHelper> confData = await apiConnection.SendQueryAsync<List<GlobalStateMatrixHelper>>(ConfigQueries.getConfigItemByKey, new { key = "reqStateMatrix" });
+            string matrixKey = taskType switch
+            {
+                TaskType.master => "reqMasterStateMatrix",
+                TaskType.generic => "reqGenStateMatrix",
+                TaskType.access => "reqAccStateMatrix",
+                _ => throw new Exception($"Error: wrong task type:" + taskType.ToString()),
+            };
+
+            List<GlobalStateMatrixHelper> confData = await apiConnection.SendQueryAsync<List<GlobalStateMatrixHelper>>(ConfigQueries.getConfigItemByKey, new { key = matrixKey });
             GlobalStateMatrix glbStateMatrix = System.Text.Json.JsonSerializer.Deserialize<GlobalStateMatrix>(confData[0].ConfData) ?? throw new Exception("Config data could not be parsed.");
             GlobalMatrix = glbStateMatrix.GlobalMatrix;
         }
@@ -147,5 +156,20 @@ namespace FWO.Ui.Services
     {
         [JsonProperty("config_value"), JsonPropertyName("config_value")]
         public string ConfData = "";
+    }
+
+    public class StateMatrixDict
+    {
+        public Dictionary<string, StateMatrix> Matrices { get; set; } = new Dictionary<string, StateMatrix>();
+
+        public async Task Init(WorkflowPhases phase, ApiConnection apiConnection)
+        {
+            Matrices = new Dictionary<string, StateMatrix>();
+            foreach(TaskType taskType in Enum.GetValues(typeof(TaskType)))
+            {
+                Matrices.Add(taskType.ToString(), new StateMatrix());
+                await Matrices[taskType.ToString()].Init(phase, apiConnection, taskType);
+            }
+        }
     }
 }

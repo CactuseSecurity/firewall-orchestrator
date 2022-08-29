@@ -32,6 +32,7 @@ namespace FWO.Api.Data
             ReqTaskId = task.Id;
             ImplTaskNumber = 0;
             StateId = 0;
+            TaskType = task.TaskType;
             ImplAction = task.RequestAction;
             RuleAction = task.RuleAction;
             Tracking = task.Tracking;

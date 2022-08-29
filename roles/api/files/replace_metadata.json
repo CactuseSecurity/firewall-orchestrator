@@ -10884,6 +10884,18 @@
                   }
                 },
                 {
+                  "name": "tasksByRecentHandler",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "recent_handler",
+                      "table": {
+                        "schema": "request",
+                        "name": "task"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "tickets",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -12419,6 +12431,12 @@
                 "name": "task"
               },
               "object_relationships": [
+                {
+                  "name": "device",
+                  "using": {
+                    "foreign_key_constraint_on": "device_id"
+                  }
+                },
                 {
                   "name": "object",
                   "using": {

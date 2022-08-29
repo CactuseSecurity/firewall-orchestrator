@@ -25,7 +25,7 @@
                         @if (Phase > WorkflowPhases.request)
                         {
                             <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowApprovals(context)">@(userConfig.GetText("approvals"))</button>
-                            @if (context.StateId < StateMatrix.LowestStartedState)
+                            @if (context.StateId < ReqHandler.MasterStateMatrix.LowestStartedState)
                             {
                                 <AuthorizeView Roles="admin, approver, planner, implementer, reviewer, fw-admin">
                                     <Authorized Context="ctx">
@@ -36,7 +36,7 @@
                                     </NotAuthorized> 
                                 </AuthorizeView>
                             }
-                            else if (context.StateId < StateMatrix.LowestEndState)
+                            else if (context.StateId < ReqHandler.MasterStateMatrix.LowestEndState)
                             {
                                 <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => ContinuePhase(context)">@(userConfig.GetText("continue_" + Phase.ToString()))</button>
                                 @if(Phase == WorkflowPhases.planning)
@@ -50,6 +50,11 @@
             </Column>
             <Column TableItem="RequestTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
             <Column TableItem="RequestTask" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true" />
+            <Column TableItem="RequestTask" Title="@(userConfig.GetText("type"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" >
+                <Template>
+                    @(userConfig.GetText(context.TaskType))
+                </Template>
+            </Column>
             <Column TableItem="RequestTask" Title="@(userConfig.GetText("tasks"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" >
                 <Template>
                     @(context.ImplementationTasks.Count)
@@ -83,7 +88,7 @@
     </div>
 }
 
-<DisplayRequestTask Phase="Phase" StateMatrix="StateMatrix" States="States" ReqHandler="ReqHandler"
+<DisplayRequestTask Phase="Phase" States="States" ReqHandler="ReqHandler"
     ResetParent="Reset" StartImplPhase="StartImplPhase"/>
 <AssignTask @bind-Display="ReqHandler.DisplayAssignMode" ResetParent="Reset" ReqHandler="ReqHandler"/>
 <DeleteObject @bind-Display="ReqHandler.DisplayDeleteMode" ResetParent="Reset" Delete="ReqHandler.ConfDeleteReqTask" ObjName="@ReqHandler.ActReqTask.Title"/>
@@ -97,9 +102,6 @@
     
     [Parameter]
     public WorkflowPhases Phase { get; set; } = WorkflowPhases.request;
-
-    [Parameter]
-    public StateMatrix StateMatrix { get; set; } = new StateMatrix();
 
     [Parameter]
     public RequestStateDict States { get; set; } = new RequestStateDict();

@@ -15,7 +15,7 @@
         <Column TableItem="RequestTicket" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
-                    @if (Phase == WorkflowPhases.request && context.StateId < StateMatrix.LowestEndState && !ReqHandler.ReadOnlyMode)
+                    @if (Phase == WorkflowPhases.request && context.StateId < ReqHandler.MasterStateMatrix.LowestEndState && !ReqHandler.ReadOnlyMode)
                     {
                         <button class="btn btn-sm btn-warning" @onclick="() => EditTicket(context)">@(userConfig.GetText("edit"))</button>
                     }
@@ -44,7 +44,7 @@
     </Table>
 </div>
 
-<DisplayTicket Phase="Phase" StateMatrix ="StateMatrix" States="States" ReqHandler="ReqHandler" ResetParent="Reset" 
+<DisplayTicket Phase="Phase" States="States" ReqHandler="ReqHandler" ResetParent="Reset" 
     StartPhase="StartPhase" StartImplPhase="StartImplPhase"/>
 
 
@@ -55,9 +55,6 @@
     
     [Parameter]
     public WorkflowPhases Phase { get; set; } = WorkflowPhases.request;
-
-    [Parameter]
-    public StateMatrix StateMatrix { get; set; } = new StateMatrix();
 
     [Parameter]
     public RequestStateDict States { get; set; } = new RequestStateDict();

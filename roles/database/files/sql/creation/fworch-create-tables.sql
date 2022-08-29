@@ -966,7 +966,6 @@ create schema if not exists request;
 create schema if not exists implementation;
 
 CREATE TYPE rule_field_enum AS ENUM ('source', 'destination', 'service');
-CREATE TYPE task_type_enum AS ENUM ('access', 'svc_group', 'obj_group', 'rule_modify');
 CREATE TYPE action_enum AS ENUM ('create', 'delete', 'modify');
 
 -- create tables
@@ -977,7 +976,7 @@ create table if not exists request.task
     ticket_id int,
     task_number int,
     state_id int NOT NULL,
-    task_type task_type_enum NOT NULL,
+    task_type VARCHAR NOT NULL,
     request_action action_enum NOT NULL,
     rule_action int,
     rule_tracking int,
@@ -1049,6 +1048,22 @@ create table if not exists request.state
     name VARCHAR NOT NULL
 );
 
+create table if not exists request.action
+(
+    id SERIAL PRIMARY KEY,
+    name VARCHAR NOT NULL, -- e.g. "add approval"
+	scope Varchar, -- ticket/reqtask/impltask/approval...
+	event Varchar, -- on set / while set / on leave(?) ...
+	internal_ref int, -- ref on internal function e.g. AddApproval() / Display button for something
+	external_parameters Varchar -- serialized (?) params for external call, e.g. compliance check service
+);
+
+create table if not exists request.state_action
+(
+    state_id int,
+    action_id int
+);
+
 create table if not exists owner
 (
     id SERIAL PRIMARY KEY,
@@ -1107,6 +1122,7 @@ create table if not exists implementation.task
     request_task_id int,
     implementation_task_number int,
     state_id int NOT NULL,
+	task_type VARCHAR NOT NULL,
     device_id int,
     implementation_action action_enum NOT NULL,
     rule_action int,

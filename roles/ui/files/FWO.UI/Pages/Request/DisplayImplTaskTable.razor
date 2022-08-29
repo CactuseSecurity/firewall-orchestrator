@@ -20,14 +20,14 @@
                 <Template>
                     <div class="btn-group">
                         <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowImplTask(implTask)">@(userConfig.GetText("details"))</button>
-                        @if (ReqHandler.PlanReqTaskMode && implTask.StateId < StateMatrix.LowestEndState)
+                        @if (ReqHandler.PlanReqTaskMode && implTask.StateId < ReqHandler.ActStateMatrix.LowestEndState)
                         {
                             <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => EditImplTask(implTask)">@(userConfig.GetText("edit"))</button>
                             <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteImplTask(implTask)">@(userConfig.GetText("delete"))</button>
                         }
                         else if (Phase >= WorkflowPhases.implementation)
                         {
-                            @if (implTask.StateId < StateMatrix.LowestStartedState)
+                            @if (implTask.StateId < ReqHandler.ActStateMatrix.LowestStartedState)
                             {
                                 <AuthorizeView Roles="admin, implementer, reviewer, fw-admin">
                                     <Authorized Context="ctx">
@@ -38,7 +38,7 @@
                                     </NotAuthorized>
                                 </AuthorizeView>
                             }
-                            else if (implTask.StateId < StateMatrix.LowestEndState)
+                            else if (implTask.StateId < ReqHandler.ActStateMatrix.LowestEndState)
                             {
                                 <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => ContinueImplPhase(implTask)">@(userConfig.GetText("continue_" + Phase.ToString()))</button>
                             }
@@ -47,6 +47,11 @@
                 </Template>
             </Column>
             <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("type"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" >
+                <Template>
+                    @(userConfig.GetText(implTask.TaskType))
+                </Template>
+            </Column>
             @if(DeviceView)
             {
                 <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("ticket"))" Field="@(x => x.TicketId)" Sortable="true" Filterable="false" >
@@ -79,7 +84,7 @@
     </div>
 }
 
-<DisplayImplementationTask Phase="Phase" ReqHandler="ReqHandler" ResetParent="Reset" StateMatrix="StateMatrix" States="States"></DisplayImplementationTask>
+<DisplayImplementationTask Phase="Phase" ReqHandler="ReqHandler" ResetParent="Reset" StateMatrix="ReqHandler.ActStateMatrix" States="States"></DisplayImplementationTask>
 
 <DeleteObject @bind-Display="ReqHandler.DisplayDeleteMode" ResetParent="Reset" Delete="ReqHandler.ConfDeleteImplTask" ObjName="@(ReqHandler.ActImplTask.ImplTaskNumber.ToString())"/>
 
@@ -91,9 +96,6 @@
     
     [Parameter]
     public WorkflowPhases Phase { get; set; } = WorkflowPhases.approval;
-
-    [Parameter]
-    public StateMatrix StateMatrix { get; set; } = new StateMatrix();
 
     [Parameter]
     public RequestStateDict States { get; set; } = new RequestStateDict();

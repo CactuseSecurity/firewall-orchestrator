@@ -18,20 +18,34 @@
     <hr />
     <button class="btn btn-sm btn-primary" @onclick="ShowStates">@(userConfig.GetText("available_states"))</button>
 
+    <hr />
+    <div class="form-group row">
+        <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("type")):</label>
+        <div class="col-sm-2">
+            <select class="form-control form-control-sm" @bind="taskType">
+                @foreach (TaskType type in Enum.GetValues(typeof(TaskType)))
+                {
+                    <option value="@type">@(Enum.GetName(typeof(TaskType), type))</option>
+                }
+            </select>
+        </div>
+        <button class="btn btn-sm btn-primary" @onclick="InitMatrix">@(userConfig.GetText("select"))</button>
+    </div>
+
     @foreach (WorkflowPhases phase in Enum.GetValues(typeof(WorkflowPhases)))
     {
         <hr />
         <div class="form-group row">
-            <input id="phase" type="checkbox" @bind="globalStateMatrix.GlobalMatrix[phase].Active" />
+            <input id="phase" type="checkbox" @bind="actStateMatrix.GlobalMatrix[phase].Active" />
             <label for="phase" class="col-form-label col-sm-2"><h4>@(userConfig.GetText(phase.ToString()))</h4></label>
         </div>
-        @if(globalStateMatrix.GlobalMatrix[phase].Active)
+        @if(actStateMatrix.GlobalMatrix[phase].Active)
         {
             <h5>@(userConfig.GetText("allowed_transitions"))</h5>
             <button class="btn btn-sm btn-success" @onclick="() => AddStateToPhase(phase)">@(userConfig.GetText("add_state"))</button>
 
             <div class="m-2">
-                <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="KeyValuePair<int,List<int>>" Items="globalStateMatrix.GlobalMatrix[phase].Matrix" PageSize="0" ColumnReorder="true">
+                <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="KeyValuePair<int,List<int>>" Items="actStateMatrix.GlobalMatrix[phase].Matrix" PageSize="0" ColumnReorder="true">
                     <Column TableItem="KeyValuePair<int,List<int>>" Title="@(userConfig.GetText("action"))" Field="(x => x.Key)" Sortable="false" Filterable="false">
                         <Template>
                             <div class="btn-group">
@@ -47,12 +61,12 @@
                     </Column>
                     <Column TableItem="KeyValuePair<int,List<int>>" Title="@(userConfig.GetText("to_states"))" Field="@(x => x.Key)" Sortable="false" Filterable="false">
                         <Template>
-                            @TargetStateList(globalStateMatrix.GlobalMatrix[phase].Matrix[context.Key])
+                            @TargetStateList(actStateMatrix.GlobalMatrix[phase].Matrix[context.Key])
                         </Template>
                     </Column>
                     <Column TableItem="KeyValuePair<int,List<int>>" Title="@(userConfig.GetText("derived_state"))" Field="@(x => x.Key)" Sortable="false" Filterable="false">
                         <Template>
-                            @(globalStateMatrix.GlobalMatrix[phase].DerivedStates.ContainsKey(context.Key) ? statesDict.Name[globalStateMatrix.GlobalMatrix[phase].DerivedStates[context.Key]] : "")
+                            @(actStateMatrix.GlobalMatrix[phase].DerivedStates.ContainsKey(context.Key) ? statesDict.Name[actStateMatrix.GlobalMatrix[phase].DerivedStates[context.Key]] : "")
                         </Template>
                     </Column>
                 </Table>
@@ -61,7 +75,7 @@
             <div class="form-group row">
                 <label for="lowestInputState" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_input_state")):</label>
                 <div class="col-sm-8">
-                    <select id="selectState" class="form-control form-control-sm col-sm-2" @bind="globalStateMatrix.GlobalMatrix[phase].LowestInputState">
+                    <select id="selectState" class="form-control form-control-sm col-sm-2" @bind="actStateMatrix.GlobalMatrix[phase].LowestInputState">
                         @foreach (var state in states)
                         {
                             <option value="@state.Id">@(state.Name)</option>
@@ -72,7 +86,7 @@
             <div class="form-group row">
                 <label for="lowestStartedState" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_started_state")):</label>
                 <div class="col-sm-8">
-                    <select id="selectState" class="form-control form-control-sm col-sm-2" @bind="globalStateMatrix.GlobalMatrix[phase].LowestStartedState">
+                    <select id="selectState" class="form-control form-control-sm col-sm-2" @bind="actStateMatrix.GlobalMatrix[phase].LowestStartedState">
                         @foreach (var state in states)
                         {
                             <option value="@state.Id">@(state.Name)</option>
@@ -83,7 +97,7 @@
             <div class="form-group row">
                 <label for="lowestEndState" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_end_state")):</label>
                 <div class="col-sm-8">
-                    <select id="selectState" class="form-control form-control-sm col-sm-2" @bind="globalStateMatrix.GlobalMatrix[phase].LowestEndState">
+                    <select id="selectState" class="form-control form-control-sm col-sm-2" @bind="actStateMatrix.GlobalMatrix[phase].LowestEndState">
                         @foreach (var state in states)
                         {
                             <option value="@state.Id">@(state.Name)</option>
@@ -210,7 +224,7 @@
                 @(userConfig.GetText("derived_state"))
                 <br><br>
                 <div class="col-sm-8">
-                    <select id="selectState" class="form-control form-control-sm" @bind="globalStateMatrix.GlobalMatrix[actPhase].DerivedStates[actStateId]">
+                    <select id="selectState" class="form-control form-control-sm" @bind="actStateMatrix.GlobalMatrix[actPhase].DerivedStates[actStateId]">
                         @foreach (var state in states)
                         {
                             <option value="@state.Id">@(state.Name)</option>
@@ -274,9 +288,8 @@ else
     private List<RequestState> availableStates = new List<RequestState>();
     private RequestStateDict statesDict = new RequestStateDict();
 
-    private GlobalStateMatrix globalStateMatrix = new GlobalStateMatrix();
+    private GlobalStateMatrix actStateMatrix = new GlobalStateMatrix();
 
-    private StateMatrix actStateMatrix = new StateMatrix();
     private RequestState actState = new RequestState();
     private int actStateId = 0;
     private int stateIdToAdd = 0;
@@ -287,6 +300,7 @@ else
     private bool SelectStateMode = false;
     private bool SaveMatrixMode = false;
     private bool EditTargetStatesMode = false;
+    private TaskType taskType = TaskType.master;
     private bool InitComplete = false;
 
     protected override async Task OnInitializedAsync()
@@ -315,7 +329,7 @@ else
     {
         try
         {
-            await globalStateMatrix.Init(apiConnection);
+            await actStateMatrix.Init(apiConnection, taskType);
         }
         catch (Exception exception)
         {
@@ -337,7 +351,7 @@ else
     {
         actPhase = phase;
         availableStates = new List<RequestState>();
-        foreach(var state in states.Where(x => !globalStateMatrix.GlobalMatrix[actPhase].Matrix.ContainsKey(x.Id)))
+        foreach(var state in states.Where(x => !actStateMatrix.GlobalMatrix[actPhase].Matrix.ContainsKey(x.Id)))
         {
             availableStates.Add(state);
         }
@@ -353,8 +367,8 @@ else
         }
         else
         {
-            globalStateMatrix.GlobalMatrix[actPhase].Matrix.Add(stateIdToAdd, new List<int>());
-            globalStateMatrix.GlobalMatrix[actPhase].DerivedStates.Add(stateIdToAdd, stateIdToAdd);
+            actStateMatrix.GlobalMatrix[actPhase].Matrix.Add(stateIdToAdd, new List<int>());
+            actStateMatrix.GlobalMatrix[actPhase].DerivedStates.Add(stateIdToAdd, stateIdToAdd);
         }
         SelectStateMode = false;
     }
@@ -363,14 +377,14 @@ else
     {
         actPhase = phase;
         actStateId = key;
-        actToStateIds = globalStateMatrix.GlobalMatrix[actPhase].Matrix[actStateId];
+        actToStateIds = actStateMatrix.GlobalMatrix[actPhase].Matrix[actStateId];
         EditTargetStatesMode = true;
     }
     
     private void AddStateToTargetStates()
     {
         availableStates = new List<RequestState>();
-        foreach(var state in states.Where(x => !globalStateMatrix.GlobalMatrix[actPhase].Matrix[actStateId].Contains(x.Id)))
+        foreach(var state in states.Where(x => !actStateMatrix.GlobalMatrix[actPhase].Matrix[actStateId].Contains(x.Id)))
         {
             availableStates.Add(state);
         }
@@ -385,14 +399,14 @@ else
 
     private void ApplyEditTargetStates()
     {
-        globalStateMatrix.GlobalMatrix[actPhase].Matrix[actStateId] = actToStateIds;
+        actStateMatrix.GlobalMatrix[actPhase].Matrix[actStateId] = actToStateIds;
         EditTargetStatesMode = false;
     }
 
     private void RemoveStateFromPhase(WorkflowPhases phase, int key)
     {
-        globalStateMatrix.GlobalMatrix[phase].Matrix.Remove(key);
-        globalStateMatrix.GlobalMatrix[phase].DerivedStates.Remove(key);
+        actStateMatrix.GlobalMatrix[phase].Matrix.Remove(key);
+        actStateMatrix.GlobalMatrix[phase].DerivedStates.Remove(key);
     }
 
     private void CancelSelect()
@@ -410,10 +424,18 @@ else
         try
         {
             SaveMatrixMode = false;
+            string matrixKey = taskType switch
+            {
+                TaskType.master => "reqMasterStateMatrix",
+                TaskType.generic => "reqGenStateMatrix",
+                TaskType.access => "reqAccStateMatrix",
+                _ => throw new Exception($"Error: wrong task type:" + taskType.ToString()),
+            };
+
             ConfigItem item = new ConfigItem 
             { 
-                Key = "reqStateMatrix", 
-                Value = JsonSerializer.Serialize(globalStateMatrix),
+                Key = matrixKey, 
+                Value = JsonSerializer.Serialize(actStateMatrix),
                 User = 0 
             };
             await apiConnection.SendQueryAsync<object>(ConfigQueries.upsertConfigItem, item);
@@ -435,7 +457,7 @@ else
         ShowStatesMode = false;
     }
 
-    private void ShowStates()
+    private async Task ShowStates()
     {
         tmpStates = new List<RequestState>();
         usedStateIds = new List<int>();
@@ -443,24 +465,29 @@ else
         {
             tmpStates.Add(new RequestState(state));
         }
-        foreach(var key in globalStateMatrix.GlobalMatrix.Keys)
+        GlobalStateMatrix tmpStateMatrix = new GlobalStateMatrix();
+        foreach(TaskType type in Enum.GetValues(typeof(TaskType)))
         {
-            foreach(var stateId in globalStateMatrix.GlobalMatrix[key].Matrix.Keys)
+            await tmpStateMatrix.Init(apiConnection, type);
+            foreach(var key in tmpStateMatrix.GlobalMatrix.Keys)
             {
-                usedStateIds.Add(stateId);
-                foreach(var toState in globalStateMatrix.GlobalMatrix[key].Matrix[stateId])
+                foreach(var stateId in tmpStateMatrix.GlobalMatrix[key].Matrix.Keys)
                 {
-                    usedStateIds.Add(toState);
+                    usedStateIds.Add(stateId);
+                    foreach(var toState in tmpStateMatrix.GlobalMatrix[key].Matrix[stateId])
+                    {
+                        usedStateIds.Add(toState);
+                    }
                 }
+                foreach(var stateId in tmpStateMatrix.GlobalMatrix[key].DerivedStates.Keys)
+                {
+                    usedStateIds.Add(stateId);
+                    usedStateIds.Add(tmpStateMatrix.GlobalMatrix[key].DerivedStates[stateId]);
+                }
+                usedStateIds.Add(tmpStateMatrix.GlobalMatrix[key].LowestInputState);
+                usedStateIds.Add(tmpStateMatrix.GlobalMatrix[key].LowestStartedState);
+                usedStateIds.Add(tmpStateMatrix.GlobalMatrix[key].LowestEndState);
             }
-            foreach(var stateId in globalStateMatrix.GlobalMatrix[key].DerivedStates.Keys)
-            {
-                usedStateIds.Add(stateId);
-                usedStateIds.Add(globalStateMatrix.GlobalMatrix[key].DerivedStates[stateId]);
-            }
-            usedStateIds.Add(globalStateMatrix.GlobalMatrix[key].LowestInputState);
-            usedStateIds.Add(globalStateMatrix.GlobalMatrix[key].LowestStartedState);
-            usedStateIds.Add(globalStateMatrix.GlobalMatrix[key].LowestEndState);
         }
         ShowStatesMode = true;
     }

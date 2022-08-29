@@ -57,14 +57,14 @@
                 {
                     <h5>@(userConfig.GetText("tasks"))</h5>
 
-                    <DisplayReqTaskTable Phase="Phase" StateMatrix="StateMatrix" States="States" 
+                    <DisplayReqTaskTable Phase="Phase" States="States" 
                         ReqHandler="ReqHandler" ResetParent="Reset" StartPhase="StartPhase"/>
                 }
                 else
                 {
                     <h5>@(userConfig.GetText("implementation_tasks"))</h5>
 
-                    <DisplayImplTaskTable Phase="Phase" StateMatrix="StateMatrix" States="States" 
+                    <DisplayImplTaskTable Phase="Phase" States="States" 
                         ReqHandler="ReqHandler" ResetParent="Reset" AllImplTasks="ReqHandler.AllImplTasks"
                         StartImplPhase="StartImplPhase"/>
                 }
@@ -100,8 +100,8 @@
     </Footer>
 </PopUp>
 
-<PromoteObject @bind-Promote="ReqHandler.DisplaySaveTicketMode" ResetParent="Close" ObjectName="ticket" Save="ReqHandler.SaveTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="StateMatrix" States="States"/>
-<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Close" ObjectName="ticket" Save="ReqHandler.PromoteTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="StateMatrix" States="States"/>
+<PromoteObject @bind-Promote="ReqHandler.DisplaySaveTicketMode" ResetParent="Close" ObjectName="ticket" Save="ReqHandler.SaveTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="ReqHandler.MasterStateMatrix" States="States"/>
+<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Close" ObjectName="ticket" Save="ReqHandler.PromoteTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="ReqHandler.MasterStateMatrix" States="States"/>
 
 
 @code
@@ -111,9 +111,6 @@
     
     [Parameter]
     public WorkflowPhases Phase { get; set; } = WorkflowPhases.approval;
-
-    [Parameter]
-    public StateMatrix StateMatrix { get; set; } = new StateMatrix();
 
     [Parameter]
     public RequestStateDict States { get; set; } = new RequestStateDict();
@@ -146,7 +143,7 @@
 
     private bool CheckPromoteTicket()
     {
-        if (ReqHandler.ActTicket.StateId < StateMatrix.LowestStartedState || ReqHandler.ActTicket.StateId >= StateMatrix.LowestEndState)
+        if (ReqHandler.ActTicket.StateId < ReqHandler.MasterStateMatrix.LowestStartedState || ReqHandler.ActTicket.StateId >= ReqHandler.MasterStateMatrix.LowestEndState)
         {
             return false;
         }
@@ -157,7 +154,7 @@
             {
                 taskStates.Add(reqTask.StateId);
             }
-            int newState = StateMatrix.getDerivedStateFromSubStates(taskStates);
+            int newState = ReqHandler.MasterStateMatrix.getDerivedStateFromSubStates(taskStates);
             if(newState == ReqHandler.ActTicket.StateId)
             {
                 return false;
@@ -166,7 +163,7 @@
         }
         else
         {
-            possibleStates = StateMatrix.getAllowedTransitions(ReqHandler.ActTicket.StateId);
+            possibleStates = ReqHandler.MasterStateMatrix.getAllowedTransitions(ReqHandler.ActTicket.StateId);
             if(possibleStates.Count == 1 && possibleStates[0] == ReqHandler.ActTicket.StateId)
             {
                 return false;

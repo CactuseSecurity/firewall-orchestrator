@@ -29,6 +29,8 @@ namespace FWO.Ui.Services
         public ImplementationTask ActImplTask { get; set; } = new ImplementationTask();
         public List<Device> Devices = new List<Device>();
         public List<ImplementationTask> AllImplTasks = new List<ImplementationTask>();
+        public StateMatrix ActStateMatrix = new StateMatrix();
+        public StateMatrix MasterStateMatrix = new StateMatrix();
 
         public bool ReadOnlyMode = false;
 
@@ -56,7 +58,7 @@ namespace FWO.Ui.Services
 
         private Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
         private UserConfig userConfig;
-        private StateMatrix stateMatrix = new StateMatrix();
+        private StateMatrixDict stateMatrixDict = new StateMatrixDict();
         private RequestDbAccess dbAcc;
         private WorkflowPhases phase = WorkflowPhases.request;
 
@@ -64,11 +66,12 @@ namespace FWO.Ui.Services
 
 
         public RequestHandler(Action<Exception?, string, string, bool> displayMessageInUi, UserConfig userConfig, 
-            RequestDbAccess dbAcc, StateMatrix stateMatrix, List<Device> devices, WorkflowPhases phase)
+            RequestDbAccess dbAcc, StateMatrixDict stateMatrixDict, List<Device> devices, WorkflowPhases phase)
         {
             this.DisplayMessageInUi = displayMessageInUi;
             this.userConfig = userConfig;
-            this.stateMatrix = stateMatrix;
+            this.stateMatrixDict = stateMatrixDict;
+            this.MasterStateMatrix = stateMatrixDict.Matrices[TaskType.master.ToString()];
             this.dbAcc = dbAcc;
             this.Devices = devices;
             this.phase = phase;
@@ -77,7 +80,7 @@ namespace FWO.Ui.Services
 
         public async Task Init(int viewOpt = 0)
         {
-            TicketList = await dbAcc.FetchTickets(stateMatrix, viewOpt);
+            TicketList = await dbAcc.FetchTickets(MasterStateMatrix, viewOpt);
         }
 
         public void SetContinueEnv(ObjAction action)
@@ -216,6 +219,7 @@ namespace FWO.Ui.Services
             {
                 ActTicket = tick;
             }
+            ActStateMatrix = stateMatrixDict.Matrices[reqTask.TaskType];
         }
 
         public void SetReqTaskOpt(ObjAction action)
@@ -254,13 +258,13 @@ namespace FWO.Ui.Services
 
         public async Task StartWorkOnReqTask(RequestTask reqTask, ObjAction action)
         {
+            SetReqTaskEnv(reqTask);
             reqTask.CurrentHandler = userConfig.User;
-            List<int> actPossibleStates = stateMatrix.getAllowedTransitions(reqTask.StateId);
-            if(actPossibleStates.Count == 1 && actPossibleStates[0] >= stateMatrix.LowestStartedState && actPossibleStates[0] < stateMatrix.LowestEndState)
+            List<int> actPossibleStates = ActStateMatrix.getAllowedTransitions(reqTask.StateId);
+            if(actPossibleStates.Count == 1 && actPossibleStates[0] >= ActStateMatrix.LowestStartedState && actPossibleStates[0] < ActStateMatrix.LowestEndState)
             {
                 reqTask.StateId = actPossibleStates[0];
             }
-            SetReqTaskEnv(reqTask);
             await dbAcc.UpdateReqTaskStateInDb(reqTask);
             ActTicket.Tasks[ActTicket.Tasks.FindIndex(x => x.Id == ActReqTask.Id)] = ActReqTask;
             await UpdateTicketStateFromTasks();
@@ -321,12 +325,12 @@ namespace FWO.Ui.Services
             try
             {
                 ActReqTask.StateId = reqTask.StateId;
-                if (ActReqTask.Start == null && ActReqTask.StateId >= stateMatrix.LowestStartedState)
+                if (ActReqTask.Start == null && ActReqTask.StateId >= ActStateMatrix.LowestStartedState)
                 {
                     ActReqTask.Start = DateTime.Now;
                     ActReqTask.CurrentHandler = userConfig.User;
                 }
-                if (phase == WorkflowPhases.planning && ActReqTask.Stop == null && ActReqTask.StateId >= stateMatrix.LowestEndState)
+                if (phase == WorkflowPhases.planning && ActReqTask.Stop == null && ActReqTask.StateId >= ActStateMatrix.LowestEndState)
                 {
                     ActReqTask.Stop = DateTime.Now;
                 }
@@ -357,7 +361,7 @@ namespace FWO.Ui.Services
             {
                 actApproval.StateId = approval.StateId;
                 actApproval.Comment = approval.OptComment();
-                if(actApproval.StateId >= stateMatrix.LowestEndState)
+                if(actApproval.StateId >= ActStateMatrix.LowestEndState)
                 {
                     actApproval.ApprovalDate = DateTime.Now;
                     actApproval.ApproverDn = userConfig.User.Dn;
@@ -408,6 +412,7 @@ namespace FWO.Ui.Services
                     ActReqTask = reqTask;
                 }
             }
+            ActStateMatrix = stateMatrixDict.Matrices[implTask.TaskType];
         }
 
         public void SetImplTaskOpt(ObjAction action)
@@ -438,16 +443,16 @@ namespace FWO.Ui.Services
 
         public async Task StartWorkOnImplTask(ImplementationTask implTask, ObjAction action)
         {
+            SetImplTaskEnv(implTask);
             implTask.CurrentHandler = userConfig.User;
-            List<int> actPossibleStates = stateMatrix.getAllowedTransitions(implTask.StateId);
-            if(actPossibleStates.Count == 1 && actPossibleStates[0] >= stateMatrix.LowestStartedState && actPossibleStates[0] < stateMatrix.LowestEndState)
+            List<int> actPossibleStates = ActStateMatrix.getAllowedTransitions(implTask.StateId);
+            if(actPossibleStates.Count == 1 && actPossibleStates[0] >= ActStateMatrix.LowestStartedState && actPossibleStates[0] < ActStateMatrix.LowestEndState)
             {
                 implTask.StateId = actPossibleStates[0];
             }
-            SetImplTaskEnv(implTask);
             await dbAcc.UpdateImplTaskStateInDb(implTask);
             ActReqTask.ImplementationTasks[ActReqTask.ImplementationTasks.FindIndex(x => x.Id == ActImplTask.Id)] = ActImplTask;
-            if(!stateMatrix.PhaseActive[WorkflowPhases.planning] && ActReqTask.Start == null)
+            if(!ActStateMatrix.PhaseActive[WorkflowPhases.planning] && ActReqTask.Start == null)
             {
                 ActReqTask.Start = ActImplTask.Start;
             }
@@ -471,16 +476,16 @@ namespace FWO.Ui.Services
         {
             try
             {
+                SetImplTaskEnv(ActImplTask);
                 ActImplTask.StateId = implTask.StateId;
                 ActImplTask.CurrentHandler = userConfig.User;
-                if (phase == WorkflowPhases.implementation && ActImplTask.Stop == null && ActImplTask.StateId >= stateMatrix.LowestEndState)
+                if (phase == WorkflowPhases.implementation && ActImplTask.Stop == null && ActImplTask.StateId >= ActStateMatrix.LowestEndState)
                 {
                     ActImplTask.Stop = DateTime.Now;
                 }
                 await dbAcc.UpdateImplTaskStateInDb(ActImplTask);
-                SetImplTaskEnv(ActImplTask);
                 ActReqTask.ImplementationTasks[ActReqTask.ImplementationTasks.FindIndex(x => x.Id == ActImplTask.Id)] = ActImplTask;
-                if(!stateMatrix.PhaseActive[WorkflowPhases.planning] && ActReqTask.Stop == null)
+                if(!ActStateMatrix.PhaseActive[WorkflowPhases.planning] && ActReqTask.Stop == null)
                 {
                     ActReqTask.Stop = ActImplTask.Stop;
                 }
@@ -553,7 +558,7 @@ namespace FWO.Ui.Services
                 {
                     approvalStates.Add(approval.StateId);
                 }
-                ActReqTask.StateId = stateMatrix.getDerivedStateFromSubStates(approvalStates);
+                ActReqTask.StateId = ActStateMatrix.getDerivedStateFromSubStates(approvalStates);
             }
             await dbAcc.UpdateReqTaskStateInDb(ActReqTask);
         }
@@ -567,7 +572,7 @@ namespace FWO.Ui.Services
                 {
                     implTaskStates.Add(implTask.StateId);
                 }
-                reqTask.StateId = stateMatrix.getDerivedStateFromSubStates(implTaskStates);
+                reqTask.StateId = ActStateMatrix.getDerivedStateFromSubStates(implTaskStates);
             }
             await dbAcc.UpdateReqTaskStateInDb(reqTask);
         }
@@ -591,14 +596,14 @@ namespace FWO.Ui.Services
                 {
                     taskStates.Add(tsk.StateId);
                 }
-                ActTicket.StateId = stateMatrix.getDerivedStateFromSubStates(taskStates);
+                ActTicket.StateId = MasterStateMatrix.getDerivedStateFromSubStates(taskStates);
             }
             await UpdateTicketState();
         }
 
         public async Task UpdateTicketState()
         {
-            if (stateMatrix.IsLastActivePhase && ActTicket.StateId >= stateMatrix.LowestEndState)
+            if (MasterStateMatrix.IsLastActivePhase && ActTicket.StateId >= MasterStateMatrix.LowestEndState)
             {
                 ActTicket.CompletionDate = DateTime.Now;
             }
@@ -611,7 +616,7 @@ namespace FWO.Ui.Services
                 }
             }
             if(phase <= WorkflowPhases.approval && ActTicket.Tasks.Count > 0 && !alreadyExistingImplTask &&
-                !stateMatrix.PhaseActive[WorkflowPhases.planning] && ActTicket.StateId == stateMatrix.LowestEndState)
+                !MasterStateMatrix.PhaseActive[WorkflowPhases.planning] && ActTicket.StateId == MasterStateMatrix.LowestEndState)
             {
                 await AutoCreateImplTasks();
             }

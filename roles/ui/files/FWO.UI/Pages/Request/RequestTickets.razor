@@ -30,13 +30,13 @@
                 </Authorized>
                 <NotAuthorized Context="ctx">
                     <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("select"))</button>
-                </NotAuthorized> 
+                </NotAuthorized>
             </AuthorizeView>
         </div>
     </AuthorizeView>
 
 
-    <DisplayTicketTable Phase="WorkflowPhases.request" StateMatrix ="stateMatrix" States="states" ReqHandler="reqHandler" 
+    <DisplayTicketTable Phase="WorkflowPhases.request" States="states" ReqHandler="reqHandler" 
         ResetParent="Reset"/>
 }
 
@@ -49,7 +49,7 @@
     private RequestDbAccess dbAcc;
     private List<Device> devices = new List<Device>();
     private RequestStateDict states = new RequestStateDict();
-    private StateMatrix stateMatrix = new StateMatrix();
+    private StateMatrixDict stateMatrixDict = new StateMatrixDict();
     private bool InitComplete = false;
 
     private int viewOpt = 0;
@@ -59,12 +59,12 @@
     {
         try
         {
-            await stateMatrix.Init(WorkflowPhases.request, apiConnection);
+            await stateMatrixDict.Init(WorkflowPhases.request, apiConnection);
             await states.Init(apiConnection);
 
             dbAcc = new RequestDbAccess(DisplayMessageInUi, userConfig, apiConnection){};
             devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
-            reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, dbAcc, stateMatrix, devices, WorkflowPhases.request){};
+            reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, dbAcc, stateMatrixDict, devices, WorkflowPhases.request){};
             await reqHandler.Init(viewOpt);
             InitComplete = true;
         }

@@ -31,12 +31,12 @@
 
     @if(DisplayTickets)
     {
-        <DisplayTicketTable Phase="WorkflowPhases.implementation" StateMatrix ="stateMatrix" States="states" ReqHandler="reqHandler" 
+        <DisplayTicketTable Phase="WorkflowPhases.implementation" States="states" ReqHandler="reqHandler" 
             ResetParent="Reset" StartImplPhase="StartImplementTask"/>
     }
     else
     {
-        <DisplayImplTaskTable Phase="WorkflowPhases.implementation" StateMatrix="stateMatrix" States="states" 
+        <DisplayImplTaskTable Phase="WorkflowPhases.implementation" States="states" 
             ReqHandler="reqHandler" ResetParent="Reset" AllImplTasks="allImplTasks" DeviceView="true"
             StartImplPhase="StartImplementTask"/>
     }
@@ -51,7 +51,7 @@
     private RequestDbAccess dbAcc;
     private List<Device> devices = new List<Device>();
     private RequestStateDict states = new RequestStateDict();
-    private StateMatrix stateMatrix = new StateMatrix();
+    private StateMatrixDict stateMatrixDict = new StateMatrixDict();
     private bool InitComplete = false;
 
     private bool DisplayTickets = true;
@@ -63,12 +63,12 @@
     {
         try
         {
-            await stateMatrix.Init(WorkflowPhases.implementation, apiConnection);
+            await stateMatrixDict.Init(WorkflowPhases.implementation, apiConnection);
             await states.Init(apiConnection);
 
             dbAcc = new RequestDbAccess(DisplayMessageInUi, userConfig, apiConnection){};
             devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
-            reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, dbAcc, stateMatrix, devices, WorkflowPhases.implementation){};
+            reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, dbAcc, stateMatrixDict, devices, WorkflowPhases.implementation){};
             await reqHandler.Init();
             reqHandler.SetContinueEnv(ObjAction.implement);
     

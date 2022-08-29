@@ -356,7 +356,7 @@ BEGIN
             FOR r_cred IN SELECT DISTINCT secret, ssh_user, ssh_public_key FROM management
             LOOP
                 v_cred_number_string := 'credential' || CAST (i_cred_number AS VARCHAR);
-                IF r_cred.ssh_public_key IS NULL AND NOT r_cred.secret LIKE '-----BEGIN OPENSSH PRIVATE KEY-----%' THEN
+                IF NOT r_cred.secret LIKE '%BEGIN OPENSSH PRIVATE KEY%' THEN
                     INSERT INTO import_credential 
                         (credential_name, is_key_pair, username, secret) 
                         VALUES (v_cred_number_string, FALSE, r_cred.ssh_user, r_cred.secret)

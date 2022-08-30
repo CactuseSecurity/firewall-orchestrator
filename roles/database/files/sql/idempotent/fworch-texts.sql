@@ -585,6 +585,12 @@ INSERT INTO txt VALUES ('add_new_management',   'German', 	'Neues Management hin
 INSERT INTO txt VALUES ('add_new_management',   'English', 	'Add new management');
 INSERT INTO txt VALUES ('edit_management',      'German', 	'Management bearbeiten');
 INSERT INTO txt VALUES ('edit_management',      'English', 	'Edit Management');
+INSERT INTO txt VALUES ('add_new_credential',   'German', 	'Neue Login-Daten hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_new_credential',   'English', 	'Add new credentials');
+INSERT INTO txt VALUES ('edit_credential',      'German', 	'Login-Daten bearbeiten');
+INSERT INTO txt VALUES ('edit_credential',      'English', 	'Edit credentials');
+INSERT INTO txt VALUES ('delete_credential',    'German', 	'Login-Daten l&ouml;schen');
+INSERT INTO txt VALUES ('delete_credential',    'English', 	'Delete credentials');
 INSERT INTO txt VALUES ('host',                 'German', 	'Host');
 INSERT INTO txt VALUES ('host',                 'English', 	'Host');
 INSERT INTO txt VALUES ('hostname',             'German', 	'Hostname');
@@ -609,12 +615,16 @@ INSERT INTO txt VALUES ('device_type',          'German', 	'Ger&auml;tetyp');
 INSERT INTO txt VALUES ('device_type',          'English', 	'Device Type');
 INSERT INTO txt VALUES ('import_user',          'German', 	'Import Nutzer');
 INSERT INTO txt VALUES ('import_user',          'English', 	'Import User');
-INSERT INTO txt VALUES ('login_secret',         'German', 	'Privater Schl&uuml;ssel');
-INSERT INTO txt VALUES ('login_secret',         'English', 	'Login Secret');
+INSERT INTO txt VALUES ('login_secret',         'German', 	'Passwort');
+INSERT INTO txt VALUES ('login_secret',         'English', 	'Password');
+INSERT INTO txt VALUES ('private_key',          'German', 	'Privater Schl&uuml;ssel');
+INSERT INTO txt VALUES ('private_key',          'English', 	'Private Key');
 INSERT INTO txt VALUES ('public_key',           'German', 	'&Ouml;ffentlicher Schl&uuml;ssel');
 INSERT INTO txt VALUES ('public_key',           'English', 	'Public Key');
--- INSERT INTO txt VALUES ('force_initial_import', 'German', 	'Initialen Import erzwingen');
--- INSERT INTO txt VALUES ('force_initial_import', 'English', 	'Force Initial Import');
+INSERT INTO txt VALUES ('import_credential',    'German', 	'Import Login-Daten');
+INSERT INTO txt VALUES ('import_credential',    'English', 	'Import Credentials');
+INSERT INTO txt VALUES ('is_key_pair',          'German', 	'Schl&uuml;sselpaar?');
+INSERT INTO txt VALUES ('is_key_pair',          'English', 	'Key pair?');
 INSERT INTO txt VALUES ('hide_in_ui',           'German', 	'Nicht sichtbar');
 INSERT INTO txt VALUES ('hide_in_ui',           'English', 	'Hide in UI');
 INSERT INTO txt VALUES ('add_new_gateway',      'German', 	'Neues Gateway hinzuf&uuml;gen');
@@ -913,6 +923,8 @@ INSERT INTO txt VALUES ('save_management',      'German', 	'Management speichern
 INSERT INTO txt VALUES ('save_management',      'English', 	'Save Management');
 INSERT INTO txt VALUES ('fetch_gateways',       'German', 	'Gateways abholen');
 INSERT INTO txt VALUES ('fetch_gateways',       'English', 	'Fetch Gateways');
+INSERT INTO txt VALUES ('fetch_credentials',    'German', 	'Login-Daten abholen');
+INSERT INTO txt VALUES ('fetch_credentials',    'English', 	'Fetch import credentials');
 INSERT INTO txt VALUES ('save_gateway',         'German', 	'Gateway speichern');
 INSERT INTO txt VALUES ('save_gateway',         'English', 	'Save Gateway');
 INSERT INTO txt VALUES ('add_device_to_tenant0','German', 	'Ger&auml;t zu Mandant 0 zuordnen');
@@ -1164,6 +1176,8 @@ INSERT INTO txt VALUES ('U5106', 'German',  'Der Import ist zwischenzeitlich dur
 INSERT INTO txt VALUES ('U5106', 'English', 'The import has finished inbetween');
 INSERT INTO txt VALUES ('U5107', 'German',  'Der Import wurde zur&uuml;ckgesetzt');
 INSERT INTO txt VALUES ('U5107', 'English', 'The import has been rolled back');
+INSERT INTO txt VALUES ('U5108', 'German',  'L&ouml;scht alle Beispiel-Logindaten (auf "_demo" endend)');
+INSERT INTO txt VALUES ('U5108', 'English', 'Deletes all sample credentials (ending with "_demo")');
 INSERT INTO txt VALUES ('U5111', 'German',  'Verwaltung aller verbundenen Managements');
 INSERT INTO txt VALUES ('U5111', 'English', 'Administrate the connected managements');
 INSERT INTO txt VALUES ('U5112', 'German',  'Verwaltung aller verbundenen Gateways');
@@ -1174,6 +1188,10 @@ INSERT INTO txt VALUES ('U5114', 'German',  'Auto Discovery derzeit nicht implem
 INSERT INTO txt VALUES ('U5114', 'English', 'Auto discovery currently not implemented');
 INSERT INTO txt VALUES ('U5115', 'German',  'per Auto Discovery gefundene &Auml;nderungen');
 INSERT INTO txt VALUES ('U5115', 'English', '# changes found by auto discovery');
+INSERT INTO txt VALUES ('U5116', 'German',  'Verwaltung der Login-Daten der eingebundenen Management-Systeme');
+INSERT INTO txt VALUES ('U5116', 'English', 'Manage credentials for login to connected firewall management systems');
+INSERT INTO txt VALUES ('U5117', 'German',  'Sind sie sicher, dass sie folgende Login-Daten l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U5117', 'English', 'Are you sure you want to delete credentials: ');
 
 INSERT INTO txt VALUES ('U5201', 'German',  'Sind sie sicher, dass sie folgenden Nutzer l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5201', 'English', 'Are you sure you want to delete user: ');
@@ -1302,6 +1320,8 @@ INSERT INTO txt VALUES ('E5111', 'German',  'Es gibt bereits ein Gateway mit der
 INSERT INTO txt VALUES ('E5111', 'English', 'There is already a gateway in the same configuration with import enabled');
 INSERT INTO txt VALUES ('E5112', 'German',  'Gateway konnte nicht angelegt werden');
 INSERT INTO txt VALUES ('E5112', 'English', 'Gateway could not be created');
+INSERT INTO txt VALUES ('E5117', 'German',  'L&ouml;schen der Login-Daten nicht m&ouml;glich, da diese von einem Management verwendet werden. Dort zuerst andere Login-Daten ausw&auml;hlen');
+INSERT INTO txt VALUES ('E5117', 'English', 'Deletion of credentials not allowed as they are in use by one or more management devices. Change the management credentials before deleting them.');
 
 INSERT INTO txt VALUES ('E5201', 'German',  'LDAP-Verbindung konnte nicht angelegt werden');
 INSERT INTO txt VALUES ('E5201', 'English', 'LDAP connection could not be created');
@@ -1940,22 +1960,13 @@ INSERT INTO txt VALUES ('H5115', 'English', 'Port*: Port number of the host.<br>
     If the target is Check Point R8x the connection is established via API. The default port number is 443. Remember to enable API access on your Check Point managment.<br>
     If the target is not Check Point R8x Firewall Orchestrator needs ssh-based access. The default port number is 22.
 ');
-INSERT INTO txt VALUES ('H5116', 'German',  'Import Nutzer*: Der Nutzer, der zum Anmelden am Firewall Management benutzt wird.
-    Er muss vorher auf dem Firewallsystem angelegt sein und vollen Lesezugriff auf das System besitzen.<br>
-    Auf Check Point R8x wird empfohlen, das vordefinierte "Read Only All"-Profil (sowohl globales als auch Domainmanagement) zu verwenden.
+INSERT INTO txt VALUES ('H5116', 'German',  'Login-Daten*: Zugangsdaten für den Import-Nutzer des Managements.<br>
+    Hier kann ein Satz Zugangsdaten ausgew&auml;hlt werden, der zum Login auf dem Management dient.
 ');
-INSERT INTO txt VALUES ('H5116', 'English', 'Import User*: The user used to login to the firewall management. 
-    This user needs to be created on the firewall system in advance and needs full read access to the system.<br>
-    On Check Point R8x we recommend using the predefined "Read Only All" profile (both global and domain management) for the user.
+INSERT INTO txt VALUES ('H5116', 'English', 'Import Credentials*: User/Password combination for logging into the management.<br>
+    Choose a set of credentials which will be used to get the management''s configuration.
 ');
-INSERT INTO txt VALUES ('H5117', 'German',  'Privater Schl&uuml;ssel* / Passwort*: F&uuml;r den ssh-Zugang hier den privaten ssh-Schl&uuml;ssel hinterlegen (Schl&uuml;ssel muss unverschl&uuml;sselt und ohne Passphrase sein)<br>
-    F&uuml;r den API-Zugang ist dies das Passwort des API-Nutzers.
-');
-INSERT INTO txt VALUES ('H5117', 'English', 'Login Secret* / Password*: For ssh access enter the private ssh key (key needs to be unencrypted without passphrase)<br>
-    For API access this is the password of the API user.
-');
-INSERT INTO txt VALUES ('H5118', 'German',  '&Ouml;ffentlicher Schl&uuml;ssel: Dieses Feld muss nur f&uuml;r Netscreen-Firewalls gef&uuml;llt werden - dieses System ben&ouml;tigt auch den &ouml;ffentlichen Schl&uuml;ssel zum Anmelden.');
-INSERT INTO txt VALUES ('H5118', 'English', 'Public Key: This field only needs to be filled for netscreen firewalls - this system also needs the public key for successful login.');
+
 INSERT INTO txt VALUES ('H5119', 'German',  'Domain: Firewall Domain Name <br>
     f&uuml;r Check Point R8x MDS / Fortimanager Installationen, andernfall leer lassen.
 ');
@@ -1974,6 +1985,36 @@ INSERT INTO txt VALUES ('H5122', 'German',  'Import Deaktiviert: Schalter um den
 INSERT INTO txt VALUES ('H5122', 'English', 'Import Disabled: Flag if the data import needs to be disabled.');
 INSERT INTO txt VALUES ('H5123', 'German',  'Nicht sichtbar: Wenn gesetzt ist dieses Management nicht mit Standard-Reporter-Rolle sichtbar.');
 INSERT INTO txt VALUES ('H5123', 'English', 'Hide in UI: If set, this management is not visible to the standard reporter role.');
+
+INSERT INTO txt VALUES ('H5130', 'German',  'Hier werden die Zugangsdaten f&uuml; den Import der Firewall-Konfigurationen verwaltet.
+Diese k&ouml;nnen auch f&uuml;r den Zugriff auf mehrere Firewall-Managements verwendet werden.
+Ein L&ouml;schen is erst m&ouml;glich, wenn die Zugangsdaten nirgends verwendet werden. 
+');
+INSERT INTO txt VALUES ('H5130', 'English', 'Import credentials*: Manage credentials for importing firewall configuration data.
+Credentials can be used for logging in to one or multiple firewall managements.
+Credentials can only be deleted when they are not used for importing any management.
+');
+INSERT INTO txt VALUES ('H5132', 'German',  'Import Nutzer*: Der Nutzer, der zum Anmelden am Firewall Management benutzt wird.
+    Er muss vorher auf dem Firewallsystem angelegt sein und vollen Lesezugriff auf das System besitzen.<br>
+    Auf Check Point R8x wird empfohlen, das vordefinierte "Read Only All"-Profil (sowohl globales als auch Domainmanagement) zu verwenden.
+');
+INSERT INTO txt VALUES ('H5132', 'English', 'Import User*: The user used to login to the firewall management. 
+    This user needs to be created on the firewall system in advance and needs full read access to the system.<br>
+    On Check Point R8x we recommend using the predefined "Read Only All" profile (both global and domain management) for the user.
+');
+INSERT INTO txt VALUES ('H5133', 'German',  'Privater Schl&uuml;ssel* / Passwort*: F&uuml;r den ssh-Zugang hier den privaten ssh-Schl&uuml;ssel hinterlegen (Schl&uuml;ssel muss unverschl&uuml;sselt und ohne Passphrase sein)<br>
+    F&uuml;r den API-Zugang ist dies das Passwort des API-Nutzers.
+');
+INSERT INTO txt VALUES ('H5133', 'English', 'Login Secret* / Password*: For ssh access enter the private ssh key (key needs to be unencrypted without passphrase)<br>
+    For API access this is the password of the API user.
+');
+INSERT INTO txt VALUES ('H5134', 'German',  '&Ouml;ffentlicher Schl&uuml;ssel: Dieses Feld muss nur f&uuml;r Netscreen-Firewalls gef&uuml;llt werden - dieses System ben&ouml;tigt auch den &ouml;ffentlichen Schl&uuml;ssel zum Anmelden.');
+INSERT INTO txt VALUES ('H5134', 'English', 'Public Key: This field only needs to be filled for netscreen firewalls - this system also needs the public key for successful login.');
+INSERT INTO txt VALUES ('H5135', 'German',  'Schl&uuml;sselpaar*: Handelt es sich bei diesen Login-Daten um ein SSH Public-Key Paar oder um Standard ein Standard-Passwort.
+');
+INSERT INTO txt VALUES ('H5135', 'English', 'Key Pair*: Do these credentials consist of a private/public SSH key pair or do they contain a standard password.
+');
+
 INSERT INTO txt VALUES ('H5141', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Gateways einrichten und verwalten.<br>
     Die "Klonen"-Schaltfl&auml;che unterst&uuml;tzt beim Definieren eines neuen Gateways, indem Daten von einem existierenden kopiert werden.
     Vor dem Speichern muss sich mindestens einer der Parameter Ger&auml;tetyp, Management oder Rulebase von den existierenden Gateways unterscheiden, wenn die Auswahl "Import Deaktiviert" nicht gesetzt ist.

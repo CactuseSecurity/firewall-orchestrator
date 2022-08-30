@@ -58,6 +58,11 @@
                 @(context.Host())
             </Template>
         </Column>
+        <Column TableItem="Management" Title="@(userConfig.GetText("import_credential"))" Field="@(x => x.ImportCredential.Id)" Sortable="true">
+            <Template>
+                @(context.ImportCredential.Name)
+            </Template>
+        </Column>
         <Column TableItem="Management" Title="@(userConfig.GetText("config_path"))" Field="@(x => x.ConfigPath)" Sortable="true" Filterable="true" />
         <Column TableItem="Management" Title="@(userConfig.GetText("super_manager"))" Field="@(x => x.SuperManagerId)" Sortable="true">
             <Template>
@@ -120,35 +125,16 @@
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="managementImportUser" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("import_user"))*:</label>
+                    <label for="managementCredential" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("import_credential"))*:</label>
                     <div class="col-sm-8">
-                        <input id="managementImportUser" type="text" class="form-control form-control-sm" @bind="actManagement.ImportUser" />
+                        <select id="managementCredential" class="form-control form-control-sm" @bind="actManagement.ImportCredentialId">
+                            @foreach (ImportCredential cred in credentials)
+                            {
+                                <option value="@cred.Id">@(cred.Name)</option>
+                            }
+                        </select>
                     </div>
                 </div>
-                @if (actManagement.DeviceType.IsLegacyDevType())
-                {
-                    <div class="form-group row">
-                        <label for="managementPrivateKey" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("login_secret"))*:</label>
-                        <div class="col-sm-8">
-                            <textarea rows="3" cols="60" name="text" class="form-control form-control-sm" placeholder=@(userConfig.GetText("login_secret")) @bind="actManagement.Secret"></textarea>                        
-                        </div>
-                    </div>
-                    <div class="form-group row">
-                        <label for="managementPublicKey" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("public_key")):</label>
-                        <div class="col-sm-8">
-                            <textarea rows="2" cols="60" name="text" class="form-control form-control-sm" placeholder=@(userConfig.GetText("public_key")) @bind="actManagement.PublicKey"></textarea>                        
-                        </div>
-                    </div>
-                }
-                else
-                {
-                    <div class="form-group row">
-                        <label for="managementPassword" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("password"))*:</label>
-                        <div class="col-sm-8">
-                            <input id="managementPassword" type="password" class="form-control form-control-sm" @bind="actManagement.Secret" />
-                        </div>
-                    </div>
-                }
                 @if (actManagement.DeviceType.CanHaveDomain())
                 {
                     <div class="form-group row">
@@ -190,10 +176,6 @@
                     <input class="form-check-input" id="managementImportDisabled" type="checkbox" @bind="actManagement.ImportDisabled">
                     <label class="form-check-label" for="managementImportDisabled"><small>@(userConfig.GetText("import_disabled"))</small></label>
                 </div>
-                @* <div class="form-check form-check-inline">
-                    <input class="form-check-input" id="managementForceInitImport" type="checkbox" @bind="actManagement.ForceInitialImport">
-                    <label class="form-check-label" for="managementForceInitImport"><small>@(userConfig.GetText("force_initial_import"))</small></label>
-                </div> *@
                 <div class="form-check form-check-inline">
                     <input class="form-check-input" id="managementHideInUi" type="checkbox" @bind="actManagement.HideInUi">
                     <label class="form-check-label" for="managementHideInUi"><small>@(userConfig.GetText("hide_in_ui"))</small></label>
@@ -284,6 +266,7 @@
     private List<Management> discoveredManagements = new List<Management>();
     private List<DeviceType> deviceTypes = new List<DeviceType>();
     private List<Device> devices = new List<Device>();
+    private List<ImportCredential> credentials = new List<ImportCredential>();
 
     private ITable<Management>? table;
 
@@ -324,6 +307,8 @@
             showCleanupButton = (sampleManagements.Count > 0);
 
             deviceTypes = await apiConnection.SendQueryAsync<List<DeviceType>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceTypeDetails);
+
+            credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(FWO.Api.Client.Queries.DeviceQueries.getCredentials);
         }
         catch (System.Exception exception)
         {
@@ -423,10 +408,8 @@
                         name = actManagement.Name,
                         devTypeId = actManagement.DeviceType.Id,
                         hostname = actManagement.Hostname,
-                        importUser = actManagement.ImportUser,
-                        importUserSecret = actManagement.Secret,
+                        importCredentialId = actManagement.ImportCredentialId,
                         port = actManagement.Port,
-                        sshPublicKey = actManagement.PublicKey,
                         importDisabled = actManagement.ImportDisabled,
                         forceInitialImport = actManagement.ForceInitialImport,
                         hideInUi = actManagement.HideInUi,
@@ -454,10 +437,8 @@
                         name = actManagement.Name,
                         devTypeId = actManagement.DeviceType.Id,
                         hostname = actManagement.Hostname,
-                        importUser = actManagement.ImportUser,
-                        importUserSecret = actManagement.Secret,
+                        importCredentialId = actManagement.ImportCredentialId,
                         port = actManagement.Port,
-                        sshPublicKey = actManagement.PublicKey,
                         importDisabled = actManagement.ImportDisabled,
                         forceInitialImport = actManagement.ForceInitialImport,
                         hideInUi = actManagement.HideInUi,
@@ -475,6 +456,12 @@
                 DeviceType? devtype = deviceTypes.FirstOrDefault(x => x.Id == actManagement.DeviceType.Id) ?? throw new Exception("Unknown Device type");
                 actManagement.DeviceType.Name = devtype.Name;
                 actManagement.DeviceType.Version = devtype.Version;
+
+                ImportCredential? cred = credentials.FirstOrDefault(x => x.Id == actManagement.ImportCredentialId) ?? throw new Exception("Unknown credentials");
+                actManagement.ImportCredential.Name = cred.Name;
+                actManagement.ImportCredential.Secret = cred.Secret;
+                actManagement.ImportCredential.PublicKey = cred.PublicKey;
+                actManagement.ImportCredential.IsKeyPair = cred.IsKeyPair;
             }
             StateHasChanged();
         }
@@ -487,9 +474,7 @@
     private bool CheckValues(Management mgm, string checkCause)
     {
         if (mgm.Name == null || mgm.Name == "" || 
-            mgm.Hostname == null || mgm.Hostname == "" || 
-            mgm.ImportUser == null || mgm.ImportUser == "" || 
-            mgm.Secret == null || mgm.Secret == "")
+            mgm.Hostname == null || mgm.Hostname == "")
         {
             DisplayMessageInUi!(null, checkCause, userConfig.GetText("E5102"), true);
             return false;

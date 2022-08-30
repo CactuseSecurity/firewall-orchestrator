@@ -23,6 +23,11 @@ namespace FWO.Api.Client.Queries
         public static readonly string deleteDevice;
         public static readonly string getImportStatus;
         public static readonly string deleteImport;
+        public static readonly string getCredentials;
+        public static readonly string newCredential;
+        public static readonly string updateCredential;
+        public static readonly string deleteCredential;
+        public static readonly string getMgmtNumberUsingCred;
 
         static DeviceQueries()
         {
@@ -44,6 +49,12 @@ namespace FWO.Api.Client.Queries
                 deleteDevice = File.ReadAllText(QueryPath + "device/deleteDevice.graphql");
                 getImportStatus = File.ReadAllText(QueryPath + "device/getImportStatus.graphql");
                 deleteImport = File.ReadAllText(QueryPath + "device/deleteImport.graphql");
+                
+                getCredentials = File.ReadAllText(QueryPath + "device/getCredentials.graphql");
+                newCredential = File.ReadAllText(QueryPath + "device/newCredential.graphql");
+                updateCredential = File.ReadAllText(QueryPath + "device/updateCredential.graphql");
+                deleteCredential = File.ReadAllText(QueryPath + "device/deleteCredential.graphql");
+                getMgmtNumberUsingCred = File.ReadAllText(QueryPath + "device/getMgmtNumberUsingCred.graphql");
             }
             catch (Exception exception)
             {

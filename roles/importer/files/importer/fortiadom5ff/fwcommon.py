@@ -47,7 +47,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
         fm_api_url = 'https://' + \
             mgm_details['hostname'] + ':' + \
             str(mgm_details['port']) + '/jsonrpc'
-        sid = fmgr_getter.login(mgm_details['user'], mgm_details['secret'], fm_api_url)
+        sid = fmgr_getter.login(mgm_details['import_credential']['user'], mgm_details['import_credential']['secret'], fm_api_url)
         if sid is None:
             logger.ERROR('did not succeed in logging in to FortiManager API, no sid returned')
             return 1

@@ -59,6 +59,7 @@ query getTickets ($from_state: Int!, $to_state: Int!){
         id
         request_task_id
         implementation_task_number
+        task_type
         state_id
         device_id
         implementation_action

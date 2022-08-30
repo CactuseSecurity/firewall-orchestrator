@@ -72,82 +72,82 @@
                         </div>
                     </div>
                 </div>
-                <div class="form-group row">
-                    <div class="col-sm-3">
-                        <div class="form-group row">
-                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("rule_action"))*:</label>
-                            <div class="col-sm-8">
-                                @if (ReqHandler.EditImplTaskMode)
-                                {
-                                    <select class="form-control form-control-sm" @bind="ReqHandler.ActImplTask.RuleAction">
-                                        @foreach (var action in ruleActions)
-                                        {
-                                            <option value="@action.Id">@(action.Name)</option>
-                                        }
-                                    </select>
-                                }
-                                else
-                                {
-                                    <label class="col-sm-12 h-100 border bg-secondary">@(((ReqHandler.ActImplTask.RuleAction != null) ? ruleActions.Find(x => x.Id == ReqHandler.ActImplTask.RuleAction)?.Name : ""))</label>
-                                }
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-sm-3">
-                        <div class="form-group row">
-                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("track"))*:</label>
-                            <div class="col-sm-8">
-                                @if (ReqHandler.EditImplTaskMode)
-                                {
-                                    <select class="form-control form-control-sm" @bind="ReqHandler.ActImplTask.Tracking">
-                                        @foreach (var track in trackings)
-                                        {
-                                            <option value="@track.Id">@(track.Name)</option>
-                                        }
-                                    </select>
-                                }
-                                else
-                                {
-                                    <label class="col-sm-12 h-100 border bg-secondary">@(((ReqHandler.ActImplTask.Tracking != null) ? trackings.Find(x => x.Id == ReqHandler.ActImplTask.Tracking)?.Name : ""))</label>
-                                }
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-sm-3">
-                        <div class="form-group row">
-                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_from")):</label>
-                            <div class="col-sm-8">
-                                @if (ReqHandler.EditImplTaskMode)
-                                {
-                                    <input type="date" class="form-control form-control-sm" @bind="ReqHandler.ActImplTask.TargetBeginDate" />
-                                }
-                                else
-                                {
-                                    <label class="col-sm-12 h-100 border bg-secondary">@ReqHandler.ActImplTask.TargetBeginDate?.ToString("d")</label>
-                                }
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-sm-3">
-                        <div class="form-group row">
-                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_to")):</label>
-                            <div class="col-sm-8">
-                                @if (ReqHandler.EditImplTaskMode)
-                                {
-                                    <input type="date" class="form-control form-control-sm" @bind="ReqHandler.ActImplTask.TargetEndDate" />
-                                }
-                                else
-                                {
-                                    <label class="col-sm-12 h-100 border bg-secondary">@ReqHandler.ActImplTask.TargetEndDate?.ToString("d")</label>
-                                }
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                @if(ReqHandler.ActReqTask.TaskType == TaskType.access.ToString())
+                @if(ReqHandler.ActImplTask.TaskType == TaskType.access.ToString())
                 {
+                    <div class="form-group row">
+                        <div class="col-sm-3">
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("rule_action"))*:</label>
+                                <div class="col-sm-8">
+                                    @if (ReqHandler.EditImplTaskMode)
+                                    {
+                                        <select class="form-control form-control-sm" @bind="ReqHandler.ActImplTask.RuleAction">
+                                            @foreach (var action in ruleActions)
+                                            {
+                                                <option value="@action.Id">@(action.Name)</option>
+                                            }
+                                        </select>
+                                    }
+                                    else
+                                    {
+                                        <label class="col-sm-12 h-100 border bg-secondary">@(((ReqHandler.ActImplTask.RuleAction != null) ? ruleActions.Find(x => x.Id == ReqHandler.ActImplTask.RuleAction)?.Name : ""))</label>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-3">
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("track"))*:</label>
+                                <div class="col-sm-8">
+                                    @if (ReqHandler.EditImplTaskMode)
+                                    {
+                                        <select class="form-control form-control-sm" @bind="ReqHandler.ActImplTask.Tracking">
+                                            @foreach (var track in trackings)
+                                            {
+                                                <option value="@track.Id">@(track.Name)</option>
+                                            }
+                                        </select>
+                                    }
+                                    else
+                                    {
+                                        <label class="col-sm-12 h-100 border bg-secondary">@(((ReqHandler.ActImplTask.Tracking != null) ? trackings.Find(x => x.Id == ReqHandler.ActImplTask.Tracking)?.Name : ""))</label>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-3">
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_from")):</label>
+                                <div class="col-sm-8">
+                                    @if (ReqHandler.EditImplTaskMode)
+                                    {
+                                        <input type="date" class="form-control form-control-sm" @bind="ReqHandler.ActImplTask.TargetBeginDate" />
+                                    }
+                                    else
+                                    {
+                                        <label class="col-sm-12 h-100 border bg-secondary">@ReqHandler.ActImplTask.TargetBeginDate?.ToString("d")</label>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-3">
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_to")):</label>
+                                <div class="col-sm-8">
+                                    @if (ReqHandler.EditImplTaskMode)
+                                    {
+                                        <input type="date" class="form-control form-control-sm" @bind="ReqHandler.ActImplTask.TargetEndDate" />
+                                    }
+                                    else
+                                    {
+                                        <label class="col-sm-12 h-100 border bg-secondary">@ReqHandler.ActImplTask.TargetEndDate?.ToString("d")</label>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <DisplayAccessElements @bind-Sources="actSources" @bind-Destinations="actDestinations" @bind-Services="actServices" 
-                        TaskId="ReqHandler.ActReqTask.Id" EditMode ="ReqHandler.EditImplTaskMode"></DisplayAccessElements>
+                        TaskId="ReqHandler.ActImplTask.Id" EditMode ="ReqHandler.EditImplTaskMode"></DisplayAccessElements>
                 }
                 <div class="form-group row">
                     <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>

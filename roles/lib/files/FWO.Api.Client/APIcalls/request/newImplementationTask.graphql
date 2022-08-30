@@ -2,6 +2,7 @@ mutation newImplementationTask(
   $reqTaskId: Int!
   $implIaskNumber: Int
   $state: Int
+  $taskType: String!
   $device: Int
   $implAction: action_enum
   $ruleAction: Int
@@ -15,6 +16,7 @@ mutation newImplementationTask(
     request_task_id: $reqTaskId
     implementation_task_number: $implIaskNumber
     state_id: $state
+    task_type: $taskType
     device_id: $device
     implementation_action: $implAction
     rule_action: $ruleAction

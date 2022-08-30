@@ -529,7 +529,7 @@ namespace FWO.Ui.Services
                         foreach(var device in Devices)
                         {
                             newImplTask = new ImplementationTask(reqTask)
-                            { ImplTaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = device.Id, StateId = reqTask.StateId };
+                                { ImplTaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = device.Id, StateId = reqTask.StateId };
                             newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
                             reqTask.ImplementationTasks.Add(newImplTask);
                         }
@@ -616,7 +616,7 @@ namespace FWO.Ui.Services
                 }
             }
             if(phase <= WorkflowPhases.approval && ActTicket.Tasks.Count > 0 && !alreadyExistingImplTask &&
-                !MasterStateMatrix.PhaseActive[WorkflowPhases.planning] && ActTicket.StateId == MasterStateMatrix.LowestEndState)
+                !MasterStateMatrix.PhaseActive[WorkflowPhases.planning] && ActTicket.StateId >= MasterStateMatrix.LowestEndState)
             {
                 await AutoCreateImplTasks();
             }

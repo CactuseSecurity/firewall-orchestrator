@@ -79,7 +79,7 @@ namespace FWO.Ui.Services
             int stateOut = 0;
             int initState = 0;
             int inWorkState = LowestEndState;
-            int maxState = 0;
+            int minFinishedState = 999;
             int openTasks = 0;
             int inWorkTasks = 0;
             int finishedTasks = 0;
@@ -101,9 +101,9 @@ namespace FWO.Ui.Services
                 else
                 {
                     finishedTasks++;
-                    if(state > maxState)
+                    if(state < minFinishedState)
                     {
-                        maxState = state;
+                        minFinishedState = state;
                     }
                 }
             }
@@ -113,7 +113,7 @@ namespace FWO.Ui.Services
             }
             else if(finishedTasks == statesIn.Count)
             {
-                stateOut = maxState;
+                stateOut = minFinishedState;
             }
             else if(openTasks == statesIn.Count)
             {

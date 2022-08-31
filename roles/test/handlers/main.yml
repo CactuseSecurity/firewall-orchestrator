@@ -42,24 +42,6 @@
         END $do$ 
     listen: "test importer handler"
 
-  # - name: delete test checkpoint R8x gateway
-  #   postgresql_query:
-  #     db: "{{ fworch_db_name }}"
-  #     query: >
-  #       DO $do$ BEGIN 
-  #       DELETE FROM device WHERE dev_name='{{ test_checkpoint_name }}'; 
-  #       END $do$ 
-  #   listen: "test importer handler"
-
-  # - name: delete test checkpoint R8x management
-  #   postgresql_query:
-  #     db: "{{ fworch_db_name }}"
-  #     query: >
-  #       DO $do$ BEGIN 
-  #       DELETE FROM management WHERE mgm_name='{{ test_checkpoint_name }}'; 
-  #       END $do$
-  #   listen: "test importer handler"
-
   - name: delete tenant tenant1
     postgresql_query:
       db: "{{ fworch_db_name }}"
@@ -69,14 +51,14 @@
         END $do$
     listen: "test importer handler"
 
-  - name: delete devices for tenant tenant1
-    postgresql_query:
-      db: "{{ fworch_db_name }}"
-      query: >
-        DO $do$ BEGIN 
-        DELETE FROM tenant_to_device WHERE tenant_id=(SELECT tenant_id FROM tenant WHERE tenant_name='tenant1{{ sample_postfix }}'); 
-        END $do$
-    listen: "test importer handler"
+  # - name: delete devices for tenant tenant1
+  #   postgresql_query:
+  #     db: "{{ fworch_db_name }}"
+  #     query: >
+  #       DO $do$ BEGIN 
+  #       DELETE FROM tenant_to_device WHERE tenant_id=(SELECT tenant_id FROM tenant WHERE tenant_name='tenant1{{ sample_postfix }}'); 
+  #       END $do$
+  #   listen: "test importer handler"
 
   - name: delete tenant tenant2
     postgresql_query:

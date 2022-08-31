@@ -70,6 +70,18 @@
           END IF; END $do$ 
       when: sample_role_purpose is not match('test')
 
+    - name: insert dummy test import credentials
+      postgresql_query:
+        db: "{{ fworch_db_name }}"
+        query: >
+          DO $do$ BEGIN
+          IF NOT EXISTS (SELECT * FROM import_credential WHERE credential_name='{{ test_credential_name }}') THEN 
+          insert into import_credential
+          (id,credential_name,username,secret,is_key_pair)
+          VALUES (-1,'{{ test_credential_name }}','{{ sample_config_user }}','{{ sample_ssh_priv_key }}',true);
+          END IF; END $do$ 
+      when: sample_role_purpose is match('test')
+
     - name: insert test check point R8x management
       postgresql_query:
         db: "{{ fworch_db_name }}"

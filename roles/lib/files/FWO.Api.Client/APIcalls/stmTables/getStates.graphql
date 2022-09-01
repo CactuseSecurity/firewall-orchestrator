@@ -1,7 +1,0 @@
-
-query getStates {
-  state_list: request_state (order_by: { id: asc }){
-    id
-    name
-  }
-}

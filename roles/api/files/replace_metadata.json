@@ -12300,6 +12300,26 @@
             {
               "table": {
                 "schema": "request",
+                "name": "action"
+              },
+              "array_relationships": [
+                {
+                  "name": "state_actions",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "action_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "state_action"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "schema": "request",
                 "name": "approval"
               },
               "object_relationships": [
@@ -12400,6 +12420,18 @@
                   }
                 },
                 {
+                  "name": "state_actions",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "state_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "state_action"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "tasks",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -12421,6 +12453,26 @@
                         "name": "ticket"
                       }
                     }
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "schema": "request",
+                "name": "state_action"
+              },
+              "object_relationships": [
+                {
+                  "name": "action",
+                  "using": {
+                    "foreign_key_constraint_on": "action_id"
+                  }
+                },
+                {
+                  "name": "state",
+                  "using": {
+                    "foreign_key_constraint_on": "state_id"
                   }
                 }
               ]

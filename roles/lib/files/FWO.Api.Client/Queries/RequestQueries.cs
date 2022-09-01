@@ -24,6 +24,13 @@ namespace FWO.Api.Client.Queries
         public static readonly string deleteImplementationElement;
         public static readonly string newApproval;
         public static readonly string updateApproval;
+        public static readonly string getStates;
+        public static readonly string upsertState;
+        public static readonly string deleteState;
+        public static readonly string getActions;
+        public static readonly string newAction;
+        public static readonly string updateAction;
+        public static readonly string deleteAction;
 
 
         static RequestQueries()
@@ -50,6 +57,13 @@ namespace FWO.Api.Client.Queries
                 deleteImplementationElement = File.ReadAllText(QueryPath + "request/deleteImplementationElement.graphql");
                 newApproval = File.ReadAllText(QueryPath + "request/newApproval.graphql");
                 updateApproval = File.ReadAllText(QueryPath + "request/updateApproval.graphql");
+                getStates = File.ReadAllText(QueryPath + "request/getStates.graphql");
+                upsertState = File.ReadAllText(QueryPath + "request/upsertState.graphql");
+                deleteState = File.ReadAllText(QueryPath + "request/deleteState.graphql");
+                getActions = File.ReadAllText(QueryPath + "request/getActions.graphql");
+                newAction = File.ReadAllText(QueryPath + "request/newAction.graphql");
+                updateAction = File.ReadAllText(QueryPath + "request/updateAction.graphql");
+                deleteAction = File.ReadAllText(QueryPath + "request/deleteAction.graphql");
             }
             catch (Exception exception)
             {

@@ -1052,9 +1052,9 @@ create table if not exists request.action
 (
     id SERIAL PRIMARY KEY,
     name VARCHAR NOT NULL, -- e.g. "add approval"
+	action_type Varchar NOT NULL, -- ref on internal function e.g. AddApproval() / Display button for something
 	scope Varchar, -- ticket/reqtask/impltask/approval...
 	event Varchar, -- on set / while set / on leave(?) ...
-	internal_ref int, -- ref on internal function e.g. AddApproval() / Display button for something
 	external_parameters Varchar -- serialized (?) params for external call, e.g. compliance check service
 );
 

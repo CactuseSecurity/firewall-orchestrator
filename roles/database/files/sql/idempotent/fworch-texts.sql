@@ -679,6 +679,24 @@ INSERT INTO txt VALUES ('all_gateways',         'German', 	'Alle Gateways');
 INSERT INTO txt VALUES ('all_gateways',         'English', 	'All Gateways');
 INSERT INTO txt VALUES ('insert_ip',            'German', 	'IP einf&uuml;gen');
 INSERT INTO txt VALUES ('insert_ip',            'English', 	'Insert IP');
+INSERT INTO txt VALUES ('state_actions',        'German', 	'Statusaktionen');
+INSERT INTO txt VALUES ('state_actions',        'English', 	'State actions');
+INSERT INTO txt VALUES ('add_action',           'German', 	'Aktion hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_action',           'English', 	'Add action');
+INSERT INTO txt VALUES ('edit_action',          'German', 	'Aktion bearbeiten');
+INSERT INTO txt VALUES ('edit_action',          'English', 	'Edit action');
+INSERT INTO txt VALUES ('delete_action',        'German', 	'Aktion l&ouml;schen');
+INSERT INTO txt VALUES ('delete_action',        'English', 	'Delete action');
+INSERT INTO txt VALUES ('save_action',          'German', 	'Aktion speichern');
+INSERT INTO txt VALUES ('save_action',          'English', 	'Save action');
+INSERT INTO txt VALUES ('scope', 			    'German', 	'Geltungsbereich');
+INSERT INTO txt VALUES ('scope', 			    'English', 	'Scope');
+INSERT INTO txt VALUES ('event', 			    'German', 	'Ereignis');
+INSERT INTO txt VALUES ('event', 			    'English', 	'Event');
+INSERT INTO txt VALUES ('action_type', 		    'German', 	'Aktionstyp Ref');
+INSERT INTO txt VALUES ('action_type', 		    'English', 	'Action type');
+INSERT INTO txt VALUES ('external_params', 		'German', 	'Externe Parameter');
+INSERT INTO txt VALUES ('external_params', 		'English', 	'External params');
 
 -- recertification
 INSERT INTO txt VALUES ('recertify',		    'German', 	'Rezertifizieren');
@@ -741,6 +759,8 @@ INSERT INTO txt VALUES ('password_policy',      'German', 	'Passworteinstellunge
 INSERT INTO txt VALUES ('password_policy',      'English', 	'Password Policy');
 INSERT INTO txt VALUES ('state_definitions',	'German', 	'Statusdefinitionen');
 INSERT INTO txt VALUES ('state_definitions',	'English', 	'State Definitions');
+INSERT INTO txt VALUES ('state_matrix',	        'German', 	'Statusmatrix');
+INSERT INTO txt VALUES ('state_matrix',	        'English', 	'State Matrix');
 INSERT INTO txt VALUES ('customizing',		    'German', 	'Einstellungen');
 INSERT INTO txt VALUES ('customizing',		    'English', 	'Customizing');
 INSERT INTO txt VALUES ('personal',             'German', 	'Pers&ouml;nlich');
@@ -1107,10 +1127,12 @@ INSERT INTO txt VALUES ('available_states',     'German',   'Verf&uuml;gbare Sta
 INSERT INTO txt VALUES ('available_states',     'English',  'Available states');
 INSERT INTO txt VALUES ('add_state',            'German',   'Status hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_state',            'English',  'Add state');
-INSERT INTO txt VALUES ('select_state',         'German',   'Status ausw&auml;hlen');
-INSERT INTO txt VALUES ('select_state',         'English',  'Select state');
 INSERT INTO txt VALUES ('edit_state',           'German',   'Status bearbeiten');
 INSERT INTO txt VALUES ('edit_state',           'English',  'Edit state');
+INSERT INTO txt VALUES ('select_state',         'German',   'Status ausw&auml;hlen');
+INSERT INTO txt VALUES ('select_state',         'English',  'Select state');
+INSERT INTO txt VALUES ('delete_state',         'German',   'Status l&ouml;schen');
+INSERT INTO txt VALUES ('delete_state',         'English',  'Delete state');
 INSERT INTO txt VALUES ('from_state',           'German',   'Von Status');
 INSERT INTO txt VALUES ('from_state',           'English',  'From state');
 INSERT INTO txt VALUES ('to_states',            'German',   'Nach Stati');
@@ -1419,12 +1441,16 @@ INSERT INTO txt VALUES ('U5311', 'German',  'Verwaltung der Standard-Voreinstell
 INSERT INTO txt VALUES ('U5311', 'English', 'Set default values for all users and some technical parameters');
 INSERT INTO txt VALUES ('U5312', 'German',  'Verwaltung der Passwortregeln');
 INSERT INTO txt VALUES ('U5312', 'English', 'Set the policy for all user passwords');
-INSERT INTO txt VALUES ('U5313', 'German',  'Definition der Statusdefinitionen f&uuml;r den Auftrags-Workflow. Vorsicht bei &Auml;nderungen an einem bereits verwendeten Workflow!');
-INSERT INTO txt VALUES ('U5313', 'English', 'Define the state definitions of the request workflow. Be careful when changing workflow already in use!');
+INSERT INTO txt VALUES ('U5313', 'German',  'Verwaltung der Statusdefinitionen f&uuml;r die Workflows. Vorsicht bei &Auml;nderungen an einem bereits verwendeten Workflow!');
+INSERT INTO txt VALUES ('U5313', 'English', 'Set the state definitions of the workflows. Be careful when changing workflow already in use!');
 INSERT INTO txt VALUES ('U5314', 'German',  'Verwaltung der Einstellungen f&uuml;r den Auftrags-Workflow. Vorsicht bei &Auml;nderungen an einem bereits verwendeten Workflow!');
 INSERT INTO txt VALUES ('U5314', 'English', 'Customize the request workflow. Be careful when changing workflow already in use!');
 INSERT INTO txt VALUES ('U5315', 'German',  'Sind sie sicher, dass sie die Einstellungen &auml;ndern wollen? &Auml;nderungen an bereits verwendeten Workflows k&ouml;nnen unerwartete Auswirkungen haben.');
 INSERT INTO txt VALUES ('U5315', 'English', 'Are you sure you want to change the settings? Changes on workflows already in use may have unexpected consequences.');
+INSERT INTO txt VALUES ('U5316', 'German',  'Definition der Statusmatrizen f&uuml;r die Workflows. Vorsicht bei &Auml;nderungen an einem bereits verwendeten Workflow!');
+INSERT INTO txt VALUES ('U5316', 'English', 'Define the state matrices of the workflows. Be careful when changing workflow already in use!');
+INSERT INTO txt VALUES ('U5317', 'German',  'Verwaltung der Aktionsdefinitionen f&uuml;r die Workflows. Vorsicht bei &Auml;nderungen an einem bereits verwendeten Workflow!');
+INSERT INTO txt VALUES ('U5317', 'English', 'Set the action definitions of the workflows. Be careful when changing workflow already in use!');
 
 INSERT INTO txt VALUES ('U5401', 'German',  'Passwort ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5401', 'English', 'Password changed.');
@@ -1436,6 +1462,11 @@ INSERT INTO txt VALUES ('U5413', 'German',  'Anpassung der pers&ouml;nlichen Rep
 INSERT INTO txt VALUES ('U5413', 'English', 'Adapt your personal reporting settings');
 INSERT INTO txt VALUES ('U5414', 'German',  'Anpassung der pers&ouml;nlichen Rezertifizierungseinstellungen');
 INSERT INTO txt VALUES ('U5414', 'English', 'Adapt your personal recertification settings');
+
+INSERT INTO txt VALUES ('U5501', 'German',  'Sind sie sicher, dass sie folgenden Status l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U5501', 'English', 'Are you sure you want to delete state: ');
+INSERT INTO txt VALUES ('U5502', 'German',  'Sind sie sicher, dass sie folgende Aktion l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U5502', 'English', 'Are you sure you want to delete action: ');
 
 INSERT INTO txt VALUES ('U7001', 'German',  '&Uuml;berblick der Ereignisse im Firewall Orchestrator');
 INSERT INTO txt VALUES ('U7001', 'English', 'Alerts and events inside Firewall Orchestrator');
@@ -1694,6 +1725,9 @@ INSERT INTO txt VALUES ('E8009', 'German',  'Genehmigung konnte nicht angelegt w
 INSERT INTO txt VALUES ('E8009', 'English', 'Approval could not be created');
 INSERT INTO txt VALUES ('E8010', 'German',  'Bitte Gruppe ausw&auml;hlen');
 INSERT INTO txt VALUES ('E8010', 'English', 'Please select group');
+INSERT INTO txt VALUES ('E8011', 'German',  'Aktion konnte nicht angelegt werden');
+INSERT INTO txt VALUES ('E8011', 'English', 'Action could not be created');
+
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');

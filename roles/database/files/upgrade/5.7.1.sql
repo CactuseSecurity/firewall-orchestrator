@@ -104,6 +104,22 @@ create table if not exists request.state
     name VARCHAR NOT NULL
 );
 
+create table if not exists request.action
+(
+    id SERIAL PRIMARY KEY,
+    name VARCHAR NOT NULL, -- e.g. "add approval"
+	action_type Varchar NOT NULL, -- ref on internal function e.g. AddApproval() / Display button for something
+	scope Varchar, -- ticket/reqtask/impltask/approval...
+	event Varchar, -- on set / while set / on leave(?) ...
+	external_parameters Varchar -- serialized (?) params for external call, e.g. compliance check service
+);
+
+create table if not exists request.state_action
+(
+    state_id int,
+    action_id int
+);
+
 create table if not exists owner
 (
     id SERIAL PRIMARY KEY,
@@ -219,6 +235,9 @@ ALTER TABLE rule_owner DROP CONSTRAINT IF EXISTS rule_owner_owner_foreign_key;
 --- request_owner ---
 ALTER TABLE request_owner DROP CONSTRAINT IF EXISTS request_owner_request_task_foreign_key;
 ALTER TABLE request_owner DROP CONSTRAINT IF EXISTS request_owner_owner_foreign_key;
+--- state_action ---
+ALTER TABLE request.state_action DROP CONSTRAINT IF EXISTS state_action_state_foreign_key;
+ALTER TABLE request.state_action DROP CONSTRAINT IF EXISTS state_action_action_foreign_key;
 --- implemantation.element ---
 ALTER TABLE implementation.element DROP CONSTRAINT IF EXISTS implementation_element_implementation_element_foreign_key;
 ALTER TABLE implementation.element DROP CONSTRAINT IF EXISTS implementation_element_service_foreign_key;
@@ -276,6 +295,9 @@ ALTER TABLE rule_owner ADD CONSTRAINT rule_owner_owner_foreign_key FOREIGN KEY (
 --- request_owner ---
 ALTER TABLE request_owner ADD CONSTRAINT request_owner_request_task_foreign_key FOREIGN KEY (request_task_id) REFERENCES request.task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request_owner ADD CONSTRAINT request_owner_owner_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+--- state_action ---
+ALTER TABLE request.state_action ADD CONSTRAINT state_action_state_foreign_key FOREIGN KEY (state_id) REFERENCES request.state(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.state_action ADD CONSTRAINT state_action_action_foreign_key FOREIGN KEY (action_id) REFERENCES request.action(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- implemantation.element ---
 ALTER TABLE implementation.element ADD CONSTRAINT implementation_element_implementation_element_foreign_key FOREIGN KEY (original_nat_id) REFERENCES implementation.element(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE implementation.element ADD CONSTRAINT implementation_element_service_foreign_key FOREIGN KEY (service_id) REFERENCES service(svc_id) ON UPDATE RESTRICT ON DELETE CASCADE;

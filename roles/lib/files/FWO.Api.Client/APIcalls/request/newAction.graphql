@@ -1,0 +1,19 @@
+mutation newAction(
+  $name: String!
+  $actionType: String!
+  $scope: String
+  $eventt: String
+  $externalParameters: String
+  ) {
+  insert_request_action(objects: {
+    name: $name
+    action_type: $actionType
+    scope: $scope
+    event: $eventt
+    external_parameters: $externalParameters
+  }) {
+    returning {
+      newId: id
+    }
+  }
+}

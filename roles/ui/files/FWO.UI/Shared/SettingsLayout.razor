@@ -72,11 +72,21 @@
                 </li>
                 <hr />
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5015"))">
-                    <h5>@(userConfig.GetText("requests"))</h5>
+                    <h5>@(userConfig.GetText("workflow"))</h5>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/actions">
+                        <span class="oi oi-arrow-right"></span> @(userConfig.GetText("state_actions"))
+                    </NavLink>
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/states">
-                        <span class="oi oi-loop-square"></span> @(userConfig.GetText("state_definitions"))
+                        <span class="oi oi-tag"></span> @(userConfig.GetText("state_definitions"))
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/statematrix">
+                        <span class="oi oi-loop-square"></span> @(userConfig.GetText("state_matrix"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">

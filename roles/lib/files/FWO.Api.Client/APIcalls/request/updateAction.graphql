@@ -1,0 +1,20 @@
+mutation updateAction(
+  $id: Int!
+  $name: String!
+  $actionType: String!
+  $scope: String
+  $eventt: String
+  $externalParameters: String
+  ) {
+  update_request_action_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      name: $name
+      action_type: $actionType
+      scope: $scope
+      event: $eventt
+      external_parameters: $externalParameters
+  }) {
+    UpdatedId: id
+  }
+}

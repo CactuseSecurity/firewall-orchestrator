@@ -31,6 +31,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string newAction;
         public static readonly string updateAction;
         public static readonly string deleteAction;
+        public static readonly string addStateAction;
+        public static readonly string removeStateAction;
 
 
         static RequestQueries()
@@ -64,6 +66,8 @@ namespace FWO.Api.Client.Queries
                 newAction = File.ReadAllText(QueryPath + "request/newAction.graphql");
                 updateAction = File.ReadAllText(QueryPath + "request/updateAction.graphql");
                 deleteAction = File.ReadAllText(QueryPath + "request/deleteAction.graphql");
+                addStateAction = File.ReadAllText(QueryPath + "request/addStateAction.graphql");
+                removeStateAction = File.ReadAllText(QueryPath + "request/removeStateAction.graphql");
             }
             catch (Exception exception)
             {

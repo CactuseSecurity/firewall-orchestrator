@@ -241,7 +241,6 @@ else
     {
         try
         {
-            states = new List<RequestState>();
             states = await apiConnection.SendQueryAsync<List<RequestState>>(FWO.Api.Client.Queries.RequestQueries.getStates);
             statesDict = new RequestStateDict();
             await statesDict.Init(apiConnection);

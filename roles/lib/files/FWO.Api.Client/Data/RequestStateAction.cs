@@ -6,9 +6,28 @@ namespace FWO.Api.Data
     public enum ActionTypes
     {
         DoNothing = 0,
-        Redirect = 1,
-        AddApproval = 2,
+        AutoPromote = 1,
+        SetAlert = 2,
+        AddApproval = 3,
         ExternalCall = 10
+    }
+
+    public enum ActionScopes
+    {
+        None = 0,
+        Ticket = 1,
+        RequestTask = 2,
+        ImplementationTask = 3,
+        Approval = 4
+    }
+
+    public enum ActionEvents
+    {
+        None = 0,
+        OnSet = 1,
+        WhileSet = 2,
+        OnLeave = 3,
+        OfferButton = 4
     }
 
     public class RequestStateAction
@@ -23,13 +42,13 @@ namespace FWO.Api.Data
         public string ActionType { get; set; } = ActionTypes.DoNothing.ToString();
 
         [JsonProperty("scope"), JsonPropertyName("scope")]
-        public string? Scope { get; set; } = "";
+        public string Scope { get; set; } = ActionScopes.None.ToString();
 
         [JsonProperty("event"), JsonPropertyName("event")]
-        public string? Event { get; set; } = "";
+        public string? Event { get; set; } = ActionEvents.None.ToString();
 
         [JsonProperty("external_parameters"), JsonPropertyName("external_parameters")]
-        public string? ExternalParams { get; set; } = "";
+        public string ExternalParams { get; set; } = "";
 
 
         public RequestStateAction()

@@ -1045,7 +1045,8 @@ create table if not exists request.ticket
 create table if not exists request.state
 (
     id Integer NOT NULL UNIQUE,
-    name VARCHAR NOT NULL
+    name VARCHAR NOT NULL,
+	primary key ("id")
 );
 
 create table if not exists request.action

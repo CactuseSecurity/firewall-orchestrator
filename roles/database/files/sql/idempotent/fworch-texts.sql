@@ -680,7 +680,7 @@ INSERT INTO txt VALUES ('all_gateways',         'English', 	'All Gateways');
 INSERT INTO txt VALUES ('insert_ip',            'German', 	'IP einf&uuml;gen');
 INSERT INTO txt VALUES ('insert_ip',            'English', 	'Insert IP');
 INSERT INTO txt VALUES ('state_actions',        'German', 	'Statusaktionen');
-INSERT INTO txt VALUES ('state_actions',        'English', 	'State actions');
+INSERT INTO txt VALUES ('state_actions',        'English', 	'State Actions');
 INSERT INTO txt VALUES ('add_action',           'German', 	'Aktion hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_action',           'English', 	'Add action');
 INSERT INTO txt VALUES ('edit_action',          'German', 	'Aktion bearbeiten');
@@ -697,6 +697,8 @@ INSERT INTO txt VALUES ('action_type', 		    'German', 	'Aktionstyp Ref');
 INSERT INTO txt VALUES ('action_type', 		    'English', 	'Action type');
 INSERT INTO txt VALUES ('external_params', 		'German', 	'Externe Parameter');
 INSERT INTO txt VALUES ('external_params', 		'English', 	'External params');
+INSERT INTO txt VALUES ('message_text', 		'German', 	'Nachricht');
+INSERT INTO txt VALUES ('message_text', 		'English', 	'Message text');
 
 -- recertification
 INSERT INTO txt VALUES ('recertify',		    'German', 	'Rezertifizieren');
@@ -1487,6 +1489,9 @@ INSERT INTO txt VALUES ('U7501', 'English', 'View the past daily check messages'
 
 INSERT INTO txt VALUES ('U8001', 'German',  'Sind sie sicher, dass sie l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U8001', 'English', 'Are you sure you want to delete: ');
+INSERT INTO txt VALUES ('U8002', 'German',  'Neue Genehmigung zum Auftrag hinzugef&uuml;gt.');
+INSERT INTO txt VALUES ('U8002', 'English', 'New approval added to task.');
+
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');

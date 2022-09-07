@@ -60,6 +60,22 @@
                         <input type="text" class="form-control form-control-sm" @bind="actState.Name" />
                     </div>
                 </div>
+                <br><br>
+                <button class="btn btn-sm btn-success" @onclick="SelectAction">@(userConfig.GetText("add_action"))</button>
+                <br><br>
+                <div class="m-2">
+                    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="RequestStateActionDataHelper" Items="actState.Actions" PageSize="0" ColumnReorder="true">
+                        <Column TableItem="RequestStateActionDataHelper" Title="@(userConfig.GetText("actions"))" Field="(x => x.Action.Id)" Sortable="false" Filterable="false">
+                            <Template>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-danger" @onclick="() => RemoveActionFromState(context)">@(userConfig.GetText("remove"))</button>
+                                </div>
+                            </Template>
+                        </Column>
+                        <Column TableItem="RequestStateActionDataHelper" Title="@(userConfig.GetText("id"))" Field="@(x => x.Action.Id)" Sortable="true" Filterable="true" />
+                        <Column TableItem="RequestStateActionDataHelper" Title="@(userConfig.GetText("name"))" Field="@(x => x.Action.Name)" Sortable="true" Filterable="true" />
+                    </Table>
+                </div>
             }
         </Body>
         <Footer>
@@ -98,6 +114,35 @@
             </div>
         </Footer>
     </PopUp>
+
+    <PopUp Title="@(userConfig.GetText("select_action"))" Show="@SelectActionMode" OnClose="() => SelectActionMode = false">
+        <Body>
+            @if (SelectActionMode)
+            {
+                <div class="col-sm-8">
+                    <select class="form-control form-control-sm" @bind="actionIdToAdd">
+                        @foreach (var action in actions)
+                        {
+                            <option value="@action.Id">@(action.Name)</option>
+                        }
+                    </select>
+                </div>
+            }
+        </Body>
+        <Footer>
+            <div class="btn-group">
+                <AuthorizeView Roles="admin, requester, fw-admin">
+                    <Authorized>
+                        <button class="btn btn-sm btn-primary" @onclick="AddActionToState">@(userConfig.GetText("add"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("add"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+                <button class="btn btn-sm btn-secondary" @onclick="CancelSelect">@(userConfig.GetText("cancel"))</button>
+            </div>
+        </Footer>
+    </PopUp>
 }
 else
 {
@@ -114,17 +159,21 @@ else
     private List<RequestState> states = new List<RequestState>();
     private List<int> usedStateIds = new List<int>();
     private RequestStateDict statesDict = new RequestStateDict();
-
     private RequestState actState = new RequestState();
+
+    private List<RequestStateAction> actions = new List<RequestStateAction>();
+    private int actionIdToAdd;
 
     private bool EditStateMode = false;
     private bool AddStateMode = false;
     private bool DeleteStateMode = false;
     private bool InitComplete = false;
+    private bool SelectActionMode = false;
 
     protected override async Task OnInitializedAsync()
     {
         await RefreshStates();
+        actions = await apiConnection.SendQueryAsync<List<RequestStateAction>>(FWO.Api.Client.Queries.RequestQueries.getActions);
         InitComplete = true;
     }
 
@@ -218,5 +267,28 @@ else
         await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.deleteState, new { id = actState.Id });
         states.Remove(actState);
         DeleteStateMode = false;
+    }
+
+    private void SelectAction()
+    {
+        SelectActionMode = true;
+    }
+
+    private void CancelSelect()
+    {
+        SelectActionMode = false;
+    }
+
+    private async Task AddActionToState()
+    {
+        await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.addStateAction, new { stateId = actState.Id, actionId = actionIdToAdd });
+        actState.Actions.Add(new RequestStateActionDataHelper(){ Action = actions.FirstOrDefault(x => x.Id == actionIdToAdd) });
+        SelectActionMode = false;
+    }
+
+    private async Task RemoveActionFromState(RequestStateActionDataHelper action)
+    {
+        await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.removeStateAction, new { stateId = actState.Id, actionId = action.Action.Id });
+        actState.Actions.Remove(action);
     }
 }

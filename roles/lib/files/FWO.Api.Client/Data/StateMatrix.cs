@@ -1,10 +1,9 @@
-﻿using FWO.Api.Client;
-using FWO.Api.Client.Queries;
+﻿using FWO.Api.Client.Queries;
 using FWO.Api.Data;
 using System.Text.Json.Serialization; 
 using Newtonsoft.Json; 
 
-namespace FWO.Ui.Services
+namespace FWO.Api.Client
 {
     public enum WorkflowPhases
     {

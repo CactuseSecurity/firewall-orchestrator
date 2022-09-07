@@ -20,7 +20,7 @@
             <select id="taskDevId" class="form-control form-control-sm" @bind="DeviceId">
                 <option value="-1">@(userConfig.GetText("tickets"))</option>
                 <option value="0">@(userConfig.GetText("all_gateways"))</option>
-                @foreach (Device device in devices)
+                @foreach (Device device in reqHandler.Devices)
                 {
                     <option value="@device.Id">@(device.Name)</option>
                 }
@@ -48,10 +48,7 @@
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
     
     private RequestHandler reqHandler;
-    private RequestDbAccess dbAcc;
-    private List<Device> devices = new List<Device>();
     private RequestStateDict states = new RequestStateDict();
-    private StateMatrixDict stateMatrixDict = new StateMatrixDict();
     private bool InitComplete = false;
 
     private bool DisplayTickets = true;
@@ -63,12 +60,9 @@
     {
         try
         {
-            await stateMatrixDict.Init(WorkflowPhases.implementation, apiConnection);
             await states.Init(apiConnection);
 
-            dbAcc = new RequestDbAccess(DisplayMessageInUi, userConfig, apiConnection){};
-            devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
-            reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, dbAcc, stateMatrixDict, devices, WorkflowPhases.implementation){};
+            reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, apiConnection, WorkflowPhases.implementation){};
             await reqHandler.Init();
             reqHandler.SetContinueEnv(ObjAction.implement);
     

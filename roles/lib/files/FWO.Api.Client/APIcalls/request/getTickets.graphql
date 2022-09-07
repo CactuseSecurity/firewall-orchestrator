@@ -1,11 +1,11 @@
-query getTickets ($from_state: Int!, $to_state: Int!){
-  request_ticket(where: {_and: [{state_id: {_gte: $from_state}},{state_id: {_lt: $to_state}}]} order_by: { id: asc }){
+query getTickets($from_state: Int!, $to_state: Int!) {
+  request_ticket(where: {_or: [{_and: [{state_id: {_gte: $from_state}}, {state_id: {_lt: $to_state}}]}, {tasks: {_and: [{state_id: {_gte: $from_state}}, {state_id: {_lt: $to_state}}]}}]}, order_by: {id: asc}) {
     id
     title
     date_created
     date_completed
     state_id
-    requester: uiuser{
+    requester: uiuser {
       uiuser_username
     }
     requester_dn
@@ -14,7 +14,7 @@ query getTickets ($from_state: Int!, $to_state: Int!){
     reason
     external_ticket_id
     external_ticket_source
-    tasks: tasks{
+    tasks: tasks {
       id
       ticket_id
       title
@@ -31,10 +31,10 @@ query getTickets ($from_state: Int!, $to_state: Int!){
       user_grp_id
       reason
       last_recert_date
-      current_handler: uiuser{
+      current_handler: uiuser {
         uiuser_username
       }
-      recent_handler: uiuser{
+      recent_handler: uiuser {
         uiuser_username
       }
       assigned_group
@@ -42,7 +42,7 @@ query getTickets ($from_state: Int!, $to_state: Int!){
       target_end_date
       fw_admin_comments
       device_id
-      elements: elements{
+      elements: elements {
         id
         task_id
         request_action
@@ -55,7 +55,7 @@ query getTickets ($from_state: Int!, $to_state: Int!){
         user_id
         original_nat_id
       }
-      implementation_tasks: tasks{
+      implementation_tasks: tasks {
         id
         request_task_id
         implementation_task_number
@@ -70,13 +70,13 @@ query getTickets ($from_state: Int!, $to_state: Int!){
         svc_grp_id
         nw_obj_grp_id
         user_grp_id
-        current_handler: uiuser{
+        current_handler: uiuser {
           uiuser_username
         }
         target_begin_date
         target_end_date
         fw_admin_comments
-        elements: elements{
+        elements: elements {
           id
           implementation_task_id
           implementation_action
@@ -90,7 +90,7 @@ query getTickets ($from_state: Int!, $to_state: Int!){
           original_nat_id
         }
       }
-      request_approvals: approvals{
+      request_approvals: approvals {
         id
         task_id
         date_opened
@@ -99,8 +99,8 @@ query getTickets ($from_state: Int!, $to_state: Int!){
         approver
         tenant_id
         comment
-	      initial_approval
-	      approval_deadline
+        initial_approval
+        approval_deadline
         state_id
       }
       owners: request_owners {

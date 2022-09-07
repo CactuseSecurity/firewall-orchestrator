@@ -46,10 +46,7 @@
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
     
     private RequestHandler reqHandler;
-    private RequestDbAccess dbAcc;
-    private List<Device> devices = new List<Device>();
     private RequestStateDict states = new RequestStateDict();
-    private StateMatrixDict stateMatrixDict = new StateMatrixDict();
     private bool InitComplete = false;
 
     private int viewOpt = 0;
@@ -59,12 +56,9 @@
     {
         try
         {
-            await stateMatrixDict.Init(WorkflowPhases.request, apiConnection);
             await states.Init(apiConnection);
 
-            dbAcc = new RequestDbAccess(DisplayMessageInUi, userConfig, apiConnection){};
-            devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
-            reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, dbAcc, stateMatrixDict, devices, WorkflowPhases.request){};
+            reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, apiConnection, WorkflowPhases.request){};
             await reqHandler.Init(viewOpt);
             InitComplete = true;
         }

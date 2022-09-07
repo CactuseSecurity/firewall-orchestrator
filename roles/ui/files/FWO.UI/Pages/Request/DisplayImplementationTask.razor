@@ -9,7 +9,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("implementation") + ": " + ReqHandler.ActImplTask.Id)" Show="@ReqHandler.DisplayImplTaskMode" XLarge="true" OnClose="async () => Close()">
+<PopUp Title="@(userConfig.GetText("implementation") + ": " + ReqHandler.ActImplTask.Id)" Show="@ReqHandler.DisplayImplTaskMode" XLarge="true" OnClose="async () => await Close()">
     <Body>
         @if (ReqHandler.DisplayImplTaskMode)
         {
@@ -155,6 +155,18 @@
                         <textarea rows="2" type="text" class="form-control form-control-sm" readonly="@(!ReqHandler.ImplementImplTaskMode)" @bind="ReqHandler.ActImplTask.FwAdminComments" />
                     </div>
                 </div>
+
+                @if(ReqHandler.ImplementImplTaskMode)
+                {
+                    <div class="col-sm-12">
+                        <div class="form-group row justify-content-center">
+                            @foreach(var action in offeredActions)
+                            {
+                                <button class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.Name</button>
+                            }
+                        </div>
+                    </div>
+                }
             </form>
         }
     </Body>
@@ -217,6 +229,8 @@
     List<NwObjectElement> actDestinations = new List<NwObjectElement>();
     List<NwServiceElement> actServices = new List<NwServiceElement>();
     
+    private List<RequestStateAction> offeredActions = new List<RequestStateAction>();
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -236,6 +250,7 @@
         if (ReqHandler.DisplayImplTaskMode)
         {
             InitElements();
+            offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActImplTask, ActionScopes.ImplementationTask);
         }
     }
 
@@ -254,6 +269,11 @@
     private async Task Reset()
     {
         StateHasChanged();
+    }
+
+    private async Task PerformAction(RequestStateAction action)
+    {
+        await ReqHandler.ActionHandler.performAction(action, ReqHandler.ActImplTask, ActionScopes.ImplementationTask);
     }
 
     private void UpdateElements()

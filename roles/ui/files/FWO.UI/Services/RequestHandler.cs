@@ -1,6 +1,6 @@
 ﻿using FWO.Api.Data;
 using FWO.Config.Api;
-
+using FWO.Api.Client;
 
 namespace FWO.Ui.Services
 {
@@ -27,11 +27,13 @@ namespace FWO.Ui.Services
         public RequestTicket ActTicket { get; set; } = new RequestTicket();
         public RequestTask ActReqTask { get; set; } = new RequestTask();
         public ImplementationTask ActImplTask { get; set; } = new ImplementationTask();
+        public RequestApproval ActApproval { get; set; } = new RequestApproval();
+
         public List<Device> Devices = new List<Device>();
         public List<ImplementationTask> AllImplTasks = new List<ImplementationTask>();
         public StateMatrix ActStateMatrix = new StateMatrix();
         public StateMatrix MasterStateMatrix = new StateMatrix();
-
+        public ActionHandler ActionHandler;
         public bool ReadOnlyMode = false;
 
         public bool DisplayTicketMode = false;
@@ -58,29 +60,68 @@ namespace FWO.Ui.Services
 
         private Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
         private UserConfig userConfig;
+        private ApiConnection apiConnection;
         private StateMatrixDict stateMatrixDict = new StateMatrixDict();
         private RequestDbAccess dbAcc;
         private WorkflowPhases phase = WorkflowPhases.request;
+    
 
         private ObjAction contOption = ObjAction.display;
 
 
         public RequestHandler(Action<Exception?, string, string, bool> displayMessageInUi, UserConfig userConfig, 
-            RequestDbAccess dbAcc, StateMatrixDict stateMatrixDict, List<Device> devices, WorkflowPhases phase)
+            ApiConnection apiConnection, WorkflowPhases phase)
         {
             this.DisplayMessageInUi = displayMessageInUi;
             this.userConfig = userConfig;
-            this.stateMatrixDict = stateMatrixDict;
-            this.MasterStateMatrix = stateMatrixDict.Matrices[TaskType.master.ToString()];
-            this.dbAcc = dbAcc;
-            this.Devices = devices;
+            this.apiConnection = apiConnection;
             this.phase = phase;
-            Init();
         }
 
         public async Task Init(int viewOpt = 0)
         {
+            ActionHandler = new ActionHandler(apiConnection, this);
+            await ActionHandler.Init();
+            dbAcc = new RequestDbAccess(DisplayMessageInUi, userConfig, apiConnection, ActionHandler){};
+            Devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
+            await stateMatrixDict.Init(phase, apiConnection);
+            MasterStateMatrix = stateMatrixDict.Matrices[TaskType.master.ToString()];
             TicketList = await dbAcc.FetchTickets(MasterStateMatrix, viewOpt);
+        }
+
+        public StateMatrix StateMatrix(string taskType)
+        {
+            return stateMatrixDict.Matrices[taskType];
+        }
+
+        public async Task AutoPromote(StatefulObject statefulObject, ActionScopes scope)
+        {
+            List<int> possibleStates = ActStateMatrix.getAllowedTransitions(statefulObject.StateId);
+            if(possibleStates.Count == 1)
+            {
+                statefulObject.StateId = possibleStates[0];
+                switch(scope)
+                {
+                    case ActionScopes.Ticket:
+                        SetTicketEnv((RequestTicket)statefulObject);
+                        await PromoteTicket(statefulObject);
+                        break;
+                    case ActionScopes.RequestTask:
+                        SetReqTaskEnv((RequestTask)statefulObject);
+                        await PromoteReqTask(statefulObject);
+                        break;
+                    case ActionScopes.ImplementationTask:
+                        SetImplTaskEnv((ImplementationTask)statefulObject);
+                        await PromoteImplTask(statefulObject);
+                        break;
+                    case ActionScopes.Approval:
+                        await SetApprovalEnv();
+                        await ApproveTask(statefulObject);
+                        break;
+                    default:
+                        break;
+                }
+            }
         }
 
         public void SetContinueEnv(ObjAction action)
@@ -101,13 +142,13 @@ namespace FWO.Ui.Services
 
         // Tickets
 
-        public void SelectTicket (RequestTicket ticket, ObjAction action)
+        public void SelectTicket(RequestTicket ticket, ObjAction action)
         {
             SetTicketEnv(ticket);
             SetTicketOpt(action);
         }
 
-        public void SetTicketEnv (RequestTicket ticket)
+        public void SetTicketEnv(RequestTicket ticket)
         {
             ActTicket = ticket;
             AllImplTasks = new List<ImplementationTask>();
@@ -120,6 +161,7 @@ namespace FWO.Ui.Services
                     AllImplTasks.Add(implTask);
                 }
             }
+            ActStateMatrix = MasterStateMatrix;
         }
 
         public void SetTicketOpt(ObjAction action)
@@ -355,23 +397,59 @@ namespace FWO.Ui.Services
             }
         } 
 
-        public async Task ApproveTask(StatefulObject approval, RequestApproval actApproval)
+        public async Task SetApprovalEnv()
+        {
+            if(ActReqTask.Approvals.Count == 0)
+            {
+                await AddApproval();
+            }
+            ActApproval = ActReqTask.Approvals.Last();  // todo: select own approvals
+            ActApproval.SetOptComment(ActApproval.Comment);
+        }
+
+        public async Task AddApproval(string extParams = "")
+        {
+            ApprovalParams approvalParams = new ApprovalParams();
+            if(extParams != "")
+            {
+                approvalParams = System.Text.Json.JsonSerializer.Deserialize<ApprovalParams>(extParams) ?? throw new Exception("Extparams could not be parsed.");
+            }
+
+            RequestApproval approval = new RequestApproval()
+            {
+                TaskId = ActReqTask.Id,
+                StateId = (extParams != "" ? approvalParams.StateId : ActStateMatrix.LowestEndState),
+                ApproverGroup = (extParams != "" ? approvalParams.ApproverGroup : ""), //get from owner ???,
+                TenantId = ActTicket.TenantId, // ??
+                Deadline = (extParams != "" ? (approvalParams.Deadline > 0 ? DateTime.Now.AddDays(approvalParams.Deadline) : null) 
+                            : (userConfig.ReqApprovalDeadline > 0 ? DateTime.Now.AddDays(userConfig.ReqApprovalDeadline) : null)),
+                InitialApproval = ActReqTask.Approvals.Count == 0
+            };
+            ActReqTask.Approvals.Add(approval);
+            if(!approval.InitialApproval)
+            {
+                await dbAcc.AddApprovalToDb(approval);
+                DisplayMessageInUi!(null, userConfig.GetText("add_approval"), userConfig.GetText("U8002"), false);
+            }
+        }
+
+        public async Task ApproveTask(StatefulObject approval)
         {
             try
             {
-                actApproval.StateId = approval.StateId;
-                actApproval.Comment = approval.OptComment();
-                if(actApproval.StateId >= ActStateMatrix.LowestEndState)
+                ActApproval.StateId = approval.StateId;
+                ActApproval.Comment = approval.OptComment();
+                if(ActApproval.StateId >= ActStateMatrix.LowestEndState)
                 {
-                    actApproval.ApprovalDate = DateTime.Now;
-                    actApproval.ApproverDn = userConfig.User.Dn;
+                    ActApproval.ApprovalDate = DateTime.Now;
+                    ActApproval.ApproverDn = userConfig.User.Dn;
                 }
-                if (actApproval.Sanitize())
+                if (ActApproval.Sanitize())
                 {
                     DisplayMessageInUi!(null, userConfig.GetText("save_approval"), userConfig.GetText("U0001"), true);
                 }
-                await dbAcc.UpdateApprovalInDb(actApproval);
-                ActReqTask.Approvals[ActReqTask.Approvals.FindIndex(x => x.Id == actApproval.Id)] = actApproval;
+                await dbAcc.UpdateApprovalInDb(ActApproval);
+                ActReqTask.Approvals[ActReqTask.Approvals.FindIndex(x => x.Id == ActApproval.Id)] = ActApproval;
                 await UpdateTaskStateFromApprovals();
                 ActTicket.Tasks[ActTicket.Tasks.FindIndex(x => x.Id == ActReqTask.Id)] = ActReqTask;
                 await UpdateTicketStateFromTasks();

@@ -53,6 +53,18 @@
                     </div>
                 </div>
 
+                @if(ReqHandler.EditTicketMode)
+                {
+                    <div class="col-sm-12">
+                        <div class="form-group row justify-content-center">
+                            @foreach(var action in offeredActions)
+                            {
+                                <button class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.Name</button>
+                            }
+                        </div>
+                    </div>
+                }
+
                 @if(Phase < WorkflowPhases.implementation)
                 {
                     <h5>@(userConfig.GetText("tasks"))</h5>
@@ -129,7 +141,16 @@
 
 
     private List<int> possibleStates = new List<int>();
+    private List<RequestStateAction> offeredActions = new List<RequestStateAction>();
 
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ReqHandler.DisplayReqTaskMode)
+        {
+            offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActTicket, ActionScopes.Ticket);
+        }
+    }
 
     private async Task Close()
     {
@@ -139,6 +160,11 @@
     private async Task Reset()
     {
         StateHasChanged();
+    }
+
+    private async Task PerformAction(RequestStateAction action)
+    {
+        await ReqHandler.ActionHandler.performAction(action, ReqHandler.ActTicket, ActionScopes.Ticket);
     }
 
     private bool CheckPromoteTicket()

@@ -56,12 +56,12 @@
             {
                 <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("ticket"))" Field="@(x => x.TicketId)" Sortable="true" Filterable="false" >
                     <Template>
-                        @(implTask.TicketId != null && implTask.TicketId != 0 ? ReqHandler.TicketList[ReqHandler.TicketList.FindIndex(x => x.Id == implTask.TicketId)].Title : "")
+                        @(implTask.TicketId != 0 ? ReqHandler.TicketList[ReqHandler.TicketList.FindIndex(x => x.Id == implTask.TicketId)].Title : "")
                     </Template>
                 </Column>
                 <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("task"))" Field="@(x => x.ReqTaskId)" Sortable="true" Filterable="false" >
                     <Template>
-                        @(implTask.TicketId != null && implTask.TicketId != 0 && implTask.ReqTaskId != null && implTask.ReqTaskId != 0 ?
+                        @(implTask.TicketId != 0 && implTask.ReqTaskId != 0 ?
                             ReqHandler.TicketList[ReqHandler.TicketList.FindIndex(x => x.Id == implTask.TicketId)].Tasks.FirstOrDefault(x => x.Id == implTask.ReqTaskId).Title : "")
                     </Template>
                 </Column>

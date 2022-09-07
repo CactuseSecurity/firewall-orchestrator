@@ -21,4 +21,16 @@ namespace FWO.Api.Data
             TaskId = approval.TaskId;
         }
     }
+
+    public class ApprovalParams
+    {
+        [JsonProperty("state_id"), JsonPropertyName("state_id")]
+        public int StateId { get; set; }
+
+        [JsonProperty("approver_group"), JsonPropertyName("approver_group")]
+        public string ApproverGroup { get; set; } = "";
+
+        [JsonProperty("deadline"), JsonPropertyName("deadline")]
+        public int Deadline { get; set; }
+    }
 }

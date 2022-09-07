@@ -17,7 +17,7 @@
                 <Template>
                     <div class="btn-group">
                         <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowReqTask(context)">@(userConfig.GetText("details"))</button>
-                        @if (ReqHandler.EditTicketMode)
+                        @if (ReqHandler.EditTicketMode && context.StateId < ReqHandler.StateMatrix(context.TaskType).LowestStartedState)
                         {
                             <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => EditReqTask(context)">@(userConfig.GetText("edit"))</button>
                             <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteReqTask(context)">@(userConfig.GetText("delete"))</button>
@@ -25,7 +25,7 @@
                         @if (Phase > WorkflowPhases.request)
                         {
                             <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowApprovals(context)">@(userConfig.GetText("approvals"))</button>
-                            @if (context.StateId < ReqHandler.MasterStateMatrix.LowestStartedState)
+                            @if (context.StateId >= ReqHandler.StateMatrix(context.TaskType).LowestInputState && context.StateId < ReqHandler.StateMatrix(context.TaskType).LowestStartedState)
                             {
                                 <AuthorizeView Roles="admin, approver, planner, implementer, reviewer, fw-admin">
                                     <Authorized Context="ctx">
@@ -36,7 +36,7 @@
                                     </NotAuthorized> 
                                 </AuthorizeView>
                             }
-                            else if (context.StateId < ReqHandler.MasterStateMatrix.LowestEndState)
+                            else if (context.StateId < ReqHandler.StateMatrix(context.TaskType).LowestEndState)
                             {
                                 <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => ContinuePhase(context)">@(userConfig.GetText("continue_" + Phase.ToString()))</button>
                                 @if(Phase == WorkflowPhases.planning)

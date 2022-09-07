@@ -1,4 +1,5 @@
 ﻿@using FWO.Api.Client
+@using FWO.Api.Data
 @using FWO.Config.Api
 @using FWO.Config.Api.Data
 @using FWO.Ui.Services
@@ -37,44 +38,108 @@
         </Table>
     </div>
 
-    <PopUp Title="@(userConfig.GetText("edit_action"))" Show="@EditActionMode" OnClose="() => EditActionMode = false">
+    <PopUp Title="@(userConfig.GetText("edit_action"))" Show="@EditActionMode" Large="true" OnClose="() => EditActionMode = false">
         <Body>
             @if (EditActionMode)
             {
                 <div class="form-group row">
                     <div class="col-sm-2">
-                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
-                        <label class="col-sm-2 col-form-label col-form-label-sm">@(actAction.Id)</label>
+                        <div class="form-group row">
+                            <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                            <label class="col-sm-6 col-form-label col-form-label-sm">@(actAction.Id)</label>
+                        </div>
                     </div>
                     <div class="col-sm-10">
-                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
-                        <input type="text" class="form-control form-control-sm" @bind="actAction.Name" />
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                            <input type="text" class="col-sm-9 form-control form-control-sm" @bind="actAction.Name" />
+                        </div>
                     </div>
                 </div>
                 <div class="form-group row">
-                    <div class="col-sm-6">
-                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("action_type"))*:</label>
-                        <select class="form-control form-control-sm" @bind="actAction.ActionType">
-                            @foreach (string action in Enum.GetNames(typeof(ActionTypes)))
-                            {
-                                <option value="@action">@(userConfig.GetText(action))</option>
-                            }
-                        </select>
+                    <div class="col-sm-4">
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("action_type"))*:</label>
+                            <select class="col-sm-8 form-control form-control-sm" @bind="actAction.ActionType">
+                                @foreach (string action in Enum.GetNames(typeof(ActionTypes)))
+                                {
+                                    <option value="@action">@action</option>
+                                    @* <option value="@action">@(userConfig.GetText(action))</option> *@
+                                }
+                            </select>
+                        </div>
                     </div>
-                    <div class="col-sm-6">
-                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("scope")):</label>
-                        <input type="text" class="form-control form-control-sm" @bind="actAction.Scope" />
+                    <div class="col-sm-4">
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("scope")):</label>
+                            <select class="col-sm-8 form-control form-control-sm" @bind="actAction.Scope">
+                                @foreach (string scope in Enum.GetNames(typeof(ActionScopes)))
+                                {
+                                    <option value="@scope">@scope</option>
+                                    @* <option value="@scope">@(userConfig.GetText(scope))</option> *@
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("event")):</label>
+                            <select class="col-sm-8 form-control form-control-sm" @bind="actAction.Event">
+                                @foreach (string eventt in Enum.GetNames(typeof(ActionEvents)))
+                                {
+                                    <option value="@eventt">@eventt</option>
+                                    @* <option value="@eventt">@(userConfig.GetText(eventt))</option> *@
+                                }
+                            </select>
+                        </div>
                     </div>
                 </div>
                 <div class="form-group row">
-                    <div class="col-sm-6">
-                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("event")):</label>
-                        <input type="text" class="form-control form-control-sm" @bind="actAction.Event" />
-                    </div>
-                    <div class="col-sm-6">
-                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("external_params")):</label>
-                        <input type="text" class="form-control form-control-sm" @bind="actAction.ExternalParams" />
-                    </div>
+                    @switch (actAction.ActionType)
+                    {
+                        case nameof(ActionTypes.SetAlert):
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("message_text")):</label>
+                            <input type="text" class="col-sm-9 form-control form-control-sm" @bind="actAction.ExternalParams" />
+                            break;
+                        case nameof(ActionTypes.AddApproval):
+                            <div class="col-sm-4">
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
+                                    <div class="col-sm-8">
+                                        <select id="selectState" class="form-control form-control-sm" @bind="actApprovalParams.StateId">
+                                            @foreach (var state in states)
+                                            {
+                                                <option value="@state.Id">@(state.Name)</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-4">
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("group")):</label>
+                                    <div class="col-sm-8">
+                                        <select id="selectGroup" class="form-control form-control-sm" @bind="actApprovalParams.ApproverGroup">
+                                            @foreach (var group in groups)
+                                            {
+                                                <option value="@group">@(group)</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-4">
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("deadline")):</label>
+                                    <input type="number" class="col-sm-8 form-control form-control-sm" @bind="actApprovalParams.Deadline" />
+                                </div>
+                            </div>
+                            break;
+                        case nameof(ActionTypes.ExternalCall):
+                            break;
+                        default:
+                            break;
+                    }
                 </div>
             }
         </Body>
@@ -128,8 +193,11 @@ else
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
     private List<RequestStateAction> actions = new List<RequestStateAction>();
+    private List<RequestState> states = new List<RequestState>();
+    private List<string> groups = new List<string>();
 
     private RequestStateAction actAction = new RequestStateAction();
+    private ApprovalParams actApprovalParams = new ApprovalParams();
 
     private bool EditActionMode = false;
     private bool AddActionMode = false;
@@ -146,8 +214,8 @@ else
     {
         try
         {
-            actions = new List<RequestStateAction>();
             actions = await apiConnection.SendQueryAsync<List<RequestStateAction>>(FWO.Api.Client.Queries.RequestQueries.getActions);
+            states = await apiConnection.SendQueryAsync<List<RequestState>>(FWO.Api.Client.Queries.RequestQueries.getStates);
         }
         catch (Exception exception)
         {
@@ -155,22 +223,29 @@ else
         }
     }
 
-
-
     private void AddAction()
     {
         AddActionMode = true;
         EditAction(new RequestStateAction());
     }
 
-    private void EditAction(RequestStateAction state)
+    private void EditAction(RequestStateAction action)
     {
-        actAction = state;
+        actAction = action;
+        if(action.ExternalParams != "" && action.ExternalParams != "{}")
+        {
+            actApprovalParams = System.Text.Json.JsonSerializer.Deserialize<ApprovalParams>(action.ExternalParams) ?? throw new Exception("Extparams could not be parsed.");
+        }
         EditActionMode = true;
     }
 
     private async Task SaveAction()
     {
+        if(actAction.ActionType == ActionTypes.AddApproval.ToString())
+        {
+            actAction.ExternalParams = JsonSerializer.Serialize(actApprovalParams);
+        }
+
         if(AddActionMode)
         {
             var Variables = new

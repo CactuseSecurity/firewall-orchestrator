@@ -220,6 +220,18 @@
                     </div>
                 }
 
+                @if(ReqHandler.PlanReqTaskMode || ReqHandler.ApproveReqTaskMode)
+                {
+                    <div class="col-sm-12">
+                        <div class="form-group row justify-content-center">
+                            @foreach(var action in offeredActions)
+                            {
+                                <button class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.Name</button>
+                            }
+                        </div>
+                    </div>
+                }
+
                 @if(Phase == WorkflowPhases.planning || ReqHandler.ActReqTask.ImplementationTasks.Count > 0)
                 {
                     <h5>@(userConfig.GetText("implementation_tasks"))</h5>
@@ -273,7 +285,7 @@
 </PopUp>
 
 <PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Close" ObjectName="task" Save="ConfPromoteReqTask" StatefulObject="ReqHandler.ActReqTask" StateMatrix="ReqHandler.ActStateMatrix" States="States"/>
-<PromoteObject @bind-Promote="ReqHandler.DisplayApproveMode" ResetParent="Close" ObjectName="approval" WithComment="true" Save="ConfApproveTask" StatefulObject="actApproval" StateMatrix="ReqHandler.ActStateMatrix" States="States"/>
+<PromoteObject @bind-Promote="ReqHandler.DisplayApproveMode" ResetParent="Close" ObjectName="approval" WithComment="true" Save="ConfApproveTask" StatefulObject="ReqHandler.ActApproval" StateMatrix="ReqHandler.ActStateMatrix" States="States"/>
 
 @code
 {
@@ -299,16 +311,15 @@
     public Func<ImplementationTask, Task>? StartImplPhase { get; set; }
 
 
-
     private List<TaskType> availableTaskTypes { get; set; } = new List<TaskType>();
     private List<RuleAction> ruleActions = new List<RuleAction>();
     private List<Tracking> trackings = new List<Tracking>();
     
-    private RequestApproval actApproval = new RequestApproval();
-    
     List<NwObjectElement> actSources = new List<NwObjectElement>();
     List<NwObjectElement> actDestinations = new List<NwObjectElement>();
     List<NwServiceElement> actServices = new List<NwServiceElement>();
+
+    private List<RequestStateAction> offeredActions = new List<RequestStateAction>();
     
 
     protected override async Task OnInitializedAsync()
@@ -331,6 +342,7 @@
         if (ReqHandler.DisplayReqTaskMode)
         {
             InitElements();
+            offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActReqTask, ActionScopes.RequestTask);
         }
     }
 
@@ -351,6 +363,11 @@
         StateHasChanged();
     }
 
+    private async Task PerformAction(RequestStateAction action)
+    {
+        await ReqHandler.ActionHandler.performAction(action, ReqHandler.ActReqTask, ActionScopes.RequestTask);
+    }
+
     private async Task InitPromoteReqTask()
     {
         ReqHandler.SetReqTaskPopUpOpt(ObjAction.displayPromote);
@@ -363,32 +380,14 @@
 
     private async Task InitApproveTask()
     {
-        if(ReqHandler.ActReqTask.Approvals.Count == 0)
-        {
-            AddApproval();
-        }
-        actApproval = ReqHandler.ActReqTask.Approvals.Last();  // todo: select own approvals
-        actApproval.SetOptComment(actApproval.Comment);
+        await ReqHandler.SetApprovalEnv();
         ReqHandler.SetReqTaskPopUpOpt(ObjAction.displayApprove);
         StateHasChanged();
     }
 
     private async Task ConfApproveTask(StatefulObject approval)
     {
-        await ReqHandler.ApproveTask(approval, actApproval);
-    }
-
-    private void AddApproval()
-    {
-        RequestApproval approval = new RequestApproval()
-        {
-            StateId = ReqHandler.ActStateMatrix.LowestEndState,
-            // ApproverGroup = get from owner ???,
-            TenantId = ReqHandler.ActTicket.TenantId, // ??
-            Deadline = userConfig.ReqApprovalDeadline > 0 ? DateTime.Now.AddDays(userConfig.ReqApprovalDeadline) : null,
-            InitialApproval = true
-        };
-        ReqHandler.ActReqTask.Approvals.Add(approval);
+        await ReqHandler.ApproveTask(approval);
     }
 
     private void UpdateElements()
@@ -434,7 +433,7 @@
             {
                 if (ReqHandler.AddReqTaskMode)
                 {
-                    AddApproval();
+                    await ReqHandler.AddApproval();
                     ReqHandler.ActReqTask.TaskNumber = ReqHandler.ActTicket.HighestTaskNumber() + 1;
                     await ReqHandler.AddReqTask();
                 }

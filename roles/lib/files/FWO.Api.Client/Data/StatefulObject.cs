@@ -6,9 +6,12 @@ namespace FWO.Api.Data
     public class StatefulObject
     {
         [JsonProperty("state_id"), JsonPropertyName("state_id")]
-        public int StateId { get; set; }
+        public int StateId { get { return stateId; } set { oldStateId = stateId; stateId = value; } }
 
-        private string? optComment; // else we get problems with request_task_arr_rel_insert_input in newTicket
+         // need private declarations, else we get problems with request_task_arr_rel_insert_input in newTicket
+        private int stateId;
+        private int oldStateId;
+        private string? optComment;
 
         public string? OptComment()
         {
@@ -20,12 +23,24 @@ namespace FWO.Api.Data
             optComment = comm;
         }
 
+        public bool StateChanged()
+        {
+            return oldStateId != StateId;
+        }
+
+        public void ResetStateChanged()
+        {
+            oldStateId = StateId;
+        }
+
         public StatefulObject()
         { }
 
         public StatefulObject(StatefulObject obj)
         {
-            StateId = obj.StateId;
+            stateId = obj.stateId;
+            oldStateId = obj.oldStateId;
+            optComment = obj.optComment;
         }
 
         public virtual bool Sanitize()

@@ -6,16 +6,18 @@ namespace FWO.Ui.Services
 {
     public class RequestDbAccess
     {
-        Action<Exception?, string, string, bool>? DisplayMessageInUi;
-        UserConfig UserConfig;
-        ApiConnection ApiConnection;
+        private Action<Exception?, string, string, bool>? DisplayMessageInUi;
+        private UserConfig UserConfig;
+        private ApiConnection ApiConnection;
+        private ActionHandler ActionHandler;
 
 
-        public RequestDbAccess(Action<Exception?, string, string, bool> displayMessageInUi, UserConfig userConfig, ApiConnection apiConnection)
+        public RequestDbAccess(Action<Exception?, string, string, bool> displayMessageInUi, UserConfig userConfig, ApiConnection apiConnection, ActionHandler actionHandler)
         {
             DisplayMessageInUi = displayMessageInUi;
             UserConfig = userConfig;
             ApiConnection = apiConnection;
+            ActionHandler = actionHandler;
         }
 
         public async Task<List<RequestTicket>> FetchTickets(StateMatrix stateMatrix, int viewOpt = 0)
@@ -66,6 +68,7 @@ namespace FWO.Ui.Services
                 {
                     ticket.Id = returnIds[0].NewId;
                     requests.Add(ticket);
+                    await ActionHandler.DoOnSetActions(ticket, ActionScopes.Ticket);
                 }
             }
             catch (Exception exception)
@@ -99,6 +102,7 @@ namespace FWO.Ui.Services
                         await UpdateReqTaskStateInDb(task);
                     }
                     requests[requests.FindIndex(x => x.Id == ticket.Id)] = ticket;
+                    await ActionHandler.DoOnSetActions(ticket, ActionScopes.Ticket);
                 }
             }
             catch (Exception exception)
@@ -147,6 +151,7 @@ namespace FWO.Ui.Services
                         approval.TaskId = returnId;
                         await AddApprovalToDb(approval);
                     }
+                    await ActionHandler.DoOnSetActions(task, ActionScopes.RequestTask);
                 }
             }
             catch (Exception exception)
@@ -199,6 +204,7 @@ namespace FWO.Ui.Services
                             await UpdateReqElementInDb(element);
                         }
                     }
+                    await ActionHandler.DoOnSetActions(task, ActionScopes.RequestTask);
                 }
             }
             catch (Exception exception)
@@ -330,6 +336,7 @@ namespace FWO.Ui.Services
                 else
                 {
                     returnId = returnIds[0].NewId;
+                    await ActionHandler.DoOnSetActions(approval, ActionScopes.Approval);
                 }
             }
             catch (Exception exception)
@@ -356,6 +363,10 @@ namespace FWO.Ui.Services
                 {
                     DisplayMessageInUi!(null, UserConfig.GetText("save_approval"), UserConfig.GetText("E8004"), true);
                 }
+                else
+                {
+                    await ActionHandler.DoOnSetActions(approval, ActionScopes.Approval);
+                }
             }
             catch (Exception exception)
             {
@@ -375,6 +386,7 @@ namespace FWO.Ui.Services
                     reqTaskId = task.ReqTaskId,
                     implIaskNumber = task.ImplTaskNumber,
                     state = task.StateId,
+                    taskType = task.TaskType,
                     device = task.DeviceId,
                     implAction = task.ImplAction,
                     ruleAction = task.RuleAction,
@@ -397,6 +409,7 @@ namespace FWO.Ui.Services
                         element.ImplTaskId = returnId;
                         element.Id = await AddImplElementToDb(element);
                     }
+                    await ActionHandler.DoOnSetActions(task, ActionScopes.ImplementationTask);
                 }
             }
             catch (Exception exception)
@@ -416,6 +429,7 @@ namespace FWO.Ui.Services
                     reqTaskId = task.ReqTaskId,
                     implIaskNumber = task.ImplTaskNumber,
                     state = task.StateId,
+                    taskType = task.TaskType,
                     device = task.DeviceId,
                     implAction = task.ImplAction,
                     ruleAction = task.RuleAction,
@@ -449,6 +463,7 @@ namespace FWO.Ui.Services
                             await UpdateImplElementInDb(element);
                         }
                     }
+                    await ActionHandler.DoOnSetActions(task, ActionScopes.ImplementationTask);
                 }
             }
             catch (Exception exception)
@@ -574,6 +589,10 @@ namespace FWO.Ui.Services
                 {
                     DisplayMessageInUi!(null, UserConfig.GetText("save_request"), UserConfig.GetText("E8002"), true);
                 }
+                else
+                {
+                    await ActionHandler.DoOnSetActions(ticket, ActionScopes.Ticket);
+                }
             }
             catch (Exception exception)
             {
@@ -601,6 +620,10 @@ namespace FWO.Ui.Services
                 {
                     DisplayMessageInUi!(null, UserConfig.GetText("save_task"), UserConfig.GetText("E8004"), true);
                 }
+                else
+                {
+                    await ActionHandler.DoOnSetActions(task, ActionScopes.RequestTask);
+                }
             }
             catch (Exception exception)
             {
@@ -624,6 +647,10 @@ namespace FWO.Ui.Services
                 if(udId != task.Id)
                 {
                     DisplayMessageInUi!(null, UserConfig.GetText("save_task"), UserConfig.GetText("E8004"), true);
+                }
+                else
+                {
+                    await ActionHandler.DoOnSetActions(task, ActionScopes.ImplementationTask);
                 }
             }
             catch (Exception exception)

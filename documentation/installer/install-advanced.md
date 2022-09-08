@@ -269,7 +269,7 @@ put the hosts into the correct section (`[frontends]`, `[backends]`, `[importers
 
 make sure all target hosts meet the requirements for ansible (user with pub key auth & full sudo rights)
 
-modify isohome/etc/iso.conf on frontend(s):
+modify isohome/etc/iso.conf on frontend(s) - only needed for legacy (perl-based) importers:
 
 enter the address of the database backend server, e.g.
 

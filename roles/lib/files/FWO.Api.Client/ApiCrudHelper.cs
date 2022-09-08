@@ -26,4 +26,16 @@ namespace FWO.Api.Client
         [JsonProperty("returning"), JsonPropertyName("returning")]
         public ReturnId[]? ReturnIds { get; set; }
     }
+
+    public class AggregateCount
+    {
+        [JsonProperty("aggregate"), JsonPropertyName("aggregate")]
+        public Aggregate Aggregate {get; set;}
+    }
+
+    public class Aggregate
+    {
+        [JsonProperty("count"), JsonPropertyName("count")]     
+        public int Count { get; set; }
+    }
 }

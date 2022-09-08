@@ -108,6 +108,16 @@ namespace FWO.Middleware.Server
                 }
             }
 
+            List<ImportCredential> credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(FWO.Api.Client.Queries.DeviceQueries.getCredentials);
+            bool sampleCredentialExisting = false;
+            foreach (var credential in credentials)
+            {
+                if (credential.Name.EndsWith("_demo"))
+                {
+                    sampleCredentialExisting = true;
+                }
+            }
+
             List<UiUser> users = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
             bool sampleUserExisting = false;
             foreach (var user in users)
@@ -146,9 +156,10 @@ namespace FWO.Middleware.Server
             }
 
             string description = "";
-            if(sampleManagementExisting || sampleUserExisting || sampleTenantExisting || sampleGroupExisting)
+            if(sampleManagementExisting || sampleCredentialExisting || sampleUserExisting || sampleTenantExisting || sampleGroupExisting)
             {
                 description = globalConfig.GetText("sample_data_found_in") + (sampleManagementExisting ? globalConfig.GetText("managements") + " " : "") +
+                                                        (sampleCredentialExisting ? globalConfig.GetText("import_credential") + " " : "") +
                                                         (sampleUserExisting ? globalConfig.GetText("users") + " " : "") +
                                                         (sampleTenantExisting ? globalConfig.GetText("tenants") + " " : "") +
                                                         (sampleGroupExisting ? globalConfig.GetText("groups") : "");

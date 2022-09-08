@@ -27,7 +27,7 @@ namespace FWO.DeviceAutoDiscovery
                 Log.WriteDebug("Autodiscovery", $"discovering FortiManager adoms, vdoms, devices");
                 FortiManagerClient restClientFM = new FortiManagerClient(superManagement);
 
-                RestResponse<SessionAuthInfo> sessionResponse = await restClientFM.AuthenticateUser(superManagement.ImportUser, superManagement.Secret);
+                RestResponse<SessionAuthInfo> sessionResponse = await restClientFM.AuthenticateUser(superManagement.ImportCredential.ImportUser, superManagement.ImportCredential.Secret);
                 if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && sessionResponse?.Data?.SessionId != null && sessionResponse?.Data?.SessionId != "")
                 {
                     string sessionId = sessionResponse!.Data!.SessionId;
@@ -77,8 +77,7 @@ namespace FWO.DeviceAutoDiscovery
                                 Name = superManagement.Name + "__" + adom.Name,
                                 ImporterHostname = superManagement.ImporterHostname,
                                 Hostname = superManagement.Hostname,
-                                ImportUser = superManagement.ImportUser,
-                                Secret = superManagement.Secret,
+                                ImportCredential = new ImportCredential(superManagement.ImportCredential.ImportUser, superManagement.ImportCredential.Secret),
                                 Port = superManagement.Port,
                                 ImportDisabled = false,
                                 ForceInitialImport = true,

@@ -39,7 +39,7 @@ WHERE pg_stat_activity.datname = '[Database to copy]'
 AND pid <> pg_backend_pid();
 ```
 
-### quick and dirty debugging
+### Check database
 
 ```
 ...$ sudo su - postgres
@@ -47,5 +47,5 @@ AND pid <> pg_backend_pid();
 postgres-# \c fworchdb
 fworchdb-# \dt
 fworchdb-# \x
-fworchdb-# SELECT * FROM my_table;
+fworchdb-# SELECT * FROM management;
 ```

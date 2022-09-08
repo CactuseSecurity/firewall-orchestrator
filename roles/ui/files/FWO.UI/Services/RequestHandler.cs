@@ -29,6 +29,7 @@ namespace FWO.Ui.Services
         public ImplementationTask ActImplTask { get; set; } = new ImplementationTask();
         public RequestApproval ActApproval { get; set; } = new RequestApproval();
 
+        public WorkflowPhases Phase = WorkflowPhases.request;
         public List<Device> Devices = new List<Device>();
         public List<ImplementationTask> AllImplTasks = new List<ImplementationTask>();
         public StateMatrix ActStateMatrix = new StateMatrix();
@@ -63,7 +64,6 @@ namespace FWO.Ui.Services
         private ApiConnection apiConnection;
         private StateMatrixDict stateMatrixDict = new StateMatrixDict();
         private RequestDbAccess dbAcc;
-        private WorkflowPhases phase = WorkflowPhases.request;
     
 
         private ObjAction contOption = ObjAction.display;
@@ -75,7 +75,7 @@ namespace FWO.Ui.Services
             this.DisplayMessageInUi = displayMessageInUi;
             this.userConfig = userConfig;
             this.apiConnection = apiConnection;
-            this.phase = phase;
+            this.Phase = phase;
         }
 
         public async Task Init(int viewOpt = 0)
@@ -84,7 +84,7 @@ namespace FWO.Ui.Services
             await ActionHandler.Init();
             dbAcc = new RequestDbAccess(DisplayMessageInUi, userConfig, apiConnection, ActionHandler){};
             Devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
-            await stateMatrixDict.Init(phase, apiConnection);
+            await stateMatrixDict.Init(Phase, apiConnection);
             MasterStateMatrix = stateMatrixDict.Matrices[TaskType.master.ToString()];
             TicketList = await dbAcc.FetchTickets(MasterStateMatrix, viewOpt);
         }
@@ -94,12 +94,26 @@ namespace FWO.Ui.Services
             return stateMatrixDict.Matrices[taskType];
         }
 
-        public async Task AutoPromote(StatefulObject statefulObject, ActionScopes scope)
+        public async Task AutoPromote(StatefulObject statefulObject, ActionScopes scope, int? toStateId)
         {
-            List<int> possibleStates = ActStateMatrix.getAllowedTransitions(statefulObject.StateId);
-            if(possibleStates.Count == 1)
+            bool promotePossible = false;
+            if(toStateId != null)
             {
-                statefulObject.StateId = possibleStates[0];
+                statefulObject.StateId = (int)toStateId;
+                promotePossible = true;
+            }
+            else
+            {
+                List<int> possibleStates = ActStateMatrix.getAllowedTransitions(statefulObject.StateId);
+                if(possibleStates.Count == 1)
+                {
+                    statefulObject.StateId = possibleStates[0];
+                    promotePossible = true;
+                }
+            }
+            
+            if(promotePossible)
+            {
                 switch(scope)
                 {
                     case ActionScopes.Ticket:
@@ -372,13 +386,13 @@ namespace FWO.Ui.Services
                     ActReqTask.Start = DateTime.Now;
                     ActReqTask.CurrentHandler = userConfig.User;
                 }
-                if (phase == WorkflowPhases.planning && ActReqTask.Stop == null && ActReqTask.StateId >= ActStateMatrix.LowestEndState)
+                if (Phase == WorkflowPhases.planning && ActReqTask.Stop == null && ActReqTask.StateId >= ActStateMatrix.LowestEndState)
                 {
                     ActReqTask.Stop = DateTime.Now;
                 }
                 await dbAcc.UpdateReqTaskStateInDb(ActReqTask);
 
-                if(phase == WorkflowPhases.planning)
+                if(Phase == WorkflowPhases.planning)
                 {
                     foreach(ImplementationTask implTask in ActReqTask.ImplementationTasks)
                     {
@@ -419,7 +433,7 @@ namespace FWO.Ui.Services
             {
                 TaskId = ActReqTask.Id,
                 StateId = (extParams != "" ? approvalParams.StateId : ActStateMatrix.LowestEndState),
-                ApproverGroup = (extParams != "" ? approvalParams.ApproverGroup : ""), //get from owner ???,
+                ApproverGroup = (extParams != "" ? approvalParams.ApproverGroup : ""), // todo: get from owner ???,
                 TenantId = ActTicket.TenantId, // ??
                 Deadline = (extParams != "" ? (approvalParams.Deadline > 0 ? DateTime.Now.AddDays(approvalParams.Deadline) : null) 
                             : (userConfig.ReqApprovalDeadline > 0 ? DateTime.Now.AddDays(userConfig.ReqApprovalDeadline) : null)),
@@ -428,6 +442,7 @@ namespace FWO.Ui.Services
             ActReqTask.Approvals.Add(approval);
             if(!approval.InitialApproval)
             {
+                // todo: checks if new approval allowed (only one open per group?, ...)
                 await dbAcc.AddApprovalToDb(approval);
                 DisplayMessageInUi!(null, userConfig.GetText("add_approval"), userConfig.GetText("U8002"), false);
             }
@@ -557,7 +572,7 @@ namespace FWO.Ui.Services
                 SetImplTaskEnv(ActImplTask);
                 ActImplTask.StateId = implTask.StateId;
                 ActImplTask.CurrentHandler = userConfig.User;
-                if (phase == WorkflowPhases.implementation && ActImplTask.Stop == null && ActImplTask.StateId >= ActStateMatrix.LowestEndState)
+                if (Phase == WorkflowPhases.implementation && ActImplTask.Stop == null && ActImplTask.StateId >= ActStateMatrix.LowestEndState)
                 {
                     ActImplTask.Stop = DateTime.Now;
                 }
@@ -693,7 +708,7 @@ namespace FWO.Ui.Services
                     alreadyExistingImplTask = true;
                 }
             }
-            if(phase <= WorkflowPhases.approval && ActTicket.Tasks.Count > 0 && !alreadyExistingImplTask &&
+            if(Phase <= WorkflowPhases.approval && ActTicket.Tasks.Count > 0 && !alreadyExistingImplTask &&
                 !MasterStateMatrix.PhaseActive[WorkflowPhases.planning] && ActTicket.StateId >= MasterStateMatrix.LowestEndState)
             {
                 await AutoCreateImplTasks();

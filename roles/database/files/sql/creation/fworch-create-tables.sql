@@ -1045,18 +1045,20 @@ create table if not exists request.ticket
 create table if not exists request.state
 (
     id Integer NOT NULL UNIQUE,
-    name VARCHAR NOT NULL,
+    name Varchar NOT NULL,
 	primary key ("id")
 );
 
 create table if not exists request.action
 (
     id SERIAL PRIMARY KEY,
-    name VARCHAR NOT NULL, -- e.g. "add approval"
-	action_type Varchar NOT NULL, -- ref on internal function e.g. AddApproval() / Display button for something
-	scope Varchar, -- ticket/reqtask/impltask/approval...
-	event Varchar, -- on set / while set / on leave(?) ...
-	external_parameters Varchar -- serialized (?) params for external call, e.g. compliance check service
+    name Varchar NOT NULL,
+	action_type Varchar NOT NULL,
+	scope Varchar,
+	task_type Varchar,
+	phase Varchar,
+	event Varchar,
+	external_parameters Varchar
 );
 
 create table if not exists request.state_action

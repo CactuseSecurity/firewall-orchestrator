@@ -6,11 +6,24 @@ namespace FWO.Api.Data
     public class StatefulObject
     {
         [JsonProperty("state_id"), JsonPropertyName("state_id")]
-        public int StateId { get { return stateId; } set { oldStateId = stateId; stateId = value; } }
+        public int StateId 
+        { 
+            get { return stateId; } 
+            set 
+            {
+                if(!stateChanged)
+                {
+                    stateChanged = oldStateId != value;
+                    oldStateId = stateId;
+                }
+                stateId = value; 
+            } 
+        }
 
          // need private declarations, else we get problems with request_task_arr_rel_insert_input in newTicket
         private int stateId;
         private int oldStateId;
+        private bool stateChanged = false;
         private string? optComment;
 
         public string? OptComment()
@@ -25,12 +38,18 @@ namespace FWO.Api.Data
 
         public bool StateChanged()
         {
-            return oldStateId != StateId;
+            return stateChanged;
+        }
+
+        public int ChangedFrom()
+        {
+            return oldStateId;
         }
 
         public void ResetStateChanged()
         {
-            oldStateId = StateId;
+            oldStateId = stateId;
+            stateChanged = false;
         }
 
         public StatefulObject()
@@ -40,6 +59,7 @@ namespace FWO.Api.Data
         {
             stateId = obj.stateId;
             oldStateId = obj.oldStateId;
+            stateChanged = obj.stateChanged;
             optComment = obj.optComment;
         }
 

@@ -693,12 +693,20 @@ INSERT INTO txt VALUES ('scope', 			    'German', 	'Geltungsbereich');
 INSERT INTO txt VALUES ('scope', 			    'English', 	'Scope');
 INSERT INTO txt VALUES ('event', 			    'German', 	'Ereignis');
 INSERT INTO txt VALUES ('event', 			    'English', 	'Event');
+INSERT INTO txt VALUES ('phase', 			    'German', 	'Phase');
+INSERT INTO txt VALUES ('phase', 			    'English', 	'Phase');
+INSERT INTO txt VALUES ('task_type', 			'German', 	'Tasktyp');
+INSERT INTO txt VALUES ('task_type', 			'English', 	'Task type');
 INSERT INTO txt VALUES ('action_type', 		    'German', 	'Aktionstyp Ref');
 INSERT INTO txt VALUES ('action_type', 		    'English', 	'Action type');
 INSERT INTO txt VALUES ('external_params', 		'German', 	'Externe Parameter');
 INSERT INTO txt VALUES ('external_params', 		'English', 	'External params');
 INSERT INTO txt VALUES ('message_text', 		'German', 	'Nachricht');
 INSERT INTO txt VALUES ('message_text', 		'English', 	'Message text');
+INSERT INTO txt VALUES ('to_state', 		    'German', 	'Zielstatus');
+INSERT INTO txt VALUES ('to_state', 		    'English', 	'to State');
+INSERT INTO txt VALUES ('automatic', 		    'German', 	'Automatisch');
+INSERT INTO txt VALUES ('automatic', 		    'English', 	'Automatic');
 
 -- recertification
 INSERT INTO txt VALUES ('recertify',		    'German', 	'Rezertifizieren');

@@ -250,7 +250,7 @@
         if (ReqHandler.DisplayImplTaskMode)
         {
             InitElements();
-            offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActImplTask, ActionScopes.ImplementationTask);
+            offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActImplTask, ActionScopes.ImplementationTask, ReqHandler.Phase);
         }
     }
 

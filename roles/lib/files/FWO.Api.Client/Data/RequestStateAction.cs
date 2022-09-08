@@ -25,8 +25,8 @@ namespace FWO.Api.Data
     {
         None = 0,
         OnSet = 1,
-        WhileSet = 2,
-        OnLeave = 3,
+        OnLeave = 2,
+        // WhileSet = 3,
         OfferButton = 4
     }
 
@@ -43,6 +43,12 @@ namespace FWO.Api.Data
 
         [JsonProperty("scope"), JsonPropertyName("scope")]
         public string Scope { get; set; } = ActionScopes.None.ToString();
+
+        [JsonProperty("task_type"), JsonPropertyName("task_type")]
+        public string TaskType { get; set; } = "";
+
+        [JsonProperty("phase"), JsonPropertyName("phase")]
+        public string Phase { get; set; } = "";
 
         [JsonProperty("event"), JsonPropertyName("event")]
         public string? Event { get; set; } = ActionEvents.None.ToString();

@@ -342,7 +342,7 @@
         if (ReqHandler.DisplayReqTaskMode)
         {
             InitElements();
-            offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActReqTask, ActionScopes.RequestTask);
+            offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActReqTask, ActionScopes.RequestTask, ReqHandler.Phase);
         }
     }
 

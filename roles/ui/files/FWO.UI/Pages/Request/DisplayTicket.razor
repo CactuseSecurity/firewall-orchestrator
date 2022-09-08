@@ -148,7 +148,7 @@
     {
         if (ReqHandler.DisplayReqTaskMode)
         {
-            offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActTicket, ActionScopes.Ticket);
+            offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActTicket, ActionScopes.Ticket, ReqHandler.Phase);
         }
     }
 

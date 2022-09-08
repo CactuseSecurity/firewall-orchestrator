@@ -225,7 +225,12 @@ else
     private void AddState()
     {
         AddStateMode = true;
-        EditState(new RequestState());
+        int firstFreeId = 0;
+        while (states.Find(x => x.Id == firstFreeId) != null)
+        {
+            firstFreeId++;
+        }
+        EditState(new RequestState(){ Id = firstFreeId });
     }
 
     private void EditState(RequestState state)

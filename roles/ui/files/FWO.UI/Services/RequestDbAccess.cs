@@ -68,7 +68,7 @@ namespace FWO.Ui.Services
                 {
                     ticket.Id = returnIds[0].NewId;
                     requests.Add(ticket);
-                    await ActionHandler.DoOnSetActions(ticket, ActionScopes.Ticket);
+                    await ActionHandler.DoStateChangeActions(ticket, ActionScopes.Ticket);
                 }
             }
             catch (Exception exception)
@@ -102,7 +102,7 @@ namespace FWO.Ui.Services
                         await UpdateReqTaskStateInDb(task);
                     }
                     requests[requests.FindIndex(x => x.Id == ticket.Id)] = ticket;
-                    await ActionHandler.DoOnSetActions(ticket, ActionScopes.Ticket);
+                    await ActionHandler.DoStateChangeActions(ticket, ActionScopes.Ticket);
                 }
             }
             catch (Exception exception)
@@ -151,7 +151,7 @@ namespace FWO.Ui.Services
                         approval.TaskId = returnId;
                         await AddApprovalToDb(approval);
                     }
-                    await ActionHandler.DoOnSetActions(task, ActionScopes.RequestTask);
+                    await ActionHandler.DoStateChangeActions(task, ActionScopes.RequestTask);
                 }
             }
             catch (Exception exception)
@@ -204,7 +204,7 @@ namespace FWO.Ui.Services
                             await UpdateReqElementInDb(element);
                         }
                     }
-                    await ActionHandler.DoOnSetActions(task, ActionScopes.RequestTask);
+                    await ActionHandler.DoStateChangeActions(task, ActionScopes.RequestTask);
                 }
             }
             catch (Exception exception)
@@ -336,7 +336,7 @@ namespace FWO.Ui.Services
                 else
                 {
                     returnId = returnIds[0].NewId;
-                    await ActionHandler.DoOnSetActions(approval, ActionScopes.Approval);
+                    await ActionHandler.DoStateChangeActions(approval, ActionScopes.Approval);
                 }
             }
             catch (Exception exception)
@@ -365,7 +365,7 @@ namespace FWO.Ui.Services
                 }
                 else
                 {
-                    await ActionHandler.DoOnSetActions(approval, ActionScopes.Approval);
+                    await ActionHandler.DoStateChangeActions(approval, ActionScopes.Approval);
                 }
             }
             catch (Exception exception)
@@ -409,7 +409,7 @@ namespace FWO.Ui.Services
                         element.ImplTaskId = returnId;
                         element.Id = await AddImplElementToDb(element);
                     }
-                    await ActionHandler.DoOnSetActions(task, ActionScopes.ImplementationTask);
+                    await ActionHandler.DoStateChangeActions(task, ActionScopes.ImplementationTask);
                 }
             }
             catch (Exception exception)
@@ -463,7 +463,7 @@ namespace FWO.Ui.Services
                             await UpdateImplElementInDb(element);
                         }
                     }
-                    await ActionHandler.DoOnSetActions(task, ActionScopes.ImplementationTask);
+                    await ActionHandler.DoStateChangeActions(task, ActionScopes.ImplementationTask);
                 }
             }
             catch (Exception exception)
@@ -591,7 +591,7 @@ namespace FWO.Ui.Services
                 }
                 else
                 {
-                    await ActionHandler.DoOnSetActions(ticket, ActionScopes.Ticket);
+                    await ActionHandler.DoStateChangeActions(ticket, ActionScopes.Ticket);
                 }
             }
             catch (Exception exception)
@@ -622,7 +622,7 @@ namespace FWO.Ui.Services
                 }
                 else
                 {
-                    await ActionHandler.DoOnSetActions(task, ActionScopes.RequestTask);
+                    await ActionHandler.DoStateChangeActions(task, ActionScopes.RequestTask);
                 }
             }
             catch (Exception exception)
@@ -650,7 +650,7 @@ namespace FWO.Ui.Services
                 }
                 else
                 {
-                    await ActionHandler.DoOnSetActions(task, ActionScopes.ImplementationTask);
+                    await ActionHandler.DoStateChangeActions(task, ActionScopes.ImplementationTask);
                 }
             }
             catch (Exception exception)

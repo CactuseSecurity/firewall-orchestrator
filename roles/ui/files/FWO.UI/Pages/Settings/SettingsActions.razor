@@ -33,6 +33,8 @@
             <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
             <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("action_type"))" Field="@(x => x.ActionType)" Sortable="true" Filterable="true" />
             <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("scope"))" Field="@(x => x.Scope)" Sortable="true" Filterable="true" />
+            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("task_type"))" Field="@(x => x.TaskType)" Sortable="true" Filterable="true" />
+            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("phase"))" Field="@(x => x.Phase)" Sortable="true" Filterable="true" />
             <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("event"))" Field="@(x => x.Event)" Sortable="true" Filterable="true" />
             <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("external_params"))" Field="@(x => x.ExternalParams)" Sortable="true" Filterable="true" />
         </Table>
@@ -71,18 +73,6 @@
                     </div>
                     <div class="col-sm-4">
                         <div class="form-group row">
-                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("scope")):</label>
-                            <select class="col-sm-8 form-control form-control-sm" @bind="actAction.Scope">
-                                @foreach (string scope in Enum.GetNames(typeof(ActionScopes)))
-                                {
-                                    <option value="@scope">@scope</option>
-                                    @* <option value="@scope">@(userConfig.GetText(scope))</option> *@
-                                }
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-sm-4">
-                        <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("event")):</label>
                             <select class="col-sm-8 form-control form-control-sm" @bind="actAction.Event">
                                 @foreach (string eventt in Enum.GetNames(typeof(ActionEvents)))
@@ -95,11 +85,66 @@
                     </div>
                 </div>
                 <div class="form-group row">
+                    <div class="col-sm-4">
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("phase")):</label>
+                            <select class="col-sm-8 form-control form-control-sm" @bind="actAction.Phase">
+                                <option value="">@(userConfig.GetText("all"))</option>
+                                @foreach (string phase in Enum.GetNames(typeof(WorkflowPhases)))
+                                {
+                                    <option value="@phase">@(userConfig.GetText(phase))</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("scope")):</label>
+                            <select class="col-sm-8 form-control form-control-sm" @bind="actAction.Scope">
+                                @foreach (string scope in Enum.GetNames(typeof(ActionScopes)))
+                                {
+                                    <option value="@scope">@scope</option>
+                                    @* <option value="@scope">@(userConfig.GetText(scope))</option> *@
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    @if(actAction.Scope == ActionScopes.RequestTask.ToString() || actAction.Scope == ActionScopes.ImplementationTask.ToString())
+                    {
+                        <div class="col-sm-4">
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("task_type")):</label>
+                                <select class="col-sm-8 form-control form-control-sm" @bind="actAction.TaskType">
+                                    <option value="">@(userConfig.GetText("all"))</option>
+                                    @foreach (string taskType in Enum.GetNames(typeof(TaskType)))
+                                    {
+                                        @if(taskType != TaskType.master.ToString())
+                                        {
+                                            <option value="@taskType">@taskType</option>
+                                            @* <option value="@scope">@(userConfig.GetText(taskType))</option> *@
+                                        }
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="form-group row">
                     @switch (actAction.ActionType)
                     {
+                        case nameof(ActionTypes.AutoPromote):
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("to_state")):</label>
+                            <select id="selectState" class="col-sm-3 form-control form-control-sm" @bind="toState">
+                                <option value="-1">@(userConfig.GetText("automatic"))</option>
+                                @foreach (var state in states)
+                                {
+                                    <option value="@state.Id">@(state.Name)</option>
+                                }
+                            </select>
+                            break;
                         case nameof(ActionTypes.SetAlert):
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("message_text")):</label>
-                            <input type="text" class="col-sm-9 form-control form-control-sm" @bind="actAction.ExternalParams" />
+                            <input type="text" class="col-sm-9 form-control form-control-sm" @bind="message" />
                             break;
                         case nameof(ActionTypes.AddApproval):
                             <div class="col-sm-4">
@@ -198,6 +243,8 @@ else
 
     private RequestStateAction actAction = new RequestStateAction();
     private ApprovalParams actApprovalParams = new ApprovalParams();
+    private int toState = -1;
+    private string message = "";
 
     private bool EditActionMode = false;
     private bool AddActionMode = false;
@@ -234,16 +281,43 @@ else
         actAction = action;
         if(action.ExternalParams != "" && action.ExternalParams != "{}")
         {
-            actApprovalParams = System.Text.Json.JsonSerializer.Deserialize<ApprovalParams>(action.ExternalParams) ?? throw new Exception("Extparams could not be parsed.");
+            switch(action.ActionType)
+            {
+                case nameof(ActionTypes.AutoPromote):
+                    toState = Convert.ToInt32(action.ExternalParams);
+                    break;
+                case nameof(ActionTypes.SetAlert):
+                    message = actAction.ExternalParams;
+                    break;
+                case nameof(ActionTypes.AddApproval):
+                    actApprovalParams = System.Text.Json.JsonSerializer.Deserialize<ApprovalParams>(action.ExternalParams) ?? throw new Exception("Extparams could not be parsed.");
+                    break;
+                case nameof(ActionTypes.ExternalCall):
+                    break;
+                default:
+                    break;
+            }
         }
         EditActionMode = true;
     }
 
     private async Task SaveAction()
     {
-        if(actAction.ActionType == ActionTypes.AddApproval.ToString())
+        switch(actAction.ActionType)
         {
-            actAction.ExternalParams = JsonSerializer.Serialize(actApprovalParams);
+            case nameof(ActionTypes.AutoPromote):
+                actAction.ExternalParams = toState.ToString();
+                break;
+            case nameof(ActionTypes.SetAlert):
+                actAction.ExternalParams = message;
+                break;
+            case nameof(ActionTypes.AddApproval):
+                actAction.ExternalParams = JsonSerializer.Serialize(actApprovalParams);
+                break;
+            case nameof(ActionTypes.ExternalCall):
+                break;
+            default:
+                break;
         }
 
         if(AddActionMode)

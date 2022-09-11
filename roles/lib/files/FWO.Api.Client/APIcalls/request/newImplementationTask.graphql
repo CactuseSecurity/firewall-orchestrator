@@ -11,6 +11,7 @@ mutation newImplementationTask(
   $validFrom: timestamp
   $validTo: timestamp
   $comment: String
+  $freeText: String
   ) {
   insert_implementation_task(objects: {
     request_task_id: $reqTaskId
@@ -25,6 +26,7 @@ mutation newImplementationTask(
     target_begin_date: $validFrom
 	  target_end_date: $validTo
 	  fw_admin_comments: $comment
+    free_text: $freeText
   }) {
     returning {
       newId: id

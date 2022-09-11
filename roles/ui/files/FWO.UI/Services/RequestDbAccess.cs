@@ -143,7 +143,8 @@ namespace FWO.Ui.Services
                     tracking = task.Tracking,
                     validFrom = task.TargetBeginDate,
                     validTo = task.TargetEndDate,
-                    reason = task.Reason
+                    reason = task.Reason,
+                    freeText = task.FreeText
                 };
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newRequestTask, Variables)).ReturnIds;
                 if (returnIds == null)
@@ -190,6 +191,7 @@ namespace FWO.Ui.Services
                     validFrom = task.TargetBeginDate,
                     validTo = task.TargetEndDate,
                     reason = task.Reason,
+                    freeText = task.FreeText,
                     deviceId = task.DeviceId
                 };
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequestTask, Variables)).UpdatedId;
@@ -406,6 +408,7 @@ namespace FWO.Ui.Services
                     handler = task.CurrentHandler?.DbId,
                     validFrom = task.TargetBeginDate,
                     validTo = task.TargetEndDate,
+                    freeText = task.FreeText,
                     comment = task.FwAdminComments
                 };
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newImplementationTask, Variables)).ReturnIds;
@@ -449,6 +452,7 @@ namespace FWO.Ui.Services
                     handler = task.CurrentHandler?.DbId,
                     validFrom = task.TargetBeginDate,
                     validTo = task.TargetEndDate,
+                    freeText = task.FreeText,
                     comment = task.FwAdminComments
                 };
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateImplementationTask, Variables)).UpdatedId;

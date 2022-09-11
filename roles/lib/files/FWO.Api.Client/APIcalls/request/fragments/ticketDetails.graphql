@@ -29,6 +29,7 @@ fragment ticketDetails on request_ticket {
     nw_obj_grp_id
     user_grp_id
     reason
+    free_text
     last_recert_date
     current_handler: uiuser {
       uiuser_username
@@ -75,6 +76,7 @@ fragment ticketDetails on request_ticket {
       target_begin_date
       target_end_date
       fw_admin_comments
+      free_text
       elements: elements {
         id
         implementation_task_id

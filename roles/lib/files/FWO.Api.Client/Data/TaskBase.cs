@@ -55,6 +55,9 @@ namespace FWO.Api.Data
         [JsonProperty("user_grp_id"), JsonPropertyName("user_grp_id")]
         public int? UserGroupId { get; set; }
 
+        [JsonProperty("free_text"), JsonPropertyName("free_text")]
+        public string? FreeText { get; set; }
+
         [JsonProperty("current_handler"), JsonPropertyName("current_handler")]
         public UiUser? CurrentHandler { get; set; }
 
@@ -90,6 +93,7 @@ namespace FWO.Api.Data
             ServiceGroupId = task.ServiceGroupId;
             NetworkGroupId = task.NetworkGroupId;
             UserGroupId = task.UserGroupId;
+            FreeText = task.FreeText;
             CurrentHandler = task.CurrentHandler;
             // RecentHandler = task.RecentHandler;
             // AssignedGroup = task.AssignedGroup;
@@ -101,6 +105,7 @@ namespace FWO.Api.Data
         public override bool Sanitize()
         {
             bool shortened = base.Sanitize();
+            FreeText = Sanitizer.SanitizeOpt(FreeText, ref shortened);
             FwAdminComments = Sanitizer.SanitizeOpt(FwAdminComments, ref shortened);
             // AssignedGroup = Sanitizer.SanitizeLdapPathOpt(FwAdminComments, ref shortened);
             return shortened;

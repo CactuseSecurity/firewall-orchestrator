@@ -10,6 +10,7 @@ mutation updateRequestTask(
   $validFrom: timestamp
   $validTo: timestamp
   $reason: String
+  $freeText: String
   $comment: String
   $deviceId: Int
   ) {
@@ -26,6 +27,7 @@ mutation updateRequestTask(
     target_begin_date: $validFrom
 	  target_end_date: $validTo
     reason: $reason
+    free_text: $freeText
     fw_admin_comments: $comment
     device_id: $deviceId
   }) {

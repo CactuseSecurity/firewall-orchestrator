@@ -707,6 +707,8 @@ INSERT INTO txt VALUES ('to_state', 		    'German', 	'Zielstatus');
 INSERT INTO txt VALUES ('to_state', 		    'English', 	'to State');
 INSERT INTO txt VALUES ('automatic', 		    'German', 	'Automatisch');
 INSERT INTO txt VALUES ('automatic', 		    'English', 	'Automatic');
+INSERT INTO txt VALUES ('free_text', 			'German', 	'Freitext');
+INSERT INTO txt VALUES ('free_text', 			'English', 	'Free Text');
 
 -- recertification
 INSERT INTO txt VALUES ('recertify',		    'German', 	'Rezertifizieren');

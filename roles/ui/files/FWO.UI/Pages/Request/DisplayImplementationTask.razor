@@ -72,6 +72,16 @@
                         </div>
                     </div>
                 </div>
+                @if(ReqHandler.ActImplTask.TaskType == TaskType.generic.ToString())
+                {
+                    <div class="form-group row">
+                        <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("free_text")):</label>
+                        <div class="col-sm-11">
+                            <textarea rows="2" type="text" class="form-control form-control-sm" readonly="true" >@ReqHandler.ActImplTask.FreeText</textarea>
+                        </div>
+                    </div>
+                }
+
                 @if(ReqHandler.ActImplTask.TaskType == TaskType.access.ToString())
                 {
                     <div class="form-group row">

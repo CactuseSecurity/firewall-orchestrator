@@ -9,6 +9,8 @@ query getStates {
         name
         action_type
         scope
+        task_type
+        phase
         event
         external_parameters
       }

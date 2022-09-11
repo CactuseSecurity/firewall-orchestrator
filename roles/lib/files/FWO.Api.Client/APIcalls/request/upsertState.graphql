@@ -5,7 +5,7 @@
       name: $name
     },
     on_conflict: {
-      constraint: state_id_key,
+      constraint: state_pkey ,
       update_columns: [name]
     }
   ) {

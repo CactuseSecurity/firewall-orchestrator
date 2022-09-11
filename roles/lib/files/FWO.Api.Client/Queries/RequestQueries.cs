@@ -4,7 +4,9 @@ namespace FWO.Api.Client.Queries
 {
     public class RequestQueries : Queries
     {
+        public static readonly string ticketDetailsFragment;
         public static readonly string getTickets;
+        public static readonly string getTicketById;
         public static readonly string newTicket;
         public static readonly string updateTicket;
         public static readonly string updateTicketState;
@@ -39,7 +41,9 @@ namespace FWO.Api.Client.Queries
         {
             try
             {
-                getTickets = File.ReadAllText(QueryPath + "request/getTickets.graphql");
+                ticketDetailsFragment = File.ReadAllText(QueryPath + "request/fragments/ticketDetails.graphql");
+                getTickets = ticketDetailsFragment + File.ReadAllText(QueryPath + "request/getTickets.graphql");
+                getTicketById = ticketDetailsFragment + File.ReadAllText(QueryPath + "request/getTicketById.graphql");
                 newTicket = File.ReadAllText(QueryPath + "request/newTicket.graphql");
                 updateTicket = File.ReadAllText(QueryPath + "request/updateTicket.graphql");
                 updateTicketState = File.ReadAllText(QueryPath + "request/updateTicketState.graphql");

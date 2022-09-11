@@ -9,8 +9,6 @@ namespace FWO.Ui.Services
     public class ActionHandler
     {
         private List<RequestState> states = new List<RequestState>();
-        private List<RequestStateAction> stateActions = new List<RequestStateAction>();
-        private List<RequestStateAction> fromStateActions = new List<RequestStateAction>();
         private ApiConnection apiConnection;
         private RequestHandler requestHandler;
 
@@ -26,29 +24,30 @@ namespace FWO.Ui.Services
             states = await apiConnection.SendQueryAsync<List<RequestState>>(FWO.Api.Client.Queries.RequestQueries.getStates);
         }
 
-        private void RefreshStateActions(StatefulObject statefulObject)
+
+        private List<RequestStateAction> getRelevantActions(StatefulObject statefulObject, ActionScopes scope, bool toState=true)
         {
-            stateActions = new List<RequestStateAction>();
-            foreach(var actionHlp in states.FirstOrDefault(x => x.Id == statefulObject.StateId)?.Actions ?? throw new Exception("Unknown stateId."))
+            List<RequestStateAction> stateActions = new List<RequestStateAction>();
+            int searchedStateId = (toState ? statefulObject.StateId : statefulObject.ChangedFrom());
+            foreach(var actionHlp in states.FirstOrDefault(x => x.Id == searchedStateId)?.Actions ?? throw new Exception("Unknown stateId."))
             {
-                stateActions.Add(actionHlp.Action);
+                if(actionHlp.Action.Scope == scope.ToString() 
+                    && (!(actionHlp.Action.Scope == ActionScopes.RequestTask.ToString() || actionHlp.Action.Scope == ActionScopes.ImplementationTask.ToString())
+                     || actionHlp.Action.TaskType == "" || actionHlp.Action.TaskType == ((TaskBase)statefulObject).TaskType))
+                {
+                    stateActions.Add(actionHlp.Action);
+                }
             }
-            fromStateActions = new List<RequestStateAction>();
-            foreach(var actionHlp in states.FirstOrDefault(x => x.Id == statefulObject.ChangedFrom())?.Actions ?? throw new Exception("Unknown stateId."))
-            {
-                fromStateActions.Add(actionHlp.Action);
-            }
+            return stateActions;
         }
 
         public List<RequestStateAction> GetOfferedActions(StatefulObject statefulObject, ActionScopes scope, WorkflowPhases phase)
         {
             List<RequestStateAction> offeredActions = new List<RequestStateAction>();
-            RefreshStateActions(statefulObject);
-            foreach(var action in stateActions.Where(x => (x.Scope == scope.ToString() && x.Event == ActionEvents.OfferButton.ToString())))
+            List<RequestStateAction> stateActions = getRelevantActions(statefulObject, scope);
+            foreach(var action in stateActions.Where(x => (x.Event == ActionEvents.OfferButton.ToString())))
             {
-                if((action.Phase == "" || action.Phase == phase.ToString()) && 
-                    (!(action.Scope == ActionScopes.RequestTask.ToString() || action.Scope == ActionScopes.ImplementationTask.ToString())
-                     || action.TaskType == "" || action.TaskType == ((TaskBase)statefulObject).TaskType))
+                if(action.Phase == "" || action.Phase == phase.ToString())
                 {
                     offeredActions.Add(action);
                 }
@@ -60,12 +59,13 @@ namespace FWO.Ui.Services
         {
             if (statefulObject.StateChanged())
             {
-                RefreshStateActions(statefulObject);
-                foreach(var action in stateActions.Where(x => (x.Scope == scope.ToString() && x.Event == ActionEvents.OnSet.ToString())))
+                List<RequestStateAction> stateActions = getRelevantActions(statefulObject, scope);
+                foreach(var action in stateActions.Where(x => (x.Event == ActionEvents.OnSet.ToString())))
                 {
                     await performAction(action, statefulObject, scope);
                 }
-                foreach(var action in fromStateActions.Where(x => (x.Scope == scope.ToString() && x.Event == ActionEvents.OnLeave.ToString())))
+                List<RequestStateAction> fromStateActions = getRelevantActions(statefulObject, scope, false);
+                foreach(var action in fromStateActions.Where(x => (x.Event == ActionEvents.OnLeave.ToString())))
                 {
                     await performAction(action, statefulObject, scope);
                 }
@@ -79,7 +79,10 @@ namespace FWO.Ui.Services
             {
                 case nameof(ActionTypes.AutoPromote):
                     int? toState = (action.ExternalParams != "" ? Convert.ToInt32(action.ExternalParams) : null);
-                    await requestHandler.AutoPromote(statefulObject, scope, toState);
+                    if(toState == null || states.FirstOrDefault(x => x.Id == toState) != null)
+                    {
+                        await requestHandler.AutoPromote(statefulObject, scope, toState);
+                    }
                     break;
                 case nameof(ActionTypes.SetAlert):
                     await setAlert(action.ExternalParams);

@@ -3,6 +3,8 @@ mutation updateAction(
   $name: String!
   $actionType: String!
   $scope: String
+  $taskType: String
+  $phase: String
   $eventt: String
   $externalParameters: String
   ) {
@@ -12,6 +14,8 @@ mutation updateAction(
       name: $name
       action_type: $actionType
       scope: $scope
+      task_type: $taskType
+      phase: $phase
       event: $eventt
       external_parameters: $externalParameters
   }) {

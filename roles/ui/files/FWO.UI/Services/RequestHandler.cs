@@ -111,7 +111,7 @@ namespace FWO.Ui.Services
                     promotePossible = true;
                 }
             }
-            
+
             if(promotePossible)
             {
                 switch(scope)
@@ -122,11 +122,13 @@ namespace FWO.Ui.Services
                         break;
                     case ActionScopes.RequestTask:
                         SetReqTaskEnv((RequestTask)statefulObject);
-                        await PromoteReqTask(statefulObject);
+                        ActReqTask.StateId = statefulObject.StateId;
+                        await dbAcc.UpdateReqTaskStateInDb(ActReqTask);
                         break;
                     case ActionScopes.ImplementationTask:
                         SetImplTaskEnv((ImplementationTask)statefulObject);
-                        await PromoteImplTask(statefulObject);
+                        ActImplTask.StateId = statefulObject.StateId;
+                        await dbAcc.UpdateImplTaskStateInDb(ActImplTask);
                         break;
                     case ActionScopes.Approval:
                         await SetApprovalEnv();
@@ -222,12 +224,22 @@ namespace FWO.Ui.Services
                         // insert new ticket
                         ActTicket.CreationDate = DateTime.Now;
                         ActTicket.Requester = userConfig.User;
-                        TicketList = await dbAcc.AddTicketToDb(ActTicket, TicketList);
+                        ActTicket = await dbAcc.AddTicketToDb(ActTicket);
+                        TicketList.Add(ActTicket);
                     }
                     else
                     {
                         // Update existing ticket
-                        TicketList = await dbAcc.UpdateTicketInDb(ActTicket, TicketList);
+                        ActTicket = await dbAcc.UpdateTicketInDb(ActTicket);
+                        TicketList[TicketList.FindIndex(x => x.Id == ActTicket.Id)] = ActTicket;
+                    }
+
+                    foreach(RequestTask task in ActTicket.Tasks)
+                    {
+                        List<int> ticketStateList = new List<int>();
+                        ticketStateList.Add(ActTicket.StateId);
+                        task.StateId = stateMatrixDict.Matrices[task.TaskType].getDerivedStateFromSubStates(ticketStateList);
+                        await dbAcc.UpdateReqTaskStateInDb(task);
                     }
                     ResetTicketActions();
                 }

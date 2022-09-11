@@ -44,9 +44,28 @@ namespace FWO.Ui.Services
             return requests;
         }
 
+        public async Task<RequestTicket> GetTicket(int id)
+        {
+            RequestTicket ticket = new RequestTicket();
+            try
+            {
+                var Variables = new
+                {
+                    id = id,
+                };
+                ticket = await ApiConnection.SendQueryAsync<RequestTicket>(FWO.Api.Client.Queries.RequestQueries.getTicketById, Variables);
+                ticket.UpdateCidrsInTaskElements();
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi!(exception, UserConfig.GetText("fetch_requests"), "", true);
+            }
+            return ticket;
+        }
+
         // Tickets
 
-        public async Task<List<RequestTicket>> AddTicketToDb(RequestTicket ticket, List<RequestTicket> requests)
+        public async Task<RequestTicket> AddTicketToDb(RequestTicket ticket)
         {
             try
             {
@@ -66,8 +85,7 @@ namespace FWO.Ui.Services
                 }
                 else
                 {
-                    ticket.Id = returnIds[0].NewId;
-                    requests.Add(ticket);
+                    ticket = await GetTicket(returnIds[0].NewId);
                     await ActionHandler.DoStateChangeActions(ticket, ActionScopes.Ticket);
                 }
             }
@@ -75,10 +93,10 @@ namespace FWO.Ui.Services
             {
                 DisplayMessageInUi!(exception, UserConfig.GetText("save_request"), "", true);
             }
-            return requests;
+            return ticket;
         }
 
-        public async Task<List<RequestTicket>> UpdateTicketInDb(RequestTicket ticket, List<RequestTicket> requests)
+        public async Task<RequestTicket> UpdateTicketInDb(RequestTicket ticket)
         {
             try
             {
@@ -96,12 +114,6 @@ namespace FWO.Ui.Services
                 }
                 else
                 {
-                    foreach(RequestTask task in ticket.Tasks)
-                    {
-                        task.StateId = ticket.StateId;
-                        await UpdateReqTaskStateInDb(task);
-                    }
-                    requests[requests.FindIndex(x => x.Id == ticket.Id)] = ticket;
                     await ActionHandler.DoStateChangeActions(ticket, ActionScopes.Ticket);
                 }
             }
@@ -109,7 +121,7 @@ namespace FWO.Ui.Services
             {
                 DisplayMessageInUi!(exception, UserConfig.GetText("save_request"), "", true);
             }
-            return requests;
+            return ticket;
         }
 
         // Request Tasks

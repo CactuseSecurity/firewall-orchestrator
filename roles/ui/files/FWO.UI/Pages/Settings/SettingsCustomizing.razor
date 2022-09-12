@@ -37,12 +37,6 @@
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-3">@(userConfig.GetText("reqApprovalDeadline")):</label>
-        <div class="col-sm-2">
-            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.ReqApprovalDeadline" />
-        </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAutoCreateImplTasks")):</label>
         <div class="col-sm-2">
             <select class="form-control form-control-sm" @bind="configData!.ReqAutoCreateImplTasks">
@@ -51,6 +45,31 @@
                     <option value="@acitOption">@(userConfig.GetText(acitOption.ToString()))</option>
                 }
             </select>
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-3">@(userConfig.GetText("reqPriorities")):</label>
+        <div class="col-sm-9">
+        <div class="m-2">
+            <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="RequestPriority" Items="prioList" PageSize="0" ColumnReorder="true">
+                <Column TableItem="RequestPriority" Title="@(userConfig.GetText("numPrio"))" Field="@(x => x.NumPrio)" Sortable="true" Filterable="true" />
+                <Column Context="prio" TableItem="RequestPriority" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" >
+                    <Template>
+                        <input type="string" @bind="prio.Name">
+                    </Template>
+                </Column>
+                <Column Context="prio" TableItem="RequestPriority" Title="@(userConfig.GetText("ticket_deadline"))" Field="@(x => x.TicketDeadline)" Sortable="true" Filterable="true" >
+                    <Template>
+                        <input type="number" @bind="prio.TicketDeadline">
+                    </Template>
+                </Column>
+                <Column Context="prio" TableItem="RequestPriority" Title="@(userConfig.GetText("approval_deadline"))" Field="@(x => x.ApprovalDeadline)" Sortable="true" Filterable="true" >
+                    <Template>
+                        <input type="number" @bind="prio.ApprovalDeadline">
+                    </Template>
+                </Column>
+            </Table>
+        </div>
         </div>
     </form>
 
@@ -85,6 +104,8 @@ else
     private List<TaskType> availableTaskTypes { get; set; } = new List<TaskType>();
     private Dictionary<TaskType, bool> taskTypesActiveDict = new Dictionary<TaskType, bool>();
 
+    private List<RequestPriority> prioList = new List<RequestPriority>();
+
     protected override async Task OnInitializedAsync()
     {
         try
@@ -96,6 +117,7 @@ else
             {
                 taskTypesActiveDict.Add(type, availableTaskTypes.Contains(type));
             }
+            prioList = System.Text.Json.JsonSerializer.Deserialize<List<RequestPriority>>(configData.ReqPriorities) ?? throw new Exception("Config data could not be parsed.");
             InitComplete = true;
         }
         catch (Exception exception)
@@ -119,6 +141,7 @@ else
                     }
                 }
                 configData.ReqAvailableTaskTypes = JsonSerializer.Serialize(availableTaskTypes);
+                configData.ReqPriorities = JsonSerializer.Serialize(prioList);
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi!(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
             }

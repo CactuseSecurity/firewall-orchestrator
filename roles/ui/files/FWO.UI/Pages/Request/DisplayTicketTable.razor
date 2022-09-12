@@ -39,6 +39,7 @@
                 @(States.Name[context.StateId])
             </Template>
         </Column>
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("deadline"))" Field="@(x => x.Deadline)" Sortable="true" Filterable="true" />
         <Column TableItem="RequestTicket" Title="@(userConfig.GetText("created"))" Field="@(x => x.CreationDate)" Sortable="true" Filterable="true" />
         <Column TableItem="RequestTicket" Title="@(userConfig.GetText("closed"))" Field="@(x => x.CompletionDate)" Sortable="true" Filterable="true" />
     </Table>

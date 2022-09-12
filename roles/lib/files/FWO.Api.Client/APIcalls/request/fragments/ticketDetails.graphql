@@ -13,6 +13,8 @@ fragment ticketDetails on request_ticket {
   reason
   external_ticket_id
   external_ticket_source
+  ticket_deadline
+  ticket_priority
   tasks: tasks {
     id
     ticket_id

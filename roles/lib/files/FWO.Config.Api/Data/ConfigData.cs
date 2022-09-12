@@ -105,8 +105,8 @@ namespace FWO.Config.Api.Data
         [JsonProperty("reqAllowObjectSearch"), JsonPropertyName("reqAllowObjectSearch")]
         public bool ReqAllowObjectSearch { get; set; } = false;
 
-        [JsonProperty("reqApprovalDeadline"), JsonPropertyName("reqApprovalDeadline")]
-        public int ReqApprovalDeadline { get; set; } = 7;
+        [JsonProperty("reqPriorities"), JsonPropertyName("reqPriorities")]
+        public string ReqPriorities { get; set; } = "";
 
         [JsonProperty("reqAutoCreateImplTasks"), JsonPropertyName("reqAutoCreateImplTasks")]
         public AutoCreateImplTaskOptions ReqAutoCreateImplTasks { get; set; } = AutoCreateImplTaskOptions.never;

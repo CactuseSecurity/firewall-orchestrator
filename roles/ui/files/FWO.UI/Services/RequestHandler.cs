@@ -31,6 +31,7 @@ namespace FWO.Ui.Services
 
         public WorkflowPhases Phase = WorkflowPhases.request;
         public List<Device> Devices = new List<Device>();
+        public List<RequestPriority> PrioList = new List<RequestPriority>();
         public List<ImplementationTask> AllImplTasks = new List<ImplementationTask>();
         public StateMatrix ActStateMatrix = new StateMatrix();
         public StateMatrix MasterStateMatrix = new StateMatrix();
@@ -64,7 +65,6 @@ namespace FWO.Ui.Services
         private ApiConnection apiConnection;
         private StateMatrixDict stateMatrixDict = new StateMatrixDict();
         private RequestDbAccess dbAcc;
-    
 
         private ObjAction contOption = ObjAction.display;
 
@@ -87,6 +87,7 @@ namespace FWO.Ui.Services
             await stateMatrixDict.Init(Phase, apiConnection);
             MasterStateMatrix = stateMatrixDict.Matrices[TaskType.master.ToString()];
             TicketList = await dbAcc.FetchTickets(MasterStateMatrix, viewOpt);
+            PrioList = System.Text.Json.JsonSerializer.Deserialize<List<RequestPriority>>(userConfig.ReqPriorities) ?? throw new Exception("Config data could not be parsed.");
         }
 
         public StateMatrix StateMatrix(string taskType)
@@ -441,14 +442,24 @@ namespace FWO.Ui.Services
                 approvalParams = System.Text.Json.JsonSerializer.Deserialize<ApprovalParams>(extParams) ?? throw new Exception("Extparams could not be parsed.");
             }
 
+            DateTime? deadline = null;
+            if(extParams != "")
+            {
+                deadline = (approvalParams.Deadline > 0 ? DateTime.Now.AddDays(approvalParams.Deadline) : null);
+            }
+            else
+            {
+                int? appDeadline = PrioList.FirstOrDefault(x => x.NumPrio == ActTicket.Priority)?.ApprovalDeadline;
+                deadline = (appDeadline != null && appDeadline > 0 ? DateTime.Now.AddDays((int)appDeadline) : null);
+            }
+
             RequestApproval approval = new RequestApproval()
             {
                 TaskId = ActReqTask.Id,
                 StateId = (extParams != "" ? approvalParams.StateId : ActStateMatrix.LowestEndState),
                 ApproverGroup = (extParams != "" ? approvalParams.ApproverGroup : ""), // todo: get from owner ???,
                 TenantId = ActTicket.TenantId, // ??
-                Deadline = (extParams != "" ? (approvalParams.Deadline > 0 ? DateTime.Now.AddDays(approvalParams.Deadline) : null) 
-                            : (userConfig.ReqApprovalDeadline > 0 ? DateTime.Now.AddDays(userConfig.ReqApprovalDeadline) : null)),
+                Deadline = deadline,
                 InitialApproval = ActReqTask.Approvals.Count == 0
             };
             ActReqTask.Approvals.Add(approval);

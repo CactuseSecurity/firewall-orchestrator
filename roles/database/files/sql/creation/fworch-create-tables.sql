@@ -1040,7 +1040,9 @@ create table if not exists request.ticket
     tenant_id int,
     reason text,
 	external_ticket_id varchar,
-	external_ticket_source int
+	external_ticket_source int,
+	ticket_deadline Timestamp,
+	ticket_priority int
 );
 
 create table if not exists request.state

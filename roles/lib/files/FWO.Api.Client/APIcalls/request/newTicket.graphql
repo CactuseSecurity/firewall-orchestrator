@@ -3,6 +3,8 @@ mutation newTicket(
   $reason: String
   $state: Int
   $requesterId: Int
+  $deadline: timestamp
+  $priority: Int
   $requestTasks: request_task_arr_rel_insert_input
   ) {
   insert_request_ticket(objects: {
@@ -10,6 +12,8 @@ mutation newTicket(
     reason: $reason
     state_id: $state
     requester_id: $requesterId
+    ticket_deadline: $deadline
+    ticket_priority: $priority
     tasks: $requestTasks
   }) {
     returning {

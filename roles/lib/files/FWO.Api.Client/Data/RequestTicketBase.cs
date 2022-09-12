@@ -38,6 +38,12 @@ namespace FWO.Api.Data
         [JsonProperty("external_ticket_source"), JsonPropertyName("external_ticket_source")]
         public int? ExternalTicketSource { get; set; }
 
+        [JsonProperty("ticket_deadline"), JsonPropertyName("ticket_deadline")]
+        public DateTime? Deadline { get; set; }
+
+        [JsonProperty("ticket_priority"), JsonPropertyName("ticket_priority")]
+        public int? Priority { get; set; }
+
 
         public RequestTicketBase()
         { }
@@ -55,6 +61,7 @@ namespace FWO.Api.Data
             Reason = ticket.Reason;
             ExternalTicketId = ticket.ExternalTicketId;
             ExternalTicketSource = ticket.ExternalTicketSource;
+            Deadline = ticket.Deadline;
         }
 
         public override bool Sanitize()

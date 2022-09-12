@@ -76,6 +76,8 @@ namespace FWO.Ui.Services
                     state = ticket.StateId,
                     reason = ticket.Reason,
                     requesterId = ticket.Requester?.DbId,
+                    deadline = ticket.Deadline,
+                    priority = ticket.Priority,
                     requestTasks = new RequestTicketWriter(ticket)
                 };
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newTicket, Variables)).ReturnIds;
@@ -105,7 +107,9 @@ namespace FWO.Ui.Services
                     id = ticket.Id,
                     title = ticket.Title,
                     state = ticket.StateId,
-                    reason = ticket.Reason
+                    reason = ticket.Reason,
+                    deadline = ticket.Deadline,
+                    priority = ticket.Priority
                 };
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateTicket, Variables)).UpdatedId;
                 if(udId != ticket.Id)
@@ -598,7 +602,9 @@ namespace FWO.Ui.Services
                 {
                     id = ticket.Id,
                     state = ticket.StateId,
-                    closed = ticket.CompletionDate
+                    closed = ticket.CompletionDate,
+                    deadline = ticket.Deadline,
+                    priority = ticket.Priority
                 };
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateTicketState, Variables)).UpdatedId;
                 if(udId != ticket.Id)

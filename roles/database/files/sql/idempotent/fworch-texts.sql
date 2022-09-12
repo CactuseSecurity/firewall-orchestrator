@@ -709,6 +709,12 @@ INSERT INTO txt VALUES ('automatic', 		    'German', 	'Automatisch');
 INSERT INTO txt VALUES ('automatic', 		    'English', 	'Automatic');
 INSERT INTO txt VALUES ('free_text', 			'German', 	'Freitext');
 INSERT INTO txt VALUES ('free_text', 			'English', 	'Free Text');
+INSERT INTO txt VALUES ('back_to_ticket', 		'German', 	'Zur&uuml;ck zum Ticket');
+INSERT INTO txt VALUES ('back_to_ticket', 		'English', 	'Back to ticket');
+INSERT INTO txt VALUES ('confirm_cancel', 		'German', 	'Abbruch best&auml;tigen');
+INSERT INTO txt VALUES ('confirm_cancel', 		'English', 	'Confirm cancel');
+INSERT INTO txt VALUES ('priority', 		    'German', 	'Priorit&auml;t');
+INSERT INTO txt VALUES ('priority', 		    'English', 	'Priority');
 
 -- recertification
 INSERT INTO txt VALUES ('recertify',		    'German', 	'Rezertifizieren');
@@ -1017,10 +1023,14 @@ INSERT INTO txt VALUES ('reqAvailableTaskTypes','German', 	'Verf&uuml;gbare Auft
 INSERT INTO txt VALUES ('reqAvailableTaskTypes','English', 	'Available Task Types');
 INSERT INTO txt VALUES ('reqAllowObjectSearch', 'German', 	'Objektsuche erlauben');
 INSERT INTO txt VALUES ('reqAllowObjectSearch', 'English', 	'Allow object search');
-INSERT INTO txt VALUES ('reqApprovalDeadline',  'German', 	'Deadline f&uuml;r Genehmigungen (in Tagen)');
-INSERT INTO txt VALUES ('reqApprovalDeadline',  'English', 	'Approval deadline (in days)');
+INSERT INTO txt VALUES ('reqPriorities',        'German', 	'Priorit&auml;ten');
+INSERT INTO txt VALUES ('reqPriorities',        'English', 	'Priorities');
 INSERT INTO txt VALUES ('reqAutoCreateImplTasks','German', 	'Autom. Erzeugen von Implementierungs-Auftr&auml;gen');
 INSERT INTO txt VALUES ('reqAutoCreateImplTasks','English', 'Auto-create implementation tasks');
+INSERT INTO txt VALUES ('ticket_deadline',      'German', 	'Ticket-Deadline (in Tagen)');
+INSERT INTO txt VALUES ('ticket_deadline',      'English',  'Ticket Deadline (in days)');
+INSERT INTO txt VALUES ('approval_deadline',    'German', 	'Genehmigungs-Deadline (in Tagen)');
+INSERT INTO txt VALUES ('approval_deadline',    'English',  'Approval Deadline (in days)');
 INSERT INTO txt VALUES ('language_settings',    'German', 	'Spracheinstellungen');
 INSERT INTO txt VALUES ('language_settings',    'English', 	'Language Settings');
 INSERT INTO txt VALUES ('apply_changes',        'German', 	'&Auml;nderungen anwenden');
@@ -1501,6 +1511,8 @@ INSERT INTO txt VALUES ('U8001', 'German',  'Sind sie sicher, dass sie l&ouml;sc
 INSERT INTO txt VALUES ('U8001', 'English', 'Are you sure you want to delete: ');
 INSERT INTO txt VALUES ('U8002', 'German',  'Neue Genehmigung zum Auftrag hinzugef&uuml;gt.');
 INSERT INTO txt VALUES ('U8002', 'English', 'New approval added to task.');
+INSERT INTO txt VALUES ('U8003', 'German',  'Sind sie sicher, dass sie abbrechen wollen? Bereits erzeugte Auftr&auml;ge gehen verloren.');
+INSERT INTO txt VALUES ('U8003', 'English', 'Are you sure you want to cancel? Already Created tasks will be lost.');
 
 
 -- error messages

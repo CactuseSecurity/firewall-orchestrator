@@ -1,0 +1,8 @@
+- name: rename old ldap manager pwd file in case of pre-5.7.1 upgrade 
+  copy:
+    src: "{{ fworch_secrets_dir }}/ldap_manager_pw.txt"
+    dest: "{{ ldap_manager_pwd_file }}"
+    force: yes
+    remote_src: yes
+  become: yes
+  ignore_errors: true

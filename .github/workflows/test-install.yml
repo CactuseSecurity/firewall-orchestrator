@@ -21,13 +21,14 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  test_ubuntu_18:
-    name: test build on ubuntu_18
-    runs-on: ubuntu-18.04
-    steps:
-    - uses: actions/checkout@v2
-    - name: do test install in case of merged pull request
-      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e run_on_github=yes --skip-tags test site.yml -K
+  # ubuntu18 was unstable at github (2022-07-06 - 2022-07-11)
+  # test_ubuntu_18:
+  #   name: test build on ubuntu_18
+  #   runs-on: ubuntu-18.04
+  #   steps:
+  #   - uses: actions/checkout@v2
+  #   - name: do test install in case of merged pull request
+  #     run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e run_on_github=yes --skip-tags test site.yml -K
 
   test_ubuntu_20:
     name: test build on ubuntu_20

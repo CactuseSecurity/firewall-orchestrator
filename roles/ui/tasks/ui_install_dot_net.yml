@@ -1,10 +1,23 @@
 - block:
 
-    - set_fact: distribution_version="{{ ansible_facts['distribution_version'] }}"
+    - set_fact: distribution_version="{{ ansible_facts['distribution_major_version'] }}"    
+      when: ansible_facts['distribution']|lower == 'debian'
+
+    - set_fact: distribution_version="{{ ansible_facts['distribution_version'] }}"    
       when: ansible_facts['distribution']|lower == 'ubuntu'
 
-    - set_fact: distribution_version="{{ ansible_facts['distribution_version'] | regex_replace('\.\d$','') }}"
-      when: ansible_facts['distribution']|lower == 'debian'
+    - set_fact: distribution_version="11"    
+      when: ansible_facts['distribution']|lower == 'debian' and ansible_facts['distribution_major_version'] == 'testing'
+
+    - name: modify apt preferences for ubuntu >=22.04 to make dotnet sdk installation work
+      blockinfile:
+        path: /etc/apt/preferences
+        create: yes
+        block: |
+          Package: *net*
+          Pin: origin packages.microsoft.com
+          Pin-Priority: 1001
+      when: ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version'] is version('22', '>=')
 
     - name: get package list from ms {{ dotnet_deb_name }}
       get_url:

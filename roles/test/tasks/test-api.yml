@@ -110,7 +110,7 @@
 
 - name: decode hasura admin secret
   set_fact:
-    api_hasura_admin_secret: "{{ api_hasura_admin_secret['content'] | b64decode }}"
+    api_hasura_admin_secret: "{{ api_hasura_admin_secret['content'] | b64decode | trim }}"
 
 - name: test hasura-admin api access
   uri:

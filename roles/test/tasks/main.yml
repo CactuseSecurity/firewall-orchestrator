@@ -11,7 +11,7 @@
 
 - name: randomize test names to avoid interference with production data
   set_fact:
-    test_postfix: "_test_{{ random_generated_pw }}"
+    test_postfix: "_test_{{ randomly_generated_pwd }}"
 
 # todo: is this play needless?
 - name: set postfix to brand all objects in this test run
@@ -20,11 +20,11 @@
 
 - name: create test user1 password
   set_fact:
-    test_user1_pw: "{{ random_generated_pw }}"
+    test_user1_pw: "{{ randomly_generated_pwd }}"
 
 - name: create test user2 password
   set_fact:
-    test_user2_pw: "{{ random_generated_pw }}"
+    test_user2_pw: "{{ randomly_generated_pwd }}"
 
 - name: initialize handler for deleting test data
   set_fact:

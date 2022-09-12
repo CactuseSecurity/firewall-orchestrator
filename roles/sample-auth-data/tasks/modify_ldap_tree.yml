@@ -8,7 +8,7 @@
   become: yes
 
 - name: add tree
-  command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ fworch_secrets_dir }}/ldap_manager_pw.txt -x -f {{ middleware_ldif_dir }}/tree_{{ item }}.ldif"
+  command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/tree_{{ item }}.ldif"
   loop:
     - sample_tenants
     - sample_operators

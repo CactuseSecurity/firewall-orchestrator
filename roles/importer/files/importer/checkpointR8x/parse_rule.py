@@ -1,7 +1,7 @@
 from asyncio.log import logger
 from fwo_log import getFwoLogger
 import json
-import common, cpcommon
+import common, cpcommon, fwo_const
 
 
 def add_section_header_rule_in_json (rulebase, section_name, layer_name, import_id, rule_uid, rule_num, section_header_uids, parent_uid):
@@ -200,14 +200,17 @@ def parse_single_rule_to_json (src_rule, rulebase, layer_name, import_id, rule_n
             rulebase.append(rule)
 
 
-def parse_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, debug_level=0):
+def parse_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, debug_level=0, recursion_level=1):
+
+    if (recursion_level>fwo_const.max_recursion_level):
+        raise common.ImportRecursionLimitReached("parse_rulebase_json") from None
 
     logger = getFwoLogger()
     if 'layerchunks' in src_rulebase:
         for chunk in src_rulebase['layerchunks']:
             if 'rulebase' in chunk:
                 for rules_chunk in chunk['rulebase']:
-                    rule_num  = parse_rulebase_json(rules_chunk, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, debug_level=debug_level)
+                    rule_num = parse_rulebase_json(rules_chunk, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, debug_level=debug_level, recursion_level=recursion_level+1)
             else:
                 logger.warning("found no rulebase in chunk:\n" + json.dumps(chunk, indent=2))
     else:
@@ -246,14 +249,17 @@ def parse_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, ru
     return rule_num
 
 
-def parse_nat_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, debug_level=0):
+def parse_nat_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, debug_level=0, recursion_level=1):
+
+    if (recursion_level>fwo_const.max_recursion_level):
+        raise common.ImportRecursionLimitReached("parse_nat_rulebase_json") from None
 
     logger = getFwoLogger()
     if 'nat_rule_chunks' in src_rulebase:
         for chunk in src_rulebase['nat_rule_chunks']:
             if 'rulebase' in chunk:
                 for rules_chunk in chunk['rulebase']:
-                    rule_num  = parse_nat_rulebase_json(rules_chunk, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, debug_level=debug_level)
+                    rule_num  = parse_nat_rulebase_json(rules_chunk, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, debug_level=debug_level, recursion_level=recursion_level+1)
             else:
                 logger.warning("parse_rule: found no rulebase in chunk:\n" + json.dumps(chunk, indent=2))
     else:

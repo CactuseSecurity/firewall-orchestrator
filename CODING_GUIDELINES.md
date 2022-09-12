@@ -22,6 +22,7 @@
 - lists should be used instead of arrays
 - only use comment per line (//, #), no block comments
 - continue style of existing code in source file
+- all recursion needs to be limited (default max. value: 100) to avoid stack overflows
 
 ## C# specific
 - avoid null references

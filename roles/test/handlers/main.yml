@@ -82,7 +82,7 @@
   become_user: postgres
 
 - name: find ldap entries with test_postfix
-  command: "ldapsearch -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ fworch_secrets_dir }}/ldap_manager_pw.txt -b {{ openldap_path }} -x '(|(cn=*{{ sample_postfix }}*)(ou=*{{ sample_postfix }}*)(uid=*{{ sample_postfix }}*))'"
+  command: "ldapsearch -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -b {{ openldap_path }} -x '(|(cn=*{{ sample_postfix }}*)(ou=*{{ sample_postfix }}*)(uid=*{{ sample_postfix }}*))'"
   register: ldap_entries_to_delete
   listen: "test importer handler"
   become: yes
@@ -96,7 +96,7 @@
   listen: "test importer handler"
 
 - name: delete ldap test data
-  command: "ldapdelete -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ fworch_secrets_dir }}/ldap_manager_pw.txt -x {{ item | regex_replace('\\s', '') | regex_replace('dc=internal.*', 'dc=internal') }}"
+  command: "ldapdelete -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x {{ item | regex_replace('\\s', '') | regex_replace('dc=internal.*', 'dc=internal') }}"
   listen: "test importer handler"
   loop: "{{ delete_list2 }}"
   become: yes

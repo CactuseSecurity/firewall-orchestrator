@@ -28,21 +28,22 @@ fworch_conf_dir: "{{ fworch_home }}/etc"
 fworch_conf_file: "{{ fworch_conf_dir }}/fworch.json"
 fworch_secrets_dir: "{{ fworch_conf_dir }}/secrets"
 
-# set your proxy here:
-http_proxy: ""
-http_proxy_import_parameter: ""
-# use the following syntax for authenticated proxy access:
-# http_proxy=http://USERNAME:PASSWORD@1.2.3.4:8080/
-https_proxy: "{{ http_proxy }}"
-proxy_exceptions: "127.0.0.1, localhost"
+# setting default proxy (may be overwritten via --extra-vars)
+http_proxy: "{{ lookup('env','http_proxy') }}"
+https_proxy: "{{ lookup('env','https_proxy') }}"
+proxy_exceptions: "{{ lookup('env','no_proxy') }}"
 proxy_env:
         http_proxy: "{{ http_proxy }}"
         https_proxy: "{{ https_proxy }}"
         HTTP_PROXY: "{{ http_proxy }}"
         HTTPS_PROXY: "{{ https_proxy }}"
         no_proxy: "{{ proxy_exceptions }}"
-#        validate_certs: false
+
+http_proxy_import_parameter: ""
 # proxy in capitals needed for debian and ubuntu <20
+# use the following syntax for authenticated proxy access:
+# http_proxy=http://USERNAME:PASSWORD@1.2.3.4:8080/
+
 test_packages:
   - postgresql-client
   - curl
@@ -63,6 +64,7 @@ fworch_db_password_file: "{{ fworch_secrets_dir }}/fworch_db_pwd"
 ### middleware server 
 jwt_private_key_file: "{{ fworch_secrets_dir }}/jwt_private_key.pem"
 jwt_public_key_file: "{{ fworch_secrets_dir }}/jwt_public_key.pem"
+ldap_manager_pwd_file: "{{ fworch_secrets_dir }}/ldap_manager_pwd"
 
 middleware_hostname: "127.0.0.1"
 ldif_changetype: add
@@ -98,7 +100,7 @@ debug_level: "1"
 lib_dir: "{{ fworch_home }}/lib/files"
 
 ### password generation
-random_generated_pw: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters') }}"
+randomly_generated_pwd: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters') }}"
 
 ### logging
 syslog_proto: tcp

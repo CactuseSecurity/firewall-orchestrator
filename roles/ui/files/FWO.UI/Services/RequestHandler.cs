@@ -225,6 +225,11 @@ namespace FWO.Ui.Services
                         // insert new ticket
                         ActTicket.CreationDate = DateTime.Now;
                         ActTicket.Requester = userConfig.User;
+                        if(ActTicket.Deadline == null)
+                        {
+                            int? tickDeadline = PrioList.FirstOrDefault(x => x.NumPrio == ActTicket.Priority)?.TicketDeadline;
+                            ActTicket.Deadline = (tickDeadline != null && tickDeadline > 0 ? DateTime.Now.AddDays((int)tickDeadline) : null);
+                        }
                         ActTicket = await dbAcc.AddTicketToDb(ActTicket);
                         TicketList.Add(ActTicket);
                     }

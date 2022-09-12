@@ -49,12 +49,19 @@
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("priority")):</label>
                             <div class="col-sm-8">
-                                <select class="form-control form-control-sm" readonly="@(!ReqHandler.EditTicketMode)" @bind="ReqHandler.ActTicket.Priority">
-                                    @foreach (var prio in ReqHandler.PrioList)
-                                    {
-                                        <option value="@prio.NumPrio">@(prio.Name)</option>
-                                    }
-                                </select>
+                                @if (ReqHandler.EditReqTaskMode)
+                                {
+                                    <select class="form-control form-control-sm" @bind="ReqHandler.ActTicket.Priority">
+                                        @foreach (var prio in ReqHandler.PrioList)
+                                        {
+                                            <option value="@prio.NumPrio">@(prio.Name)</option>
+                                        }
+                                    </select>
+                                }
+                                else
+                                {
+                                    <label class="col-sm-12 border bg-secondary">@ReqHandler.ActTicket.Priority</label>
+                                }
                             </div>
                         </div>
                     </div>
@@ -62,7 +69,14 @@
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("deadline")):</label>
                             <div class="col-sm-8">
-                                <input type="date" class="col-sm-12 form-control form-control-sm" readonly="@(!ReqHandler.EditTicketMode)" @bind="ReqHandler.ActTicket.Deadline" />
+                                @if (ReqHandler.EditReqTaskMode)
+                                {
+                                    <input type="date" class="col-sm-12 form-control form-control-sm" @bind="ReqHandler.ActTicket.Deadline" />
+                                }
+                                else
+                                {
+                                    <label class="col-sm-12 border bg-secondary">@(ReqHandler.ActTicket.Deadline != null ? ((DateTime)ReqHandler.ActTicket.Deadline).ToShortDateString() : null)</label>
+                                }
                             </div>
                         </div>
                     </div>

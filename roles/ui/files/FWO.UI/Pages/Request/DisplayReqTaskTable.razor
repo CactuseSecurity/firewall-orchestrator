@@ -68,7 +68,7 @@
             <Column TableItem="RequestTask" Title="@(userConfig.GetText("current_handler"))" Field="@(x => x.CurrentHandler.Name)" Sortable="true" Filterable="true" />
             @if(Phase == WorkflowPhases.approval)
             {
-                <Column TableItem="RequestTask" Title="@(userConfig.GetText("deadline"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
+                <Column TableItem="RequestTask" Title="@(userConfig.GetText("approval_deadline"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
                     <Template>
                         @(context.Approvals.FirstOrDefault(x => x.InitialApproval)?.Deadline)
                     </Template>

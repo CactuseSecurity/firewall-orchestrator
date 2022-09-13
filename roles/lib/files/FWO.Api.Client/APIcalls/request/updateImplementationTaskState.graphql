@@ -4,6 +4,8 @@ mutation updateImplementationTaskState(
   $start: timestamp
   $stop: timestamp
   $handler: Int
+  $recentHandler: Int
+  $assignedGroup: String
   ) {
   update_implementation_task_by_pk(
     pk_columns: { id: $id }
@@ -12,6 +14,8 @@ mutation updateImplementationTaskState(
     start: $start
     stop: $stop
     current_handler: $handler
+    recent_handler: $recentHandler
+    assigned_group: $assignedGroup
   }) {
     UpdatedId: id
   }

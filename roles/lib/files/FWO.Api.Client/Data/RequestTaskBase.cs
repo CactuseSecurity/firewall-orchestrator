@@ -29,12 +29,6 @@ namespace FWO.Api.Data
         [JsonProperty("last_recert_date"), JsonPropertyName("last_recert_date")]
         public DateTime? LastRecertDate { get; set; }
 
-        [JsonProperty("recent_handler"), JsonPropertyName("recent_handler")]
-        public UiUser? RecentHandler { get; set; }
-
-        [JsonProperty("assigned_group"), JsonPropertyName("assigned_group")]
-        public string? AssignedGroup { get; set; }
-
 
         public RequestTaskBase()
         { }
@@ -46,8 +40,6 @@ namespace FWO.Api.Data
             RequestAction = task.RequestAction;
             Reason = task.Reason;
             LastRecertDate = task.LastRecertDate;
-            RecentHandler = task.RecentHandler;
-            AssignedGroup = task.AssignedGroup;
         }
 
         public override bool Sanitize()
@@ -55,7 +47,6 @@ namespace FWO.Api.Data
             bool shortened = base.Sanitize();
             Title = Sanitizer.SanitizeMand(Title, ref shortened);
             Reason = Sanitizer.SanitizeOpt(Reason, ref shortened);
-            AssignedGroup = Sanitizer.SanitizeLdapPathOpt(FwAdminComments, ref shortened);
             return shortened;
         }
     }

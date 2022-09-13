@@ -345,17 +345,18 @@ namespace FWO.Ui.Services
             SetReqTaskOpt(action);
         }
 
-        public async Task AssignGroup()
+        public async Task AssignReqTaskGroup(StatefulObject statefulObject)
         {
+            ActReqTask.AssignedGroup = statefulObject.AssignedGroup;
             ActReqTask.RecentHandler = ActReqTask.CurrentHandler;
-            if(CheckAssignValues())
+            if(CheckAssignValues(ActReqTask))
             {
                 await dbAcc.UpdateReqTaskStateInDb(ActReqTask);
             }
             DisplayAssignMode = false;
         }
 
-        public async Task AssignBack()
+        public async Task AssignReqTaskBack()
         {
             ActReqTask.AssignedGroup = ActReqTask.RecentHandler?.Dn;
             ActReqTask.RecentHandler = ActReqTask.CurrentHandler;
@@ -514,7 +515,7 @@ namespace FWO.Ui.Services
             SetImplTaskOpt(action);
         }
 
-        public void SelectReqImplPopUp (ImplementationTask implTask, ObjAction action)
+        public void SelectImplTaskPopUp (ImplementationTask implTask, ObjAction action)
         {
             SetImplTaskEnv(implTask);
             SetImplTaskPopUpOpt(action);
@@ -549,6 +550,7 @@ namespace FWO.Ui.Services
         {
             DisplayPromoteMode = action == ObjAction.displayPromote;
             DisplayDeleteMode = action == ObjAction.displayDelete;
+            DisplayAssignMode = action == ObjAction.displayAssign;
         }
 
         public void ResetImplTaskActions()
@@ -560,6 +562,7 @@ namespace FWO.Ui.Services
 
             DisplayPromoteMode = false;
             DisplayDeleteMode = false;
+            DisplayAssignMode = false;
         }
 
         public async Task StartWorkOnImplTask(ImplementationTask implTask, ObjAction action)
@@ -579,6 +582,25 @@ namespace FWO.Ui.Services
             }
             await UpdateTicketStateFromImplTasks();
             SetImplTaskOpt(action);
+        }
+
+        public async Task AssignImplTaskGroup(StatefulObject statefulObject)
+        {
+            ActImplTask.AssignedGroup = statefulObject.AssignedGroup;
+            ActImplTask.RecentHandler = ActImplTask.CurrentHandler;
+            if(CheckAssignValues(ActImplTask))
+            {
+                await dbAcc.UpdateImplTaskStateInDb(ActImplTask);
+            }
+            DisplayAssignMode = false;
+        }
+
+        public async Task AssignImplTaskBack()
+        {
+            ActImplTask.AssignedGroup = ActImplTask.RecentHandler?.Dn;
+            ActImplTask.RecentHandler = ActImplTask.CurrentHandler;
+            await dbAcc.UpdateImplTaskStateInDb(ActImplTask);
+            DisplayAssignMode = false;
         }
 
         public async Task AddImplTask()
@@ -758,9 +780,9 @@ namespace FWO.Ui.Services
             return true;
         }
 
-        private bool CheckAssignValues()
+        private bool CheckAssignValues(StatefulObject statefulObject)
         {
-            if (ActReqTask.AssignedGroup == null || ActReqTask.AssignedGroup == "")
+            if (statefulObject.AssignedGroup == null || statefulObject.AssignedGroup == "")
             {
                 DisplayMessageInUi!(null, userConfig.GetText("assign_group"), userConfig.GetText("E8010"), true);
                 return false;

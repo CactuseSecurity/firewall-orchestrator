@@ -20,6 +20,16 @@ namespace FWO.Api.Data
             } 
         }
 
+        [JsonProperty("current_handler"), JsonPropertyName("current_handler")]
+        public UiUser? CurrentHandler { get; set; }
+
+        [JsonProperty("recent_handler"), JsonPropertyName("recent_handler")]
+        public UiUser? RecentHandler { get; set; }
+
+        [JsonProperty("assigned_group"), JsonPropertyName("assigned_group")]
+        public string? AssignedGroup { get; set; }
+
+
          // need private declarations, else we get problems with request_task_arr_rel_insert_input in newTicket
         private int stateId;
         private int oldStateId;
@@ -61,12 +71,16 @@ namespace FWO.Api.Data
             oldStateId = obj.oldStateId;
             stateChanged = obj.stateChanged;
             optComment = obj.optComment;
+            CurrentHandler = obj.CurrentHandler;
+            RecentHandler = obj.RecentHandler;
+            AssignedGroup = obj.AssignedGroup;
         }
 
         public virtual bool Sanitize()
         {
             bool shortened = false;
             optComment = Sanitizer.SanitizeOpt(optComment, ref shortened);
+            AssignedGroup = Sanitizer.SanitizeLdapPathOpt(AssignedGroup, ref shortened);
             return shortened;
         }
     }

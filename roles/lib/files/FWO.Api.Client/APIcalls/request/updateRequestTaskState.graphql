@@ -5,7 +5,7 @@ mutation updateRequestTaskState(
   $stop: timestamp
   $handler: Int
   $recentHandler: Int
-  $assignedGroup : String
+  $assignedGroup: String
   $comment: String
   ) {
   update_request_task_by_pk(

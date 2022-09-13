@@ -42,6 +42,8 @@ namespace FWO.Api.Data
             NetworkGroupId = task.NetworkGroupId;
             UserGroupId = task.UserGroupId;
             CurrentHandler = task.CurrentHandler;
+            RecentHandler = task.RecentHandler;
+            AssignedGroup = task.AssignedGroup;
             TargetBeginDate = task.TargetBeginDate;
             TargetEndDate = task.TargetEndDate;
             FwAdminComments = task.FwAdminComments;

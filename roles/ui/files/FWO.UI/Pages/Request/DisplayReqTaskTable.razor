@@ -88,9 +88,8 @@
     </div>
 }
 
-<DisplayRequestTask Phase="Phase" States="States" ReqHandler="ReqHandler"
-    ResetParent="Reset" StartImplPhase="StartImplPhase"/>
-<AssignTask @bind-Display="ReqHandler.DisplayAssignMode" ResetParent="Reset" ReqHandler="ReqHandler"/>
+<DisplayRequestTask Phase="Phase" States="States" ReqHandler="ReqHandler" ResetParent="Reset" StartImplPhase="StartImplPhase"/>
+<AssignObject @bind-Display="ReqHandler.DisplayAssignMode" ResetParent="Reset" StatefulObject="ReqHandler.ActReqTask" Assign="ReqHandler.AssignReqTaskGroup" AssignBack="ReqHandler.AssignReqTaskBack" ObjectName="@ReqHandler.ActReqTask.Title"/>
 <DeleteObject @bind-Display="ReqHandler.DisplayDeleteMode" ResetParent="Reset" Delete="ReqHandler.ConfDeleteReqTask" ObjName="@ReqHandler.ActReqTask.Title"/>
 <DisplayApprovals @bind-Display="ReqHandler.DisplayApprovalMode" Approvals="ReqHandler.ActReqTask.Approvals" States="States"/>
 

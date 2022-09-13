@@ -58,15 +58,6 @@ namespace FWO.Api.Data
         [JsonProperty("free_text"), JsonPropertyName("free_text")]
         public string? FreeText { get; set; }
 
-        [JsonProperty("current_handler"), JsonPropertyName("current_handler")]
-        public UiUser? CurrentHandler { get; set; }
-
-        // [JsonProperty("recent_handler"), JsonPropertyName("recent_handler")]
-        // public UiUser? RecentHandler { get; set; }
-
-        // [JsonProperty("assigned_group"), JsonPropertyName("assigned_group")]
-        // public string? AssignedGroup { get; set; }
-
         [JsonProperty("target_begin_date"), JsonPropertyName("target_begin_date")]
         public DateTime? TargetBeginDate { get; set; }
 
@@ -94,9 +85,6 @@ namespace FWO.Api.Data
             NetworkGroupId = task.NetworkGroupId;
             UserGroupId = task.UserGroupId;
             FreeText = task.FreeText;
-            CurrentHandler = task.CurrentHandler;
-            // RecentHandler = task.RecentHandler;
-            // AssignedGroup = task.AssignedGroup;
             TargetBeginDate = task.TargetBeginDate;
             TargetEndDate = task.TargetEndDate;
             FwAdminComments = task.FwAdminComments;
@@ -107,7 +95,6 @@ namespace FWO.Api.Data
             bool shortened = base.Sanitize();
             FreeText = Sanitizer.SanitizeOpt(FreeText, ref shortened);
             FwAdminComments = Sanitizer.SanitizeOpt(FwAdminComments, ref shortened);
-            // AssignedGroup = Sanitizer.SanitizeLdapPathOpt(FwAdminComments, ref shortened);
             return shortened;
         }
     }

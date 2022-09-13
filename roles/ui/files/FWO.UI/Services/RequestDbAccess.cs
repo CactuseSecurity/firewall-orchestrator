@@ -663,7 +663,9 @@ namespace FWO.Ui.Services
                     state = task.StateId,
                     start = task.Start,
                     stop = task.Stop,
-                    handler = task.CurrentHandler?.DbId
+                    handler = task.CurrentHandler?.DbId,
+                    recentHandler = task.RecentHandler?.DbId,
+                    assignedGroup = task.AssignedGroup,
                 };
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateImplementationTaskState, Variables)).UpdatedId;
                 if(udId != task.Id)

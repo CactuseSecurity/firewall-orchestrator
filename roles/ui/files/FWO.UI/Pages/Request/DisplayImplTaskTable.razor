@@ -41,6 +41,7 @@
                             else if (implTask.StateId < ReqHandler.ActStateMatrix.LowestEndState)
                             {
                                 <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => ContinueImplPhase(implTask)">@(userConfig.GetText("continue_" + Phase.ToString()))</button>
+                                <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignImplTask(implTask)">@(userConfig.GetText("assign"))</button>
                             }
                         }
                     </div>
@@ -85,7 +86,7 @@
 }
 
 <DisplayImplementationTask Phase="Phase" ReqHandler="ReqHandler" ResetParent="Reset" StateMatrix="ReqHandler.ActStateMatrix" States="States"></DisplayImplementationTask>
-
+<AssignObject @bind-Display="ReqHandler.DisplayAssignMode" ResetParent="Reset" StatefulObject="ReqHandler.ActImplTask" Assign="ReqHandler.AssignImplTaskGroup" AssignBack="ReqHandler.AssignImplTaskBack" ObjectName="@ReqHandler.ActImplTask.ImplTaskNumber.ToString()"/>
 <DeleteObject @bind-Display="ReqHandler.DisplayDeleteMode" ResetParent="Reset" Delete="ReqHandler.ConfDeleteImplTask" ObjName="@(ReqHandler.ActImplTask.ImplTaskNumber.ToString())"/>
 
 
@@ -138,14 +139,19 @@
         ReqHandler.SelectImplTask(newTask, ObjAction.add);
     }
 
-    private void EditImplTask(ImplementationTask task)
+    private void EditImplTask(ImplementationTask implTask)
     {
-        ReqHandler.SelectImplTask(task, ObjAction.edit);
+        ReqHandler.SelectImplTask(implTask, ObjAction.edit);
     }
 
-    private void DeleteImplTask(ImplementationTask task)
+    private void DeleteImplTask(ImplementationTask implTask)
     {
-        ReqHandler.SelectReqImplPopUp(task, ObjAction.displayDelete);
+        ReqHandler.SelectImplTaskPopUp(implTask, ObjAction.displayDelete);
+    }
+
+    private async Task AssignImplTask(ImplementationTask implTask)
+    {
+        ReqHandler.SelectImplTaskPopUp(implTask, ObjAction.displayAssign);
     }
 
     private async Task ContinueImplPhase(ImplementationTask implTask)

@@ -10,7 +10,7 @@
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("task") + ": " + ReqHandler.ActReqTask.Title)" Show="@Display" Large="true" OnClose="() => Display = false">
+<PopUp Title="@(userConfig.GetText("task") + ": " + (ObjectName != "" ? userConfig.GetText(ObjectName) : ""))" Show="@Display" Large="true" OnClose="() => Display = false">
     <Body>
         @if (Display)
         {
@@ -18,7 +18,7 @@
                 <form class="form-group row">
                     <label for="assignedGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("assign_to")):</label>
                     <div class="col-sm-8">
-                        <select id="assignedGroup" class="form-control-sm col-sm" @bind="ReqHandler.ActReqTask.AssignedGroup">
+                        <select id="assignedGroup" class="form-control-sm col-sm" @bind="StatefulObject.AssignedGroup">
                             @foreach (var group in userAndGroupList)
                             {
                                 <option value="@group.Dn">@(group.Name)</option>
@@ -30,7 +30,7 @@
                         <div class="col-sm-2">
                             <AuthorizeView Roles="admin">
                                 <Authorized>
-                                    <button class="btn btn-sm btn-success" @onclick="async () => { await ReqHandler.AssignGroup(); await Close();}" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                                    <button class="btn btn-sm btn-success" @onclick="async () => { await Assign(StatefulObject); await Close();}" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                                 </Authorized>
                                 <NotAuthorized>
                                     <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
@@ -39,14 +39,14 @@
                         </div>
                     }
                 </form>
-                @if(ReqHandler.ActReqTask.RecentHandler != null && ReqHandler.ActReqTask.RecentHandler != ReqHandler.ActReqTask.CurrentHandler)
+                @if(StatefulObject.RecentHandler != null && StatefulObject.RecentHandler != StatefulObject.CurrentHandler)
                 {
                     <form class="form-group row">
                         <label for="backAsssignedGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("back_to")):</label>
-                        <label id="backAsssignedGroup" class="col-sm-8">@ReqHandler.ActReqTask.RecentHandler.Name</label>
+                        <label id="backAsssignedGroup" class="col-sm-8">@StatefulObject.RecentHandler.Name</label>
                         <AuthorizeView Roles="admin">
                             <Authorized>
-                                <button class="btn btn-sm btn-success" @onclick="async () => { await ReqHandler.AssignBack(); await Close();}" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                                <button class="btn btn-sm btn-success" @onclick="async () => { await AssignBack(); await Close();}" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                             </Authorized>
                             <NotAuthorized>
                                 <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
@@ -80,8 +80,17 @@
     public Func<Task> ResetParent { get; set; }
 
     [Parameter]
-    public RequestHandler ReqHandler { get; set; }
- 
+    public StatefulObject StatefulObject { get; set; } = new StatefulObject();
+
+    [Parameter]
+    public Func<StatefulObject, Task>? Assign { get; set; }
+
+    [Parameter]
+    public Func<Task>? AssignBack { get; set; }
+
+    [Parameter]
+    public string ObjectName { get; set; } = "";
+
 
     private List<UiUser> userAndGroupList = new List<UiUser>();
 
@@ -90,7 +99,7 @@
     {
         try
         {
-            userAndGroupList = await RoleAccess.GetRoleMembers(middlewareClient, "planner");
+            userAndGroupList = await RoleAccess.GetRoleMembers(middlewareClient, "reporter");
         }
         catch (Exception exception)
         {

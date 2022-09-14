@@ -146,16 +146,6 @@ namespace FWO.Ui.Services
             contOption = action;
         }
 
-        public void ContinuePhase(RequestTask reqTask)
-        {
-            SelectReqTask(reqTask, contOption);
-        }
-
-        private void ContinueImplPhase(ImplementationTask implTask)
-        {
-            SelectImplTask(implTask, contOption);
-        }
-
 
         // Tickets
 
@@ -343,6 +333,17 @@ namespace FWO.Ui.Services
             ActTicket.Tasks[ActTicket.Tasks.FindIndex(x => x.Id == ActReqTask.Id)] = ActReqTask;
             await UpdateTicketStateFromTasks();
             SetReqTaskOpt(action);
+        }
+
+        public async Task ContinuePhase(RequestTask reqTask)
+        {
+            SelectReqTask(reqTask, contOption);
+            if(reqTask.CurrentHandler != userConfig.User)
+            {
+                reqTask.CurrentHandler = userConfig.User;
+                await dbAcc.UpdateReqTaskStateInDb(reqTask);
+                ActTicket.Tasks[ActTicket.Tasks.FindIndex(x => x.Id == ActReqTask.Id)] = ActReqTask;
+            }
         }
 
         public async Task AssignReqTaskGroup(StatefulObject statefulObject)
@@ -582,6 +583,17 @@ namespace FWO.Ui.Services
             }
             await UpdateTicketStateFromImplTasks();
             SetImplTaskOpt(action);
+        }
+
+        public async Task ContinueImplPhase(ImplementationTask implTask)
+        {
+            SelectImplTask(implTask, contOption);
+            if(implTask.CurrentHandler != userConfig.User)
+            {
+                implTask.CurrentHandler = userConfig.User;
+                await dbAcc.UpdateImplTaskStateInDb(implTask);
+                ActReqTask.ImplementationTasks[ActReqTask.ImplementationTasks.FindIndex(x => x.Id == ActImplTask.Id)] = ActImplTask;
+            }
         }
 
         public async Task AssignImplTaskGroup(StatefulObject statefulObject)

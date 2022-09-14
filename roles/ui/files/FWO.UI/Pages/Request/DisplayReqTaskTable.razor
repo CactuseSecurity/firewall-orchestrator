@@ -29,7 +29,7 @@
                             {
                                 <AuthorizeView Roles="admin, approver, planner, implementer, reviewer, fw-admin">
                                     <Authorized Context="ctx">
-                                        <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => StartPhase(context)">@(userConfig.GetText("start_" + Phase.ToString()))</button>
+                                        <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await StartPhase(context)">@(userConfig.GetText("start_" + Phase.ToString()))</button>
                                     </Authorized>
                                     <NotAuthorized Context="ctx">
                                         <button class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("start_" + Phase.ToString()))</button>
@@ -38,7 +38,7 @@
                             }
                             else if (context.StateId < ReqHandler.StateMatrix(context.TaskType).LowestEndState)
                             {
-                                <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => ContinuePhase(context)">@(userConfig.GetText("continue_" + Phase.ToString()))</button>
+                                <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await ContinuePhase(context)">@(userConfig.GetText("continue_" + Phase.ToString()))</button>
                                 @if(Phase == WorkflowPhases.planning)
                                 {
                                     <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignTask(context)">@(userConfig.GetText("assign"))</button>
@@ -157,6 +157,6 @@
 
     private async Task ContinuePhase(RequestTask reqTask)
     {
-        ReqHandler.ContinuePhase(reqTask);
+        await ReqHandler.ContinuePhase(reqTask);
     }
 }

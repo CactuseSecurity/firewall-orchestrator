@@ -120,6 +120,12 @@
                   "using": {
                     "foreign_key_constraint_on": "current_handler"
                   }
+                },
+                {
+                  "name": "uiuserByRecentHandler",
+                  "using": {
+                    "foreign_key_constraint_on": "recent_handler"
+                  }
                 }
               ],
               "array_relationships": [
@@ -10644,6 +10650,30 @@
                   }
                 },
                 {
+                  "name": "approvals",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "current_handler",
+                      "table": {
+                        "schema": "request",
+                        "name": "approval"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "approvalsByRecentHandler",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "recent_handler",
+                      "table": {
+                        "schema": "request",
+                        "name": "approval"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "changelogObjectsByImportAdmin",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -10900,6 +10930,30 @@
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "requester_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "ticket"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "ticketsByCurrentHandler",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "current_handler",
+                      "table": {
+                        "schema": "request",
+                        "name": "ticket"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "ticketsByRecentHandler",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "recent_handler",
                       "table": {
                         "schema": "request",
                         "name": "ticket"
@@ -12340,6 +12394,18 @@
                   "using": {
                     "foreign_key_constraint_on": "tenant_id"
                   }
+                },
+                {
+                  "name": "uiuser",
+                  "using": {
+                    "foreign_key_constraint_on": "current_handler"
+                  }
+                },
+                {
+                  "name": "uiuserByRecentHandler",
+                  "using": {
+                    "foreign_key_constraint_on": "recent_handler"
+                  }
                 }
               ]
             },
@@ -12617,6 +12683,18 @@
                   "name": "uiuser",
                   "using": {
                     "foreign_key_constraint_on": "requester_id"
+                  }
+                },
+                {
+                  "name": "uiuserByCurrentHandler",
+                  "using": {
+                    "foreign_key_constraint_on": "current_handler"
+                  }
+                },
+                {
+                  "name": "uiuserByRecentHandler",
+                  "using": {
+                    "foreign_key_constraint_on": "recent_handler"
                   }
                 }
               ],

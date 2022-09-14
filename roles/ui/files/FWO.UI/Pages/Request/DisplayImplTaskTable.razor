@@ -31,7 +31,7 @@
                             {
                                 <AuthorizeView Roles="admin, implementer, reviewer, fw-admin">
                                     <Authorized Context="ctx">
-                                        <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => StartImplPhase(implTask)">@(userConfig.GetText("start_" + Phase.ToString()))</button>
+                                        <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await StartImplPhase(implTask)">@(userConfig.GetText("start_" + Phase.ToString()))</button>
                                     </Authorized>
                                     <NotAuthorized Context="ctx">
                                         <button class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("start_" + Phase.ToString()))</button>
@@ -40,7 +40,7 @@
                             }
                             else if (implTask.StateId < ReqHandler.ActStateMatrix.LowestEndState)
                             {
-                                <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => ContinueImplPhase(implTask)">@(userConfig.GetText("continue_" + Phase.ToString()))</button>
+                                <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await ContinueImplPhase(implTask)">@(userConfig.GetText("continue_" + Phase.ToString()))</button>
                                 <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignImplTask(implTask)">@(userConfig.GetText("assign"))</button>
                             }
                         }
@@ -79,6 +79,11 @@
                 </Template>
             </Column>
             <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("implementer"))" Field="@(x => x.CurrentHandler.Name)" Sortable="true" Filterable="true" />
+            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("assigned"))" Field="@(x => x.AssignedGroup)" Sortable="true" Filterable="true" >
+                <Template>
+                    @(new DistName(implTask.AssignedGroup).UserName)
+                </Template>
+            </Column>
             <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("start"))" Field="@(x => x.Start)" Sortable="true" Filterable="true" />
             <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("stop"))" Field="@(x => x.Stop)" Sortable="true" Filterable="true" />
         </Table>
@@ -156,6 +161,6 @@
 
     private async Task ContinueImplPhase(ImplementationTask implTask)
     {
-        ReqHandler.SelectImplTask(implTask, ObjAction.implement);
+        await ReqHandler.ContinueImplPhase(implTask);
     }
 }

@@ -39,7 +39,7 @@
                                     @if (ReqHandler.EditReqTaskMode)
                                     {
                                         <select class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.DeviceId">
-                                            <option value="null">-</option>
+                                            <option value="">-</option>
                                             @foreach (Device device in ReqHandler.Devices)
                                             {
                                                 <option value="@device.Id">@(device.Name)</option>

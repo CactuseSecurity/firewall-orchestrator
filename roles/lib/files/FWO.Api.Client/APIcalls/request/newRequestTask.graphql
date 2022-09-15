@@ -1,6 +1,6 @@
 mutation newRequestTask(
   $title: String!
-  $ticketId: Int!
+  $ticketId: bigint!
   $taskNumber: Int
   $state: Int
   $taskType: String!

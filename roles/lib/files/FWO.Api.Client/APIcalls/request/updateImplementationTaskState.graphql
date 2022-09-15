@@ -1,5 +1,5 @@
 mutation updateImplementationTaskState(
-  $id: Int!
+  $id: bigint!
   $state: Int
   $start: timestamp
   $stop: timestamp

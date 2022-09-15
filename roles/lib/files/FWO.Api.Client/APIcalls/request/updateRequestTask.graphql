@@ -1,5 +1,5 @@
 mutation updateRequestTask(
-  $id: Int!
+  $id: bigint!
   $title: String!
   $taskNumber: Int
   $state: Int

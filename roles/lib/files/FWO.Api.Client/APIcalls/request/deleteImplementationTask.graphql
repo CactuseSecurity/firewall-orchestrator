@@ -1,4 +1,4 @@
-mutation deleteImplementationTask ($id: Int!) {
+mutation deleteImplementationTask ($id: bigint!) {
   delete_implementation_task_by_pk (
     id: $id
   ) {

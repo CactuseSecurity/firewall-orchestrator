@@ -1,4 +1,4 @@
-mutation deleteRequestTask ($id: Int!) {
+mutation deleteRequestTask ($id: bigint!) {
   delete_request_task_by_pk (
     id: $id
   ) {

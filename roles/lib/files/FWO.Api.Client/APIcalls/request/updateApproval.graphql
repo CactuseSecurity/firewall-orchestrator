@@ -1,5 +1,5 @@
 mutation updateApproval(
-  $id: Int!
+  $id: bigint!
   $state: Int!
   $approvalDate: timestamp
   $approver: String

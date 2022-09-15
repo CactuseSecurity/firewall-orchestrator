@@ -314,11 +314,11 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task DeleteReqElementFromDb(int elementId)
+        public async Task DeleteReqElementFromDb(long elementId)
         {
             try
             {
-                int delId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.deleteRequestElement, new { id = elementId })).DeletedId;
+                long delId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.deleteRequestElement, new { id = elementId })).DeletedId;
                 if(delId != elementId)
                 {
                     DisplayMessageInUi!(null, UserConfig.GetText("delete_element"), UserConfig.GetText("E8008"), true);
@@ -576,11 +576,11 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task DeleteImplElementFromDb(int elementId)
+        public async Task DeleteImplElementFromDb(long elementId)
         {
             try
             {
-                int delId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.deleteImplementationElement, new { id = elementId })).DeletedId;
+                long delId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.deleteImplementationElement, new { id = elementId })).DeletedId;
                 if(delId != elementId)
                 {
                     DisplayMessageInUi!(null, UserConfig.GetText("delete_element"), UserConfig.GetText("E8008"), true);

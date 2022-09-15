@@ -27,9 +27,9 @@ $$;
 -- create tables
 create table if not exists request.task 
 (
-    id SERIAL PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     title VARCHAR,
-    ticket_id int,
+    ticket_id bigint,
     task_number int,
     state_id int NOT NULL,
     task_type VARCHAR NOT NULL,
@@ -55,9 +55,9 @@ create table if not exists request.task
 
 create table if not exists request.element 
 (
-    id SERIAL PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     request_action action_enum NOT NULL default 'create',
-    task_id int,
+    task_id bigint,
     ip cidr,
     port int,
     ip_proto_id int,
@@ -70,8 +70,8 @@ create table if not exists request.element
 
 create table if not exists request.approval 
 (
-    id SERIAL PRIMARY KEY,
-    task_id int,
+    id BIGSERIAL PRIMARY KEY,
+    task_id bigint,
     date_opened Timestamp NOT NULL default CURRENT_TIMESTAMP,
     approver_group Varchar,
     approval_date Timestamp,
@@ -88,7 +88,7 @@ create table if not exists request.approval
 
 create table if not exists request.ticket 
 (
-    id SERIAL PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     title VARCHAR NOT NULL,
     date_created Timestamp NOT NULL default CURRENT_TIMESTAMP,
     date_completed Timestamp,
@@ -109,9 +109,8 @@ create table if not exists request.ticket
 
 create table if not exists request.state
 (
-    id Integer NOT NULL UNIQUE,
-    name Varchar NOT NULL,
-	primary key ("id")
+    id Integer NOT NULL UNIQUE PRIMARY KEY,
+    name Varchar NOT NULL
 );
 
 create table if not exists request.action
@@ -171,9 +170,9 @@ create table if not exists rule_owner
 
 create table if not exists implementation.element
 (
-    id SERIAL PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     implementation_action action_enum NOT NULL default 'create',
-    implementation_task_id int,
+    implementation_task_id bigint,
     ip cidr,
     port int,
     ip_proto_id int,
@@ -186,8 +185,8 @@ create table if not exists implementation.element
 
 create table if not exists implementation.task
 (
-    id SERIAL PRIMARY KEY,
-    request_task_id int,
+    id BIGSERIAL PRIMARY KEY,
+    request_task_id bigint,
     task_number int,
     state_id int NOT NULL,
     device_id int,

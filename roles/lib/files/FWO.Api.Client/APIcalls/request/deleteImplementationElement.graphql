@@ -1,4 +1,4 @@
-mutation deleteImplementationElement ($id: Int!) {
+mutation deleteImplementationElement ($id: bigint!) {
   delete_implementation_element_by_pk (
     id: $id
   ) {

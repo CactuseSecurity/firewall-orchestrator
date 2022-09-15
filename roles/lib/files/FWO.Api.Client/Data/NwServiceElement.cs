@@ -2,8 +2,8 @@
 {
     public class NwServiceElement
     {
-        public int ElemId { get; set; }
-        public int TaskId { get; set; }
+        public long ElemId { get; set; }
+        public long TaskId { get; set; }
         public int Port { get; set; } = 1;
         public int? ProtoId { get; set; } = 6;
         public long? ServiceId { get; set; }

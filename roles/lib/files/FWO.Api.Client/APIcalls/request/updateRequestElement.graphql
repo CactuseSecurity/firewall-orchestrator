@@ -1,7 +1,7 @@
 mutation updateRequestElement(
-  $id: Int!
+  $id: bigint!
   $requestAction: action_enum
-  $taskId: Int!
+  $taskId: bigint!
   $ip: cidr
   $port: Int
   $proto: Int

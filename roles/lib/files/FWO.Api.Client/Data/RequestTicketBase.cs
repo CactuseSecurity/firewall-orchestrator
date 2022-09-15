@@ -6,7 +6,7 @@ namespace FWO.Api.Data
     public class RequestTicketBase: StatefulObject
     {
         [JsonProperty("id"), JsonPropertyName("id")]
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         [JsonProperty("title"), JsonPropertyName("title")]
         public string Title { get; set; } = "";

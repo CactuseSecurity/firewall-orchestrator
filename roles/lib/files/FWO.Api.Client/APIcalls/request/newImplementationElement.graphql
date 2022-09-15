@@ -1,6 +1,6 @@
 mutation newImplementationElement(
   $implementationAction: action_enum
-  $implTaskId: Int!
+  $implTaskId: bigint!
   $ip: cidr
   $port: Int
   $proto: Int

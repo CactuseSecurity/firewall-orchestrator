@@ -6,10 +6,10 @@ namespace FWO.Api.Data
     public class ImplementationTask: TaskBase
     {
         [JsonProperty("id"), JsonPropertyName("id")]
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         [JsonProperty("request_task_id"), JsonPropertyName("request_task_id")]
-        public int ReqTaskId { get; set; }
+        public long ReqTaskId { get; set; }
 
         [JsonProperty("implementation_action"), JsonPropertyName("implementation_action")]
         public string ImplAction { get; set; } = FWO.Api.Data.RequestAction.create.ToString();
@@ -18,7 +18,7 @@ namespace FWO.Api.Data
         public List<ImplementationElement> ImplElements { get; set; } = new List<ImplementationElement>();
 
         public List<ImplementationElement> RemovedElements { get; set; } = new List<ImplementationElement>();
-        public int TicketId { get; set; }
+        public long TicketId { get; set; }
 
         public ImplementationTask()
         { }

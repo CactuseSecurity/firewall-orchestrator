@@ -1,4 +1,4 @@
-mutation deleteRequestElement ($id: Int!) {
+mutation deleteRequestElement ($id: bigint!) {
   delete_request_element_by_pk (
     id: $id
   ) {

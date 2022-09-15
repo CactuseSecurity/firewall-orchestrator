@@ -6,10 +6,10 @@ namespace FWO.Api.Data
     public class ImplementationElement : ElementBase
     {
         [JsonProperty("id"), JsonPropertyName("id")]
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         [JsonProperty("implementation_task_id"), JsonPropertyName("implementation_task_id")]
-        public int ImplTaskId { get; set; }
+        public long ImplTaskId { get; set; }
 
         [JsonProperty("implementation_action"), JsonPropertyName("implementation_action")]
         public string ImplAction { get; set; } = "create";

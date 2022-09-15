@@ -1,6 +1,6 @@
 mutation updateImplementationTask(
-  $id: Int!
-  $reqTaskId: Int!
+  $id: bigint!
+  $reqTaskId: bigint!
   $implIaskNumber: Int
   $state: Int
   $taskType: String!

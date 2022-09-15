@@ -6,10 +6,10 @@ namespace FWO.Api.Data
     public class RequestTask : RequestTaskBase
     {
         [JsonProperty("id"), JsonPropertyName("id")]
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         [JsonProperty("ticket_id"), JsonPropertyName("ticket_id")]
-        public int TicketId { get; set; }
+        public long TicketId { get; set; }
 
         [JsonProperty("elements"), JsonPropertyName("elements")]
         public List<RequestElement> Elements { get; set; } = new List<RequestElement>();

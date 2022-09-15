@@ -17,9 +17,6 @@ namespace FWO.Api.Data
         [JsonProperty("title"), JsonPropertyName("title")]
         public string Title { get; set; } = "";
 
-        [JsonProperty("task_number"), JsonPropertyName("task_number")]
-        public int TaskNumber { get; set; }
-
         [JsonProperty("request_action"), JsonPropertyName("request_action")]
         public string RequestAction { get; set; } = FWO.Api.Data.RequestAction.create.ToString();
 
@@ -36,7 +33,6 @@ namespace FWO.Api.Data
         public RequestTaskBase(RequestTaskBase task) : base(task)
         {
             Title = task.Title;
-            TaskNumber = task.TaskNumber;
             RequestAction = task.RequestAction;
             Reason = task.Reason;
             LastRecertDate = task.LastRecertDate;

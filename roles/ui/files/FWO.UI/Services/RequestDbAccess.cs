@@ -402,7 +402,7 @@ namespace FWO.Ui.Services
                 var Variables = new
                 {
                     reqTaskId = task.ReqTaskId,
-                    implIaskNumber = task.ImplTaskNumber,
+                    implIaskNumber = task.TaskNumber,
                     state = task.StateId,
                     taskType = task.TaskType,
                     device = task.DeviceId,
@@ -446,7 +446,7 @@ namespace FWO.Ui.Services
                 {
                     id = task.Id,
                     reqTaskId = task.ReqTaskId,
-                    implIaskNumber = task.ImplTaskNumber,
+                    implIaskNumber = task.TaskNumber,
                     state = task.StateId,
                     taskType = task.TaskType,
                     device = task.DeviceId,

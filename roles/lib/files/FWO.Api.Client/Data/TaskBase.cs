@@ -25,8 +25,8 @@ namespace FWO.Api.Data
         [JsonProperty("device_id"), JsonPropertyName("device_id")]
         public int? DeviceId { get; set; }
 
-        // [JsonProperty("task_number"), JsonPropertyName("task_number")]
-        // public int TaskNumber { get; set; }
+        [JsonProperty("task_number"), JsonPropertyName("task_number")]
+        public int TaskNumber { get; set; }
 
         [JsonProperty("task_type"), JsonPropertyName("task_type")]
         public string TaskType { get; set; } = FWO.Api.Data.TaskType.access.ToString();
@@ -74,7 +74,7 @@ namespace FWO.Api.Data
         public TaskBase(TaskBase task) : base(task)
         {
             DeviceId = task.DeviceId;
-            // TaskNumber = task.TaskNumber;
+            TaskNumber = task.TaskNumber;
             TaskType = task.TaskType;
             // RequestAction = task.RequestAction;
             RuleAction = task.RuleAction;

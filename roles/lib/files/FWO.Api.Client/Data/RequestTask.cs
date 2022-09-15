@@ -53,11 +53,11 @@ namespace FWO.Api.Data
         public int HighestImplTaskNumber()
         {
             int highestNumber = 0;
-            foreach(var task in ImplementationTasks)
+            foreach(var implTask in ImplementationTasks)
             {
-                if (task.ImplTaskNumber > highestNumber)
+                if (implTask.TaskNumber > highestNumber)
                 {
-                    highestNumber = task.ImplTaskNumber;
+                    highestNumber = implTask.TaskNumber;
                 }
             }
             return highestNumber;

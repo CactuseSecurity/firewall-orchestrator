@@ -210,16 +210,17 @@ namespace FWO.Ui.Services
                         reqTask.StateId = ActTicket.StateId;
                     }
 
+                    if(ActTicket.Deadline == null)
+                    {
+                        int? tickDeadline = PrioList.FirstOrDefault(x => x.NumPrio == ActTicket.Priority)?.TicketDeadline;
+                        ActTicket.Deadline = (tickDeadline != null && tickDeadline > 0 ? DateTime.Now.AddDays((int)tickDeadline) : null);
+                    }
+
                     if (AddTicketMode)
                     {                  
                         // insert new ticket
                         ActTicket.CreationDate = DateTime.Now;
                         ActTicket.Requester = userConfig.User;
-                        if(ActTicket.Deadline == null)
-                        {
-                            int? tickDeadline = PrioList.FirstOrDefault(x => x.NumPrio == ActTicket.Priority)?.TicketDeadline;
-                            ActTicket.Deadline = (tickDeadline != null && tickDeadline > 0 ? DateTime.Now.AddDays((int)tickDeadline) : null);
-                        }
                         ActTicket = await dbAcc.AddTicketToDb(ActTicket);
                         TicketList.Add(ActTicket);
                     }
@@ -624,7 +625,7 @@ namespace FWO.Ui.Services
         public async Task ChangeImplTask()
         {
             await dbAcc.UpdateImplTaskInDb(ActImplTask);
-            ActReqTask.ImplementationTasks[ActReqTask.ImplementationTasks.FindIndex(x => x.ImplTaskNumber == ActImplTask.ImplTaskNumber)] = ActImplTask;
+            ActReqTask.ImplementationTasks[ActReqTask.ImplementationTasks.FindIndex(x => x.TaskNumber == ActImplTask.TaskNumber)] = ActImplTask;
         }
 
         public async Task PromoteImplTask(StatefulObject implTask)
@@ -675,7 +676,7 @@ namespace FWO.Ui.Services
                         if(Devices.Count == 1)
                         {
                             newImplTask = new ImplementationTask(reqTask)
-                                { ImplTaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = Devices[0].Id, StateId = reqTask.StateId };
+                                { TaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = Devices[0].Id, StateId = reqTask.StateId };
                             newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
                             reqTask.ImplementationTasks.Add(newImplTask);
                         }
@@ -684,14 +685,14 @@ namespace FWO.Ui.Services
                         foreach(var device in Devices)
                         {
                             newImplTask = new ImplementationTask(reqTask)
-                                { ImplTaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = device.Id, StateId = reqTask.StateId };
+                                { TaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = device.Id, StateId = reqTask.StateId };
                             newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
                             reqTask.ImplementationTasks.Add(newImplTask);
                         }
                         break;
                     case AutoCreateImplTaskOptions.enterInReqTask:
                         newImplTask = new ImplementationTask(reqTask)
-                            { ImplTaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = reqTask.DeviceId, StateId = reqTask.StateId };
+                            { TaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = reqTask.DeviceId, StateId = reqTask.StateId };
                         newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
                         reqTask.ImplementationTasks.Add(newImplTask);
                         break;

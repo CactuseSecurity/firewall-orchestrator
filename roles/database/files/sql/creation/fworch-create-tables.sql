@@ -1132,7 +1132,7 @@ create table if not exists implementation.task
 (
     id SERIAL PRIMARY KEY,
     request_task_id int,
-    implementation_task_number int,
+    task_number int,
     state_id int NOT NULL,
 	task_type VARCHAR NOT NULL,
     device_id int,

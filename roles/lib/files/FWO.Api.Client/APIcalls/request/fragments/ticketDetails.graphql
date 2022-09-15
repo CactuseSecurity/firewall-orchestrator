@@ -60,7 +60,7 @@ fragment ticketDetails on request_ticket {
     implementation_tasks: tasks {
       id
       request_task_id
-      implementation_task_number
+      task_number
       task_type
       state_id
       device_id

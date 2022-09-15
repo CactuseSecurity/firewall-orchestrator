@@ -11,9 +11,6 @@ namespace FWO.Api.Data
         [JsonProperty("request_task_id"), JsonPropertyName("request_task_id")]
         public int ReqTaskId { get; set; }
 
-        [JsonProperty("implementation_task_number"), JsonPropertyName("implementation_task_number")]
-        public int ImplTaskNumber { get; set; }
-
         [JsonProperty("implementation_action"), JsonPropertyName("implementation_action")]
         public string ImplAction { get; set; } = FWO.Api.Data.RequestAction.create.ToString();
 
@@ -30,7 +27,7 @@ namespace FWO.Api.Data
         {
             Id = 0;
             ReqTaskId = task.Id;
-            ImplTaskNumber = 0;
+            TaskNumber = 0;
             StateId = 0;
             TaskType = task.TaskType;
             ImplAction = task.RequestAction;

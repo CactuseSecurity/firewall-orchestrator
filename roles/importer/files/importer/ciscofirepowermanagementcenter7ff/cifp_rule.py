@@ -1,8 +1,11 @@
+from ast import literal_eval
 from asyncio.log import logger
 import copy
+
+from sympy import Not
 from common import resolve_raw_objects, extend_string_list, list_delimiter, nat_postfix
-from cifp_service import create_svc_object
-from cifp_network import resolve_objects, create_network_object, get_first_ip_of_destination
+from cifp_service import parse_svc_group
+from cifp_network import resolve_objects, create_network_object, get_first_ip_of_destination, parse_obj_group
 import cifp_zone
 import cifp_getter
 from cifp_gw_networking import get_matching_route, get_ip_of_interface, get_device_from_package
@@ -39,36 +42,37 @@ def initializeRulebases(raw_config):
         raw_config.update({'rules_adom_nat': {}})
 
 
-def getAccessPolicy(sid, fm_api_url, raw_config, adom_name, device, limit):
-    consolidated = ''  # '/consolidated'
+def getAccessPolicy(sessionId, api_url, config, device, limit):
+    access_policy = device["accessPolicy"]["id"]
+    domain = device["domain"]
     logger = getFwoLogger()
 
-    local_pkg_name = device['local_rulebase_name']
-    global_pkg_name = device['global_rulebase_name']
-    # pkg_name = device['package_name'] pkg_name is not used at all
+    device["rules"] = cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
+        "fmc_config/v1/domain/" + domain + "/policy/accesspolicies/" + access_policy + "/accessrules", parameters={"expanded": True}, limit=limit)
 
+    return
     # get global header rulebase:
-    if device['global_rulebase_name'] is None or device['global_rulebase_name'] == '':
-        logger.debug('no global rulebase name defined in fortimanager, ADOM=' +
-                     adom_name + ', local_package=' + local_pkg_name)
-    else:
-        cifp_getter.update_config_with_fortinet_api_call(
-            raw_config['rules_global_header_v4'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/header" + consolidated + "/policy", local_pkg_name, limit=limit)
-        cifp_getter.update_config_with_fortinet_api_call(
-            raw_config['rules_global_header_v6'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/header" + consolidated + "/policy6", local_pkg_name, limit=limit)
+    # if device['global_rulebase_name'] is None or device['global_rulebase_name'] == '':
+    #     logger.debug('no global rulebase name defined in fortimanager, ADOM=' +
+    #                  adom_name + ', local_package=' + local_pkg_name)
+    # else:
+    #     cifp_getter.update_config_with_cisco_api_call(
+    #         raw_config['rules_global_header_v4'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/header" + consolidated + "/policy", local_pkg_name, limit=limit)
+    #     cifp_getter.update_config_with_cisco_api_call(
+    #         raw_config['rules_global_header_v6'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/header" + consolidated + "/policy6", local_pkg_name, limit=limit)
 
     # get local rulebase
-    cifp_getter.update_config_with_fortinet_api_call(
-        raw_config['rules_adom_v4'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy", local_pkg_name, limit=limit)
-    cifp_getter.update_config_with_fortinet_api_call(
-        raw_config['rules_adom_v6'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy6", local_pkg_name, limit=limit)
+    # cifp_getter.update_config_with_cisco_api_call(
+    #     raw_config['rules_adom_v4'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy", local_pkg_name, limit=limit)
+    # cifp_getter.update_config_with_cisco_api_call(
+    #     raw_config['rules_adom_v6'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy6", local_pkg_name, limit=limit)
 
     # get global footer rulebase:
-    if device['global_rulebase_name'] != None and device['global_rulebase_name'] != '':
-        cifp_getter.update_config_with_fortinet_api_call(
-            raw_config['rules_global_footer_v4'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/footer" + consolidated + "/policy", local_pkg_name, limit=limit)
-        cifp_getter.update_config_with_fortinet_api_call(
-            raw_config['rules_global_footer_v6'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/footer" + consolidated + "/policy6", local_pkg_name, limit=limit)
+    # if device['global_rulebase_name'] != None and device['global_rulebase_name'] != '':
+    #     cifp_getter.update_config_with_cisco_api_call(
+    #         raw_config['rules_global_footer_v4'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/footer" + consolidated + "/policy", local_pkg_name, limit=limit)
+    #     cifp_getter.update_config_with_cisco_api_call(
+    #         raw_config['rules_global_footer_v6'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/footer" + consolidated + "/policy6", local_pkg_name, limit=limit)
 
 
 def getNatPolicy(sid, fm_api_url, raw_config, adom_name, device, limit):
@@ -76,117 +80,68 @@ def getNatPolicy(sid, fm_api_url, raw_config, adom_name, device, limit):
     pkg = device['global_rulebase_name']
     if pkg is not None and pkg != '':   # only read global rulebase if it exists
         for nat_type in ['central/dnat', 'central/dnat6', 'firewall/central-snat-map']:
-            cifp_getter.update_config_with_fortinet_api_call(
+            cifp_getter.update_config_with_cisco_api_call(
                 raw_config['rules_global_nat'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['local_rulebase_name'], limit=limit)
 
     scope = 'adom/'+adom_name
     pkg = device['local_rulebase_name']
     for nat_type in ['central/dnat', 'central/dnat6', 'firewall/central-snat-map']:
-        cifp_getter.update_config_with_fortinet_api_call(
+        cifp_getter.update_config_with_cisco_api_call(
             raw_config['rules_adom_nat'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['local_rulebase_name'], limit=limit)
 
 
 def normalize_access_rules(full_config, config2import, import_id, mgm_details={}, jwt=None):
     logger = getFwoLogger()
     rules = []
-    # first_v4, first_v6 = check_headers_needed(full_config, rule_access_scope)
-    first_v4 = True
-    first_v6 = True
-    nat_rule_number = 0
-    rule_number = 0
-    src_ref_all = ""
-    dst_ref_all = ""
-    for rule_table in rule_access_scope:
-        src_ref_all = resolve_raw_objects("all", list_delimiter, full_config, 'name', 'uuid',
-                                          rule_type=rule_table, jwt=jwt, import_id=import_id, mgm_id=mgm_details['id'])
-        dst_ref_all = resolve_raw_objects("all", list_delimiter, full_config, 'name', 'uuid',
-                                          rule_type=rule_table, jwt=jwt, import_id=import_id, mgm_id=mgm_details['id'])
-        for localPkgName in full_config[rule_table]:
-            device_name = get_device_from_package(localPkgName, mgm_details)
-            if device_name is None:
-                logger.info('normalize_access_rules - no matching device found for package "' +
-                            localPkgName + '" in rule_table ' + rule_table)
+    for device in full_config["devices"]:
+        access_policy = device["accessPolicy"]
+        rule_number = 0
+        for rule_orig in device["rules"]:
+            rule = {'rule_src': '', 'rule_dst': '', 'rule_svc': ''}
+            rule['control_id'] = import_id
+            rule['rule_type'] = "access"
+            rule['rulebase_name'] = access_policy["name"]
+            rule['rule_ruleid'] = access_policy['id']
+            rule['rule_num'] = rule_number
+            rule['rule_installation'] = None
+            rule['parent_rule_id'] = None
+            rule['rule_time'] = None
+            rule['rule_implied'] = False
+            rule["rule_uid"] = rule_orig["id"]
+            rule["rule_name"] = rule_orig["name"]
+            if 'description' in rule_orig:
+                rule['rule_comment'] = rule_orig['description']#
             else:
-                rule_number, first_v4, first_v6 = insert_headers(
-                    rule_table, first_v6, first_v4, full_config, rules, import_id, localPkgName, src_ref_all, dst_ref_all, rule_number)
+                rule["rule_comment"] = None
+            if rule_orig["action"] == "ALLOW":
+                rule["rule_action"] = "Accept"
+            elif rule_orig["action"] == "BLOCK":
+                rule["rule_action"] = "Drop"
+            elif rule_orig["action"] == "TRUST":
+                 rule["rule_action"] = "Accept" #TODO More specific?            
+            elif rule_orig["action"] == "MONITOR":
+                continue #TODO No access rule (just tracking and logging)
+            if rule_orig["enableSyslog"]:
+                rule["rule_track"] = "Log"
+            else:
+                rule["rule_track"] = "None"
+            rule["rule_disabled"] = not rule_orig["enabled"]
 
-                for rule_orig in full_config[rule_table][localPkgName]:
-                    rule = {'rule_src': '', 'rule_dst': '', 'rule_svc': ''}
-                    xlate_rule = None
-                    rule.update({'control_id': import_id})
-                    # the rulebase_name will be set to the pkg_name as there is no rulebase_name in FortiMangaer
-                    rule.update({'rulebase_name': localPkgName})
-                    rule.update({'rule_ruleid': rule_orig['policyid']})
-                    rule.update({'rule_uid': rule_orig['uuid']})
-                    rule.update({'rule_num': rule_number})
-                    if 'name' in rule_orig:
-                        rule.update({'rule_name': rule_orig['name']})
-                    rule.update({'rule_installon': None})
-                    rule.update({'rule_implied': False})
-                    rule.update({'rule_time': None})
-                    rule.update({'rule_type': 'access'})
-                    rule.update({'parent_rule_id': None})
+            if "sourceNetworks" in rule_orig:
+                rule['rule_src_refs'], rule["rules_src"] = parse_obj_group(rule_orig, import_id, config2import['network_objects'])
+            if "destinationNetworks" in rule_orig:
+                rule['rule_dst_refs'], rule["rule_dst"] = parse_obj_group(rule_orig, import_id, config2import['network_objects'])
+            # TODO source ports
+            if "destinationPorts" in rule_orig:
+                rule["rule_svc_refs"], rule["rule_svc"] = parse_svc_group(rule_orig, import_id, config2import["service_objects"])
 
-                    if 'comments' in rule_orig:
-                        rule.update({'rule_comment': rule_orig['comments']})
-                    else:
-                        rule.update({'rule_comment': None})
-                    if rule_orig['action'] == 0:
-                        rule.update({'rule_action': 'Drop'})
-                    else:
-                        rule.update({'rule_action': 'Accept'})
-                    if 'status' in rule_orig and (rule_orig['status'] == 'enable' or rule_orig['status'] == 1):
-                        rule.update({'rule_disabled': False})
-                    else:
-                        rule.update({'rule_disabled': True})
-                    if rule_orig['logtraffic'] == 'disable':
-                        rule.update({'rule_track': 'None'})
-                    else:
-                        rule.update({'rule_track': 'Log'})
+            rule["rule_src_neg"] = False
+            rule["rule_dst_neg"] = False
+            rule["rule_svc_neg"] = False
 
-                    rule['rule_src'] = extend_string_list(
-                        rule['rule_src'], rule_orig, 'srcaddr', list_delimiter, jwt=jwt, import_id=import_id)
-                    rule['rule_dst'] = extend_string_list(
-                        rule['rule_dst'], rule_orig, 'dstaddr', list_delimiter, jwt=jwt, import_id=import_id)
-                    rule['rule_svc'] = extend_string_list(
-                        rule['rule_svc'], rule_orig, 'service', list_delimiter, jwt=jwt, import_id=import_id)
-                    rule['rule_src'] = extend_string_list(
-                        rule['rule_src'], rule_orig, 'srcaddr6', list_delimiter, jwt=jwt, import_id=import_id)
-                    rule['rule_dst'] = extend_string_list(
-                        rule['rule_dst'], rule_orig, 'dstaddr6', list_delimiter, jwt=jwt, import_id=import_id)
+            rule_number += 1
 
-                    if len(rule_orig['srcintf']) > 0:
-                        src_obj_zone = cifp_zone.add_zone_if_missing(
-                            config2import, rule_orig['srcintf'][0], import_id)
-                        # todo: currently only using the first zone
-                        rule.update({'rule_from_zone': src_obj_zone})
-                    if len(rule_orig['dstintf']) > 0:
-                        dst_obj_zone = cifp_zone.add_zone_if_missing(
-                            config2import, rule_orig['dstintf'][0], import_id)
-                        # todo: currently only using the first zone
-                        rule.update({'rule_to_zone': dst_obj_zone})
-
-                    rule.update(
-                        {'rule_src_neg': rule_orig['srcaddr-negate'] == 'disable'})
-                    rule.update(
-                        {'rule_dst_neg': rule_orig['dstaddr-negate'] == 'disable'})
-                    rule.update(
-                        {'rule_svc_neg': rule_orig['service-negate'] == 'disable'})
-
-                    rule.update({'rule_src_refs': resolve_raw_objects(rule['rule_src'], list_delimiter, full_config, 'name', 'uuid',
-                                                                      rule_type=rule_table, jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object', mgm_id=mgm_details['id'])})
-                    rule.update({'rule_dst_refs': resolve_raw_objects(rule['rule_dst'], list_delimiter, full_config, 'name', 'uuid',
-                                                                      rule_type=rule_table, jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object', mgm_id=mgm_details['id'])})
-                    # services do not have uids, so using name instead
-                    rule.update({'rule_svc_refs': rule['rule_svc']})
-
-                    xlate_rule = handle_combined_nat_rule(
-                        rule, rule_orig, config2import, nat_rule_number, import_id, localPkgName, device_name)
-                    rules.append(rule)
-                    if xlate_rule is not None:
-                        rules.append(xlate_rule)
-                    rule_number += 1    # nat rules have their own numbering
-    config2import.update({'rules': rules})
+    config2import['rules'] = rules
 
 
 # pure nat rules

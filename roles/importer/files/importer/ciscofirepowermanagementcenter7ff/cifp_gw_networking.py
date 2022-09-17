@@ -231,7 +231,6 @@ def get_all_dev_names(devices):
 
 # get network information (currently only used for source nat)
 def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, limit):
-
     logger = getFwoLogger()
     # strip off vdom names, just deal with the plain device
     device_array = get_all_dev_names(devices)
@@ -309,7 +308,7 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
         #     ]
         # }
         try:    # get interfaces from top level device (not vdom)
-            cifp_getter.update_config_with_fortinet_api_call(
+            cifp_getter.update_config_with_cisco_api_call(
                 raw_config, sid, fm_api_url, "/pm/config/device/" +
                 plain_dev_name + "/global/system/interface",
                 "interfaces_per_device/" + full_vdom_name, payload=all_interfaces_payload, limit=limit, method="get")
@@ -326,7 +325,7 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
             try:    # get routing table per vdom
                 routing_helper = {}
                 routing_table = []
-                cifp_getter.update_config_with_fortinet_api_call(
+                cifp_getter.update_config_with_cisco_api_call(
                     routing_helper, sid, fm_api_url, "/sys/proxy/json",
                     "routing-table-" + ip_version + '/' + full_vdom_name,
                     payload=payload, limit=limit, method="exec")

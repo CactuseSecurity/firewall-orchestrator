@@ -1,169 +1,90 @@
 from asyncio.log import logger
-import ipaddress
+from curses.ascii import isdigit
 from fwo_log import getFwoLogger
 from common import list_delimiter, resolve_objects, nat_postfix
 from cifp_zone import add_zone_if_missing
+from netaddr import IPAddress
 
-
-def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt=None, mgm_id=None):
+def normalize_nwobjects(full_config, config2import, import_id, jwt=None, mgm_id=None):
     logger = getFwoLogger()
     nw_objects = []
-    for obj_type in nw_obj_types:
-        for obj_orig in full_config[obj_type]:
-            obj_zone = 'global'
-            obj = {}
-            obj.update({'obj_name': obj_orig['name']})
-            if 'subnet' in obj_orig:  # ipv4 object
-                ipa = ipaddress.ip_network(
-                    str(obj_orig['subnet'][0]) + '/' + str(obj_orig['subnet'][1]))
-                if ipa.num_addresses > 1:
-                    obj.update({'obj_typ': 'network'})
-                else:
-                    obj.update({'obj_typ': 'host'})
-                obj.update({'obj_ip': ipa.with_prefixlen})
-            elif 'ip6' in obj_orig:  # ipv6 object
-                ipa = ipaddress.ip_network(
-                    str(obj_orig['ip6']).replace("\\", ""))
-                if ipa.num_addresses > 1:
-                    obj.update({'obj_typ': 'network'})
-                else:
-                    obj.update({'obj_typ': 'host'})
-                obj.update({'obj_ip': ipa.with_prefixlen})
-            elif 'member' in obj_orig:  # addrgrp4 / addrgrp6
-                obj.update({'obj_typ': 'group'})
-                obj.update(
-                    {'obj_member_names': list_delimiter.join(obj_orig['member'])})
-                obj.update({'obj_member_refs': resolve_objects(
-                    obj['obj_member_names'], list_delimiter, full_config, 'name', 'uuid', jwt=jwt, import_id=import_id)}, mgm_id=mgm_id)
-            elif 'startip' in obj_orig:  # ippool object
-                obj.update({'obj_typ': 'ip_range'})
-                obj.update({'obj_ip': obj_orig['startip']})
-                obj.update({'obj_ip_end': obj_orig['endip']})
-            elif 'start-ip' in obj_orig:  # standard ip range object
-                obj.update({'obj_typ': 'ip_range'})
-                obj.update({'obj_ip': obj_orig['start-ip']})
-                obj.update({'obj_ip_end': obj_orig['end-ip']})
-            elif 'extip' in obj_orig:  # vip object, simplifying to a single ip
-                obj.update({'obj_typ': 'host'})
-                if 'extip' not in obj_orig or len(obj_orig['extip']) == 0:
-                    logger.error(
-                        "vip (extip): found empty extip field for " + obj_orig['name'])
-                else:
-                    if len(obj_orig['extip']) > 1:
-                        logger.warning(
-                            "vip (extip): found more than one extip, just using the first one for " + obj_orig['name'])
-                    # resolving nat range if there is one
-                    set_ip_in_obj(obj, obj_orig['extip'][0])
-                    nat_obj = {}
-                    nat_obj.update({'obj_typ': 'host'})
-                    nat_obj.update({'obj_color': 'black'})
-                    nat_obj.update(
-                        {'obj_comment': 'FWO-auto-generated nat object for VIP'})
-                    if 'obj_ip_end' in obj:  # this obj is a range - include the end ip in name and uid as well to avoid akey conflicts
-                        nat_obj.update({'obj_ip_end': obj['obj_ip_end']})
+    for obj_orig in full_config["networkObjects"]:
+        nw_objects.append(parse_object(obj_orig, import_id))
 
-                # now dealing with the nat ip obj (mappedip)
-                if 'mappedip' not in obj_orig or len(obj_orig['mappedip']) == 0:
-                    logger.warning(
-                        "vip (extip): found empty mappedip field for " + obj_orig['name'])
-                else:
-                    if len(obj_orig['mappedip']) > 1:
-                        logger.warning(
-                            "vip (extip): found more than one mappedip, just using the first one for " + obj_orig['name'])
-                    nat_ip = obj_orig['mappedip'][0]
-                    set_ip_in_obj(nat_obj, nat_ip)
-                    # save nat ip in vip obj
-                    obj.update({'obj_nat_ip': nat_obj['obj_ip']})
-                    if 'obj_ip_end' in nat_obj:  # this nat obj is a range - include the end ip in name and uid as well to avoid akey conflicts
-                        # save nat ip in vip obj
-                        obj.update({'obj_nat_ip_end': nat_obj['obj_ip_end']})
-                        nat_obj.update(
-                            {'obj_name': nat_obj['obj_ip'] + '-' + nat_obj['obj_ip_end'] + nat_postfix})
-                    else:
-                        nat_obj.update(
-                            {'obj_name': nat_obj['obj_ip'] + nat_postfix})
-                    nat_obj.update({'obj_uid': nat_obj['obj_name']})
-                    # range handling
+    for obj_grp_orig in full_config["networkObjectGroups"]:
+        obj_grp = {}
+        obj_grp['obj_typ'] = 'group'
+        obj_grp["obj_member_refs"], obj_grp["obj_member_names"] = parse_obj_group(obj_grp_orig, import_id, nw_objects)
 
-                # and obj_orig['associated-interface'][0] != 'any':
-                if 'associated-interface' in obj_orig and len(obj_orig['associated-interface']) > 0:
-                    obj_zone = obj_orig['associated-interface'][0]
-                nat_obj.update({'obj_zone': obj_zone})
-                nat_obj.update({'control_id': import_id})
-                if nat_obj not in nw_objects:   # rare case when a destination nat is down for two different orig ips to the same dest ip
-                    nw_objects.append(nat_obj)
-                else:
-                    pass
-            else:  # 'fqdn' in obj_orig: # "fully qualified domain name address" // other unknown types
-                obj.update({'obj_typ': 'network'})
-                obj.update({'obj_ip': '0.0.0.0/0'})
-            if 'comment' in obj_orig:
-                obj.update({'obj_comment': obj_orig['comment']})
-            if 'color' in obj_orig and obj_orig['color'] == 0:
-                # todo: deal with all other colors (will be currently ignored)
-                obj.update({'obj_color': 'black'})
-                # we would need a list of fortinet color codes
-            if 'uuid' not in obj_orig:
-                obj_orig.update({'uuid': obj_orig['name']})
-            obj.update({'obj_uid': obj_orig['uuid']})
+    config2import['network_objects'] = nw_objects
 
-            # here only picking first associated interface as zone:
-            # and obj_orig['associated-interface'][0] != 'any':
-            if 'associated-interface' in obj_orig and len(obj_orig['associated-interface']) > 0:
-                obj_zone = obj_orig['associated-interface'][0]
-                # adding zone if it not yet exists
-                obj_zone = add_zone_if_missing(
-                    config2import, obj_zone, import_id)
-            obj.update({'obj_zone': obj_zone})
+def parse_obj_group(orig_grp, import_id, nw_objects):
+    refs = []
+    names = []
+    if "literals" in orig_grp:
+        for orig_literal in orig_grp["literals"]:
+            literal = parse_object(orig_literal, import_id)
+            literal["obj_uid"] += "_" + orig_grp["id"]
+            nw_objects.append(literal)
+            names.append(orig_literal["value"])
+            refs.append(literal["obj_uid"])
+    if "objects" in orig_grp:
+        for orig_obj in orig_grp["objects"]:
+            names.append(orig_obj["name"])
+            refs.append(orig_obj["id"])
+    return list_delimiter.join(refs), list_delimiter.join(names)
 
-            obj.update({'control_id': import_id})
-            nw_objects.append(obj)
-
-    # finally add "Original" network object for natting
-    original_obj_name = 'Original'
-    original_obj_uid = 'Original'
-    nw_objects.append(create_network_object(import_id=import_id, name=original_obj_name, type='network', ip='0.0.0.0/0',
-                                            uid=original_obj_uid, zone='global', color='black', comment='"original" network object created by FWO importer for NAT purposes'))
-
-    config2import.update({'network_objects': nw_objects})
-
-
-# add start and end ip in nw_obj if it is a range, otherwise do nothing
-def set_ip_in_obj(nw_obj, ip):
-    if '-' in ip:  # dealing with range
-        ip_start, ip_end = ip.split('-')
-        nw_obj.update({'obj_ip': ip_start})
-        if ip_end != ip_start:
-            nw_obj.update({'obj_ip_end': ip_end})
+def parse_object(obj_orig, import_id):
+    obj = {}
+    if "id" in obj_orig:
+        obj["obj_uid"] = obj_orig['id']
     else:
-        nw_obj.update({'obj_ip': ip})
-
-
-# for members of groups, the name of the member obj needs to be fetched separately (starting from API v1.?)
-def resolve_nw_uid_to_name(uid, nw_objects):
-    # return name of nw_objects element where obj_uid = uid
-    for obj in nw_objects:
-        if obj['obj_uid'] == uid:
-            return obj['obj_name']
-    return 'ERROR: uid "' + uid + '" not found'
-
-
-def add_member_names_for_nw_group(idx, nw_objects):
-    group = nw_objects.pop(idx)
-    if group['obj_member_refs'] == '' or group['obj_member_refs'] == None:
-        #member_names = None
-        #obj_member_refs = None
-        group['obj_member_names'] = None
-        group['obj_member_refs'] = None
+        obj["obj_uid"] = obj_orig["value"]
+    if "name" in obj_orig:
+        obj["obj_name"] = obj_orig["name"]
     else:
-        member_names = ''
-        obj_member_refs = group['obj_member_refs'].split(list_delimiter)
-        for ref in obj_member_refs:
-            member_name = resolve_nw_uid_to_name(ref, nw_objects)
-            member_names += member_name + list_delimiter
-        group['obj_member_names'] = member_names[:-1]
-    nw_objects.insert(idx, group)
-
+        obj["obj_name"] = obj_orig["value"]
+    if obj_orig["type"] == "Network":  # network
+        obj["obj_typ"] = "network"
+        cidr = obj_orig["value"].split("/")
+        if str.isdigit(cidr[1]):
+            obj['obj_ip'] = cidr[0] + "/" + cidr[1]
+        else: # not real cidr (netmask after /)
+            obj['obj_ip'] = cidr[0] + "/" + str(IPAddress(cidr[1]).netmask_bits())    
+    elif obj_orig["type"] == "Host": # host
+        obj["obj_typ"] = "host"
+        obj["obj_ip"] = obj_orig["value"]
+        if obj_orig["value"].find(":") != -1:  # ipv6
+            obj["obj_ip"] + "/64"
+        else:                               # ipv4
+            obj["obj_ip"] + "/32"
+    elif obj_orig["type"] == "Range": # ip range
+        obj['obj_typ'] = 'ip_range'
+        ip_range = obj_orig['value'].split("-")
+        obj['obj_ip'] = ip_range[0]
+        obj['obj_ip_end'] = ip_range[1]
+    elif obj_orig["type"] == "FQDN": # fully qualified domain name
+        obj['obj_typ'] = 'network'
+        obj['obj_ip'] = "0.0.0.0/0"
+    else:                            # unkown type
+        obj["name"] = obj["name"] + " [not supported]"
+        obj['obj_typ'] = 'network'
+        obj['obj_ip'] = "0.0.0.0/0"
+    if 'description' in obj_orig:
+        obj["comment"] = obj_orig["description"] 
+    if 'color' in obj_orig:
+        # TODO Do colors exist?
+        logger.log("colors exist :)")
+    # here only picking first associated interface as zone:
+    # and obj_orig['associated-interface'][0] != 'any':
+    # if 'associated-interface' in obj_orig and len(obj_orig['associated-interface']) > 0:
+    #     obj_zone = obj_orig['associated-interface'][0]
+    #     # adding zone if it not yet exists
+    #     obj_zone = add_zone_if_missing(
+    #         config2import, obj_zone, import_id)
+    # obj.update({'obj_zone': obj_zone})
+    obj['control_id'] = import_id
+    return obj
 
 def create_network_object(import_id, name, type, ip, uid, color, comment, zone):
     # if zone is None or zone == '':
@@ -179,14 +100,12 @@ def create_network_object(import_id, name, type, ip, uid, color, comment, zone):
         'obj_zone': zone
     }
 
-
 # TODO: reduce commplexity if possible
 def get_nw_obj(nat_obj_name, nwobjects):
     for obj in nwobjects:
         if 'obj_name' in obj and obj['obj_name'] == nat_obj_name:
             return obj
     return None
-
 
 # this removes all obj_nat_ip entries from all network objects
 # these were used during import but might cause issues if imported into db
@@ -197,7 +116,6 @@ def remove_nat_ip_entries(config2import):
 
 
 def get_first_ip_of_destination(obj_ref, config2import):
-
     logger = getFwoLogger()
     if list_delimiter in obj_ref:
         obj_ref = obj_ref.split(list_delimiter)[0]

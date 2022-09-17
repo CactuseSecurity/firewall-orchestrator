@@ -1,8 +1,12 @@
-using System.Text.Json.Serialization; 
+using System.ComponentModel;
+using System.Globalization;
+using System.Text.Json.Serialization;
+using FWO.Api.Client;
 using Newtonsoft.Json;
-
 namespace FWO.Api.Data
 {
+    [Newtonsoft.Json.JsonConverter(typeof(NoTypeConverterJsonConverter<DeviceType>))]
+    [TypeConverter(typeof(JsonStringConverter<DeviceType>))]
     public class DeviceType
     {
         [JsonProperty("id"), JsonPropertyName("id")]

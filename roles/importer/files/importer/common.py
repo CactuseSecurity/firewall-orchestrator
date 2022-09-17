@@ -4,7 +4,7 @@ import sys, os, time, datetime
 import json, requests, requests.packages
 from socket import gethostname
 import importlib.util
-base_dir = '/usr/local/fworch'
+base_dir = '/Users/nils/Documents/GitHub/firewall-orchestrator/roles/importer/files' #TODO REVERT
 importer_base_dir = base_dir + '/importer'
 from pathlib import Path
 sys.path.append(importer_base_dir) # adding absolute path here once
@@ -139,6 +139,7 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0, prox
             return ""
 
         current_import_id = -1
+
         try: # set import lock
             current_import_id = fwo_api.lock_import(fwo_config['fwo_api_base_url'], jwt, {"mgmId": int(mgm_id)})
         except:

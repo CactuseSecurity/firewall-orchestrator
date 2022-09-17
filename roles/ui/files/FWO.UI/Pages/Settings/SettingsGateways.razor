@@ -85,11 +85,17 @@
                 <div class="form-group row">
                     <label for="deviceDevType" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("device_type"))*:</label>
                     <div class="col-sm-8">
-                        <select id="deviceDevType" class="form-control form-control-sm" @bind="actDevice.DeviceType.Id">
-                            @foreach (DeviceType devType in deviceTypes.Where(x => x.Manufacturer == deviceTypes.Find(
-                                y => y.Id == managements.Find(z => z.Id ==actDevice.Management.Id)?.DeviceType.Id)?.Manufacturer))
-                            {
-                                <option value="@devType.Id">@(devType.NameVersion())</option>
+                        <select id="deviceDevType" class="form-control form-control-sm" @bind="actDevice.DeviceType">
+                            @*Show device types where manufacturer matches manufactor of management of selected device*@
+                            @{
+                                IEnumerable<DeviceType> matchingDeviceTypes = deviceTypes.Where(x => x.Manufacturer == deviceTypes.Find(
+                                    y => y.Id == managements.Find(z => z.Id == actDevice.Management.Id)?.DeviceType.Id)?.Manufacturer);
+                                actDevice.DeviceType = matchingDeviceTypes.FirstOrDefault();
+                                
+                                @foreach (DeviceType devType in matchingDeviceTypes)
+                                {
+                                    <option value="@devType.Id">@(devType.NameVersion())</option>
+                                }
                             }
                         </select>
                     </div>
@@ -103,28 +109,8 @@
                         </div>
                     </div>
                 }
-                else if(deviceTypes.Find(x => x.Id == actDevice.DeviceType.Id)?.Manufacturer == "Check Point")
-                {
-                    <div class="form-group row">
-                        <label for="deviceLocalRulebase" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("local_rulebase"))*:</label>
-                        <div class="col-sm-8">
-                            <input id="deviceLocalRulebase" type="text" class="form-control form-control-sm" @bind="actDevice.LocalRulebase" />
-                        </div>
-                    </div>
-                    <div class="form-group row">
-                        <label for="deviceGlobalRulebase" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("global_rulebase")):</label>
-                        <div class="col-sm-8">
-                            <input id="deviceGlobalRulebase" type="text" class="form-control form-control-sm" @bind="actDevice.GlobalRulebase" />
-                        </div>
-                    </div>
-                    <div class="form-group row">
-                        <label for="devicePackage" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("package")):</label>
-                        <div class="col-sm-8">
-                            <input id="devicePackage" type="text" class="form-control form-control-sm" @bind="actDevice.Package" />
-                        </div>
-                    </div>
-                }
-                else if(deviceTypes.Find(x => x.Id == actDevice.DeviceType.Id)?.Manufacturer == "Fortinet")
+                else if(actDevice.DeviceType.Manufacturer == "Check Point" ||
+                        actDevice.DeviceType.Manufacturer == "Fortinet")
                 {
                     <div class="form-group row">
                         <label for="deviceLocalRulebase" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("local_package"))*:</label>
@@ -138,6 +124,16 @@
                             <input id="deviceGlobalRulebase" type="text" class="form-control form-control-sm" @bind="actDevice.GlobalRulebase" />
                         </div>
                     </div>
+
+                    if (actDevice.DeviceType.Manufacturer == "Check Point")
+                    {
+                        <div class="form-group row">
+                            <label for="devicePackage" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("package")):</label>
+                            <div class="col-sm-8">
+                                <input id="devicePackage" type="text" class="form-control form-control-sm" @bind="actDevice.Package" />
+                            </div>
+                        </div>
+                    }
                 }
 
                 <div class="form-check form-check-inline">
@@ -358,12 +354,12 @@
 
     private bool CheckValues()
     {
-        if (actDevice.Name == null || actDevice.Name == "" || actDevice.LocalRulebase == null || actDevice.LocalRulebase == "")
+        if (string.IsNullOrEmpty(actDevice.Name) || (actDevice.DeviceType.Manufacturer != "Cisco" && string.IsNullOrEmpty(actDevice.LocalRulebase)))
         {
             DisplayMessageInUi!(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5102"), true);
             return false;
         }
-        if (!actDevice.ImportDisabled && devices.FirstOrDefault(dev => dev.DeviceType.Id == actDevice.DeviceType.Id && dev.Management.Id == actDevice.Management.Id 
+        if (!actDevice.ImportDisabled && !string.IsNullOrEmpty(actDevice.LocalRulebase) && devices.FirstOrDefault(dev => dev.DeviceType.Id == actDevice.DeviceType.Id && dev.Management.Id == actDevice.Management.Id 
             && dev.LocalRulebase == actDevice.LocalRulebase && dev.Id != actDevice.Id && !dev.ImportDisabled) != null)
         {
             DisplayMessageInUi!(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5111"), true);

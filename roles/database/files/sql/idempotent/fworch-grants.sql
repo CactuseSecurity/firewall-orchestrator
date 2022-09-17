@@ -41,6 +41,7 @@ Grant ALL on "import_rule" to group "configimporters";
 Grant ALL on "import_control" to group "configimporters";
 Grant ALL on "import_zone" to group "configimporters";
 Grant ALL on "import_changelog" to group "configimporters";
+Grant ALL on "import_credential" to group "configimporters";
 
 Grant update on "device" to group "configimporters";
 Grant update on "management" to group "configimporters";

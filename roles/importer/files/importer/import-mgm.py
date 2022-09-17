@@ -20,8 +20,6 @@ if __name__ == "__main__":
     parser.add_argument('-d', '--debug', metavar='debug_level', default='0',
                         help='Debug Level: 0=off, 1=send debug to console, 2=send debug to file, 3=save noramlized config file; 4=additionally save native config file; default=0. \n' +\
                             'config files are saved to $FWORCH/tmp/import dir')
-    parser.add_argument('-x', '--proxy', metavar='proxy_string',
-                        help='proxy server string to use, e.g. http://1.2.3.4:8080')
     parser.add_argument('-v', "--verify_certificates", action='store_true', default = None, 
                         help = "verify certificates")
     parser.add_argument('-s', "--suppress_certificate_warnings", action='store_true', default = None, 
@@ -39,16 +37,14 @@ if __name__ == "__main__":
     fwo_config = fwo_config.readConfig()
     fwo_globals.setGlobalValues(verify_certs_in=args.verify_certificates, 
         suppress_cert_warnings_in=args.suppress_certificate_warnings,
-        proxy_in=args.proxy,
-        debug_level_in=args.debug,
-        fwo_api_url=fwo_config['fwo_api_base_url'])
+        debug_level_in=args.debug)
     if args.suppress_certificate_warnings:
         requests.packages.urllib3.disable_warnings()
     logger = fwo_log.getFwoLogger()
 
     try:
         error_count = import_management(
-            mgm_id=args.mgm_id, in_file=args.in_file, debug_level_in=args.debug, ssl_verification=args.verify_certificates, proxy_in=args.proxy, \
+            mgm_id=args.mgm_id, in_file=args.in_file, debug_level_in=args.debug, ssl_verification=args.verify_certificates,
             force=args.force, limit=args.limit, clearManagementData=args.clear, suppress_cert_warnings_in=args.suppress_certificate_warnings)
     except SystemExit:
         print ("import-mgm - error while importing mgm_id=" + str(args.mgm_id))

@@ -68,21 +68,21 @@ def get_ip_of_obj(obj, mgm_id=None):
 ##################### 2nd-level functions ###################################
 
 def get_basic_config (config_json, mgm_details, force=False, config_filename=None,
-    proxy=None, limit=150, details_level='full', test_version='off', debug_level=0, ssl_verification=True, sid=None):
+    limit=150, details_level='full', test_version='off', debug_level=0, ssl_verification=True, sid=None):
     logger = getFwoLogger()
 
     api_host = mgm_details['hostname']
-    api_user =  mgm_details['user']
+    api_user =  mgm_details['import_credential']['user']
     api_domain = mgm_details['configPath']
     api_port = str(mgm_details['port'])
-    api_password = mgm_details['secret']
+    api_password = mgm_details['import_credential']['secret']
     base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
     use_object_dictionary = 'false'
 
     # top level dict start, sid contains the domain information, so only sending domain during login
     if sid is None:  # if sid was not passed, login and get it
-        sid = getter.login(api_user,api_password,api_host,api_port,api_domain,ssl_verification, proxy)
-    v_url = getter.get_api_url (sid, api_host, api_port, api_user, base_url, limit, test_version, ssl_verification, proxy, debug_level=debug_level)
+        sid = getter.login(api_user,api_password,api_host,api_port,api_domain,ssl_verification)
+    v_url = getter.get_api_url (sid, api_host, api_port, api_user, base_url, limit, test_version, ssl_verification, debug_level=debug_level)
 
     config_json.update({'rulebases': [], 'nat_rulebases': [] })
     show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary,'details-level':details_level}
@@ -189,7 +189,7 @@ def enrich_config (config, mgm_details, limit=150, details_level='full', noapi=F
     while found_new_inline_layers is True:
         # sweep existing rules for inline layer links
         inline_layers = []
-        for rulebase in config['rulebases']:
+        for rulebase in config['rulebases'] + config['nat_rulebases']:
             getter.get_inline_layer_names_from_rulebase(rulebase, inline_layers)
 
         if len(inline_layers) == len(old_inline_layers):
@@ -207,14 +207,15 @@ def enrich_config (config, mgm_details, limit=150, details_level='full', noapi=F
     # next phase: how to logically link layer guard with rules in layer? --> AND of src, dst & svc between layer guard and each rule in layer?
 
     #################################################################################
-    # get object data which is only contained as uid in config by making addtional api calls
+    # get object data which is only contained as uid in config by making additional api calls
     # get all object uids (together with type) from all rules in fields src, dst, svc
     nw_uids_from_rulebase = []
     svc_uids_from_rulebase = []
 
-    for rulebase in config['rulebases']:
+    for rulebase in config['rulebases'] + config['nat_rulebases']:
         if fwo_globals.debug_level>5:
-            logger.debug ( "Searching for all uids in rulebase: " + rulebase['layername'] )
+            if 'layername' in rulebase:
+                logger.debug ( "Searching for all uids in rulebase: " + rulebase['layername'] )
         getter.collect_uids_from_rulebase(rulebase, nw_uids_from_rulebase, svc_uids_from_rulebase, "top_level")
 
     # remove duplicates from uid lists
@@ -241,7 +242,7 @@ def enrich_config (config, mgm_details, limit=150, details_level='full', noapi=F
     if noapi == False:
         # if sid is None:
         # TODO: why is the re-genereation of a new sid necessary here?
-        sid = getter.login(mgm_details['user'],mgm_details['secret'],mgm_details['hostname'],mgm_details['port'],mgm_details['configPath'])
+        sid = getter.login(mgm_details['import_credential']['user'],mgm_details['import_credential']['secret'],mgm_details['hostname'],mgm_details['port'],mgm_details['configPath'])
         logger.debug ( "re-logged into api" )
 
         # if an object is not there:

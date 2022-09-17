@@ -1,4 +1,9 @@
 -- create schema
+-- to re-init request module database changes, manually issue the following commands before upgrading to 5.7.1:
+-- drop schema implementation CASCADE;
+-- drop schema request CASCADE;
+-- note: this will delete all ticket data
+
 create schema if not exists request;
 create schema if not exists implementation;
 
@@ -297,7 +302,7 @@ insert into config (config_key, config_value, config_user) VALUES ('importCheckC
 insert into config (config_key, config_value, config_user) VALUES ('importSuppressCertificateWarnings', 'True', 0) ON CONFLICT DO NOTHING;
 insert into config (config_key, config_value, config_user) VALUES ('sessionTimeout', '240', 0) ON CONFLICT DO NOTHING;
 -- insert into config (config_key, config_value, config_user) VALUES ('maxMessages', '3', 0) ON CONFLICT DO NOTHING;
-
+insert into config (config_key, config_value, config_user) VALUES ('sessionTimeoutNoticePeriod', '60', 0) ON CONFLICT DO NOTHING;
 
 -- add tenant_network demo data
 DO $do$ BEGIN
@@ -313,4 +318,72 @@ DO $do$ BEGIN
             VALUES ((SELECT tenant_id FROM tenant WHERE tenant_name='tenant2_demo'), '10.0.0.48/29', 'demo network for tenant 2') ON CONFLICT DO NOTHING;
         END IF;
     END IF;
-END $do$ 
+END $do$;
+
+---------------------------------------------------------------------------------------
+-- adding import_credential table
+
+-- drop table if exists import_credential;
+
+create table if not exists import_credential
+(
+    id SERIAL PRIMARY KEY,
+    credential_name varchar NOT NULL,
+    is_key_pair BOOLEAN default FALSE,
+    username varchar NOT NULL,
+    secret text NOT NULL,
+	public_key Text
+);
+
+ALTER TABLE management ADD COLUMN IF NOT EXISTS import_credential_id int;
+
+-- during first upgrade to 5.7.1 -- migrate credentials from management to import_credential 
+
+DO $do$ 
+DECLARE
+    i_cred_number INT;
+    v_cred_number_string VARCHAR;
+    r_cred RECORD;
+    i_cred_id INT;
+BEGIN
+    SELECT INTO r_cred column_name FROM information_schema.columns WHERE table_name='management' and column_name='secret';
+    -- only migrate credentials if management table still contains "secret" column 
+    IF FOUND THEN
+        SELECT INTO i_cred_number COUNT(*) FROM import_credential;
+
+        IF i_cred_number=0 THEN
+            i_cred_number := 1;
+            FOR r_cred IN SELECT DISTINCT secret, ssh_user, ssh_public_key FROM management
+            LOOP
+                v_cred_number_string := 'credential' || CAST (i_cred_number AS VARCHAR);
+                IF NOT r_cred.secret LIKE '%BEGIN OPENSSH PRIVATE KEY%' THEN
+                    INSERT INTO import_credential 
+                        (credential_name, is_key_pair, username, secret) 
+                        VALUES (v_cred_number_string, FALSE, r_cred.ssh_user, r_cred.secret)
+                        RETURNING id INTO i_cred_id;
+                    UPDATE management 
+                        SET import_credential_id=i_cred_id
+                        WHERE secret=r_cred.secret AND ssh_user=r_cred.ssh_user;
+                ELSE
+                    INSERT INTO import_credential
+                        (credential_name, is_key_pair, username, secret, public_key) 
+                        VALUES (v_cred_number_string, TRUE, r_cred.ssh_user, r_cred.secret, r_cred.ssh_public_key)
+                        RETURNING id INTO i_cred_id;
+                    UPDATE management 
+                        SET import_credential_id=i_cred_id
+                        WHERE secret=r_cred.secret AND ssh_user=r_cred.ssh_user; -- AND ssh_public_key=r_cred.ssh_public_key;
+                END IF;
+                i_cred_number := i_cred_number + 1;
+            END LOOP;
+        END IF;
+        ALTER TABLE management DROP CONSTRAINT IF EXISTS management_import_credential_id_foreign_key;
+        ALTER TABLE management ADD CONSTRAINT management_import_credential_id_foreign_key FOREIGN KEY (import_credential_id) REFERENCES import_credential(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+        -- and delete management columns afterwards
+        -- need to remove all refs (API, etc.) first 
+        ALTER TABLE management DROP COLUMN IF EXISTS ssh_public_key;
+        ALTER TABLE management DROP COLUMN IF EXISTS secret;
+        ALTER TABLE management DROP COLUMN IF EXISTS ssh_user;
+    END IF;
+END $do$;
+
+

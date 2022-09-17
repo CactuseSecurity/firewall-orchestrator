@@ -32,7 +32,7 @@ def cp_api_call(url, command, json_payload, sid, show_progress=False):
         logger.debug("using sid: " + sid )
 
     try:
-         r = requests.post(url, json=json_payload, headers=request_headers, verify=fwo_globals.verify_certs, proxies=fwo_globals.proxy)
+         r = requests.post(url, json=json_payload, headers=request_headers, verify=fwo_globals.verify_certs)
     except requests.exceptions.RequestException as e:
         raise Exception("error, url: " + str(url))
         
@@ -64,24 +64,25 @@ def login(user, password, api_host, api_port, domain):
     if "sid" not in response:
         exception_text = "\ngetter ERROR: did not receive a sid during login, " + \
             "api call: api_host: " + str(api_host) + ", api_port: " + str(api_port) + ", base_url: " + str(base_url) + \
-            ", ssl_verification: " + str(fwo_globals.verify_certs) + ", proxy_string: " + str(fwo_globals.proxy)
+            ", ssl_verification: " + str(fwo_globals.verify_certs)
         raise  FwLoginFailed(exception_text)
     return response["sid"]
 
 
-def get_api_url(sid, api_host, api_port, user, base_url, limit, test_version, ssl_verification, proxy_string, debug_level=0):
+def get_api_url(sid, api_host, api_port, user, base_url, limit, test_version, ssl_verification, debug_level=0):
     logger = getFwoLogger()
-    api_versions = cp_api_call(base_url, 'show-api-versions', {}, sid)
-    api_version = api_versions["current-version"]
-    api_supported = api_versions["supported-versions"]
 
-    if debug_level>3:
-        logger.debug ("current version: " + api_version + "; supported versions: "+ ', '.join(api_supported) + "; limit:"+ str(limit) )
-        logger.debug ("getter - login:" + user + "; sid:" + sid )
     v_url = ''
     if test_version == 'off':
         v_url = base_url
     else:
+        api_versions = cp_api_call(base_url, 'show-api-versions', {}, sid)
+        api_version = api_versions["current-version"]
+        api_supported = api_versions["supported-versions"]
+
+        if debug_level>3:
+            logger.debug ("current version: " + api_version + "; supported versions: "+ ', '.join(api_supported) + "; limit:"+ str(limit) )
+            logger.debug ("getter - login:" + user + "; sid:" + sid )
         if re.search(r'^\d+[\.\d+]+$', test_version) or re.search(r'^\d+$', test_version):
             if test_version in api_supported :
                 v_url = base_url + 'v' + test_version + '/'
@@ -158,7 +159,18 @@ def get_changes(sid,api_host,api_port,fromdate):
 def collect_uids_from_rule(rule, nw_uids_found, svc_uids_found):
     # just a guard:
     if 'rule-number' in rule and 'type' in rule and rule['type'] != 'place-holder':
-        for src in rule["source"]:
+
+        if rule['type']=='access-rule': # normal rule (no nat) - merging lists
+            lsources = rule["source"]
+            ldestinations = rule["destination"]
+            lservices = rule["service"]
+
+        elif rule['type']=='nat-rule':
+            lsources = [rule["translated-source"], rule["original-source"]]
+            ldestinations = [rule["translated-destination"], rule["original-destination"]]
+            lservices = [rule["translated-service"], rule["original-service"]]
+
+        for src in lsources:
             if src['type'] == 'LegacyUserAtLocation':
                 nw_uids_found.append(src["location"])
             elif src['type'] == 'access-role':
@@ -170,31 +182,39 @@ def collect_uids_from_rule(rule, nw_uids_found, svc_uids_found):
                         nw_uids_found.append(nw)
             else:  # standard network objects as source, only here we have an uid value
                 nw_uids_found.append(src['uid'])
-        for dst in rule["destination"]:
+        for dst in ldestinations:
             nw_uids_found.append(dst['uid'])
-        for svc in rule["service"]:
+        for svc in lservices:
             svc_uids_found.append(svc['uid'])
     return
 
 
 def collect_uids_from_rulebase(rulebase, nw_uids_found, svc_uids_found, debug_text):
     logger = getFwoLogger()
+    chunk_name = ''
     if 'layerchunks' in rulebase:
-        for layer_chunk in rulebase['layerchunks']:
-            if 'rulebase' in layer_chunk:
-                if fwo_globals.debug_level>5:
-                    logger.debug ( "handling layer " + layer_chunk['name'] + " with uid " + layer_chunk['uid'] )
-                for rule in layer_chunk['rulebase']:
-                    if 'rule-number' in rule and 'type' in rule and rule['type'] != 'place-holder':
-                        collect_uids_from_rule(rule, nw_uids_found, svc_uids_found)
-                    else:
-                        if 'rulebase' in rule: # found a layer within a rulebase, recursing
-                            if fwo_globals.debug_level>8:
-                                logger.debug ("found embedded rulebase - recursing")
-                            collect_uids_from_rulebase(rule['rulebase'], nw_uids_found, svc_uids_found, debug_text + '.')
+        chunk_name = 'layerchunks'
+    elif 'nat_rule_chunks' in rulebase:
+        chunk_name = 'nat_rule_chunks'
     else:
         for rule in rulebase:
             collect_uids_from_rule(rule, nw_uids_found, svc_uids_found)
+        return
+    for layer_chunk in rulebase[chunk_name]:
+        if 'rulebase' in layer_chunk:
+            if fwo_globals.debug_level>5:
+                debug_layer_str = "handling layer with uid " + layer_chunk['uid']
+                if 'name' in layer_chunk:
+                    debug_layer_str += '(' + layer_chunk['name'] + ')'
+                logger.debug ( debug_layer_str )
+            for rule in layer_chunk['rulebase']:
+                if 'rule-number' in rule and 'type' in rule and rule['type'] != 'place-holder':
+                    collect_uids_from_rule(rule, nw_uids_found, svc_uids_found)
+                else:
+                    if 'rulebase' in rule and rule['rulebase'] != []: # found a layer within a rulebase, recursing
+                        if fwo_globals.debug_level>8:
+                            logger.debug ("found embedded rulebase - recursing")
+                        collect_uids_from_rulebase(rule['rulebase'], nw_uids_found, svc_uids_found, debug_text + '.')
     return
 
 

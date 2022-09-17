@@ -14,11 +14,11 @@ namespace FWO.Api.Data
         [JsonProperty("hostname"), JsonPropertyName("hostname")]
         public string Hostname { get; set; } = "";
 
-        [JsonProperty("user"), JsonPropertyName("user")]
-        public string? ImportUser { get; set; }
+        [JsonProperty("import_credential"), JsonPropertyName("import_credential")]
+        public ImportCredential ImportCredential { get; set; }
 
-        [JsonProperty("secret"), JsonPropertyName("secret")]
-        public string Secret { get; set; } = "";
+        [JsonProperty("import_credential_id"), JsonPropertyName("import_credential_id")]
+        public int ImportCredentialId { get; set; }
 
         [JsonProperty("configPath"), JsonPropertyName("configPath")]
         public string ConfigPath { get; set; } = "";
@@ -31,9 +31,6 @@ namespace FWO.Api.Data
 
         [JsonProperty("port"), JsonPropertyName("port")]
         public int Port { get; set; }
-
-        [JsonProperty("sshPublicKey"), JsonPropertyName("sshPublicKey")]
-        public string? PublicKey { get; set; }
 
         [JsonProperty("importDisabled"), JsonPropertyName("importDisabled")]
         public bool ImportDisabled { get; set; }
@@ -103,19 +100,20 @@ namespace FWO.Api.Data
         public ObjectStatistics RuleStatistics { get; set; } = new ObjectStatistics();
 
         public Management()
-        {}
+        {
+            ImportCredential= new ImportCredential();
+        }
 
         public Management(Management management)
         {
             Id = management.Id;
             Name = management.Name;
             Hostname = management.Hostname;
-            ImportUser = management.ImportUser;
-            Secret = management.Secret;
+            ImportCredentialId = management.ImportCredentialId;
+            ImportCredential = new ImportCredential(management.ImportCredential);
             ConfigPath = management.ConfigPath;
             ImporterHostname = management.ImporterHostname;
             Port = management.Port;
-            PublicKey = management.PublicKey;
             ImportDisabled = management.ImportDisabled;
             ForceInitialImport = management.ForceInitialImport;
             HideInUi = management.HideInUi;
@@ -163,14 +161,12 @@ namespace FWO.Api.Data
         public bool Sanitize()
         {
             bool shortened = false;
+            shortened = ImportCredential.Sanitize();
             Name = Sanitizer.SanitizeMand(Name, ref shortened);
             Hostname = Sanitizer.SanitizeMand(Hostname, ref shortened);
-            ImportUser = Sanitizer.SanitizeOpt(ImportUser, ref shortened);
             ConfigPath = Sanitizer.SanitizeMand(ConfigPath, ref shortened);
             ImporterHostname = Sanitizer.SanitizeMand(ImporterHostname, ref shortened);
             Comment = Sanitizer.SanitizeCommentOpt(Comment, ref shortened);
-            PublicKey = Sanitizer.SanitizeKeyOpt(PublicKey, ref shortened);
-            Secret = (DeviceType.IsLegacyDevType() ? Sanitizer.SanitizeKeyMand(Secret, ref shortened) : Sanitizer.SanitizePasswMand(Secret, ref shortened));
             return shortened;
         }
     }

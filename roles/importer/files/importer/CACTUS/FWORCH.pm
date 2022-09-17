@@ -58,7 +58,6 @@ our $fworch_srv_user = &CACTUS::read_config::read_config("fworch_srv_user");
 our $psql_exe = &CACTUS::read_config::read_config("psql_exe");
 our $psql_params = &CACTUS::read_config::read_config("psql_params");
 our $dbdriver = "Pg";
-#our $ssh_id_basename = 'id_dsa';
 our $ssh_id_basename = 'import_user_secret';
 
 ############################################################

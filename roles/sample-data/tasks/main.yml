@@ -10,6 +10,7 @@
     state: present
   loop:
     - postgresql-client
+    - cron
   become: yes
 
 - name: add localhost hostkey to known_hosts

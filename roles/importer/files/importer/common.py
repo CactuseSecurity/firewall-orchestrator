@@ -74,6 +74,13 @@ class ConfigFileNotFound(Exception):
             super().__init__(self.message)
 
 
+class ImportRecursionLimitReached(Exception):
+    """Raised when recursion of function inimport process reaches max allowed recursion limit"""
+
+    def __init__(self, message="Max recursion level reached - aborting"):
+            self.message = message
+            super().__init__(self.message)
+
 
 #  import_management: import a single management (if no import for it is running)
 #     lock mgmt for import via FWORCH API call, generating new import_id y
@@ -83,7 +90,7 @@ class ConfigFileNotFound(Exception):
 #     trigger import from json into csv and from there into destination tables
 #     release mgmt for import via FWORCH API call (also removing import_id y data from import_tables?)
 #     no changes: remove import_control?
-def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0, proxy_in=None, 
+def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0, 
         in_file=None, limit=150, force=False, clearManagementData=False, suppress_cert_warnings_in=None):
 
     error_count = 0
@@ -110,8 +117,7 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0, prox
         return "unspecified error during FWO API login"
 
     # set global https connection values
-    fwo_globals.setGlobalValues (proxy_in=proxy_in, suppress_cert_warnings_in=suppress_cert_warnings_in, 
-        verify_certs_in=ssl_verification, fwo_api_url=fwo_config['fwo_api_base_url'])
+    fwo_globals.setGlobalValues (suppress_cert_warnings_in=suppress_cert_warnings_in, verify_certs_in=ssl_verification, debug_level_in=debug_level_in)
     if fwo_globals.verify_certs is None:    # not defined via parameter
         fwo_globals.verify_certs = fwo_api.get_config_value(fwo_config['fwo_api_base_url'], jwt, key='importCheckCertificates')=='True'
     if fwo_globals.suppress_cert_warnings is None:    # not defined via parameter
@@ -161,7 +167,10 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0, prox
                 try:
                     # TODO: turn this api call into a function
                     if 'http://' in in_file or 'https://' in in_file:   # gettinf file via http(s)
-                        r = requests.get(in_file, headers={ 'Content-Type': 'application/json' }, verify=fwo_globals.verify_certs, proxies=fwo_globals.proxy)
+                        session = requests.Session()
+                        session.headers = { 'Content-Type': 'application/json' }
+                        session.verify=fwo_globals.verify_certs
+                        r = session.get(in_file, )
                         r.raise_for_status()
                         full_config_json = json.loads(r.content)
                     else:   # reading from local file
@@ -264,13 +273,20 @@ def get_config_sub(mgm_details, full_config_json, config2import, jwt, current_im
             fw_module.get_config( # get config from product-specific FW API
                 config2import, full_config_json,  current_import_id, mgm_details, 
                 limit=limit, force=force, jwt=jwt)
-    except FwLoginFailed as e:
+    except (FwLoginFailed) as e:
         error_string += "  login failed: mgm_id=" + str(mgm_details['id']) + ", mgm_name=" + mgm_details['name'] + ", " + e.message
         error_count += 1
         logger.error(error_string)
         fwo_api.delete_import(fwo_config['fwo_api_base_url'], jwt, current_import_id) # deleting trace of not even begun import
         error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)
         raise FwLoginFailed(e.message)
+    except ImportRecursionLimitReached as e:
+        error_string += "  recursion limit reached: mgm_id=" + str(mgm_details['id']) + ", mgm_name=" + mgm_details['name'] + ", " + e.message
+        error_count += 1
+        logger.error(error_string)
+        fwo_api.delete_import(fwo_config['fwo_api_base_url'], jwt, current_import_id) # deleting trace of not even begun import
+        error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)
+        raise ImportRecursionLimitReached(e.message)
     except:
         error_string += "  import_management - unspecified error while getting config: " + str(traceback.format_exc())
         logger.error(error_string)

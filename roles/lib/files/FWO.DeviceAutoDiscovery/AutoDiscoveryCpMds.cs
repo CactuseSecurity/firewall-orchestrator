@@ -26,7 +26,7 @@ namespace FWO.DeviceAutoDiscovery
                     Log.WriteDebug("Autodiscovery", $"discovering CP domains & gateways");
                     CheckPointClient restClientCP = new CheckPointClient(superManagement);
 
-                    RestResponse<CpSessionAuthInfo> sessionResponse = await restClientCP.AuthenticateUser(superManagement.ImportUser, superManagement.Secret, superManagement.ConfigPath);
+                    RestResponse<CpSessionAuthInfo> sessionResponse = await restClientCP.AuthenticateUser(superManagement.ImportCredential.ImportUser, superManagement.ImportCredential.Secret, superManagement.ConfigPath);
                     if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && sessionResponse.Data?.SessionId != null && sessionResponse.Data?.SessionId != "")
                     {
                         // if (sessionResponse==null || sessionResponse.Data==null || sessionResponse.Data.SessionId==null || sessionResponse.Data.SessionId=="")
@@ -60,8 +60,9 @@ namespace FWO.DeviceAutoDiscovery
                                     Name = superManagement.Name + "__" + domain.Name,
                                     ImporterHostname = superManagement.ImporterHostname,
                                     Hostname = superManagement.Hostname,
-                                    ImportUser = superManagement.ImportUser,
-                                    Secret = superManagement.Secret,
+                                    ImportCredential = new ImportCredential(superManagement.ImportCredential.ImportUser, superManagement.ImportCredential.Secret),
+                                    // ImportUser = superManagement.ImportUser,
+                                    // Secret = superManagement.Secret,
                                     Port = superManagement.Port,
                                     ImportDisabled = false,
                                     ForceInitialImport = true,
@@ -82,7 +83,7 @@ namespace FWO.DeviceAutoDiscovery
 
                                 // session id pins this session to a specific domain (if domain is given during login) 
                                 RestResponse<CpSessionAuthInfo> sessionResponsePerDomain =
-                                    await restClientCP.AuthenticateUser(superManagement.ImportUser, superManagement.Secret, domain.Name);
+                                    await restClientCP.AuthenticateUser(superManagement.ImportCredential.ImportUser, superManagement.ImportCredential.Secret, domain.Name);
 
                                 if (sessionResponsePerDomain.StatusCode == HttpStatusCode.OK &&
                                     sessionResponsePerDomain.IsSuccessful &&

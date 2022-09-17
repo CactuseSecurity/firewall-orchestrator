@@ -20,7 +20,7 @@ def api_call(url, command, json_payload, sid, show_progress=False, method=''):
         method = 'get'
     json_payload.update({"method": method})
 
-    r = requests.post(url, data=json.dumps(json_payload), headers=request_headers, verify=fwo_globals.verify_certs, proxies=fwo_globals.proxy)
+    r = requests.post(url, data=json.dumps(json_payload), headers=request_headers, verify=fwo_globals.verify_certs)
     if r is None:
         if 'pass' in json.dumps(json_payload):
             exception_text = "error while sending api_call containing credential information to url '" + str(url)
@@ -53,18 +53,17 @@ def api_call(url, command, json_payload, sid, show_progress=False, method=''):
     return result_json
 
 
-def login(user, password, api_host, api_port, domain):
+def login(user, password, base_url):
     payload = {
         "id": 1,
         "params": [ { "data": [ { "user": user, "passwd": password, } ] } ]
     }
-    base_url = 'https://' + api_host + ':' + str(api_port) + '/jsonrpc'
     try:
        response = api_call(base_url, 'sys/login/user', payload, '', method="exec")
     except Exception:
-        raise common.FwLoginFailed("FortiManager login ERROR: host=" + str(api_host) + ":" + str(api_port)) from None
+        raise common.FwLoginFailed("FortiManager login ERROR: url=" + base_url) from None
     if "session" not in response:   # leaving out payload as it contains pwd
-        raise common.FwLoginFailed("FortiManager login ERROR: host=" + str(api_host) + ":" + str(api_port)) from None
+        raise common.FwLoginFailed("FortiManager login ERROR: url=" + base_url) from None
     return response["session"]
 
 

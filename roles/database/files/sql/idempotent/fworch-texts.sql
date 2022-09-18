@@ -717,8 +717,6 @@ INSERT INTO txt VALUES ('priority', 		    'German', 	'Priorit&auml;t');
 INSERT INTO txt VALUES ('priority', 		    'English', 	'Priority');
 INSERT INTO txt VALUES ('comments',				'German', 	'Kommentare');
 INSERT INTO txt VALUES ('comments',				'English', 	'Comments');
-INSERT INTO txt VALUES ('add_comment',          'German', 	'Kommentar hinzuf&uuml;gen');
-INSERT INTO txt VALUES ('add_comment',          'English', 	'Add comment');
 
 -- recertification
 INSERT INTO txt VALUES ('recertify',		    'German', 	'Rezertifizieren');

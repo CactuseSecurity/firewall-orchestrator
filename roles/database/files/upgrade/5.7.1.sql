@@ -367,16 +367,16 @@ ALTER TABLE request_owner ADD CONSTRAINT request_owner_request_task_foreign_key 
 ALTER TABLE request_owner ADD CONSTRAINT request_owner_owner_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- ticket_comment ---
 ALTER TABLE request.ticket_comment ADD CONSTRAINT ticket_comment_task_foreign_key FOREIGN KEY (ticket_id) REFERENCES request.ticket(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.ticket_comment ADD CONSTRAINT ticket_comment_comment_foreign_key FOREIGN KEY (comment_id) REFERENCES comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.ticket_comment ADD CONSTRAINT ticket_comment_comment_foreign_key FOREIGN KEY (comment_id) REFERENCES request.comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- reqtask_comment ---
 ALTER TABLE request.reqtask_comment ADD CONSTRAINT reqtask_comment_task_foreign_key FOREIGN KEY (task_id) REFERENCES request.task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.reqtask_comment ADD CONSTRAINT reqtask_comment_comment_foreign_key FOREIGN KEY (comment_id) REFERENCES comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.reqtask_comment ADD CONSTRAINT reqtask_comment_comment_foreign_key FOREIGN KEY (comment_id) REFERENCES request.comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- approval_comment ---
 ALTER TABLE request.approval_comment ADD CONSTRAINT approval_comment_task_foreign_key FOREIGN KEY (approval_id) REFERENCES request.approval(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.approval_comment ADD CONSTRAINT approval_comment_comment_foreign_key FOREIGN KEY (comment_id) REFERENCES comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.approval_comment ADD CONSTRAINT approval_comment_comment_foreign_key FOREIGN KEY (comment_id) REFERENCES request.comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- impltask_comment ---
 ALTER TABLE request.impltask_comment ADD CONSTRAINT impltask_comment_task_foreign_key FOREIGN KEY (task_id) REFERENCES implementation.task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.impltask_comment ADD CONSTRAINT impltask_comment_comment_foreign_key FOREIGN KEY (comment_id) REFERENCES comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.impltask_comment ADD CONSTRAINT impltask_comment_comment_foreign_key FOREIGN KEY (comment_id) REFERENCES request.comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- state_action ---
 ALTER TABLE request.state_action ADD CONSTRAINT state_action_state_foreign_key FOREIGN KEY (state_id) REFERENCES request.state(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.state_action ADD CONSTRAINT state_action_action_foreign_key FOREIGN KEY (action_id) REFERENCES request.action(id) ON UPDATE RESTRICT ON DELETE CASCADE;

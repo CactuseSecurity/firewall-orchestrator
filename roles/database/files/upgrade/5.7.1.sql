@@ -287,17 +287,17 @@ ALTER TABLE rule_owner DROP CONSTRAINT IF EXISTS rule_owner_owner_foreign_key;
 ALTER TABLE request_owner DROP CONSTRAINT IF EXISTS request_owner_request_task_foreign_key;
 ALTER TABLE request_owner DROP CONSTRAINT IF EXISTS request_owner_owner_foreign_key;
 --- ticket_comment ---
-ALTER TABLE ticket_comment DROP CONSTRAINT IF EXISTS ticket_comment_task_foreign_key;
-ALTER TABLE ticket_comment DROP CONSTRAINT IF EXISTS ticket_comment_comment_foreign_key;
+ALTER TABLE request.ticket_comment DROP CONSTRAINT IF EXISTS ticket_comment_task_foreign_key;
+ALTER TABLE request.ticket_comment DROP CONSTRAINT IF EXISTS ticket_comment_comment_foreign_key;
 --- reqtask_comment ---
-ALTER TABLE reqtask_comment DROP CONSTRAINT IF EXISTS reqtask_comment_task_foreign_key;
-ALTER TABLE reqtask_comment DROP CONSTRAINT IF EXISTS reqtask_comment_comment_foreign_key;
+ALTER TABLE request.reqtask_comment DROP CONSTRAINT IF EXISTS reqtask_comment_task_foreign_key;
+ALTER TABLE request.reqtask_comment DROP CONSTRAINT IF EXISTS reqtask_comment_comment_foreign_key;
 --- approval_comment ---
-ALTER TABLE approval_comment DROP CONSTRAINT IF EXISTS approval_comment_task_foreign_key;
-ALTER TABLE approval_comment DROP CONSTRAINT IF EXISTS approval_comment_comment_foreign_key;
+ALTER TABLE request.approval_comment DROP CONSTRAINT IF EXISTS approval_comment_task_foreign_key;
+ALTER TABLE request.approval_comment DROP CONSTRAINT IF EXISTS approval_comment_comment_foreign_key;
 --- impltask_comment ---
-ALTER TABLE impltask_comment DROP CONSTRAINT IF EXISTS impltask_comment_task_foreign_key;
-ALTER TABLE impltask_comment DROP CONSTRAINT IF EXISTS impltask_comment_comment_foreign_key;
+ALTER TABLE request.impltask_comment DROP CONSTRAINT IF EXISTS impltask_comment_task_foreign_key;
+ALTER TABLE request.impltask_comment DROP CONSTRAINT IF EXISTS impltask_comment_comment_foreign_key;
 --- state_action ---
 ALTER TABLE request.state_action DROP CONSTRAINT IF EXISTS state_action_state_foreign_key;
 ALTER TABLE request.state_action DROP CONSTRAINT IF EXISTS state_action_action_foreign_key;
@@ -366,17 +366,17 @@ ALTER TABLE rule_owner ADD CONSTRAINT rule_owner_owner_foreign_key FOREIGN KEY (
 ALTER TABLE request_owner ADD CONSTRAINT request_owner_request_task_foreign_key FOREIGN KEY (request_task_id) REFERENCES request.task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request_owner ADD CONSTRAINT request_owner_owner_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- ticket_comment ---
-ALTER TABLE ticket_comment ADD CONSTRAINT ticket_comment_task_foreign_key FOREIGN KEY (ticket_id) REFERENCES request.ticket(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE ticket_comment ADD CONSTRAINT ticket_comment_comment_foreign_key FOREIGN KEY (comment_id) REFERENCES comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.ticket_comment ADD CONSTRAINT ticket_comment_task_foreign_key FOREIGN KEY (ticket_id) REFERENCES request.ticket(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.ticket_comment ADD CONSTRAINT ticket_comment_comment_foreign_key FOREIGN KEY (comment_id) REFERENCES comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- reqtask_comment ---
-ALTER TABLE reqtask_comment ADD CONSTRAINT reqtask_comment_task_foreign_key FOREIGN KEY (task_id) REFERENCES request.task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE reqtask_comment ADD CONSTRAINT reqtask_comment_comment_foreign_key FOREIGN KEY (comment_id) REFERENCES comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.reqtask_comment ADD CONSTRAINT reqtask_comment_task_foreign_key FOREIGN KEY (task_id) REFERENCES request.task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.reqtask_comment ADD CONSTRAINT reqtask_comment_comment_foreign_key FOREIGN KEY (comment_id) REFERENCES comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- approval_comment ---
-ALTER TABLE approval_comment ADD CONSTRAINT approval_comment_task_foreign_key FOREIGN KEY (approval_id) REFERENCES request.approval(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE approval_comment ADD CONSTRAINT approval_comment_comment_foreign_key FOREIGN KEY (comment_id) REFERENCES comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.approval_comment ADD CONSTRAINT approval_comment_task_foreign_key FOREIGN KEY (approval_id) REFERENCES request.approval(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.approval_comment ADD CONSTRAINT approval_comment_comment_foreign_key FOREIGN KEY (comment_id) REFERENCES comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- impltask_comment ---
-ALTER TABLE impltask_comment ADD CONSTRAINT impltask_comment_task_foreign_key FOREIGN KEY (task_id) REFERENCES implementation.task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE impltask_comment ADD CONSTRAINT impltask_comment_comment_foreign_key FOREIGN KEY (comment_id) REFERENCES comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.impltask_comment ADD CONSTRAINT impltask_comment_task_foreign_key FOREIGN KEY (task_id) REFERENCES implementation.task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.impltask_comment ADD CONSTRAINT impltask_comment_comment_foreign_key FOREIGN KEY (comment_id) REFERENCES comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- state_action ---
 ALTER TABLE request.state_action ADD CONSTRAINT state_action_state_foreign_key FOREIGN KEY (state_id) REFERENCES request.state(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.state_action ADD CONSTRAINT state_action_action_foreign_key FOREIGN KEY (action_id) REFERENCES request.action(id) ON UPDATE RESTRICT ON DELETE CASCADE;

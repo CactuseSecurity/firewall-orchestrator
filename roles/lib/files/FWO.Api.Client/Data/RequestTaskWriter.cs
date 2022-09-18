@@ -5,7 +5,6 @@ namespace FWO.Api.Data
 {
     public class RequestTaskWriter : RequestTaskBase
     {
-
         [JsonProperty("elements"), JsonPropertyName("elements")]
         public RequestElementDataHelper Elements { get; set; } = new RequestElementDataHelper();
 

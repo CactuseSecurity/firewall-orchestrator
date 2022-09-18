@@ -8,8 +8,9 @@ namespace FWO.Api.Data
         master,
         generic,
         access, 
-        //svc_group, 
-        //obj_group, 
+        group, // obj_group ??
+        //svc_group, own task type or just group??
+        //delete,
         //rule_modify
     }
 

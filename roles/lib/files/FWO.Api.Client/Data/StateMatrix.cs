@@ -144,6 +144,7 @@ namespace FWO.Api.Client
                 TaskType.master => "reqMasterStateMatrix",
                 TaskType.generic => "reqGenStateMatrix",
                 TaskType.access => "reqAccStateMatrix",
+                TaskType.group => "reqGrpStateMatrix",
                 _ => throw new Exception($"Error: wrong task type:" + taskType.ToString()),
             };
 

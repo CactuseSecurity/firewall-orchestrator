@@ -38,6 +38,7 @@ namespace FWO.Api.Client
 
         public Dictionary<WorkflowPhases, bool> PhaseActive = new Dictionary<WorkflowPhases, bool>();
         public bool IsLastActivePhase = true;
+        public int MinImplTasksNeeded;
 
         public async Task Init(WorkflowPhases phase, ApiConnection apiConnection, TaskType taskType = TaskType.access)
         {
@@ -57,6 +58,7 @@ namespace FWO.Api.Client
                     IsLastActivePhase = false;
                 }
             }
+            MinImplTasksNeeded = glbStateMatrix.GlobalMatrix[WorkflowPhases.implementation].LowestInputState;
         }
 
         public List<int> getAllowedTransitions(int stateIn)

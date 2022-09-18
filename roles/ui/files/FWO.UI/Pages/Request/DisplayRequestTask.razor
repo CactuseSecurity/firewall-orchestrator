@@ -69,6 +69,32 @@
                 <div class="form-group row">
                     <div class="col-sm-3">
                         <div class="form-group row">
+                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
+                            <div class="col-sm-8">
+                                <label class="col-sm-12 h-100 border bg-secondary">@States.Name[ReqHandler.ActReqTask.StateId]</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("handler")):</label>
+                            <div class="col-sm-8">
+                                <label class="col-sm-12 h-100 border bg-secondary">@ReqHandler.ActReqTask.CurrentHandler?.Name</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("assigned")):</label>
+                            <div class="col-sm-8">
+                                <label class="col-sm-12 h-100 border bg-secondary">@(new DistName(ReqHandler.ActReqTask.AssignedGroup).UserName)</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-sm-3">
+                        <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("type"))*:</label>
                             <div class="col-sm-8">
                                 @if (ReqHandler.EditReqTaskMode)
@@ -87,42 +113,29 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-sm-3">
-                        <div class="form-group row">
-                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("action"))*:</label>
-                            <div class="col-sm-8">
-                                @if (ReqHandler.EditReqTaskMode)
-                                {
-                                    <select class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.RequestAction">
-                                        @foreach (string action in Enum.GetNames(typeof(RequestAction)))
-                                        {
-                                            <option value="@action">@(userConfig.GetText(action))</option>
-                                        }
-                                    </select>
-                                }
-                                else
-                                {
-                                    <label class="col-sm-12 h-100 border bg-secondary">@(userConfig.GetText(ReqHandler.ActReqTask.RequestAction))</label>
-                                }
+                    @if(ReqHandler.ActReqTask.TaskType == TaskType.access.ToString())
+                    {
+                        <div class="col-sm-3">
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("action"))*:</label>
+                                <div class="col-sm-8">
+                                    @if (ReqHandler.EditReqTaskMode)
+                                    {
+                                        <select class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.RequestAction">
+                                            @foreach (string action in Enum.GetNames(typeof(RequestAction)))
+                                            {
+                                                <option value="@action">@(userConfig.GetText(action))</option>
+                                            }
+                                        </select>
+                                    }
+                                    else
+                                    {
+                                        <label class="col-sm-12 h-100 border bg-secondary">@(userConfig.GetText(ReqHandler.ActReqTask.RequestAction))</label>
+                                    }
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-sm-3">
-                        <div class="form-group row">
-                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
-                            <div class="col-sm-8">
-                                <label class="col-sm-12 h-100 border bg-secondary">@States.Name[ReqHandler.ActReqTask.StateId]</label>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-sm-3">
-                        <div class="form-group row">
-                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("handler")):</label>
-                            <div class="col-sm-8">
-                                <label class="col-sm-12 h-100 border bg-secondary">@ReqHandler.ActReqTask.CurrentHandler?.Name</label>
-                            </div>
-                        </div>
-                    </div>
+                    }
                 </div>
                 @if(ReqHandler.ActReqTask.TaskType == TaskType.generic.ToString())
                 {
@@ -133,13 +146,6 @@
                         </div>
                     </div>
                 }
-                <div class="form-group row">
-                    <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
-                    <div class="col-sm-11">
-                        <textarea rows="2" type="text" class="form-control form-control-sm" readonly="@(!ReqHandler.EditReqTaskMode)" @bind="ReqHandler.ActReqTask.Reason"/>   
-                    </div>
-                </div>
-
                 @if(ReqHandler.ActReqTask.TaskType == TaskType.access.ToString())
                 {
                     <div class="form-group row">
@@ -214,7 +220,16 @@
                             </div>
                         </div>
                     </div>
+                }
+                <div class="form-group row">
+                    <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
+                    <div class="col-sm-11">
+                        <textarea rows="2" type="text" class="form-control form-control-sm" readonly="@(!ReqHandler.EditReqTaskMode)" @bind="ReqHandler.ActReqTask.Reason"/>   
+                    </div>
+                </div>
 
+                @if(ReqHandler.ActReqTask.TaskType == TaskType.access.ToString())
+                {
                     <DisplayAccessElements @bind-Sources="actSources" @bind-Destinations="actDestinations" @bind-Services="actServices" 
                         TaskId="ReqHandler.ActReqTask.Id" EditMode="ReqHandler.EditReqTaskMode"></DisplayAccessElements>
                 }
@@ -391,7 +406,6 @@
     {
         await ReqHandler.SetApprovalEnv();
         ReqHandler.SetReqTaskPopUpOpt(ObjAction.displayApprove);
-        StateHasChanged();
     }
 
     private async Task ConfApproveTask(StatefulObject approval)

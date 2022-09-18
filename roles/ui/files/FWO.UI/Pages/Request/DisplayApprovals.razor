@@ -9,7 +9,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("approvals"))" Show="@Display" XLarge="true" OnClose="() => Display = false">
+<PopUp Title="@(userConfig.GetText("approvals"))" Show="@Display" XLarge="true" OnClose="async () => await Close()">
     <Body>
         @if (Display)
         {
@@ -35,7 +35,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Cancel">@(userConfig.GetText("ok"))</button>
+            <button class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("ok"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -53,6 +53,9 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
     [Parameter]
+    public Func<Task> ResetParent { get; set; }
+
+    [Parameter]
     public List<RequestApproval> Approvals { get; set; } = new List<RequestApproval>();
 
     [Parameter]
@@ -62,5 +65,11 @@
     private void Cancel()
     {
         Display = false;
+    }
+
+    private async Task Close()
+    {
+        Display = false;
+        await ResetParent();
     }
 }

@@ -30,6 +30,16 @@ namespace FWO.Api.Data
             return highestNumber;
         }
 
+        public int NumberImplTasks()
+        {
+            int numberImplTasks = 0;
+            foreach(var task in Tasks)
+            {
+                numberImplTasks += task.ImplementationTasks.Count;
+            }
+            return numberImplTasks;
+        }
+
         public void UpdateCidrStringsInTaskElements()
         {
             foreach (RequestTask task in Tasks)

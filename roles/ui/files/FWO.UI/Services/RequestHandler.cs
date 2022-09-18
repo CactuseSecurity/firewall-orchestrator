@@ -231,13 +231,23 @@ namespace FWO.Ui.Services
                         TicketList[TicketList.FindIndex(x => x.Id == ActTicket.Id)] = ActTicket;
                     }
 
+                    // update of request tasks and creation of impl tasks may be necessary
                     foreach(RequestTask task in ActTicket.Tasks)
                     {
                         List<int> ticketStateList = new List<int>();
                         ticketStateList.Add(ActTicket.StateId);
                         task.StateId = stateMatrixDict.Matrices[task.TaskType].getDerivedStateFromSubStates(ticketStateList);
                         await dbAcc.UpdateReqTaskStateInDb(task);
+                        if( task.ImplementationTasks.Count == 0 && !stateMatrixDict.Matrices[task.TaskType].PhaseActive[WorkflowPhases.planning] 
+                            && task.StateId >= stateMatrixDict.Matrices[task.TaskType].MinImplTasksNeeded)
+                        {
+                            await AutoCreateImplTasks(task);
+                        }
                     }
+
+                    //check for further promotion (req tasks may be promoted)
+                    await UpdateTicketStateFromTasks();
+
                     ResetTicketActions();
                 }
             }
@@ -267,7 +277,7 @@ namespace FWO.Ui.Services
         public void SelectReqTask (RequestTask reqTask, ObjAction action)
         {
             SetReqTaskEnv(reqTask);
-            SetReqTaskOpt(action);
+            SetReqTaskMode(action);
         }
 
         public void SelectReqTaskPopUp (RequestTask reqTask, ObjAction action)
@@ -287,7 +297,7 @@ namespace FWO.Ui.Services
             ActStateMatrix = stateMatrixDict.Matrices[reqTask.TaskType];
         }
 
-        public void SetReqTaskOpt(ObjAction action)
+        public void SetReqTaskMode(ObjAction action)
         {
             ResetReqTaskActions();
             DisplayReqTaskMode = (action == ObjAction.display || action == ObjAction.edit || action == ObjAction.add || action == ObjAction.approve || action == ObjAction.plan);
@@ -333,7 +343,7 @@ namespace FWO.Ui.Services
             await dbAcc.UpdateReqTaskStateInDb(reqTask);
             ActTicket.Tasks[ActTicket.Tasks.FindIndex(x => x.Id == ActReqTask.Id)] = ActReqTask;
             await UpdateTicketStateFromTasks();
-            SetReqTaskOpt(action);
+            SetReqTaskMode(action);
         }
 
         public async Task ContinuePhase(RequestTask reqTask)
@@ -663,42 +673,47 @@ namespace FWO.Ui.Services
             DisplayDeleteMode = false;
         }
 
-        private async Task AutoCreateImplTasks()
+        private async Task AutoCreateAllImplTasks()
         {
             foreach(var reqTask in ActTicket.Tasks)
             {
-                ImplementationTask newImplTask;
-                switch (userConfig.ReqAutoCreateImplTasks)
-                {
-                    case AutoCreateImplTaskOptions.never:
-                        break;
-                    case AutoCreateImplTaskOptions.onlyForOneDevice:
-                        if(Devices.Count == 1)
-                        {
-                            newImplTask = new ImplementationTask(reqTask)
-                                { TaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = Devices[0].Id, StateId = reqTask.StateId };
-                            newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
-                            reqTask.ImplementationTasks.Add(newImplTask);
-                        }
-                        break;
-                    case AutoCreateImplTaskOptions.forEachDevice:
-                        foreach(var device in Devices)
-                        {
-                            newImplTask = new ImplementationTask(reqTask)
-                                { TaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = device.Id, StateId = reqTask.StateId };
-                            newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
-                            reqTask.ImplementationTasks.Add(newImplTask);
-                        }
-                        break;
-                    case AutoCreateImplTaskOptions.enterInReqTask:
+                await AutoCreateImplTasks(reqTask);
+            }
+        }
+
+        private async Task AutoCreateImplTasks(RequestTask reqTask)
+        {
+            ImplementationTask newImplTask;
+            switch (userConfig.ReqAutoCreateImplTasks)
+            {
+                case AutoCreateImplTaskOptions.never:
+                    break;
+                case AutoCreateImplTaskOptions.onlyForOneDevice:
+                    if(Devices.Count == 1)
+                    {
                         newImplTask = new ImplementationTask(reqTask)
-                            { TaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = reqTask.DeviceId, StateId = reqTask.StateId };
+                            { TaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = Devices[0].Id, StateId = reqTask.StateId };
                         newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
                         reqTask.ImplementationTasks.Add(newImplTask);
-                        break;
-                    default:
-                        break;
-                }
+                    }
+                    break;
+                case AutoCreateImplTaskOptions.forEachDevice:
+                    foreach(var device in Devices)
+                    {
+                        newImplTask = new ImplementationTask(reqTask)
+                            { TaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = device.Id, StateId = reqTask.StateId };
+                        newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
+                        reqTask.ImplementationTasks.Add(newImplTask);
+                    }
+                    break;
+                case AutoCreateImplTaskOptions.enterInReqTask:
+                    newImplTask = new ImplementationTask(reqTask)
+                        { TaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = reqTask.DeviceId, StateId = reqTask.StateId };
+                    newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
+                    reqTask.ImplementationTasks.Add(newImplTask);
+                    break;
+                default:
+                    break;
             }
         }
 
@@ -717,6 +732,13 @@ namespace FWO.Ui.Services
                 ActReqTask.StateId = ActStateMatrix.getDerivedStateFromSubStates(approvalStates);
             }
             await dbAcc.UpdateReqTaskStateInDb(ActReqTask);
+
+            // in the case impl tasks are already existing
+            foreach(var implTask in ActReqTask.ImplementationTasks)
+            {
+                implTask.StateId = ActReqTask.StateId;
+                await dbAcc.UpdateImplTaskInDb(implTask);
+            }
         }
 
         public async Task UpdateReqTaskStateFromImplTasks(RequestTask reqTask)
@@ -774,7 +796,7 @@ namespace FWO.Ui.Services
             if(Phase <= WorkflowPhases.approval && ActTicket.Tasks.Count > 0 && !alreadyExistingImplTask &&
                 !MasterStateMatrix.PhaseActive[WorkflowPhases.planning] && ActTicket.StateId >= MasterStateMatrix.LowestEndState)
             {
-                await AutoCreateImplTasks();
+                await AutoCreateAllImplTasks();
             }
 
             await dbAcc.UpdateTicketStateInDb(ActTicket);

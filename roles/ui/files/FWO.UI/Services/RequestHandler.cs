@@ -18,7 +18,8 @@ namespace FWO.Ui.Services
         displayApprove,
         displayPromote,
         displayDelete,
-        displaySaveTicket
+        displaySaveTicket,
+        displayComment
     }
 
     public class RequestHandler
@@ -59,6 +60,8 @@ namespace FWO.Ui.Services
         public bool DisplayPromoteMode = false;
         public bool DisplaySaveTicketMode = false;
         public bool DisplayDeleteMode = false;
+        public bool DisplayCommentMode = false;
+        
 
         private Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
         private UserConfig userConfig;
@@ -314,6 +317,7 @@ namespace FWO.Ui.Services
             DisplayApproveMode = action == ObjAction.displayApprove;
             DisplayPromoteMode = action == ObjAction.displayPromote;
             DisplayDeleteMode = action == ObjAction.displayDelete;
+            DisplayCommentMode = action == ObjAction.displayComment;
         }
 
         public void ResetReqTaskActions()
@@ -329,6 +333,7 @@ namespace FWO.Ui.Services
             DisplayApproveMode = false;
             DisplayPromoteMode = false;
             DisplayDeleteMode = false;
+            DisplayCommentMode = false;
         }
 
         public async Task StartWorkOnReqTask(RequestTask reqTask, ObjAction action)
@@ -405,6 +410,23 @@ namespace FWO.Ui.Services
             ActTicket.Tasks.Remove(ActReqTask);
             // todo: adapt TaskNumbers of following tasks?
             DisplayDeleteMode = false;
+        }
+
+        public async Task ConfAddCommentToReqTask(string commentText)
+        {
+            RequestComment comment = new RequestComment()
+            {
+                Scope = ActionScopes.RequestTask.ToString(),
+                CreationDate = DateTime.Now,
+                Creator = userConfig.User,
+                CommentText = commentText
+            };
+            long commentId = await dbAcc.AddCommentToDb(comment);
+            if(commentId != 0)
+            {
+                await dbAcc.AssignCommentToReqTaskInDb(ActReqTask.Id, commentId);
+            }
+            DisplayCommentMode = false;
         }
 
         public async Task PromoteReqTask(StatefulObject reqTask)

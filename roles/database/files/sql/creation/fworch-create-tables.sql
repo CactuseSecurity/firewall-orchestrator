@@ -993,7 +993,6 @@ create table if not exists request.task
 	assigned_group varchar,
 	target_begin_date Timestamp,
 	target_end_date Timestamp,
-	fw_admin_comments varchar,
 	device_id int
 );
 
@@ -1024,7 +1023,6 @@ create table if not exists request.approval
 	recent_handler int,
 	assigned_group varchar,
     tenant_id int,
-    comment text,
 	initial_approval boolean not null default true,
 	approval_deadline Timestamp,
 	state_id int NOT NULL
@@ -1049,6 +1047,40 @@ create table if not exists request.ticket
 	external_ticket_source int,
 	ticket_deadline Timestamp,
 	ticket_priority int
+);
+
+create table if not exists request.comment 
+(
+    id BIGSERIAL PRIMARY KEY,
+    ref_id bigint,
+	scope varchar,
+	creation_date Timestamp,
+	creator_id int,
+	comment_text varchar
+);
+
+create table if not exists request.ticket_comment
+(
+    ticket_id bigint,
+    comment_id bigint
+);
+
+create table if not exists request.reqtask_comment
+(
+    task_id bigint,
+    comment_id bigint
+);
+
+create table if not exists request.approval_comment
+(
+    approval_id bigint,
+    comment_id bigint
+);
+
+create table if not exists request.impltask_comment
+(
+    task_id bigint,
+    comment_id bigint
 );
 
 create table if not exists request.state
@@ -1102,7 +1134,7 @@ create table if not exists owner_network
 
 create table if not exists request_owner
 (
-    request_task_id int,
+    request_task_id bigint,
     owner_id int
 );
 
@@ -1148,6 +1180,5 @@ create table if not exists implementation.task
 	recent_handler int,
 	assigned_group varchar,
 	target_begin_date Timestamp,
-	target_end_date Timestamp,
-	fw_admin_comments varchar
+	target_end_date Timestamp
 );

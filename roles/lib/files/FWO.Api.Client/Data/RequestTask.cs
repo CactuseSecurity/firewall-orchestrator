@@ -23,6 +23,9 @@ namespace FWO.Api.Data
         [JsonProperty("owners"), JsonPropertyName("owners")]
         public List<RequestOwnerDataHelper> Owners { get; set; } = new List<RequestOwnerDataHelper>();
 
+        [JsonProperty("comments"), JsonPropertyName("comments")]
+        public List<RequestCommentDataHelper> Comments { get; set; } = new List<RequestCommentDataHelper>();
+
         public List<RequestElement> RemovedElements { get; set; } = new List<RequestElement>();
 
 
@@ -37,6 +40,7 @@ namespace FWO.Api.Data
             ImplementationTasks = task.ImplementationTasks;
             Approvals = task.Approvals;
             Owners = task.Owners;
+            Comments = task.Comments;
             RemovedElements = task.RemovedElements;
         }
 
@@ -100,6 +104,18 @@ namespace FWO.Api.Data
                 }
             }
             return elements;
+        }
+
+        public string getAllComments()
+        {
+            string allComments = "";
+            foreach(var comment in Comments)
+            {
+                allComments += comment.Comment.CreationDate.ToShortDateString() + " "
+                            + new DistName(comment.Comment.Creator.Dn).UserName + ": "
+                            + comment.Comment.CommentText + "\n";
+            }
+            return allComments;
         }
     }
 }

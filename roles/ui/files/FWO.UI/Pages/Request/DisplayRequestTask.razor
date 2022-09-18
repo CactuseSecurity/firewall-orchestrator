@@ -237,9 +237,13 @@
                 @if(!ReqHandler.EditReqTaskMode)
                 {
                     <div class="form-group row">
-                        <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
+                        <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("comments")):</label>
                         <div class="col-sm-11">
-                            <textarea rows="2" type="text" class="form-control form-control-sm" readonly="@(!(ReqHandler.PlanReqTaskMode || ReqHandler.ApproveReqTaskMode))" @bind="ReqHandler.ActReqTask.FwAdminComments" />
+                            <textarea rows="2" type="text" class="form-control form-control-sm" readonly="true">@allComments</textarea>
+                            @if(ReqHandler.PlanReqTaskMode || ReqHandler.ApproveReqTaskMode)
+                            {
+                                <button class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="InitAddComment">@(userConfig.GetText("add_comment"))</button>
+                            }
                         </div>
                     </div>
                 }
@@ -310,6 +314,7 @@
 
 <PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Close" ObjectName="task" Save="ConfPromoteReqTask" StatefulObject="ReqHandler.ActReqTask" StateMatrix="ReqHandler.ActStateMatrix" States="States"/>
 <PromoteObject @bind-Promote="ReqHandler.DisplayApproveMode" ResetParent="Close" ObjectName="approval" WithComment="true" Save="ConfApproveTask" StatefulObject="ReqHandler.ActApproval" StateMatrix="ReqHandler.ActStateMatrix" States="States"/>
+<CommentObject @bind-Promote="ReqHandler.DisplayCommentMode" ResetParent="Close" ObjectName="task" Save="ConfAddComment"/>
 
 @code
 {
@@ -344,6 +349,7 @@
     List<NwServiceElement> actServices = new List<NwServiceElement>();
 
     private List<RequestStateAction> offeredActions = new List<RequestStateAction>();
+    private string allComments = "";
     
 
     protected override async Task OnInitializedAsync()
@@ -366,6 +372,7 @@
         if (ReqHandler.DisplayReqTaskMode)
         {
             InitElements();
+            allComments = ReqHandler.ActReqTask.getAllComments();
             offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActReqTask, ActionScopes.RequestTask, ReqHandler.Phase);
         }
     }
@@ -411,6 +418,16 @@
     private async Task ConfApproveTask(StatefulObject approval)
     {
         await ReqHandler.ApproveTask(approval);
+    }
+
+    private async Task InitAddComment()
+    {
+        ReqHandler.SetReqTaskPopUpOpt(ObjAction.displayComment);
+    }
+
+    private async Task ConfAddComment(string commentText)
+    {
+        await ReqHandler.ConfAddCommentToReqTask(commentText);
     }
 
     private void UpdateElements()

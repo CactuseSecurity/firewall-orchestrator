@@ -180,12 +180,12 @@
                     <DisplayAccessElements @bind-Sources="actSources" @bind-Destinations="actDestinations" @bind-Services="actServices" 
                         TaskId="ReqHandler.ActImplTask.Id" EditMode ="ReqHandler.EditImplTaskMode"></DisplayAccessElements>
                 }
-                <div class="form-group row">
+                @* <div class="form-group row">
                     <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
                     <div class="col-sm-11">
                         <textarea rows="2" type="text" class="form-control form-control-sm" readonly="@(!ReqHandler.ImplementImplTaskMode)" @bind="ReqHandler.ActImplTask.FwAdminComments" />
                     </div>
-                </div>
+                </div> *@
 
                 @if(ReqHandler.ImplementImplTaskMode)
                 {

@@ -715,6 +715,10 @@ INSERT INTO txt VALUES ('confirm_cancel', 		'German', 	'Abbruch best&auml;tigen'
 INSERT INTO txt VALUES ('confirm_cancel', 		'English', 	'Confirm cancel');
 INSERT INTO txt VALUES ('priority', 		    'German', 	'Priorit&auml;t');
 INSERT INTO txt VALUES ('priority', 		    'English', 	'Priority');
+INSERT INTO txt VALUES ('comments',				'German', 	'Kommentare');
+INSERT INTO txt VALUES ('comments',				'English', 	'Comments');
+INSERT INTO txt VALUES ('add_comment',          'German', 	'Kommentar hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_comment',          'English', 	'Add comment');
 
 -- recertification
 INSERT INTO txt VALUES ('recertify',		    'German', 	'Rezertifizieren');
@@ -1758,6 +1762,8 @@ INSERT INTO txt VALUES ('E8010', 'German',  'Bitte Gruppe ausw&auml;hlen');
 INSERT INTO txt VALUES ('E8010', 'English', 'Please select group');
 INSERT INTO txt VALUES ('E8011', 'German',  'Aktion konnte nicht angelegt werden');
 INSERT INTO txt VALUES ('E8011', 'English', 'Action could not be created');
+INSERT INTO txt VALUES ('E8012', 'German',  'Kommentar konnte nicht angelegt werden');
+INSERT INTO txt VALUES ('E8012', 'English', 'Comment could not be created');
 
 
 -- errors from Api

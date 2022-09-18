@@ -10,7 +10,6 @@ mutation newImplementationTask(
   $handler: Int
   $validFrom: timestamp
   $validTo: timestamp
-  $comment: String
   $freeText: String
   ) {
   insert_implementation_task(objects: {
@@ -25,7 +24,6 @@ mutation newImplementationTask(
     current_handler: $handler
     target_begin_date: $validFrom
 	  target_end_date: $validTo
-	  fw_admin_comments: $comment
     free_text: $freeText
   }) {
     returning {

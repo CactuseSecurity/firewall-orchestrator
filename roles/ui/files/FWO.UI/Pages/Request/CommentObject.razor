@@ -1,0 +1,67 @@
+@using FWO.Api.Client
+@using FWO.Config.Api
+
+@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+
+<PopUp Title="@(userConfig.GetText("add_comment") + ": " + (ObjectName != "" ? userConfig.GetText(ObjectName) : ""))" Show="@Display" OnClose="async () => await Close()">
+    <Body>
+        @if (Display)
+        {
+            <div class="form-group row">
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
+                <div class="col-sm-8">
+                    <textarea rows="3" type="text" class="form-control form-control-sm" @bind="commentText" />
+                </div>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="admin, requester, approver, planner, implementer, reviewer, fw-admin">
+                <Authorized>
+                    <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="async () => {await Save(commentText); await Close();}">@(userConfig.GetText("save"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public Func<Task> ResetParent { get; set; }
+
+    [Parameter]
+    public string ObjectName { get; set; } = "";
+
+    [Parameter]
+    public Func<string, Task>? Save { get; set; }
+
+
+    private string commentText = "";
+
+
+    private async Task Close()
+    {
+        Display = false;
+        await ResetParent();
+    }
+}

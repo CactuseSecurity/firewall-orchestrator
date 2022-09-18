@@ -43,7 +43,6 @@ namespace FWO.Api.Data
             AssignedGroup = task.AssignedGroup;
             TargetBeginDate = task.TargetBeginDate;
             TargetEndDate = task.TargetEndDate;
-            FwAdminComments = task.FwAdminComments;
             FreeText = task.FreeText;
             DeviceId = task.DeviceId;
             if (task.Elements != null && task.Elements.Count > 0)
@@ -59,7 +58,6 @@ namespace FWO.Api.Data
         public override bool Sanitize()
         {
             bool shortened = base.Sanitize();
-            FwAdminComments = Sanitizer.SanitizeOpt(FwAdminComments, ref shortened);
             return shortened;
         }
 

@@ -11,7 +11,6 @@ mutation updateRequestTask(
   $validTo: timestamp
   $reason: String
   $freeText: String
-  $comment: String
   $deviceId: Int
   ) {
   update_request_task_by_pk(
@@ -28,7 +27,6 @@ mutation updateRequestTask(
 	  target_end_date: $validTo
     reason: $reason
     free_text: $freeText
-    fw_admin_comments: $comment
     device_id: $deviceId
   }) {
     UpdatedId: id

@@ -49,7 +49,6 @@ create table if not exists request.task
     assigned_group varchar,
 	target_begin_date Timestamp,
 	target_end_date Timestamp,
-	fw_admin_comments varchar,
     device_id int
 );
 
@@ -80,7 +79,6 @@ create table if not exists request.approval
 	recent_handler int,
 	assigned_group varchar,
     tenant_id int,
-    comment text,
     initial_approval boolean not null default true,
 	approval_deadline Timestamp,
 	state_id int NOT NULL
@@ -105,6 +103,40 @@ create table if not exists request.ticket
 	external_ticket_source int,
     ticket_deadline Timestamp,
     ticket_priority int
+);
+
+create table if not exists request.comment 
+(
+    id BIGSERIAL PRIMARY KEY,
+    ref_id bigint,
+	scope varchar,
+	creation_date Timestamp,
+	creator int,
+	comment_text varchar
+);
+
+create table if not exists request.ticket_comment
+(
+    ticket_id bigint,
+    comment_id bigint
+);
+
+create table if not exists request.reqtask_comment
+(
+    task_id bigint,
+    comment_id bigint
+);
+
+create table if not exists request.approval_comment
+(
+    approval_id bigint,
+    comment_id bigint
+);
+
+create table if not exists request.impltask_comment
+(
+    task_id bigint,
+    comment_id bigint
 );
 
 create table if not exists request.state
@@ -158,7 +190,7 @@ create table if not exists owner_network
 
 create table if not exists request_owner
 (
-    request_task_id int,
+    request_task_id bigint,
     owner_id int
 );
 
@@ -204,8 +236,7 @@ create table if not exists implementation.task
 	recent_handler int,
 	assigned_group varchar,
 	target_begin_date Timestamp,
-	target_end_date Timestamp,
-    fw_admin_comments varchar
+	target_end_date Timestamp
 );
 
 --- FOREIGN KEYS ---
@@ -223,6 +254,7 @@ ALTER TABLE request.task DROP CONSTRAINT IF EXISTS request_task_usergrp_foreign_
 ALTER TABLE request.task DROP CONSTRAINT IF EXISTS request_task_current_handler_foreign_key;
 ALTER TABLE request.task DROP CONSTRAINT IF EXISTS request_task_recent_handler_foreign_key;
 ALTER TABLE request.task DROP CONSTRAINT IF EXISTS request_task_device_foreign_key;
+ALTER TABLE request.task DROP CONSTRAINT IF EXISTS request_task_comment_foreign_key;
 --- request.element ---
 ALTER TABLE request.element DROP CONSTRAINT IF EXISTS request_element_request_task_foreign_key;
 ALTER TABLE request.element DROP CONSTRAINT IF EXISTS request_element_proto_foreign_key;
@@ -236,14 +268,18 @@ ALTER TABLE request.approval DROP CONSTRAINT IF EXISTS request_approval_tenant_f
 ALTER TABLE request.approval DROP CONSTRAINT IF EXISTS request_approval_request_state_foreign_key;
 ALTER TABLE request.approval DROP CONSTRAINT IF EXISTS request_approval_current_handler_foreign_key;
 ALTER TABLE request.approval DROP CONSTRAINT IF EXISTS request_approval_recent_handler_foreign_key;
+ALTER TABLE request.approval DROP CONSTRAINT IF EXISTS request_approval_comment_foreign_key;
 --- request.ticket ---
 ALTER TABLE request.ticket DROP CONSTRAINT IF EXISTS request_ticket_request_state_foreign_key;
 ALTER TABLE request.ticket DROP CONSTRAINT IF EXISTS request_ticket_tenant_foreign_key;
 ALTER TABLE request.ticket DROP CONSTRAINT IF EXISTS request_ticket_uiuser_foreign_key;
 ALTER TABLE request.ticket DROP CONSTRAINT IF EXISTS request_ticket_current_handler_foreign_key;
 ALTER TABLE request.ticket DROP CONSTRAINT IF EXISTS request_ticket_recent_handler_foreign_key;
+ALTER TABLE request.ticket DROP CONSTRAINT IF EXISTS request_ticket_comment_foreign_key;
 --- owner ---
 ALTER TABLE owner DROP CONSTRAINT IF EXISTS owner_tenant_foreign_key;
+--- comment ---
+ALTER TABLE request.comment DROP CONSTRAINT IF EXISTS comment_uiuser_foreign_key;
 --- owner_network ---
 ALTER TABLE owner_network DROP CONSTRAINT IF EXISTS owner_network_proto_foreign_key;
 ALTER TABLE owner_network DROP CONSTRAINT IF EXISTS owner_network_owner_foreign_key;
@@ -253,6 +289,18 @@ ALTER TABLE rule_owner DROP CONSTRAINT IF EXISTS rule_owner_owner_foreign_key;
 --- request_owner ---
 ALTER TABLE request_owner DROP CONSTRAINT IF EXISTS request_owner_request_task_foreign_key;
 ALTER TABLE request_owner DROP CONSTRAINT IF EXISTS request_owner_owner_foreign_key;
+--- ticket_comment ---
+ALTER TABLE ticket_comment DROP CONSTRAINT IF EXISTS ticket_comment_task_foreign_key;
+ALTER TABLE ticket_comment DROP CONSTRAINT IF EXISTS ticket_comment_comment_foreign_key;
+--- reqtask_comment ---
+ALTER TABLE reqtask_comment DROP CONSTRAINT IF EXISTS reqtask_comment_task_foreign_key;
+ALTER TABLE reqtask_comment DROP CONSTRAINT IF EXISTS reqtask_comment_comment_foreign_key;
+--- approval_comment ---
+ALTER TABLE approval_comment DROP CONSTRAINT IF EXISTS approval_comment_task_foreign_key;
+ALTER TABLE approval_comment DROP CONSTRAINT IF EXISTS approval_comment_comment_foreign_key;
+--- impltask_comment ---
+ALTER TABLE impltask_comment DROP CONSTRAINT IF EXISTS impltask_comment_task_foreign_key;
+ALTER TABLE impltask_comment DROP CONSTRAINT IF EXISTS impltask_comment_comment_foreign_key;
 --- state_action ---
 ALTER TABLE request.state_action DROP CONSTRAINT IF EXISTS state_action_state_foreign_key;
 ALTER TABLE request.state_action DROP CONSTRAINT IF EXISTS state_action_action_foreign_key;
@@ -274,6 +322,7 @@ ALTER TABLE implementation.task DROP CONSTRAINT IF EXISTS implementation_task_ob
 ALTER TABLE implementation.task DROP CONSTRAINT IF EXISTS implementation_task_usergrp_foreign_key;
 ALTER TABLE implementation.task DROP CONSTRAINT IF EXISTS implementation_task_current_handler_foreign_key;
 ALTER TABLE implementation.task DROP CONSTRAINT IF EXISTS implementation_task_recent_handler_foreign_key;
+ALTER TABLE implementation.task DROP CONSTRAINT IF EXISTS implementation_task_comment_foreign_key;
 
 --- ADD ---
 
@@ -288,6 +337,7 @@ ALTER TABLE request.task ADD CONSTRAINT request_task_usergrp_foreign_key FOREIGN
 ALTER TABLE request.task ADD CONSTRAINT request_task_current_handler_foreign_key FOREIGN KEY (current_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.task ADD CONSTRAINT request_task_recent_handler_foreign_key FOREIGN KEY (recent_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.task ADD CONSTRAINT request_task_device_foreign_key FOREIGN KEY (device_id) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.task ADD CONSTRAINT request_task_comment_foreign_key FOREIGN KEY (ref_comment) REFERENCES request.comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- request.element ---
 ALTER TABLE request.element ADD CONSTRAINT request_element_request_task_foreign_key FOREIGN KEY (task_id) REFERENCES request.task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.element ADD CONSTRAINT request_element_proto_foreign_key FOREIGN KEY (ip_proto_id) REFERENCES stm_ip_proto(ip_proto_id) ON UPDATE RESTRICT ON DELETE CASCADE;
@@ -301,14 +351,18 @@ ALTER TABLE request.approval ADD CONSTRAINT request_approval_tenant_foreign_key 
 ALTER TABLE request.approval ADD CONSTRAINT request_approval_request_state_foreign_key FOREIGN KEY (state_id) REFERENCES request.state(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.approval ADD CONSTRAINT request_approval_current_handler_foreign_key FOREIGN KEY (current_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.approval ADD CONSTRAINT request_approval_recent_handler_foreign_key FOREIGN KEY (recent_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.approval ADD CONSTRAINT request_approval_comment_foreign_key FOREIGN KEY (ref_comment) REFERENCES request.comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- request.ticket ---
 ALTER TABLE request.ticket ADD CONSTRAINT request_ticket_request_state_foreign_key FOREIGN KEY (state_id) REFERENCES request.state(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.ticket ADD CONSTRAINT request_ticket_tenant_foreign_key FOREIGN KEY (tenant_id) REFERENCES tenant(tenant_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.ticket ADD CONSTRAINT request_ticket_uiuser_foreign_key FOREIGN KEY (requester_id) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.ticket ADD CONSTRAINT request_ticket_current_handler_foreign_key FOREIGN KEY (current_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.ticket ADD CONSTRAINT request_ticket_recent_handler_foreign_key FOREIGN KEY (recent_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.ticket ADD CONSTRAINT request_ticket_comment_foreign_key FOREIGN KEY (ref_comment) REFERENCES request.comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- owner ---
 ALTER TABLE owner ADD CONSTRAINT owner_tenant_foreign_key FOREIGN KEY (tenant_id) REFERENCES tenant(tenant_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+--- comment ---
+ALTER TABLE request.comment ADD CONSTRAINT comment_uiuser_foreign_key FOREIGN KEY (creator_id) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- owner_network ---
 ALTER TABLE owner_network ADD CONSTRAINT owner_network_proto_foreign_key FOREIGN KEY (ip_proto_id) REFERENCES stm_ip_proto(ip_proto_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE owner_network ADD CONSTRAINT owner_network_owner_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
@@ -318,6 +372,18 @@ ALTER TABLE rule_owner ADD CONSTRAINT rule_owner_owner_foreign_key FOREIGN KEY (
 --- request_owner ---
 ALTER TABLE request_owner ADD CONSTRAINT request_owner_request_task_foreign_key FOREIGN KEY (request_task_id) REFERENCES request.task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request_owner ADD CONSTRAINT request_owner_owner_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+--- ticket_comment ---
+ALTER TABLE ticket_comment ADD CONSTRAINT ticket_comment_task_foreign_key FOREIGN KEY (ticket_id) REFERENCES request.ticket(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE ticket_comment ADD CONSTRAINT ticket_comment_comment_foreign_key FOREIGN KEY (comment_id) REFERENCES comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+--- reqtask_comment ---
+ALTER TABLE reqtask_comment ADD CONSTRAINT reqtask_comment_task_foreign_key FOREIGN KEY (task_id) REFERENCES request.task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE reqtask_comment ADD CONSTRAINT reqtask_comment_comment_foreign_key FOREIGN KEY (comment_id) REFERENCES comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+--- approval_comment ---
+ALTER TABLE approval_comment ADD CONSTRAINT approval_comment_task_foreign_key FOREIGN KEY (approval_id) REFERENCES request.approval(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE approval_comment ADD CONSTRAINT approval_comment_comment_foreign_key FOREIGN KEY (comment_id) REFERENCES comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+--- impltask_comment ---
+ALTER TABLE impltask_comment ADD CONSTRAINT impltask_comment_task_foreign_key FOREIGN KEY (task_id) REFERENCES implementation.task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE impltask_comment ADD CONSTRAINT impltask_comment_comment_foreign_key FOREIGN KEY (comment_id) REFERENCES comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- state_action ---
 ALTER TABLE request.state_action ADD CONSTRAINT state_action_state_foreign_key FOREIGN KEY (state_id) REFERENCES request.state(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.state_action ADD CONSTRAINT state_action_action_foreign_key FOREIGN KEY (action_id) REFERENCES request.action(id) ON UPDATE RESTRICT ON DELETE CASCADE;
@@ -339,6 +405,7 @@ ALTER TABLE implementation.task ADD CONSTRAINT implementation_task_object_foreig
 ALTER TABLE implementation.task ADD CONSTRAINT implementation_task_usergrp_foreign_key FOREIGN KEY (user_grp_id) REFERENCES usr(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE implementation.task ADD CONSTRAINT implementation_task_current_handler_foreign_key FOREIGN KEY (current_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE implementation.task ADD CONSTRAINT implementation_task_recent_handler_foreign_key FOREIGN KEY (recent_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE implementation.task ADD CONSTRAINT implementation_task_comment_foreign_key FOREIGN KEY (ref_comment) REFERENCES request.comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
 --- OTHER CONSTRAINTS ---
 

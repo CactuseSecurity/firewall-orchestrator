@@ -26,9 +26,6 @@ namespace FWO.Api.Data
         [JsonProperty("tenant_id"), JsonPropertyName("tenant_id")]
         public int? TenantId { get; set; }
 
-        [JsonProperty("comment"), JsonPropertyName("comment")]
-        public string? Comment { get; set; }
-
         [JsonProperty("initial_approval"), JsonPropertyName("initial_approval")]
         public bool InitialApproval { get; set; } = true;
 
@@ -44,7 +41,6 @@ namespace FWO.Api.Data
             ApproverGroup = approval.ApproverGroup;
             ApproverDn = approval.ApproverDn;
             TenantId = approval.TenantId;
-            Comment = approval.Comment;
             InitialApproval = approval.InitialApproval;
          }
 
@@ -53,7 +49,6 @@ namespace FWO.Api.Data
             bool shortened = base.Sanitize();
             ApproverGroup = Sanitizer.SanitizeLdapPathOpt(ApproverGroup, ref shortened);
             ApproverDn = Sanitizer.SanitizeLdapPathOpt(ApproverDn, ref shortened);
-            Comment = Sanitizer.SanitizeOpt(Comment, ref shortened);
             return shortened;
         }
     }

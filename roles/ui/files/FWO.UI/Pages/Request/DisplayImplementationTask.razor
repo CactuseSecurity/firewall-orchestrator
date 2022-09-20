@@ -180,13 +180,18 @@
                     <DisplayAccessElements @bind-Sources="actSources" @bind-Destinations="actDestinations" @bind-Services="actServices" 
                         TaskId="ReqHandler.ActImplTask.Id" EditMode ="ReqHandler.EditImplTaskMode"></DisplayAccessElements>
                 }
-                @* <div class="form-group row">
-                    <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
-                    <div class="col-sm-11">
-                        <textarea rows="2" type="text" class="form-control form-control-sm" readonly="@(!ReqHandler.ImplementImplTaskMode)" @bind="ReqHandler.ActImplTask.FwAdminComments" />
+                <div class="form-group row">
+                    <div class="col-sm-1">
+                        <label class="col-form-label col-form-label-sm">@(userConfig.GetText("comments")):</label>
+                        @if(ReqHandler.ImplementImplTaskMode)
+                        {
+                            <button class="btn btn-sm btn-success" @onclick:preventDefault @onclick="InitAddComment">@(userConfig.GetText("add_comment"))</button>
+                        }
                     </div>
-                </div> *@
-
+                    <div class="col-sm-11">
+                        <textarea rows="3" type="text" class="form-control form-control-sm" readonly="true">@allComments</textarea>
+                    </div>
+                </div>
                 @if(ReqHandler.ImplementImplTaskMode)
                 {
                     <div class="col-sm-12">
@@ -231,6 +236,7 @@
 </PopUp>
 
 <PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Close" ObjectName="task" Save="ConfPromoteImplTask" StatefulObject="ReqHandler.ActImplTask" StateMatrix="StateMatrix" States="States"/>
+<CommentObject @bind-Display="ReqHandler.DisplayCommentMode" ResetParent="InitComments" ObjectName="task" Save="ConfAddComment"/>
 
 @code
 {
@@ -261,6 +267,7 @@
     List<NwServiceElement> actServices = new List<NwServiceElement>();
     
     private List<RequestStateAction> offeredActions = new List<RequestStateAction>();
+    private string allComments = "";
 
 
     protected override async Task OnInitializedAsync()
@@ -281,6 +288,7 @@
         if (ReqHandler.DisplayImplTaskMode)
         {
             InitElements();
+            await InitComments();
             offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActImplTask, ActionScopes.ImplementationTask, ReqHandler.Phase);
         }
     }
@@ -290,6 +298,11 @@
         actSources = ReqHandler.ActImplTask.getNwObjectElements(AccessField.source);
         actDestinations = ReqHandler.ActImplTask.getNwObjectElements(AccessField.destination);
         actServices = ReqHandler.ActImplTask.getServiceElements();
+    }
+
+    private async Task InitComments()
+    {
+        allComments = ReqHandler.ActImplTask.getAllComments();
     }
 
     private async Task Close()
@@ -305,6 +318,18 @@
     private async Task PerformAction(RequestStateAction action)
     {
         await ReqHandler.ActionHandler.performAction(action, ReqHandler.ActImplTask, ActionScopes.ImplementationTask);
+    }
+
+    private async Task InitAddComment()
+    {
+        ReqHandler.SetImplTaskPopUpOpt(ObjAction.displayComment);
+    }
+
+    private async Task ConfAddComment(string commentText)
+    {
+        await ReqHandler.ConfAddCommentToImplTask(commentText);
+        await InitComments();
+        StateHasChanged();
     }
 
     private void UpdateElements()

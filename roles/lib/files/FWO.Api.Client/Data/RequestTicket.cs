@@ -8,6 +8,9 @@ namespace FWO.Api.Data
         [JsonProperty("tasks"), JsonPropertyName("tasks")]
         public List<RequestTask> Tasks { get; set; } = new List<RequestTask>();
 
+        [JsonProperty("comments"), JsonPropertyName("comments")]
+        public List<RequestCommentDataHelper> Comments { get; set; } = new List<RequestCommentDataHelper>();
+
 
         public RequestTicket()
         {}
@@ -15,6 +18,7 @@ namespace FWO.Api.Data
         public RequestTicket(RequestTicket ticket) : base(ticket)
         {
             Tasks = ticket.Tasks;
+            Comments = ticket.Comments;
         }
 
         public int HighestTaskNumber()

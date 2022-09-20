@@ -426,6 +426,7 @@ namespace FWO.Ui.Services
             {
                 await dbAcc.AssignCommentToReqTaskInDb(ActReqTask.Id, commentId);
             }
+            ActReqTask.Comments.Add(new RequestCommentDataHelper(comment){});
             DisplayCommentMode = false;
         }
 
@@ -471,7 +472,6 @@ namespace FWO.Ui.Services
                 await AddApproval();
             }
             ActApproval = ActReqTask.Approvals.Last();  // todo: select own approvals
-            ActApproval.SetOptComment(ActApproval.Comment);
         }
 
         public async Task AddApproval(string extParams = "")
@@ -516,12 +516,16 @@ namespace FWO.Ui.Services
             try
             {
                 ActApproval.StateId = approval.StateId;
-                ActApproval.Comment = approval.OptComment();
                 if(ActApproval.StateId >= ActStateMatrix.LowestEndState)
                 {
                     ActApproval.ApprovalDate = DateTime.Now;
                     ActApproval.ApproverDn = userConfig.User.Dn;
                 }
+                if(approval.OptComment() != null && approval.OptComment() != "")
+                {
+                    await ConfAddCommentToApproval(approval.OptComment());
+                }
+                
                 if (ActApproval.Sanitize())
                 {
                     DisplayMessageInUi!(null, userConfig.GetText("save_approval"), userConfig.GetText("U0001"), true);
@@ -538,6 +542,24 @@ namespace FWO.Ui.Services
             {
                 DisplayMessageInUi!(exception, userConfig.GetText("save_approval"), "", true);
             }
+        }
+
+        public async Task ConfAddCommentToApproval(string commentText)
+        {
+            RequestComment comment = new RequestComment()
+            {
+                Scope = ActionScopes.Approval.ToString(),
+                CreationDate = DateTime.Now,
+                Creator = userConfig.User,
+                CommentText = commentText
+            };
+            long commentId = await dbAcc.AddCommentToDb(comment);
+            if(commentId != 0)
+            {
+                await dbAcc.AssignCommentToApprovalInDb(ActApproval.Id, commentId);
+            }
+            ActApproval.Comments.Add(new RequestCommentDataHelper(comment){});
+            DisplayCommentMode = false;
         }
 
 
@@ -585,6 +607,7 @@ namespace FWO.Ui.Services
             DisplayPromoteMode = action == ObjAction.displayPromote;
             DisplayDeleteMode = action == ObjAction.displayDelete;
             DisplayAssignMode = action == ObjAction.displayAssign;
+            DisplayCommentMode = action == ObjAction.displayComment;
         }
 
         public void ResetImplTaskActions()
@@ -597,6 +620,7 @@ namespace FWO.Ui.Services
             DisplayPromoteMode = false;
             DisplayDeleteMode = false;
             DisplayAssignMode = false;
+            DisplayCommentMode = false;
         }
 
         public async Task StartWorkOnImplTask(ImplementationTask implTask, ObjAction action)
@@ -658,6 +682,24 @@ namespace FWO.Ui.Services
         {
             await dbAcc.UpdateImplTaskInDb(ActImplTask);
             ActReqTask.ImplementationTasks[ActReqTask.ImplementationTasks.FindIndex(x => x.TaskNumber == ActImplTask.TaskNumber)] = ActImplTask;
+        }
+
+        public async Task ConfAddCommentToImplTask(string commentText)
+        {
+            RequestComment comment = new RequestComment()
+            {
+                Scope = ActionScopes.ImplementationTask.ToString(),
+                CreationDate = DateTime.Now,
+                Creator = userConfig.User,
+                CommentText = commentText
+            };
+            long commentId = await dbAcc.AddCommentToDb(comment);
+            if(commentId != 0)
+            {
+                await dbAcc.AssignCommentToImplTaskInDb(ActImplTask.Id, commentId);
+            }
+            ActImplTask.Comments.Add(new RequestCommentDataHelper(comment){});
+            DisplayCommentMode = false;
         }
 
         public async Task PromoteImplTask(StatefulObject implTask)
@@ -815,7 +857,7 @@ namespace FWO.Ui.Services
                     alreadyExistingImplTask = true;
                 }
             }
-            if(Phase <= WorkflowPhases.approval && ActTicket.Tasks.Count > 0 && !alreadyExistingImplTask &&
+            if(Phase == WorkflowPhases.approval && ActTicket.Tasks.Count > 0 && !alreadyExistingImplTask &&
                 !MasterStateMatrix.PhaseActive[WorkflowPhases.planning] && ActTicket.StateId >= MasterStateMatrix.LowestEndState)
             {
                 await AutoCreateAllImplTasks();

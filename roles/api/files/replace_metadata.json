@@ -140,6 +140,18 @@
                       }
                     }
                   }
+                },
+                {
+                  "name": "impltask_comments",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "task_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "impltask_comment"
+                      }
+                    }
+                  }
                 }
               ]
             },
@@ -12407,6 +12419,104 @@
                     "foreign_key_constraint_on": "recent_handler"
                   }
                 }
+              ],
+              "array_relationships": [
+                {
+                  "name": "approval_comments",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "approval_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "approval_comment"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "schema": "request",
+                "name": "approval_comment"
+              },
+              "object_relationships": [
+                {
+                  "name": "approval",
+                  "using": {
+                    "foreign_key_constraint_on": "approval_id"
+                  }
+                },
+                {
+                  "name": "comment",
+                  "using": {
+                    "foreign_key_constraint_on": "comment_id"
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "schema": "request",
+                "name": "comment"
+              },
+              "object_relationships": [
+                {
+                  "name": "uiuser",
+                  "using": {
+                    "foreign_key_constraint_on": "creator_id"
+                  }
+                }
+              ],
+              "array_relationships": [
+                {
+                  "name": "approval_comments",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "comment_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "approval_comment"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "impltask_comments",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "comment_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "impltask_comment"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "reqtask_comments",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "comment_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "reqtask_comment"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "ticket_comments",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "comment_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "ticket_comment"
+                      }
+                    }
+                  }
+                }
               ]
             },
             {
@@ -12463,6 +12573,46 @@
                         "name": "element"
                       }
                     }
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "schema": "request",
+                "name": "impltask_comment"
+              },
+              "object_relationships": [
+                {
+                  "name": "comment",
+                  "using": {
+                    "foreign_key_constraint_on": "comment_id"
+                  }
+                },
+                {
+                  "name": "task",
+                  "using": {
+                    "foreign_key_constraint_on": "task_id"
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "schema": "request",
+                "name": "reqtask_comment"
+              },
+              "object_relationships": [
+                {
+                  "name": "comment",
+                  "using": {
+                    "foreign_key_constraint_on": "comment_id"
+                  }
+                },
+                {
+                  "name": "task",
+                  "using": {
+                    "foreign_key_constraint_on": "task_id"
                   }
                 }
               ]
@@ -12636,6 +12786,18 @@
                   }
                 },
                 {
+                  "name": "reqtask_comments",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "task_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "reqtask_comment"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "request_owners",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -12709,6 +12871,38 @@
                         "name": "task"
                       }
                     }
+                  }
+                },
+                {
+                  "name": "ticket_comments",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "ticket_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "ticket_comment"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "schema": "request",
+                "name": "ticket_comment"
+              },
+              "object_relationships": [
+                {
+                  "name": "comment",
+                  "using": {
+                    "foreign_key_constraint_on": "comment_id"
+                  }
+                },
+                {
+                  "name": "ticket",
+                  "using": {
+                    "foreign_key_constraint_on": "ticket_id"
                   }
                 }
               ]

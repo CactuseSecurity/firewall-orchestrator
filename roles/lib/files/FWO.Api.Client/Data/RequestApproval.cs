@@ -11,6 +11,9 @@ namespace FWO.Api.Data
         [JsonProperty("task_id"), JsonPropertyName("task_id")]
         public long TaskId { get; set; }
 
+        [JsonProperty("comments"), JsonPropertyName("comments")]
+        public List<RequestCommentDataHelper> Comments { get; set; } = new List<RequestCommentDataHelper>();
+
 
         public RequestApproval()
         { }
@@ -19,6 +22,19 @@ namespace FWO.Api.Data
         {
             Id = approval.Id;
             TaskId = approval.TaskId;
+            Comments = approval.Comments;
+        }
+
+        public string getAllComments()
+        {
+            string allComments = "";
+            foreach(var comment in Comments)
+            {
+                allComments += comment.Comment.CreationDate.ToShortDateString() + " "
+                            + comment.Comment.Creator.Name + ": "
+                            + comment.Comment.CommentText + "  ";
+            }
+            return allComments;
         }
     }
 

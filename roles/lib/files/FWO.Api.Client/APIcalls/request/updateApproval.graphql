@@ -3,7 +3,6 @@ mutation updateApproval(
   $state: Int!
   $approvalDate: timestamp
   $approver: String
-  $comment: String
   ) {
   update_request_approval_by_pk(
     pk_columns: { id: $id }
@@ -11,7 +10,6 @@ mutation updateApproval(
       state_id: $state
       approval_date: $approvalDate
       approver: $approver
-      comment: $comment
   }) {
     UpdatedId: id
   }

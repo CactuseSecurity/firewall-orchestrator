@@ -1,0 +1,80 @@
+fragment reqTaskDetails on request_task {
+  id
+  ticket_id
+  title
+  task_number
+  state_id
+  task_type
+  request_action
+  rule_action
+  rule_tracking
+  start
+  stop
+  svc_grp_id
+  nw_obj_grp_id
+  user_grp_id
+  reason
+  free_text
+  last_recert_date
+  current_handler: uiuser {
+    uiuser_username
+  }
+  recent_handler: uiuser {
+    uiuser_username
+  }
+  assigned_group
+  target_begin_date
+  target_end_date
+  device_id
+  elements: elements {
+    id
+    task_id
+    request_action
+    ip
+    port
+    ip_proto_id
+    network_object_id
+    service_id
+    field
+    user_id
+    original_nat_id
+  }
+  implementation_tasks: tasks {
+    ...implTaskDetails
+  }
+  request_approvals: approvals {
+    id
+    task_id
+    date_opened
+    approver_group
+    approval_date
+    approver
+    tenant_id
+    initial_approval
+    approval_deadline
+    state_id
+    comments: approval_comments {
+      comment: comment {
+        ...commentDetails
+      }
+    }
+  }
+  comments: reqtask_comments {
+    comment: comment {
+      ...commentDetails
+    }
+  }
+  owners: request_owners {
+    owner: owner {
+      id
+      name
+      dn
+      group_dn
+      is_default
+      tenant_id
+      recert_interval
+      next_recert_date
+      app_id_external
+    }
+  }
+}

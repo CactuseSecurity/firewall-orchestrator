@@ -28,7 +28,11 @@
                             @(States.Name[context.StateId])
                         </Template>
                     </Column>
-                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("comment"))" Field="@(x => x.Comment)" Sortable="true" Filterable="true" />
+                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("comments"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
+                        <Template>
+                            @(context.getAllComments())
+                        </Template>
+                    </Column>
                 </Table>
             </div>
         }

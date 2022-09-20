@@ -374,7 +374,6 @@ namespace FWO.Ui.Services
                     state = approval.StateId,
                     approvalDate = approval.ApprovalDate,
                     approver = approval.ApproverDn,  // todo: Dn or uiuser??
-                    comment = approval.Comment
                 };
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateApproval, Variables)).UpdatedId;
                 if(udId != approval.Id)
@@ -426,6 +425,14 @@ namespace FWO.Ui.Services
                     {
                         element.ImplTaskId = returnId;
                         element.Id = await AddImplElementToDb(element);
+                    }
+                    foreach(var comment in task.Comments)
+                    {
+                        comment.Comment.Id = await AddCommentToDb(comment.Comment);
+                        if(comment.Comment.Id != 0)
+                        {
+                            await AssignCommentToImplTaskInDb(returnId, comment.Comment.Id);
+                        }
                     }
                     await ActionHandler.DoStateChangeActions(task, ActionScopes.ImplementationTask);
                 }
@@ -623,6 +630,27 @@ namespace FWO.Ui.Services
             return returnId;
         }
 
+        public async Task AssignCommentToTicketInDb(long ticketId, long commentId)
+        {
+            try
+            {
+                var Variables = new
+                {
+                    TicketId = ticketId,
+                    commentId = commentId
+                };
+                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.addCommentToTicket, Variables)).ReturnIds;
+                if (returnIds == null)
+                {
+                    DisplayMessageInUi!(null, UserConfig.GetText("add_comment"), UserConfig.GetText("E8012"), true);
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi!(exception, UserConfig.GetText("add_comment"), "", true);
+            }
+        }
+
         public async Task AssignCommentToReqTaskInDb(long taskId, long commentId)
         {
             try
@@ -633,6 +661,48 @@ namespace FWO.Ui.Services
                     commentId = commentId
                 };
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.addCommentToReqTask, Variables)).ReturnIds;
+                if (returnIds == null)
+                {
+                    DisplayMessageInUi!(null, UserConfig.GetText("add_comment"), UserConfig.GetText("E8012"), true);
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi!(exception, UserConfig.GetText("add_comment"), "", true);
+            }
+        }
+
+        public async Task AssignCommentToImplTaskInDb(long taskId, long commentId)
+        {
+            try
+            {
+                var Variables = new
+                {
+                    taskId = taskId,
+                    commentId = commentId
+                };
+                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.addCommentToImplTask, Variables)).ReturnIds;
+                if (returnIds == null)
+                {
+                    DisplayMessageInUi!(null, UserConfig.GetText("add_comment"), UserConfig.GetText("E8012"), true);
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi!(exception, UserConfig.GetText("add_comment"), "", true);
+            }
+        }
+
+        public async Task AssignCommentToApprovalInDb(long approvalId, long commentId)
+        {
+            try
+            {
+                var Variables = new
+                {
+                    approvalId = approvalId,
+                    commentId = commentId
+                };
+                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.addCommentToApproval, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
                     DisplayMessageInUi!(null, UserConfig.GetText("add_comment"), UserConfig.GetText("E8012"), true);

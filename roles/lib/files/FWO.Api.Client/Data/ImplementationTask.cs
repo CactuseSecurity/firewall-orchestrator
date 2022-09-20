@@ -17,13 +17,18 @@ namespace FWO.Api.Data
         [JsonProperty("elements"), JsonPropertyName("elements")]
         public List<ImplementationElement> ImplElements { get; set; } = new List<ImplementationElement>();
 
+        [JsonProperty("comments"), JsonPropertyName("comments")]
+        public List<RequestCommentDataHelper> Comments { get; set; } = new List<RequestCommentDataHelper>();
+
+
         public List<ImplementationElement> RemovedElements { get; set; } = new List<ImplementationElement>();
         public long TicketId { get; set; }
+
 
         public ImplementationTask()
         { }
 
-        public ImplementationTask(RequestTask task)
+        public ImplementationTask(RequestTask task, bool copyComments = true)
         {
             Id = 0;
             ReqTaskId = task.Id;
@@ -51,6 +56,14 @@ namespace FWO.Api.Data
                 foreach(RequestElement element in task.Elements)
                 {
                     ImplElements.Add(new ImplementationElement(element));
+                }
+            }
+            if(copyComments)
+            {
+                foreach(var comm in task.Comments)
+                {
+                    comm.Comment.Scope = ActionScopes.ImplementationTask.ToString();
+                    Comments.Add(comm);
                 }
             }
         }
@@ -98,6 +111,18 @@ namespace FWO.Api.Data
                 }
             }
             return elements;
+        }
+
+        public string getAllComments()
+        {
+            string allComments = "";
+            foreach(var comment in Comments)
+            {
+                allComments += comment.Comment.CreationDate.ToShortDateString() + " "
+                            + comment.Comment.Creator.Name + ": "
+                            + comment.Comment.CommentText + "\n";
+            }
+            return allComments;
         }
     }
 }

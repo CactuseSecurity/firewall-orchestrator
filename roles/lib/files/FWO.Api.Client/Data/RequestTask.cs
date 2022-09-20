@@ -112,7 +112,7 @@ namespace FWO.Api.Data
             foreach(var comment in Comments)
             {
                 allComments += comment.Comment.CreationDate.ToShortDateString() + " "
-                            + new DistName(comment.Comment.Creator.Dn).UserName + ": "
+                            + comment.Comment.Creator.Name + ": "
                             + comment.Comment.CommentText + "\n";
             }
             return allComments;

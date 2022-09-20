@@ -136,7 +136,7 @@
 
     private void AddImplTask()
     {
-        ImplementationTask newTask = new ImplementationTask(ReqHandler.ActReqTask)
+        ImplementationTask newTask = new ImplementationTask(ReqHandler.ActReqTask, false)
         {
             TaskNumber = ReqHandler.ActReqTask.HighestImplTaskNumber() + 1,
             DeviceId = (ReqHandler.Devices.Count > 0 ? ReqHandler.Devices[0].Id : 0)

@@ -4,6 +4,9 @@ namespace FWO.Api.Client.Queries
 {
     public class RequestQueries : Queries
     {
+        public static readonly string commentDetailsFragment;
+        public static readonly string implTaskDetailsFragment;
+        public static readonly string reqTaskDetailsFragment;
         public static readonly string ticketDetailsFragment;
         public static readonly string getTickets;
         public static readonly string getTicketById;
@@ -37,13 +40,19 @@ namespace FWO.Api.Client.Queries
         public static readonly string removeStateAction;
         public static readonly string newComment;
         public static readonly string addCommentToReqTask;
+        public static readonly string addCommentToImplTask;
+        public static readonly string addCommentToTicket;
+        public static readonly string addCommentToApproval;
 
 
         static RequestQueries()
         {
             try
             {
-                ticketDetailsFragment = File.ReadAllText(QueryPath + "request/fragments/ticketDetails.graphql");
+                commentDetailsFragment = File.ReadAllText(QueryPath + "request/fragments/commentDetails.graphql");
+                implTaskDetailsFragment = commentDetailsFragment + File.ReadAllText(QueryPath + "request/fragments/implTaskDetails.graphql");
+                reqTaskDetailsFragment = implTaskDetailsFragment + File.ReadAllText(QueryPath + "request/fragments/reqTaskDetails.graphql");
+                ticketDetailsFragment = reqTaskDetailsFragment + File.ReadAllText(QueryPath + "request/fragments/ticketDetails.graphql");
                 getTickets = ticketDetailsFragment + File.ReadAllText(QueryPath + "request/getTickets.graphql");
                 getTicketById = ticketDetailsFragment + File.ReadAllText(QueryPath + "request/getTicketById.graphql");
                 newTicket = File.ReadAllText(QueryPath + "request/newTicket.graphql");
@@ -76,6 +85,9 @@ namespace FWO.Api.Client.Queries
                 removeStateAction = File.ReadAllText(QueryPath + "request/removeStateAction.graphql");
                 newComment = File.ReadAllText(QueryPath + "request/newComment.graphql");
                 addCommentToReqTask = File.ReadAllText(QueryPath + "request/addCommentToReqTask.graphql");
+                addCommentToImplTask = File.ReadAllText(QueryPath + "request/addCommentToImplTask.graphql");
+                addCommentToTicket = File.ReadAllText(QueryPath + "request/addCommentToTicket.graphql");
+                addCommentToApproval = File.ReadAllText(QueryPath + "request/addCommentToApproval.graphql");
             }
             catch (Exception exception)
             {

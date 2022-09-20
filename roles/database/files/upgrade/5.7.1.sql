@@ -111,7 +111,7 @@ create table if not exists request.comment
     ref_id bigint,
 	scope varchar,
 	creation_date Timestamp,
-	creator int,
+	creator_id int,
 	comment_text varchar
 );
 

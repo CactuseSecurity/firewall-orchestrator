@@ -1,0 +1,13 @@
+mutation addCommentToApproval(
+  $approvalId: bigint!
+  $commentId: bigint!
+  ) {
+  insert_request_approval_comment(objects: {
+    approval_id: $approvalId
+    comment_id: $commentId
+  }) {
+    returning {
+      newId: approval_id
+    }
+  }
+}

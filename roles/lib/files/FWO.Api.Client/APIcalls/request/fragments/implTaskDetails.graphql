@@ -1,0 +1,40 @@
+fragment implTaskDetails on implementation_task {
+  id
+  request_task_id
+  task_number
+  task_type
+  state_id
+  device_id
+  implementation_action
+  rule_action
+  rule_tracking
+  start
+  stop
+  svc_grp_id
+  nw_obj_grp_id
+  user_grp_id
+  current_handler: uiuser {
+    uiuser_username
+  }
+  target_begin_date
+  target_end_date
+  free_text
+  elements: elements {
+    id
+    implementation_task_id
+    implementation_action
+    ip
+    port
+    ip_proto_id
+    network_object_id
+    service_id
+    field
+    user_id
+    original_nat_id
+  }
+  comments: impltask_comments {
+    comment: comment {
+      ...commentDetails
+    }
+  }
+}

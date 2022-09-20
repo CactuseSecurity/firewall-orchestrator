@@ -22,5 +22,14 @@ namespace FWO.Api.Data
     {
         [JsonProperty("comment"), JsonPropertyName("comment")]
         public RequestComment Comment { get; set; } = new RequestComment();
+
+
+        public RequestCommentDataHelper()
+        {}
+
+        public RequestCommentDataHelper(RequestComment comment)
+        {
+            Comment = comment;
+        }
     }
 }

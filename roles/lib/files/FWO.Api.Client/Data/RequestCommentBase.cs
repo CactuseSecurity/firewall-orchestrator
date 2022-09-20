@@ -14,7 +14,7 @@ namespace FWO.Api.Data
         [JsonProperty("creation_date"), JsonPropertyName("creation_date")]
         public DateTime CreationDate { get; set; } = DateTime.Now;
 
-        [JsonProperty("creator_id"), JsonPropertyName("creator_id")]
+        [JsonProperty("creator"), JsonPropertyName("creator")]
         public UiUser Creator { get; set; } = new UiUser();
 
         [JsonProperty("comment_text"), JsonPropertyName("comment_text")]

@@ -20,14 +20,18 @@
                 <Template>
                     <div class="btn-group">
                         <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowImplTask(implTask)">@(userConfig.GetText("details"))</button>
-                        @if (ReqHandler.PlanReqTaskMode && implTask.StateId < ReqHandler.ActStateMatrix.LowestEndState)
+                        @if(!ReqHandler.StateMatrix(implTask.TaskType).PhaseActive[WorkflowPhases.planning] && ReqHandler.StateMatrix(implTask.TaskType).PhaseActive[WorkflowPhases.approval])
+                        {
+                            <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowApprovals(implTask)">@(userConfig.GetText("approvals"))</button>
+                        }
+                        @if (ReqHandler.PlanReqTaskMode && implTask.StateId < ReqHandler.StateMatrix(implTask.TaskType).LowestEndState)
                         {
                             <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => EditImplTask(implTask)">@(userConfig.GetText("edit"))</button>
                             <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteImplTask(implTask)">@(userConfig.GetText("delete"))</button>
                         }
-                        else if (Phase >= WorkflowPhases.implementation && implTask.StateId >= ReqHandler.ActStateMatrix.LowestInputState && ReqHandler.ActTicket.StateId >= ReqHandler.MasterStateMatrix.LowestInputState)
+                        else if (Phase >= WorkflowPhases.implementation && implTask.StateId >= ReqHandler.StateMatrix(implTask.TaskType).LowestInputState && ReqHandler.ActTicket.StateId >= ReqHandler.MasterStateMatrix.LowestInputState)
                         {
-                            @if (implTask.StateId < ReqHandler.ActStateMatrix.LowestStartedState)
+                            @if (implTask.StateId < ReqHandler.StateMatrix(implTask.TaskType).LowestStartedState)
                             {
                                 <AuthorizeView Roles="admin, implementer, reviewer, fw-admin">
                                     <Authorized Context="ctx">
@@ -38,7 +42,7 @@
                                     </NotAuthorized>
                                 </AuthorizeView>
                             }
-                            else if (implTask.StateId < ReqHandler.ActStateMatrix.LowestEndState)
+                            else if (implTask.StateId < ReqHandler.StateMatrix(implTask.TaskType).LowestEndState)
                             {
                                 <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await ContinueImplPhase(implTask)">@(userConfig.GetText("continue_" + Phase.ToString()))</button>
                                 <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignImplTask(implTask)">@(userConfig.GetText("assign"))</button>
@@ -93,6 +97,7 @@
 <DisplayImplementationTask Phase="Phase" ReqHandler="ReqHandler" ResetParent="Reset" StateMatrix="ReqHandler.ActStateMatrix" States="States"></DisplayImplementationTask>
 <AssignObject @bind-Display="ReqHandler.DisplayAssignMode" ResetParent="Reset" StatefulObject="ReqHandler.ActImplTask" Assign="ReqHandler.AssignImplTaskGroup" AssignBack="ReqHandler.AssignImplTaskBack" ObjectName="@ReqHandler.ActImplTask.TaskNumber.ToString()"/>
 <DeleteObject @bind-Display="ReqHandler.DisplayDeleteMode" ResetParent="Reset" Delete="ReqHandler.ConfDeleteImplTask" ObjName="@(ReqHandler.ActImplTask.TaskNumber.ToString())"/>
+<DisplayApprovals @bind-Display="ReqHandler.DisplayApprovalMode" ResetParent="Reset" Approvals="ReqHandler.ActReqTask.Approvals" States="States"/>
 
 
 @code
@@ -152,6 +157,11 @@
     private void DeleteImplTask(ImplementationTask implTask)
     {
         ReqHandler.SelectImplTaskPopUp(implTask, ObjAction.displayDelete);
+    }
+
+    private void ShowApprovals(ImplementationTask implTask)
+    {
+        ReqHandler.SelectImplTaskPopUp(implTask, ObjAction.displayApprovals);
     }
 
     private async Task AssignImplTask(ImplementationTask implTask)

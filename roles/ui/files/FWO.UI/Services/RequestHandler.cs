@@ -471,7 +471,7 @@ namespace FWO.Ui.Services
             {
                 await AddApproval();
             }
-            ActApproval = ActReqTask.Approvals.Last();  // todo: select own approvals
+            ActApproval = ActReqTask.Approvals.FirstOrDefault(x => x.StateId < ActStateMatrix.LowestEndState) ?? (ActApproval = ActReqTask.Approvals.Last());  // todo: select own approvals
         }
 
         public async Task AddApproval(string extParams = "")
@@ -608,6 +608,7 @@ namespace FWO.Ui.Services
             DisplayDeleteMode = action == ObjAction.displayDelete;
             DisplayAssignMode = action == ObjAction.displayAssign;
             DisplayCommentMode = action == ObjAction.displayComment;
+            DisplayApprovalMode = action == ObjAction.displayApprovals;
         }
 
         public void ResetImplTaskActions()
@@ -621,6 +622,7 @@ namespace FWO.Ui.Services
             DisplayDeleteMode = false;
             DisplayAssignMode = false;
             DisplayCommentMode = false;
+            DisplayApprovalMode = false;
         }
 
         public async Task StartWorkOnImplTask(ImplementationTask implTask, ObjAction action)

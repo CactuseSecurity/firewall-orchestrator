@@ -1,5 +1,5 @@
 mutation newApproval(
-  $taskId: Int!
+  $taskId: bigint!
   $state: Int!
   $approverGroup: String
   $tenant: Int

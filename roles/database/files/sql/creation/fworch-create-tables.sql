@@ -1144,7 +1144,7 @@ create table if not exists rule_owner
     rule_metadata_id bigint
 );
 
-create table if not exists implementation.element
+create table if not exists request.impl_element
 (
     id BIGSERIAL PRIMARY KEY,
     implementation_action action_enum NOT NULL default 'create',

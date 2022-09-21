@@ -11,12 +11,12 @@
           "tables": [
             {
               "table": {
-                "schema": "implementation",
-                "name": "element"
+                "schema": "request",
+                "name": "impl_element"
               },
               "object_relationships": [
                 {
-                  "name": "element",
+                  "name": "impl_element",
                   "using": {
                     "foreign_key_constraint_on": "original_nat_id"
                   }
@@ -59,8 +59,8 @@
                     "foreign_key_constraint_on": {
                       "column": "original_nat_id",
                       "table": {
-                        "schema": "implementation",
-                        "name": "element"
+                        "schema": "request",
+                        "name": "impl_element"
                       }
                     }
                   }
@@ -83,6 +83,12 @@
                   "name": "object",
                   "using": {
                     "foreign_key_constraint_on": "nw_obj_grp_id"
+                  }
+                },
+                {
+                  "name": "req_task",
+                  "using": {
+                    "foreign_key_constraint_on": "request_task_id"
                   }
                 },
                 {
@@ -110,12 +116,6 @@
                   }
                 },
                 {
-                  "name": "req_task",
-                  "using": {
-                    "foreign_key_constraint_on": "request_task_id"
-                  }
-                },
-                {
                   "name": "uiuser",
                   "using": {
                     "foreign_key_constraint_on": "current_handler"
@@ -135,8 +135,8 @@
                     "foreign_key_constraint_on": {
                       "column": "implementation_task_id",
                       "table": {
-                        "schema": "implementation",
-                        "name": "element"
+                        "schema": "request",
+                        "name": "impl_element"
                       }
                     }
                   }
@@ -1356,6 +1356,18 @@
                       "table": {
                         "schema": "public",
                         "name": "object"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "req_tasks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "device_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "req_task"
                       }
                     }
                   }
@@ -4443,8 +4455,8 @@
                     "foreign_key_constraint_on": {
                       "column": "network_object_id",
                       "table": {
-                        "schema": "implementation",
-                        "name": "element"
+                        "schema": "request",
+                        "name": "impl_element"
                       }
                     }
                   }
@@ -4508,6 +4520,30 @@
                       "table": {
                         "schema": "public",
                         "name": "objgrp"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "req_elements",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "network_object_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "req_element"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "req_tasks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "nw_obj_grp_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "req_task"
                       }
                     }
                   }
@@ -8583,8 +8619,32 @@
                     "foreign_key_constraint_on": {
                       "column": "service_id",
                       "table": {
-                        "schema": "implementation",
-                        "name": "element"
+                        "schema": "request",
+                        "name": "impl_element"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "req_elements",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "service_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "req_element"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "req_tasks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "svc_grp_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "req_task"
                       }
                     }
                   }
@@ -8901,6 +8961,18 @@
                 "name": "stm_action"
               },
               "array_relationships": [
+                {
+                  "name": "req_tasks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "rule_action",
+                      "table": {
+                        "schema": "request",
+                        "name": "req_task"
+                      }
+                    }
+                  }
+                },
                 {
                   "name": "rules",
                   "using": {
@@ -9406,8 +9478,8 @@
                     "foreign_key_constraint_on": {
                       "column": "ip_proto_id",
                       "table": {
-                        "schema": "implementation",
-                        "name": "element"
+                        "schema": "request",
+                        "name": "impl_element"
                       }
                     }
                   }
@@ -9420,6 +9492,18 @@
                       "table": {
                         "schema": "public",
                         "name": "owner_network"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "req_elements",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "ip_proto_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "req_element"
                       }
                     }
                   }
@@ -9687,6 +9771,18 @@
                 "name": "stm_track"
               },
               "array_relationships": [
+                {
+                  "name": "req_tasks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "rule_tracking",
+                      "table": {
+                        "schema": "request",
+                        "name": "req_task"
+                      }
+                    }
+                  }
+                },
                 {
                   "name": "rules",
                   "using": {
@@ -10782,6 +10878,18 @@
                   }
                 },
                 {
+                  "name": "comments",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "creator_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "comment"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "configs",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -10866,6 +10974,18 @@
                   }
                 },
                 {
+                  "name": "req_tasks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "current_handler",
+                      "table": {
+                        "schema": "request",
+                        "name": "req_task"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "ruleMetadataByRuleOwner",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -10933,6 +11053,18 @@
                       "table": {
                         "schema": "request",
                         "name": "req_task"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "tasksByRecentHandler1",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "recent_handler",
+                      "table": {
+                        "schema": "implementation",
+                        "name": "task"
                       }
                     }
                   }
@@ -11571,8 +11703,32 @@
                     "foreign_key_constraint_on": {
                       "column": "user_id",
                       "table": {
-                        "schema": "implementation",
-                        "name": "element"
+                        "schema": "request",
+                        "name": "impl_element"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "req_elements",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "user_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "req_element"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "req_tasks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "user_grp_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "req_task"
                       }
                     }
                   }
@@ -11609,6 +11765,18 @@
                       "table": {
                         "schema": "public",
                         "name": "rule_user_resolved"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "tasks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "user_grp_id",
+                      "table": {
+                        "schema": "implementation",
+                        "name": "task"
                       }
                     }
                   }
@@ -12390,15 +12558,15 @@
               },
               "object_relationships": [
                 {
-                  "name": "state",
-                  "using": {
-                    "foreign_key_constraint_on": "state_id"
-                  }
-                },
-                {
                   "name": "req_task",
                   "using": {
                     "foreign_key_constraint_on": "task_id"
+                  }
+                },
+                {
+                  "name": "state",
+                  "using": {
+                    "foreign_key_constraint_on": "state_id"
                   }
                 },
                 {
@@ -12522,64 +12690,6 @@
             {
               "table": {
                 "schema": "request",
-                "name": "req_element"
-              },
-              "object_relationships": [
-                {
-                  "name": "req_element",
-                  "using": {
-                    "foreign_key_constraint_on": "original_nat_id"
-                  }
-                },
-                {
-                  "name": "object",
-                  "using": {
-                    "foreign_key_constraint_on": "network_object_id"
-                  }
-                },
-                {
-                  "name": "service",
-                  "using": {
-                    "foreign_key_constraint_on": "service_id"
-                  }
-                },
-                {
-                  "name": "stm_ip_proto",
-                  "using": {
-                    "foreign_key_constraint_on": "ip_proto_id"
-                  }
-                },
-                {
-                  "name": "req_task",
-                  "using": {
-                    "foreign_key_constraint_on": "task_id"
-                  }
-                },
-                {
-                  "name": "usr",
-                  "using": {
-                    "foreign_key_constraint_on": "user_id"
-                  }
-                }
-              ],
-              "array_relationships": [
-                {
-                  "name": "elements",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "original_nat_id",
-                      "table": {
-                        "schema": "request",
-                        "name": "req_element"
-                      }
-                    }
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
-                "schema": "request",
                 "name": "impltask_comment"
               },
               "object_relationships": [
@@ -12600,13 +12710,19 @@
             {
               "table": {
                 "schema": "request",
-                "name": "reqtask_comment"
+                "name": "req_element"
               },
               "object_relationships": [
                 {
-                  "name": "comment",
+                  "name": "object",
                   "using": {
-                    "foreign_key_constraint_on": "comment_id"
+                    "foreign_key_constraint_on": "network_object_id"
+                  }
+                },
+                {
+                  "name": "req_element",
+                  "using": {
+                    "foreign_key_constraint_on": "original_nat_id"
                   }
                 },
                 {
@@ -12614,81 +12730,37 @@
                   "using": {
                     "foreign_key_constraint_on": "task_id"
                   }
+                },
+                {
+                  "name": "service",
+                  "using": {
+                    "foreign_key_constraint_on": "service_id"
+                  }
+                },
+                {
+                  "name": "stm_ip_proto",
+                  "using": {
+                    "foreign_key_constraint_on": "ip_proto_id"
+                  }
+                },
+                {
+                  "name": "usr",
+                  "using": {
+                    "foreign_key_constraint_on": "user_id"
+                  }
                 }
-              ]
-            },
-            {
-              "table": {
-                "schema": "request",
-                "name": "state"
-              },
+              ],
               "array_relationships": [
                 {
-                  "name": "approvals",
+                  "name": "elements",
                   "using": {
                     "foreign_key_constraint_on": {
-                      "column": "state_id",
+                      "column": "original_nat_id",
                       "table": {
                         "schema": "request",
-                        "name": "approval"
+                        "name": "req_element"
                       }
                     }
-                  }
-                },
-                {
-                  "name": "state_actions",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "state_id",
-                      "table": {
-                        "schema": "request",
-                        "name": "state_action"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "tasks",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "state_id",
-                      "table": {
-                        "schema": "request",
-                        "name": "req_task"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "tickets",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "state_id",
-                      "table": {
-                        "schema": "request",
-                        "name": "ticket"
-                      }
-                    }
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
-                "schema": "request",
-                "name": "state_action"
-              },
-              "object_relationships": [
-                {
-                  "name": "action",
-                  "using": {
-                    "foreign_key_constraint_on": "action_id"
-                  }
-                },
-                {
-                  "name": "state",
-                  "using": {
-                    "foreign_key_constraint_on": "state_id"
                   }
                 }
               ]
@@ -12819,6 +12891,114 @@
                         "name": "task"
                       }
                     }
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "schema": "request",
+                "name": "reqtask_comment"
+              },
+              "object_relationships": [
+                {
+                  "name": "comment",
+                  "using": {
+                    "foreign_key_constraint_on": "comment_id"
+                  }
+                },
+                {
+                  "name": "req_task",
+                  "using": {
+                    "foreign_key_constraint_on": "task_id"
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "schema": "request",
+                "name": "state"
+              },
+              "array_relationships": [
+                {
+                  "name": "approvals",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "state_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "approval"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "state_actions",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "state_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "state_action"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "tasks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "state_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "req_task"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "tasksByStateId",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "state_id",
+                      "table": {
+                        "schema": "implementation",
+                        "name": "task"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "tickets",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "state_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "ticket"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "schema": "request",
+                "name": "state_action"
+              },
+              "object_relationships": [
+                {
+                  "name": "action",
+                  "using": {
+                    "foreign_key_constraint_on": "action_id"
+                  }
+                },
+                {
+                  "name": "state",
+                  "using": {
+                    "foreign_key_constraint_on": "state_id"
                   }
                 }
               ]

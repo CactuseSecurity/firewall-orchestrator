@@ -26,7 +26,7 @@ fragment reqTaskDetails on request_req_task {
   target_begin_date
   target_end_date
   device_id
-  elements: elements {
+  elements: req_elements {
     id
     task_id
     request_action

@@ -11,7 +11,7 @@ mutation updateImplementationElement(
   $user_id: bigint
   $original_nat_id: Int
   ) {
-  update_implementation_element_by_pk(
+  update_request_impl_element_by_pk(
     pk_columns: { id: $id }
     _set: {
       implementation_action: $implementationAction

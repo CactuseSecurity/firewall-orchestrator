@@ -963,7 +963,6 @@ Create table "config"
 
 -- create schema
 create schema if not exists request;
-create schema if not exists implementation;
 
 CREATE TYPE rule_field_enum AS ENUM ('source', 'destination', 'service');
 CREATE TYPE action_enum AS ENUM ('create', 'delete', 'modify');
@@ -1159,7 +1158,7 @@ create table if not exists request.impl_element
     original_nat_id int
 );
 
-create table if not exists implementation.task
+create table if not exists request.impl_task
 (
     id BIGSERIAL PRIMARY KEY,
 	title VARCHAR,

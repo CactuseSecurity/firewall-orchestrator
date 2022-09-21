@@ -1,5 +1,5 @@
 mutation deleteImplementationTask ($id: bigint!) {
-  delete_implementation_task_by_pk (
+  delete_request_impl_task_by_pk (
     id: $id
   ) {
     DeletedId: id

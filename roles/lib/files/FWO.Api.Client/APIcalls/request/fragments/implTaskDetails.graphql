@@ -1,4 +1,4 @@
-fragment implTaskDetails on implementation_task {
+fragment implTaskDetails on request_impl_task {
   id
   request_task_id
   task_number
@@ -19,7 +19,7 @@ fragment implTaskDetails on implementation_task {
   target_begin_date
   target_end_date
   free_text
-  elements: elements {
+  elements: impl_elements {
     id
     implementation_task_id
     implementation_action

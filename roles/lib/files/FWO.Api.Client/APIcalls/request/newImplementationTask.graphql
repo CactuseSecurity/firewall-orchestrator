@@ -13,7 +13,7 @@ mutation newImplementationTask(
   $validTo: timestamp
   $freeText: String
   ) {
-  insert_implementation_task(objects: {
+  insert_request_impl_task(objects: {
     title: $title
     request_task_id: $reqTaskId
     task_number: $implIaskNumber

@@ -39,7 +39,7 @@ fragment reqTaskDetails on request_req_task {
     user_id
     original_nat_id
   }
-  implementation_tasks: tasks {
+  implementation_tasks: impl_tasks {
     ...implTaskDetails
   }
   request_approvals: approvals {

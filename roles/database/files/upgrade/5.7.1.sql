@@ -52,7 +52,7 @@ create table if not exists request.req_task
     device_id int
 );
 
-create table if not exists request.element 
+create table if not exists request.req_element 
 (
     id BIGSERIAL PRIMARY KEY,
     request_action action_enum NOT NULL default 'create',
@@ -255,13 +255,13 @@ ALTER TABLE request.req_task DROP CONSTRAINT IF EXISTS request_req_task_usergrp_
 ALTER TABLE request.req_task DROP CONSTRAINT IF EXISTS request_req_task_current_handler_foreign_key;
 ALTER TABLE request.req_task DROP CONSTRAINT IF EXISTS request_req_task_recent_handler_foreign_key;
 ALTER TABLE request.req_task DROP CONSTRAINT IF EXISTS request_req_task_device_foreign_key;
---- request.element ---
-ALTER TABLE request.element DROP CONSTRAINT IF EXISTS request_element_request_req_task_foreign_key;
-ALTER TABLE request.element DROP CONSTRAINT IF EXISTS request_element_proto_foreign_key;
-ALTER TABLE request.element DROP CONSTRAINT IF EXISTS request_element_service_foreign_key;
-ALTER TABLE request.element DROP CONSTRAINT IF EXISTS request_element_object_foreign_key;
-ALTER TABLE request.element DROP CONSTRAINT IF EXISTS request_element_request_element_foreign_key;
-ALTER TABLE request.element DROP CONSTRAINT IF EXISTS request_element_usr_foreign_key;
+--- request.req_element ---
+ALTER TABLE request.req_element DROP CONSTRAINT IF EXISTS request_req_element_request_req_task_foreign_key;
+ALTER TABLE request.req_element DROP CONSTRAINT IF EXISTS request_req_element_proto_foreign_key;
+ALTER TABLE request.req_element DROP CONSTRAINT IF EXISTS request_req_element_service_foreign_key;
+ALTER TABLE request.req_element DROP CONSTRAINT IF EXISTS request_req_element_object_foreign_key;
+ALTER TABLE request.req_element DROP CONSTRAINT IF EXISTS request_req_element_request_req_element_foreign_key;
+ALTER TABLE request.req_element DROP CONSTRAINT IF EXISTS request_req_element_usr_foreign_key;
 --- request.approval ---
 ALTER TABLE request.approval DROP CONSTRAINT IF EXISTS request_approval_request_req_task_foreign_key;
 ALTER TABLE request.approval DROP CONSTRAINT IF EXISTS request_approval_tenant_foreign_key;
@@ -334,13 +334,13 @@ ALTER TABLE request.req_task ADD CONSTRAINT request_req_task_usergrp_foreign_key
 ALTER TABLE request.req_task ADD CONSTRAINT request_req_task_current_handler_foreign_key FOREIGN KEY (current_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.req_task ADD CONSTRAINT request_req_task_recent_handler_foreign_key FOREIGN KEY (recent_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.req_task ADD CONSTRAINT request_req_task_device_foreign_key FOREIGN KEY (device_id) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;
---- request.element ---
-ALTER TABLE request.element ADD CONSTRAINT request_element_request_req_task_foreign_key FOREIGN KEY (task_id) REFERENCES request.req_task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.element ADD CONSTRAINT request_element_proto_foreign_key FOREIGN KEY (ip_proto_id) REFERENCES stm_ip_proto(ip_proto_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.element ADD CONSTRAINT request_element_service_foreign_key FOREIGN KEY (service_id) REFERENCES service(svc_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.element ADD CONSTRAINT request_element_object_foreign_key FOREIGN KEY (network_object_id) REFERENCES object(obj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.element ADD CONSTRAINT request_element_request_element_foreign_key FOREIGN KEY (original_nat_id) REFERENCES request.element(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.element ADD CONSTRAINT request_element_usr_foreign_key FOREIGN KEY (user_id) REFERENCES usr(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+--- request.req_element ---
+ALTER TABLE request.req_element ADD CONSTRAINT request_req_element_request_req_task_foreign_key FOREIGN KEY (task_id) REFERENCES request.req_task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.req_element ADD CONSTRAINT request_req_element_proto_foreign_key FOREIGN KEY (ip_proto_id) REFERENCES stm_ip_proto(ip_proto_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.req_element ADD CONSTRAINT request_req_element_service_foreign_key FOREIGN KEY (service_id) REFERENCES service(svc_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.req_element ADD CONSTRAINT request_req_element_object_foreign_key FOREIGN KEY (network_object_id) REFERENCES object(obj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.req_element ADD CONSTRAINT request_req_element_request_req_element_foreign_key FOREIGN KEY (original_nat_id) REFERENCES request.req_element(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.req_element ADD CONSTRAINT request_req_element_usr_foreign_key FOREIGN KEY (user_id) REFERENCES usr(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- request.approval ---
 ALTER TABLE request.approval ADD CONSTRAINT request_approval_request_req_task_foreign_key FOREIGN KEY (task_id) REFERENCES request.req_task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.approval ADD CONSTRAINT request_approval_tenant_foreign_key FOREIGN KEY (tenant_id) REFERENCES tenant(tenant_id) ON UPDATE RESTRICT ON DELETE CASCADE;
@@ -406,8 +406,8 @@ ALTER TABLE implementation.task ADD CONSTRAINT implementation_task_recent_handle
 
 --- owner_network ---
 ALTER TABLE owner_network DROP CONSTRAINT IF EXISTS port_in_valid_range;
---- request.element ---
-ALTER TABLE request.element DROP CONSTRAINT IF EXISTS port_in_valid_range;
+--- request.req_element ---
+ALTER TABLE request.req_element DROP CONSTRAINT IF EXISTS port_in_valid_range;
 --- implementation.element ---
 ALTER TABLE implementation.element DROP CONSTRAINT IF EXISTS port_in_valid_range;
 
@@ -415,8 +415,8 @@ ALTER TABLE implementation.element DROP CONSTRAINT IF EXISTS port_in_valid_range
 
 --- owner_network ---
 ALTER TABLE owner_network ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
---- request.element ---
-ALTER TABLE request.element ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
+--- request.req_element ---
+ALTER TABLE request.req_element ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
 --- implementation.element ---
 ALTER TABLE implementation.element ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
 

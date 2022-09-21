@@ -10,7 +10,7 @@ mutation newRequestElement(
   $user_id: bigint
   $original_nat_id: Int
   ) {
-  insert_request_element(objects: {
+  insert_request_req_element(objects: {
     request_action: $requestAction
     task_id: $taskId
     ip: $ip

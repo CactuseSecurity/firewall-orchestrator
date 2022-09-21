@@ -110,7 +110,7 @@
                   }
                 },
                 {
-                  "name": "task",
+                  "name": "req_task",
                   "using": {
                     "foreign_key_constraint_on": "request_task_id"
                   }
@@ -6992,7 +6992,7 @@
                   }
                 },
                 {
-                  "name": "task",
+                  "name": "req_task",
                   "using": {
                     "foreign_key_constraint_on": "request_task_id"
                   }
@@ -10932,7 +10932,7 @@
                       "column": "recent_handler",
                       "table": {
                         "schema": "request",
-                        "name": "task"
+                        "name": "req_task"
                       }
                     }
                   }
@@ -12396,7 +12396,7 @@
                   }
                 },
                 {
-                  "name": "task",
+                  "name": "req_task",
                   "using": {
                     "foreign_key_constraint_on": "task_id"
                   }
@@ -12522,11 +12522,11 @@
             {
               "table": {
                 "schema": "request",
-                "name": "element"
+                "name": "req_element"
               },
               "object_relationships": [
                 {
-                  "name": "element",
+                  "name": "req_element",
                   "using": {
                     "foreign_key_constraint_on": "original_nat_id"
                   }
@@ -12550,7 +12550,7 @@
                   }
                 },
                 {
-                  "name": "task",
+                  "name": "req_task",
                   "using": {
                     "foreign_key_constraint_on": "task_id"
                   }
@@ -12570,7 +12570,7 @@
                       "column": "original_nat_id",
                       "table": {
                         "schema": "request",
-                        "name": "element"
+                        "name": "req_element"
                       }
                     }
                   }
@@ -12590,7 +12590,7 @@
                   }
                 },
                 {
-                  "name": "task",
+                  "name": "req_task",
                   "using": {
                     "foreign_key_constraint_on": "task_id"
                   }
@@ -12610,7 +12610,7 @@
                   }
                 },
                 {
-                  "name": "task",
+                  "name": "req_task",
                   "using": {
                     "foreign_key_constraint_on": "task_id"
                   }
@@ -12654,7 +12654,7 @@
                       "column": "state_id",
                       "table": {
                         "schema": "request",
-                        "name": "task"
+                        "name": "req_task"
                       }
                     }
                   }
@@ -12696,7 +12696,7 @@
             {
               "table": {
                 "schema": "request",
-                "name": "task"
+                "name": "req_task"
               },
               "object_relationships": [
                 {
@@ -12780,7 +12780,7 @@
                       "column": "task_id",
                       "table": {
                         "schema": "request",
-                        "name": "element"
+                        "name": "req_element"
                       }
                     }
                   }
@@ -12868,7 +12868,7 @@
                       "column": "ticket_id",
                       "table": {
                         "schema": "request",
-                        "name": "task"
+                        "name": "req_task"
                       }
                     }
                   }

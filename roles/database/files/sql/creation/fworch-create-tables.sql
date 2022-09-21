@@ -996,7 +996,7 @@ create table if not exists request.req_task
 	device_id int
 );
 
-create table if not exists request.element 
+create table if not exists request.req_element 
 (
     id BIGSERIAL PRIMARY KEY,
     request_action action_enum NOT NULL default 'create',

@@ -30,7 +30,7 @@ namespace FWO.Api.Data
         public string? AssignedGroup { get; set; }
 
 
-         // need private declarations, else we get problems with request_task_arr_rel_insert_input in newTicket
+         // need private declarations, else we get problems with request_req_task_arr_rel_insert_input in newTicket
         private int stateId;
         private int oldStateId;
         private bool stateChanged = false;

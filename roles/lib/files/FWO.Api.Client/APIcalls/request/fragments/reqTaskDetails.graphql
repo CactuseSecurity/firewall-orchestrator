@@ -1,4 +1,4 @@
-fragment reqTaskDetails on request_task {
+fragment reqTaskDetails on request_req_task {
   id
   ticket_id
   title

@@ -969,7 +969,7 @@ CREATE TYPE rule_field_enum AS ENUM ('source', 'destination', 'service');
 CREATE TYPE action_enum AS ENUM ('create', 'delete', 'modify');
 
 -- create tables
-create table if not exists request.task 
+create table if not exists request.req_task 
 (
     id BIGSERIAL PRIMARY KEY,
     title VARCHAR,

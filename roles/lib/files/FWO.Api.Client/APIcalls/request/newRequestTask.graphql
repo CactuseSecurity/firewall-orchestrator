@@ -12,7 +12,7 @@ mutation newRequestTask(
   $reason: String
   $freeText: String
   ) {
-  insert_request_task(objects: {
+  insert_request_req_task(objects: {
     title: $title
     ticket_id: $ticketId
     task_number: $taskNumber

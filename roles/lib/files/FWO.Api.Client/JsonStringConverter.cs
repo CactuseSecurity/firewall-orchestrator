@@ -29,6 +29,7 @@ namespace FWO.Api.Client
                 return base.ConvertFrom(context, culture, value);
             }
         }
+
         public override object? ConvertTo(ITypeDescriptorContext? context, CultureInfo? culture, object? value, Type destinationType)
         {
             if (destinationType == null || destinationType == typeof(string))

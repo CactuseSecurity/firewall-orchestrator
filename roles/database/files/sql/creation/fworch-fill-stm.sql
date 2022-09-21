@@ -218,6 +218,8 @@ insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufac
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt) VALUES (12,'FortiManager','5ff','Fortinet','',true);
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt) VALUES (13,'Check Point','MDS R8x','Check Point','',true);
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt) VALUES (14,'Cisco Firepower Management Center','7ff','Cisco','',true);
+insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt) VALUES (15,'Cisco Firepower Domain','7ff','Cisco','',false);
+insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt) VALUES (16,'Cisco Firepower Gateway','7ff','Cisco','',false);
 
 
 update stm_dev_typ set dev_typ_predef_svc=

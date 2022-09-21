@@ -45,7 +45,8 @@ namespace FWO.Api.Data
             // Supermgmt -> Gateway
             { 12, 10},  // FortiManager 5ff-> FortiGate 5ff
             { 13, 9 },   // Check Point MDS R8x-> Check Point R8x (?)
-            { 9, 9 }   // Check Point R8x Mgr-> Check Point R8x Mgr
+            { 9, 9 },   // Check Point R8x Mgr-> Check Point R8x Mgr
+            { 14, 16}   // Cisco Firepower
         };
 
         public static List<int> CheckPointManagers = new List<int>
@@ -112,6 +113,11 @@ namespace FWO.Api.Data
         public int GetGatewayTypeId()
         {
             return SupermanagerGatewayMap[Id];
+        }
+
+        public override string ToString()
+        {
+            return JsonConvert.SerializeObject(this);
         }
     }
 }

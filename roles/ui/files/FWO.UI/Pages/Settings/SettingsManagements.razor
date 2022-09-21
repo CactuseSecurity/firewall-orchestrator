@@ -104,10 +104,10 @@
                 <div class="form-group row">
                     <label for="managementDevType" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("device_type"))*:</label>
                     <div class="col-sm-8">
-                        <select id="managementDevType" class="form-control form-control-sm" @bind="actManagement.DeviceType.Id">
+                        <select id="managementDevType" class="form-control form-control-sm" @bind="actManagement.DeviceType">
                             @foreach (DeviceType devType in deviceTypes)
                             {
-                                <option value="@devType.Id">@(devType.NameVersion())</option>
+                                <option value="@devType">@(devType.NameVersion())</option>
                             }
                         </select>
                     </div>

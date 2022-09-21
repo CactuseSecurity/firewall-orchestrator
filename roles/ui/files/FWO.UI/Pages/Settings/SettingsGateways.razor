@@ -90,11 +90,10 @@
                             @{
                                 IEnumerable<DeviceType> matchingDeviceTypes = deviceTypes.Where(x => x.Manufacturer == deviceTypes.Find(
                                     y => y.Id == managements.Find(z => z.Id == actDevice.Management.Id)?.DeviceType.Id)?.Manufacturer);
-                                actDevice.DeviceType = matchingDeviceTypes.FirstOrDefault();
                                 
                                 @foreach (DeviceType devType in matchingDeviceTypes)
                                 {
-                                    <option value="@devType.Id">@(devType.NameVersion())</option>
+                                    <option value="@devType">@(devType.NameVersion())</option>
                                 }
                             }
                         </select>
@@ -109,8 +108,7 @@
                         </div>
                     </div>
                 }
-                else if(actDevice.DeviceType.Manufacturer == "Check Point" ||
-                        actDevice.DeviceType.Manufacturer == "Fortinet")
+                else if(actDevice.DeviceType.Manufacturer == "Check Point" || actDevice.DeviceType.Manufacturer == "Fortinet" || actDevice.DeviceType.Manufacturer == "Cisco")
                 {
                     <div class="form-group row">
                         <label for="deviceLocalRulebase" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("local_package"))*:</label>
@@ -124,16 +122,15 @@
                             <input id="deviceGlobalRulebase" type="text" class="form-control form-control-sm" @bind="actDevice.GlobalRulebase" />
                         </div>
                     </div>
-
-                    if (actDevice.DeviceType.Manufacturer == "Check Point")
-                    {
-                        <div class="form-group row">
-                            <label for="devicePackage" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("package")):</label>
-                            <div class="col-sm-8">
-                                <input id="devicePackage" type="text" class="form-control form-control-sm" @bind="actDevice.Package" />
-                            </div>
+                }
+                @if (actDevice.DeviceType.Manufacturer == "Check Point")
+                {
+                    <div class="form-group row">
+                        <label for="devicePackage" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("package")):</label>
+                        <div class="col-sm-8">
+                            <input id="devicePackage" type="text" class="form-control form-control-sm" @bind="actDevice.Package" />
                         </div>
-                    }
+                    </div>
                 }
 
                 <div class="form-check form-check-inline">

@@ -18,17 +18,13 @@ def api_call(url, params = {}, headers = {}, json_payload = {}, auth_token = '',
         request_headers[header_key] = headers[header_key]
     if auth_token != '':
         request_headers["X-auth-access-token"] = auth_token
-    # if command != '':
-    #     for p in json_payload['params']:
-    #         p.update({"url": command})
-    #json_payload.update({"method": method})
 
     if method == "post":
         response = requests.post(url, params=params, data=json.dumps(json_payload), headers=request_headers,
-                          verify=fwo_globals.verify_certs, proxies=fwo_globals.proxy)
+                          verify=fwo_globals.verify_certs)
     elif method == "get":
         response = requests.get(url, params=params, data=json.dumps(json_payload), headers=request_headers,
-                         verify=fwo_globals.verify_certs, proxies=fwo_globals.proxy)
+                         verify=fwo_globals.verify_certs)
     if response is None:
         if 'pass' in json.dumps(json_payload):
             exception_text = "error while sending api_call containing credential information to url '" + \
@@ -39,21 +35,6 @@ def api_call(url, params = {}, headers = {}, json_payload = {}, auth_token = '',
         raise Exception(exception_text)
     if (len(response.content) > 0):     
         body_json = response.json()
-        # if 'items' not in body_json or len(body_json['items']) < 1:
-        #     raise Exception("error while sending api_call '" + str(url))
-        #     if 'pass' in json.dumps(json_payload):
-        #         raise Exception(
-        #             "error while sending api_call containing credential information to url '" + str(url))
-        #     else:
-        #         if 'status' in body_json['result'][0]:
-        #             raise Exception("error while sending api_call to url '" + str(url) + "' with payload '" +
-        #                             json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2) + ', result=' + json.dumps(response.json()['result'][0]['status'], indent=2))
-        #         else:
-        #             raise Exception("error while sending api_call to url '" + str(url) + "' with payload '" +
-        #                             json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2) + ', result=' + json.dumps(response.json()['result'][0], indent=2))
-        # if 'status' not in body_json['result'][0] or 'code' not in body_json['result'][0]['status'] or body_json['result'][0]['status']['code'] != 0:
-        #     # trying to ignore empty results as valid
-        #     pass  # logger.warning('received empty result')
     else:
         body_json = {}
 
@@ -84,6 +65,7 @@ def login(user, password, api_host, api_port):
         logger.debug("Login successful. Received auth token: " + headers["X-auth-access-token"])
     return headers.get("X-auth-access-token"), headers.get("DOMAINS")
 
+# TODO Is there an logout?
 def logout(v_url, sid, method='exec'):
     return
     # logger = getFwoLogger()

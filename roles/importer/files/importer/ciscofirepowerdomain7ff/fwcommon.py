@@ -1,17 +1,14 @@
 import sys
 from common import importer_base_dir
-sys.path.append(importer_base_dir + '/ciscofirepowermanagementcenter7ff')
+sys.path.append(importer_base_dir + '/ciscofirepowerdomain7ff')
 import cifp_service
 import cifp_user
 import cifp_zone
-import traceback
 import cifp_rule
 import cifp_network
 import cifp_getter
 import json
-from curses import raw
 from fwo_log import getFwoLogger
-from cifp_gw_networking import getInterfacesAndRouting, normalize_network_data
 
 nw_obj_types = ['networks', 'hosts', 'ranges',
                 'securityzones', 'fqdns', 'networkgroups']
@@ -42,92 +39,61 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
         parsing_config_only = True
 
     if not parsing_config_only: # no native config was passed in, so getting it from Cisco Management
-        ### TODO DEBUG ### - UNCOMMENT
-        # cisco_api_url = 'https://' + \
-        #     mgm_details['hostname'] + ':' + \
-        #     str(mgm_details['port']) + '/api'
-        # sessionId, domains = cifp_getter.login(mgm_details['user'], mgm_details['secret'],
-        #                         mgm_details['hostname'], mgm_details['port'])
-        # domain = mgm_details["configPath"]
-        # if sessionId == None or sessionId == "":
-        #     logger.ERROR(
-        #         'Did not succeed in logging in to FortiManager API, no sid returned.')
-        #     return 1
-        # if domain == None or domain == "":
-        #     logger.ERROR(
-        #         'Configured domain is null or empty.')
-        #     return 1
-        # scopes = getScopes(domain, json.loads(domains))
-        # if len(scopes) == 0:
-        #     logger.ERROR(
-        #         "Domain \"" + domain + "\" could not be found. \"" + domain + "\" does not appear to be a domain name or a domain UID.")
-        #     return 1
-        ### TODO DEBUG ### - UNCOMMENT
+        cisco_api_url = 'https://' + \
+            mgm_details['hostname'] + ':' + \
+            str(mgm_details['port']) + '/api'
+        sessionId, domains = cifp_getter.login(mgm_details["import_credential"]['user'], mgm_details["import_credential"]['secret'],
+                                mgm_details['hostname'], mgm_details['port'])
+        domain = mgm_details["configPath"]
+        if sessionId == None or sessionId == "":
+            logger.ERROR(
+                'Did not succeed in logging in to FortiManager API, no sid returned.')
+            return 1
+        if domain == None or domain == "":
+            logger.ERROR(
+                'Configured domain is null or empty.')
+            return 1
+        scopes = getScopes(domain, json.loads(domains))
+        if len(scopes) == 0:
+            logger.ERROR(
+                "Domain \"" + domain + "\" could not be found. \"" + domain + "\" does not appear to be a domain name or a domain UID.")
+            return 1
 
-        ### TODO DEBUG ###
-        # domains = [{"uuid": "14c7d168-2a8a-16f6-4fec-000000000000"},{"uuid": "f200132d-2789-79ca-7c2b-000000000001"}]
-        # domains = getAllAccessRules(sessionId, cisco_api_url, domains)
-        # with open('access_rules.json','w') as file:
-        #     file.write(json.dumps(domains, indent=4, sort_keys=True))
+        getDevices(sessionId, cisco_api_url, full_config, limit, scopes, mgm_details["devices"])
+        getObjects(sessionId, cisco_api_url, full_config, limit, scopes)
 
-        # with open('access_rules.json','r') as file:
-        #     domains = json.loads(file.read())
+        for device in full_config["devices"]:
+            cifp_rule.getAccessPolicy(sessionId, cisco_api_url, full_config, device, limit)
+            ##cifp_rule.getNatPolicy(sessionId, cisco_api_url, full_config, domain, device, limit) TODO
 
-        # for domain in domains:
-        #     domain["rules"] = []
-        #     for access_policy in domain["access_policies"]:
-        #         domain["rules"].extend(access_policy["rules"])
+        try:  # logout
+            cifp_getter.logout(cisco_api_url, sessionId)
+        except:
+            logger.warning(
+                "logout exception probably due to timeout - irrelevant, so ignoring it")
 
-        # with open('access_rules_filtered.json','w') as file:
-        #     file.write(json.dumps(rules, indent=4, sort_keys=True))
-        ### TODO: DEBUG ###
+    # now we normalize relevant parts of the raw config and write the results to config2import dict
+    # currently reading zone from objects for backward compat with FortiManager 6.x
+    # cifp_zone.normalize_zones(full_config, config2import, current_import_id)
 
-        # #getDevices(sessionId, cisco_api_url, full_config, limit, scopes, mgm_details["devices"]) # TODO DEBUG
-        # scopes = ["14c7d168-2a8a-16f6-4fec-000000000000", "f200132d-2789-79ca-7c2b-000000000001"] # TODO DEBUG
-        # #getObjects(sessionId, cisco_api_url, full_config, limit, scopes) # TODO DEBUG
-        
-        # full_config["devices"][0]["rules"] = domains[0]["rules"] # TODO DEBUG
-        # full_config["devices"][1]["rules"] = domains[1]["rules"] # TODO DEBUG
+    # write normalized networking data to config2import
+    # this is currently not written to the database but only used for natting decisions
+    # later we will probably store the networking info in the database as well as a basis
+    # for path analysis
 
-        # for device in full_config["devices"]:
-        #     cifp_rule.getAccessPolicy(sessionId, cisco_api_url, full_config, device, limit)
-        #     ##cifp_rule.getNatPolicy(sessionId, cisco_api_url, full_config, domain, device, limit)
+    # normalize_network_data(full_config, config2import, mgm_details)
 
-        # try:  # logout of fortimanager API
-        #     cifp_getter.logout(
-        #         cisco_api_url, sessionId)
-        # except:
-        #     logger.warning(
-        #         "logout exception probably due to timeout - irrelevant, so ignoring it")
-
-        # with open('raw_config.json','w') as file:
-        #     file.write(json.dumps(full_config, indent=4, sort_keys=True))
-
-        with open('raw_config.json','r') as file:
-            full_config = json.loads(file.read())
-
-        # now we normalize relevant parts of the raw config and write the results to config2import dict
-        # currently reading zone from objects for backward compat with FortiManager 6.x
-        # cifp_zone.normalize_zones(full_config, config2import, current_import_id)
-
-        # write normalized networking data to config2import
-        # this is currently not written to the database but only used for natting decisions
-        # later we will probably store the networking info in the database as well as a basis
-        # for path analysis
-
-        # normalize_network_data(full_config, config2import, mgm_details)
-
-        # cifp_user.normalize_users(
-        #     full_config, config2import, current_import_id, user_scope)
-        cifp_network.normalize_nwobjects(
-            full_config, config2import, current_import_id, jwt=jwt, mgm_id=mgm_details['id'])
-        cifp_service.normalize_svcobjects(
-            full_config, config2import, current_import_id)
-        cifp_rule.normalize_access_rules(
-            full_config, config2import, current_import_id, mgm_details=mgm_details, jwt=jwt)
-        # cifp_rule.normalize_nat_rules(
-        #     full_config, config2import, current_import_id, jwt=jwt)
-        # cifp_network.remove_nat_ip_entries(config2import)
+    # cifp_user.normalize_users(
+    #     full_config, config2import, current_import_id, user_scope)
+    cifp_network.normalize_nwobjects(
+        full_config, config2import, current_import_id, jwt=jwt, mgm_id=mgm_details['id'])
+    cifp_service.normalize_svcobjects(
+        full_config, config2import, current_import_id)
+    cifp_rule.normalize_access_rules(
+        full_config, config2import, current_import_id, mgm_details=mgm_details, jwt=jwt)
+    # cifp_rule.normalize_nat_rules(
+    #     full_config, config2import, current_import_id, jwt=jwt)
+    # cifp_network.remove_nat_ip_entries(config2import)
     return 0
 
 def getAllAccessRules(sessionId, api_url, domains):
@@ -145,14 +111,10 @@ def getScopes(searchDomain, domains):
     for domain in domains:
         if domain == domain["uuid"] or domain["name"].endswith(searchDomain):
             scopes.append(domain["uuid"])
-            # current_domain_name = domain["name"]
-            # while "/" in current_domain_name:
-            #     scopes.append((domain["name"] == current_domain_name for domain in domains)["uuid"])
-            #     current_domain_name = current_domain_name.rsplit("/", 1)
-            # scopes.append((domain["name"] == current_domain_name for domain in domains)["uuid"])
     return scopes
 
 def getDevices(sessionId, api_url, config, limit, scopes, devices):
+    logger = getFwoLogger()
     # get all devices
     for scope in scopes:
         config["devices"] = cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
@@ -161,15 +123,16 @@ def getDevices(sessionId, api_url, config, limit, scopes, devices):
             if not "domain" in device:
                 device["domain"] = scope
     # filter for existent devices
-    for all_device in config["devices"]:
+    for cisco_api_device in config["devices"]:
         found = False
-        for device in devices:     
-            if device["name"] == all_device["name"] or device["name"] == all_device["id"]:
+        for device in devices:
+            if device["name"] == cisco_api_device["name"] or device["name"] == cisco_api_device["id"]:
                 found = True
                 break
         # remove device if not in fwo api
-        if (found == False):
-            config["devices"].remove(all_device)
+        if found == False:
+            config["devices"].remove(cisco_api_device)
+            logger.info("Device \"" + cisco_api_device["name"] + "\" was found but it is not registered in FWO. Ignoring it.")
 
 def getObjects(sessionId, api_url, config, limit, scopes):
     # network objects:

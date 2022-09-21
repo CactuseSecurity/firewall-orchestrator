@@ -9,7 +9,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("implementation") + ": " + ReqHandler.ActImplTask.Id)" Show="@ReqHandler.DisplayImplTaskMode" XLarge="true" OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("implementation") + ": " + ReqHandler.ActImplTask.Title)" Show="@ReqHandler.DisplayImplTaskMode" XLarge="true" OnClose="async () => await Close()">
     <Body>
         @if (ReqHandler.DisplayImplTaskMode)
         {
@@ -49,28 +49,28 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-sm-3">
-                        <div class="form-group row">
-                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("device"))*:</label>
-                            <div class="col-sm-8">
-                                @if (ReqHandler.EditImplTaskMode)
-                                {
-                                    <select class="form-control form-control-sm" @bind="ReqHandler.ActImplTask.DeviceId">
-                                        @foreach (Device device in ReqHandler.Devices)
-                                        {
-                                            <option value="@device.Id">@(device.Name)</option>
-                                        }
-                                    </select>
-                                }
-                                else
-                                {
-                                    <label class="col-sm-12 h-100 border bg-secondary">@(ReqHandler.ActImplTask.DeviceId != null && ReqHandler.ActImplTask.DeviceId != 0 ? ReqHandler.Devices[ReqHandler.Devices.FindIndex(x => x.Id == ReqHandler.ActImplTask.DeviceId)].Name : "")</label>
-                                }
-                            </div>
-                        </div>
-                    </div>
                     @if(ReqHandler.ActImplTask.TaskType == TaskType.access.ToString())
                     {
+                        <div class="col-sm-3">
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("device"))*:</label>
+                                <div class="col-sm-8">
+                                    @if (ReqHandler.EditImplTaskMode)
+                                    {
+                                        <select class="form-control form-control-sm" @bind="ReqHandler.ActImplTask.DeviceId">
+                                            @foreach (Device device in ReqHandler.Devices)
+                                            {
+                                                <option value="@device.Id">@(device.Name)</option>
+                                            }
+                                        </select>
+                                    }
+                                    else
+                                    {
+                                        <label class="col-sm-12 h-100 border bg-secondary">@(ReqHandler.ActImplTask.DeviceId != null && ReqHandler.ActImplTask.DeviceId != 0 ? ReqHandler.Devices[ReqHandler.Devices.FindIndex(x => x.Id == ReqHandler.ActImplTask.DeviceId)].Name : "")</label>
+                                    }
+                                </div>
+                            </div>
+                        </div>
                         <div class="col-sm-3">
                             <div class="form-group row">
                                 <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("action"))*:</label>
@@ -235,8 +235,8 @@
     </Footer>
 </PopUp>
 
-<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Close" ObjectName="task" Save="ConfPromoteImplTask" StatefulObject="ReqHandler.ActImplTask" StateMatrix="StateMatrix" States="States"/>
-<CommentObject @bind-Display="ReqHandler.DisplayCommentMode" ResetParent="InitComments" ObjectName="task" Save="ConfAddComment"/>
+<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Close" ObjectName="@ReqHandler.ActImplTask.Title" Save="ConfPromoteImplTask" StatefulObject="ReqHandler.ActImplTask" StateMatrix="StateMatrix" States="States"/>
+<CommentObject @bind-Display="ReqHandler.DisplayCommentMode" ResetParent="InitComments" ObjectName="@ReqHandler.ActImplTask.Title" Save="ConfAddComment"/>
 
 @code
 {

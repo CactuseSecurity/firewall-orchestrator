@@ -163,8 +163,8 @@
     </Footer>
 </PopUp>
 
-<PromoteObject @bind-Promote="ReqHandler.DisplaySaveTicketMode" ResetParent="Close" ObjectName="ticket" Save="ReqHandler.SaveTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="ReqHandler.MasterStateMatrix" States="States"/>
-<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Close" ObjectName="ticket" Save="ReqHandler.PromoteTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="ReqHandler.MasterStateMatrix" States="States"/>
+<PromoteObject @bind-Promote="ReqHandler.DisplaySaveTicketMode" ResetParent="Close" ObjectName="@ReqHandler.ActTicket.Title" Save="ReqHandler.SaveTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="ReqHandler.MasterStateMatrix" States="States"/>
+<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Close" ObjectName="@ReqHandler.ActTicket.Title" Save="ReqHandler.PromoteTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="ReqHandler.MasterStateMatrix" States="States"/>
 
 
 @code

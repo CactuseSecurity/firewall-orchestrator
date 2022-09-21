@@ -1,5 +1,6 @@
 mutation updateImplementationTask(
   $id: bigint!
+  $title: String
   $reqTaskId: bigint!
   $implIaskNumber: Int
   $state: Int
@@ -16,6 +17,7 @@ mutation updateImplementationTask(
   update_implementation_task_by_pk(
     pk_columns: { id: $id }
     _set: {
+    title: $title
     request_task_id: $reqTaskId
     task_number: $implIaskNumber
     state_id: $state

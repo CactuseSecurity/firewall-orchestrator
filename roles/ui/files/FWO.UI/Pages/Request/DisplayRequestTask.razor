@@ -113,7 +113,7 @@
                             </div>
                         </div>
                     </div>
-                    @if(ReqHandler.ActReqTask.TaskType == TaskType.access.ToString())
+                    @if(ReqHandler.ActReqTask.TaskType == TaskType.access.ToString() || ReqHandler.ActReqTask.TaskType == TaskType.group.ToString())
                     {
                         <div class="col-sm-3">
                             <div class="form-group row">
@@ -233,6 +233,10 @@
                     <DisplayAccessElements @bind-Sources="actSources" @bind-Destinations="actDestinations" @bind-Services="actServices" 
                         TaskId="ReqHandler.ActReqTask.Id" EditMode="ReqHandler.EditReqTaskMode"></DisplayAccessElements>
                 }
+                else if(ReqHandler.ActReqTask.TaskType == TaskType.group.ToString())
+                {
+
+                }
 
                 @if(!ReqHandler.EditReqTaskMode)
                 {
@@ -314,9 +318,9 @@
     </Footer>
 </PopUp>
 
-<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Close" ObjectName="task" Save="ConfPromoteReqTask" StatefulObject="ReqHandler.ActReqTask" StateMatrix="ReqHandler.ActStateMatrix" States="States"/>
-<PromoteObject @bind-Promote="ReqHandler.DisplayApproveMode" ResetParent="Close" ObjectName="approval" WithComment="true" Save="ConfApproveTask" StatefulObject="ReqHandler.ActApproval" StateMatrix="ReqHandler.ActStateMatrix" States="States"/>
-<CommentObject @bind-Display="ReqHandler.DisplayCommentMode" ResetParent="InitComments" ObjectName="task" Save="ConfAddComment"/>
+<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Close" ObjectName="@ReqHandler.ActReqTask.Title" Save="ConfPromoteReqTask" StatefulObject="ReqHandler.ActReqTask" StateMatrix="ReqHandler.ActStateMatrix" States="States"/>
+<PromoteObject @bind-Promote="ReqHandler.DisplayApproveMode" ResetParent="Close" ObjectName="@userConfig.GetText("approval")" WithComment="true" Save="ConfApproveTask" StatefulObject="ReqHandler.ActApproval" StateMatrix="ReqHandler.ActStateMatrix" States="States"/>
+<CommentObject @bind-Display="ReqHandler.DisplayCommentMode" ResetParent="InitComments" ObjectName="@ReqHandler.ActReqTask.Title" Save="ConfAddComment"/>
 
 @code
 {

@@ -218,6 +218,7 @@ create table if not exists implementation.element
 create table if not exists implementation.task
 (
     id BIGSERIAL PRIMARY KEY,
+    title VARCHAR,
     request_task_id bigint,
     task_number int,
     state_id int NOT NULL,

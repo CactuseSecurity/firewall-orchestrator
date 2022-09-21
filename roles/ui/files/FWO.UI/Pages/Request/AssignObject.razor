@@ -10,7 +10,7 @@
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("task") + ": " + (ObjectName != "" ? userConfig.GetText(ObjectName) : ""))" Show="@Display" Large="true" OnClose="() => Display = false">
+<PopUp Title="@(userConfig.GetText("assign") + ": " + ObjectName)" Show="@Display" Large="true" OnClose="() => Display = false">
     <Body>
         @if (Display)
         {

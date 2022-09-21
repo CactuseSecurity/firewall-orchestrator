@@ -1,4 +1,5 @@
 mutation newImplementationTask(
+  $title: String
   $reqTaskId: bigint!
   $implIaskNumber: Int
   $state: Int
@@ -13,6 +14,7 @@ mutation newImplementationTask(
   $freeText: String
   ) {
   insert_implementation_task(objects: {
+    title: $title
     request_task_id: $reqTaskId
     task_number: $implIaskNumber
     state_id: $state

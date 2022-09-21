@@ -11,7 +11,7 @@
     <Body>
         @if (Display)
         {
-            <p>@(userConfig.GetText("U8001")) @(ObjName)?</p>
+            <p>@(userConfig.GetText("U8001")) @(ObjectName)?</p>
         }
     </Body>
     <Footer>
@@ -48,7 +48,7 @@
     public Func<Task> ResetParent { get; set; }
 
     [Parameter]
-    public string ObjName { get; set; } = "";
+    public string ObjectName { get; set; } = "";
 
 
     private void Cancel()

@@ -23,6 +23,9 @@ namespace FWO.Api.Data
 
     public class TaskBase : StatefulObject
     {
+        [JsonProperty("title"), JsonPropertyName("title")]
+        public string Title { get; set; } = "";
+
         [JsonProperty("device_id"), JsonPropertyName("device_id")]
         public int? DeviceId { get; set; }
 
@@ -72,6 +75,7 @@ namespace FWO.Api.Data
         public TaskBase(TaskBase task) : base(task)
         {
             DeviceId = task.DeviceId;
+            Title = task.Title;
             TaskNumber = task.TaskNumber;
             TaskType = task.TaskType;
             // RequestAction = task.RequestAction;
@@ -90,6 +94,7 @@ namespace FWO.Api.Data
         public override bool Sanitize()
         {
             bool shortened = base.Sanitize();
+            Title = Sanitizer.SanitizeMand(Title, ref shortened);
             FreeText = Sanitizer.SanitizeOpt(FreeText, ref shortened);
             return shortened;
         }

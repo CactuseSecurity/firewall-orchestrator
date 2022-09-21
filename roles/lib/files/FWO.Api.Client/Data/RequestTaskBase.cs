@@ -14,9 +14,6 @@ namespace FWO.Api.Data
 
     public class RequestTaskBase : TaskBase
     {
-        [JsonProperty("title"), JsonPropertyName("title")]
-        public string Title { get; set; } = "";
-
         [JsonProperty("request_action"), JsonPropertyName("request_action")]
         public string RequestAction { get; set; } = FWO.Api.Data.RequestAction.create.ToString();
 
@@ -32,7 +29,6 @@ namespace FWO.Api.Data
 
         public RequestTaskBase(RequestTaskBase task) : base(task)
         {
-            Title = task.Title;
             RequestAction = task.RequestAction;
             Reason = task.Reason;
             LastRecertDate = task.LastRecertDate;
@@ -41,7 +37,6 @@ namespace FWO.Api.Data
         public override bool Sanitize()
         {
             bool shortened = base.Sanitize();
-            Title = Sanitizer.SanitizeMand(Title, ref shortened);
             Reason = Sanitizer.SanitizeOpt(Reason, ref shortened);
             return shortened;
         }

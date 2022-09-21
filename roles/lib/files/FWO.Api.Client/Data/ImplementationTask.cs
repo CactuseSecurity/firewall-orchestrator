@@ -31,6 +31,7 @@ namespace FWO.Api.Data
         public ImplementationTask(RequestTask task, bool copyComments = true)
         {
             Id = 0;
+            Title = task.Title;
             ReqTaskId = task.Id;
             TaskNumber = 0;
             StateId = 0;

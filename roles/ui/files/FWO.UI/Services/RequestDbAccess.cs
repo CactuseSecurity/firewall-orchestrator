@@ -400,6 +400,7 @@ namespace FWO.Ui.Services
             {
                 var Variables = new
                 {
+                    title = task.Title,
                     reqTaskId = task.ReqTaskId,
                     implIaskNumber = task.TaskNumber,
                     state = task.StateId,
@@ -451,6 +452,7 @@ namespace FWO.Ui.Services
                 var Variables = new
                 {
                     id = task.Id,
+                    title = task.Title,
                     reqTaskId = task.ReqTaskId,
                     implIaskNumber = task.TaskNumber,
                     state = task.StateId,

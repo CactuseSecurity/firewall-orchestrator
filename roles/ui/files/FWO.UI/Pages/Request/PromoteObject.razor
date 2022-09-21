@@ -7,7 +7,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("change_state") + ": " + (ObjectName != "" ? userConfig.GetText(ObjectName) : ""))" Show="@Display" OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("change_state") + ": " + ObjectName)" Show="@Display" OnClose="async () => await Close()">
     <Body>
         @if (Display)
         {

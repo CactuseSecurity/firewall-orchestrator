@@ -18,7 +18,7 @@
   - name: assert there are no upgradable packages to ensure upgrades are run interactively outside the installer
     fail:
       msg: There are upgradable packages available, please run OS upgrade before running FWORCH installer
-    when: (ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian") and not upgradable_packages
+    when: (ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian") and upgradable_packages
 
   # - name: update operating system packages .deb based
   #   apt:

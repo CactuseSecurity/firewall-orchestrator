@@ -40,11 +40,6 @@
       owner: "{{ fworch_user }}"
       group: "{{ fworch_group }}"
 
-  - name: upgrade packages before installing new pdf related packages
-    ansible.builtin.apt:
-      update_cache: yes
-      upgrade: dist
-
   - name: install python3-openssl for openssl key generation and unprivileged user
     package:
       name: "{{ item }}"

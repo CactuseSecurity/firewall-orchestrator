@@ -5,10 +5,10 @@
       msg: Ansible 2.8 or above is required
     when: ansible_version.full is version('2.8', '<')
 
-
   - name: update operating system packages .deb based
     apt:
       upgrade: dist
+      update_cache: yes
     when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian"
 
   - name: update operating system packages .rpm based (untested)

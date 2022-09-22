@@ -5,11 +5,26 @@
       msg: Ansible 2.8 or above is required
     when: ansible_version.full is version('2.8', '<')
 
-  - name: update operating system packages .deb based
+  - name: update operating system package cache .deb based
     apt:
-      upgrade: dist
       update_cache: yes
     when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian"
+
+  - name: check for existing upgradable packages
+    command: apt list --upgradable
+    register: upgradable_packages
+    when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian"
+
+  - name: assert there are no upgradable packages to ensure upgrades are run interactively outside the installer
+    fail:
+      msg: There are upgradable packages available, please run OS upgrade before running FWORCH installer
+    when: (ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian") and not upgradable_packages
+
+  # - name: update operating system packages .deb based
+  #   apt:
+  #     upgrade: dist
+  #     update_cache: yes
+  #   when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian"
 
   - name: update operating system packages .rpm based (untested)
     yum:

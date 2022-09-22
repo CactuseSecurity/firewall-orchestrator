@@ -16,7 +16,7 @@ if not already configured, add your current user to sudo group (make sure to act
 usermod -a -G sudo `whoami`
 ```
 
-Also make sure your packages are up to date using e.g.
+Also make sure your packages are up to date before FWORCH installation using e.g.
 
     sudo apt update && sudo apt upgrade
 

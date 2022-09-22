@@ -26,6 +26,11 @@
         path: "{{ fworch_home }}/ui"
       when: installation_mode == "upgrade"
 
+  - name: upgrade packages before installing new pdf related packages
+    ansible.builtin.apt:
+      update_cache: yes
+      upgrade: dist
+
     - name: install libs needed for pdf creator nuget packet HakanL/WkHtmlToPdf-DotNet
       package:
         name: "{{ item }}"

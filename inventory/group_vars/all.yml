@@ -120,4 +120,5 @@ wsgi_package_name: libapache2-mod-wsgi
 test_dir: "{{ fworch_home }}/test"
 test_fortigate_name: "fortigate{{ test_postfix }}"
 test_checkpoint_name: "checkpoint{{ test_postfix }}"
+test_credential_name: "credential02_test"
 csharp_test_start_dir: "{{ fworch_home }}/test/csharp/FWO.Test"

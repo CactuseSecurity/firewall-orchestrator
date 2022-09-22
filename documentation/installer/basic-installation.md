@@ -16,6 +16,13 @@ if not already configured, add your current user to sudo group (make sure to act
 usermod -a -G sudo `whoami`
 ```
 
+Also make sure your packages are up to date using e.g.
+
+    sudo apt update && sudo apt upgrade
+
+possibly followed by a reboot.
+
+
 2) get Firewall Orchestrator with the following command (as normal user)
 ```console
 git clone https://github.com/CactuseSecurity/firewall-orchestrator.git

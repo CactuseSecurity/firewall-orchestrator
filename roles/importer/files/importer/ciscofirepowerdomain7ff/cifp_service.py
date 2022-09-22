@@ -1,6 +1,4 @@
 import random
-import re
-import common
 from common import list_delimiter
 
 def normalize_svcobjects(full_config, config2import, import_id):
@@ -53,7 +51,7 @@ def parse_svc(orig_svc, import_id):
     elif orig_svc["type"] == "PortLiteral":
         svc["ip_proto"] = orig_svc["protocol"]
     else:
-        svc["svc_name"] += " [Not supported]" # TODO Icmp
+        svc["svc_name"] += " [Not supported]"
     return svc
 
 def parse_port(orig_svc, svc):

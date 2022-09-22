@@ -4,7 +4,7 @@ import sys, os, time, datetime
 import json, requests, requests.packages
 from socket import gethostname
 import importlib.util
-base_dir = '/Users/nils/Documents/GitHub/firewall-orchestrator/roles/importer/files' #TODO REVERT
+base_dir = '/usr/local/fworch'
 importer_base_dir = base_dir + '/importer'
 from pathlib import Path
 sys.path.append(importer_base_dir) # adding absolute path here once

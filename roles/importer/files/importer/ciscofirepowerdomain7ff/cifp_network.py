@@ -85,60 +85,8 @@ def parse_object(obj_orig, import_id):
     elif obj_orig["type"] == "FQDN": # fully qualified domain name
         obj['obj_typ'] = 'network'
         obj['obj_ip'] = "0.0.0.0/0"
-    else:                            # unkown type
+    else:                            # unknown type
         obj["obj_name"] = obj["obj_name"] + " [not supported]"
         obj['obj_typ'] = 'network'
         obj['obj_ip'] = "0.0.0.0/0"
-    # here only picking first associated interface as zone:
-    # and obj_orig['associated-interface'][0] != 'any':
-    # if 'associated-interface' in obj_orig and len(obj_orig['associated-interface']) > 0:
-    #     obj_zone = obj_orig['associated-interface'][0]
-    #     # adding zone if it not yet exists
-    #     obj_zone = add_zone_if_missing(
-    #         config2import, obj_zone, import_id)
-    # obj.update({'obj_zone': obj_zone})
     return obj
-
-# def create_network_object(import_id, name, type, ip, uid, color, comment, zone):
-    if zone is None or zone == '':
-        zone = 'global'
-    return {
-        'control_id': import_id,
-        'obj_name': name,
-        'obj_typ': type,
-        'obj_ip': ip,
-        'obj_uid': uid,
-        'obj_color': color,
-        'obj_comment': comment,
-        'obj_zone': zone
-    }
-
-# # TODO: reduce commplexity if possible
-# def get_nw_obj(nat_obj_name, nwobjects):
-#     for obj in nwobjects:
-#         if 'obj_name' in obj and obj['obj_name'] == nat_obj_name:
-#             return obj
-#     return None
-
-# # this removes all obj_nat_ip entries from all network objects
-# # these were used during import but might cause issues if imported into db
-# def remove_nat_ip_entries(config2import):
-#     for obj in config2import['network_objects']:
-#         if 'obj_nat_ip' in obj:
-#             obj.pop('obj_nat_ip')
-
-
-# def get_first_ip_of_destination(obj_ref, config2import):
-    logger = getFwoLogger()
-    if list_delimiter in obj_ref:
-        obj_ref = obj_ref.split(list_delimiter)[0]
-        # if destination does not contain exactly one ip, raise a warning
-        logger.info(
-            'src nat behind interface: more than one NAT IP - just using the first one for routing decision for obj_ref ' + obj_ref)
-
-    for obj in config2import['network_objects']:
-        if 'obj_uid' in obj and obj['obj_uid'] == obj_ref:
-            return obj['obj_ip']
-    logger.warning(
-        'src nat behind interface: found no IP info for destination object ' + obj_ref)
-    return None

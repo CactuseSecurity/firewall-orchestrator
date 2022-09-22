@@ -2,28 +2,11 @@ import sys
 from common import importer_base_dir
 sys.path.append(importer_base_dir + '/ciscofirepowerdomain7ff')
 import cifp_service
-import cifp_user
-import cifp_zone
 import cifp_rule
 import cifp_network
 import cifp_getter
 import json
 from fwo_log import getFwoLogger
-
-nw_obj_types = ['networks', 'hosts', 'ranges',
-                'securityzones', 'fqdns', 'networkgroups']
-svc_obj_types = ['application/list', 'application/group', 'application/categories',
-                 'application/custom', 'firewall/service/custom', 'firewall/service/group']
-
-# build the product of all scope/type combinations
-# nw_obj_scope = ['nw_obj_' + s1 + '_' +
-#                 s2 for s1 in scope for s2 in nw_obj_types]
-# svc_obj_scope = ['svc_obj_' + s1 + '_' +
-#                 s2 for s1 in scope for s2 in svc_obj_types]
-
-# zone_types = ['zones_global', 'zones_adom']
-user_types = ['users_global', 'users_adom']
-user_scope = ['user_objects']
 
 
 def has_config_changed(full_config, mgm_details, force=False):

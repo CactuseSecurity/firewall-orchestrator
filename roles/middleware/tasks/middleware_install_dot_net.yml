@@ -17,7 +17,7 @@
           Package: *net*
           Pin: origin packages.microsoft.com
           Pin-Priority: 1001
-      when: ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version'] is version('22', '>=')
+      when: ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version'] is version('22', '>=') and not run_on_github|bool
 
     - name: get package list from ms {{ dotnet_deb_name }}
       get_url:

@@ -29,16 +29,16 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
                                 mgm_details['hostname'], mgm_details['port'])
         domain = mgm_details["configPath"]
         if sessionId == None or sessionId == "":
-            logger.ERROR(
+            logger.error(
                 'Did not succeed in logging in to FortiManager API, no sid returned.')
             return 1
         if domain == None or domain == "":
-            logger.ERROR(
+            logger.error(
                 'Configured domain is null or empty.')
             return 1
         scopes = getScopes(domain, json.loads(domains))
         if len(scopes) == 0:
-            logger.ERROR(
+            logger.error(
                 "Domain \"" + domain + "\" could not be found. \"" + domain + "\" does not appear to be a domain name or a domain UID.")
             return 1
 

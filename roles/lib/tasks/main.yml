@@ -14,10 +14,15 @@
         path: "{{ fworch_home }}/lib"
       register: lib_dir_check
 
+    - name: create {{ lib_tmp_dir }}
+      file:
+        dest: "{{ lib_tmp_dir }}"
+        state: directory
+
     - name: install dotnet needed for both ui and middleware servers
       include_tasks: install_dot_net.yml
 
-    - name: install dotnet needed for both ui and middleware servers
+    - name: install wkhtml pdf library needed for both ui and middleware servers
       include_tasks: install_wkhtml_pdf.yml
 
     - name: backup lib dir

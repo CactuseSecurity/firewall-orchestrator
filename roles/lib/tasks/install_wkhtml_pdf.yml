@@ -18,7 +18,7 @@
     - name: download wkhtmltox for ubuntu 22.04 only
       get_url:
         url: https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-2/wkhtmltox_0.12.6.1-2.jammy_amd64.deb
-        dest: "{{ lib_tmp_dir }}"
+        dest: "{{ lib_tmp_dir }}/wkhtmltox_0.12.6.1-2.jammy_amd64.deb"
         force: yes
         mode: "0644"
         owner: "{{ fworch_user }}"

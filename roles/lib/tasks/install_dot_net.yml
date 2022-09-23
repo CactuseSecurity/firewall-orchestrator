@@ -12,11 +12,6 @@
     # for all distros except ubuntu >=22.04 we need to include a package source
     - block:
 
-      - name: create {{ lib_tmp_dir }}
-        file:
-          dest: "{{ lib_tmp_dir }}"
-          state: directory
-
       - name: get package list from ms {{ dotnet_deb_name }}
         get_url:
           url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ distribution_version }}/{{ dotnet_deb_name }}"

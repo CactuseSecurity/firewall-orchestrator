@@ -1,4 +1,4 @@
 .vs/
 .idea/
-
+.test_data/
 roles/importer/venv/

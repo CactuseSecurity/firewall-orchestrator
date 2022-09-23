@@ -386,4 +386,11 @@ BEGIN
     END IF;
 END $do$;
 
-
+-- Cisco Firepower Devices
+insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt)
+ VALUES (14,'Cisco Firepower Management Center','7ff','Cisco','',true) ON CONFLICT DO NOTHING;
+insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt) 
+ VALUES (15,'Cisco Firepower Domain','7ff','Cisco','',false) ON CONFLICT DO NOTHING;
+insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt) 
+ VALUES (16,'Cisco Firepower Gateway','7ff','Cisco','',false) ON CONFLICT DO NOTHING;
+ 

@@ -95,7 +95,7 @@
                         <div class="form-group row justify-content-center">
                             @foreach(var action in offeredActions)
                             {
-                                <button class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.Name</button>
+                                <button class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
                             }
                         </div>
                     </div>
@@ -185,10 +185,10 @@
     public Func<Task> ResetParent { get; set; }
 
     [Parameter]
-    public Func<RequestTask, Task>? StartPhase { get; set; }
+    public Func<RequestReqTask, Task>? StartPhase { get; set; }
 
     [Parameter]
-    public Func<ImplementationTask, Task>? StartImplPhase { get; set; }
+    public Func<RequestImplTask, Task>? StartImplPhase { get; set; }
 
 
     private List<int> possibleStates = new List<int>();
@@ -200,7 +200,7 @@
     {
         if (ReqHandler.DisplayReqTaskMode)
         {
-            offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActTicket, ActionScopes.Ticket, ReqHandler.Phase);
+            offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActTicket, RequestObjectScopes.Ticket, ReqHandler.Phase);
         }
     }
 
@@ -234,7 +234,7 @@
 
     private async Task PerformAction(RequestStateAction action)
     {
-        await ReqHandler.ActionHandler.performAction(action, ReqHandler.ActTicket, ActionScopes.Ticket);
+        await ReqHandler.ActionHandler.performAction(action, ReqHandler.ActTicket, RequestObjectScopes.Ticket);
     }
 
     private bool CheckPromoteTicket()
@@ -246,7 +246,7 @@
         if(ReqHandler.ActTicket.Tasks.Count > 0)
         {
             List<int> taskStates = new List<int>();
-            foreach (RequestTask reqTask in ReqHandler.ActTicket.Tasks)
+            foreach (RequestReqTask reqTask in ReqHandler.ActTicket.Tasks)
             {
                 taskStates.Add(reqTask.StateId);
             }

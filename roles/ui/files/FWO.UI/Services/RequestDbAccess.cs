@@ -88,7 +88,7 @@ namespace FWO.Ui.Services
                 else
                 {
                     ticket = await GetTicket(returnIds[0].NewId);
-                    await ActionHandler.DoStateChangeActions(ticket, ActionScopes.Ticket);
+                    await ActionHandler.DoStateChangeActions(ticket, RequestObjectScopes.Ticket);
                 }
             }
             catch (Exception exception)
@@ -118,7 +118,7 @@ namespace FWO.Ui.Services
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(ticket, ActionScopes.Ticket);
+                    await ActionHandler.DoStateChangeActions(ticket, RequestObjectScopes.Ticket);
                 }
             }
             catch (Exception exception)
@@ -130,7 +130,7 @@ namespace FWO.Ui.Services
 
         // Request Tasks
 
-        public async Task<int> AddReqTaskToDb(RequestTask task)
+        public async Task<int> AddReqTaskToDb(RequestReqTask task)
         {
             int returnId = 0;
             try
@@ -168,7 +168,7 @@ namespace FWO.Ui.Services
                         approval.TaskId = returnId;
                         await AddApprovalToDb(approval);
                     }
-                    await ActionHandler.DoStateChangeActions(task, ActionScopes.RequestTask);
+                    await ActionHandler.DoStateChangeActions(task, RequestObjectScopes.RequestTask);
                 }
             }
             catch (Exception exception)
@@ -178,7 +178,7 @@ namespace FWO.Ui.Services
             return returnId;
         }
 
-        public async Task UpdateReqTaskInDb(RequestTask task)
+        public async Task UpdateReqTaskInDb(RequestReqTask task)
         {
             try
             {
@@ -209,7 +209,7 @@ namespace FWO.Ui.Services
                     {
                         await DeleteReqElementFromDb(elem.Id);
                     }
-                    task.RemovedElements = new List<RequestElement>();
+                    task.RemovedElements = new List<RequestReqElement>();
 
                     foreach(var element in task.Elements)
                     {
@@ -222,7 +222,7 @@ namespace FWO.Ui.Services
                             await UpdateReqElementInDb(element);
                         }
                     }
-                    await ActionHandler.DoStateChangeActions(task, ActionScopes.RequestTask);
+                    await ActionHandler.DoStateChangeActions(task, RequestObjectScopes.RequestTask);
                 }
             }
             catch (Exception exception)
@@ -231,7 +231,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task DeleteReqTaskFromDb(RequestTask task)
+        public async Task DeleteReqTaskFromDb(RequestReqTask task)
         {
             try
             {
@@ -249,7 +249,7 @@ namespace FWO.Ui.Services
 
         // Request Elements
 
-        public async Task<int> AddReqElementToDb(RequestElement element)
+        public async Task<int> AddReqElementToDb(RequestReqElement element)
         {
             int returnId = 0;
             try
@@ -284,7 +284,7 @@ namespace FWO.Ui.Services
             return returnId;
         }
 
-        public async Task UpdateReqElementInDb(RequestElement element)
+        public async Task UpdateReqElementInDb(RequestReqElement element)
         {
             try
             {
@@ -354,7 +354,7 @@ namespace FWO.Ui.Services
                 else
                 {
                     returnId = returnIds[0].NewId;
-                    await ActionHandler.DoStateChangeActions(approval, ActionScopes.Approval);
+                    await ActionHandler.DoStateChangeActions(approval, RequestObjectScopes.Approval);
                 }
             }
             catch (Exception exception)
@@ -383,7 +383,7 @@ namespace FWO.Ui.Services
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(approval, ActionScopes.Approval);
+                    await ActionHandler.DoStateChangeActions(approval, RequestObjectScopes.Approval);
                 }
             }
             catch (Exception exception)
@@ -394,7 +394,7 @@ namespace FWO.Ui.Services
 
         // implementation tasks
 
-        public async Task<int> AddImplTaskToDb(ImplementationTask task)
+        public async Task<int> AddImplTaskToDb(RequestImplTask task)
         {
             int returnId = 0;
             try
@@ -436,7 +436,7 @@ namespace FWO.Ui.Services
                             await AssignCommentToImplTaskInDb(returnId, comment.Comment.Id);
                         }
                     }
-                    await ActionHandler.DoStateChangeActions(task, ActionScopes.ImplementationTask);
+                    await ActionHandler.DoStateChangeActions(task, RequestObjectScopes.ImplementationTask);
                 }
             }
             catch (Exception exception)
@@ -446,7 +446,7 @@ namespace FWO.Ui.Services
             return returnId;
         }
 
-        public async Task UpdateImplTaskInDb(ImplementationTask task)
+        public async Task UpdateImplTaskInDb(RequestImplTask task)
         {
             try
             {
@@ -478,7 +478,7 @@ namespace FWO.Ui.Services
                     {
                         await DeleteImplElementFromDb(elem.Id);
                     }
-                    task.RemovedElements = new List<ImplementationElement>();
+                    task.RemovedElements = new List<RequestImplElement>();
 
                     foreach(var element in task.ImplElements)
                     {
@@ -491,7 +491,7 @@ namespace FWO.Ui.Services
                             await UpdateImplElementInDb(element);
                         }
                     }
-                    await ActionHandler.DoStateChangeActions(task, ActionScopes.ImplementationTask);
+                    await ActionHandler.DoStateChangeActions(task, RequestObjectScopes.ImplementationTask);
                 }
             }
             catch (Exception exception)
@@ -500,7 +500,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task DeleteImplTaskFromDb(ImplementationTask task)
+        public async Task DeleteImplTaskFromDb(RequestImplTask task)
         {
             try
             {
@@ -519,7 +519,7 @@ namespace FWO.Ui.Services
 
         // implementation elements
 
-        public async Task<int> AddImplElementToDb(ImplementationElement element)
+        public async Task<int> AddImplElementToDb(RequestImplElement element)
         {
             int returnId = 0;
             try
@@ -554,7 +554,7 @@ namespace FWO.Ui.Services
             return returnId;
         }
 
-        public async Task UpdateImplElementInDb(ImplementationElement element)
+        public async Task UpdateImplElementInDb(RequestImplElement element)
         {
             try
             {
@@ -739,7 +739,7 @@ namespace FWO.Ui.Services
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(ticket, ActionScopes.Ticket);
+                    await ActionHandler.DoStateChangeActions(ticket, RequestObjectScopes.Ticket);
                 }
             }
             catch (Exception exception)
@@ -748,7 +748,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task UpdateReqTaskStateInDb(RequestTask task)
+        public async Task UpdateReqTaskStateInDb(RequestReqTask task)
         {
             try
             {
@@ -769,7 +769,7 @@ namespace FWO.Ui.Services
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(task, ActionScopes.RequestTask);
+                    await ActionHandler.DoStateChangeActions(task, RequestObjectScopes.RequestTask);
                 }
             }
             catch (Exception exception)
@@ -778,7 +778,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task UpdateImplTaskStateInDb(ImplementationTask task)
+        public async Task UpdateImplTaskStateInDb(RequestImplTask task)
         {
             try
             {
@@ -799,7 +799,7 @@ namespace FWO.Ui.Services
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(task, ActionScopes.ImplementationTask);
+                    await ActionHandler.DoStateChangeActions(task, RequestObjectScopes.ImplementationTask);
                 }
             }
             catch (Exception exception)

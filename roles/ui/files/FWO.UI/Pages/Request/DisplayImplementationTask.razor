@@ -198,7 +198,7 @@
                         <div class="form-group row justify-content-center">
                             @foreach(var action in offeredActions)
                             {
-                                <button class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.Name</button>
+                                <button class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
                             }
                         </div>
                     </div>
@@ -289,7 +289,7 @@
         {
             InitElements();
             await InitComments();
-            offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActImplTask, ActionScopes.ImplementationTask, ReqHandler.Phase);
+            offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActImplTask, RequestObjectScopes.ImplementationTask, ReqHandler.Phase);
         }
     }
 
@@ -317,7 +317,7 @@
 
     private async Task PerformAction(RequestStateAction action)
     {
-        await ReqHandler.ActionHandler.performAction(action, ReqHandler.ActImplTask, ActionScopes.ImplementationTask);
+        await ReqHandler.ActionHandler.performAction(action, ReqHandler.ActImplTask, RequestObjectScopes.ImplementationTask);
     }
 
     private async Task InitAddComment()
@@ -411,7 +411,7 @@
         ReqHandler.SetImplTaskPopUpOpt(ObjAction.displayPromote);
     }
 
-    private async Task ConfPromoteImplTask(StatefulObject implTask)
+    private async Task ConfPromoteImplTask(RequestStatefulObject implTask)
     {
         await ReqHandler.PromoteImplTask(implTask);
     }

@@ -12,8 +12,8 @@
 @if (ReqHandler.ActTicket.Tasks.Count > 0)
 {
     <div class="m-2">
-        <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="RequestTask" Items="ReqHandler.ActTicket.Tasks" PageSize="0" ColumnReorder="true">
-            <Column TableItem="RequestTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+        <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="RequestReqTask" Items="ReqHandler.ActTicket.Tasks" PageSize="0" ColumnReorder="true">
+            <Column TableItem="RequestReqTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                 <Template>
                     <div class="btn-group">
                         <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowReqTask(context)">@(userConfig.GetText("details"))</button>
@@ -48,27 +48,27 @@
                     </div>
                 </Template>
             </Column>
-            <Column TableItem="RequestTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
-            <Column TableItem="RequestTask" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true" />
-            <Column TableItem="RequestTask" Title="@(userConfig.GetText("type"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" >
+            <Column TableItem="RequestReqTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+            <Column TableItem="RequestReqTask" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true" />
+            <Column TableItem="RequestReqTask" Title="@(userConfig.GetText("type"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" >
                 <Template>
                     @(userConfig.GetText(context.TaskType))
                 </Template>
             </Column>
-            <Column TableItem="RequestTask" Title="@(userConfig.GetText("tasks"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" >
+            <Column TableItem="RequestReqTask" Title="@(userConfig.GetText("tasks"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" >
                 <Template>
                     @(context.ImplementationTasks.Count)
                 </Template>
             </Column>
-            <Column TableItem="RequestTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
+            <Column TableItem="RequestReqTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
                 <Template>
                     @(States.Name[context.StateId])
                 </Template>
             </Column>
-            <Column TableItem="RequestTask" Title="@(userConfig.GetText("current_handler"))" Field="@(x => x.CurrentHandler.Name)" Sortable="true" Filterable="true" />
+            <Column TableItem="RequestReqTask" Title="@(userConfig.GetText("current_handler"))" Field="@(x => x.CurrentHandler.Name)" Sortable="true" Filterable="true" />
             @if(Phase == WorkflowPhases.approval)
             {
-                <Column TableItem="RequestTask" Title="@(userConfig.GetText("approval_deadline"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
+                <Column TableItem="RequestReqTask" Title="@(userConfig.GetText("approval_deadline"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
                     <Template>
                         @(context.Approvals.FirstOrDefault(x => x.InitialApproval)?.Deadline)
                     </Template>
@@ -76,13 +76,13 @@
             }
             else
             {
-                <Column TableItem="RequestTask" Title="@(userConfig.GetText("assigned"))" Field="@(x => x.AssignedGroup)" Sortable="true" Filterable="true" >
+                <Column TableItem="RequestReqTask" Title="@(userConfig.GetText("assigned"))" Field="@(x => x.AssignedGroup)" Sortable="true" Filterable="true" >
                     <Template>
                         @(new DistName(context.AssignedGroup).UserName)
                     </Template>
                 </Column>
-                <Column TableItem="RequestTask" Title="@(userConfig.GetText("start"))" Field="@(x => x.Start)" Sortable="true" Filterable="true" />
-                <Column TableItem="RequestTask" Title="@(userConfig.GetText("stop"))" Field="@(x => x.Stop)" Sortable="true" Filterable="true" />
+                <Column TableItem="RequestReqTask" Title="@(userConfig.GetText("start"))" Field="@(x => x.Start)" Sortable="true" Filterable="true" />
+                <Column TableItem="RequestReqTask" Title="@(userConfig.GetText("stop"))" Field="@(x => x.Stop)" Sortable="true" Filterable="true" />
             }
         </Table>
     </div>
@@ -112,10 +112,10 @@
     public Func<Task> ResetParent { get; set; }
 
     [Parameter]
-    public Func<RequestTask, Task>? StartPhase { get; set; }
+    public Func<RequestReqTask, Task>? StartPhase { get; set; }
 
     [Parameter]
-    public Func<ImplementationTask, Task>? StartImplPhase { get; set; }
+    public Func<RequestImplTask, Task>? StartImplPhase { get; set; }
 
 
     private async Task Reset()
@@ -125,37 +125,37 @@
         StateHasChanged();
     }
 
-    private void ShowReqTask(RequestTask reqTask)
+    private void ShowReqTask(RequestReqTask reqTask)
     {
         ReqHandler.SelectReqTask(reqTask, ObjAction.display);
     }
 
     private async Task AddReqTask()
     {
-        ReqHandler.SelectReqTask(new RequestTask(){ RuleAction = 1, Tracking = 1 }, ObjAction.add);
+        ReqHandler.SelectReqTask(new RequestReqTask(){ RuleAction = 1, Tracking = 1 }, ObjAction.add);
     }
 
-    private async Task EditReqTask(RequestTask reqTask)
+    private async Task EditReqTask(RequestReqTask reqTask)
     {
         ReqHandler.SelectReqTask(reqTask, ObjAction.edit);
     }
 
-    private async Task DeleteReqTask(RequestTask reqTask)
+    private async Task DeleteReqTask(RequestReqTask reqTask)
     {
         ReqHandler.SelectReqTaskPopUp(reqTask, ObjAction.displayDelete);
     }
 
-    private void ShowApprovals(RequestTask reqTask)
+    private void ShowApprovals(RequestReqTask reqTask)
     {
         ReqHandler.SelectReqTaskPopUp(reqTask, ObjAction.displayApprovals);
     }
 
-    private async Task AssignTask(RequestTask reqTask)
+    private async Task AssignTask(RequestReqTask reqTask)
     {
         ReqHandler.SelectReqTaskPopUp(reqTask, ObjAction.displayAssign);
     }
 
-    private async Task ContinuePhase(RequestTask reqTask)
+    private async Task ContinuePhase(RequestReqTask reqTask)
     {
         await ReqHandler.ContinuePhase(reqTask);
     }

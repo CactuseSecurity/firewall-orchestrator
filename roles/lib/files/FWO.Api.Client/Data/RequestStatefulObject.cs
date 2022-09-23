@@ -3,7 +3,16 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class StatefulObject
+    public enum RequestObjectScopes
+    {
+        None = 0,
+        Ticket = 1,
+        RequestTask = 2,
+        ImplementationTask = 3,
+        Approval = 4
+    }
+
+    public class RequestStatefulObject
     {
         [JsonProperty("state_id"), JsonPropertyName("state_id")]
         public int StateId 
@@ -62,10 +71,10 @@ namespace FWO.Api.Data
             stateChanged = false;
         }
 
-        public StatefulObject()
+        public RequestStatefulObject()
         { }
 
-        public StatefulObject(StatefulObject obj)
+        public RequestStatefulObject(RequestStatefulObject obj)
         {
             stateId = obj.stateId;
             oldStateId = obj.oldStateId;

@@ -7,14 +7,14 @@ namespace FWO.Api.Data
     {
 
         [JsonProperty("data"), JsonPropertyName("data")]
-        public List<RequestTaskWriter> Tasks { get; set; } = new List<RequestTaskWriter>();
+        public List<RequestReqTaskWriter> Tasks { get; set; } = new List<RequestReqTaskWriter>();
 
 
         public RequestTicketWriter(RequestTicket ticket)
         {
             foreach(var task in ticket.Tasks)
             {
-                Tasks.Add(new RequestTaskWriter(task));
+                Tasks.Add(new RequestReqTaskWriter(task));
             }
         }
     }

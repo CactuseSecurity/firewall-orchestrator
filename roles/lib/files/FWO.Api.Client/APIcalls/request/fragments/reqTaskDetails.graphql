@@ -65,7 +65,7 @@ fragment reqTaskDetails on request_req_task {
       ...commentDetails
     }
   }
-  owners: request_owners {
+  owners: reqtask_owners {
     owner: owner {
       id
       name

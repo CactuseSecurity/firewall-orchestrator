@@ -5044,13 +5044,13 @@
                   }
                 },
                 {
-                  "name": "request_owners",
+                  "name": "reqtask_owners",
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "owner_id",
                       "table": {
                         "schema": "public",
-                        "name": "request_owner"
+                        "name": "reqtask_owner"
                       }
                     }
                   }
@@ -7018,7 +7018,7 @@
             {
               "table": {
                 "schema": "public",
-                "name": "request_owner"
+                "name": "reqtask_owner"
               },
               "object_relationships": [
                 {
@@ -12870,13 +12870,13 @@
                   }
                 },
                 {
-                  "name": "request_owners",
+                  "name": "reqtask_owners",
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "request_task_id",
                       "table": {
                         "schema": "public",
-                        "name": "request_owner"
+                        "name": "reqtask_owner"
                       }
                     }
                   }

@@ -260,7 +260,7 @@
                         <div class="form-group row justify-content-center">
                             @foreach(var action in offeredActions)
                             {
-                                <button class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.Name</button>
+                                <button class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
                             }
                         </div>
                     </div>
@@ -340,10 +340,10 @@
     public Func<Task> ResetParent { get; set; }
 
     [Parameter]
-    public Func<RequestTask, Task>? StartPhase { get; set; }
+    public Func<RequestReqTask, Task>? StartPhase { get; set; }
 
     [Parameter]
-    public Func<ImplementationTask, Task>? StartImplPhase { get; set; }
+    public Func<RequestImplTask, Task>? StartImplPhase { get; set; }
 
 
     private List<TaskType> availableTaskTypes { get; set; } = new List<TaskType>();
@@ -379,7 +379,7 @@
         {
             InitElements();
             await InitComments();
-            offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActReqTask, ActionScopes.RequestTask, ReqHandler.Phase);
+            offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActReqTask, RequestObjectScopes.RequestTask, ReqHandler.Phase);
         }
     }
 
@@ -407,7 +407,7 @@
 
     private async Task PerformAction(RequestStateAction action)
     {
-        await ReqHandler.ActionHandler.performAction(action, ReqHandler.ActReqTask, ActionScopes.RequestTask);
+        await ReqHandler.ActionHandler.performAction(action, ReqHandler.ActReqTask, RequestObjectScopes.RequestTask);
     }
 
     private async Task InitPromoteReqTask()
@@ -415,7 +415,7 @@
         ReqHandler.SetReqTaskPopUpOpt(ObjAction.displayPromote);
     }
 
-    private async Task ConfPromoteReqTask(StatefulObject task)
+    private async Task ConfPromoteReqTask(RequestStatefulObject task)
     {
         await ReqHandler.PromoteReqTask(task);
     }
@@ -426,7 +426,7 @@
         ReqHandler.SetReqTaskPopUpOpt(ObjAction.displayApprove);
     }
 
-    private async Task ConfApproveTask(StatefulObject approval)
+    private async Task ConfApproveTask(RequestStatefulObject approval)
     {
         await ReqHandler.ApproveTask(approval);
     }

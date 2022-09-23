@@ -26,14 +26,14 @@ namespace FWO.Ui.Services
     {
         public List<RequestTicket> TicketList { get; set; } = new List<RequestTicket>();
         public RequestTicket ActTicket { get; set; } = new RequestTicket();
-        public RequestTask ActReqTask { get; set; } = new RequestTask();
-        public ImplementationTask ActImplTask { get; set; } = new ImplementationTask();
+        public RequestReqTask ActReqTask { get; set; } = new RequestReqTask();
+        public RequestImplTask ActImplTask { get; set; } = new RequestImplTask();
         public RequestApproval ActApproval { get; set; } = new RequestApproval();
 
         public WorkflowPhases Phase = WorkflowPhases.request;
         public List<Device> Devices = new List<Device>();
         public List<RequestPriority> PrioList = new List<RequestPriority>();
-        public List<ImplementationTask> AllImplTasks = new List<ImplementationTask>();
+        public List<RequestImplTask> AllImplTasks = new List<RequestImplTask>();
         public StateMatrix ActStateMatrix = new StateMatrix();
         public StateMatrix MasterStateMatrix = new StateMatrix();
         public ActionHandler ActionHandler;
@@ -99,7 +99,7 @@ namespace FWO.Ui.Services
             return stateMatrixDict.Matrices[taskType];
         }
 
-        public async Task AutoPromote(StatefulObject statefulObject, ActionScopes scope, int? toStateId)
+        public async Task AutoPromote(RequestStatefulObject statefulObject, RequestObjectScopes scope, int? toStateId)
         {
             bool promotePossible = false;
             if(toStateId != null)
@@ -121,21 +121,21 @@ namespace FWO.Ui.Services
             {
                 switch(scope)
                 {
-                    case ActionScopes.Ticket:
+                    case RequestObjectScopes.Ticket:
                         SetTicketEnv((RequestTicket)statefulObject);
                         await PromoteTicket(statefulObject);
                         break;
-                    case ActionScopes.RequestTask:
-                        SetReqTaskEnv((RequestTask)statefulObject);
+                    case RequestObjectScopes.RequestTask:
+                        SetReqTaskEnv((RequestReqTask)statefulObject);
                         ActReqTask.StateId = statefulObject.StateId;
                         await dbAcc.UpdateReqTaskStateInDb(ActReqTask);
                         break;
-                    case ActionScopes.ImplementationTask:
-                        SetImplTaskEnv((ImplementationTask)statefulObject);
+                    case RequestObjectScopes.ImplementationTask:
+                        SetImplTaskEnv((RequestImplTask)statefulObject);
                         ActImplTask.StateId = statefulObject.StateId;
                         await dbAcc.UpdateImplTaskStateInDb(ActImplTask);
                         break;
-                    case ActionScopes.Approval:
+                    case RequestObjectScopes.Approval:
                         await SetApprovalEnv();
                         await ApproveTask(statefulObject);
                         break;
@@ -162,7 +162,7 @@ namespace FWO.Ui.Services
         public void SetTicketEnv(RequestTicket ticket)
         {
             ActTicket = ticket;
-            AllImplTasks = new List<ImplementationTask>();
+            AllImplTasks = new List<RequestImplTask>();
             foreach(var reqTask in ActTicket.Tasks)
             {
                 foreach(var implTask in reqTask.ImplementationTasks)
@@ -198,7 +198,7 @@ namespace FWO.Ui.Services
             DisplaySaveTicketMode = false;
         }
 
-        public async Task SaveTicket(StatefulObject ticket)
+        public async Task SaveTicket(RequestStatefulObject ticket)
         {
             try
             {
@@ -209,7 +209,7 @@ namespace FWO.Ui.Services
                 }
                 if (CheckTicketValues())
                 {
-                    foreach(RequestTask reqTask in ActTicket.Tasks)
+                    foreach(RequestReqTask reqTask in ActTicket.Tasks)
                     {
                         reqTask.StateId = ActTicket.StateId;
                     }
@@ -236,7 +236,7 @@ namespace FWO.Ui.Services
                     }
 
                     // update of request tasks and creation of impl tasks may be necessary
-                    foreach(RequestTask task in ActTicket.Tasks)
+                    foreach(RequestReqTask task in ActTicket.Tasks)
                     {
                         List<int> ticketStateList = new List<int>();
                         ticketStateList.Add(ActTicket.StateId);
@@ -261,7 +261,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task PromoteTicket(StatefulObject ticket)
+        public async Task PromoteTicket(RequestStatefulObject ticket)
         {
             try
             {
@@ -278,19 +278,19 @@ namespace FWO.Ui.Services
 
         // Request Tasks
         
-        public void SelectReqTask (RequestTask reqTask, ObjAction action)
+        public void SelectReqTask (RequestReqTask reqTask, ObjAction action)
         {
             SetReqTaskEnv(reqTask);
             SetReqTaskMode(action);
         }
 
-        public void SelectReqTaskPopUp (RequestTask reqTask, ObjAction action)
+        public void SelectReqTaskPopUp (RequestReqTask reqTask, ObjAction action)
         {
             SetReqTaskEnv(reqTask);
             SetReqTaskPopUpOpt(action);
         }
 
-        public void SetReqTaskEnv (RequestTask reqTask)
+        public void SetReqTaskEnv (RequestReqTask reqTask)
         {
             ActReqTask = reqTask;
             RequestTicket? tick = TicketList.FirstOrDefault(x => x.Id == ActReqTask.TicketId);
@@ -337,7 +337,7 @@ namespace FWO.Ui.Services
             DisplayCommentMode = false;
         }
 
-        public async Task StartWorkOnReqTask(RequestTask reqTask, ObjAction action)
+        public async Task StartWorkOnReqTask(RequestReqTask reqTask, ObjAction action)
         {
             SetReqTaskEnv(reqTask);
             reqTask.CurrentHandler = userConfig.User;
@@ -352,7 +352,7 @@ namespace FWO.Ui.Services
             SetReqTaskMode(action);
         }
 
-        public async Task ContinuePhase(RequestTask reqTask)
+        public async Task ContinuePhase(RequestReqTask reqTask)
         {
             SelectReqTask(reqTask, contOption);
             if(reqTask.CurrentHandler != userConfig.User)
@@ -363,7 +363,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task AssignReqTaskGroup(StatefulObject statefulObject)
+        public async Task AssignReqTaskGroup(RequestStatefulObject statefulObject)
         {
             ActReqTask.AssignedGroup = statefulObject.AssignedGroup;
             ActReqTask.RecentHandler = ActReqTask.CurrentHandler;
@@ -417,7 +417,7 @@ namespace FWO.Ui.Services
         {
             RequestComment comment = new RequestComment()
             {
-                Scope = ActionScopes.RequestTask.ToString(),
+                Scope = RequestObjectScopes.RequestTask.ToString(),
                 CreationDate = DateTime.Now,
                 Creator = userConfig.User,
                 CommentText = commentText
@@ -431,7 +431,7 @@ namespace FWO.Ui.Services
             DisplayCommentMode = false;
         }
 
-        public async Task PromoteReqTask(StatefulObject reqTask)
+        public async Task PromoteReqTask(RequestStatefulObject reqTask)
         {
             try
             {
@@ -449,7 +449,7 @@ namespace FWO.Ui.Services
 
                 if(Phase == WorkflowPhases.planning)
                 {
-                    foreach(ImplementationTask implTask in ActReqTask.ImplementationTasks)
+                    foreach(RequestImplTask implTask in ActReqTask.ImplementationTasks)
                     {
                         implTask.StateId = ActReqTask.StateId;
                         await dbAcc.UpdateImplTaskStateInDb(implTask);
@@ -534,7 +534,7 @@ namespace FWO.Ui.Services
             ActReqTask.Approvals.Add(approval);
         }
 
-        public async Task ApproveTask(StatefulObject approval)
+        public async Task ApproveTask(RequestStatefulObject approval)
         {
             try
             {
@@ -567,7 +567,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task AssignApprovalGroup(StatefulObject statefulObject)
+        public async Task AssignApprovalGroup(RequestStatefulObject statefulObject)
         {
             ActApproval.AssignedGroup = statefulObject.AssignedGroup;
             // ActApproval.RecentHandler = ActApproval.CurrentHandler;
@@ -590,7 +590,7 @@ namespace FWO.Ui.Services
         {
             RequestComment comment = new RequestComment()
             {
-                Scope = ActionScopes.Approval.ToString(),
+                Scope = RequestObjectScopes.Approval.ToString(),
                 CreationDate = DateTime.Now,
                 Creator = userConfig.User,
                 CommentText = commentText
@@ -607,26 +607,26 @@ namespace FWO.Ui.Services
 
         // Implementation Tasks
 
-        public void SelectImplTask(ImplementationTask implTask, ObjAction action)
+        public void SelectImplTask(RequestImplTask implTask, ObjAction action)
         {
             SetImplTaskEnv(implTask);
             SetImplTaskOpt(action);
         }
 
-        public void SelectImplTaskPopUp (ImplementationTask implTask, ObjAction action)
+        public void SelectImplTaskPopUp (RequestImplTask implTask, ObjAction action)
         {
             SetImplTaskEnv(implTask);
             SetImplTaskPopUpOpt(action);
         }
 
-        public void SetImplTaskEnv(ImplementationTask implTask)
+        public void SetImplTaskEnv(RequestImplTask implTask)
         {
             ActImplTask = implTask;
             RequestTicket? tick = TicketList.FirstOrDefault(x => x.Id == ActImplTask.TicketId);
             if(tick != null)
             {
                 ActTicket = tick;
-                RequestTask? reqTask = ActTicket.Tasks.FirstOrDefault(x => x.Id == ActImplTask.ReqTaskId);
+                RequestReqTask? reqTask = ActTicket.Tasks.FirstOrDefault(x => x.Id == ActImplTask.ReqTaskId);
                 if(reqTask != null)
                 {
                     ActReqTask = reqTask;
@@ -667,7 +667,7 @@ namespace FWO.Ui.Services
             DisplayApprovalMode = false;
         }
 
-        public async Task StartWorkOnImplTask(ImplementationTask implTask, ObjAction action)
+        public async Task StartWorkOnImplTask(RequestImplTask implTask, ObjAction action)
         {
             SetImplTaskEnv(implTask);
             implTask.CurrentHandler = userConfig.User;
@@ -686,7 +686,7 @@ namespace FWO.Ui.Services
             SetImplTaskOpt(action);
         }
 
-        public async Task ContinueImplPhase(ImplementationTask implTask)
+        public async Task ContinueImplPhase(RequestImplTask implTask)
         {
             SelectImplTask(implTask, contOption);
             if(implTask.CurrentHandler != userConfig.User)
@@ -697,7 +697,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task AssignImplTaskGroup(StatefulObject statefulObject)
+        public async Task AssignImplTaskGroup(RequestStatefulObject statefulObject)
         {
             ActImplTask.AssignedGroup = statefulObject.AssignedGroup;
             ActImplTask.RecentHandler = ActImplTask.CurrentHandler;
@@ -732,7 +732,7 @@ namespace FWO.Ui.Services
         {
             RequestComment comment = new RequestComment()
             {
-                Scope = ActionScopes.ImplementationTask.ToString(),
+                Scope = RequestObjectScopes.ImplementationTask.ToString(),
                 CreationDate = DateTime.Now,
                 Creator = userConfig.User,
                 CommentText = commentText
@@ -746,7 +746,7 @@ namespace FWO.Ui.Services
             DisplayCommentMode = false;
         }
 
-        public async Task PromoteImplTask(StatefulObject implTask)
+        public async Task PromoteImplTask(RequestStatefulObject implTask)
         {
             try
             {
@@ -789,9 +789,9 @@ namespace FWO.Ui.Services
             }
         }
 
-        private async Task AutoCreateImplTasks(RequestTask reqTask)
+        private async Task AutoCreateImplTasks(RequestReqTask reqTask)
         {
-            ImplementationTask newImplTask;
+            RequestImplTask newImplTask;
             switch (userConfig.ReqAutoCreateImplTasks)
             {
                 case AutoCreateImplTaskOptions.never:
@@ -799,7 +799,7 @@ namespace FWO.Ui.Services
                 case AutoCreateImplTaskOptions.onlyForOneDevice:
                     if(Devices.Count == 1)
                     {
-                        newImplTask = new ImplementationTask(reqTask)
+                        newImplTask = new RequestImplTask(reqTask)
                             { TaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = Devices[0].Id, StateId = reqTask.StateId };
                         newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
                         reqTask.ImplementationTasks.Add(newImplTask);
@@ -808,7 +808,7 @@ namespace FWO.Ui.Services
                 case AutoCreateImplTaskOptions.forEachDevice:
                     foreach(var device in Devices)
                     {
-                        newImplTask = new ImplementationTask(reqTask)
+                        newImplTask = new RequestImplTask(reqTask)
                             { TaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = device.Id, StateId = reqTask.StateId };
                         newImplTask.Title += ": "+ Devices[Devices.FindIndex(x => x.Id == device.Id)].Name;
                         newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
@@ -816,7 +816,7 @@ namespace FWO.Ui.Services
                     }
                     break;
                 case AutoCreateImplTaskOptions.enterInReqTask:
-                    newImplTask = new ImplementationTask(reqTask)
+                    newImplTask = new RequestImplTask(reqTask)
                         { TaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = reqTask.DeviceId, StateId = reqTask.StateId };
                     newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
                     reqTask.ImplementationTasks.Add(newImplTask);
@@ -850,7 +850,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task UpdateReqTaskStateFromImplTasks(RequestTask reqTask)
+        public async Task UpdateReqTaskStateFromImplTasks(RequestReqTask reqTask)
         {
             if (reqTask.ImplementationTasks.Count > 0)
             {
@@ -867,7 +867,7 @@ namespace FWO.Ui.Services
         public async Task UpdateTicketStateFromImplTasks()
         {
             List<int> taskStates = new List<int>();
-            foreach (RequestTask reqTask in ActTicket.Tasks)
+            foreach (RequestReqTask reqTask in ActTicket.Tasks)
             {
                 await UpdateReqTaskStateFromImplTasks(reqTask);
             }
@@ -879,7 +879,7 @@ namespace FWO.Ui.Services
             if (ActTicket.Tasks.Count > 0)
             {
                 List<int> taskStates = new List<int>();
-                foreach (RequestTask tsk in ActTicket.Tasks)
+                foreach (RequestReqTask tsk in ActTicket.Tasks)
                 {
                     taskStates.Add(tsk.StateId);
                 }
@@ -924,7 +924,7 @@ namespace FWO.Ui.Services
             return true;
         }
 
-        private bool CheckAssignValues(StatefulObject statefulObject)
+        private bool CheckAssignValues(RequestStatefulObject statefulObject)
         {
             if (statefulObject.AssignedGroup == null || statefulObject.AssignedGroup == "")
             {

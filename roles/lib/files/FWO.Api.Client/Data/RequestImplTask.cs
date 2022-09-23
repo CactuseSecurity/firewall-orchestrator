@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class ImplementationTask: TaskBase
+    public class RequestImplTask: RequestTaskBase
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public long Id { get; set; }
@@ -15,20 +15,20 @@ namespace FWO.Api.Data
         public string ImplAction { get; set; } = FWO.Api.Data.RequestAction.create.ToString();
 
         [JsonProperty("elements"), JsonPropertyName("elements")]
-        public List<ImplementationElement> ImplElements { get; set; } = new List<ImplementationElement>();
+        public List<RequestImplElement> ImplElements { get; set; } = new List<RequestImplElement>();
 
         [JsonProperty("comments"), JsonPropertyName("comments")]
         public List<RequestCommentDataHelper> Comments { get; set; } = new List<RequestCommentDataHelper>();
 
 
-        public List<ImplementationElement> RemovedElements { get; set; } = new List<ImplementationElement>();
+        public List<RequestImplElement> RemovedElements { get; set; } = new List<RequestImplElement>();
         public long TicketId { get; set; }
 
 
-        public ImplementationTask()
+        public RequestImplTask()
         { }
 
-        public ImplementationTask(RequestTask task, bool copyComments = true)
+        public RequestImplTask(RequestReqTask task, bool copyComments = true)
         {
             Id = 0;
             Title = task.Title;
@@ -53,17 +53,17 @@ namespace FWO.Api.Data
             DeviceId = task.DeviceId;
             if (task.Elements != null && task.Elements.Count > 0)
             {
-                ImplElements = new List<ImplementationElement>();
-                foreach(RequestElement element in task.Elements)
+                ImplElements = new List<RequestImplElement>();
+                foreach(RequestReqElement element in task.Elements)
                 {
-                    ImplElements.Add(new ImplementationElement(element));
+                    ImplElements.Add(new RequestImplElement(element));
                 }
             }
             if(copyComments)
             {
                 foreach(var comm in task.Comments)
                 {
-                    comm.Comment.Scope = ActionScopes.ImplementationTask.ToString();
+                    comm.Comment.Scope = RequestObjectScopes.ImplementationTask.ToString();
                     Comments.Add(comm);
                 }
             }

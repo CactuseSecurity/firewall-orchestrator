@@ -15,8 +15,8 @@
 @if (AllImplTasks != null && AllImplTasks.Count > 0)
 {
     <div class="m-2">
-        <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="ImplementationTask" Items="AllImplTasks" PageSize="0" ColumnReorder="true">
-            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+        <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="RequestImplTask" Items="AllImplTasks" PageSize="0" ColumnReorder="true">
+            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                 <Template>
                     <div class="btn-group">
                         <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowImplTask(implTask)">@(userConfig.GetText("details"))</button>
@@ -51,45 +51,45 @@
                     </div>
                 </Template>
             </Column>
-            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
-            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("type"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" >
+            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("type"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" >
                 <Template>
                     @(userConfig.GetText(implTask.TaskType))
                 </Template>
             </Column>
             @if(DeviceView)
             {
-                <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("ticket"))" Field="@(x => x.TicketId)" Sortable="true" Filterable="false" >
+                <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("ticket"))" Field="@(x => x.TicketId)" Sortable="true" Filterable="false" >
                     <Template>
                         @(implTask.TicketId != 0 ? ReqHandler.TicketList[ReqHandler.TicketList.FindIndex(x => x.Id == implTask.TicketId)].Title : "")
                     </Template>
                 </Column>
-                <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("task"))" Field="@(x => x.ReqTaskId)" Sortable="true" Filterable="false" >
+                <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("task"))" Field="@(x => x.ReqTaskId)" Sortable="true" Filterable="false" >
                     <Template>
                         @(implTask.TicketId != 0 && implTask.ReqTaskId != 0 ?
                             ReqHandler.TicketList[ReqHandler.TicketList.FindIndex(x => x.Id == implTask.TicketId)].Tasks.FirstOrDefault(x => x.Id == implTask.ReqTaskId).Title : "")
                     </Template>
                 </Column>
             }
-            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("number"))" Field="@(x => x.TaskNumber)" Sortable="true" Filterable="true" />
-            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("gateway"))" Field="@(x => x.DeviceId)" Sortable="true">
+            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("number"))" Field="@(x => x.TaskNumber)" Sortable="true" Filterable="true" />
+            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("gateway"))" Field="@(x => x.DeviceId)" Sortable="true">
                 <Template>
                     @(implTask.DeviceId != null && implTask.DeviceId != 0 ? ReqHandler.Devices[ReqHandler.Devices.FindIndex(x => x.Id == implTask.DeviceId)].Name : "")
                 </Template>
             </Column>
-            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
+            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
                 <Template>
                     @(States.Name[implTask.StateId])
                 </Template>
             </Column>
-            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("implementer"))" Field="@(x => x.CurrentHandler.Name)" Sortable="true" Filterable="true" />
-            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("assigned"))" Field="@(x => x.AssignedGroup)" Sortable="true" Filterable="true" >
+            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("implementer"))" Field="@(x => x.CurrentHandler.Name)" Sortable="true" Filterable="true" />
+            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("assigned"))" Field="@(x => x.AssignedGroup)" Sortable="true" Filterable="true" >
                 <Template>
                     @(new DistName(implTask.AssignedGroup).UserName)
                 </Template>
             </Column>
-            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("start"))" Field="@(x => x.Start)" Sortable="true" Filterable="true" />
-            <Column Context="implTask" TableItem="ImplementationTask" Title="@(userConfig.GetText("stop"))" Field="@(x => x.Stop)" Sortable="true" Filterable="true" />
+            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("start"))" Field="@(x => x.Start)" Sortable="true" Filterable="true" />
+            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("stop"))" Field="@(x => x.Stop)" Sortable="true" Filterable="true" />
         </Table>
     </div>
 }
@@ -118,13 +118,13 @@
     public Func<Task> ResetParent { get; set; }
 
     [Parameter]
-    public List<ImplementationTask>? AllImplTasks { get; set; } = new List<ImplementationTask>();
+    public List<RequestImplTask>? AllImplTasks { get; set; } = new List<RequestImplTask>();
 
     [Parameter]
     public bool DeviceView { get; set; } = false;
 
     [Parameter]
-    public Func<ImplementationTask, Task>? StartImplPhase { get; set; }
+    public Func<RequestImplTask, Task>? StartImplPhase { get; set; }
 
 
     private async Task Reset()
@@ -134,7 +134,7 @@
         StateHasChanged();
     }
 
-    private void ShowImplTask(ImplementationTask implTask)
+    private void ShowImplTask(RequestImplTask implTask)
     {
         ReqHandler.SelectImplTask(implTask, ObjAction.display);
     }
@@ -142,7 +142,7 @@
     private void AddImplTask()
     {
 
-        ImplementationTask newTask = new ImplementationTask(ReqHandler.ActReqTask, false)
+        RequestImplTask newTask = new RequestImplTask(ReqHandler.ActReqTask, false)
         {
             TaskNumber = ReqHandler.ActReqTask.HighestImplTaskNumber() + 1,
             DeviceId = (ReqHandler.Devices.Count > 0 ? ReqHandler.Devices[0].Id : 0)
@@ -154,27 +154,27 @@
         ReqHandler.SelectImplTask(newTask, ObjAction.add);
     }
 
-    private void EditImplTask(ImplementationTask implTask)
+    private void EditImplTask(RequestImplTask implTask)
     {
         ReqHandler.SelectImplTask(implTask, ObjAction.edit);
     }
 
-    private void DeleteImplTask(ImplementationTask implTask)
+    private void DeleteImplTask(RequestImplTask implTask)
     {
         ReqHandler.SelectImplTaskPopUp(implTask, ObjAction.displayDelete);
     }
 
-    private void ShowApprovals(ImplementationTask implTask)
+    private void ShowApprovals(RequestImplTask implTask)
     {
         ReqHandler.SelectImplTaskPopUp(implTask, ObjAction.displayApprovals);
     }
 
-    private async Task AssignImplTask(ImplementationTask implTask)
+    private async Task AssignImplTask(RequestImplTask implTask)
     {
         ReqHandler.SelectImplTaskPopUp(implTask, ObjAction.displayAssign);
     }
 
-    private async Task ContinueImplPhase(ImplementationTask implTask)
+    private async Task ContinueImplPhase(RequestImplTask implTask)
     {
         await ReqHandler.ContinueImplPhase(implTask);
     }

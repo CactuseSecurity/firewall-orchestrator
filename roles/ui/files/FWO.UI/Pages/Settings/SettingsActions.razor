@@ -64,7 +64,7 @@
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("action_type"))*:</label>
                             <select class="col-sm-8 form-control form-control-sm" @bind="actAction.ActionType">
-                                @foreach (string action in Enum.GetNames(typeof(ActionTypes)))
+                                @foreach (string action in Enum.GetNames(typeof(StateActionTypes)))
                                 {
                                     <option value="@action">@action</option>
                                     @* <option value="@action">@(userConfig.GetText(action))</option> *@
@@ -76,7 +76,7 @@
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("event")):</label>
                             <select class="col-sm-8 form-control form-control-sm" @bind="actAction.Event">
-                                @foreach (string eventt in Enum.GetNames(typeof(ActionEvents)))
+                                @foreach (string eventt in Enum.GetNames(typeof(StateActionEvents)))
                                 {
                                     <option value="@eventt">@eventt</option>
                                     @* <option value="@eventt">@(userConfig.GetText(eventt))</option> *@
@@ -84,7 +84,7 @@
                             </select>
                         </div>
                     </div>
-                    @if(actAction.Event == ActionEvents.OfferButton.ToString())
+                    @if(actAction.Event == StateActionEvents.OfferButton.ToString())
                     {
                         <div class="col-sm-4">
                             <div class="form-group row">
@@ -111,7 +111,7 @@
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("scope")):</label>
                             <select class="col-sm-8 form-control form-control-sm" @bind="actAction.Scope">
-                                @foreach (string scope in Enum.GetNames(typeof(ActionScopes)))
+                                @foreach (string scope in Enum.GetNames(typeof(RequestObjectScopes)))
                                 {
                                     <option value="@scope">@scope</option>
                                     @* <option value="@scope">@(userConfig.GetText(scope))</option> *@
@@ -119,7 +119,7 @@
                             </select>
                         </div>
                     </div>
-                    @if(actAction.Scope == ActionScopes.RequestTask.ToString() || actAction.Scope == ActionScopes.ImplementationTask.ToString())
+                    @if(actAction.Scope == RequestObjectScopes.RequestTask.ToString() || actAction.Scope == RequestObjectScopes.ImplementationTask.ToString())
                     {
                         <div class="col-sm-4">
                             <div class="form-group row">
@@ -142,7 +142,7 @@
                 <div class="form-group row">
                     @switch (actAction.ActionType)
                     {
-                        case nameof(ActionTypes.AutoPromote):
+                        case nameof(StateActionTypes.AutoPromote):
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("to_state")):</label>
                             <select id="selectState" class="col-sm-3 form-control form-control-sm" @bind="toState">
                                 <option value="-1">@(userConfig.GetText("automatic"))</option>
@@ -152,11 +152,11 @@
                                 }
                             </select>
                             break;
-                        case nameof(ActionTypes.SetAlert):
+                        case nameof(StateActionTypes.SetAlert):
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("message_text")):</label>
                             <input type="text" class="col-sm-9 form-control form-control-sm" @bind="message" />
                             break;
-                        case nameof(ActionTypes.AddApproval):
+                        case nameof(StateActionTypes.AddApproval):
                             <div class="col-sm-4">
                                 <div class="form-group row">
                                     <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
@@ -190,7 +190,7 @@
                                 </div>
                             </div>
                             break;
-                        case nameof(ActionTypes.ExternalCall):
+                        case nameof(StateActionTypes.ExternalCall):
                             break;
                         default:
                             break;
@@ -293,16 +293,16 @@ else
         {
             switch(action.ActionType)
             {
-                case nameof(ActionTypes.AutoPromote):
+                case nameof(StateActionTypes.AutoPromote):
                     toState = Convert.ToInt32(action.ExternalParams);
                     break;
-                case nameof(ActionTypes.SetAlert):
+                case nameof(StateActionTypes.SetAlert):
                     message = actAction.ExternalParams;
                     break;
-                case nameof(ActionTypes.AddApproval):
+                case nameof(StateActionTypes.AddApproval):
                     actApprovalParams = System.Text.Json.JsonSerializer.Deserialize<ApprovalParams>(action.ExternalParams) ?? throw new Exception("Extparams could not be parsed.");
                     break;
-                case nameof(ActionTypes.ExternalCall):
+                case nameof(StateActionTypes.ExternalCall):
                     break;
                 default:
                     break;
@@ -317,16 +317,16 @@ else
         {
             switch(actAction.ActionType)
             {
-                case nameof(ActionTypes.AutoPromote):
+                case nameof(StateActionTypes.AutoPromote):
                     actAction.ExternalParams = toState.ToString();
                     break;
-                case nameof(ActionTypes.SetAlert):
+                case nameof(StateActionTypes.SetAlert):
                     actAction.ExternalParams = message;
                     break;
-                case nameof(ActionTypes.AddApproval):
+                case nameof(StateActionTypes.AddApproval):
                     actAction.ExternalParams = JsonSerializer.Serialize(actApprovalParams);
                     break;
-                case nameof(ActionTypes.ExternalCall):
+                case nameof(StateActionTypes.ExternalCall):
                     break;
                 default:
                     break;

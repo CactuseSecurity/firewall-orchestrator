@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public enum ActionTypes
+    public enum StateActionTypes
     {
         DoNothing = 0,
         AutoPromote = 1,
@@ -12,16 +12,7 @@ namespace FWO.Api.Data
         ExternalCall = 10
     }
 
-    public enum ActionScopes
-    {
-        None = 0,
-        Ticket = 1,
-        RequestTask = 2,
-        ImplementationTask = 3,
-        Approval = 4
-    }
-
-    public enum ActionEvents
+    public enum StateActionEvents
     {
         None = 0,
         OnSet = 1,
@@ -39,10 +30,10 @@ namespace FWO.Api.Data
         public string Name { get; set; } = "";
 
         [JsonProperty("action_type"), JsonPropertyName("action_type")]
-        public string ActionType { get; set; } = ActionTypes.DoNothing.ToString();
+        public string ActionType { get; set; } = StateActionTypes.DoNothing.ToString();
 
         [JsonProperty("scope"), JsonPropertyName("scope")]
-        public string Scope { get; set; } = ActionScopes.None.ToString();
+        public string Scope { get; set; } = RequestObjectScopes.None.ToString();
 
         [JsonProperty("task_type"), JsonPropertyName("task_type")]
         public string TaskType { get; set; } = "";
@@ -51,7 +42,7 @@ namespace FWO.Api.Data
         public string Phase { get; set; } = "";
 
         [JsonProperty("event"), JsonPropertyName("event")]
-        public string? Event { get; set; } = ActionEvents.None.ToString();
+        public string? Event { get; set; } = StateActionEvents.None.ToString();
 
         [JsonProperty("button_text"), JsonPropertyName("button_text")]
         public string? ButtonText { get; set; } = "";

@@ -70,10 +70,10 @@
     public bool WithComment { get; set; } = false;
 
     [Parameter]
-    public Func<StatefulObject, Task>? Save { get; set; }
+    public Func<RequestStatefulObject, Task>? Save { get; set; }
 
     [Parameter]
-    public StatefulObject StatefulObject { get; set; } = new StatefulObject();
+    public RequestStatefulObject StatefulObject { get; set; } = new RequestStatefulObject();
 
     [Parameter]
     public StateMatrix StateMatrix { get; set; } = new StateMatrix();

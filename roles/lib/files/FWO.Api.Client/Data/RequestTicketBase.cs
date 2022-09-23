@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class RequestTicketBase: StatefulObject
+    public class RequestTicketBase: RequestStatefulObject
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public long Id { get; set; }

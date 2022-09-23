@@ -1132,7 +1132,7 @@ create table if not exists owner_network
     ip_proto_id int
 );
 
-create table if not exists request_owner
+create table if not exists reqtask_owner
 (
     request_task_id bigint,
     owner_id int

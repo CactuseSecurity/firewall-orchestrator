@@ -80,10 +80,10 @@
     public Func<Task> ResetParent { get; set; }
 
     [Parameter]
-    public StatefulObject StatefulObject { get; set; } = new StatefulObject();
+    public RequestStatefulObject StatefulObject { get; set; } = new RequestStatefulObject();
 
     [Parameter]
-    public Func<StatefulObject, Task>? Assign { get; set; }
+    public Func<RequestStatefulObject, Task>? Assign { get; set; }
 
     [Parameter]
     public Func<Task>? AssignBack { get; set; }

@@ -51,7 +51,7 @@
         await reqHandler.Init();
     }
     
-    private async Task StartReviewTask(ImplementationTask implTask)
+    private async Task StartReviewTask(RequestImplTask implTask)
     {
         await reqHandler.StartWorkOnImplTask(implTask, ObjAction.review);
     }

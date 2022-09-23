@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class RequestTaskWriter : RequestTaskBase
+    public class RequestReqTaskWriter : RequestReqTaskBase
     {
         [JsonProperty("elements"), JsonPropertyName("elements")]
         public RequestElementDataHelper Elements { get; set; } = new RequestElementDataHelper();
@@ -11,11 +11,11 @@ namespace FWO.Api.Data
         [JsonProperty("approvals"), JsonPropertyName("approvals")]
         public RequestApprovalDataHelper Approvals { get; set; } = new RequestApprovalDataHelper();
 
-        public RequestTaskWriter(RequestTask task) : base(task)
+        public RequestReqTaskWriter(RequestReqTask task) : base(task)
         {
             foreach(var element in task.Elements)
             {
-                Elements.RequestElementList.Add(new RequestElementWriter(element));
+                Elements.RequestElementList.Add(new RequestReqElementWriter(element));
             }
             foreach(var approval in task.Approvals)
             {
@@ -27,7 +27,7 @@ namespace FWO.Api.Data
     public class RequestElementDataHelper
     {
         [JsonProperty("data"), JsonPropertyName("data")]
-        public List<RequestElementWriter> RequestElementList { get; set; } = new List<RequestElementWriter>();
+        public List<RequestReqElementWriter> RequestElementList { get; set; } = new List<RequestReqElementWriter>();
     }
 
     public class RequestApprovalDataHelper

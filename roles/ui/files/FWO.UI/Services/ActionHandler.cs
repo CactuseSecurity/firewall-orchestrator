@@ -25,15 +25,15 @@ namespace FWO.Ui.Services
         }
 
 
-        private List<RequestStateAction> getRelevantActions(StatefulObject statefulObject, ActionScopes scope, bool toState=true)
+        private List<RequestStateAction> getRelevantActions(RequestStatefulObject statefulObject, RequestObjectScopes scope, bool toState=true)
         {
             List<RequestStateAction> stateActions = new List<RequestStateAction>();
             int searchedStateId = (toState ? statefulObject.StateId : statefulObject.ChangedFrom());
             foreach(var actionHlp in states.FirstOrDefault(x => x.Id == searchedStateId)?.Actions ?? throw new Exception("Unknown stateId."))
             {
                 if(actionHlp.Action.Scope == scope.ToString() 
-                    && (!(actionHlp.Action.Scope == ActionScopes.RequestTask.ToString() || actionHlp.Action.Scope == ActionScopes.ImplementationTask.ToString())
-                     || actionHlp.Action.TaskType == "" || actionHlp.Action.TaskType == ((TaskBase)statefulObject).TaskType))
+                    && (!(actionHlp.Action.Scope == RequestObjectScopes.RequestTask.ToString() || actionHlp.Action.Scope == RequestObjectScopes.ImplementationTask.ToString())
+                     || actionHlp.Action.TaskType == "" || actionHlp.Action.TaskType == ((RequestTaskBase)statefulObject).TaskType))
                 {
                     stateActions.Add(actionHlp.Action);
                 }
@@ -41,11 +41,11 @@ namespace FWO.Ui.Services
             return stateActions;
         }
 
-        public List<RequestStateAction> GetOfferedActions(StatefulObject statefulObject, ActionScopes scope, WorkflowPhases phase)
+        public List<RequestStateAction> GetOfferedActions(RequestStatefulObject statefulObject, RequestObjectScopes scope, WorkflowPhases phase)
         {
             List<RequestStateAction> offeredActions = new List<RequestStateAction>();
             List<RequestStateAction> stateActions = getRelevantActions(statefulObject, scope);
-            foreach(var action in stateActions.Where(x => (x.Event == ActionEvents.OfferButton.ToString())))
+            foreach(var action in stateActions.Where(x => (x.Event == StateActionEvents.OfferButton.ToString())))
             {
                 if(action.Phase == "" || action.Phase == phase.ToString())
                 {
@@ -55,17 +55,17 @@ namespace FWO.Ui.Services
             return offeredActions;
         }
 
-        public async Task DoStateChangeActions(StatefulObject statefulObject, ActionScopes scope)
+        public async Task DoStateChangeActions(RequestStatefulObject statefulObject, RequestObjectScopes scope)
         {
             if (statefulObject.StateChanged())
             {
                 List<RequestStateAction> stateActions = getRelevantActions(statefulObject, scope);
-                foreach(var action in stateActions.Where(x => (x.Event == ActionEvents.OnSet.ToString())))
+                foreach(var action in stateActions.Where(x => (x.Event == StateActionEvents.OnSet.ToString())))
                 {
                     await performAction(action, statefulObject, scope);
                 }
                 List<RequestStateAction> fromStateActions = getRelevantActions(statefulObject, scope, false);
-                foreach(var action in fromStateActions.Where(x => (x.Event == ActionEvents.OnLeave.ToString())))
+                foreach(var action in fromStateActions.Where(x => (x.Event == StateActionEvents.OnLeave.ToString())))
                 {
                     await performAction(action, statefulObject, scope);
                 }
@@ -73,24 +73,24 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task performAction(RequestStateAction action, StatefulObject statefulObject, ActionScopes scope)
+        public async Task performAction(RequestStateAction action, RequestStatefulObject statefulObject, RequestObjectScopes scope)
         {
             switch(action.ActionType)
             {
-                case nameof(ActionTypes.AutoPromote):
+                case nameof(StateActionTypes.AutoPromote):
                     int? toState = (action.ExternalParams != "" ? Convert.ToInt32(action.ExternalParams) : null);
                     if(toState == null || states.FirstOrDefault(x => x.Id == toState) != null)
                     {
                         await requestHandler.AutoPromote(statefulObject, scope, toState);
                     }
                     break;
-                case nameof(ActionTypes.SetAlert):
+                case nameof(StateActionTypes.SetAlert):
                     await setAlert(action.ExternalParams);
                     break;
-                case nameof(ActionTypes.AddApproval):
+                case nameof(StateActionTypes.AddApproval):
                     await requestHandler.AddApproval(action.ExternalParams);
                     break;
-                case nameof(ActionTypes.ExternalCall):
+                case nameof(StateActionTypes.ExternalCall):
                     await callExternal(action);
                     break;
                 default:

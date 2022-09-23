@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class RequestApprovalBase : StatefulObject
+    public class RequestApprovalBase : RequestStatefulObject
     {
         [JsonProperty("date_opened"), JsonPropertyName("date_opened")]
         public DateTime DateOpened { get; set; } = DateTime.Now;

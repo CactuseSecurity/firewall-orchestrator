@@ -79,10 +79,10 @@
     public Func<Task> ResetParent { get; set; }
 
     [Parameter]
-    public Func<RequestTask, Task>? StartPhase { get; set; }
+    public Func<RequestReqTask, Task>? StartPhase { get; set; }
 
     [Parameter]
-    public Func<ImplementationTask, Task>? StartImplPhase { get; set; }
+    public Func<RequestImplTask, Task>? StartImplPhase { get; set; }
 
 
     private async Task Reset()

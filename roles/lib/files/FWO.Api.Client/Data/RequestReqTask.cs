@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class RequestTask : RequestTaskBase
+    public class RequestReqTask : RequestReqTaskBase
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public long Id { get; set; }
@@ -12,10 +12,10 @@ namespace FWO.Api.Data
         public long TicketId { get; set; }
 
         [JsonProperty("elements"), JsonPropertyName("elements")]
-        public List<RequestElement> Elements { get; set; } = new List<RequestElement>();
+        public List<RequestReqElement> Elements { get; set; } = new List<RequestReqElement>();
 
         [JsonProperty("implementation_tasks"), JsonPropertyName("implementation_tasks")]
-        public List<ImplementationTask> ImplementationTasks { get; set; } = new List<ImplementationTask>();
+        public List<RequestImplTask> ImplementationTasks { get; set; } = new List<RequestImplTask>();
 
         [JsonProperty("request_approvals"), JsonPropertyName("request_approvals")]
         public List<RequestApproval> Approvals { get; set; } = new List<RequestApproval>();
@@ -26,13 +26,13 @@ namespace FWO.Api.Data
         [JsonProperty("comments"), JsonPropertyName("comments")]
         public List<RequestCommentDataHelper> Comments { get; set; } = new List<RequestCommentDataHelper>();
 
-        public List<RequestElement> RemovedElements { get; set; } = new List<RequestElement>();
+        public List<RequestReqElement> RemovedElements { get; set; } = new List<RequestReqElement>();
 
 
-        public RequestTask()
+        public RequestReqTask()
         { }
 
-        public RequestTask(RequestTask task) : base(task)
+        public RequestReqTask(RequestReqTask task) : base(task)
         {
             Id = task.Id;
             TicketId = task.TicketId;

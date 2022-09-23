@@ -52,7 +52,7 @@
         await reqHandler.Init();
     }
 
-    private async Task StartPlanTask(RequestTask reqTask)
+    private async Task StartPlanTask(RequestReqTask reqTask)
     {
         reqTask.Start = DateTime.Now;
         await reqHandler.StartWorkOnReqTask(reqTask, ObjAction.plan);

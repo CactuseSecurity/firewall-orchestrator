@@ -53,7 +53,7 @@
 
     private bool DisplayTickets = true;
     private int DeviceId = -1;
-    private List<ImplementationTask> allImplTasks = new List<ImplementationTask>();
+    private List<RequestImplTask> allImplTasks = new List<RequestImplTask>();
 
 
     protected override async Task OnInitializedAsync()
@@ -76,7 +76,7 @@
 
     private async Task SelectDevice()
     {
-        allImplTasks = new List<ImplementationTask>();
+        allImplTasks = new List<RequestImplTask>();
         if(DeviceId != -1)
         {
             foreach(var ticket in reqHandler.TicketList)
@@ -103,7 +103,7 @@
         await reqHandler.Init();
     }
     
-    private async Task StartImplementTask(ImplementationTask implTask)
+    private async Task StartImplementTask(RequestImplTask implTask)
     {
         implTask.Start = DateTime.Now;
         await reqHandler.StartWorkOnImplTask(implTask, ObjAction.implement);

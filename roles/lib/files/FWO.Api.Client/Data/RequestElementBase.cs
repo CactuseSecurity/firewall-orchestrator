@@ -10,7 +10,7 @@ namespace FWO.Api.Data
         service
     }
 
-    public class ElementBase
+    public class RequestElementBase
     {
         [JsonProperty("ip"), JsonPropertyName("ip")]
         public string? CidrString { get; set; }
@@ -37,10 +37,10 @@ namespace FWO.Api.Data
         public long? OriginalNatId { get; set; }
 
 
-        public ElementBase()
+        public RequestElementBase()
         { }
 
-        public ElementBase(ElementBase element)
+        public RequestElementBase(RequestElementBase element)
         {
             CidrString = element.CidrString;
             Port = element.Port;

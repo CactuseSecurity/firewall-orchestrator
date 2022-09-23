@@ -3,16 +3,16 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class RequestElementWriter : ElementBase
+    public class RequestReqElementWriter : RequestElementBase
     {
         [JsonProperty("request_action"), JsonPropertyName("request_action")]
         public string RequestAction { get; set; } = FWO.Api.Data.RequestAction.create.ToString();
 
 
-        public RequestElementWriter()
+        public RequestReqElementWriter()
         {}
 
-        public RequestElementWriter(RequestElement element) : base(element)
+        public RequestReqElementWriter(RequestReqElement element) : base(element)
         { 
             RequestAction = element.RequestAction;
             if(element.Cidr != null)

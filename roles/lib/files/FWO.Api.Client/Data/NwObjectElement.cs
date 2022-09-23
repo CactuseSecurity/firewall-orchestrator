@@ -16,9 +16,9 @@
             TaskId = taskId;
         }
 
-        public RequestElement ToReqElement(AccessField field)
+        public RequestReqElement ToReqElement(AccessField field)
         {
-            RequestElement element = new RequestElement()
+            RequestReqElement element = new RequestReqElement()
             {
                 Id = ElemId,
                 TaskId = TaskId,
@@ -29,9 +29,9 @@
             return element;
         }
 
-        public ImplementationElement ToImplElement(AccessField field)
+        public RequestImplElement ToImplElement(AccessField field)
         {
-            ImplementationElement element = new ImplementationElement()
+            RequestImplElement element = new RequestImplElement()
             {
                 Id = ElemId,
                 ImplTaskId = TaskId,

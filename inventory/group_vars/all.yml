@@ -98,6 +98,7 @@ dotnet_mode: "Release"
 # dotnet_mode: "Debug"
 debug_level: "1"
 lib_dir: "{{ fworch_home }}/lib/files"
+lib_tmp_dir: "{{ fworch_home }}/lib/tmp"
 
 ### password generation
 randomly_generated_pwd: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters') }}"

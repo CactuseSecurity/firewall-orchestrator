@@ -113,8 +113,8 @@
 
       when: ansible_facts['distribution']|lower != 'ubuntu' or ansible_facts['distribution_major_version'] is version('22', '<'))
 
-    - name: Install dotnet-sdk-6.0
-      package: "name=dotnet-sdk-6.0 state=present"
+    - name: Install {{ dotnet_deb_name }}
+      package: "name={{ dotnet_deb_name }} state=present"
      
      
 ########## importer ##################

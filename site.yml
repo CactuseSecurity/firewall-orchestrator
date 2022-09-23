@@ -18,123 +18,119 @@
     - importer
     - api
 
-# the following is only run when not uninstalling
-- block:
 
-    - hosts: all
-      tasks:
-        - name: uninstall product
-          import_tasks: scripts/uninstall-fworch.yml
-          when: "installation_mode == 'uninstall'"
-          become: yes
-      tags:
-        - backend
-        - frontend
+- hosts: all
+  tasks:
+    - name: uninstall product
+      import_tasks: scripts/uninstall-fworch.yml
+      when: "installation_mode == 'uninstall'"
+      become: yes
+  tags:
+    - backend
+    - frontend
 
-    - hosts: all
-      roles:
-        - { role: common, when: "not installation_mode == 'uninstall'" }
-      tags:
-        - backend
-        - importer
-        - api
-        - ui
-        - frontend
+- hosts: all
+  roles:
+    - { role: common, when: "not installation_mode == 'uninstall'" }
+  tags:
+    - backend
+    - importer
+    - api
+    - ui
+    - frontend
 
-    - hosts: backendserver
-      roles:
-        - { role: database, when: "not installation_mode == 'uninstall'" }
-      tags:
-        - backend
+- hosts: backendserver
+  roles:
+    - { role: database, when: "not installation_mode == 'uninstall'" }
+  tags:
+    - backend
 
-    - hosts: middlewareserver
-      roles:
-        - { role: openldap-server, when: "not installation_mode == 'uninstall'" }
-        - { role: lib, when: "not installation_mode == 'uninstall'" }
-        - { role: middleware, when: "not installation_mode == 'uninstall'" }
-      tags:
-        - backend
-        - csharp
+- hosts: middlewareserver
+  roles:
+    - { role: openldap-server, when: "not installation_mode == 'uninstall'" }
+    - { role: lib, when: "not installation_mode == 'uninstall'" }
+    - { role: middleware, when: "not installation_mode == 'uninstall'" }
+  tags:
+    - backend
+    - csharp
 
-    - hosts: apiserver
-      roles:
-        - { role: docker, when: "not installation_mode == 'uninstall'" }
-      tags:
-        - backend
-        - api
+- hosts: apiserver
+  roles:
+    - { role: docker, when: "not installation_mode == 'uninstall'" }
+  tags:
+    - backend
+    - api
 
-    # do not put this into the same play as docker (handler needs to run inbetween!)
-    - hosts: apiserver 
-      roles:
-        - { role: api, when: "not installation_mode == 'uninstall'" }
-      tags:
-        - backend
-        - api
+# do not put this into the same play as docker (handler needs to run inbetween!)
+- hosts: apiserver 
+  roles:
+    - { role: api, when: "not installation_mode == 'uninstall'" }
+  tags:
+    - backend
+    - api
 
-    - hosts: frontends
-      roles:
-        - { role: lib, when: "not installation_mode == 'uninstall'"}
-        - { role: ui, when: "not installation_mode == 'uninstall'"}
-      tags:
-        - frontend
-        - csharp
-        - ui
+- hosts: frontends
+  roles:
+    - { role: lib, when: "not installation_mode == 'uninstall'"}
+    - { role: ui, when: "not installation_mode == 'uninstall'"}
+  tags:
+    - frontend
+    - csharp
+    - ui
 
-    - hosts: sampleserver
-      roles:
-        - { role: sample-data, when: "add_demo_data|bool and not installation_mode == 'uninstall'" }
-      tags:
-        - samples
-        - backend
-        - importer
+- hosts: sampleserver
+  roles:
+    - { role: sample-data, when: "add_demo_data|bool and not installation_mode == 'uninstall'" }
+  tags:
+    - samples
+    - backend
+    - importer
 
-    - hosts: middlewareserver
-      roles:
-        - { role: sample-auth-data, when: "add_demo_data|bool and not installation_mode == 'uninstall'" }
-      tags:
-        - samples
-        - backend
-      # todo: add a meta dependency on role sample-data
+- hosts: middlewareserver
+  roles:
+    - { role: sample-auth-data, when: "add_demo_data|bool and not installation_mode == 'uninstall'" }
+  tags:
+    - samples
+    - backend
+  # todo: add a meta dependency on role sample-data
 
-    - hosts: importers
-      roles:
-        - { role: importer, when: "not installation_mode == 'uninstall'" }
-      tags:
-        - frontend
-        - importer
+- hosts: importers
+  roles:
+    - { role: importer, when: "not installation_mode == 'uninstall'" }
+  tags:
+    - frontend
+    - importer
 
-    - hosts: frontends
-      tasks:
-        - name: restart ui service to display new version
-          service:
-            name: "{{ ui_service_name }}"
-            state: restarted
-          become: yes
-          when: "not installation_mode == 'uninstall'"
-      tags:
-        - frontend
-        - ui
+- hosts: frontends
+  tasks:
+    - name: restart ui service to display new version
+      service:
+        name: "{{ ui_service_name }}"
+        state: restarted
+      become: yes
+      when: "not installation_mode == 'uninstall'"
+  tags:
+    - frontend
+    - ui
 
-    - hosts: testservers
-      roles:
-        - { role: webhook, when: install_webhook|bool and not installation_mode == 'uninstall' }
-      tags:
-        - test
+- hosts: testservers
+  roles:
+    - { role: webhook, when: install_webhook|bool and not installation_mode == 'uninstall' }
+  tags:
+    - test
 
-    - hosts: all
-      roles:
-        - { role: test, when: "not installation_mode == 'uninstall'" }
-      tags:
-        - test
+- hosts: all
+  roles:
+    - { role: test, when: "not installation_mode == 'uninstall'" }
+  tags:
+    - test
 
-    - hosts: all
-      roles:
-        - { role: cleanup, when: "not installation_mode == 'uninstall'" }
-      tags:
-        - cleanup
-        - backend
-        - frontend
-        - importer
-        - ui
-
-  when: "not installation_mode == 'uninstall'"
+- hosts: all
+  roles:
+    - { role: cleanup, when: "not installation_mode == 'uninstall'" }
+  tags:
+    - cleanup
+    - backend
+    - frontend
+    - importer
+    - ui

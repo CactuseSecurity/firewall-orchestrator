@@ -26,7 +26,7 @@
       environment: "{{ proxy_env }}"
 
     - name: install wkhtmltox for ubuntu 22.04 only
-      command: dpkg -i {{ fworch_home }}/wkhtmltox_0.12.6.1-2.jammy_amd64.deb
+      command: dpkg -i {{ lib_tmp_dir }}/wkhtmltox_0.12.6.1-2.jammy_amd64.deb
 
     - name: remove wkhtmltox package file after installation (for ubuntu 22.04 only)
       file:

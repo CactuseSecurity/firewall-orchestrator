@@ -26,7 +26,7 @@ fragment reqTaskDetails on request_req_task {
   target_begin_date
   target_end_date
   device_id
-  elements: req_elements {
+  elements: elements {
     id
     task_id
     request_action
@@ -39,7 +39,7 @@ fragment reqTaskDetails on request_req_task {
     user_id
     original_nat_id
   }
-  implementation_tasks: impl_tasks {
+  implementation_tasks: tasks {
     ...implTaskDetails
   }
   request_approvals: approvals {
@@ -49,6 +49,7 @@ fragment reqTaskDetails on request_req_task {
     approver_group
     approval_date
     approver
+    assigned_group
     tenant_id
     initial_approval
     approval_deadline

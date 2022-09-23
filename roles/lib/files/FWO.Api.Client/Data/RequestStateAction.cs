@@ -53,6 +53,9 @@ namespace FWO.Api.Data
         [JsonProperty("event"), JsonPropertyName("event")]
         public string? Event { get; set; } = ActionEvents.None.ToString();
 
+        [JsonProperty("button_text"), JsonPropertyName("button_text")]
+        public string? ButtonText { get; set; } = "";
+
         [JsonProperty("external_parameters"), JsonPropertyName("external_parameters")]
         public string ExternalParams { get; set; } = "";
 

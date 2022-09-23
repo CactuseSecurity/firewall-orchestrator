@@ -5,6 +5,7 @@ mutation newAction(
   $taskType: String
   $phase: String
   $eventt: String
+  $buttonText: String
   $externalParameters: String
   ) {
   insert_request_action(objects: {
@@ -14,6 +15,7 @@ mutation newAction(
     task_type: $taskType
     phase: $phase
     event: $eventt
+    button_text: $buttonText
     external_parameters: $externalParameters
   }) {
     returning {

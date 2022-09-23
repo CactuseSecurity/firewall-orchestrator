@@ -39,7 +39,7 @@
                         </div>
                     }
                 </form>
-                @if(StatefulObject.RecentHandler != null && StatefulObject.RecentHandler != StatefulObject.CurrentHandler)
+                @if(AssignBack != null && StatefulObject.RecentHandler != null && StatefulObject.RecentHandler != StatefulObject.CurrentHandler)
                 {
                     <form class="form-group row">
                         <label for="backAsssignedGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("back_to")):</label>

@@ -1097,6 +1097,7 @@ create table if not exists request.action
 	task_type Varchar,
 	phase Varchar,
 	event Varchar,
+	button_text Varchar,
 	external_parameters Varchar
 );
 

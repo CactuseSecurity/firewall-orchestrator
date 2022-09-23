@@ -6,6 +6,7 @@ mutation updateAction(
   $taskType: String
   $phase: String
   $eventt: String
+  $buttonText: String
   $externalParameters: String
   ) {
   update_request_action_by_pk(
@@ -17,6 +18,7 @@ mutation updateAction(
       task_type: $taskType
       phase: $phase
       event: $eventt
+      button_text: $buttonText
       external_parameters: $externalParameters
   }) {
     UpdatedId: id

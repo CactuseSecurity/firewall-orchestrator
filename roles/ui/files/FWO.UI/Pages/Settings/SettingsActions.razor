@@ -36,6 +36,7 @@
             <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("task_type"))" Field="@(x => x.TaskType)" Sortable="true" Filterable="true" />
             <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("phase"))" Field="@(x => x.Phase)" Sortable="true" Filterable="true" />
             <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("event"))" Field="@(x => x.Event)" Sortable="true" Filterable="true" />
+            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("button_text"))" Field="@(x => x.ButtonText)" Sortable="true" Filterable="true" />
             <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("external_params"))" Field="@(x => x.ExternalParams)" Sortable="true" Filterable="true" />
         </Table>
     </div>
@@ -83,6 +84,15 @@
                             </select>
                         </div>
                     </div>
+                    @if(actAction.Event == ActionEvents.OfferButton.ToString())
+                    {
+                        <div class="col-sm-4">
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("button_text")):</label>
+                                <input type="text" class="col-sm-8 form-control form-control-sm" @bind="actAction.ButtonText" />
+                            </div>
+                        </div>
+                    }
                 </div>
                 <div class="form-group row">
                     <div class="col-sm-4">
@@ -303,71 +313,80 @@ else
 
     private async Task SaveAction()
     {
-        switch(actAction.ActionType)
+        try
         {
-            case nameof(ActionTypes.AutoPromote):
-                actAction.ExternalParams = toState.ToString();
-                break;
-            case nameof(ActionTypes.SetAlert):
-                actAction.ExternalParams = message;
-                break;
-            case nameof(ActionTypes.AddApproval):
-                actAction.ExternalParams = JsonSerializer.Serialize(actApprovalParams);
-                break;
-            case nameof(ActionTypes.ExternalCall):
-                break;
-            default:
-                break;
-        }
+            switch(actAction.ActionType)
+            {
+                case nameof(ActionTypes.AutoPromote):
+                    actAction.ExternalParams = toState.ToString();
+                    break;
+                case nameof(ActionTypes.SetAlert):
+                    actAction.ExternalParams = message;
+                    break;
+                case nameof(ActionTypes.AddApproval):
+                    actAction.ExternalParams = JsonSerializer.Serialize(actApprovalParams);
+                    break;
+                case nameof(ActionTypes.ExternalCall):
+                    break;
+                default:
+                    break;
+            }
 
-        if(AddActionMode)
-        {
-            var Variables = new
+            if(AddActionMode)
             {
-                name = actAction.Name,
-                actionType = actAction.ActionType,
-                scope = actAction.Scope,
-                taskType = actAction.TaskType,
-                phase = actAction.Phase,
-                eventt = actAction.Event,
-                externalParameters = actAction.ExternalParams
-            };
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newAction, Variables)).ReturnIds;
-            if (returnIds == null)
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("save_action"), userConfig.GetText("E8011"), true);
+                var Variables = new
+                {
+                    name = actAction.Name,
+                    actionType = actAction.ActionType,
+                    scope = actAction.Scope,
+                    taskType = actAction.TaskType,
+                    phase = actAction.Phase,
+                    eventt = actAction.Event,
+                    buttonText = actAction.ButtonText,
+                    externalParameters = actAction.ExternalParams
+                };
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newAction, Variables)).ReturnIds;
+                if (returnIds == null)
+                {
+                    DisplayMessageInUi!(null, userConfig.GetText("save_action"), userConfig.GetText("E8011"), true);
+                }
+                else
+                {
+                    actAction.Id = returnIds[0].NewId;
+                    actions.Add(actAction);
+                    EditActionMode = false;
+                    AddActionMode = false;
+                }
             }
             else
             {
-                actAction.Id = returnIds[0].NewId;
-                actions.Add(actAction);
-                EditActionMode = false;
-                AddActionMode = false;
+                var Variables = new
+                {
+                    id = actAction.Id,
+                    name = actAction.Name,
+                    actionType = actAction.ActionType,
+                    scope = actAction.Scope,
+                    taskType = actAction.TaskType,
+                    phase = actAction.Phase,
+                    eventt = actAction.Event,
+                    buttonText = actAction.ButtonText,
+                    externalParameters = actAction.ExternalParams
+                };
+                int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateAction, Variables)).UpdatedId;
+                if(udId != actAction.Id)
+                {
+                    DisplayMessageInUi!(null, userConfig.GetText("save_action"), userConfig.GetText("E8011"), true);
+                }
+                else
+                {
+                    actions[actions.FindIndex(x => x.Id == actAction.Id)] = actAction;
+                    EditActionMode = false;
+                }
             }
         }
-        else
+        catch (Exception exception)
         {
-            var Variables = new
-            {
-                id = actAction.Id,
-                name = actAction.Name,
-                actionType = actAction.ActionType,
-                scope = actAction.Scope,
-                taskType = actAction.TaskType,
-                phase = actAction.Phase,
-                eventt = actAction.Event,
-                externalParameters = actAction.ExternalParams
-            };
-            int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateAction, Variables)).UpdatedId;
-            if(udId != actAction.Id)
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("save_action"), userConfig.GetText("E8011"), true);
-            }
-            else
-            {
-                actions[actions.FindIndex(x => x.Id == actAction.Id)] = actAction;
-                EditActionMode = false;
-            }
+            DisplayMessageInUi!(exception, userConfig.GetText("save_action"), "", true);
         }
     }
 

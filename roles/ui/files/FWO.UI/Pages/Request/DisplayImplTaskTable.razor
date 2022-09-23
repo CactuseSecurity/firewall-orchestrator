@@ -97,7 +97,7 @@
 <DisplayImplementationTask Phase="Phase" ReqHandler="ReqHandler" ResetParent="Reset" StateMatrix="ReqHandler.ActStateMatrix" States="States"></DisplayImplementationTask>
 <AssignObject @bind-Display="ReqHandler.DisplayAssignMode" ResetParent="Reset" StatefulObject="ReqHandler.ActImplTask" Assign="ReqHandler.AssignImplTaskGroup" AssignBack="ReqHandler.AssignImplTaskBack" ObjectName="@ReqHandler.ActImplTask.Title"/>
 <DeleteObject @bind-Display="ReqHandler.DisplayDeleteMode" ResetParent="Reset" Delete="ReqHandler.ConfDeleteImplTask" ObjectName="@(ReqHandler.ActImplTask.Title)"/>
-<DisplayApprovals @bind-Display="ReqHandler.DisplayApprovalMode" ResetParent="Reset" Approvals="ReqHandler.ActReqTask.Approvals" States="States"/>
+<DisplayApprovals @bind-Display="ReqHandler.DisplayApprovalMode" ReqHandler="ReqHandler" ResetParent="Reset" Approvals="ReqHandler.ActReqTask.Approvals" States="States"/>
 
 
 @code
@@ -141,11 +141,16 @@
 
     private void AddImplTask()
     {
+
         ImplementationTask newTask = new ImplementationTask(ReqHandler.ActReqTask, false)
         {
             TaskNumber = ReqHandler.ActReqTask.HighestImplTaskNumber() + 1,
             DeviceId = (ReqHandler.Devices.Count > 0 ? ReqHandler.Devices[0].Id : 0)
         };
+        if(ReqHandler.Devices.Count > 0)
+        {
+            newTask.Title += ": "+ ReqHandler.Devices[ReqHandler.Devices.FindIndex(x => x.Id == ReqHandler.Devices[0].Id)].Name;
+        }
         ReqHandler.SelectImplTask(newTask, ObjAction.add);
     }
 

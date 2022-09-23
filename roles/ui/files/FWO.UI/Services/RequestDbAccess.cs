@@ -374,6 +374,7 @@ namespace FWO.Ui.Services
                     state = approval.StateId,
                     approvalDate = approval.ApprovalDate,
                     approver = approval.ApproverDn,  // todo: Dn or uiuser??
+                    assignedGroup = approval.AssignedGroup
                 };
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateApproval, Variables)).UpdatedId;
                 if(udId != approval.Id)

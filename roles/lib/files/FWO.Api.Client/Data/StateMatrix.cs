@@ -40,7 +40,7 @@ namespace FWO.Api.Client
         public bool IsLastActivePhase = true;
         public int MinImplTasksNeeded;
 
-        public async Task Init(WorkflowPhases phase, ApiConnection apiConnection, TaskType taskType = TaskType.access)
+        public async Task Init(WorkflowPhases phase, ApiConnection apiConnection, TaskType taskType = TaskType.master)
         {
             GlobalStateMatrix glbStateMatrix = new GlobalStateMatrix();
             await glbStateMatrix.Init(apiConnection, taskType);

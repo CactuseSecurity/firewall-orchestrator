@@ -57,6 +57,7 @@ namespace FWO.Ui.Services
         public bool DisplayAssignMode = false;
         public bool DisplayApprovalMode = false;
         public bool DisplayApproveMode = false;
+        public bool DisplayAssignApprovalMode = false;
         public bool DisplayPromoteMode = false;
         public bool DisplaySaveTicketMode = false;
         public bool DisplayDeleteMode = false;
@@ -465,13 +466,35 @@ namespace FWO.Ui.Services
             }
         } 
 
-        public async Task SetApprovalEnv()
+
+        // approvals
+
+        public async Task SetApprovalEnv(RequestApproval? approval = null)
         {
-            if(ActReqTask.Approvals.Count == 0)
+            if(approval != null)
             {
-                await AddApproval();
+                ActApproval = approval;
             }
-            ActApproval = ActReqTask.Approvals.FirstOrDefault(x => x.StateId < ActStateMatrix.LowestEndState) ?? (ActApproval = ActReqTask.Approvals.Last());  // todo: select own approvals
+            else
+            {
+                if(ActReqTask.Approvals.Count == 0)
+                {
+                    await AddApproval();
+                }
+                ActApproval = ActReqTask.Approvals.FirstOrDefault(x => x.StateId < ActStateMatrix.LowestEndState) ?? (ActApproval = ActReqTask.Approvals.Last());  // todo: select own approvals
+            }
+        }
+
+        public void SetApprovalPopUpOpt(ObjAction action)
+        {
+            DisplayAssignApprovalMode = action == ObjAction.displayAssign;
+            DisplayCommentMode = action == ObjAction.displayComment;
+        }
+
+        public async Task SelectApprovalPopUp (RequestApproval approval, ObjAction action)
+        {
+            await SetApprovalEnv(approval);
+            SetApprovalPopUpOpt(action);
         }
 
         public async Task AddApproval(string extParams = "")
@@ -502,13 +525,13 @@ namespace FWO.Ui.Services
                 Deadline = deadline,
                 InitialApproval = ActReqTask.Approvals.Count == 0
             };
-            ActReqTask.Approvals.Add(approval);
             if(!approval.InitialApproval)
             {
                 // todo: checks if new approval allowed (only one open per group?, ...)
-                await dbAcc.AddApprovalToDb(approval);
+                approval.Id = await dbAcc.AddApprovalToDb(approval);
                 DisplayMessageInUi!(null, userConfig.GetText("add_approval"), userConfig.GetText("U8002"), false);
             }
+            ActReqTask.Approvals.Add(approval);
         }
 
         public async Task ApproveTask(StatefulObject approval)
@@ -543,6 +566,25 @@ namespace FWO.Ui.Services
                 DisplayMessageInUi!(exception, userConfig.GetText("save_approval"), "", true);
             }
         }
+
+        public async Task AssignApprovalGroup(StatefulObject statefulObject)
+        {
+            ActApproval.AssignedGroup = statefulObject.AssignedGroup;
+            // ActApproval.RecentHandler = ActApproval.CurrentHandler;
+            if(CheckAssignValues(ActApproval))
+            {
+                await dbAcc.UpdateApprovalInDb(ActApproval);
+            }
+            DisplayAssignApprovalMode = false;
+        }
+
+        // public async Task AssignApprovalBack()
+        // {
+        //     ActApproval.AssignedGroup = ActApproval.RecentHandler?.Dn;
+        //     ActApproval.RecentHandler = ActApproval.CurrentHandler;
+        //     await dbAcc.UpdateApprovalInDb(ActApproval);
+        //     DisplayAssignApprovalMode = false;
+        // }
 
         public async Task ConfAddCommentToApproval(string commentText)
         {
@@ -768,6 +810,7 @@ namespace FWO.Ui.Services
                     {
                         newImplTask = new ImplementationTask(reqTask)
                             { TaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = device.Id, StateId = reqTask.StateId };
+                        newImplTask.Title += ": "+ Devices[Devices.FindIndex(x => x.Id == device.Id)].Name;
                         newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
                         reqTask.ImplementationTasks.Add(newImplTask);
                     }

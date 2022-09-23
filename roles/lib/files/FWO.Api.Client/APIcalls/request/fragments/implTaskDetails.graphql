@@ -1,9 +1,11 @@
 fragment implTaskDetails on request_impl_task {
   id
+  title
   request_task_id
   task_number
   task_type
   state_id
+  assigned_group
   device_id
   implementation_action
   rule_action
@@ -19,7 +21,7 @@ fragment implTaskDetails on request_impl_task {
   target_begin_date
   target_end_date
   free_text
-  elements: impl_elements {
+  elements: elements {
     id
     implementation_task_id
     implementation_action

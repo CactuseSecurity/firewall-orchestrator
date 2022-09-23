@@ -122,3 +122,7 @@ test_fortigate_name: "fortigate{{ test_postfix }}"
 test_checkpoint_name: "checkpoint{{ test_postfix }}"
 test_credential_name: "credential02_test"
 csharp_test_start_dir: "{{ fworch_home }}/test/csharp/FWO.Test"
+
+# make sure lib role is only run once per host to save time
+# set initially to false
+lib_role_has_run: false

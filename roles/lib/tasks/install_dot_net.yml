@@ -15,16 +15,16 @@
       - name: get package list from ms {{ dotnet_deb_name }}
         get_url:
           url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ distribution_version }}/{{ dotnet_deb_name }}"
-          dest: "{{ middleware_server_base_dir }}/{{ dotnet_deb_name }}"
+          dest: "{{ lib_dir }}/{{ dotnet_deb_name }}"
           mode: "0644"
 
       - name: install ms package list
         apt:
-          deb: "{{ middleware_server_base_dir }}/{{ dotnet_deb_name }}"
+          deb: "{{ lib_dir }}/{{ dotnet_deb_name }}"
 
       - name: remove package list file
         file:
-          dest: "{{ middleware_server_base_dir }}/{{ dotnet_deb_name }}"
+          dest: "{{ lib_dir }}/{{ dotnet_deb_name }}"
           state: absent
 
       - name: apt update

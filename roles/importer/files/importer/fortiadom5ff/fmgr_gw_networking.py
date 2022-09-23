@@ -3,9 +3,47 @@ from fwo_log import getFwoLogger
 from netaddr import IPAddress, IPNetwork
 from functools import cmp_to_key
 import traceback
-import json
 import fmgr_getter
 import fwo_globals
+
+
+class Route:
+    def __init__(self, routing_device, target_gateway, destination, 
+            static=True, source=None, interface=None, metric=None, distance=None, ip_version=4): 
+        self.routing_device = str(routing_device)
+        self.target_gateway = IPAddress(target_gateway)
+        self.destination = IPNetwork(destination)
+        if source is not None:
+            self.source = IPNetwork(source)
+        if interface is not None:
+            self.interface = str(interface)
+        self.static = bool(static)
+        if metric is not None:
+            self.metric = int(metric)
+        if distance is not None:
+            self.distance = int(distance)
+        ip_version = int(ip_version)
+        if ip_version != 4 and ip_version != 6:
+            pass
+            # throw exception
+        else:
+            self.ip_version = ip_version
+
+
+class Interface:
+    def __init__(self, routing_device, name, ip, state_up=True, ip_version=4): 
+        self.routing_device = int(routing_device)
+        self.name = str(name)
+        self.ip =  IPAddress(ip)
+        self.state_up = bool(state_up)
+        ip_version = int(ip_version)
+        if ip_version != 4 and ip_version != 6:
+            pass
+            # throw exception
+        else:
+            self.ip_version = ip_version
+
+        self.ip_version = ip_version
 
 
 def normalize_network_data(native_config, normalized_config, mgm_details):
@@ -346,3 +384,28 @@ def test_if_default_route_exists(routing_table):
         return False
     else:
         return True
+
+
+def normalize_routes(full_config, config2import, import_id, jwt=None, mgm_id=None):
+    logger = getFwoLogger()
+    routes = []
+    for route_orig in full_config['routing']:
+        route = Route(route_orig.routing_device, route_orig.target_gateway, route_orig.destination, 
+            route_orig.static, source=route_orig.source, interface=route_orig.interface, metric=route_orig.metric,
+            distance=route_orig.distance, ip_version=route_orig.ip_version)
+        routes.append(route)
+
+    config2import.update({'routes': routes})
+
+
+def normalize_interfaces(full_config, config2import, import_id, jwt=None, mgm_id=None):
+    logger = getFwoLogger()
+    interfaces = []
+    for iface_orig in full_config['interfaces']:
+        iface = Interface(iface_orig.device, iface_orig.name, iface_orig.ip, 
+            state_up=iface_orig.state_up, ip_version=iface_orig.ip_version)
+        interfaces.append(iface)
+
+    config2import.update({'routes': interfaces})
+
+# routing_device, name, ip, state_up=True, ip_version=4)

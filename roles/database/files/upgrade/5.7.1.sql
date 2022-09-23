@@ -394,3 +394,44 @@ insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufac
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt) 
  VALUES (16,'Cisco Firepower Gateway','7ff','Cisco','',false) ON CONFLICT DO NOTHING;
  
+
+---------------------------------------------------------------------------------------
+-- adding routing to start path analysis
+
+-- drop table if exists gw_route;
+-- drop table if exists gw_interface;
+
+create table if not exists gw_route
+(
+    id SERIAL PRIMARY KEY,
+    routing_device INT NOT NULL,
+    target_gateway CIDR NOT NULL,
+    destination CIDR NOT NULL,
+    source CIDR,
+    interface INT,
+    static BOOLEAN DEFAULT TRUE,
+    metric INT,
+    distance INT,
+    ip_version shortint NOT NULL DEFAULT 4
+);
+
+create table if not exists gw_interface
+(
+    id SERIAL PRIMARY KEY,
+    routing_device INT NOT NULL,
+    name VARCHAR NOT NULL,
+    ip CIDR,
+    state_up BOOLEAN DEFAULT TRUE,
+    ip_version shortint NOT NULL DEFAULT 4
+);
+
+ALTER TABLE gw_route DROP CONSTRAINT IF EXISTS gw_route_routing_device_foreign_key;
+ALTER TABLE gw_route ADD CONSTRAINT gw_route_routing_device_foreign_key FOREIGN KEY (interface) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+ALTER TABLE gw_route DROP CONSTRAINT IF EXISTS gw_route_interface_foreign_key;
+ALTER TABLE gw_route ADD CONSTRAINT gw_route_interface_foreign_key FOREIGN KEY (interface) REFERENCES gw_interface(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+ALTER TABLE gw_interface DROP CONSTRAINT IF EXISTS gw_interface_routing_device_foreign_key;
+ALTER TABLE gw_interface ADD CONSTRAINT gw_interface_routing_device_foreign_key FOREIGN KEY (routing_device) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+-- decision: we are not enforcing (at DB level) that the interface of a route belongs to the same device

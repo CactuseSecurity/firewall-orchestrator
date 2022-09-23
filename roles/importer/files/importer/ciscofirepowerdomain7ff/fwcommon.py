@@ -30,7 +30,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
         domain = mgm_details["configPath"]
         if sessionId == None or sessionId == "":
             logger.error(
-                'Did not succeed in logging in to FortiManager API, no sid returned.')
+                'Did not succeed in logging in to Cisco Firepower API, no sid returned.')
             return 1
         if domain == None or domain == "":
             logger.error(
@@ -56,8 +56,6 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
                 "logout exception probably due to timeout - irrelevant, so ignoring it")
 
     # now we normalize relevant parts of the raw config and write the results to config2import dict
-    # currently reading zone from objects for backward compat with FortiManager 6.x
-    # cifp_zone.normalize_zones(full_config, config2import, current_import_id)
 
     # write normalized networking data to config2import
     # this is currently not written to the database but only used for natting decisions
@@ -147,36 +145,3 @@ def getObjects(sessionId, api_url, config, limit, scopes):
             "fmc_config/v1/domain/" + scope + "/object/realmusers", parameters={"expanded": True}, limit=limit))
         config["userObjectGroups"].extend(cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
             "fmc_config/v1/domain/" + scope + "/object/realmusergroups", parameters={"expanded": True}, limit=limit))
-
-
-# def getZones(sid, fm_api_url, raw_config, adom_name, limit, debug_level):
-#     raw_config.update({"zones": {}})
-
-#     # get global zones?
-
-#     # get local zones
-#     for device in raw_config['devices']:
-#         local_pkg_name = device['package']
-#         for adom in raw_config['adoms']:
-#             if adom['name']==adom_name:
-#                 if local_pkg_name not in adom['package_names']:
-#                     logger.error('local rulebase/package ' + local_pkg_name + ' not found in management ' + adom_name)
-#                     return 1
-#                 else:
-#                     cifp_getter.update_config_with_fortinet_api_call(
-#                         raw_config['zones'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/obj/dynamic/interface", device['id'], debug=debug_level, limit=limit)
-
-#     raw_config['zones']['zone_list'] = []
-#     for device in raw_config['zones']:
-#         for mapping in raw_config['zones'][device]:
-#             if not isinstance(mapping, str):
-#                 if not mapping['dynamic_mapping'] is None:
-#                     for dyn_mapping in mapping['dynamic_mapping']:
-#                         if 'name' in dyn_mapping and not dyn_mapping['name'] in raw_config['zones']['zone_list']:
-#                             raw_config['zones']['zone_list'].append(dyn_mapping['name'])
-#                         if 'local-intf' in dyn_mapping and not dyn_mapping['local-intf'][0] in raw_config['zones']['zone_list']:
-#                             raw_config['zones']['zone_list'].append(dyn_mapping['local-intf'][0])
-#                 if not mapping['platform_mapping'] is None:
-#                     for dyn_mapping in mapping['platform_mapping']:
-#                         if 'intf-zone' in dyn_mapping and not dyn_mapping['intf-zone'] in raw_config['zones']['zone_list']:
-#                             raw_config['zones']['zone_list'].append(dyn_mapping['intf-zone'])

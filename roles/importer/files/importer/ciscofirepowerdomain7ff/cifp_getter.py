@@ -56,10 +56,10 @@ def login(user, password, api_host, api_port):
         headers, _ = api_call(base_url + "fmc_platform/v1/auth/generatetoken", method="post", headers={"Authorization" : "Basic " + str(base64.b64encode((user + ":" + password).encode('utf-8')), 'utf-8')})
     except Exception as e:
         raise common.FwLoginFailed(
-            "FortiManager login ERROR: host=" + str(api_host) + ":" + str(api_port) + " Message: " + str(e)) from None
+            "Cisco Firepower login ERROR: host=" + str(api_host) + ":" + str(api_port) + " Message: " + str(e)) from None
     if headers.get("X-auth-access-token") == None:   # leaving out payload as it contains pwd
         raise common.FwLoginFailed(
-            "FortiManager login ERROR: host=" + str(api_host) + ":" + str(api_port)) from None
+            "Cisco Firepower login ERROR: host=" + str(api_host) + ":" + str(api_port)) from None
     if fwo_globals.debug_level > 2:
         logger = getFwoLogger()
         logger.debug("Login successful. Received auth token: " + headers["X-auth-access-token"])

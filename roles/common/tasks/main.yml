@@ -21,7 +21,7 @@
 
       - name: assert there are no upgradable packages. upgrades must be run interactively outside the FWORCH installer
         fail:
-          msg: There are upgradable packages available, please run OS upgrade before running FWORCH installer. Use "-e force_install=yes" to overwrite this check ans install anyway at your own risk.
+          msg: There are upgradable packages available, please run OS upgrade before running FWORCH installer. Use "-e force_install=yes" to overwrite this check and install anyway at your own risk.
         when: |
           (ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian")
           and upgradable_packages.stdout_lines|length > 1

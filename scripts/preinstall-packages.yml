@@ -90,26 +90,31 @@
         distribution_version: "ubuntu/18.04"
         when: ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_version'] == '18.04'
 
-    - name: get package list from ms 
-      get_url:
-        url: "https://packages.microsoft.com/config/{{ distribution_version }}/packages-microsoft-prod.deb"
-        dest: "/tmp/packages-microsoft-prod.deb"
-        mode: "0644"
+    # for all distros except ubuntu >=22.04 we need to include a package source
+    - block:
 
-    - name: install ms package list
-      apt:
-        deb: /tmp/packages-microsoft-prod.deb
+      - name: get package list from ms {{ dotnet_deb_name }}
+        get_url:
+          url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ distribution_version }}/{{ dotnet_deb_name }}"
+          dest: "{{ middleware_server_base_dir }}/{{ dotnet_deb_name }}"
+          mode: "0644"
 
-    - name: remove package list file
-      file:
-        dest: "/tmp/packages-microsoft-prod.deb"
-        state: absent
+      - name: install ms package list
+        apt:
+          deb: "{{ middleware_server_base_dir }}/{{ dotnet_deb_name }}"
 
-    - name: apt update
-      apt: update_cache=true
+      - name: remove package list file
+        file:
+          dest: "{{ middleware_server_base_dir }}/{{ dotnet_deb_name }}"
+          state: absent
 
-    - name: Install dotnet-sdk-3.1
-      package: "name=dotnet-sdk-3.1 state=present"
+      - name: apt update
+        apt: update_cache=true
+
+      when: ansible_facts['distribution']|lower != 'ubuntu' or ansible_facts['distribution_major_version'] is version('22', '<'))
+
+    - name: Install dotnet-sdk-6.0
+      package: "name=dotnet-sdk-6.0 state=present"
      
      
 ########## importer ##################

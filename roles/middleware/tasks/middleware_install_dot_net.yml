@@ -9,33 +9,28 @@
     - set_fact: distribution_version="11"    
       when: ansible_facts['distribution']|lower == 'debian' and ansible_facts['distribution_major_version'] == 'testing'
 
-    - name: modify apt preferences for ubuntu >=22.04 to make dotnet sdk installation work
-      blockinfile:
-        path: /etc/apt/preferences
-        create: yes
-        block: |
-          Package: *net*
-          Pin: origin packages.microsoft.com
-          Pin-Priority: 1001
-      when: ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version'] is version('22', '>=') and not run_on_github|bool
+    # for all distros except ubuntu >=22.04 we need to include a package source
+    - block:
 
-    - name: get package list from ms {{ dotnet_deb_name }}
-      get_url:
-        url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ distribution_version }}/{{ dotnet_deb_name }}"
-        dest: "{{ middleware_server_base_dir }}/{{ dotnet_deb_name }}"
-        mode: "0644"
+      - name: get package list from ms {{ dotnet_deb_name }}
+        get_url:
+          url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ distribution_version }}/{{ dotnet_deb_name }}"
+          dest: "{{ middleware_server_base_dir }}/{{ dotnet_deb_name }}"
+          mode: "0644"
 
-    - name: install ms package list
-      apt:
-        deb: "{{ middleware_server_base_dir }}/{{ dotnet_deb_name }}"
+      - name: install ms package list
+        apt:
+          deb: "{{ middleware_server_base_dir }}/{{ dotnet_deb_name }}"
 
-    - name: remove package list file
-      file:
-        dest: "{{ middleware_server_base_dir }}/{{ dotnet_deb_name }}"
-        state: absent
+      - name: remove package list file
+        file:
+          dest: "{{ middleware_server_base_dir }}/{{ dotnet_deb_name }}"
+          state: absent
 
-    - name: apt update
-      apt: update_cache=true
+      - name: apt update
+        apt: update_cache=true
+
+      when: ansible_facts['distribution']|lower != 'ubuntu' or ansible_facts['distribution_major_version'] is version('22', '<'))
 
     - name: Install apt-transport-https
       package: name=apt-transport-https state=present

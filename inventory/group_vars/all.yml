@@ -13,6 +13,7 @@ install_syslog: true
 run_on_github: false
 add_demo_data: true
 api_docu: false
+force_install: false
 # initialize upgrade files list to empty, needed when running in test only mode (-t test):
 upgrade_files: []
 

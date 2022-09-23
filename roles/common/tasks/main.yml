@@ -11,7 +11,7 @@
       when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian"
 
     - name: check for existing upgradable packages
-      shell: apt list --upgradable
+      command: apt list --upgradable
       register: upgradable_packages
       when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian"
 

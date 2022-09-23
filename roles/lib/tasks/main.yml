@@ -14,17 +14,6 @@
         path: "{{ fworch_home }}/lib"
       register: lib_dir_check
 
-    - name: create {{ lib_tmp_dir }}
-      file:
-        dest: "{{ lib_tmp_dir }}"
-        state: directory
-
-    - name: install dotnet needed for both ui and middleware servers
-      include_tasks: install_dot_net.yml
-
-    - name: install wkhtml pdf library needed for both ui and middleware servers
-      include_tasks: install_wkhtml_pdf.yml
-
     - name: backup lib dir
       synchronize:
         src: "{{ fworch_home }}/lib"
@@ -37,14 +26,21 @@
         state: absent
         path: "{{ fworch_home }}/lib"
 
-    - name: create lib dir
+
+    - name: create {{ lib_tmp_dir }} including lib dir
       file:
-        path: "{{ lib_dir }}"
+        dest: "{{ lib_tmp_dir }}"
         state: directory
         owner: "{{ fworch_user }}"
         group: "{{ fworch_group }}"
 
-    - name: copy dotnet lib files to lib target
+    - name: install dotnet needed for both ui and middleware servers
+      include_tasks: install_dot_net.yml
+
+    - name: install wkhtml pdf library needed for both ui and middleware servers
+      include_tasks: install_wkhtml_pdf.yml
+
+    - name: copy {{ product_name }} dotnet lib files to lib target
       copy:
         src: "{{ item }}"
         dest: "{{ lib_dir }}"

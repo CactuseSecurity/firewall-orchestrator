@@ -401,6 +401,7 @@ insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufac
 -- drop table if exists gw_route;
 -- drop table if exists gw_interface;
 
+
 create table if not exists gw_route
 (
     id SERIAL PRIMARY KEY,

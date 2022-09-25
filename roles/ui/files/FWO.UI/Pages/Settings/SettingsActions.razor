@@ -45,7 +45,7 @@
         <Body>
             @if (EditActionMode)
             {
-                <div class="form-group row">
+                <div class="form-group row col-sm-12">
                     <div class="col-sm-2">
                         <div class="form-group row">
                             <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
@@ -59,7 +59,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="form-group row">
+                <div class="form-group row col-sm-12">
                     <div class="col-sm-4">
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("action_type"))*:</label>
@@ -94,7 +94,7 @@
                         </div>
                     }
                 </div>
-                <div class="form-group row">
+                <div class="form-group row col-sm-12">
                     <div class="col-sm-4">
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("phase")):</label>
@@ -139,22 +139,22 @@
                         </div>
                     }
                 </div>
-                <div class="form-group row">
+                <div class="form-group row col-sm-12">
                     @switch (actAction.ActionType)
                     {
                         case nameof(StateActionTypes.AutoPromote):
-                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("to_state")):</label>
-                            <select id="selectState" class="col-sm-3 form-control form-control-sm" @bind="toState">
-                                <option value="-1">@(userConfig.GetText("automatic"))</option>
-                                @foreach (var state in states)
-                                {
-                                    <option value="@state.Id">@(state.Name)</option>
-                                }
-                            </select>
-                            break;
-                        case nameof(StateActionTypes.SetAlert):
-                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("message_text")):</label>
-                            <input type="text" class="col-sm-9 form-control form-control-sm" @bind="message" />
+                            <div class="col-sm-4">
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("to_state")):</label>
+                                    <select class="col-sm-8 form-control form-control-sm" @bind="toState">
+                                        <option value="-1">@(userConfig.GetText("automatic"))</option>
+                                        @foreach (var state in states)
+                                        {
+                                            <option value="@state.Id">@(state.Name)</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
                             break;
                         case nameof(StateActionTypes.AddApproval):
                             <div class="col-sm-4">
@@ -187,6 +187,14 @@
                                 <div class="form-group row">
                                     <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("deadline")):</label>
                                     <input type="number" class="col-sm-8 form-control form-control-sm" @bind="actApprovalParams.Deadline" />
+                                </div>
+                            </div>
+                            break;
+                        case nameof(StateActionTypes.SetAlert):
+                            <div class="col-sm-12">
+                                <div class="form-group row">
+                                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("message_text")):</label>
+                                    <input type="text" class="col-sm-10 form-control form-control-sm" @bind="message" />
                                 </div>
                             </div>
                             break;
@@ -296,11 +304,11 @@ else
                 case nameof(StateActionTypes.AutoPromote):
                     toState = Convert.ToInt32(action.ExternalParams);
                     break;
-                case nameof(StateActionTypes.SetAlert):
-                    message = actAction.ExternalParams;
-                    break;
                 case nameof(StateActionTypes.AddApproval):
                     actApprovalParams = System.Text.Json.JsonSerializer.Deserialize<ApprovalParams>(action.ExternalParams) ?? throw new Exception("Extparams could not be parsed.");
+                    break;
+                case nameof(StateActionTypes.SetAlert):
+                    message = actAction.ExternalParams;
                     break;
                 case nameof(StateActionTypes.ExternalCall):
                     break;
@@ -320,11 +328,11 @@ else
                 case nameof(StateActionTypes.AutoPromote):
                     actAction.ExternalParams = toState.ToString();
                     break;
-                case nameof(StateActionTypes.SetAlert):
-                    actAction.ExternalParams = message;
-                    break;
                 case nameof(StateActionTypes.AddApproval):
                     actAction.ExternalParams = JsonSerializer.Serialize(actApprovalParams);
+                    break;
+                case nameof(StateActionTypes.SetAlert):
+                    actAction.ExternalParams = message;
                     break;
                 case nameof(StateActionTypes.ExternalCall):
                     break;
@@ -405,8 +413,15 @@ else
 
     private async Task DeleteAction()
     {
-        await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.deleteAction, new { id = actAction.Id });
-        actions.Remove(actAction);
-        DeleteActionMode = false;
+        try
+        {
+            await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.deleteAction, new { id = actAction.Id });
+            actions.Remove(actAction);
+            DeleteActionMode = false;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_action"), "", true);
+        }
     }
 }

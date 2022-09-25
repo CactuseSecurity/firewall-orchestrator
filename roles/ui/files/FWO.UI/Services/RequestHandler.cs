@@ -781,11 +781,18 @@ namespace FWO.Ui.Services
             DisplayDeleteMode = false;
         }
 
-        private async Task AutoCreateAllImplTasks()
+        private async Task AutoCreateMissingImplTasks()
         {
-            foreach(var reqTask in ActTicket.Tasks)
+            if(Phase == WorkflowPhases.approval && !MasterStateMatrix.PhaseActive[WorkflowPhases.planning] 
+                && ActTicket.StateId >= MasterStateMatrix.LowestEndState)
             {
-                await AutoCreateImplTasks(reqTask);
+                foreach(var reqTask in ActTicket.Tasks)
+                {
+                    if(reqTask.ImplementationTasks.Count == 0)
+                    {
+                        await AutoCreateImplTasks(reqTask);
+                    }
+                }
             }
         }
 
@@ -894,20 +901,7 @@ namespace FWO.Ui.Services
             {
                 ActTicket.CompletionDate = DateTime.Now;
             }
-            bool alreadyExistingImplTask = false;
-            foreach (var reqTask in ActTicket.Tasks)
-            {
-                if (reqTask.ImplementationTasks.Count > 0)
-                {
-                    alreadyExistingImplTask = true;
-                }
-            }
-            if(Phase == WorkflowPhases.approval && ActTicket.Tasks.Count > 0 && !alreadyExistingImplTask &&
-                !MasterStateMatrix.PhaseActive[WorkflowPhases.planning] && ActTicket.StateId >= MasterStateMatrix.LowestEndState)
-            {
-                await AutoCreateAllImplTasks();
-            }
-
+            await AutoCreateMissingImplTasks();
             await dbAcc.UpdateTicketStateInDb(ActTicket);
             TicketList[TicketList.FindIndex(x => x.Id == ActTicket.Id)] = ActTicket;
         }

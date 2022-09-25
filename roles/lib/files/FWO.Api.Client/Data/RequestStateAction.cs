@@ -7,8 +7,8 @@ namespace FWO.Api.Data
     {
         DoNothing = 0,
         AutoPromote = 1,
-        SetAlert = 2,
-        AddApproval = 3,
+        AddApproval = 2,
+        SetAlert = 5,
         ExternalCall = 10
     }
 

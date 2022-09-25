@@ -241,17 +241,24 @@ else
 
     private async Task SaveState()
     {
-        await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.upsertState, new { id = actState.Id, name = actState.Name });
-        if(AddStateMode)
+        try
         {
-            states.Add(actState);
+            await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.upsertState, new { id = actState.Id, name = actState.Name });
+            if(AddStateMode)
+            {
+                states.Add(actState);
+            }
+            else
+            {
+                states[states.FindIndex(x => x.Id == actState.Id)] = actState;
+            }
+            EditStateMode = false;
+            AddStateMode = false;
         }
-        else
+        catch (Exception exception)
         {
-            states[states.FindIndex(x => x.Id == actState.Id)] = actState;
+            DisplayMessageInUi!(exception, userConfig.GetText("edit_state"), "", true);
         }
-        EditStateMode = false;
-        AddStateMode = false;
     }
 
     private void Cancel()
@@ -269,9 +276,16 @@ else
 
     private async Task DeleteState()
     {
-        await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.deleteState, new { id = actState.Id });
-        states.Remove(actState);
-        DeleteStateMode = false;
+        try
+        {
+            await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.deleteState, new { id = actState.Id });
+            states.Remove(actState);
+            DeleteStateMode = false;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_state"), "", true);
+        }
     }
 
     private void SelectAction()
@@ -286,14 +300,28 @@ else
 
     private async Task AddActionToState()
     {
-        await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.addStateAction, new { stateId = actState.Id, actionId = actionIdToAdd });
-        actState.Actions.Add(new RequestStateActionDataHelper(){ Action = actions.FirstOrDefault(x => x.Id == actionIdToAdd) });
-        SelectActionMode = false;
+        try
+        {
+            await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.addStateAction, new { stateId = actState.Id, actionId = actionIdToAdd });
+            actState.Actions.Add(new RequestStateActionDataHelper(){ Action = actions.FirstOrDefault(x => x.Id == actionIdToAdd) });
+            SelectActionMode = false;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("edit_state"), "", true);
+        }
     }
 
     private async Task RemoveActionFromState(RequestStateActionDataHelper action)
     {
-        await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.removeStateAction, new { stateId = actState.Id, actionId = action.Action.Id });
-        actState.Actions.Remove(action);
+        try
+        {
+            await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.removeStateAction, new { stateId = actState.Id, actionId = action.Action.Id });
+            actState.Actions.Remove(action);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("edit_state"), "", true);
+        }
     }
 }

@@ -84,11 +84,11 @@ namespace FWO.Ui.Services
                         await requestHandler.AutoPromote(statefulObject, scope, toState);
                     }
                     break;
-                case nameof(StateActionTypes.SetAlert):
-                    await setAlert(action.ExternalParams);
-                    break;
                 case nameof(StateActionTypes.AddApproval):
                     await requestHandler.AddApproval(action.ExternalParams);
+                    break;
+                case nameof(StateActionTypes.SetAlert):
+                    await setAlert(action.ExternalParams);
                     break;
                 case nameof(StateActionTypes.ExternalCall):
                     await callExternal(action);

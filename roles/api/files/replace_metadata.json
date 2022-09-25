@@ -1397,7 +1397,7 @@
                   }
                 },
                 {
-                  "name": "tasks",
+                  "name": "impl_tasks",
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "device_id",
@@ -4585,7 +4585,7 @@
                   }
                 },
                 {
-                  "name": "tasks",
+                  "name": "impl_tasks",
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "nw_obj_grp_id",
@@ -8722,7 +8722,7 @@
                   }
                 },
                 {
-                  "name": "tasks",
+                  "name": "impl_tasks",
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "svc_grp_id",
@@ -8986,7 +8986,7 @@
                   }
                 },
                 {
-                  "name": "tasks",
+                  "name": "impl_tasks",
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "rule_action",
@@ -9796,7 +9796,7 @@
                   }
                 },
                 {
-                  "name": "tasks",
+                  "name": "impl_tasks",
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "rule_tracking",
@@ -11034,7 +11034,7 @@
                   }
                 },
                 {
-                  "name": "tasks",
+                  "name": "impl_tasks",
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "current_handler",
@@ -11770,7 +11770,7 @@
                   }
                 },
                 {
-                  "name": "tasks",
+                  "name": "impl_tasks",
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "user_grp_id",
@@ -12882,7 +12882,7 @@
                   }
                 },
                 {
-                  "name": "tasks",
+                  "name": "impl_tasks",
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "request_task_id",
@@ -12946,7 +12946,7 @@
                   }
                 },
                 {
-                  "name": "tasks",
+                  "name": "impl_tasks",
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "state_id",
@@ -13042,7 +13042,7 @@
               ],
               "array_relationships": [
                 {
-                  "name": "tasks",
+                  "name": "impl_tasks",
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "ticket_id",

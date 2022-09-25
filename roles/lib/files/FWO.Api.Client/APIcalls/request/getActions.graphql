@@ -8,6 +8,7 @@ query getActions {
     task_type
     phase
     event
+    button_text
     external_parameters
   }
 }

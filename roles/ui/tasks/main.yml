@@ -26,39 +26,6 @@
         path: "{{ fworch_home }}/ui"
       when: installation_mode == "upgrade"
 
-    - name: install libs needed for pdf creator nuget packet HakanL/WkHtmlToPdf-DotNet
-      package:
-        name: "{{ item }}"
-        state: present
-      loop:
-        - libgdiplus
-        - libc6-dev
-        - libjpeg62
-        - fontconfig
-        - xfonts-base
-        - xfonts-75dpi
-        - libssl-dev
-
-    - block:
-      - name: download wkhtmltox for ubuntu 22.04 only
-        get_url:
-          url: https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-2/wkhtmltox_0.12.6.1-2.jammy_amd64.deb
-          dest: "{{ fworch_home }}"
-          force: yes
-          mode: "0644"
-          owner: "{{ fworch_user }}"
-          group: "{{ fworch_group }}"
-        environment: "{{ proxy_env }}"
-
-      - name: install wkhtmltox for ubuntu 22.04 only
-        command: dpkg -i {{ fworch_home }}/wkhtmltox_0.12.6.1-2.jammy_amd64.deb
-
-      - name: remove wkhtmltox for ubuntu 22.04 only
-        file:
-          path: "{{ fworch_home }}/wkhtmltox_0.12.6.1-2.jammy_amd64.deb"
-          state: absent
-      when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_version'] == '22.04'
-
     - name: create ui dir
       file:
         dest: "{{ ui_dir }}"
@@ -79,7 +46,7 @@
 
 - include_tasks: ui_apache_install_and_setup.yml
 
-- include_tasks: ui_install_dot_net.yml
+- include_tasks: install_and_run_ui_service.yml
 
 - name: include upgrade script
   import_tasks: run-upgrades.yml

@@ -134,7 +134,14 @@
  
     protected override async Task OnInitializedAsync()
     {
-        managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+        try
+        {
+            managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, "", "", true);
+        }
         await Refresh();
     }
 

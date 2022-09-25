@@ -81,7 +81,7 @@ def post_handler():
       f.write('request: ' + req_data_str + '\n')
       if 'head_commit' in req_data:
          now = datetime.now() # current date and time
-         if 'modified' in req_data['head_commit']:
+         if req_data['head_commit'] != None and 'modified' in req_data['head_commit']:
             modified_files = req_data['head_commit']['modified']
             f.write('found modified files: ' + json.dumps(modified_files) + '\n')
             relevant_change = False

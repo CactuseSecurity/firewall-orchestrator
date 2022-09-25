@@ -33,22 +33,13 @@
         END $do$
     listen: "test importer handler"
 
-  - name: delete test checkpoint gateway
+  - name: delete test checkpoint R8x credentials cascading to deletion of mgmt and gw 
     postgresql_query:
       db: "{{ fworch_db_name }}"
       query: >
         DO $do$ BEGIN 
-        DELETE FROM device WHERE dev_name='{{ test_checkpoint_name }}'; 
+        DELETE FROM import_credential WHERE credential_name='{{ test_credential_name }}'; 
         END $do$ 
-    listen: "test importer handler"
-
-  - name: delete test checkpoint management
-    postgresql_query:
-      db: "{{ fworch_db_name }}"
-      query: >
-        DO $do$ BEGIN 
-        DELETE FROM management WHERE mgm_name='{{ test_checkpoint_name }}'; 
-        END $do$
     listen: "test importer handler"
 
   - name: delete tenant tenant1
@@ -60,14 +51,14 @@
         END $do$
     listen: "test importer handler"
 
-  - name: delete devices for tenant tenant1
-    postgresql_query:
-      db: "{{ fworch_db_name }}"
-      query: >
-        DO $do$ BEGIN 
-        DELETE FROM tenant_to_device WHERE tenant_id=(SELECT tenant_id FROM tenant WHERE tenant_name='tenant1{{ sample_postfix }}'); 
-        END $do$
-    listen: "test importer handler"
+  # - name: delete devices for tenant tenant1
+  #   postgresql_query:
+  #     db: "{{ fworch_db_name }}"
+  #     query: >
+  #       DO $do$ BEGIN 
+  #       DELETE FROM tenant_to_device WHERE tenant_id=(SELECT tenant_id FROM tenant WHERE tenant_name='tenant1{{ sample_postfix }}'); 
+  #       END $do$
+  #   listen: "test importer handler"
 
   - name: delete tenant tenant2
     postgresql_query:

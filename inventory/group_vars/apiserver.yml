@@ -5,7 +5,7 @@ api_port: 8080
 apache_fwo_api_timeout: 14400
 api_user: "{{ fworch_dbadmin_name }}"
 api_hasura_admin_test_password: "not4production"
-api_user_email: "{{ api_user }}@{{ api_hostname }}"
+api_user_email: "{{ api_user }}@{{ api_ip_address }}"
 api_home: "{{ fworch_home }}/api"
 api_hasura_cli_bin: "{{ fworch_home }}/api/bin/hasura"
 api_hasura_version: "v2.12.0"

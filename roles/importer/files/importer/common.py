@@ -145,6 +145,7 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0,
             return ""
 
         current_import_id = -1
+
         try: # set import lock
             current_import_id = fwo_api.lock_import(fwo_config['fwo_api_base_url'], jwt, {"mgmId": int(mgm_id)})
         except:

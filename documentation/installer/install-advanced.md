@@ -77,6 +77,11 @@ e.g. if your hasura metadata file needs to be re-created from scratch, then use 
 ```console
 ansible-playbook -e "api_no_metadata=yes" site.yml -K
 ```
+### Parameter "force_install" to force installation even though operating system packages are not up2date
+
+```console
+ansible-playbook -e "force_install=yes" site.yml -K
+```
 
 ### Parameter "install_syslog" allows disabling of separate syslog installation
 

@@ -968,7 +968,7 @@ CREATE TYPE rule_field_enum AS ENUM ('source', 'destination', 'service');
 CREATE TYPE action_enum AS ENUM ('create', 'delete', 'modify');
 
 -- create tables
-create table if not exists request.req_task 
+create table if not exists request.reqtask 
 (
     id BIGSERIAL PRIMARY KEY,
     title VARCHAR,
@@ -995,7 +995,7 @@ create table if not exists request.req_task
 	device_id int
 );
 
-create table if not exists request.req_element 
+create table if not exists request.reqelement 
 (
     id BIGSERIAL PRIMARY KEY,
     request_action action_enum NOT NULL default 'create',
@@ -1144,7 +1144,7 @@ create table if not exists rule_owner
     rule_metadata_id bigint
 );
 
-create table if not exists request.impl_element
+create table if not exists request.implelement
 (
     id BIGSERIAL PRIMARY KEY,
     implementation_action action_enum NOT NULL default 'create',
@@ -1159,7 +1159,7 @@ create table if not exists request.impl_element
     original_nat_id int
 );
 
-create table if not exists request.impl_task
+create table if not exists request.impltask
 (
     id BIGSERIAL PRIMARY KEY,
 	title VARCHAR,

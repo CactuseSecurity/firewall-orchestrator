@@ -17,7 +17,7 @@ Alter Table "zone" add Constraint "Alter_Key10" UNIQUE ("mgm_id","zone_name");
 
 --- owner_network ---
 ALTER TABLE owner_network ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
---- request.req_element ---
-ALTER TABLE request.req_element ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
---- request.impl_element ---
-ALTER TABLE request.impl_element ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
+--- request.reqelement ---
+ALTER TABLE request.reqelement ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
+--- request.implelement ---
+ALTER TABLE request.implelement ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);

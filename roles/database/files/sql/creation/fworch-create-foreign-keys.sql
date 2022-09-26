@@ -185,26 +185,26 @@ Alter table "zone" add  foreign key ("mgm_id") references "management" ("mgm_id"
 Alter table "zone" add  foreign key ("zone_create") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "zone" add  foreign key ("zone_last_seen") references "import_control" ("control_id") on update restrict on delete cascade;
 
---- request.req_task ---
-ALTER TABLE request.req_task ADD CONSTRAINT request_req_task_request_ticket_foreign_key FOREIGN KEY (ticket_id) REFERENCES request.ticket(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.req_task ADD CONSTRAINT request_req_task_request_state_foreign_key FOREIGN KEY (state_id) REFERENCES request.state(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.req_task ADD CONSTRAINT request_req_task_stm_action_foreign_key FOREIGN KEY (rule_action) REFERENCES stm_action(action_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.req_task ADD CONSTRAINT request_req_task_stm_track_foreign_key FOREIGN KEY (rule_tracking) REFERENCES stm_track(track_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.req_task ADD CONSTRAINT request_req_task_service_foreign_key FOREIGN KEY (svc_grp_id) REFERENCES service(svc_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.req_task ADD CONSTRAINT request_req_task_object_foreign_key FOREIGN KEY (nw_obj_grp_id) REFERENCES object(obj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.req_task ADD CONSTRAINT request_req_task_usergrp_foreign_key FOREIGN KEY (user_grp_id) REFERENCES usr(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.req_task ADD CONSTRAINT request_req_task_current_handler_foreign_key FOREIGN KEY (current_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.req_task ADD CONSTRAINT request_req_task_recent_handler_foreign_key FOREIGN KEY (recent_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.req_task ADD CONSTRAINT request_req_task_device_foreign_key FOREIGN KEY (device_id) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;
---- request.req_element ---
-ALTER TABLE request.req_element ADD CONSTRAINT request_req_element_request_req_task_foreign_key FOREIGN KEY (task_id) REFERENCES request.req_task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.req_element ADD CONSTRAINT request_req_element_proto_foreign_key FOREIGN KEY (ip_proto_id) REFERENCES stm_ip_proto(ip_proto_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.req_element ADD CONSTRAINT request_req_element_service_foreign_key FOREIGN KEY (service_id) REFERENCES service(svc_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.req_element ADD CONSTRAINT request_req_element_object_foreign_key FOREIGN KEY (network_object_id) REFERENCES object(obj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.req_element ADD CONSTRAINT request_req_element_request_req_element_foreign_key FOREIGN KEY (original_nat_id) REFERENCES request.req_element(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.req_element ADD CONSTRAINT request_req_element_usr_foreign_key FOREIGN KEY (user_id) REFERENCES usr(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+--- request.reqtask ---
+ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_request_ticket_foreign_key FOREIGN KEY (ticket_id) REFERENCES request.ticket(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_request_state_foreign_key FOREIGN KEY (state_id) REFERENCES request.state(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_stm_action_foreign_key FOREIGN KEY (rule_action) REFERENCES stm_action(action_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_stm_track_foreign_key FOREIGN KEY (rule_tracking) REFERENCES stm_track(track_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_service_foreign_key FOREIGN KEY (svc_grp_id) REFERENCES service(svc_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_object_foreign_key FOREIGN KEY (nw_obj_grp_id) REFERENCES object(obj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_usergrp_foreign_key FOREIGN KEY (user_grp_id) REFERENCES usr(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_current_handler_foreign_key FOREIGN KEY (current_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_recent_handler_foreign_key FOREIGN KEY (recent_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_device_foreign_key FOREIGN KEY (device_id) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+--- request.reqelement ---
+ALTER TABLE request.reqelement ADD CONSTRAINT request_reqelement_request_reqtask_foreign_key FOREIGN KEY (task_id) REFERENCES request.reqtask(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.reqelement ADD CONSTRAINT request_reqelement_proto_foreign_key FOREIGN KEY (ip_proto_id) REFERENCES stm_ip_proto(ip_proto_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.reqelement ADD CONSTRAINT request_reqelement_service_foreign_key FOREIGN KEY (service_id) REFERENCES service(svc_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.reqelement ADD CONSTRAINT request_reqelement_object_foreign_key FOREIGN KEY (network_object_id) REFERENCES object(obj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.reqelement ADD CONSTRAINT request_reqelement_request_reqelement_foreign_key FOREIGN KEY (original_nat_id) REFERENCES request.reqelement(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.reqelement ADD CONSTRAINT request_reqelement_usr_foreign_key FOREIGN KEY (user_id) REFERENCES usr(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- request.approval ---
-ALTER TABLE request.approval ADD CONSTRAINT request_approval_request_req_task_foreign_key FOREIGN KEY (task_id) REFERENCES request.req_task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.approval ADD CONSTRAINT request_approval_request_reqtask_foreign_key FOREIGN KEY (task_id) REFERENCES request.reqtask(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.approval ADD CONSTRAINT request_approval_tenant_foreign_key FOREIGN KEY (tenant_id) REFERENCES tenant(tenant_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.approval ADD CONSTRAINT request_approval_request_state_foreign_key FOREIGN KEY (state_id) REFERENCES request.state(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.approval ADD CONSTRAINT request_approval_current_handler_foreign_key FOREIGN KEY (current_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
@@ -219,6 +219,7 @@ ALTER TABLE request.ticket ADD CONSTRAINT request_ticket_recent_handler_foreign_
 ALTER TABLE owner ADD CONSTRAINT owner_tenant_foreign_key FOREIGN KEY (tenant_id) REFERENCES tenant(tenant_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- comment ---
 ALTER TABLE request.comment ADD CONSTRAINT request_comment_uiuser_foreign_key FOREIGN KEY (creator_id) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.comment ADD CONSTRAINT request_comment_request_comment_foreign_key FOREIGN KEY (ref_id) REFERENCES request.comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- owner_network ---
 ALTER TABLE owner_network ADD CONSTRAINT owner_network_proto_foreign_key FOREIGN KEY (ip_proto_id) REFERENCES stm_ip_proto(ip_proto_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE owner_network ADD CONSTRAINT owner_network_owner_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
@@ -226,39 +227,39 @@ ALTER TABLE owner_network ADD CONSTRAINT owner_network_owner_foreign_key FOREIGN
 ALTER TABLE rule_owner ADD CONSTRAINT rule_owner_rule_metadata_foreign_key FOREIGN KEY (rule_metadata_id) REFERENCES rule_metadata(rule_metadata_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE rule_owner ADD CONSTRAINT rule_owner_owner_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- reqtask_owner ---
-ALTER TABLE reqtask_owner ADD CONSTRAINT reqtask_owner_request_req_task_foreign_key FOREIGN KEY (request_task_id) REFERENCES request.req_task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE reqtask_owner ADD CONSTRAINT reqtask_owner_request_reqtask_foreign_key FOREIGN KEY (request_task_id) REFERENCES request.reqtask(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE reqtask_owner ADD CONSTRAINT reqtask_owner_owner_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- ticket_comment ---
 ALTER TABLE request.ticket_comment ADD CONSTRAINT request_ticket_comment_ticket_foreign_key FOREIGN KEY (ticket_id) REFERENCES request.ticket(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.ticket_comment ADD CONSTRAINT request_ticket_comment_comment_foreign_key FOREIGN KEY (comment_id) REFERENCES request.comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- reqtask_comment ---
-ALTER TABLE request.reqtask_comment ADD CONSTRAINT request_reqtask_comment_task_foreign_key FOREIGN KEY (task_id) REFERENCES request.req_task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.reqtask_comment ADD CONSTRAINT request_reqtask_comment_reqtask_foreign_key FOREIGN KEY (task_id) REFERENCES request.reqtask(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.reqtask_comment ADD CONSTRAINT request_reqtask_comment_comment_foreign_key FOREIGN KEY (comment_id) REFERENCES request.comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- approval_comment ---
-ALTER TABLE request.approval_comment ADD CONSTRAINT request_approval_comment_task_foreign_key FOREIGN KEY (approval_id) REFERENCES request.approval(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.approval_comment ADD CONSTRAINT request_approval_comment_approval_foreign_key FOREIGN KEY (approval_id) REFERENCES request.approval(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.approval_comment ADD CONSTRAINT request_approval_comment_comment_foreign_key FOREIGN KEY (comment_id) REFERENCES request.comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- impltask_comment ---
-ALTER TABLE request.impltask_comment ADD CONSTRAINT request_impltask_comment_task_foreign_key FOREIGN KEY (task_id) REFERENCES request.impl_task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.impltask_comment ADD CONSTRAINT request_impltask_comment_impltask_foreign_key FOREIGN KEY (task_id) REFERENCES request.impltask(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.impltask_comment ADD CONSTRAINT request_impltask_comment_comment_foreign_key FOREIGN KEY (comment_id) REFERENCES request.comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- state_action ---
 ALTER TABLE request.state_action ADD CONSTRAINT request_state_action_state_foreign_key FOREIGN KEY (state_id) REFERENCES request.state(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.state_action ADD CONSTRAINT request_state_action_action_foreign_key FOREIGN KEY (action_id) REFERENCES request.action(id) ON UPDATE RESTRICT ON DELETE CASCADE;
---- request.impl_element ---
-ALTER TABLE request.impl_element ADD CONSTRAINT request_impl_element_request_impl_element_foreign_key FOREIGN KEY (original_nat_id) REFERENCES request.impl_element(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.impl_element ADD CONSTRAINT request_impl_element_service_foreign_key FOREIGN KEY (service_id) REFERENCES service(svc_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.impl_element ADD CONSTRAINT request_impl_element_object_foreign_key FOREIGN KEY (network_object_id) REFERENCES object(obj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.impl_element ADD CONSTRAINT request_impl_element_proto_foreign_key FOREIGN KEY (ip_proto_id) REFERENCES stm_ip_proto(ip_proto_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.impl_element ADD CONSTRAINT request_impl_element_request_impl_task_foreign_key FOREIGN KEY (implementation_task_id) REFERENCES request.impl_task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.impl_element ADD CONSTRAINT request_impl_element_usr_foreign_key FOREIGN KEY (user_id) REFERENCES usr(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
---- request.impl_task
-ALTER TABLE request.impl_task ADD CONSTRAINT request_impl_task_request_req_task_foreign_key FOREIGN KEY (request_task_id) REFERENCES request.req_task(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.impl_task ADD CONSTRAINT request_impl_task_request_state_foreign_key FOREIGN KEY (state_id) REFERENCES request.state(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.impl_task ADD CONSTRAINT request_impl_task_device_foreign_key FOREIGN KEY (device_id) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.impl_task ADD CONSTRAINT request_impl_task_stm_action_foreign_key FOREIGN KEY (rule_action) REFERENCES stm_action(action_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.impl_task ADD CONSTRAINT request_impl_task_stm_tracking_foreign_key FOREIGN KEY (rule_tracking) REFERENCES stm_track(track_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.impl_task ADD CONSTRAINT request_impl_task_service_foreign_key FOREIGN KEY (svc_grp_id) REFERENCES service(svc_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.impl_task ADD CONSTRAINT request_impl_task_object_foreign_key FOREIGN KEY (nw_obj_grp_id) REFERENCES object(obj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.impl_task ADD CONSTRAINT request_impl_task_usergrp_foreign_key FOREIGN KEY (user_grp_id) REFERENCES usr(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.impl_task ADD CONSTRAINT request_impl_task_current_handler_foreign_key FOREIGN KEY (current_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.impl_task ADD CONSTRAINT request_impl_task_recent_handler_foreign_key FOREIGN KEY (recent_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+--- request.implelement ---
+ALTER TABLE request.implelement ADD CONSTRAINT request_implelement_request_implelement_foreign_key FOREIGN KEY (original_nat_id) REFERENCES request.implelement(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.implelement ADD CONSTRAINT request_implelement_service_foreign_key FOREIGN KEY (service_id) REFERENCES service(svc_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.implelement ADD CONSTRAINT request_implelement_object_foreign_key FOREIGN KEY (network_object_id) REFERENCES object(obj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.implelement ADD CONSTRAINT request_implelement_proto_foreign_key FOREIGN KEY (ip_proto_id) REFERENCES stm_ip_proto(ip_proto_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.implelement ADD CONSTRAINT request_implelement_request_impltask_foreign_key FOREIGN KEY (implementation_task_id) REFERENCES request.impltask(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.implelement ADD CONSTRAINT request_implelement_usr_foreign_key FOREIGN KEY (user_id) REFERENCES usr(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+--- request.impltask
+ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_request_reqtask_foreign_key FOREIGN KEY (request_task_id) REFERENCES request.reqtask(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_request_state_foreign_key FOREIGN KEY (state_id) REFERENCES request.state(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_device_foreign_key FOREIGN KEY (device_id) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_stm_action_foreign_key FOREIGN KEY (rule_action) REFERENCES stm_action(action_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_stm_tracking_foreign_key FOREIGN KEY (rule_tracking) REFERENCES stm_track(track_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_service_foreign_key FOREIGN KEY (svc_grp_id) REFERENCES service(svc_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_object_foreign_key FOREIGN KEY (nw_obj_grp_id) REFERENCES object(obj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_usergrp_foreign_key FOREIGN KEY (user_grp_id) REFERENCES usr(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_current_handler_foreign_key FOREIGN KEY (current_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_recent_handler_foreign_key FOREIGN KEY (recent_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 

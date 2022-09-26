@@ -18,7 +18,7 @@ mutation updateImplementationTask(
     pk_columns: { id: $id }
     _set: {
     title: $title
-    request_task_id: $reqTaskId
+    reqtask_id: $reqTaskId
     task_number: $implIaskNumber
     state_id: $state
     task_type: $taskType

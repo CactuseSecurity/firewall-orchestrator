@@ -1,7 +1,7 @@
 fragment implTaskDetails on request_impl_task {
   id
   title
-  request_task_id
+  reqtask_id
   task_number
   task_type
   state_id

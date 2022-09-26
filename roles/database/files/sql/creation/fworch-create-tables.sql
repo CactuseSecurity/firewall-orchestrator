@@ -1134,7 +1134,7 @@ create table if not exists owner_network
 
 create table if not exists reqtask_owner
 (
-    request_task_id bigint,
+    reqtask_id bigint,
     owner_id int
 );
 
@@ -1163,7 +1163,7 @@ create table if not exists request.impltask
 (
     id BIGSERIAL PRIMARY KEY,
 	title VARCHAR,
-    request_task_id bigint,
+    reqtask_id bigint,
     task_number int,
     state_id int NOT NULL,
 	task_type VARCHAR NOT NULL,

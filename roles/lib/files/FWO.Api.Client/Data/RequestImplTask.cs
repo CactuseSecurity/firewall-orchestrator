@@ -8,7 +8,7 @@ namespace FWO.Api.Data
         [JsonProperty("id"), JsonPropertyName("id")]
         public long Id { get; set; }
 
-        [JsonProperty("request_task_id"), JsonPropertyName("request_task_id")]
+        [JsonProperty("reqtask_id"), JsonPropertyName("reqtask_id")]
         public long ReqTaskId { get; set; }
 
         [JsonProperty("implementation_action"), JsonPropertyName("implementation_action")]

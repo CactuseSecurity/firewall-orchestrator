@@ -15,7 +15,7 @@ mutation newImplementationTask(
   ) {
   insert_request_impl_task(objects: {
     title: $title
-    request_task_id: $reqTaskId
+    reqtask_id: $reqTaskId
     task_number: $implIaskNumber
     state_id: $state
     task_type: $taskType

@@ -189,7 +189,7 @@ create table if not exists owner_network
 
 create table if not exists reqtask_owner
 (
-    request_task_id bigint,
+    reqtask_id bigint,
     owner_id int
 );
 
@@ -218,7 +218,7 @@ create table if not exists request.impltask
 (
     id BIGSERIAL PRIMARY KEY,
     title VARCHAR,
-    request_task_id bigint,
+    reqtask_id bigint,
     task_number int,
     state_id int NOT NULL,
     device_id int,
@@ -365,7 +365,7 @@ ALTER TABLE owner_network ADD CONSTRAINT owner_network_owner_foreign_key FOREIGN
 ALTER TABLE rule_owner ADD CONSTRAINT rule_owner_rule_metadata_foreign_key FOREIGN KEY (rule_metadata_id) REFERENCES rule_metadata(rule_metadata_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE rule_owner ADD CONSTRAINT rule_owner_owner_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- reqtask_owner ---
-ALTER TABLE reqtask_owner ADD CONSTRAINT reqtask_owner_request_reqtask_foreign_key FOREIGN KEY (request_task_id) REFERENCES request.reqtask(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE reqtask_owner ADD CONSTRAINT reqtask_owner_request_reqtask_foreign_key FOREIGN KEY (reqtask_id) REFERENCES request.reqtask(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE reqtask_owner ADD CONSTRAINT reqtask_owner_owner_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- ticket_comment ---
 ALTER TABLE request.ticket_comment ADD CONSTRAINT request_ticket_comment_ticket_foreign_key FOREIGN KEY (ticket_id) REFERENCES request.ticket(id) ON UPDATE RESTRICT ON DELETE CASCADE;
@@ -390,7 +390,7 @@ ALTER TABLE request.implelement ADD CONSTRAINT request_implelement_proto_foreign
 ALTER TABLE request.implelement ADD CONSTRAINT request_implelement_request_impltask_foreign_key FOREIGN KEY (implementation_task_id) REFERENCES request.impltask(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.implelement ADD CONSTRAINT request_implelement_usr_foreign_key FOREIGN KEY (user_id) REFERENCES usr(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- request.impltask
-ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_request_reqtask_foreign_key FOREIGN KEY (request_task_id) REFERENCES request.reqtask(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_request_reqtask_foreign_key FOREIGN KEY (reqtask_id) REFERENCES request.reqtask(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_request_state_foreign_key FOREIGN KEY (state_id) REFERENCES request.state(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_device_foreign_key FOREIGN KEY (device_id) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_stm_action_foreign_key FOREIGN KEY (rule_action) REFERENCES stm_action(action_id) ON UPDATE RESTRICT ON DELETE CASCADE;

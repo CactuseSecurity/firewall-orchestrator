@@ -66,7 +66,7 @@ http_proxy_import_parameter: ""
 test_packages:
   - postgresql-client
   - curl
-server_admin: "root@{{ api_hostname }}"
+server_admin: "root@{{ api_ip_address }}"
 arch: x86_64
 redhat_major_version: "8"
 redhat_arch: "{{ redhat_major_version }}-{{ arch }}"
@@ -100,6 +100,7 @@ ui_admin_testonly_password: "fworch.1"
 ### database & api
 api_service_name: fworch-hasura-docker-api
 api_container_name: "{{ product_name }}-api"
+api_ip_address: "127.0.0.1"
 api_web_port: 9443
 api_hasura_jwt_alg: "RS256"
 api_hasura_jwt_secret: "fake-jwt-secret-for-github-install"

@@ -1,7 +1,7 @@
 # this script installs an ansible version >=2.8 as well as the postgresql_* modules (from community.general)
 
 ---
-- hosts: all
+- hosts: localhost
   tasks: 
     - name: "Set version variables"
       set_fact:

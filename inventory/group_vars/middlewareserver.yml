@@ -1,5 +1,5 @@
 openldap_path: "dc=fworch,dc=internal"
-openldap_server: "{{ middleware_hostname }}"
+openldap_server: "127.0.0.1"
 openldap_port: 636
 openldap_url: "ldaps://{{ openldap_server }}"
 openldap_superuser_dn: "cn=Manager,ou=systemuser,ou=user,{{ openldap_path }}"

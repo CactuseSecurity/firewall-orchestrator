@@ -1,5 +1,5 @@
 mutation deleteRequestElement ($id: bigint!) {
-  delete_request_req_element_by_pk (
+  delete_request_reqelement_by_pk (
     id: $id
   ) {
     DeletedId: id

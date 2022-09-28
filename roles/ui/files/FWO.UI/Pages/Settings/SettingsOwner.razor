@@ -1,0 +1,206 @@
+﻿@using FWO.Api.Client
+@using FWO.Config.Api
+@using FWO.Config.Api.Data
+@using FWO.Ui.Services
+@using System.Text.Json
+@using System.Net
+@using FWO.Middleware.Client
+@using FWO.Middleware.RequestParameters
+@using RestSharp
+
+@page "/settings/owners"
+@attribute [Authorize(Roles = "admin, auditor")]
+
+@inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+@inject MiddlewareClient middlewareClient
+
+@if(InitComplete)
+{
+    <h3>@(userConfig.GetText("owners"))</h3>
+    @(userConfig.GetText("U5216"))
+    <hr />
+    <button class="btn btn-sm btn-success" @onclick="AddOwner">@(userConfig.GetText("add_owner"))</button>
+    <br><br>
+    <div class="m-2">
+        <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="RequestOwner" Items="owners" PageSize="0" ColumnReorder="true">
+            <Column TableItem="RequestOwner" Title="@(userConfig.GetText("owners"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                <Template>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-warning" @onclick="() => EditOwner(context)">@(userConfig.GetText("edit"))</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => RequestDeleteOwner(context)">@(userConfig.GetText("delete"))</button>
+                    </div>
+                </Template>
+            </Column>
+            <Column TableItem="RequestOwner" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+            <Column TableItem="RequestOwner" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+            <Column TableItem="RequestOwner" Title="@(userConfig.GetText("dn"))" Field="@(x => x.Dn)" Sortable="true" Filterable="true" />
+            <Column TableItem="RequestOwner" Title="@(userConfig.GetText("group"))" Field="@(x => x.GroupDn)" Sortable="true" Filterable="true" />
+            <Column TableItem="RequestOwner" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.TenantId)" Sortable="true">
+                <Template>
+                    @(context.TenantId != null ? tenants.FirstOrDefault(x => x.Id == context.TenantId)?.Name ?? "" : "" )
+                </Template>
+            </Column>
+            <Column TableItem="RequestOwner" Title="@(userConfig.GetText("recert_interval"))" Field="@(x => x.RecertInterval)" Sortable="true" Filterable="true" />
+            <Column TableItem="RequestOwner" Title="@(userConfig.GetText("next_recert"))" Field="@(x => x.NextRecertDate)" Sortable="true" Filterable="true" />
+            <Column TableItem="RequestOwner" Title="@(userConfig.GetText("ext_app_id"))" Field="@(x => x.ExtAppId)" Sortable="true" Filterable="true" />
+        </Table>
+    </div>
+
+    <PopUp Title="@(userConfig.GetText("edit_owner"))" Show="@EditOwnerMode" OnClose="() => EditOwnerMode = false">
+        <Body>
+            @if (EditOwnerMode)
+            {
+                <div class="form-group row">
+                    <div class="col-sm-3">
+                        <label class="col-sm-2 col-form-label col-form-label-sm">@(actOwner.Id)</label>
+                    </div>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control form-control-sm" @bind="actOwner.Name" />
+                    </div>
+                </div>
+            }
+        </Body>
+        <Footer>
+            <div class="btn-group">
+                <AuthorizeView Roles="admin, fw-admin">
+                    <Authorized>
+                        <button class="btn btn-sm btn-primary" @onclick="SaveOwner">@(userConfig.GetText("save"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+                <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            </div>
+        </Footer>
+    </PopUp>
+
+    <PopUp Title="@(userConfig.GetText("delete_owner"))" Show="@DeleteOwnerMode" OnClose="() => DeleteOwnerMode = false">
+        <Body>
+            @if (DeleteOwnerMode)
+            {
+                <p>@(userConfig.GetText("U5217") + actOwner.Name + "?")</p>
+            }
+        </Body>
+        <Footer>
+            <div class="btn-group">
+                <AuthorizeView Roles="admin">
+                    <Authorized>
+                        <button class="btn btn-sm btn-danger" @onclick="DeleteOwner">@(userConfig.GetText("delete"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+                <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            </div>
+        </Footer>
+    </PopUp>
+}
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+
+    private List<RequestOwner> owners = new List<RequestOwner>();
+    private RequestOwner actOwner = new RequestOwner();
+
+    private List<Tenant> tenants = new List<Tenant>();
+
+    private bool EditOwnerMode = false;
+    private bool AddOwnerMode = false;
+    private bool DeleteOwnerMode = false;
+    private bool InitComplete = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            owners = await apiConnection.SendQueryAsync<List<RequestOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+            RestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
+            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("get_tenant_data"), userConfig.GetText("E5284"), true);
+            }
+            else
+            {
+                tenants = new List<Tenant>();
+                foreach (TenantGetReturnParameters apiTenant in middlewareServerResponse.Data)
+                {
+                    tenants.Add(new Tenant(apiTenant));
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+        InitComplete = true;
+    }
+
+
+    private void AddOwner()
+    {
+        AddOwnerMode = true;
+        EditOwner(new RequestOwner());
+    }
+
+    private void EditOwner(RequestOwner owner)
+    {
+        actOwner = owner;
+        EditOwnerMode = true;
+    }
+
+    private async Task SaveOwner()
+    {
+        try
+        {
+            // await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.OwnerQueries.upsertOwner, new { id = actOwner.Id, name = actOwner.Name });
+            if(AddOwnerMode)
+            {
+                owners.Add(actOwner);
+            }
+            else
+            {
+                owners[owners.FindIndex(x => x.Id == actOwner.Id)] = actOwner;
+            }
+            EditOwnerMode = false;
+            AddOwnerMode = false;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("edit_owner"), "", true);
+        }
+    }
+
+    private void Cancel()
+    {
+        EditOwnerMode = false;
+        AddOwnerMode = false;
+        DeleteOwnerMode = false;
+    }
+
+    private void RequestDeleteOwner(RequestOwner owner)
+    {
+        actOwner = owner;
+        DeleteOwnerMode = true;
+    }
+
+    private async Task DeleteOwner()
+    {
+        try
+        {
+            //await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.OwnerQueries.deleteOwner, new { id = actOwner.Id });
+            owners.Remove(actOwner);
+            DeleteOwnerMode = false;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_owner"), "", true);
+        }
+    }
+}

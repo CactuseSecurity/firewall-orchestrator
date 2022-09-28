@@ -1,5 +1,5 @@
 mutation deleteImplementationElement ($id: bigint!) {
-  delete_request_impl_element_by_pk (
+  delete_request_implelement_by_pk (
     id: $id
   ) {
     DeletedId: id

@@ -3,9 +3,8 @@
 @using FWO.Config.Api
 @using FWO.Ui.Services
 
-@page "/request"
 @page "/request/tickets"
-@attribute [Authorize(Roles = "admin, requester, auditor, fw-admin")]
+@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig

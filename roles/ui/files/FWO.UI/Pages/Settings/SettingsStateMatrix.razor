@@ -188,7 +188,7 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                <AuthorizeView Roles="admin, requester, fw-admin">
+                <AuthorizeView Roles="admin, fw-admin">
                     <Authorized>
                         <button class="btn btn-sm btn-primary" @onclick="ApplySelection">@(userConfig.GetText("select"))</button>
                     </Authorized>

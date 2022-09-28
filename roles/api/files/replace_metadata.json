@@ -48,7 +48,51 @@
               ],
               "insert_permissions": [
                 {
+                  "role": "approver",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "ack_by",
+                      "ack_timestamp",
+                      "alert_code",
+                      "alert_dev_id",
+                      "alert_id",
+                      "alert_mgm_id",
+                      "alert_timestamp",
+                      "description",
+                      "json_data",
+                      "ref_alert_id",
+                      "ref_log_id",
+                      "source",
+                      "title",
+                      "user_id"
+                    ]
+                  }
+                },
+                {
                   "role": "fw-admin",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "ack_by",
+                      "ack_timestamp",
+                      "alert_code",
+                      "alert_dev_id",
+                      "alert_id",
+                      "alert_mgm_id",
+                      "alert_timestamp",
+                      "description",
+                      "json_data",
+                      "ref_alert_id",
+                      "ref_log_id",
+                      "source",
+                      "title",
+                      "user_id"
+                    ]
+                  }
+                },
+                {
+                  "role": "implementer",
                   "permission": {
                     "check": {},
                     "columns": [
@@ -93,6 +137,28 @@
                 },
                 {
                   "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "ack_by",
+                      "ack_timestamp",
+                      "alert_code",
+                      "alert_dev_id",
+                      "alert_id",
+                      "alert_mgm_id",
+                      "alert_timestamp",
+                      "description",
+                      "json_data",
+                      "ref_alert_id",
+                      "ref_log_id",
+                      "source",
+                      "title",
+                      "user_id"
+                    ]
+                  }
+                },
+                {
+                  "role": "planner",
                   "permission": {
                     "check": {},
                     "columns": [
@@ -178,9 +244,75 @@
                       "user_id"
                     ]
                   }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "ack_by",
+                      "ack_timestamp",
+                      "alert_code",
+                      "alert_dev_id",
+                      "alert_id",
+                      "alert_mgm_id",
+                      "alert_timestamp",
+                      "description",
+                      "json_data",
+                      "ref_alert_id",
+                      "ref_log_id",
+                      "source",
+                      "title",
+                      "user_id"
+                    ]
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "ack_by",
+                      "ack_timestamp",
+                      "alert_code",
+                      "alert_dev_id",
+                      "alert_id",
+                      "alert_mgm_id",
+                      "alert_timestamp",
+                      "description",
+                      "json_data",
+                      "ref_alert_id",
+                      "ref_log_id",
+                      "source",
+                      "title",
+                      "user_id"
+                    ]
+                  }
                 }
               ],
               "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "alert_id",
+                      "ref_alert_id",
+                      "ref_log_id",
+                      "description",
+                      "source",
+                      "title",
+                      "ack_by",
+                      "alert_code",
+                      "alert_dev_id",
+                      "alert_mgm_id",
+                      "user_id",
+                      "json_data",
+                      "ack_timestamp",
+                      "alert_timestamp"
+                    ],
+                    "filter": {}
+                  }
+                },
                 {
                   "role": "auditor",
                   "permission": {
@@ -221,6 +353,28 @@
                       "source",
                       "title",
                       "user_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "alert_id",
+                      "ref_alert_id",
+                      "ref_log_id",
+                      "description",
+                      "source",
+                      "title",
+                      "ack_by",
+                      "alert_code",
+                      "alert_dev_id",
+                      "alert_mgm_id",
+                      "user_id",
+                      "json_data",
+                      "ack_timestamp",
+                      "alert_timestamp"
                     ],
                     "filter": {}
                   }
@@ -271,7 +425,73 @@
                   }
                 },
                 {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "alert_id",
+                      "ref_alert_id",
+                      "ref_log_id",
+                      "description",
+                      "source",
+                      "title",
+                      "ack_by",
+                      "alert_code",
+                      "alert_dev_id",
+                      "alert_mgm_id",
+                      "user_id",
+                      "json_data",
+                      "ack_timestamp",
+                      "alert_timestamp"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "alert_id",
+                      "ref_alert_id",
+                      "ref_log_id",
+                      "description",
+                      "source",
+                      "title",
+                      "ack_by",
+                      "alert_code",
+                      "alert_dev_id",
+                      "alert_mgm_id",
+                      "user_id",
+                      "json_data",
+                      "ack_timestamp",
+                      "alert_timestamp"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "alert_id",
+                      "ref_alert_id",
+                      "ref_log_id",
+                      "description",
+                      "source",
+                      "title",
+                      "ack_by",
+                      "alert_code",
+                      "alert_dev_id",
+                      "alert_mgm_id",
+                      "user_id",
+                      "json_data",
+                      "ack_timestamp",
+                      "alert_timestamp"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reviewer",
                   "permission": {
                     "columns": [
                       "alert_id",
@@ -835,6 +1055,21 @@
               ],
               "insert_permissions": [
                 {
+                  "role": "approver",
+                  "permission": {
+                    "check": {
+                      "config_user": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
+                    },
+                    "columns": [
+                      "config_user",
+                      "config_key",
+                      "config_value"
+                    ]
+                  }
+                },
+                {
                   "role": "auditor",
                   "permission": {
                     "check": {
@@ -851,6 +1086,36 @@
                 },
                 {
                   "role": "fw-admin",
+                  "permission": {
+                    "check": {
+                      "config_user": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
+                    },
+                    "columns": [
+                      "config_user",
+                      "config_key",
+                      "config_value"
+                    ]
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "check": {
+                      "config_user": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
+                    },
+                    "columns": [
+                      "config_user",
+                      "config_key",
+                      "config_value"
+                    ]
+                  }
+                },
+                {
+                  "role": "planner",
                   "permission": {
                     "check": {
                       "config_user": {
@@ -917,6 +1182,36 @@
                       "config_value"
                     ]
                   }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "check": {
+                      "config_user": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
+                    },
+                    "columns": [
+                      "config_user",
+                      "config_key",
+                      "config_value"
+                    ]
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "check": {
+                      "config_user": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
+                    },
+                    "columns": [
+                      "config_user",
+                      "config_key",
+                      "config_value"
+                    ]
+                  }
                 }
               ],
               "select_permissions": [
@@ -932,6 +1227,30 @@
                       "config_user": {
                         "_eq": 0
                       }
+                    }
+                  }
+                },
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "config_user"
+                    ],
+                    "filter": {
+                      "_or": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user": {
+                            "_eq": 0
+                          }
+                        }
+                      ]
                     }
                   }
                 },
@@ -953,6 +1272,30 @@
                       "config_user",
                       "config_key",
                       "config_value"
+                    ],
+                    "filter": {
+                      "_or": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user": {
+                            "_eq": 0
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "config_user"
                     ],
                     "filter": {
                       "_or": [
@@ -994,6 +1337,30 @@
                   }
                 },
                 {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "config_user"
+                    ],
+                    "filter": {
+                      "_or": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user": {
+                            "_eq": 0
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -1064,9 +1431,71 @@
                       ]
                     }
                   }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "config_user"
+                    ],
+                    "filter": {
+                      "_or": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user": {
+                            "_eq": 0
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "config_user"
+                    ],
+                    "filter": {
+                      "_or": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user": {
+                            "_eq": 0
+                          }
+                        }
+                      ]
+                    }
+                  }
                 }
               ],
               "update_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "config_value"
+                    ],
+                    "filter": {
+                      "config_user": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
+                    },
+                    "check": null
+                  }
+                },
                 {
                   "role": "auditor",
                   "permission": {
@@ -1098,6 +1527,34 @@
                   }
                 },
                 {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "config_value"
+                    ],
+                    "filter": {
+                      "config_user": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
+                    },
+                    "check": null
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "config_value"
+                    ],
+                    "filter": {
+                      "config_user": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
+                    },
+                    "check": null
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -1138,6 +1595,34 @@
                 },
                 {
                   "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "config_value"
+                    ],
+                    "filter": {
+                      "config_user": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
+                    },
+                    "check": null
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "config_value"
+                    ],
+                    "filter": {
+                      "config_user": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
+                    },
+                    "check": null
+                  }
+                },
+                {
+                  "role": "reviewer",
                   "permission": {
                     "columns": [
                       "config_value"
@@ -1306,6 +1791,47 @@
               ],
               "select_permissions": [
                 {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "dev_active",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "dev_name",
+                      "global_rulebase_name",
+                      "global_rulebase_uid",
+                      "local_rulebase_name",
+                      "local_rulebase_uid",
+                      "package_name",
+                      "package_uid",
+                      "dev_id",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "tenant_id",
+                      "dev_comment",
+                      "dev_create",
+                      "dev_update"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "dev_id": {
+                            "_in": "x-hasura-visible-devices"
+                          }
+                        }
+                      ]
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -1362,6 +1888,47 @@
                   }
                 },
                 {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "dev_active",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "dev_name",
+                      "global_rulebase_name",
+                      "global_rulebase_uid",
+                      "local_rulebase_name",
+                      "local_rulebase_uid",
+                      "package_name",
+                      "package_uid",
+                      "dev_id",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "tenant_id",
+                      "dev_comment",
+                      "dev_create",
+                      "dev_update"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "dev_id": {
+                            "_in": "x-hasura-visible-devices"
+                          }
+                        }
+                      ]
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
                   "role": "importer",
                   "permission": {
                     "columns": [
@@ -1414,6 +1981,47 @@
                       "hide_in_gui"
                     ],
                     "filter": {}
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "dev_active",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "dev_name",
+                      "global_rulebase_name",
+                      "global_rulebase_uid",
+                      "local_rulebase_name",
+                      "local_rulebase_uid",
+                      "package_name",
+                      "package_uid",
+                      "dev_id",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "tenant_id",
+                      "dev_comment",
+                      "dev_create",
+                      "dev_update"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "dev_id": {
+                            "_in": "x-hasura-visible-devices"
+                          }
+                        }
+                      ]
+                    },
+                    "allow_aggregations": true
                   }
                 },
                 {
@@ -1523,6 +2131,88 @@
                       "local_rulebase_name"
                     ],
                     "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "dev_active",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "dev_name",
+                      "global_rulebase_name",
+                      "global_rulebase_uid",
+                      "local_rulebase_name",
+                      "local_rulebase_uid",
+                      "package_name",
+                      "package_uid",
+                      "dev_id",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "tenant_id",
+                      "dev_comment",
+                      "dev_create",
+                      "dev_update"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "dev_id": {
+                            "_in": "x-hasura-visible-devices"
+                          }
+                        }
+                      ]
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "dev_active",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "dev_name",
+                      "global_rulebase_name",
+                      "global_rulebase_uid",
+                      "local_rulebase_name",
+                      "local_rulebase_uid",
+                      "package_name",
+                      "package_uid",
+                      "dev_id",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "tenant_id",
+                      "dev_comment",
+                      "dev_create",
+                      "dev_update"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "dev_id": {
+                            "_in": "x-hasura-visible-devices"
+                          }
+                        }
+                      ]
+                    },
                     "allow_aggregations": true
                   }
                 }
@@ -2965,6 +3655,16 @@
                   }
                 },
                 {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "culture_info",
+                      "name"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -2985,7 +3685,27 @@
                   }
                 },
                 {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "culture_info",
+                      "name"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "culture_info",
+                      "name"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "planner",
                   "permission": {
                     "columns": [
                       "culture_info",
@@ -3020,6 +3740,26 @@
                     "columns": [
                       "name",
                       "culture_info"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "culture_info",
+                      "name"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "culture_info",
+                      "name"
                     ],
                     "filter": {}
                   }
@@ -3083,6 +3823,16 @@
               ],
               "select_permissions": [
                 {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "ldap_connection_id",
+                      "ldap_tenant_level"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -3119,6 +3869,16 @@
                   }
                 },
                 {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "ldap_connection_id",
+                      "ldap_tenant_level"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
@@ -3145,6 +3905,16 @@
                   }
                 },
                 {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "ldap_connection_id",
+                      "ldap_tenant_level"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -3166,6 +3936,26 @@
                 },
                 {
                   "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "ldap_connection_id",
+                      "ldap_tenant_level"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "ldap_connection_id",
+                      "ldap_tenant_level"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reviewer",
                   "permission": {
                     "columns": [
                       "ldap_connection_id",
@@ -3865,6 +4655,42 @@
               ],
               "select_permissions": [
                 {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "config_path",
+                      "importer_hostname",
+                      "last_import_md5_complete_config",
+                      "last_import_attempt",
+                      "last_import_attempt_successful",
+                      "mgm_name",
+                      "ssh_hostname",
+                      "ssh_user",
+                      "debug_level",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "multi_device_manager_id",
+                      "ssh_port",
+                      "tenant_id",
+                      "mgm_comment",
+                      "secret",
+                      "ssh_public_key",
+                      "mgm_create",
+                      "mgm_update"
+                    ],
+                    "filter": {
+                      "mgm_id": {
+                        "_in": "x-hasura-visible-managements"
+                      }
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -3929,6 +4755,42 @@
                   }
                 },
                 {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "config_path",
+                      "importer_hostname",
+                      "last_import_md5_complete_config",
+                      "last_import_attempt",
+                      "last_import_attempt_successful",
+                      "mgm_name",
+                      "ssh_hostname",
+                      "ssh_user",
+                      "debug_level",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "multi_device_manager_id",
+                      "ssh_port",
+                      "tenant_id",
+                      "mgm_comment",
+                      "secret",
+                      "ssh_public_key",
+                      "mgm_create",
+                      "mgm_update"
+                    ],
+                    "filter": {
+                      "mgm_id": {
+                        "_in": "x-hasura-visible-managements"
+                      }
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
                   "role": "importer",
                   "permission": {
                     "columns": [
@@ -3989,6 +4851,42 @@
                       "mgm_update"
                     ],
                     "filter": {}
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "config_path",
+                      "importer_hostname",
+                      "last_import_md5_complete_config",
+                      "last_import_attempt",
+                      "last_import_attempt_successful",
+                      "mgm_name",
+                      "ssh_hostname",
+                      "ssh_user",
+                      "debug_level",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "multi_device_manager_id",
+                      "ssh_port",
+                      "tenant_id",
+                      "mgm_comment",
+                      "secret",
+                      "ssh_public_key",
+                      "mgm_create",
+                      "mgm_update"
+                    ],
+                    "filter": {
+                      "mgm_id": {
+                        "_in": "x-hasura-visible-managements"
+                      }
+                    },
+                    "allow_aggregations": true
                   }
                 },
                 {
@@ -4092,6 +4990,78 @@
                       "tenant_id"
                     ],
                     "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "config_path",
+                      "importer_hostname",
+                      "last_import_md5_complete_config",
+                      "last_import_attempt",
+                      "last_import_attempt_successful",
+                      "mgm_name",
+                      "ssh_hostname",
+                      "ssh_user",
+                      "debug_level",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "multi_device_manager_id",
+                      "ssh_port",
+                      "tenant_id",
+                      "mgm_comment",
+                      "secret",
+                      "ssh_public_key",
+                      "mgm_create",
+                      "mgm_update"
+                    ],
+                    "filter": {
+                      "mgm_id": {
+                        "_in": "x-hasura-visible-managements"
+                      }
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "config_path",
+                      "importer_hostname",
+                      "last_import_md5_complete_config",
+                      "last_import_attempt",
+                      "last_import_attempt_successful",
+                      "mgm_name",
+                      "ssh_hostname",
+                      "ssh_user",
+                      "debug_level",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "multi_device_manager_id",
+                      "ssh_port",
+                      "tenant_id",
+                      "mgm_comment",
+                      "secret",
+                      "ssh_public_key",
+                      "mgm_create",
+                      "mgm_update"
+                    ],
+                    "filter": {
+                      "mgm_id": {
+                        "_in": "x-hasura-visible-managements"
+                      }
+                    },
                     "allow_aggregations": true
                   }
                 }
@@ -4919,6 +5889,93 @@
                         "name": "rule_owner"
                       }
                     }
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "is_default",
+                      "app_id_external",
+                      "dn",
+                      "group_dn",
+                      "name",
+                      "id",
+                      "tenant_id",
+                      "recert_interval",
+                      "next_recert_date"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "is_default",
+                      "app_id_external",
+                      "dn",
+                      "group_dn",
+                      "name",
+                      "id",
+                      "tenant_id",
+                      "recert_interval",
+                      "next_recert_date"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "is_default",
+                      "app_id_external",
+                      "dn",
+                      "group_dn",
+                      "name",
+                      "id",
+                      "tenant_id",
+                      "recert_interval",
+                      "next_recert_date"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "is_default",
+                      "app_id_external",
+                      "dn",
+                      "group_dn",
+                      "name",
+                      "id",
+                      "tenant_id",
+                      "recert_interval",
+                      "next_recert_date"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "is_default",
+                      "app_id_external",
+                      "dn",
+                      "group_dn",
+                      "name",
+                      "id",
+                      "tenant_id",
+                      "recert_interval",
+                      "next_recert_date"
+                    ],
+                    "filter": {}
                   }
                 }
               ]
@@ -6885,6 +7942,58 @@
                   "name": "reqtask",
                   "using": {
                     "foreign_key_constraint_on": "reqtask_id"
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "reqtask_id",
+                      "owner_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "reqtask_id",
+                      "owner_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "reqtask_id",
+                      "owner_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "reqtask_id",
+                      "owner_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "reqtask_id",
+                      "owner_id"
+                    ],
+                    "filter": {}
                   }
                 }
               ]
@@ -8854,6 +9963,16 @@
               ],
               "select_permissions": [
                 {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "action_id",
+                      "action_name"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -8875,11 +9994,31 @@
                   }
                 },
                 {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "action_id",
+                      "action_name"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "importer",
                   "permission": {
                     "columns": [],
                     "filter": {},
                     "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "action_id",
+                      "action_name"
+                    ],
+                    "filter": {}
                   }
                 },
                 {
@@ -8911,6 +10050,26 @@
                     ],
                     "filter": {},
                     "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "action_id",
+                      "action_name"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "action_id",
+                      "action_name"
+                    ],
+                    "filter": {}
                   }
                 }
               ]
@@ -9176,6 +10335,26 @@
               ],
               "select_permissions": [
                 {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "dev_typ_comment",
+                      "dev_typ_config_file_basic_objects",
+                      "dev_typ_config_file_rules",
+                      "dev_typ_config_file_users",
+                      "dev_typ_id",
+                      "dev_typ_is_mgmt",
+                      "dev_typ_is_multi_mgmt",
+                      "dev_typ_manufacturer",
+                      "dev_typ_name",
+                      "dev_typ_predef_obj",
+                      "dev_typ_predef_svc",
+                      "dev_typ_version"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -9217,6 +10396,26 @@
                   }
                 },
                 {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "dev_typ_comment",
+                      "dev_typ_config_file_basic_objects",
+                      "dev_typ_config_file_rules",
+                      "dev_typ_config_file_users",
+                      "dev_typ_id",
+                      "dev_typ_is_mgmt",
+                      "dev_typ_is_multi_mgmt",
+                      "dev_typ_manufacturer",
+                      "dev_typ_name",
+                      "dev_typ_predef_obj",
+                      "dev_typ_predef_svc",
+                      "dev_typ_version"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "importer",
                   "permission": {
                     "columns": [
@@ -9253,6 +10452,26 @@
                       "dev_typ_comment",
                       "dev_typ_predef_obj",
                       "dev_typ_predef_svc"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "dev_typ_comment",
+                      "dev_typ_config_file_basic_objects",
+                      "dev_typ_config_file_rules",
+                      "dev_typ_config_file_users",
+                      "dev_typ_id",
+                      "dev_typ_is_mgmt",
+                      "dev_typ_is_multi_mgmt",
+                      "dev_typ_manufacturer",
+                      "dev_typ_name",
+                      "dev_typ_predef_obj",
+                      "dev_typ_predef_svc",
+                      "dev_typ_version"
                     ],
                     "filter": {}
                   }
@@ -9316,6 +10535,46 @@
                     ],
                     "filter": {},
                     "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "dev_typ_comment",
+                      "dev_typ_config_file_basic_objects",
+                      "dev_typ_config_file_rules",
+                      "dev_typ_config_file_users",
+                      "dev_typ_id",
+                      "dev_typ_is_mgmt",
+                      "dev_typ_is_multi_mgmt",
+                      "dev_typ_manufacturer",
+                      "dev_typ_name",
+                      "dev_typ_predef_obj",
+                      "dev_typ_predef_svc",
+                      "dev_typ_version"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "dev_typ_comment",
+                      "dev_typ_config_file_basic_objects",
+                      "dev_typ_config_file_rules",
+                      "dev_typ_config_file_users",
+                      "dev_typ_id",
+                      "dev_typ_is_mgmt",
+                      "dev_typ_is_multi_mgmt",
+                      "dev_typ_manufacturer",
+                      "dev_typ_name",
+                      "dev_typ_predef_obj",
+                      "dev_typ_predef_svc",
+                      "dev_typ_version"
+                    ],
+                    "filter": {}
                   }
                 }
               ]
@@ -9377,6 +10636,17 @@
               ],
               "select_permissions": [
                 {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "ip_proto_id",
+                      "ip_proto_name",
+                      "ip_proto_comment"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -9400,11 +10670,33 @@
                   }
                 },
                 {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "ip_proto_id",
+                      "ip_proto_name",
+                      "ip_proto_comment"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "importer",
                   "permission": {
                     "columns": [],
                     "filter": {},
                     "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "ip_proto_id",
+                      "ip_proto_name",
+                      "ip_proto_comment"
+                    ],
+                    "filter": {}
                   }
                 },
                 {
@@ -9439,6 +10731,28 @@
                     ],
                     "filter": {},
                     "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "ip_proto_id",
+                      "ip_proto_name",
+                      "ip_proto_comment"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "ip_proto_id",
+                      "ip_proto_name",
+                      "ip_proto_comment"
+                    ],
+                    "filter": {}
                   }
                 }
               ]
@@ -9664,6 +10978,16 @@
               ],
               "select_permissions": [
                 {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "track_id",
+                      "track_name"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -9685,11 +11009,31 @@
                   }
                 },
                 {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "track_id",
+                      "track_name"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "importer",
                   "permission": {
                     "columns": [],
                     "filter": {},
                     "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "track_id",
+                      "track_name"
+                    ],
+                    "filter": {}
                   }
                 },
                 {
@@ -9721,6 +11065,26 @@
                     ],
                     "filter": {},
                     "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "track_id",
+                      "track_name"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "track_id",
+                      "track_name"
+                    ],
+                    "filter": {}
                   }
                 }
               ]
@@ -10494,6 +11858,17 @@
                   }
                 },
                 {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "language",
+                      "txt"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -10516,7 +11891,29 @@
                   }
                 },
                 {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "language",
+                      "txt"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "language",
+                      "txt"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "planner",
                   "permission": {
                     "columns": [
                       "id",
@@ -10550,6 +11947,28 @@
                 },
                 {
                   "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "language",
+                      "txt"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "language",
+                      "txt"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reviewer",
                   "permission": {
                     "columns": [
                       "id",
@@ -10999,6 +12418,33 @@
               ],
               "select_permissions": [
                 {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "ldap_connection_id",
+                      "tenant_id",
+                      "uiuser_email",
+                      "uiuser_end_date",
+                      "uiuser_first_name",
+                      "uiuser_id",
+                      "uiuser_language",
+                      "uiuser_last_login",
+                      "uiuser_last_name",
+                      "uiuser_last_password_change",
+                      "uiuser_password_must_be_changed",
+                      "uiuser_pwd_history",
+                      "uiuser_start_date",
+                      "uiuser_username",
+                      "uuid"
+                    ],
+                    "filter": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    }
+                  }
+                },
+                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -11049,6 +12495,33 @@
                   }
                 },
                 {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "ldap_connection_id",
+                      "tenant_id",
+                      "uiuser_email",
+                      "uiuser_end_date",
+                      "uiuser_first_name",
+                      "uiuser_id",
+                      "uiuser_language",
+                      "uiuser_last_login",
+                      "uiuser_last_name",
+                      "uiuser_last_password_change",
+                      "uiuser_password_must_be_changed",
+                      "uiuser_pwd_history",
+                      "uiuser_start_date",
+                      "uiuser_username",
+                      "uuid"
+                    ],
+                    "filter": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    }
+                  }
+                },
+                {
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
@@ -11069,6 +12542,33 @@
                       "uuid"
                     ],
                     "filter": {}
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "ldap_connection_id",
+                      "tenant_id",
+                      "uiuser_email",
+                      "uiuser_end_date",
+                      "uiuser_first_name",
+                      "uiuser_id",
+                      "uiuser_language",
+                      "uiuser_last_login",
+                      "uiuser_last_name",
+                      "uiuser_last_password_change",
+                      "uiuser_password_must_be_changed",
+                      "uiuser_pwd_history",
+                      "uiuser_start_date",
+                      "uiuser_username",
+                      "uuid"
+                    ],
+                    "filter": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    }
                   }
                 },
                 {
@@ -11151,9 +12651,77 @@
                       }
                     }
                   }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "ldap_connection_id",
+                      "tenant_id",
+                      "uiuser_email",
+                      "uiuser_end_date",
+                      "uiuser_first_name",
+                      "uiuser_id",
+                      "uiuser_language",
+                      "uiuser_last_login",
+                      "uiuser_last_name",
+                      "uiuser_last_password_change",
+                      "uiuser_password_must_be_changed",
+                      "uiuser_pwd_history",
+                      "uiuser_start_date",
+                      "uiuser_username",
+                      "uuid"
+                    ],
+                    "filter": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    }
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "ldap_connection_id",
+                      "tenant_id",
+                      "uiuser_email",
+                      "uiuser_end_date",
+                      "uiuser_first_name",
+                      "uiuser_id",
+                      "uiuser_language",
+                      "uiuser_last_login",
+                      "uiuser_last_name",
+                      "uiuser_last_password_change",
+                      "uiuser_password_must_be_changed",
+                      "uiuser_pwd_history",
+                      "uiuser_start_date",
+                      "uiuser_username",
+                      "uuid"
+                    ],
+                    "filter": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    }
+                  }
                 }
               ],
               "update_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "uiuser_language"
+                    ],
+                    "filter": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    },
+                    "check": null
+                  }
+                },
                 {
                   "role": "auditor",
                   "permission": {
@@ -11197,6 +12765,20 @@
                   }
                 },
                 {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "uiuser_language"
+                    ],
+                    "filter": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    },
+                    "check": null
+                  }
+                },
+                {
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
@@ -11217,6 +12799,20 @@
                       "uuid"
                     ],
                     "filter": {},
+                    "check": null
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "uiuser_language"
+                    ],
+                    "filter": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    },
                     "check": null
                   }
                 },
@@ -11250,6 +12846,34 @@
                 },
                 {
                   "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "uiuser_language"
+                    ],
+                    "filter": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    },
+                    "check": null
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "uiuser_language"
+                    ],
+                    "filter": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    },
+                    "check": null
+                  }
+                },
+                {
+                  "role": "reviewer",
                   "permission": {
                     "columns": [
                       "uiuser_language"
@@ -11306,6 +12930,20 @@
               ],
               "select_permissions": [
                 {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "usergrp_id",
+                      "usergrp_member_id",
+                      "import_created",
+                      "import_last_seen",
+                      "active"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -11330,6 +12968,34 @@
                       "active"
                     ],
                     "filter": {}
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "usergrp_id",
+                      "usergrp_member_id",
+                      "import_created",
+                      "import_last_seen",
+                      "active"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "usergrp_id",
+                      "usergrp_member_id",
+                      "import_created",
+                      "import_last_seen",
+                      "active"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 },
                 {
@@ -11371,6 +13037,34 @@
                       "active"
                     ],
                     "filter": {}
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "usergrp_id",
+                      "usergrp_member_id",
+                      "import_created",
+                      "import_last_seen",
+                      "active"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "usergrp_id",
+                      "usergrp_member_id",
+                      "import_created",
+                      "import_last_seen",
+                      "active"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 }
               ]
@@ -12403,6 +14097,93 @@
                     }
                   }
                 }
+              ],
+              "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "action_type",
+                      "button_text",
+                      "event",
+                      "external_parameters",
+                      "name",
+                      "phase",
+                      "scope",
+                      "task_type",
+                      "id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "action_type",
+                      "button_text",
+                      "event",
+                      "external_parameters",
+                      "name",
+                      "phase",
+                      "scope",
+                      "task_type",
+                      "id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "action_type",
+                      "button_text",
+                      "event",
+                      "external_parameters",
+                      "name",
+                      "phase",
+                      "scope",
+                      "task_type",
+                      "id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "action_type",
+                      "button_text",
+                      "event",
+                      "external_parameters",
+                      "name",
+                      "phase",
+                      "scope",
+                      "task_type",
+                      "id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "action_type",
+                      "button_text",
+                      "event",
+                      "external_parameters",
+                      "name",
+                      "phase",
+                      "scope",
+                      "task_type",
+                      "id"
+                    ],
+                    "filter": {}
+                  }
+                }
               ]
             },
             {
@@ -12455,6 +14236,196 @@
                     }
                   }
                 }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "task_id",
+                      "initial_approval",
+                      "approver",
+                      "approver_group",
+                      "assigned_group",
+                      "current_handler",
+                      "recent_handler",
+                      "state_id",
+                      "tenant_id",
+                      "approval_date",
+                      "approval_deadline",
+                      "date_opened"
+                    ]
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "task_id",
+                      "initial_approval",
+                      "approver",
+                      "approver_group",
+                      "assigned_group",
+                      "current_handler",
+                      "recent_handler",
+                      "state_id",
+                      "tenant_id",
+                      "approval_date",
+                      "approval_deadline",
+                      "date_opened"
+                    ]
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "task_id",
+                      "initial_approval",
+                      "approver",
+                      "approver_group",
+                      "assigned_group",
+                      "current_handler",
+                      "recent_handler",
+                      "state_id",
+                      "tenant_id",
+                      "approval_date",
+                      "approval_deadline",
+                      "date_opened"
+                    ]
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "task_id",
+                      "initial_approval",
+                      "approver",
+                      "approver_group",
+                      "assigned_group",
+                      "current_handler",
+                      "recent_handler",
+                      "state_id",
+                      "tenant_id",
+                      "approval_date",
+                      "approval_deadline",
+                      "date_opened"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "task_id",
+                      "initial_approval",
+                      "approver",
+                      "approver_group",
+                      "assigned_group",
+                      "current_handler",
+                      "recent_handler",
+                      "state_id",
+                      "tenant_id",
+                      "approval_date",
+                      "approval_deadline",
+                      "date_opened"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "task_id",
+                      "initial_approval",
+                      "approver",
+                      "approver_group",
+                      "assigned_group",
+                      "current_handler",
+                      "recent_handler",
+                      "state_id",
+                      "tenant_id",
+                      "approval_date",
+                      "approval_deadline",
+                      "date_opened"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "task_id",
+                      "initial_approval",
+                      "approver",
+                      "approver_group",
+                      "assigned_group",
+                      "current_handler",
+                      "recent_handler",
+                      "state_id",
+                      "tenant_id",
+                      "approval_date",
+                      "approval_deadline",
+                      "date_opened"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "task_id",
+                      "initial_approval",
+                      "approver",
+                      "approver_group",
+                      "assigned_group",
+                      "current_handler",
+                      "recent_handler",
+                      "state_id",
+                      "tenant_id",
+                      "approval_date",
+                      "approval_deadline",
+                      "date_opened"
+                    ],
+                    "filter": {}
+                  }
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "approval_date",
+                      "approver",
+                      "approver_group",
+                      "assigned_group",
+                      "current_handler",
+                      "recent_handler",
+                      "state_id"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                }
               ]
             },
             {
@@ -12473,6 +14444,110 @@
                   "name": "comment",
                   "using": {
                     "foreign_key_constraint_on": "comment_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "approval_id",
+                      "comment_id"
+                    ]
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "approval_id",
+                      "comment_id"
+                    ]
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "approval_id",
+                      "comment_id"
+                    ]
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "approval_id",
+                      "comment_id"
+                    ]
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "approval_id",
+                      "comment_id"
+                    ]
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "approval_id",
+                      "comment_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "approval_id",
+                      "comment_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "approval_id",
+                      "comment_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "approval_id",
+                      "comment_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "approval_id",
+                      "comment_id"
+                    ],
+                    "filter": {}
                   }
                 }
               ]
@@ -12557,6 +14632,150 @@
                     }
                   }
                 }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "ref_id",
+                      "comment_text",
+                      "scope",
+                      "creator_id",
+                      "creation_date"
+                    ]
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "ref_id",
+                      "comment_text",
+                      "scope",
+                      "creator_id",
+                      "creation_date"
+                    ]
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "ref_id",
+                      "comment_text",
+                      "scope",
+                      "creator_id",
+                      "creation_date"
+                    ]
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "ref_id",
+                      "comment_text",
+                      "scope",
+                      "creator_id",
+                      "creation_date"
+                    ]
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "ref_id",
+                      "comment_text",
+                      "scope",
+                      "creator_id",
+                      "creation_date"
+                    ]
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "ref_id",
+                      "comment_text",
+                      "scope",
+                      "creator_id",
+                      "creation_date"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "ref_id",
+                      "comment_text",
+                      "scope",
+                      "creator_id",
+                      "creation_date"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "ref_id",
+                      "comment_text",
+                      "scope",
+                      "creator_id",
+                      "creation_date"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "ref_id",
+                      "comment_text",
+                      "scope",
+                      "creator_id",
+                      "creation_date"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "ref_id",
+                      "comment_text",
+                      "scope",
+                      "creator_id",
+                      "creation_date"
+                    ],
+                    "filter": {}
+                  }
+                }
               ]
             },
             {
@@ -12613,6 +14832,193 @@
                         "name": "implelement"
                       }
                     }
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "implementation_task_id",
+                      "network_object_id",
+                      "service_id",
+                      "user_id",
+                      "ip",
+                      "ip_proto_id",
+                      "original_nat_id",
+                      "port",
+                      "field",
+                      "implementation_action"
+                    ]
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "implementation_task_id",
+                      "network_object_id",
+                      "service_id",
+                      "user_id",
+                      "ip",
+                      "ip_proto_id",
+                      "original_nat_id",
+                      "port",
+                      "field",
+                      "implementation_action"
+                    ]
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "implementation_task_id",
+                      "network_object_id",
+                      "service_id",
+                      "user_id",
+                      "ip",
+                      "ip_proto_id",
+                      "original_nat_id",
+                      "port",
+                      "field",
+                      "implementation_action"
+                    ]
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "implementation_task_id",
+                      "network_object_id",
+                      "service_id",
+                      "user_id",
+                      "ip",
+                      "ip_proto_id",
+                      "original_nat_id",
+                      "port",
+                      "field",
+                      "implementation_action"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "implementation_task_id",
+                      "network_object_id",
+                      "service_id",
+                      "user_id",
+                      "ip",
+                      "ip_proto_id",
+                      "original_nat_id",
+                      "port",
+                      "field",
+                      "implementation_action"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "implementation_task_id",
+                      "network_object_id",
+                      "service_id",
+                      "user_id",
+                      "ip",
+                      "ip_proto_id",
+                      "original_nat_id",
+                      "port",
+                      "field",
+                      "implementation_action"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "implementation_task_id",
+                      "network_object_id",
+                      "service_id",
+                      "user_id",
+                      "ip",
+                      "ip_proto_id",
+                      "original_nat_id",
+                      "port",
+                      "field",
+                      "implementation_action"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "implementation_task_id",
+                      "network_object_id",
+                      "service_id",
+                      "user_id",
+                      "ip",
+                      "ip_proto_id",
+                      "original_nat_id",
+                      "port",
+                      "field",
+                      "implementation_action"
+                    ],
+                    "filter": {}
+                  }
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "implementation_task_id",
+                      "network_object_id",
+                      "service_id",
+                      "user_id",
+                      "ip",
+                      "ip_proto_id",
+                      "original_nat_id",
+                      "port",
+                      "field",
+                      "implementation_action"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "planner",
+                  "permission": {
+                    "backend_only": false,
+                    "filter": {}
                   }
                 }
               ]
@@ -12703,6 +15109,299 @@
                     }
                   }
                 }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "planner",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "reqtask_id",
+                      "assigned_group",
+                      "task_type",
+                      "title",
+                      "current_handler",
+                      "device_id",
+                      "nw_obj_grp_id",
+                      "recent_handler",
+                      "rule_action",
+                      "rule_tracking",
+                      "state_id",
+                      "svc_grp_id",
+                      "task_number",
+                      "user_grp_id",
+                      "free_text",
+                      "start",
+                      "stop",
+                      "target_begin_date",
+                      "target_end_date",
+                      "implementation_action"
+                    ]
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "reqtask_id",
+                      "assigned_group",
+                      "task_type",
+                      "title",
+                      "current_handler",
+                      "device_id",
+                      "nw_obj_grp_id",
+                      "recent_handler",
+                      "rule_action",
+                      "rule_tracking",
+                      "state_id",
+                      "svc_grp_id",
+                      "task_number",
+                      "user_grp_id",
+                      "free_text",
+                      "start",
+                      "stop",
+                      "target_begin_date",
+                      "target_end_date",
+                      "implementation_action"
+                    ]
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "reqtask_id",
+                      "assigned_group",
+                      "task_type",
+                      "title",
+                      "current_handler",
+                      "device_id",
+                      "nw_obj_grp_id",
+                      "recent_handler",
+                      "rule_action",
+                      "rule_tracking",
+                      "state_id",
+                      "svc_grp_id",
+                      "task_number",
+                      "user_grp_id",
+                      "free_text",
+                      "start",
+                      "stop",
+                      "target_begin_date",
+                      "target_end_date",
+                      "implementation_action"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "reqtask_id",
+                      "assigned_group",
+                      "task_type",
+                      "title",
+                      "current_handler",
+                      "device_id",
+                      "nw_obj_grp_id",
+                      "recent_handler",
+                      "rule_action",
+                      "rule_tracking",
+                      "state_id",
+                      "svc_grp_id",
+                      "task_number",
+                      "user_grp_id",
+                      "free_text",
+                      "start",
+                      "stop",
+                      "target_begin_date",
+                      "target_end_date",
+                      "implementation_action"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "reqtask_id",
+                      "assigned_group",
+                      "task_type",
+                      "title",
+                      "current_handler",
+                      "device_id",
+                      "nw_obj_grp_id",
+                      "recent_handler",
+                      "rule_action",
+                      "rule_tracking",
+                      "state_id",
+                      "svc_grp_id",
+                      "task_number",
+                      "user_grp_id",
+                      "free_text",
+                      "start",
+                      "stop",
+                      "target_begin_date",
+                      "target_end_date",
+                      "implementation_action"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "reqtask_id",
+                      "assigned_group",
+                      "task_type",
+                      "title",
+                      "current_handler",
+                      "device_id",
+                      "nw_obj_grp_id",
+                      "recent_handler",
+                      "rule_action",
+                      "rule_tracking",
+                      "state_id",
+                      "svc_grp_id",
+                      "task_number",
+                      "user_grp_id",
+                      "free_text",
+                      "start",
+                      "stop",
+                      "target_begin_date",
+                      "target_end_date",
+                      "implementation_action"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "reqtask_id",
+                      "assigned_group",
+                      "task_type",
+                      "title",
+                      "current_handler",
+                      "device_id",
+                      "nw_obj_grp_id",
+                      "recent_handler",
+                      "rule_action",
+                      "rule_tracking",
+                      "state_id",
+                      "svc_grp_id",
+                      "task_number",
+                      "user_grp_id",
+                      "free_text",
+                      "start",
+                      "stop",
+                      "target_begin_date",
+                      "target_end_date",
+                      "implementation_action"
+                    ],
+                    "filter": {}
+                  }
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "assigned_group",
+                      "current_handler",
+                      "recent_handler",
+                      "start",
+                      "state_id",
+                      "stop"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "assigned_group",
+                      "current_handler",
+                      "recent_handler",
+                      "start",
+                      "state_id",
+                      "stop"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "reqtask_id",
+                      "assigned_group",
+                      "task_type",
+                      "title",
+                      "current_handler",
+                      "device_id",
+                      "nw_obj_grp_id",
+                      "recent_handler",
+                      "rule_action",
+                      "rule_tracking",
+                      "state_id",
+                      "svc_grp_id",
+                      "task_number",
+                      "user_grp_id",
+                      "free_text",
+                      "start",
+                      "stop",
+                      "target_begin_date",
+                      "target_end_date",
+                      "implementation_action"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "assigned_group",
+                      "current_handler",
+                      "recent_handler",
+                      "start",
+                      "state_id",
+                      "stop"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "planner",
+                  "permission": {
+                    "backend_only": false,
+                    "filter": {}
+                  }
+                }
               ]
             },
             {
@@ -12721,6 +15420,110 @@
                   "name": "reqtask",
                   "using": {
                     "foreign_key_constraint_on": "task_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ]
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ]
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ]
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ]
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ]
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ],
+                    "filter": {}
                   }
                 }
               ]
@@ -12779,6 +15582,155 @@
                         "name": "reqelement"
                       }
                     }
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "requester",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "network_object_id",
+                      "service_id",
+                      "task_id",
+                      "user_id",
+                      "ip",
+                      "ip_proto_id",
+                      "original_nat_id",
+                      "port",
+                      "field",
+                      "request_action"
+                    ]
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "network_object_id",
+                      "service_id",
+                      "task_id",
+                      "user_id",
+                      "ip",
+                      "ip_proto_id",
+                      "original_nat_id",
+                      "port",
+                      "field",
+                      "request_action"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "network_object_id",
+                      "service_id",
+                      "task_id",
+                      "user_id",
+                      "ip",
+                      "ip_proto_id",
+                      "original_nat_id",
+                      "port",
+                      "field",
+                      "request_action"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "network_object_id",
+                      "service_id",
+                      "task_id",
+                      "user_id",
+                      "ip",
+                      "ip_proto_id",
+                      "original_nat_id",
+                      "port",
+                      "field",
+                      "request_action"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "network_object_id",
+                      "service_id",
+                      "task_id",
+                      "user_id",
+                      "ip",
+                      "ip_proto_id",
+                      "original_nat_id",
+                      "port",
+                      "field",
+                      "request_action"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "network_object_id",
+                      "service_id",
+                      "task_id",
+                      "user_id",
+                      "ip",
+                      "ip_proto_id",
+                      "original_nat_id",
+                      "port",
+                      "field",
+                      "request_action"
+                    ],
+                    "filter": {}
+                  }
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "network_object_id",
+                      "service_id",
+                      "task_id",
+                      "user_id",
+                      "ip",
+                      "ip_proto_id",
+                      "original_nat_id",
+                      "port",
+                      "field",
+                      "request_action"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "requester",
+                  "permission": {
+                    "backend_only": false,
+                    "filter": {}
                   }
                 }
               ]
@@ -12911,6 +15863,299 @@
                     }
                   }
                 }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "requester",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "ticket_id",
+                      "assigned_group",
+                      "task_type",
+                      "title",
+                      "current_handler",
+                      "device_id",
+                      "nw_obj_grp_id",
+                      "recent_handler",
+                      "rule_action",
+                      "rule_tracking",
+                      "state_id",
+                      "svc_grp_id",
+                      "task_number",
+                      "user_grp_id",
+                      "free_text",
+                      "reason",
+                      "last_recert_date",
+                      "start",
+                      "stop",
+                      "target_begin_date",
+                      "target_end_date",
+                      "request_action"
+                    ]
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "ticket_id",
+                      "assigned_group",
+                      "task_type",
+                      "title",
+                      "current_handler",
+                      "device_id",
+                      "nw_obj_grp_id",
+                      "recent_handler",
+                      "rule_action",
+                      "rule_tracking",
+                      "state_id",
+                      "svc_grp_id",
+                      "task_number",
+                      "user_grp_id",
+                      "free_text",
+                      "reason",
+                      "last_recert_date",
+                      "start",
+                      "stop",
+                      "target_begin_date",
+                      "target_end_date",
+                      "request_action"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "ticket_id",
+                      "assigned_group",
+                      "task_type",
+                      "title",
+                      "current_handler",
+                      "device_id",
+                      "nw_obj_grp_id",
+                      "recent_handler",
+                      "rule_action",
+                      "rule_tracking",
+                      "state_id",
+                      "svc_grp_id",
+                      "task_number",
+                      "user_grp_id",
+                      "free_text",
+                      "reason",
+                      "last_recert_date",
+                      "start",
+                      "stop",
+                      "target_begin_date",
+                      "target_end_date",
+                      "request_action"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "ticket_id",
+                      "assigned_group",
+                      "task_type",
+                      "title",
+                      "current_handler",
+                      "device_id",
+                      "nw_obj_grp_id",
+                      "recent_handler",
+                      "rule_action",
+                      "rule_tracking",
+                      "state_id",
+                      "svc_grp_id",
+                      "task_number",
+                      "user_grp_id",
+                      "free_text",
+                      "reason",
+                      "last_recert_date",
+                      "start",
+                      "stop",
+                      "target_begin_date",
+                      "target_end_date",
+                      "request_action"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "ticket_id",
+                      "assigned_group",
+                      "task_type",
+                      "title",
+                      "current_handler",
+                      "device_id",
+                      "nw_obj_grp_id",
+                      "recent_handler",
+                      "rule_action",
+                      "rule_tracking",
+                      "state_id",
+                      "svc_grp_id",
+                      "task_number",
+                      "user_grp_id",
+                      "free_text",
+                      "reason",
+                      "last_recert_date",
+                      "start",
+                      "stop",
+                      "target_begin_date",
+                      "target_end_date",
+                      "request_action"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "ticket_id",
+                      "assigned_group",
+                      "task_type",
+                      "title",
+                      "current_handler",
+                      "device_id",
+                      "nw_obj_grp_id",
+                      "recent_handler",
+                      "rule_action",
+                      "rule_tracking",
+                      "state_id",
+                      "svc_grp_id",
+                      "task_number",
+                      "user_grp_id",
+                      "free_text",
+                      "reason",
+                      "last_recert_date",
+                      "start",
+                      "stop",
+                      "target_begin_date",
+                      "target_end_date",
+                      "request_action"
+                    ],
+                    "filter": {}
+                  }
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "assigned_group",
+                      "current_handler",
+                      "recent_handler",
+                      "start",
+                      "state_id",
+                      "stop"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "assigned_group",
+                      "current_handler",
+                      "recent_handler",
+                      "start",
+                      "state_id",
+                      "stop"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "assigned_group",
+                      "current_handler",
+                      "recent_handler",
+                      "start",
+                      "state_id",
+                      "stop"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "ticket_id",
+                      "assigned_group",
+                      "task_type",
+                      "title",
+                      "current_handler",
+                      "device_id",
+                      "nw_obj_grp_id",
+                      "recent_handler",
+                      "rule_action",
+                      "rule_tracking",
+                      "state_id",
+                      "svc_grp_id",
+                      "task_number",
+                      "user_grp_id",
+                      "free_text",
+                      "reason",
+                      "last_recert_date",
+                      "start",
+                      "stop",
+                      "target_begin_date",
+                      "target_end_date",
+                      "request_action"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "assigned_group",
+                      "current_handler",
+                      "recent_handler",
+                      "start",
+                      "state_id",
+                      "stop"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "requester",
+                  "permission": {
+                    "backend_only": false,
+                    "filter": {}
+                  }
+                }
               ]
             },
             {
@@ -12929,6 +16174,110 @@
                   "name": "reqtask",
                   "using": {
                     "foreign_key_constraint_on": "task_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ]
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ]
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ]
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ]
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ]
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ],
+                    "filter": {}
                   }
                 }
               ]
@@ -12999,6 +16348,58 @@
                     }
                   }
                 }
+              ],
+              "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  }
+                }
               ]
             },
             {
@@ -13017,6 +16418,58 @@
                   "name": "state",
                   "using": {
                     "foreign_key_constraint_on": "state_id"
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "action_id",
+                      "state_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "action_id",
+                      "state_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "action_id",
+                      "state_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "action_id",
+                      "state_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "action_id",
+                      "state_id"
+                    ],
+                    "filter": {}
                   }
                 }
               ]
@@ -13083,6 +16536,252 @@
                     }
                   }
                 }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "requester",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "assigned_group",
+                      "external_ticket_id",
+                      "requester_dn",
+                      "requester_group",
+                      "title",
+                      "current_handler",
+                      "external_ticket_source",
+                      "recent_handler",
+                      "requester_id",
+                      "state_id",
+                      "tenant_id",
+                      "ticket_priority",
+                      "reason",
+                      "date_completed",
+                      "date_created",
+                      "ticket_deadline"
+                    ]
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "assigned_group",
+                      "external_ticket_id",
+                      "requester_dn",
+                      "requester_group",
+                      "title",
+                      "current_handler",
+                      "external_ticket_source",
+                      "recent_handler",
+                      "requester_id",
+                      "state_id",
+                      "tenant_id",
+                      "ticket_priority",
+                      "reason",
+                      "date_completed",
+                      "date_created",
+                      "ticket_deadline"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "assigned_group",
+                      "external_ticket_id",
+                      "requester_dn",
+                      "requester_group",
+                      "title",
+                      "current_handler",
+                      "external_ticket_source",
+                      "recent_handler",
+                      "requester_id",
+                      "state_id",
+                      "tenant_id",
+                      "ticket_priority",
+                      "reason",
+                      "date_completed",
+                      "date_created",
+                      "ticket_deadline"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "assigned_group",
+                      "external_ticket_id",
+                      "requester_dn",
+                      "requester_group",
+                      "title",
+                      "current_handler",
+                      "external_ticket_source",
+                      "recent_handler",
+                      "requester_id",
+                      "state_id",
+                      "tenant_id",
+                      "ticket_priority",
+                      "reason",
+                      "date_completed",
+                      "date_created",
+                      "ticket_deadline"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "assigned_group",
+                      "external_ticket_id",
+                      "requester_dn",
+                      "requester_group",
+                      "title",
+                      "current_handler",
+                      "external_ticket_source",
+                      "recent_handler",
+                      "requester_id",
+                      "state_id",
+                      "tenant_id",
+                      "ticket_priority",
+                      "reason",
+                      "date_completed",
+                      "date_created",
+                      "ticket_deadline"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "assigned_group",
+                      "external_ticket_id",
+                      "requester_dn",
+                      "requester_group",
+                      "title",
+                      "current_handler",
+                      "external_ticket_source",
+                      "recent_handler",
+                      "requester_id",
+                      "state_id",
+                      "tenant_id",
+                      "ticket_priority",
+                      "reason",
+                      "date_completed",
+                      "date_created",
+                      "ticket_deadline"
+                    ],
+                    "filter": {}
+                  }
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "assigned_group",
+                      "current_handler",
+                      "date_completed",
+                      "recent_handler",
+                      "state_id",
+                      "ticket_deadline",
+                      "ticket_priority"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "assigned_group",
+                      "current_handler",
+                      "date_completed",
+                      "recent_handler",
+                      "state_id",
+                      "ticket_deadline",
+                      "ticket_priority"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "assigned_group",
+                      "current_handler",
+                      "date_completed",
+                      "recent_handler",
+                      "state_id",
+                      "ticket_deadline",
+                      "ticket_priority"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "assigned_group",
+                      "external_ticket_id",
+                      "requester_dn",
+                      "requester_group",
+                      "title",
+                      "current_handler",
+                      "external_ticket_source",
+                      "recent_handler",
+                      "requester_id",
+                      "state_id",
+                      "tenant_id",
+                      "ticket_priority",
+                      "reason",
+                      "date_completed",
+                      "date_created",
+                      "ticket_deadline"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "assigned_group",
+                      "current_handler",
+                      "date_completed",
+                      "recent_handler",
+                      "state_id",
+                      "ticket_deadline",
+                      "ticket_priority"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                }
               ]
             },
             {
@@ -13101,6 +16800,110 @@
                   "name": "ticket",
                   "using": {
                     "foreign_key_constraint_on": "ticket_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "comment_id",
+                      "ticket_id"
+                    ]
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "comment_id",
+                      "ticket_id"
+                    ]
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "comment_id",
+                      "ticket_id"
+                    ]
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "comment_id",
+                      "ticket_id"
+                    ]
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "comment_id",
+                      "ticket_id"
+                    ]
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "comment_id",
+                      "ticket_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "comment_id",
+                      "ticket_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "comment_id",
+                      "ticket_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "comment_id",
+                      "ticket_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "comment_id",
+                      "ticket_id"
+                    ],
+                    "filter": {}
                   }
                 }
               ]

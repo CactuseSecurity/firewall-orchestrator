@@ -10,7 +10,7 @@ mutation newImplementationElement(
   $user_id: bigint
   $original_nat_id: Int
   ) {
-  insert_request_impl_element(objects: {
+  insert_request_implelement(objects: {
     implementation_action: $implementationAction
     implementation_task_id: $implTaskId
     ip: $ip

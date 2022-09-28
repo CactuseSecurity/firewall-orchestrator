@@ -11,7 +11,7 @@ mutation updateRequestElement(
   $user_id: bigint
   $original_nat_id: Int
   ) {
-  update_request_req_element_by_pk(
+  update_request_reqelement_by_pk(
     pk_columns: { id: $id }
     _set: {
       request_action: $requestAction

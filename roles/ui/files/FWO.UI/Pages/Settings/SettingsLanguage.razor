@@ -3,7 +3,7 @@
 @using FWO.Api.Client
 
 @page "/settings/language"
-@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, recertifier, workflow-user, workflow-admin, auditor, fw-admin")]
+@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, recertifier, workflow-user, workflow-admin, auditor, fw-admin, requester, approver, planner, implementer, reviewer")]
 
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig

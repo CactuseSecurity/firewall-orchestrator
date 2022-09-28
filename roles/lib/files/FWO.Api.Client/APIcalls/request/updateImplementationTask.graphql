@@ -14,7 +14,7 @@ mutation updateImplementationTask(
   $validTo: timestamp
   $freeText: String
   ) {
-  update_request_impl_task_by_pk(
+  update_request_impltask_by_pk(
     pk_columns: { id: $id }
     _set: {
     title: $title

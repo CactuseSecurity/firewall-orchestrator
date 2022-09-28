@@ -12,9 +12,9 @@ namespace FWO.Api.Data
 
         public RequestTicketWriter(RequestTicket ticket)
         {
-            foreach(var task in ticket.Tasks)
+            foreach(var reqtask in ticket.Tasks)
             {
-                Tasks.Add(new RequestReqTaskWriter(task));
+                Tasks.Add(new RequestReqTaskWriter(reqtask));
             }
         }
     }

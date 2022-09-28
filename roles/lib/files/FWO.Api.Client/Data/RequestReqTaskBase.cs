@@ -27,11 +27,11 @@ namespace FWO.Api.Data
         public RequestReqTaskBase()
         { }
 
-        public RequestReqTaskBase(RequestReqTaskBase task) : base(task)
+        public RequestReqTaskBase(RequestReqTaskBase reqtask) : base(reqtask)
         {
-            RequestAction = task.RequestAction;
-            Reason = task.Reason;
-            LastRecertDate = task.LastRecertDate;
+            RequestAction = reqtask.RequestAction;
+            Reason = reqtask.Reason;
+            LastRecertDate = reqtask.LastRecertDate;
         }
 
         public override bool Sanitize()

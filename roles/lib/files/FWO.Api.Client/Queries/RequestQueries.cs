@@ -51,8 +51,9 @@ namespace FWO.Api.Client.Queries
             {
                 commentDetailsFragment = File.ReadAllText(QueryPath + "request/fragments/commentDetails.graphql");
                 implTaskDetailsFragment = commentDetailsFragment + File.ReadAllText(QueryPath + "request/fragments/implTaskDetails.graphql");
-                reqTaskDetailsFragment = implTaskDetailsFragment + File.ReadAllText(QueryPath + "request/fragments/reqTaskDetails.graphql");
+                reqTaskDetailsFragment = OwnerQueries.ownerDetailsFragment + implTaskDetailsFragment + File.ReadAllText(QueryPath + "request/fragments/reqTaskDetails.graphql");
                 ticketDetailsFragment = reqTaskDetailsFragment + File.ReadAllText(QueryPath + "request/fragments/ticketDetails.graphql");
+
                 getTickets = ticketDetailsFragment + File.ReadAllText(QueryPath + "request/getTickets.graphql");
                 getTicketById = ticketDetailsFragment + File.ReadAllText(QueryPath + "request/getTicketById.graphql");
                 newTicket = File.ReadAllText(QueryPath + "request/newTicket.graphql");

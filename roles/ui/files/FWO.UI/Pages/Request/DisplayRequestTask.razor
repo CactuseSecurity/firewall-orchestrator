@@ -415,9 +415,9 @@
         ReqHandler.SetReqTaskPopUpOpt(ObjAction.displayPromote);
     }
 
-    private async Task ConfPromoteReqTask(RequestStatefulObject task)
+    private async Task ConfPromoteReqTask(RequestStatefulObject reqtask)
     {
-        await ReqHandler.PromoteReqTask(task);
+        await ReqHandler.PromoteReqTask(reqtask);
     }
 
     private async Task InitApproveTask()

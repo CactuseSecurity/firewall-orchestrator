@@ -1179,6 +1179,18 @@ INSERT INTO txt VALUES ('lowest_end_state',     'German',   'Niedrigster Ausgang
 INSERT INTO txt VALUES ('lowest_end_state',     'English',  'Lowest end state');
 INSERT INTO txt VALUES ('derived_state',        'German',   'Abgeleiteter Status');
 INSERT INTO txt VALUES ('derived_state',        'English',  'Derived state');
+INSERT INTO txt VALUES ('owners',               'German',   'Eigent&uuml;mer');
+INSERT INTO txt VALUES ('owners',               'English',  'Owners');
+INSERT INTO txt VALUES ('add_owner',            'German',   'Eigent&uuml;mer hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_owner',            'English',  'Add owner');
+INSERT INTO txt VALUES ('edit_owner',           'German',   'Eigent&uuml;mer bearbeiten');
+INSERT INTO txt VALUES ('edit_owner',           'English',  'Edit owner');
+INSERT INTO txt VALUES ('delete_owner',         'German',   'Eigent&uuml;mer l&ouml;schen');
+INSERT INTO txt VALUES ('delete_owner',         'English',  'Delete owner');
+INSERT INTO txt VALUES ('recert_interval',      'German',   'Rezertifzierungsintervall');
+INSERT INTO txt VALUES ('recert_interval',      'English',  'Recertification interval');
+INSERT INTO txt VALUES ('ext_app_id',           'German',   'Externe Anwendungs-Id');
+INSERT INTO txt VALUES ('ext_app_id',           'English',  'External Application Id');
 
 
 -- monitoring
@@ -1460,6 +1472,10 @@ INSERT INTO txt VALUES ('U5214', 'German',  'Anzeige und Verwaltung aller Nutzer
 INSERT INTO txt VALUES ('U5214', 'English', 'Show and administrate all user groups (internal LDAP)');
 INSERT INTO txt VALUES ('U5215', 'German',  'Anzeige und Verwaltung aller Rollen (internes LDAP)');
 INSERT INTO txt VALUES ('U5215', 'English', 'Show and assign all user roles (internal LDAP)');
+INSERT INTO txt VALUES ('U5216', 'German',  'Anzeige und Verwaltung aller Eigent&uuml;mer');
+INSERT INTO txt VALUES ('U5216', 'English', 'Show and administrate all owners');
+INSERT INTO txt VALUES ('U5217', 'German',  'Sind sie sicher, dass sie folgenden Eigent&uuml;mer l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U5217', 'English', 'Are you sure you want to delete owner: ');
 
 INSERT INTO txt VALUES ('U5301', 'German',  'Einstellungen ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5301', 'English', 'Settings changed.');
@@ -1797,6 +1813,16 @@ INSERT INTO txt VALUES ('T0011', 'German',  'Nutzer mit vollem Zugriff auf den F
 INSERT INTO txt VALUES ('T0011', 'English', 'users with full access rights to firewall orchestrator');
 INSERT INTO txt VALUES ('T0012', 'German',  'Nutzer mit Berechtigung zum Rezertifizieren von Regeln');
 INSERT INTO txt VALUES ('T0012', 'English', 'users that have the right to recertify rules');
+INSERT INTO txt VALUES ('T0013', 'German',  'NNutzer mit Berechtigung zum Anlegen von Antr&auml;gen');
+INSERT INTO txt VALUES ('T0013', 'English', 'users that have the right to create requests');
+INSERT INTO txt VALUES ('T0014', 'German',  'Nutzer mit Berechtigung zum Genehmigen von Antr&auml;gen');
+INSERT INTO txt VALUES ('T0014', 'English', 'users that have the right to approve requests');
+INSERT INTO txt VALUES ('T0015', 'German',  'Nutzer mit Berechtigung zum Planen von Auftr&auml;gen');
+INSERT INTO txt VALUES ('T0015', 'English', 'users that have the right to plan requests');
+INSERT INTO txt VALUES ('T0016', 'German',  'Nutzer mit Berechtigung zum Implementieren von Auftr&auml;gen');
+INSERT INTO txt VALUES ('T0016', 'English', 'users that have the right to implement requests');
+INSERT INTO txt VALUES ('T0017', 'German',  'Nutzer mit Berechtigung zum Review von Auftr&auml;gen');
+INSERT INTO txt VALUES ('T0017', 'English', 'users that have the right to review requests');
 
 -- template comments
 INSERT INTO txt VALUES ('T0101', 'German',  'Aktuell aktive Regeln aller Gateways');

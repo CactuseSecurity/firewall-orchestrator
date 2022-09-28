@@ -1,4 +1,4 @@
-fragment implTaskDetails on request_impl_task {
+fragment implTaskDetails on request_impltask {
   id
   title
   reqtask_id

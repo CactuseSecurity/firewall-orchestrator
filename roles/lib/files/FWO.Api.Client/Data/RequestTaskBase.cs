@@ -72,23 +72,23 @@ namespace FWO.Api.Data
         public RequestTaskBase()
         { }
 
-        public RequestTaskBase(RequestTaskBase task) : base(task)
+        public RequestTaskBase(RequestTaskBase reqtask) : base(reqtask)
         {
-            DeviceId = task.DeviceId;
-            Title = task.Title;
-            TaskNumber = task.TaskNumber;
-            TaskType = task.TaskType;
-            // RequestAction = task.RequestAction;
-            RuleAction = task.RuleAction;
-            Tracking = task.Tracking;
-            Start = task.Start;
-            Stop = task.Stop;
-            ServiceGroupId = task.ServiceGroupId;
-            NetworkGroupId = task.NetworkGroupId;
-            UserGroupId = task.UserGroupId;
-            FreeText = task.FreeText;
-            TargetBeginDate = task.TargetBeginDate;
-            TargetEndDate = task.TargetEndDate;
+            DeviceId = reqtask.DeviceId;
+            Title = reqtask.Title;
+            TaskNumber = reqtask.TaskNumber;
+            TaskType = reqtask.TaskType;
+            // RequestAction = reqtask.RequestAction;
+            RuleAction = reqtask.RuleAction;
+            Tracking = reqtask.Tracking;
+            Start = reqtask.Start;
+            Stop = reqtask.Stop;
+            ServiceGroupId = reqtask.ServiceGroupId;
+            NetworkGroupId = reqtask.NetworkGroupId;
+            UserGroupId = reqtask.UserGroupId;
+            FreeText = reqtask.FreeText;
+            TargetBeginDate = reqtask.TargetBeginDate;
+            TargetEndDate = reqtask.TargetEndDate;
         }
 
         public override bool Sanitize()

@@ -1,4 +1,4 @@
-fragment reqTaskDetails on request_req_task {
+fragment reqTaskDetails on request_reqtask {
   id
   ticket_id
   title
@@ -39,7 +39,7 @@ fragment reqTaskDetails on request_req_task {
     user_id
     original_nat_id
   }
-  implementation_tasks: tasks {
+  implementation_tasks: impltasks {
     ...implTaskDetails
   }
   request_approvals: approvals {
@@ -60,22 +60,14 @@ fragment reqTaskDetails on request_req_task {
       }
     }
   }
+  owners: reqtask_owners {
+    owner: owner {
+      ...ownerDetails
+    }
+  }
   comments: reqtask_comments {
     comment: comment {
       ...commentDetails
-    }
-  }
-  owners: reqtask_owners {
-    owner: owner {
-      id
-      name
-      dn
-      group_dn
-      is_default
-      tenant_id
-      recert_interval
-      next_recert_date
-      app_id_external
     }
   }
 }

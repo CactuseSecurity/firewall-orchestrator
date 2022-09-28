@@ -11,13 +11,13 @@ namespace FWO.Api.Data
         [JsonProperty("approvals"), JsonPropertyName("approvals")]
         public RequestApprovalDataHelper Approvals { get; set; } = new RequestApprovalDataHelper();
 
-        public RequestReqTaskWriter(RequestReqTask task) : base(task)
+        public RequestReqTaskWriter(RequestReqTask reqtask) : base(reqtask)
         {
-            foreach(var element in task.Elements)
+            foreach(var element in reqtask.Elements)
             {
                 Elements.RequestElementList.Add(new RequestReqElementWriter(element));
             }
-            foreach(var approval in task.Approvals)
+            foreach(var approval in reqtask.Approvals)
             {
                 Approvals.RequestApprovalList.Add(new RequestApprovalWriter(approval));
             }

@@ -15,7 +15,7 @@ fragment ticketDetails on request_ticket {
   external_ticket_source
   ticket_deadline
   ticket_priority
-  tasks: tasks {
+  reqtasks: reqtask {
     ...reqTaskDetails
   }
   comments: ticket_comments {

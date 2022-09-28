@@ -70,3 +70,33 @@ objectClass: top
 objectClass: groupofuniquenames
 cn: recertifier
 description: T0012
+
+dn: cn=requester,ou=role,dc=fworch,dc=internal
+objectClass: top
+objectClass: groupofuniquenames
+cn: requester
+description: T0013
+
+dn: cn=approver,ou=role,dc=fworch,dc=internal
+objectClass: top
+objectClass: groupofuniquenames
+cn: approver
+description: T0014
+
+dn: cn=planner,ou=role,dc=fworch,dc=internal
+objectClass: top
+objectClass: groupofuniquenames
+cn: planner
+description: T0015
+
+dn: cn=implementer,ou=role,dc=fworch,dc=internal
+objectClass: top
+objectClass: groupofuniquenames
+cn: implementer
+description: T0016
+
+dn: cn=reviewer,ou=role,dc=fworch,dc=internal
+objectClass: top
+objectClass: groupofuniquenames
+cn: reviewer
+description: T0017

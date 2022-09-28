@@ -11,152 +11,6 @@
           "tables": [
             {
               "table": {
-                "schema": "request",
-                "name": "implelement"
-              },
-              "object_relationships": [
-                {
-                  "name": "implelement",
-                  "using": {
-                    "foreign_key_constraint_on": "original_nat_id"
-                  }
-                },
-                {
-                  "name": "object",
-                  "using": {
-                    "foreign_key_constraint_on": "network_object_id"
-                  }
-                },
-                {
-                  "name": "service",
-                  "using": {
-                    "foreign_key_constraint_on": "service_id"
-                  }
-                },
-                {
-                  "name": "stm_ip_proto",
-                  "using": {
-                    "foreign_key_constraint_on": "ip_proto_id"
-                  }
-                },
-                {
-                  "name": "impltask",
-                  "using": {
-                    "foreign_key_constraint_on": "implementation_task_id"
-                  }
-                },
-                {
-                  "name": "usr",
-                  "using": {
-                    "foreign_key_constraint_on": "user_id"
-                  }
-                }
-              ],
-              "array_relationships": [
-                {
-                  "name": "elements",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "original_nat_id",
-                      "table": {
-                        "schema": "request",
-                        "name": "implelement"
-                      }
-                    }
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
-                "schema": "request",
-                "name": "impltask"
-              },
-              "object_relationships": [
-                {
-                  "name": "device",
-                  "using": {
-                    "foreign_key_constraint_on": "device_id"
-                  }
-                },
-                {
-                  "name": "object",
-                  "using": {
-                    "foreign_key_constraint_on": "nw_obj_grp_id"
-                  }
-                },
-                {
-                  "name": "reqtask",
-                  "using": {
-                    "foreign_key_constraint_on": "reqtask_id"
-                  }
-                },
-                {
-                  "name": "service",
-                  "using": {
-                    "foreign_key_constraint_on": "svc_grp_id"
-                  }
-                },
-                {
-                  "name": "state",
-                  "using": {
-                    "foreign_key_constraint_on": "state_id"
-                  }
-                },
-                {
-                  "name": "stm_action",
-                  "using": {
-                    "foreign_key_constraint_on": "rule_action"
-                  }
-                },
-                {
-                  "name": "stm_track",
-                  "using": {
-                    "foreign_key_constraint_on": "rule_tracking"
-                  }
-                },
-                {
-                  "name": "uiuser",
-                  "using": {
-                    "foreign_key_constraint_on": "current_handler"
-                  }
-                },
-                {
-                  "name": "uiuserByRecentHandler",
-                  "using": {
-                    "foreign_key_constraint_on": "recent_handler"
-                  }
-                }
-              ],
-              "array_relationships": [
-                {
-                  "name": "elements",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "implementation_task_id",
-                      "table": {
-                        "schema": "request",
-                        "name": "implelement"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "impltask_comments",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "task_id",
-                      "table": {
-                        "schema": "request",
-                        "name": "impltask_comment"
-                      }
-                    }
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
                 "schema": "public",
                 "name": "alert"
               },
@@ -1349,6 +1203,18 @@
                   }
                 },
                 {
+                  "name": "impltasks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "device_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "impltask"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "objects",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -1392,18 +1258,6 @@
                       "table": {
                         "schema": "public",
                         "name": "rule"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "impltasks",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "device_id",
-                      "table": {
-                        "schema": "request",
-                        "name": "impltask"
                       }
                     }
                   }
@@ -4462,6 +4316,18 @@
                   }
                 },
                 {
+                  "name": "impltasks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "nw_obj_grp_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "impltask"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "network_object_limits",
                   "using": {
                     "manual_configuration": {
@@ -4580,18 +4446,6 @@
                       "table": {
                         "schema": "public",
                         "name": "rule_to"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "impltasks",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "nw_obj_grp_id",
-                      "table": {
-                        "schema": "request",
-                        "name": "impltask"
                       }
                     }
                   }
@@ -8626,6 +8480,18 @@
                   }
                 },
                 {
+                  "name": "impltasks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "svc_grp_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "impltask"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "reqelements",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -8717,18 +8583,6 @@
                       "table": {
                         "schema": "public",
                         "name": "svcgrp"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "impltasks",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "svc_grp_id",
-                      "table": {
-                        "schema": "request",
-                        "name": "impltask"
                       }
                     }
                   }
@@ -8962,6 +8816,18 @@
               },
               "array_relationships": [
                 {
+                  "name": "impltasks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "rule_action",
+                      "table": {
+                        "schema": "request",
+                        "name": "impltask"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "reqtasks",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -8981,18 +8847,6 @@
                       "table": {
                         "schema": "public",
                         "name": "rule"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "impltasks",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "rule_action",
-                      "table": {
-                        "schema": "request",
-                        "name": "impltask"
                       }
                     }
                   }
@@ -9772,6 +9626,18 @@
               },
               "array_relationships": [
                 {
+                  "name": "impltasks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "rule_tracking",
+                      "table": {
+                        "schema": "request",
+                        "name": "impltask"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "reqtasks",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -9791,18 +9657,6 @@
                       "table": {
                         "schema": "public",
                         "name": "rule"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "impltasks",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "rule_tracking",
-                      "table": {
-                        "schema": "request",
-                        "name": "impltask"
                       }
                     }
                   }
@@ -10902,6 +10756,18 @@
                   }
                 },
                 {
+                  "name": "impltasks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "current_handler",
+                      "table": {
+                        "schema": "request",
+                        "name": "impltask"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "log_data_issues",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -11029,18 +10895,6 @@
                       "table": {
                         "schema": "public",
                         "name": "service"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "impltasks",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "current_handler",
-                      "table": {
-                        "schema": "request",
-                        "name": "impltask"
                       }
                     }
                   }
@@ -11710,6 +11564,18 @@
                   }
                 },
                 {
+                  "name": "impltasks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "user_grp_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "impltask"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "reqelements",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -11765,18 +11631,6 @@
                       "table": {
                         "schema": "public",
                         "name": "rule_user_resolved"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "impltasks",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "user_grp_id",
-                      "table": {
-                        "schema": "request",
-                        "name": "impltask"
                       }
                     }
                   }
@@ -12630,6 +12484,12 @@
               },
               "object_relationships": [
                 {
+                  "name": "comment",
+                  "using": {
+                    "foreign_key_constraint_on": "ref_id"
+                  }
+                },
+                {
                   "name": "uiuser",
                   "using": {
                     "foreign_key_constraint_on": "creator_id"
@@ -12645,6 +12505,18 @@
                       "table": {
                         "schema": "request",
                         "name": "approval_comment"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "comments",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "ref_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "comment"
                       }
                     }
                   }
@@ -12681,6 +12553,152 @@
                       "table": {
                         "schema": "request",
                         "name": "ticket_comment"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "schema": "request",
+                "name": "implelement"
+              },
+              "object_relationships": [
+                {
+                  "name": "implelement",
+                  "using": {
+                    "foreign_key_constraint_on": "original_nat_id"
+                  }
+                },
+                {
+                  "name": "impltask",
+                  "using": {
+                    "foreign_key_constraint_on": "implementation_task_id"
+                  }
+                },
+                {
+                  "name": "object",
+                  "using": {
+                    "foreign_key_constraint_on": "network_object_id"
+                  }
+                },
+                {
+                  "name": "service",
+                  "using": {
+                    "foreign_key_constraint_on": "service_id"
+                  }
+                },
+                {
+                  "name": "stm_ip_proto",
+                  "using": {
+                    "foreign_key_constraint_on": "ip_proto_id"
+                  }
+                },
+                {
+                  "name": "usr",
+                  "using": {
+                    "foreign_key_constraint_on": "user_id"
+                  }
+                }
+              ],
+              "array_relationships": [
+                {
+                  "name": "elements",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "original_nat_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "implelement"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "schema": "request",
+                "name": "impltask"
+              },
+              "object_relationships": [
+                {
+                  "name": "device",
+                  "using": {
+                    "foreign_key_constraint_on": "device_id"
+                  }
+                },
+                {
+                  "name": "object",
+                  "using": {
+                    "foreign_key_constraint_on": "nw_obj_grp_id"
+                  }
+                },
+                {
+                  "name": "reqtask",
+                  "using": {
+                    "foreign_key_constraint_on": "reqtask_id"
+                  }
+                },
+                {
+                  "name": "service",
+                  "using": {
+                    "foreign_key_constraint_on": "svc_grp_id"
+                  }
+                },
+                {
+                  "name": "state",
+                  "using": {
+                    "foreign_key_constraint_on": "state_id"
+                  }
+                },
+                {
+                  "name": "stm_action",
+                  "using": {
+                    "foreign_key_constraint_on": "rule_action"
+                  }
+                },
+                {
+                  "name": "stm_track",
+                  "using": {
+                    "foreign_key_constraint_on": "rule_tracking"
+                  }
+                },
+                {
+                  "name": "uiuser",
+                  "using": {
+                    "foreign_key_constraint_on": "current_handler"
+                  }
+                },
+                {
+                  "name": "uiuserByRecentHandler",
+                  "using": {
+                    "foreign_key_constraint_on": "recent_handler"
+                  }
+                }
+              ],
+              "array_relationships": [
+                {
+                  "name": "elements",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "implementation_task_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "implelement"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "impltask_comments",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "task_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "impltask_comment"
                       }
                     }
                   }
@@ -12858,6 +12876,18 @@
                   }
                 },
                 {
+                  "name": "impltasks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "reqtask_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "impltask"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "reqtask_comments",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -12877,18 +12907,6 @@
                       "table": {
                         "schema": "public",
                         "name": "reqtask_owner"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "impltasks",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "reqtask_id",
-                      "table": {
-                        "schema": "request",
-                        "name": "impltask"
                       }
                     }
                   }
@@ -12934,18 +12952,6 @@
                   }
                 },
                 {
-                  "name": "state_actions",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "state_id",
-                      "table": {
-                        "schema": "request",
-                        "name": "state_action"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "impltasks",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -12953,6 +12959,18 @@
                       "table": {
                         "schema": "request",
                         "name": "reqtask"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "state_actions",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "state_id",
+                      "table": {
+                        "schema": "request",
+                        "name": "state_action"
                       }
                     }
                   }
@@ -13042,7 +13060,7 @@
               ],
               "array_relationships": [
                 {
-                  "name": "impltasks",
+                  "name": "reqtasks",
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "ticket_id",

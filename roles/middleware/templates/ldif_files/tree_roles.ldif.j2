@@ -128,3 +128,58 @@ cn: recertifier
 uniqueMember:
 description: T0012
 {%- endif %}
+
+
+dn: cn=requester,ou=role,{{ openldap_path }}
+changetype: {{ ldif_changetype }}
+{% if ldif_changetype != 'delete' -%}
+objectClass: top
+objectClass: groupofuniquenames
+cn: requester
+uniqueMember:
+description: T0013
+{%- endif %}
+
+
+dn: cn=approver,ou=role,{{ openldap_path }}
+changetype: {{ ldif_changetype }}
+{% if ldif_changetype != 'delete' -%}
+objectClass: top
+objectClass: groupofuniquenames
+cn: approver
+uniqueMember:
+description: T0014
+{%- endif %}
+
+
+dn: cn=planner,ou=role,{{ openldap_path }}
+changetype: {{ ldif_changetype }}
+{% if ldif_changetype != 'delete' -%}
+objectClass: top
+objectClass: groupofuniquenames
+cn: planner
+uniqueMember:
+description: T0015
+{%- endif %}
+
+
+dn: cn=implementer,ou=role,{{ openldap_path }}
+changetype: {{ ldif_changetype }}
+{% if ldif_changetype != 'delete' -%}
+objectClass: top
+objectClass: groupofuniquenames
+cn: implementer
+uniqueMember:
+description: T0016
+{%- endif %}
+
+
+dn: cn=reviewer,ou=role,{{ openldap_path }}
+changetype: {{ ldif_changetype }}
+{% if ldif_changetype != 'delete' -%}
+objectClass: top
+objectClass: groupofuniquenames
+cn: reviewer
+uniqueMember:
+description: T0017
+{%- endif %}

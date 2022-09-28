@@ -236,16 +236,16 @@ namespace FWO.Ui.Services
                     }
 
                     // update of request tasks and creation of impl tasks may be necessary
-                    foreach(RequestReqTask task in ActTicket.Tasks)
+                    foreach(RequestReqTask reqtask in ActTicket.Tasks)
                     {
                         List<int> ticketStateList = new List<int>();
                         ticketStateList.Add(ActTicket.StateId);
-                        task.StateId = stateMatrixDict.Matrices[task.TaskType].getDerivedStateFromSubStates(ticketStateList);
-                        await dbAcc.UpdateReqTaskStateInDb(task);
-                        if( task.ImplementationTasks.Count == 0 && !stateMatrixDict.Matrices[task.TaskType].PhaseActive[WorkflowPhases.planning] 
-                            && task.StateId >= stateMatrixDict.Matrices[task.TaskType].MinImplTasksNeeded)
+                        reqtask.StateId = stateMatrixDict.Matrices[reqtask.TaskType].getDerivedStateFromSubStates(ticketStateList);
+                        await dbAcc.UpdateReqTaskStateInDb(reqtask);
+                        if( reqtask.ImplementationTasks.Count == 0 && !stateMatrixDict.Matrices[reqtask.TaskType].PhaseActive[WorkflowPhases.planning] 
+                            && reqtask.StateId >= stateMatrixDict.Matrices[reqtask.TaskType].MinImplTasksNeeded)
                         {
-                            await AutoCreateImplTasks(task);
+                            await AutoCreateImplTasks(reqtask);
                         }
                     }
 

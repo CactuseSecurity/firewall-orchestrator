@@ -5,7 +5,7 @@ namespace FWO.Api.Data
 {
     public class RequestTicket : RequestTicketBase
     {
-        [JsonProperty("tasks"), JsonPropertyName("tasks")]
+        [JsonProperty("reqtasks"), JsonPropertyName("reqtasks")]
         public List<RequestReqTask> Tasks { get; set; } = new List<RequestReqTask>();
 
         [JsonProperty("comments"), JsonPropertyName("comments")]
@@ -24,11 +24,11 @@ namespace FWO.Api.Data
         public int HighestTaskNumber()
         {
             int highestNumber = 0;
-            foreach(var task in Tasks)
+            foreach(var reqtask in Tasks)
             {
-                if (task.TaskNumber > highestNumber)
+                if (reqtask.TaskNumber > highestNumber)
                 {
-                    highestNumber = task.TaskNumber;
+                    highestNumber = reqtask.TaskNumber;
                 }
             }
             return highestNumber;
@@ -37,18 +37,18 @@ namespace FWO.Api.Data
         public int NumberImplTasks()
         {
             int numberImplTasks = 0;
-            foreach(var task in Tasks)
+            foreach(var reqtask in Tasks)
             {
-                numberImplTasks += task.ImplementationTasks.Count;
+                numberImplTasks += reqtask.ImplementationTasks.Count;
             }
             return numberImplTasks;
         }
 
         public void UpdateCidrStringsInTaskElements()
         {
-            foreach (RequestReqTask task in Tasks)
+            foreach (RequestReqTask reqtask in Tasks)
             {
-                foreach(RequestReqElement elem in task.Elements)
+                foreach(RequestReqElement elem in reqtask.Elements)
                 {
                     if (elem.Cidr != null && elem.Cidr.Valid)
                     {
@@ -60,16 +60,16 @@ namespace FWO.Api.Data
 
         public void UpdateCidrsInTaskElements()
         {
-            foreach (RequestReqTask task in Tasks)
+            foreach (RequestReqTask reqtask in Tasks)
             {
-                foreach(RequestReqElement elem in task.Elements)
+                foreach(RequestReqElement elem in reqtask.Elements)
                 {
                     if (elem.CidrString != null)
                     {
                         elem.Cidr = new Cidr(elem.CidrString);
                     }
                 }
-                foreach(RequestImplTask implTask in task.ImplementationTasks)
+                foreach(RequestImplTask implTask in reqtask.ImplementationTasks)
                 {
                     foreach(RequestImplElement elem in implTask.ImplElements)
                     {

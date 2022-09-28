@@ -28,40 +28,40 @@ namespace FWO.Api.Data
         public RequestImplTask()
         { }
 
-        public RequestImplTask(RequestReqTask task, bool copyComments = true)
+        public RequestImplTask(RequestReqTask reqtask, bool copyComments = true)
         {
             Id = 0;
-            Title = task.Title;
-            ReqTaskId = task.Id;
+            Title = reqtask.Title;
+            ReqTaskId = reqtask.Id;
             TaskNumber = 0;
             StateId = 0;
-            TaskType = task.TaskType;
-            ImplAction = task.RequestAction;
-            RuleAction = task.RuleAction;
-            Tracking = task.Tracking;
+            TaskType = reqtask.TaskType;
+            ImplAction = reqtask.RequestAction;
+            RuleAction = reqtask.RuleAction;
+            Tracking = reqtask.Tracking;
             Start = null;
             Stop = null;
-            ServiceGroupId = task.ServiceGroupId;
-            NetworkGroupId = task.NetworkGroupId;
-            UserGroupId = task.UserGroupId;
-            CurrentHandler = task.CurrentHandler;
-            RecentHandler = task.RecentHandler;
-            AssignedGroup = task.AssignedGroup;
-            TargetBeginDate = task.TargetBeginDate;
-            TargetEndDate = task.TargetEndDate;
-            FreeText = task.FreeText;
-            DeviceId = task.DeviceId;
-            if (task.Elements != null && task.Elements.Count > 0)
+            ServiceGroupId = reqtask.ServiceGroupId;
+            NetworkGroupId = reqtask.NetworkGroupId;
+            UserGroupId = reqtask.UserGroupId;
+            CurrentHandler = reqtask.CurrentHandler;
+            RecentHandler = reqtask.RecentHandler;
+            AssignedGroup = reqtask.AssignedGroup;
+            TargetBeginDate = reqtask.TargetBeginDate;
+            TargetEndDate = reqtask.TargetEndDate;
+            FreeText = reqtask.FreeText;
+            DeviceId = reqtask.DeviceId;
+            if (reqtask.Elements != null && reqtask.Elements.Count > 0)
             {
                 ImplElements = new List<RequestImplElement>();
-                foreach(RequestReqElement element in task.Elements)
+                foreach(RequestReqElement element in reqtask.Elements)
                 {
                     ImplElements.Add(new RequestImplElement(element));
                 }
             }
             if(copyComments)
             {
-                foreach(var comm in task.Comments)
+                foreach(var comm in reqtask.Comments)
                 {
                     comm.Comment.Scope = RequestObjectScopes.ImplementationTask.ToString();
                     Comments.Add(comm);

@@ -130,25 +130,25 @@ namespace FWO.Ui.Services
 
         // Request Tasks
 
-        public async Task<int> AddReqTaskToDb(RequestReqTask task)
+        public async Task<int> AddReqTaskToDb(RequestReqTask reqtask)
         {
             int returnId = 0;
             try
             {
                 var Variables = new
                 {
-                    title = task.Title,
-                    ticketId = task.TicketId,
-                    taskNumber = task.TaskNumber,
-                    state = task.StateId,
-                    taskType = task.TaskType,
-                    requestAction = task.RequestAction,
-                    ruleAction = task.RuleAction,
-                    tracking = task.Tracking,
-                    validFrom = task.TargetBeginDate,
-                    validTo = task.TargetEndDate,
-                    reason = task.Reason,
-                    freeText = task.FreeText
+                    title = reqtask.Title,
+                    ticketId = reqtask.TicketId,
+                    taskNumber = reqtask.TaskNumber,
+                    state = reqtask.StateId,
+                    taskType = reqtask.TaskType,
+                    requestAction = reqtask.RequestAction,
+                    ruleAction = reqtask.RuleAction,
+                    tracking = reqtask.Tracking,
+                    validFrom = reqtask.TargetBeginDate,
+                    validTo = reqtask.TargetEndDate,
+                    reason = reqtask.Reason,
+                    freeText = reqtask.FreeText
                 };
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newRequestTask, Variables)).ReturnIds;
                 if (returnIds == null)
@@ -158,17 +158,17 @@ namespace FWO.Ui.Services
                 else
                 {
                     returnId = returnIds[0].NewId;
-                    foreach(var element in task.Elements)
+                    foreach(var element in reqtask.Elements)
                     {
                         element.TaskId = returnId;
                         element.Id = await AddReqElementToDb(element);
                     }
-                    foreach(var approval in task.Approvals)
+                    foreach(var approval in reqtask.Approvals)
                     {
                         approval.TaskId = returnId;
                         await AddApprovalToDb(approval);
                     }
-                    await ActionHandler.DoStateChangeActions(task, RequestObjectScopes.RequestTask);
+                    await ActionHandler.DoStateChangeActions(reqtask, RequestObjectScopes.RequestTask);
                 }
             }
             catch (Exception exception)
@@ -178,40 +178,40 @@ namespace FWO.Ui.Services
             return returnId;
         }
 
-        public async Task UpdateReqTaskInDb(RequestReqTask task)
+        public async Task UpdateReqTaskInDb(RequestReqTask reqtask)
         {
             try
             {
                 var Variables = new
                 {
-                    id = task.Id,
-                    title = task.Title,
-                    taskNumber = task.TaskNumber,
-                    state = task.StateId,
-                    taskType = task.TaskType,
-                    requestAction = task.RequestAction,
-                    ruleAction = task.RuleAction,
-                    tracking = task.Tracking,
-                    validFrom = task.TargetBeginDate,
-                    validTo = task.TargetEndDate,
-                    reason = task.Reason,
-                    freeText = task.FreeText,
-                    deviceId = task.DeviceId
+                    id = reqtask.Id,
+                    title = reqtask.Title,
+                    taskNumber = reqtask.TaskNumber,
+                    state = reqtask.StateId,
+                    taskType = reqtask.TaskType,
+                    requestAction = reqtask.RequestAction,
+                    ruleAction = reqtask.RuleAction,
+                    tracking = reqtask.Tracking,
+                    validFrom = reqtask.TargetBeginDate,
+                    validTo = reqtask.TargetEndDate,
+                    reason = reqtask.Reason,
+                    freeText = reqtask.FreeText,
+                    deviceId = reqtask.DeviceId
                 };
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequestTask, Variables)).UpdatedId;
-                if(udId != task.Id)
+                if(udId != reqtask.Id)
                 {
                     DisplayMessageInUi!(null, UserConfig.GetText("save_task"), UserConfig.GetText("E8004"), true);
                 }
                 else
                 {
-                    foreach(var elem in task.RemovedElements)
+                    foreach(var elem in reqtask.RemovedElements)
                     {
                         await DeleteReqElementFromDb(elem.Id);
                     }
-                    task.RemovedElements = new List<RequestReqElement>();
+                    reqtask.RemovedElements = new List<RequestReqElement>();
 
-                    foreach(var element in task.Elements)
+                    foreach(var element in reqtask.Elements)
                     {
                         if(element.Id == 0)
                         {
@@ -222,7 +222,7 @@ namespace FWO.Ui.Services
                             await UpdateReqElementInDb(element);
                         }
                     }
-                    await ActionHandler.DoStateChangeActions(task, RequestObjectScopes.RequestTask);
+                    await ActionHandler.DoStateChangeActions(reqtask, RequestObjectScopes.RequestTask);
                 }
             }
             catch (Exception exception)
@@ -231,12 +231,12 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task DeleteReqTaskFromDb(RequestReqTask task)
+        public async Task DeleteReqTaskFromDb(RequestReqTask reqtask)
         {
             try
             {
-                int delId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.deleteRequestTask, new { id = task.Id })).DeletedId;
-                if(delId != task.Id)
+                int delId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.deleteRequestTask, new { id = reqtask.Id })).DeletedId;
+                if(delId != reqtask.Id)
                 {
                     DisplayMessageInUi!(null, UserConfig.GetText("delete_task"), UserConfig.GetText("E8005"), true);
                 }
@@ -394,26 +394,26 @@ namespace FWO.Ui.Services
 
         // implementation tasks
 
-        public async Task<int> AddImplTaskToDb(RequestImplTask task)
+        public async Task<int> AddImplTaskToDb(RequestImplTask impltask)
         {
             int returnId = 0;
             try
             {
                 var Variables = new
                 {
-                    title = task.Title,
-                    reqTaskId = task.ReqTaskId,
-                    implIaskNumber = task.TaskNumber,
-                    state = task.StateId,
-                    taskType = task.TaskType,
-                    device = task.DeviceId,
-                    implAction = task.ImplAction,
-                    ruleAction = task.RuleAction,
-                    tracking = task.Tracking,
-                    handler = task.CurrentHandler?.DbId,
-                    validFrom = task.TargetBeginDate,
-                    validTo = task.TargetEndDate,
-                    freeText = task.FreeText,
+                    title = impltask.Title,
+                    reqTaskId = impltask.ReqTaskId,
+                    implIaskNumber = impltask.TaskNumber,
+                    state = impltask.StateId,
+                    taskType = impltask.TaskType,
+                    device = impltask.DeviceId,
+                    implAction = impltask.ImplAction,
+                    ruleAction = impltask.RuleAction,
+                    tracking = impltask.Tracking,
+                    handler = impltask.CurrentHandler?.DbId,
+                    validFrom = impltask.TargetBeginDate,
+                    validTo = impltask.TargetEndDate,
+                    freeText = impltask.FreeText,
                 };
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newImplementationTask, Variables)).ReturnIds;
                 if (returnIds == null)
@@ -423,12 +423,12 @@ namespace FWO.Ui.Services
                 else
                 {
                     returnId = returnIds[0].NewId;
-                    foreach(var element in task.ImplElements)
+                    foreach(var element in impltask.ImplElements)
                     {
                         element.ImplTaskId = returnId;
                         element.Id = await AddImplElementToDb(element);
                     }
-                    foreach(var comment in task.Comments)
+                    foreach(var comment in impltask.Comments)
                     {
                         comment.Comment.Id = await AddCommentToDb(comment.Comment);
                         if(comment.Comment.Id != 0)
@@ -436,7 +436,7 @@ namespace FWO.Ui.Services
                             await AssignCommentToImplTaskInDb(returnId, comment.Comment.Id);
                         }
                     }
-                    await ActionHandler.DoStateChangeActions(task, RequestObjectScopes.ImplementationTask);
+                    await ActionHandler.DoStateChangeActions(impltask, RequestObjectScopes.ImplementationTask);
                 }
             }
             catch (Exception exception)
@@ -446,41 +446,41 @@ namespace FWO.Ui.Services
             return returnId;
         }
 
-        public async Task UpdateImplTaskInDb(RequestImplTask task)
+        public async Task UpdateImplTaskInDb(RequestImplTask impltask)
         {
             try
             {
                 var Variables = new
                 {
-                    id = task.Id,
-                    title = task.Title,
-                    reqTaskId = task.ReqTaskId,
-                    implIaskNumber = task.TaskNumber,
-                    state = task.StateId,
-                    taskType = task.TaskType,
-                    device = task.DeviceId,
-                    implAction = task.ImplAction,
-                    ruleAction = task.RuleAction,
-                    tracking = task.Tracking,
-                    handler = task.CurrentHandler?.DbId,
-                    validFrom = task.TargetBeginDate,
-                    validTo = task.TargetEndDate,
-                    freeText = task.FreeText,
+                    id = impltask.Id,
+                    title = impltask.Title,
+                    reqTaskId = impltask.ReqTaskId,
+                    implIaskNumber = impltask.TaskNumber,
+                    state = impltask.StateId,
+                    taskType = impltask.TaskType,
+                    device = impltask.DeviceId,
+                    implAction = impltask.ImplAction,
+                    ruleAction = impltask.RuleAction,
+                    tracking = impltask.Tracking,
+                    handler = impltask.CurrentHandler?.DbId,
+                    validFrom = impltask.TargetBeginDate,
+                    validTo = impltask.TargetEndDate,
+                    freeText = impltask.FreeText,
                 };
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateImplementationTask, Variables)).UpdatedId;
-                if(udId != task.Id)
+                if(udId != impltask.Id)
                 {
                     DisplayMessageInUi!(null, UserConfig.GetText("save_task"), UserConfig.GetText("E8004"), true);
                 }
                 else
                 {
-                    foreach(var elem in task.RemovedElements)
+                    foreach(var elem in impltask.RemovedElements)
                     {
                         await DeleteImplElementFromDb(elem.Id);
                     }
-                    task.RemovedElements = new List<RequestImplElement>();
+                    impltask.RemovedElements = new List<RequestImplElement>();
 
-                    foreach(var element in task.ImplElements)
+                    foreach(var element in impltask.ImplElements)
                     {
                         if(element.Id == 0)
                         {
@@ -491,7 +491,7 @@ namespace FWO.Ui.Services
                             await UpdateImplElementInDb(element);
                         }
                     }
-                    await ActionHandler.DoStateChangeActions(task, RequestObjectScopes.ImplementationTask);
+                    await ActionHandler.DoStateChangeActions(impltask, RequestObjectScopes.ImplementationTask);
                 }
             }
             catch (Exception exception)
@@ -500,12 +500,12 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task DeleteImplTaskFromDb(RequestImplTask task)
+        public async Task DeleteImplTaskFromDb(RequestImplTask impltask)
         {
             try
             {
-                int delId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.deleteImplementationTask, new { id = task.Id })).DeletedId;
-                if(delId != task.Id)
+                int delId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.deleteImplementationTask, new { id = impltask.Id })).DeletedId;
+                if(delId != impltask.Id)
                 {
                     DisplayMessageInUi!(null, UserConfig.GetText("delete_task"), UserConfig.GetText("E8005"), true);
                 }
@@ -748,28 +748,28 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task UpdateReqTaskStateInDb(RequestReqTask task)
+        public async Task UpdateReqTaskStateInDb(RequestReqTask reqtask)
         {
             try
             {
                 var Variables = new
                 {
-                    id = task.Id,
-                    state = task.StateId,
-                    start = task.Start,
-                    stop = task.Stop,
-                    handler = task.CurrentHandler?.DbId,
-                    recentHandler = task.RecentHandler?.DbId,
-                    assignedGroup = task.AssignedGroup,
+                    id = reqtask.Id,
+                    state = reqtask.StateId,
+                    start = reqtask.Start,
+                    stop = reqtask.Stop,
+                    handler = reqtask.CurrentHandler?.DbId,
+                    recentHandler = reqtask.RecentHandler?.DbId,
+                    assignedGroup = reqtask.AssignedGroup,
                 };
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequestTaskState, Variables)).UpdatedId;
-                if(udId != task.Id)
+                if(udId != reqtask.Id)
                 {
                     DisplayMessageInUi!(null, UserConfig.GetText("save_task"), UserConfig.GetText("E8004"), true);
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(task, RequestObjectScopes.RequestTask);
+                    await ActionHandler.DoStateChangeActions(reqtask, RequestObjectScopes.RequestTask);
                 }
             }
             catch (Exception exception)
@@ -778,28 +778,28 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task UpdateImplTaskStateInDb(RequestImplTask task)
+        public async Task UpdateImplTaskStateInDb(RequestImplTask impltask)
         {
             try
             {
                 var Variables = new
                 {
-                    id = task.Id,
-                    state = task.StateId,
-                    start = task.Start,
-                    stop = task.Stop,
-                    handler = task.CurrentHandler?.DbId,
-                    recentHandler = task.RecentHandler?.DbId,
-                    assignedGroup = task.AssignedGroup,
+                    id = impltask.Id,
+                    state = impltask.StateId,
+                    start = impltask.Start,
+                    stop = impltask.Stop,
+                    handler = impltask.CurrentHandler?.DbId,
+                    recentHandler = impltask.RecentHandler?.DbId,
+                    assignedGroup = impltask.AssignedGroup,
                 };
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateImplementationTaskState, Variables)).UpdatedId;
-                if(udId != task.Id)
+                if(udId != impltask.Id)
                 {
                     DisplayMessageInUi!(null, UserConfig.GetText("save_task"), UserConfig.GetText("E8004"), true);
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(task, RequestObjectScopes.ImplementationTask);
+                    await ActionHandler.DoStateChangeActions(impltask, RequestObjectScopes.ImplementationTask);
                 }
             }
             catch (Exception exception)

@@ -1,5 +1,5 @@
 mutation deleteRequestTask ($id: bigint!) {
-  delete_request_req_task_by_pk (
+  delete_request_reqtask_by_pk (
     id: $id
   ) {
     DeletedId: id

@@ -32,16 +32,16 @@ namespace FWO.Api.Data
         public RequestReqTask()
         { }
 
-        public RequestReqTask(RequestReqTask task) : base(task)
+        public RequestReqTask(RequestReqTask reqtask) : base(reqtask)
         {
-            Id = task.Id;
-            TicketId = task.TicketId;
-            Elements = task.Elements;
-            ImplementationTasks = task.ImplementationTasks;
-            Approvals = task.Approvals;
-            Owners = task.Owners;
-            Comments = task.Comments;
-            RemovedElements = task.RemovedElements;
+            Id = reqtask.Id;
+            TicketId = reqtask.TicketId;
+            Elements = reqtask.Elements;
+            ImplementationTasks = reqtask.ImplementationTasks;
+            Approvals = reqtask.Approvals;
+            Owners = reqtask.Owners;
+            Comments = reqtask.Comments;
+            RemovedElements = reqtask.RemovedElements;
         }
 
         public string OwnerList()

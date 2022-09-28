@@ -13,7 +13,7 @@ mutation updateRequestTask(
   $freeText: String
   $deviceId: Int
   ) {
-  update_request_req_task_by_pk(
+  update_request_reqtask_by_pk(
     pk_columns: { id: $id }
     _set: {
     title: $title

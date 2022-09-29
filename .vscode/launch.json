@@ -50,13 +50,16 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m133",
-                "-d4",
+                "-m6",
+                "-d6",
                 "-f",
-                "-s"
+                "-s",
                 //"-xhttp://10.6.5.10:3128",
                 //"-ihttps://fwodemodata.cactus.de/demo04_cpr8x.json",
-                //"-c",
+                //"-ihttps://fwodemodata.cactus.de/demo01_fortiMgrLab.json"
+                "-ihttps://fwodemodata.cactus.de/demo05_fortiMgr2.json"
+                // "-ihttps://fwodemodata.cactus.de/big/fortiMgr_78111944ad43fe045687d8d6dc92256e.json"
+                //"-c"
                 //  41 - lab fortimanager
                 //"-i/home/tim/Downloads/mgm_id_9_config_native.json.anon"
                 //"-i/home/tim/tmp/configs/mgm_id_56_config_native.json.anon", // all rules, all objs local mgm_id 4
@@ -148,6 +151,19 @@
             "args": [
                 "-f/home/tim/tmp/sting.cfg",
                 "-rFirstLayer shared with inline layer"
+            ]
+        },
+        {
+            "name": "py-cpr8x-api-test-call",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/api-test-call.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "--help"
             ]
         },
         {

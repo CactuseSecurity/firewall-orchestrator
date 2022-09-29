@@ -1,21 +1,25 @@
 
-CREATE OR REPLACE FUNCTION import_zone_main (BIGINT, BOOLEAN) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_networking_main (BIGINT, BOOLEAN) RETURNS VOID AS $$
 DECLARE
-	i_current_import_id ALIAS FOR $1; -- ID des aktiven Imports
-	b_is_initial_import ALIAS FOR $2; -- ID des aktiven Imports
-	i_mgm_id  INTEGER; -- zum Holen der mgm_ID fuer Loeschen von Objekten
-	r_zone  RECORD;  -- Datensatz mit einzelner obj_id aus import_object-Tabelle des zu importierenden Objekts
+	i_current_import_id ALIAS FOR $1;
+	b_is_initial_import ALIAS FOR $2;
+	i_mgm_id  INTEGER;
+	r_interface  RECORD;
+	r_route  RECORD; 
 BEGIN 
-	RAISE DEBUG 'import_zone_main 1 - start';
 	SELECT INTO i_mgm_id mgm_id FROM import_control WHERE control_id=i_current_import_id;
-	RAISE DEBUG 'import_zone_main 2';
-	FOR r_zone IN -- jedes Objekt wird mittels insert_single_nwobj eingefuegt
-		SELECT zone_name FROM import_zone WHERE control_id = i_current_import_id
-	LOOP
-		RAISE DEBUG 'importing zone %', r_zone.zone_name;
-		PERFORM import_zone_single(i_current_import_id,i_mgm_id,r_zone.zone_name,i_current_import_id);
-	END LOOP;
-	PERFORM import_zone_mark_deleted (i_current_import_id, i_mgm_id);
+
+	-- first delete all old interfaces belonging to the current management:
+	DELETE FROM gw_interface WHERE routing_device IN (SELECT dev_id FROM device LEFT JOIN management USING (mgm_id) WHERE device.mgm_id=i_mgm_id); 
+
+	-- first delete all old routes belonging to the current management:
+	-- DELETE FROM gw_route WHERE routing_device IN (SELECT dev_id FROM device LEFT JOIN management USING (mgm_id) WHERE device.mgm_id=i_mgm_id); 
+
+	-- now re-insert the currently found interfaces: 
+    INSERT INTO gw_interface SELECT * FROM jsonb_populate_recordset(NULL::gw_interface, NEW.config -> 'interfaces');
+	-- now re-insert the currently found routes: 
+    -- INSERT INTO gw_route SELECT * FROM jsonb_populate_recordset(NULL::gw_route, NEW.config -> 'routes');
+
 	RETURN;
 END; 
 $$ LANGUAGE plpgsql;

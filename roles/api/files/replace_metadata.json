@@ -1742,6 +1742,154 @@
             },
             {
               "table": {
+                "name": "gw_interface",
+                "schema": "public"
+              },
+              "insert_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "state_up",
+                      "name",
+                      "ip",
+                      "id",
+                      "ip_version",
+                      "netmask_bits",
+                      "routing_device"
+                    ]
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "state_up",
+                      "name",
+                      "ip",
+                      "id",
+                      "ip_version",
+                      "netmask_bits",
+                      "routing_device"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "state_up",
+                      "name",
+                      "ip",
+                      "id",
+                      "ip_version",
+                      "netmask_bits",
+                      "routing_device"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  }
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "backend_only": false,
+                    "filter": {}
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "gw_route",
+                "schema": "public"
+              },
+              "insert_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "static",
+                      "interface",
+                      "destination",
+                      "source",
+                      "target_gateway",
+                      "distance",
+                      "id",
+                      "interface_id",
+                      "ip_version",
+                      "metric",
+                      "routing_device"
+                    ]
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "static",
+                      "interface",
+                      "destination",
+                      "source",
+                      "target_gateway",
+                      "distance",
+                      "id",
+                      "interface_id",
+                      "ip_version",
+                      "metric",
+                      "routing_device"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "static",
+                      "interface",
+                      "destination",
+                      "source",
+                      "target_gateway",
+                      "distance",
+                      "id",
+                      "interface_id",
+                      "ip_version",
+                      "metric",
+                      "routing_device"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  }
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "backend_only": false,
+                    "filter": {}
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
                 "name": "import_changelog",
                 "schema": "public"
               },

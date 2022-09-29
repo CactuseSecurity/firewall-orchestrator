@@ -277,7 +277,6 @@ def import_json_config(fwo_api_base_url, jwt, mgm_id, query_variables):
             }
         }
     """
-
     try:
         debug_mode = (fwo_globals.debug_level>0)
         query_variables.update({'debug_mode': debug_mode})

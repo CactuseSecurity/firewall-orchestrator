@@ -1,4 +1,5 @@
 from copy import deepcopy
+from textwrap import indent
 import traceback
 import sys, os, time, datetime
 import json, requests, requests.packages
@@ -15,6 +16,8 @@ from fwo_const import fw_module_name, full_config_size_limit, csv_delimiter, lis
 from fwo_const import fwo_config_filename, importer_pwd_file, importer_user_name, import_tmp_path # , fwo_api_base_url
 from urllib.parse import urlparse
 import fwo_globals
+import jsonpickle
+from fwo_data_networking import Interface, InterfaceSerializable, RouteSerializable
 
 # how many objects (network, services, rules, ...) should be sent to the FWO API in one go?
 # should be between 500 and 2.000 in production (results in a max obj number of max. 5 x this value - nwobj/svc/rules/...)
@@ -228,7 +231,7 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0,
 
             try: # calculate config sizes
                 full_config_size = sys.getsizeof(json.dumps(full_config_json))
-                config2import_size = sys.getsizeof(json.dumps(config2import))
+                config2import_size = sys.getsizeof(jsonpickle.dumps(config2import))
                 logger.debug("full_config size: " + str(full_config_size) + " bytes, config2import size: " + str(config2import_size) + " bytes")
             except:
                 logger.error("import_management - unspecified error while calculating config sizes: " + str(traceback.format_exc()))
@@ -302,7 +305,7 @@ def get_config_sub(mgm_details, full_config_json, config2import, jwt, current_im
             normalized_config_filename = import_tmp_path + '/mgm_id_' + \
                 str(mgm_details['id']) + '_config_normalized.json'
             with open(normalized_config_filename, "w") as json_data:
-                json_data.write(json.dumps(config2import, indent=2))
+                json_data.write(json.dumps(jsonpickle.dumps(config2import)))
 
             if fwo_globals.debug_level>3:
                 full_native_config_filename = import_tmp_path + '/mgm_id_' + \
@@ -372,11 +375,34 @@ def split_list(list_in, max_list_length):
     return list_of_lists
 
 
+# split the config into chunks of max size "max_objs_per_chunk" to avoid 
+# timeout of import while writing data to import table
+# each object table to import is handled here 
 def split_config(config2import, current_import_id, mgm_id):
     conf_split_dict_of_lists = {}
     max_number_of_chunks = 0
-    for obj_list_name in ["network_objects", "service_objects", "user_objects", "rules", "zone_objects"]:
+
+    object_lists = ["network_objects", "service_objects", "user_objects", "rules", "zone_objects", "interfaces", "routing"]
+
+    for obj_list_name in object_lists:
         if obj_list_name in config2import:
+
+            if obj_list_name == 'interfaces':
+                if_obj_list = config2import['interfaces']
+                if_obj_list_ser = []
+                for iface in if_obj_list:
+                    if_obj_list_ser.append(InterfaceSerializable(iface))
+                if_dict = json.loads(jsonpickle.encode(if_obj_list_ser, unpicklable=False))
+                config2import['interfaces'] = if_dict
+
+            if obj_list_name == 'routing':
+                route_obj_list = config2import['routing']
+                route_obj_list_ser = []
+                for route in route_obj_list:
+                    route_obj_list_ser.append(RouteSerializable(route))
+                route_dict = json.loads(jsonpickle.encode(route_obj_list_ser, unpicklable=False))
+                config2import['routing'] = route_dict
+                
             split_list_tmp = split_list(config2import[obj_list_name], max_objs_per_chunk)
             conf_split_dict_of_lists.update({obj_list_name: split_list_tmp})
             if len(split_list_tmp)>max_number_of_chunks:
@@ -386,33 +412,18 @@ def split_config(config2import, current_import_id, mgm_id):
     conf_split = []
     current_chunk = 0
     while current_chunk<max_number_of_chunks:
-        network_object_chunk = []
-        service_object_chunk = []
-        user_object_chunk = []
-        zone_object_chunk = []
-        rules_chunk = []
+        single_chunk = {}
+        for obj_list_name in object_lists:
+            single_chunk[obj_list_name] = []
 
-        if current_chunk<len(conf_split_dict_of_lists['network_objects']):
-            network_object_chunk = conf_split_dict_of_lists['network_objects'][current_chunk]
-        if current_chunk<len(conf_split_dict_of_lists['service_objects']):
-            service_object_chunk = conf_split_dict_of_lists['service_objects'][current_chunk]
-        if current_chunk<len(conf_split_dict_of_lists['user_objects']):
-            user_object_chunk = conf_split_dict_of_lists['user_objects'][current_chunk]
-        if current_chunk<len(conf_split_dict_of_lists['zone_objects']):
-            zone_object_chunk = conf_split_dict_of_lists['zone_objects'][current_chunk]
-        if current_chunk<len(conf_split_dict_of_lists['rules']):
-            rules_chunk = conf_split_dict_of_lists['rules'][current_chunk]
+        for obj_list_name in object_lists:
+            if current_chunk<len(conf_split_dict_of_lists[obj_list_name]):
+                single_chunk[obj_list_name] = conf_split_dict_of_lists[obj_list_name][current_chunk]
 
-        conf_split.append({
-            "network_objects": network_object_chunk,
-            "service_objects": service_object_chunk,
-            "user_objects": user_object_chunk,
-            "zone_objects": zone_object_chunk,
-            "rules": rules_chunk
-        })
+        conf_split.append(single_chunk)
         current_chunk += 1
 
-    # now adding meta data around
+    # now adding meta data around (start_import_flag used as trigger)
     config_split_with_metadata = []
     for conf_chunk in conf_split:
         config_split_with_metadata.append({
@@ -421,6 +432,7 @@ def split_config(config2import, current_import_id, mgm_id):
             "importId": int(current_import_id), 
             "mgmId": int(mgm_id), 
         })
+    # setting the trigger in the last chunk:
     config_split_with_metadata[len(config_split_with_metadata)-1]["start_import_flag"] = True
     if fwo_globals.debug_level>0:
         config_split_with_metadata[len(config_split_with_metadata)-1]["debug_mode"] = True
@@ -529,7 +541,7 @@ def resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, ui
             desc = "found a broken network object reference '" + obj + "' "
             if object_type is not None:
                 desc +=  "(type=" + object_type + ") "
-            desc += "in rule with UID '" + rule_uid + "'"
+            desc += "in rule with UID '" + str(rule_uid) + "'"
             fwo_api.setAlert(fwo_config['fwo_api_base_url'], jwt, import_id=import_id, title="object reference error", mgm_id=mgm_id, severity=1, role='importer', \
                 description=desc, source='import', alertCode=16)
 

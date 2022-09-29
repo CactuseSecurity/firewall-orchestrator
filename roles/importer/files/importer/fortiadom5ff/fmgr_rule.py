@@ -1,11 +1,15 @@
 from asyncio.log import logger
 import copy
+import jsonpickle
 from common import resolve_raw_objects, extend_string_list, list_delimiter, nat_postfix
 from fmgr_service import create_svc_object
 from fmgr_network import resolve_objects, create_network_object, get_first_ip_of_destination
 import fmgr_zone, fmgr_getter
 from fmgr_gw_networking import get_matching_route, get_ip_of_interface, get_device_from_package
 from fwo_log import getFwoLogger
+from fwo_data_networking import get_matching_route_obj, get_ip_of_interface_obj
+from ipaddress import ip_address, IPv4Address
+
 
 rule_access_scope_v4 = ['rules_global_header_v4', 'rules_adom_v4', 'rules_global_footer_v4']
 rule_access_scope_v6 = ['rules_global_header_v6', 'rules_adom_v6', 'rules_global_footer_v6']
@@ -97,8 +101,8 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
         src_ref_all = resolve_raw_objects("all", list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id, mgm_id=mgm_details['id'])
         dst_ref_all = resolve_raw_objects("all", list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id, mgm_id=mgm_details['id'])
         for localPkgName in full_config[rule_table]:
-            device_name = get_device_from_package(localPkgName, mgm_details)
-            if device_name is None:
+            dev_id = get_device_from_package(localPkgName, mgm_details)
+            if dev_id is None:
                 logger.info('normalize_access_rules - no matching device found for package "' + localPkgName + '" in rule_table ' + rule_table)
             else:
                 rule_number, first_v4, first_v6 = insert_headers(rule_table, first_v6, first_v4, full_config, rules, import_id, localPkgName,src_ref_all,dst_ref_all,rule_number)
@@ -160,7 +164,7 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
                     rule.update({ 'rule_svc_refs': rule['rule_svc'] }) # services do not have uids, so using name instead
                     add_users_to_rule(rule_orig, rule)
 
-                    xlate_rule = handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, import_id, localPkgName, device_name)
+                    xlate_rule = handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, import_id, localPkgName, dev_id)
                     rules.append(rule)
                     if xlate_rule is not None:
                         rules.append(xlate_rule)
@@ -323,7 +327,7 @@ def create_xlate_rule(rule):
     return xlate_rule
 
 
-def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, import_id, localPkgName, device_name):
+def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, import_id, localPkgName, dev_id):
     # now dealing with VIPs (dst NAT part) of combined rules
     logger = getFwoLogger()
     xlate_rule = None
@@ -338,30 +342,40 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, im
                 interface_name = 'unknownIF'
                 destination_interface_ip = '0.0.0.0'
                 destination_ip = get_first_ip_of_destination(rule['rule_dst_refs'], config2import) # get an ip of destination
+                hideInterface = 'undefined_interface'
                 if destination_ip is None:
                     logger.warning('src nat behind interface: found no valid destination ip in rule with UID ' + rule['rule_uid'])
                 else:
-                    matching_route = get_matching_route(destination_ip, config2import['networking'][device_name]['routingv4'])
+                    # matching_route = get_matching_route_obj(destination_ip, config2import['networking'][device_name]['routingv4'])
+                    matching_route = get_matching_route_obj(destination_ip, config2import['routing'], dev_id)
                     if matching_route is None:
                         logger.warning('src nat behind interface: found no matching route in rule with UID '
                             + rule['rule_uid'] + ', dest_ip: ' + destination_ip)
                     else:
-                        destination_interface_ip = get_ip_of_interface(matching_route['interface'], config2import['networking'][device_name]['interfaces'])
-                        interface_name = matching_route['interface'] # ['name']
+                        # destination_interface_ip = get_ip_of_interface(matching_route['interface'], config2import['networking'][device_name]['interfaces'])
+                        destination_interface_ip = get_ip_of_interface_obj(matching_route.interface, dev_id, config2import['interfaces'])
+                        interface_name = matching_route.interface
                         hideInterface=interface_name
+                        if hideInterface is None:
+                            logger.warning('src nat behind interface: found route with undefined interface ' + str(jsonpickle.dumps(matching_route, unpicklable=True)))
                         if destination_interface_ip is None:
                             logger.warning('src nat behind interface: found no matching interface IP in rule with UID '
                             + rule['rule_uid'] + ', dest_ip: ' + destination_ip)
         
                 # add dummy object "outbound-interface"
-                obj_name = 'hide_IF_ip_' + hideInterface + '_' + destination_interface_ip
-                obj_comment = 'FWO auto-generated dummy object for source nat'
-                obj = create_network_object(import_id, obj_name, 'host', destination_interface_ip + '/32', obj_name, 'black', obj_comment, 'global')
+                if hideInterface is not None:
+                    obj_name = 'hide_IF_ip_' + str(hideInterface) + '_' + str(destination_interface_ip)
+                    obj_comment = 'FWO auto-generated dummy object for source nat'
+                    if destination_interface_ip is IPv4Address:
+                        HideNatIp = str(destination_interface_ip) + '/32'
+                    else:
+                        HideNatIp = str(destination_interface_ip) + '/128'
+                    obj = create_network_object(import_id, obj_name, 'host', HideNatIp, obj_name, 'black', obj_comment, 'global')
                 
-                if obj not in config2import['network_objects']:
-                    config2import['network_objects'].append(obj)
-                xlate_rule['rule_src'] = obj_name
-                xlate_rule['rule_src_refs'] = obj_name
+                    if obj not in config2import['network_objects']:
+                        config2import['network_objects'].append(obj)
+                    xlate_rule['rule_src'] = obj_name
+                    xlate_rule['rule_src_refs'] = obj_name
 
             elif rule_orig['ippool']==1: # hiding behind one ip of an ip pool
                 poolNameArray = rule_orig['poolname']

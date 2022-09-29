@@ -53,9 +53,6 @@
                                         @oninput="@(async () => {
                                             device.Selected = !device.Selected;
                                             DeviceFilter.SynchronizeMgmtFilter();
-                                            await SetElementProperty(management.UiReference.Value, "indeterminate",
-                                            management.Devices.Exists(d => d.Selected) &&
-                                            !management.Devices.TrueForAll(d => d.Selected)); // any but not all devices selected
                                             await SetSelectAll();
                                         })" />
                                 <label class="form-check-label" for="@device.Id">
@@ -116,6 +113,16 @@
         if(Environment == "Cert")
         {
             cssClass += "-35";
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        foreach (ManagementSelect management in DeviceFilter.Managements)
+        {
+           await SetElementProperty(management.UiReference!.Value, "indeterminate",
+           management.Devices.Exists(d => d.Selected) && !management.Devices.TrueForAll(d => d.Selected)
+           /* any but not all devices selected */ );
         }
     }
 

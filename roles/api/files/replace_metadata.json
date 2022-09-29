@@ -663,8 +663,8 @@
             },
             {
               "table": {
-                "name": "changelog_object",
-                "schema": "public"
+                "schema": "public",
+                "name": "changelog_object"
               },
               "object_relationships": [
                 {
@@ -741,8 +741,8 @@
             },
             {
               "table": {
-                "name": "changelog_rule",
-                "schema": "public"
+                "schema": "public",
+                "name": "changelog_rule"
               },
               "object_relationships": [
                 {
@@ -974,8 +974,8 @@
             },
             {
               "table": {
-                "name": "changelog_service",
-                "schema": "public"
+                "schema": "public",
+                "name": "changelog_service"
               },
               "object_relationships": [
                 {
@@ -1052,8 +1052,8 @@
             },
             {
               "table": {
-                "name": "changelog_user",
-                "schema": "public"
+                "schema": "public",
+                "name": "changelog_user"
               },
               "object_relationships": [
                 {
@@ -1130,8 +1130,8 @@
             },
             {
               "table": {
-                "name": "config",
-                "schema": "public"
+                "schema": "public",
+                "name": "config"
               },
               "object_relationships": [
                 {
@@ -1727,8 +1727,8 @@
             },
             {
               "table": {
-                "name": "device",
-                "schema": "public"
+                "schema": "public",
+                "name": "device"
               },
               "object_relationships": [
                 {
@@ -1757,8 +1757,8 @@
                     "foreign_key_constraint_on": {
                       "column": "alert_dev_id",
                       "table": {
-                        "name": "alert",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "alert"
                       }
                     }
                   }
@@ -1769,8 +1769,8 @@
                     "foreign_key_constraint_on": {
                       "column": "dev_id",
                       "table": {
-                        "name": "changelog_rule",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "changelog_rule"
                       }
                     }
                   }
@@ -1793,8 +1793,8 @@
                     "foreign_key_constraint_on": {
                       "column": "obj_nat_install",
                       "table": {
-                        "name": "object",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "object"
                       }
                     }
                   }
@@ -1817,8 +1817,8 @@
                     "foreign_key_constraint_on": {
                       "column": "dev_id",
                       "table": {
-                        "name": "rule_metadata",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_metadata"
                       }
                     }
                   }
@@ -1829,8 +1829,8 @@
                     "foreign_key_constraint_on": {
                       "column": "dev_id",
                       "table": {
-                        "name": "rule",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule"
                       }
                     }
                   }
@@ -1841,8 +1841,8 @@
                     "foreign_key_constraint_on": {
                       "column": "device_id",
                       "table": {
-                        "name": "tenant_to_device",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "tenant_to_device"
                       }
                     }
                   }
@@ -2338,8 +2338,8 @@
             },
             {
               "table": {
-                "name": "device_type",
-                "schema": "public"
+                "schema": "public",
+                "name": "device_type"
               },
               "insert_permissions": [
                 {
@@ -2410,14 +2410,14 @@
             },
             {
               "table": {
-                "name": "error",
-                "schema": "public"
+                "schema": "public",
+                "name": "error"
               }
             },
             {
               "table": {
-                "name": "import_changelog",
-                "schema": "public"
+                "schema": "public",
+                "name": "import_changelog"
               },
               "object_relationships": [
                 {
@@ -2430,8 +2430,8 @@
             },
             {
               "table": {
-                "name": "import_config",
-                "schema": "public"
+                "schema": "public",
+                "name": "import_config"
               },
               "object_relationships": [
                 {
@@ -2490,8 +2490,8 @@
             },
             {
               "table": {
-                "name": "import_control",
-                "schema": "public"
+                "schema": "public",
+                "name": "import_control"
               },
               "object_relationships": [
                 {
@@ -2500,8 +2500,8 @@
                     "foreign_key_constraint_on": {
                       "column": "import_id",
                       "table": {
-                        "name": "import_config",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "import_config"
                       }
                     }
                   }
@@ -2512,8 +2512,8 @@
                     "foreign_key_constraint_on": {
                       "column": "import_id",
                       "table": {
-                        "name": "import_full_config",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "import_full_config"
                       }
                     }
                   }
@@ -2532,8 +2532,8 @@
                     "foreign_key_constraint_on": {
                       "column": "control_id",
                       "table": {
-                        "name": "changelog_object",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "changelog_object"
                       }
                     }
                   }
@@ -2544,8 +2544,8 @@
                     "foreign_key_constraint_on": {
                       "column": "control_id",
                       "table": {
-                        "name": "changelog_rule",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "changelog_rule"
                       }
                     }
                   }
@@ -2556,8 +2556,8 @@
                     "foreign_key_constraint_on": {
                       "column": "control_id",
                       "table": {
-                        "name": "changelog_service",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "changelog_service"
                       }
                     }
                   }
@@ -2568,8 +2568,8 @@
                     "foreign_key_constraint_on": {
                       "column": "control_id",
                       "table": {
-                        "name": "changelog_user",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "changelog_user"
                       }
                     }
                   }
@@ -2580,8 +2580,8 @@
                     "foreign_key_constraint_on": {
                       "column": "control_id",
                       "table": {
-                        "name": "import_changelog",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "import_changelog"
                       }
                     }
                   }
@@ -2592,8 +2592,8 @@
                     "foreign_key_constraint_on": {
                       "column": "import_id",
                       "table": {
-                        "name": "import_config",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "import_config"
                       }
                     }
                   }
@@ -2604,8 +2604,8 @@
                     "foreign_key_constraint_on": {
                       "column": "control_id",
                       "table": {
-                        "name": "import_object",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "import_object"
                       }
                     }
                   }
@@ -2616,8 +2616,8 @@
                     "foreign_key_constraint_on": {
                       "column": "control_id",
                       "table": {
-                        "name": "import_rule",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "import_rule"
                       }
                     }
                   }
@@ -2628,8 +2628,8 @@
                     "foreign_key_constraint_on": {
                       "column": "control_id",
                       "table": {
-                        "name": "import_service",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "import_service"
                       }
                     }
                   }
@@ -2640,8 +2640,8 @@
                     "foreign_key_constraint_on": {
                       "column": "control_id",
                       "table": {
-                        "name": "import_user",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "import_user"
                       }
                     }
                   }
@@ -2652,8 +2652,8 @@
                     "foreign_key_constraint_on": {
                       "column": "control_id",
                       "table": {
-                        "name": "import_zone",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "import_zone"
                       }
                     }
                   }
@@ -2664,8 +2664,8 @@
                     "foreign_key_constraint_on": {
                       "column": "import_id",
                       "table": {
-                        "name": "log_data_issue",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "log_data_issue"
                       }
                     }
                   }
@@ -2676,8 +2676,8 @@
                     "foreign_key_constraint_on": {
                       "column": "obj_create",
                       "table": {
-                        "name": "object",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "object"
                       }
                     }
                   }
@@ -2688,8 +2688,8 @@
                     "foreign_key_constraint_on": {
                       "column": "obj_last_seen",
                       "table": {
-                        "name": "object",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "object"
                       }
                     }
                   }
@@ -2700,8 +2700,8 @@
                     "foreign_key_constraint_on": {
                       "column": "import_last_seen",
                       "table": {
-                        "name": "objgrp_flat",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "objgrp_flat"
                       }
                     }
                   }
@@ -2712,8 +2712,8 @@
                     "foreign_key_constraint_on": {
                       "column": "import_created",
                       "table": {
-                        "name": "objgrp_flat",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "objgrp_flat"
                       }
                     }
                   }
@@ -2724,8 +2724,8 @@
                     "foreign_key_constraint_on": {
                       "column": "import_created",
                       "table": {
-                        "name": "objgrp",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "objgrp"
                       }
                     }
                   }
@@ -2736,8 +2736,8 @@
                     "foreign_key_constraint_on": {
                       "column": "import_last_seen",
                       "table": {
-                        "name": "objgrp",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "objgrp"
                       }
                     }
                   }
@@ -2748,8 +2748,8 @@
                     "foreign_key_constraint_on": {
                       "column": "rf_last_seen",
                       "table": {
-                        "name": "rule_from",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_from"
                       }
                     }
                   }
@@ -2760,8 +2760,8 @@
                     "foreign_key_constraint_on": {
                       "column": "removed",
                       "table": {
-                        "name": "rule_nwobj_resolved",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_nwobj_resolved"
                       }
                     }
                   }
@@ -2772,8 +2772,8 @@
                     "foreign_key_constraint_on": {
                       "column": "rs_last_seen",
                       "table": {
-                        "name": "rule_service",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_service"
                       }
                     }
                   }
@@ -2784,8 +2784,8 @@
                     "foreign_key_constraint_on": {
                       "column": "removed",
                       "table": {
-                        "name": "rule_svc_resolved",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_svc_resolved"
                       }
                     }
                   }
@@ -2796,8 +2796,8 @@
                     "foreign_key_constraint_on": {
                       "column": "rt_last_seen",
                       "table": {
-                        "name": "rule_to",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_to"
                       }
                     }
                   }
@@ -2808,8 +2808,8 @@
                     "foreign_key_constraint_on": {
                       "column": "removed",
                       "table": {
-                        "name": "rule_user_resolved",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_user_resolved"
                       }
                     }
                   }
@@ -2820,8 +2820,8 @@
                     "foreign_key_constraint_on": {
                       "column": "rf_create",
                       "table": {
-                        "name": "rule_from",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_from"
                       }
                     }
                   }
@@ -2832,8 +2832,8 @@
                     "foreign_key_constraint_on": {
                       "column": "created",
                       "table": {
-                        "name": "rule_nwobj_resolved",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_nwobj_resolved"
                       }
                     }
                   }
@@ -2844,8 +2844,8 @@
                     "foreign_key_constraint_on": {
                       "column": "rs_create",
                       "table": {
-                        "name": "rule_service",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_service"
                       }
                     }
                   }
@@ -2856,8 +2856,8 @@
                     "foreign_key_constraint_on": {
                       "column": "created",
                       "table": {
-                        "name": "rule_svc_resolved",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_svc_resolved"
                       }
                     }
                   }
@@ -2868,8 +2868,8 @@
                     "foreign_key_constraint_on": {
                       "column": "rt_create",
                       "table": {
-                        "name": "rule_to",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_to"
                       }
                     }
                   }
@@ -2880,8 +2880,8 @@
                     "foreign_key_constraint_on": {
                       "column": "created",
                       "table": {
-                        "name": "rule_user_resolved",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_user_resolved"
                       }
                     }
                   }
@@ -2892,8 +2892,8 @@
                     "foreign_key_constraint_on": {
                       "column": "rule_create",
                       "table": {
-                        "name": "rule",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule"
                       }
                     }
                   }
@@ -2904,8 +2904,8 @@
                     "foreign_key_constraint_on": {
                       "column": "rule_last_seen",
                       "table": {
-                        "name": "rule",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule"
                       }
                     }
                   }
@@ -2916,8 +2916,8 @@
                     "foreign_key_constraint_on": {
                       "column": "svc_create",
                       "table": {
-                        "name": "service",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "service"
                       }
                     }
                   }
@@ -2928,8 +2928,8 @@
                     "foreign_key_constraint_on": {
                       "column": "svc_last_seen",
                       "table": {
-                        "name": "service",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "service"
                       }
                     }
                   }
@@ -2940,8 +2940,8 @@
                     "foreign_key_constraint_on": {
                       "column": "import_last_seen",
                       "table": {
-                        "name": "svcgrp_flat",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "svcgrp_flat"
                       }
                     }
                   }
@@ -2952,8 +2952,8 @@
                     "foreign_key_constraint_on": {
                       "column": "import_created",
                       "table": {
-                        "name": "svcgrp_flat",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "svcgrp_flat"
                       }
                     }
                   }
@@ -2964,8 +2964,8 @@
                     "foreign_key_constraint_on": {
                       "column": "import_created",
                       "table": {
-                        "name": "svcgrp",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "svcgrp"
                       }
                     }
                   }
@@ -2976,8 +2976,8 @@
                     "foreign_key_constraint_on": {
                       "column": "import_last_seen",
                       "table": {
-                        "name": "svcgrp",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "svcgrp"
                       }
                     }
                   }
@@ -2988,8 +2988,8 @@
                     "foreign_key_constraint_on": {
                       "column": "import_last_seen",
                       "table": {
-                        "name": "usergrp_flat",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "usergrp_flat"
                       }
                     }
                   }
@@ -3000,8 +3000,8 @@
                     "foreign_key_constraint_on": {
                       "column": "import_created",
                       "table": {
-                        "name": "usergrp_flat",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "usergrp_flat"
                       }
                     }
                   }
@@ -3012,8 +3012,8 @@
                     "foreign_key_constraint_on": {
                       "column": "import_created",
                       "table": {
-                        "name": "usergrp",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "usergrp"
                       }
                     }
                   }
@@ -3024,8 +3024,8 @@
                     "foreign_key_constraint_on": {
                       "column": "import_last_seen",
                       "table": {
-                        "name": "usergrp",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "usergrp"
                       }
                     }
                   }
@@ -3036,8 +3036,8 @@
                     "foreign_key_constraint_on": {
                       "column": "user_create",
                       "table": {
-                        "name": "usr",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "usr"
                       }
                     }
                   }
@@ -3048,8 +3048,8 @@
                     "foreign_key_constraint_on": {
                       "column": "user_last_seen",
                       "table": {
-                        "name": "usr",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "usr"
                       }
                     }
                   }
@@ -3060,8 +3060,8 @@
                     "foreign_key_constraint_on": {
                       "column": "zone_create",
                       "table": {
-                        "name": "zone",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "zone"
                       }
                     }
                   }
@@ -3072,8 +3072,8 @@
                     "foreign_key_constraint_on": {
                       "column": "zone_last_seen",
                       "table": {
-                        "name": "zone",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "zone"
                       }
                     }
                   }
@@ -3301,8 +3301,8 @@
             },
             {
               "table": {
-                "name": "import_credential",
-                "schema": "public"
+                "schema": "public",
+                "name": "import_credential"
               },
               "array_relationships": [
                 {
@@ -3311,8 +3311,8 @@
                     "foreign_key_constraint_on": {
                       "column": "import_credential_id",
                       "table": {
-                        "name": "management",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "management"
                       }
                     }
                   }
@@ -3420,150 +3420,13 @@
                     "backend_only": false,
                     "filter": {}
                   }
-                },
-                {
-                  "role": "middleware-server",
-                  "permission": {
-                    "backend_only": false,
-                    "filter": {}
-                  }
                 }
               ]
             },
-            "table": {
-              "name": "import_credential",
-              "schema": "public"
-            },
-            "array_relationships": [
-              {
-                "name": "management",
-                "using": {
-                  "foreign_key_constraint_on": {
-                    "column": "import_credential_id",
-                    "table": {
-                      "name": "management",
-                      "schema": "public"
-                    }
-                  }
-                }
-              }
-            ],
-            "insert_permissions": [
-              {
-                "role": "fw-admin",
-                "permission": {
-                  "check": {},
-                  "columns": [
-                    "is_key_pair",
-                    "credential_name",
-                    "username",
-                    "id",
-                    "public_key",
-                    "secret"
-                  ]
-                }
-              }
-            ],
-            "select_permissions": [
-              {
-                "role": "auditor",
-                "permission": {
-                  "columns": [
-                    "is_key_pair",
-                    "credential_name",
-                    "username",
-                    "id",
-                    "public_key",
-                    "secret"
-                  ],
-                  "filter": {},
-                  "allow_aggregations": true
-                }
-              },
-              {
-                "role": "fw-admin",
-                "permission": {
-                  "columns": [
-                    "is_key_pair",
-                    "credential_name",
-                    "username",
-                    "id",
-                    "public_key",
-                    "secret"
-                  ],
-                  "filter": {},
-                  "allow_aggregations": true
-                }
-              },
-              {
-                "role": "importer",
-                "permission": {
-                  "columns": [
-                    "is_key_pair",
-                    "credential_name",
-                    "username",
-                    "id",
-                    "public_key",
-                    "secret"
-                  ],
-                  "filter": {},
-                  "allow_aggregations": true
-                }
-              },
-              {
-                "role": "middleware-server",
-                "permission": {
-                  "columns": [
-                    "is_key_pair",
-                    "credential_name",
-                    "username",
-                    "id",
-                    "public_key",
-                    "secret"
-                  ],
-                  "filter": {},
-                  "allow_aggregations": true
-                }
-              }
-            ],
-            "update_permissions": [
-              {
-                "role": "fw-admin",
-                "permission": {
-                  "columns": [
-                    "is_key_pair",
-                    "credential_name",
-                    "username",
-                    "id",
-                    "public_key",
-                    "secret"
-                  ],
-                  "filter": {},
-                  "check": {}
-                }
-              }
-            ],
-            "delete_permissions": [
-              {
-                "role": "fw-admin",
-                "permission": {
-                  "backend_only": false,
-                  "filter": {}
-                }
-              },
-              {
-                "role": "middleware-server",
-                "permission": {
-                  "backend_only": false,
-                  "filter": {}
-                }
-              }
-            ]
-          },
             {
               "table": {
-                "name": "import_full_config",
-                "schema": "public"
+                "schema": "public",
+                "name": "import_full_config"
               },
               "object_relationships": [
                 {
@@ -3618,8 +3481,8 @@
             },
             {
               "table": {
-                "name": "import_object",
-                "schema": "public"
+                "schema": "public",
+                "name": "import_object"
               },
               "object_relationships": [
                 {
@@ -3727,8 +3590,8 @@
             },
             {
               "table": {
-                "name": "import_rule",
-                "schema": "public"
+                "schema": "public",
+                "name": "import_rule"
               },
               "object_relationships": [
                 {
@@ -3804,8 +3667,8 @@
             },
             {
               "table": {
-                "name": "import_service",
-                "schema": "public"
+                "schema": "public",
+                "name": "import_service"
               },
               "object_relationships": [
                 {
@@ -3870,8 +3733,8 @@
             },
             {
               "table": {
-                "name": "import_user",
-                "schema": "public"
+                "schema": "public",
+                "name": "import_user"
               },
               "object_relationships": [
                 {
@@ -3935,8 +3798,8 @@
             },
             {
               "table": {
-                "name": "import_zone",
-                "schema": "public"
+                "schema": "public",
+                "name": "import_zone"
               },
               "object_relationships": [
                 {
@@ -3962,8 +3825,8 @@
             },
             {
               "table": {
-                "name": "language",
-                "schema": "public"
+                "schema": "public",
+                "name": "language"
               },
               "array_relationships": [
                 {
@@ -3972,8 +3835,8 @@
                     "foreign_key_constraint_on": {
                       "column": "language",
                       "table": {
-                        "name": "txt",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "txt"
                       }
                     }
                   }
@@ -3984,8 +3847,8 @@
                     "foreign_key_constraint_on": {
                       "column": "uiuser_language",
                       "table": {
-                        "name": "uiuser",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "uiuser"
                       }
                     }
                   }
@@ -4117,8 +3980,8 @@
             },
             {
               "table": {
-                "name": "ldap_connection",
-                "schema": "public"
+                "schema": "public",
+                "name": "ldap_connection"
               },
               "object_relationships": [
                 {
@@ -4135,8 +3998,8 @@
                     "foreign_key_constraint_on": {
                       "column": "ldap_connection_id",
                       "table": {
-                        "name": "uiuser",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "uiuser"
                       }
                     }
                   }
@@ -4355,8 +4218,8 @@
             },
             {
               "table": {
-                "name": "log_data_issue",
-                "schema": "public"
+                "schema": "public",
+                "name": "log_data_issue"
               },
               "object_relationships": [
                 {
@@ -4379,8 +4242,8 @@
                     "foreign_key_constraint_on": {
                       "column": "ref_log_id",
                       "table": {
-                        "name": "alert",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "alert"
                       }
                     }
                   }
@@ -4934,8 +4797,8 @@
             },
             {
               "table": {
-                "name": "management",
-                "schema": "public"
+                "schema": "public",
+                "name": "management"
               },
               "object_relationships": [
                 {
@@ -4943,7 +4806,7 @@
                   "using": {
                     "foreign_key_constraint_on": "import_credential_id"
                   }
-                },
+                },                
                 {
                   "name": "management",
                   "using": {
@@ -4970,8 +4833,8 @@
                     "foreign_key_constraint_on": {
                       "column": "alert_mgm_id",
                       "table": {
-                        "name": "alert",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "alert"
                       }
                     }
                   }
@@ -4982,8 +4845,8 @@
                     "foreign_key_constraint_on": {
                       "column": "mgm_id",
                       "table": {
-                        "name": "changelog_object",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "changelog_object"
                       }
                     }
                   }
@@ -4994,8 +4857,8 @@
                     "foreign_key_constraint_on": {
                       "column": "mgm_id",
                       "table": {
-                        "name": "changelog_rule",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "changelog_rule"
                       }
                     }
                   }
@@ -5006,8 +4869,8 @@
                     "foreign_key_constraint_on": {
                       "column": "mgm_id",
                       "table": {
-                        "name": "changelog_service",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "changelog_service"
                       }
                     }
                   }
@@ -5018,8 +4881,8 @@
                     "foreign_key_constraint_on": {
                       "column": "mgm_id",
                       "table": {
-                        "name": "changelog_user",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "changelog_user"
                       }
                     }
                   }
@@ -5030,8 +4893,8 @@
                     "foreign_key_constraint_on": {
                       "column": "mgm_id",
                       "table": {
-                        "name": "device",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "device"
                       }
                     }
                   }
@@ -5042,8 +4905,8 @@
                     "foreign_key_constraint_on": {
                       "column": "mgm_id",
                       "table": {
-                        "name": "import_config",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "import_config"
                       }
                     }
                   }
@@ -5054,8 +4917,8 @@
                     "foreign_key_constraint_on": {
                       "column": "mgm_id",
                       "table": {
-                        "name": "import_control",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "import_control"
                       }
                     }
                   }
@@ -5066,8 +4929,8 @@
                     "foreign_key_constraint_on": {
                       "column": "mgm_id",
                       "table": {
-                        "name": "import_full_config",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "import_full_config"
                       }
                     }
                   }
@@ -5078,8 +4941,8 @@
                     "foreign_key_constraint_on": {
                       "column": "multi_device_manager_id",
                       "table": {
-                        "name": "management",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "management"
                       }
                     }
                   }
@@ -5090,8 +4953,8 @@
                     "foreign_key_constraint_on": {
                       "column": "mgm_id",
                       "table": {
-                        "name": "object",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "object"
                       }
                     }
                   }
@@ -5102,8 +4965,8 @@
                     "foreign_key_constraint_on": {
                       "column": "mgm_id",
                       "table": {
-                        "name": "rule_nwobj_resolved",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_nwobj_resolved"
                       }
                     }
                   }
@@ -5114,8 +4977,8 @@
                     "foreign_key_constraint_on": {
                       "column": "mgm_id",
                       "table": {
-                        "name": "rule_svc_resolved",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_svc_resolved"
                       }
                     }
                   }
@@ -5126,8 +4989,8 @@
                     "foreign_key_constraint_on": {
                       "column": "mgm_id",
                       "table": {
-                        "name": "rule_user_resolved",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_user_resolved"
                       }
                     }
                   }
@@ -5138,8 +5001,8 @@
                     "foreign_key_constraint_on": {
                       "column": "mgm_id",
                       "table": {
-                        "name": "rule",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule"
                       }
                     }
                   }
@@ -5150,8 +5013,8 @@
                     "foreign_key_constraint_on": {
                       "column": "mgm_id",
                       "table": {
-                        "name": "service",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "service"
                       }
                     }
                   }
@@ -5162,8 +5025,8 @@
                     "foreign_key_constraint_on": {
                       "column": "mgm_id",
                       "table": {
-                        "name": "usr",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "usr"
                       }
                     }
                   }
@@ -5174,8 +5037,8 @@
                     "foreign_key_constraint_on": {
                       "column": "mgm_id",
                       "table": {
-                        "name": "zone",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "zone"
                       }
                     }
                   }
@@ -5186,8 +5049,8 @@
                   "name": "filter_rule_nwobj_resolveds",
                   "definition": {
                     "function": {
-                      "name": "filter_rule_nwobj_resolveds",
-                      "schema": "public"
+                      "schema": "public",
+                      "name": "filter_rule_nwobj_resolveds"
                     }
                   }
                 },
@@ -5195,8 +5058,8 @@
                   "name": "filter_rule_svc_resolveds",
                   "definition": {
                     "function": {
-                      "name": "filter_rule_svc_resolveds",
-                      "schema": "public"
+                      "schema": "public",
+                      "name": "filter_rule_svc_resolveds"
                     }
                   }
                 },
@@ -5204,8 +5067,8 @@
                   "name": "filter_rule_user_resolveds",
                   "definition": {
                     "function": {
-                      "name": "filter_rule_user_resolveds",
-                      "schema": "public"
+                      "schema": "public",
+                      "name": "filter_rule_user_resolveds"
                     }
                   }
                 }
@@ -5220,21 +5083,21 @@
                       "do_not_import",
                       "force_initial_import",
                       "hide_in_gui",
-                      "last_import_attempt_successful",
                       "config_path",
                       "importer_hostname",
                       "last_import_md5_complete_config",
+                      "last_import_attempt",
+                      "last_import_attempt_successful",
                       "mgm_name",
                       "ssh_hostname",
                       "debug_level",
                       "dev_typ_id",
-                      "import_credential_id",
                       "mgm_id",
                       "multi_device_manager_id",
                       "ssh_port",
                       "tenant_id",
                       "mgm_comment",
-                      "last_import_attempt",
+                      "import_credential_id",
                       "mgm_create",
                       "mgm_update"
                     ]
@@ -5257,7 +5120,6 @@
                       "last_import_attempt_successful",
                       "mgm_name",
                       "ssh_hostname",
-                      "ssh_user",
                       "debug_level",
                       "dev_typ_id",
                       "mgm_id",
@@ -5265,8 +5127,7 @@
                       "ssh_port",
                       "tenant_id",
                       "mgm_comment",
-                      "secret",
-                      "ssh_public_key",
+                      "import_credential_id",
                       "mgm_create",
                       "mgm_update"
                     ],
@@ -5283,26 +5144,26 @@
                   "permission": {
                     "columns": [
                       "clearing_import_ran",
+                      "config_path",
+                      "debug_level",
+                      "dev_typ_id",
                       "do_not_import",
                       "force_initial_import",
                       "hide_in_gui",
-                      "last_import_attempt_successful",
-                      "config_path",
                       "importer_hostname",
                       "last_import_md5_complete_config",
-                      "mgm_name",
-                      "ssh_hostname",
-                      "debug_level",
-                      "dev_typ_id",
-                      "import_credential_id",
-                      "mgm_id",
-                      "multi_device_manager_id",
-                      "ssh_port",
-                      "tenant_id",
-                      "mgm_comment",
                       "last_import_attempt",
+                      "last_import_attempt_successful",
+                      "mgm_comment",
                       "mgm_create",
-                      "mgm_update"
+                      "mgm_id",
+                      "mgm_name",
+                      "mgm_update",
+                      "multi_device_manager_id",
+                      "ssh_hostname",
+                      "ssh_port",
+                      "import_credential_id",
+                      "tenant_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -5316,21 +5177,21 @@
                       "do_not_import",
                       "force_initial_import",
                       "hide_in_gui",
-                      "last_import_attempt_successful",
                       "config_path",
                       "importer_hostname",
                       "last_import_md5_complete_config",
+                      "last_import_attempt",
+                      "last_import_attempt_successful",
                       "mgm_name",
                       "ssh_hostname",
                       "debug_level",
                       "dev_typ_id",
-                      "import_credential_id",
                       "mgm_id",
                       "multi_device_manager_id",
                       "ssh_port",
                       "tenant_id",
                       "mgm_comment",
-                      "last_import_attempt",
+                      "import_credential_id",
                       "mgm_create",
                       "mgm_update"
                     ],
@@ -5353,7 +5214,6 @@
                       "last_import_attempt_successful",
                       "mgm_name",
                       "ssh_hostname",
-                      "ssh_user",
                       "debug_level",
                       "dev_typ_id",
                       "mgm_id",
@@ -5361,8 +5221,7 @@
                       "ssh_port",
                       "tenant_id",
                       "mgm_comment",
-                      "secret",
-                      "ssh_public_key",
+                      "import_credential_id",
                       "mgm_create",
                       "mgm_update"
                     ],
@@ -5379,26 +5238,26 @@
                   "permission": {
                     "columns": [
                       "clearing_import_ran",
+                      "config_path",
+                      "debug_level",
+                      "dev_typ_id",
                       "do_not_import",
                       "force_initial_import",
                       "hide_in_gui",
-                      "last_import_attempt_successful",
-                      "config_path",
                       "importer_hostname",
                       "last_import_md5_complete_config",
-                      "mgm_name",
-                      "ssh_hostname",
-                      "debug_level",
-                      "dev_typ_id",
-                      "import_credential_id",
-                      "mgm_id",
-                      "multi_device_manager_id",
-                      "ssh_port",
-                      "tenant_id",
-                      "mgm_comment",
                       "last_import_attempt",
+                      "last_import_attempt_successful",
+                      "mgm_comment",
                       "mgm_create",
-                      "mgm_update"
+                      "mgm_id",
+                      "mgm_name",
+                      "mgm_update",
+                      "multi_device_manager_id",
+                      "ssh_hostname",
+                      "ssh_port",
+                      "import_credential_id",
+                      "tenant_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -5412,26 +5271,25 @@
                       "do_not_import",
                       "force_initial_import",
                       "hide_in_gui",
-                      "last_import_attempt_successful",
                       "config_path",
                       "importer_hostname",
                       "last_import_md5_complete_config",
+                      "last_import_attempt",
+                      "last_import_attempt_successful",
                       "mgm_name",
                       "ssh_hostname",
                       "debug_level",
                       "dev_typ_id",
-                      "import_credential_id",
                       "mgm_id",
                       "multi_device_manager_id",
                       "ssh_port",
                       "tenant_id",
                       "mgm_comment",
-                      "last_import_attempt",
+                      "import_credential_id",
                       "mgm_create",
                       "mgm_update"
                     ],
-                    "filter": {},
-                    "allow_aggregations": true
+                    "filter": {}
                   }
                 },
                 {
@@ -5449,7 +5307,6 @@
                       "last_import_attempt_successful",
                       "mgm_name",
                       "ssh_hostname",
-                      "ssh_user",
                       "debug_level",
                       "dev_typ_id",
                       "mgm_id",
@@ -5457,8 +5314,7 @@
                       "ssh_port",
                       "tenant_id",
                       "mgm_comment",
-                      "secret",
-                      "ssh_public_key",
+                      "import_credential_id",
                       "mgm_create",
                       "mgm_update"
                     ],
@@ -5478,21 +5334,21 @@
                       "do_not_import",
                       "force_initial_import",
                       "hide_in_gui",
-                      "last_import_attempt_successful",
                       "config_path",
                       "importer_hostname",
                       "last_import_md5_complete_config",
+                      "last_import_attempt",
+                      "last_import_attempt_successful",
                       "mgm_name",
                       "ssh_hostname",
                       "debug_level",
                       "dev_typ_id",
-                      "import_credential_id",
                       "mgm_id",
                       "multi_device_manager_id",
                       "ssh_port",
                       "tenant_id",
                       "mgm_comment",
-                      "last_import_attempt",
+                      "import_credential_id",
                       "mgm_create",
                       "mgm_update"
                     ],
@@ -5512,21 +5368,21 @@
                       "do_not_import",
                       "force_initial_import",
                       "hide_in_gui",
-                      "last_import_attempt_successful",
                       "config_path",
                       "importer_hostname",
                       "last_import_md5_complete_config",
+                      "last_import_attempt",
+                      "last_import_attempt_successful",
                       "mgm_name",
                       "ssh_hostname",
                       "debug_level",
                       "dev_typ_id",
-                      "import_credential_id",
                       "mgm_id",
                       "multi_device_manager_id",
                       "ssh_port",
                       "tenant_id",
                       "mgm_comment",
-                      "last_import_attempt",
+                      "import_credential_id",
                       "mgm_create",
                       "mgm_update"
                     ],
@@ -5543,26 +5399,26 @@
                   "permission": {
                     "columns": [
                       "clearing_import_ran",
+                      "config_path",
+                      "debug_level",
+                      "dev_typ_id",
                       "do_not_import",
                       "force_initial_import",
                       "hide_in_gui",
-                      "last_import_attempt_successful",
-                      "config_path",
                       "importer_hostname",
                       "last_import_md5_complete_config",
-                      "mgm_name",
-                      "ssh_hostname",
-                      "debug_level",
-                      "dev_typ_id",
-                      "import_credential_id",
-                      "mgm_id",
-                      "multi_device_manager_id",
-                      "ssh_port",
-                      "tenant_id",
-                      "mgm_comment",
                       "last_import_attempt",
+                      "last_import_attempt_successful",
+                      "mgm_comment",
                       "mgm_create",
-                      "mgm_update"
+                      "mgm_id",
+                      "mgm_name",
+                      "mgm_update",
+                      "multi_device_manager_id",
+                      "ssh_hostname",
+                      "ssh_port",
+                      "import_credential_id",
+                      "tenant_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -5583,7 +5439,6 @@
                       "last_import_attempt_successful",
                       "mgm_name",
                       "ssh_hostname",
-                      "ssh_user",
                       "debug_level",
                       "dev_typ_id",
                       "mgm_id",
@@ -5591,8 +5446,7 @@
                       "ssh_port",
                       "tenant_id",
                       "mgm_comment",
-                      "secret",
-                      "ssh_public_key",
+                      "import_credential_id",
                       "mgm_create",
                       "mgm_update"
                     ],
@@ -5619,7 +5473,6 @@
                       "last_import_attempt_successful",
                       "mgm_name",
                       "ssh_hostname",
-                      "ssh_user",
                       "debug_level",
                       "dev_typ_id",
                       "mgm_id",
@@ -5627,8 +5480,7 @@
                       "ssh_port",
                       "tenant_id",
                       "mgm_comment",
-                      "secret",
-                      "ssh_public_key",
+                      "import_credential_id",
                       "mgm_create",
                       "mgm_update"
                     ],
@@ -5650,21 +5502,21 @@
                       "do_not_import",
                       "force_initial_import",
                       "hide_in_gui",
-                      "last_import_attempt_successful",
                       "config_path",
                       "importer_hostname",
                       "last_import_md5_complete_config",
+                      "last_import_attempt",
+                      "last_import_attempt_successful",
                       "mgm_name",
                       "ssh_hostname",
                       "debug_level",
                       "dev_typ_id",
-                      "import_credential_id",
                       "mgm_id",
                       "multi_device_manager_id",
                       "ssh_port",
                       "tenant_id",
                       "mgm_comment",
-                      "last_import_attempt",
+                      "import_credential_id",
                       "mgm_create",
                       "mgm_update"
                     ],
@@ -5687,8 +5539,8 @@
             },
             {
               "table": {
-                "name": "nw_object_limits",
-                "schema": "public"
+                "schema": "public",
+                "name": "nw_object_limits"
               },
               "select_permissions": [
                 {
@@ -5768,8 +5620,8 @@
             },
             {
               "table": {
-                "name": "object",
-                "schema": "public"
+                "schema": "public",
+                "name": "object"
               },
               "object_relationships": [
                 {
@@ -5828,8 +5680,8 @@
                     "foreign_key_constraint_on": {
                       "column": "old_obj_id",
                       "table": {
-                        "name": "changelog_object",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "changelog_object"
                       }
                     }
                   }
@@ -5840,8 +5692,8 @@
                     "foreign_key_constraint_on": {
                       "column": "new_obj_id",
                       "table": {
-                        "name": "changelog_object",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "changelog_object"
                       }
                     }
                   }
@@ -5874,13 +5726,13 @@
                   "name": "network_object_limits",
                   "using": {
                     "manual_configuration": {
-                      "column_mapping": {
-                        "obj_id": "obj_id"
+                      "remote_table": {
+                        "schema": "public",
+                        "name": "nw_object_limits"
                       },
                       "insertion_order": null,
-                      "remote_table": {
-                        "name": "nw_object_limits",
-                        "schema": "public"
+                      "column_mapping": {
+                        "obj_id": "obj_id"
                       }
                     }
                   }
@@ -5891,8 +5743,8 @@
                     "foreign_key_constraint_on": {
                       "column": "objgrp_flat_member_id",
                       "table": {
-                        "name": "objgrp_flat",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "objgrp_flat"
                       }
                     }
                   }
@@ -5903,8 +5755,8 @@
                     "foreign_key_constraint_on": {
                       "column": "objgrp_flat_id",
                       "table": {
-                        "name": "objgrp_flat",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "objgrp_flat"
                       }
                     }
                   }
@@ -5915,8 +5767,8 @@
                     "foreign_key_constraint_on": {
                       "column": "objgrp_id",
                       "table": {
-                        "name": "objgrp",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "objgrp"
                       }
                     }
                   }
@@ -5927,8 +5779,8 @@
                     "foreign_key_constraint_on": {
                       "column": "objgrp_member_id",
                       "table": {
-                        "name": "objgrp",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "objgrp"
                       }
                     }
                   }
@@ -5963,8 +5815,8 @@
                     "foreign_key_constraint_on": {
                       "column": "obj_id",
                       "table": {
-                        "name": "rule_from",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_from"
                       }
                     }
                   }
@@ -5975,8 +5827,8 @@
                     "foreign_key_constraint_on": {
                       "column": "obj_id",
                       "table": {
-                        "name": "rule_nwobj_resolved",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_nwobj_resolved"
                       }
                     }
                   }
@@ -5987,8 +5839,8 @@
                     "foreign_key_constraint_on": {
                       "column": "obj_id",
                       "table": {
-                        "name": "rule_to",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_to"
                       }
                     }
                   }
@@ -6202,8 +6054,8 @@
             },
             {
               "table": {
-                "name": "objgrp",
-                "schema": "public"
+                "schema": "public",
+                "name": "objgrp"
               },
               "object_relationships": [
                 {
@@ -6309,8 +6161,8 @@
             },
             {
               "table": {
-                "name": "objgrp_flat",
-                "schema": "public"
+                "schema": "public",
+                "name": "objgrp_flat"
               },
               "object_relationships": [
                 {
@@ -6416,8 +6268,8 @@
             },
             {
               "table": {
-                "name": "owner",
-                "schema": "public"
+                "schema": "public",
+                "name": "owner"
               },
               "object_relationships": [
                 {
@@ -6434,8 +6286,8 @@
                     "foreign_key_constraint_on": {
                       "column": "owner_id",
                       "table": {
-                        "name": "owner_network",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "owner_network"
                       }
                     }
                   }
@@ -6458,8 +6310,8 @@
                     "foreign_key_constraint_on": {
                       "column": "owner_id",
                       "table": {
-                        "name": "rule_owner",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_owner"
                       }
                     }
                   }
@@ -6555,8 +6407,8 @@
             },
             {
               "table": {
-                "name": "owner_network",
-                "schema": "public"
+                "schema": "public",
+                "name": "owner_network"
               },
               "object_relationships": [
                 {
@@ -6575,8 +6427,8 @@
             },
             {
               "table": {
-                "name": "parent_rule_type",
-                "schema": "public"
+                "schema": "public",
+                "name": "parent_rule_type"
               },
               "array_relationships": [
                 {
@@ -6585,8 +6437,8 @@
                     "foreign_key_constraint_on": {
                       "column": "parent_rule_type",
                       "table": {
-                        "name": "rule",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule"
                       }
                     }
                   }
@@ -6661,8 +6513,8 @@
             },
             {
               "table": {
-                "name": "report",
-                "schema": "public"
+                "schema": "public",
+                "name": "report"
               },
               "object_relationships": [
                 {
@@ -7131,8 +6983,8 @@
             },
             {
               "table": {
-                "name": "report_format",
-                "schema": "public"
+                "schema": "public",
+                "name": "report_format"
               },
               "array_relationships": [
                 {
@@ -7141,8 +6993,8 @@
                     "foreign_key_constraint_on": {
                       "column": "report_schedule_format_name",
                       "table": {
-                        "name": "report_schedule_format",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "report_schedule_format"
                       }
                     }
                   }
@@ -7207,8 +7059,8 @@
             },
             {
               "table": {
-                "name": "report_schedule",
-                "schema": "public"
+                "schema": "public",
+                "name": "report_schedule"
               },
               "object_relationships": [
                 {
@@ -7231,8 +7083,8 @@
                     "foreign_key_constraint_on": {
                       "column": "report_schedule_id",
                       "table": {
-                        "name": "report_schedule_format",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "report_schedule_format"
                       }
                     }
                   }
@@ -7372,14 +7224,14 @@
                         },
                         {
                           "_exists": {
-                            "_table": {
-                              "name": "report_template_viewable_by_user",
-                              "schema": "public"
-                            },
                             "_where": {
                               "uiuser_id": {
                                 "_eq": "X-Hasura-User-Id"
                               }
+                            },
+                            "_table": {
+                              "schema": "public",
+                              "name": "report_template_viewable_by_user"
                             }
                           }
                         }
@@ -7474,14 +7326,14 @@
                         },
                         {
                           "_exists": {
-                            "_table": {
-                              "name": "report_template_viewable_by_user",
-                              "schema": "public"
-                            },
                             "_where": {
                               "uiuser_id": {
                                 "_eq": "X-Hasura-User-Id"
                               }
+                            },
+                            "_table": {
+                              "schema": "public",
+                              "name": "report_template_viewable_by_user"
                             }
                           }
                         }
@@ -7666,8 +7518,8 @@
             },
             {
               "table": {
-                "name": "report_schedule_format",
-                "schema": "public"
+                "schema": "public",
+                "name": "report_schedule_format"
               },
               "object_relationships": [
                 {
@@ -8032,8 +7884,8 @@
             },
             {
               "table": {
-                "name": "report_template",
-                "schema": "public"
+                "schema": "public",
+                "name": "report_template"
               },
               "object_relationships": [
                 {
@@ -8050,8 +7902,8 @@
                     "foreign_key_constraint_on": {
                       "column": "report_template_id",
                       "table": {
-                        "name": "report_schedule",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "report_schedule"
                       }
                     }
                   }
@@ -8062,8 +7914,8 @@
                     "foreign_key_constraint_on": {
                       "column": "report_template_id",
                       "table": {
-                        "name": "report_template_viewable_by_user",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "report_template_viewable_by_user"
                       }
                     }
                   }
@@ -8074,8 +7926,8 @@
                     "foreign_key_constraint_on": {
                       "column": "report_template_id",
                       "table": {
-                        "name": "report",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "report"
                       }
                     }
                   }
@@ -8481,8 +8333,8 @@
             },
             {
               "table": {
-                "name": "report_template_viewable_by_user",
-                "schema": "public"
+                "schema": "public",
+                "name": "report_template_viewable_by_user"
               },
               "object_relationships": [
                 {
@@ -8573,8 +8425,8 @@
             },
             {
               "table": {
-                "name": "rule",
-                "schema": "public"
+                "schema": "public",
+                "name": "rule"
               },
               "object_relationships": [
                 {
@@ -8623,14 +8475,14 @@
                   "name": "rule_metadatum",
                   "using": {
                     "manual_configuration": {
+                      "remote_table": {
+                        "schema": "public",
+                        "name": "rule_metadata"
+                      },
+                      "insertion_order": null,
                       "column_mapping": {
                         "dev_id": "dev_id",
                         "rule_uid": "rule_uid"
-                      },
-                      "insertion_order": null,
-                      "remote_table": {
-                        "name": "rule_metadata",
-                        "schema": "public"
                       }
                     }
                   }
@@ -8673,8 +8525,8 @@
                     "foreign_key_constraint_on": {
                       "column": "old_rule_id",
                       "table": {
-                        "name": "changelog_rule",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "changelog_rule"
                       }
                     }
                   }
@@ -8685,8 +8537,8 @@
                     "foreign_key_constraint_on": {
                       "column": "new_rule_id",
                       "table": {
-                        "name": "changelog_rule",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "changelog_rule"
                       }
                     }
                   }
@@ -8697,8 +8549,8 @@
                     "foreign_key_constraint_on": {
                       "column": "rule_id",
                       "table": {
-                        "name": "rule_from",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_from"
                       }
                     }
                   }
@@ -8709,8 +8561,8 @@
                     "foreign_key_constraint_on": {
                       "column": "rule_id",
                       "table": {
-                        "name": "rule_nwobj_resolved",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_nwobj_resolved"
                       }
                     }
                   }
@@ -8721,8 +8573,8 @@
                     "foreign_key_constraint_on": {
                       "column": "rule_id",
                       "table": {
-                        "name": "rule_service",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_service"
                       }
                     }
                   }
@@ -8733,8 +8585,8 @@
                     "foreign_key_constraint_on": {
                       "column": "rule_id",
                       "table": {
-                        "name": "rule_svc_resolved",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_svc_resolved"
                       }
                     }
                   }
@@ -8745,8 +8597,8 @@
                     "foreign_key_constraint_on": {
                       "column": "rule_id",
                       "table": {
-                        "name": "rule_to",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_to"
                       }
                     }
                   }
@@ -8757,8 +8609,8 @@
                     "foreign_key_constraint_on": {
                       "column": "rule_id",
                       "table": {
-                        "name": "rule_user_resolved",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_user_resolved"
                       }
                     }
                   }
@@ -8769,8 +8621,8 @@
                     "foreign_key_constraint_on": {
                       "column": "parent_rule_id",
                       "table": {
-                        "name": "rule",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule"
                       }
                     }
                   }
@@ -8781,8 +8633,8 @@
                     "foreign_key_constraint_on": {
                       "column": "xlate_rule",
                       "table": {
-                        "name": "rule",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule"
                       }
                     }
                   }
@@ -9054,8 +8906,8 @@
             },
             {
               "table": {
-                "name": "rule_from",
-                "schema": "public"
+                "schema": "public",
+                "name": "rule_from"
               },
               "object_relationships": [
                 {
@@ -9179,8 +9031,8 @@
             },
             {
               "table": {
-                "name": "rule_metadata",
-                "schema": "public"
+                "schema": "public",
+                "name": "rule_metadata"
               },
               "object_relationships": [
                 {
@@ -9209,8 +9061,8 @@
                     "foreign_key_constraint_on": {
                       "column": "rule_metadata_id",
                       "table": {
-                        "name": "rule_owner",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_owner"
                       }
                     }
                   }
@@ -9219,14 +9071,14 @@
                   "name": "rules",
                   "using": {
                     "manual_configuration": {
+                      "remote_table": {
+                        "schema": "public",
+                        "name": "rule"
+                      },
+                      "insertion_order": null,
                       "column_mapping": {
                         "dev_id": "dev_id",
                         "rule_uid": "rule_uid"
-                      },
-                      "insertion_order": null,
-                      "remote_table": {
-                        "name": "rule",
-                        "schema": "public"
                       }
                     }
                   }
@@ -9475,8 +9327,8 @@
             },
             {
               "table": {
-                "name": "rule_nwobj_resolved",
-                "schema": "public"
+                "schema": "public",
+                "name": "rule_nwobj_resolved"
               },
               "object_relationships": [
                 {
@@ -9593,8 +9445,8 @@
             },
             {
               "table": {
-                "name": "rule_owner",
-                "schema": "public"
+                "schema": "public",
+                "name": "rule_owner"
               },
               "object_relationships": [
                 {
@@ -9613,8 +9465,8 @@
             },
             {
               "table": {
-                "name": "rule_service",
-                "schema": "public"
+                "schema": "public",
+                "name": "rule_service"
               },
               "object_relationships": [
                 {
@@ -9719,8 +9571,8 @@
             },
             {
               "table": {
-                "name": "rule_svc_resolved",
-                "schema": "public"
+                "schema": "public",
+                "name": "rule_svc_resolved"
               },
               "object_relationships": [
                 {
@@ -9837,8 +9689,8 @@
             },
             {
               "table": {
-                "name": "rule_to",
-                "schema": "public"
+                "schema": "public",
+                "name": "rule_to"
               },
               "object_relationships": [
                 {
@@ -9959,8 +9811,8 @@
             },
             {
               "table": {
-                "name": "rule_user_resolved",
-                "schema": "public"
+                "schema": "public",
+                "name": "rule_user_resolved"
               },
               "object_relationships": [
                 {
@@ -10077,8 +9929,8 @@
             },
             {
               "table": {
-                "name": "service",
-                "schema": "public"
+                "schema": "public",
+                "name": "service"
               },
               "object_relationships": [
                 {
@@ -10131,8 +9983,8 @@
                     "foreign_key_constraint_on": {
                       "column": "old_svc_id",
                       "table": {
-                        "name": "changelog_service",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "changelog_service"
                       }
                     }
                   }
@@ -10143,8 +9995,8 @@
                     "foreign_key_constraint_on": {
                       "column": "new_svc_id",
                       "table": {
-                        "name": "changelog_service",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "changelog_service"
                       }
                     }
                   }
@@ -10203,8 +10055,8 @@
                     "foreign_key_constraint_on": {
                       "column": "svc_id",
                       "table": {
-                        "name": "rule_service",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_service"
                       }
                     }
                   }
@@ -10215,8 +10067,8 @@
                     "foreign_key_constraint_on": {
                       "column": "svc_id",
                       "table": {
-                        "name": "rule_svc_resolved",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_svc_resolved"
                       }
                     }
                   }
@@ -10227,8 +10079,8 @@
                     "foreign_key_constraint_on": {
                       "column": "svcgrp_flat_member_id",
                       "table": {
-                        "name": "svcgrp_flat",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "svcgrp_flat"
                       }
                     }
                   }
@@ -10239,8 +10091,8 @@
                     "foreign_key_constraint_on": {
                       "column": "svcgrp_flat_id",
                       "table": {
-                        "name": "svcgrp_flat",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "svcgrp_flat"
                       }
                     }
                   }
@@ -10251,8 +10103,8 @@
                     "foreign_key_constraint_on": {
                       "column": "svcgrp_id",
                       "table": {
-                        "name": "svcgrp",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "svcgrp"
                       }
                     }
                   }
@@ -10263,8 +10115,8 @@
                     "foreign_key_constraint_on": {
                       "column": "svcgrp_member_id",
                       "table": {
-                        "name": "svcgrp",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "svcgrp"
                       }
                     }
                   }
@@ -10493,8 +10345,8 @@
             },
             {
               "table": {
-                "name": "stm_action",
-                "schema": "public"
+                "schema": "public",
+                "name": "stm_action"
               },
               "array_relationships": [
                 {
@@ -10527,8 +10379,8 @@
                     "foreign_key_constraint_on": {
                       "column": "action_id",
                       "table": {
-                        "name": "rule",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule"
                       }
                     }
                   }
@@ -10649,8 +10501,8 @@
             },
             {
               "table": {
-                "name": "stm_change_type",
-                "schema": "public"
+                "schema": "public",
+                "name": "stm_change_type"
               },
               "array_relationships": [
                 {
@@ -10659,8 +10511,8 @@
                     "foreign_key_constraint_on": {
                       "column": "change_type_id",
                       "table": {
-                        "name": "changelog_object",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "changelog_object"
                       }
                     }
                   }
@@ -10671,8 +10523,8 @@
                     "foreign_key_constraint_on": {
                       "column": "change_type_id",
                       "table": {
-                        "name": "changelog_rule",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "changelog_rule"
                       }
                     }
                   }
@@ -10683,8 +10535,8 @@
                     "foreign_key_constraint_on": {
                       "column": "change_type_id",
                       "table": {
-                        "name": "changelog_service",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "changelog_service"
                       }
                     }
                   }
@@ -10695,8 +10547,8 @@
                     "foreign_key_constraint_on": {
                       "column": "change_type_id",
                       "table": {
-                        "name": "changelog_user",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "changelog_user"
                       }
                     }
                   }
@@ -10761,8 +10613,8 @@
             },
             {
               "table": {
-                "name": "stm_color",
-                "schema": "public"
+                "schema": "public",
+                "name": "stm_color"
               },
               "array_relationships": [
                 {
@@ -10771,8 +10623,8 @@
                     "foreign_key_constraint_on": {
                       "column": "obj_color_id",
                       "table": {
-                        "name": "object",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "object"
                       }
                     }
                   }
@@ -10783,8 +10635,8 @@
                     "foreign_key_constraint_on": {
                       "column": "svc_color_id",
                       "table": {
-                        "name": "service",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "service"
                       }
                     }
                   }
@@ -10795,8 +10647,8 @@
                     "foreign_key_constraint_on": {
                       "column": "user_color_id",
                       "table": {
-                        "name": "usr",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "usr"
                       }
                     }
                   }
@@ -10877,8 +10729,8 @@
             },
             {
               "table": {
-                "name": "stm_dev_typ",
-                "schema": "public"
+                "schema": "public",
+                "name": "stm_dev_typ"
               },
               "array_relationships": [
                 {
@@ -10887,8 +10739,8 @@
                     "foreign_key_constraint_on": {
                       "column": "dev_typ_id",
                       "table": {
-                        "name": "device",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "device"
                       }
                     }
                   }
@@ -10899,8 +10751,8 @@
                     "foreign_key_constraint_on": {
                       "column": "dev_typ_id",
                       "table": {
-                        "name": "management",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "management"
                       }
                     }
                   }
@@ -11154,8 +11006,8 @@
             },
             {
               "table": {
-                "name": "stm_ip_proto",
-                "schema": "public"
+                "schema": "public",
+                "name": "stm_ip_proto"
               },
               "array_relationships": [
                 {
@@ -11176,8 +11028,8 @@
                     "foreign_key_constraint_on": {
                       "column": "ip_proto_id",
                       "table": {
-                        "name": "owner_network",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "owner_network"
                       }
                     }
                   }
@@ -11200,8 +11052,8 @@
                     "foreign_key_constraint_on": {
                       "column": "ip_proto_id",
                       "table": {
-                        "name": "service",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "service"
                       }
                     }
                   }
@@ -11332,8 +11184,8 @@
             },
             {
               "table": {
-                "name": "stm_obj_typ",
-                "schema": "public"
+                "schema": "public",
+                "name": "stm_obj_typ"
               },
               "array_relationships": [
                 {
@@ -11342,8 +11194,8 @@
                     "foreign_key_constraint_on": {
                       "column": "obj_typ_id",
                       "table": {
-                        "name": "object",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "object"
                       }
                     }
                   }
@@ -11419,8 +11271,8 @@
             },
             {
               "table": {
-                "name": "stm_svc_typ",
-                "schema": "public"
+                "schema": "public",
+                "name": "stm_svc_typ"
               },
               "array_relationships": [
                 {
@@ -11429,8 +11281,8 @@
                     "foreign_key_constraint_on": {
                       "column": "svc_typ_id",
                       "table": {
-                        "name": "service",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "service"
                       }
                     }
                   }
@@ -11508,8 +11360,8 @@
             },
             {
               "table": {
-                "name": "stm_track",
-                "schema": "public"
+                "schema": "public",
+                "name": "stm_track"
               },
               "array_relationships": [
                 {
@@ -11542,8 +11394,8 @@
                     "foreign_key_constraint_on": {
                       "column": "track_id",
                       "table": {
-                        "name": "rule",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule"
                       }
                     }
                   }
@@ -11664,8 +11516,8 @@
             },
             {
               "table": {
-                "name": "stm_usr_typ",
-                "schema": "public"
+                "schema": "public",
+                "name": "stm_usr_typ"
               },
               "array_relationships": [
                 {
@@ -11674,8 +11526,8 @@
                     "foreign_key_constraint_on": {
                       "column": "usr_typ_id",
                       "table": {
-                        "name": "usr",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "usr"
                       }
                     }
                   }
@@ -11746,8 +11598,8 @@
             },
             {
               "table": {
-                "name": "svcgrp",
-                "schema": "public"
+                "schema": "public",
+                "name": "svcgrp"
               },
               "object_relationships": [
                 {
@@ -11853,8 +11705,8 @@
             },
             {
               "table": {
-                "name": "svcgrp_flat",
-                "schema": "public"
+                "schema": "public",
+                "name": "svcgrp_flat"
               },
               "object_relationships": [
                 {
@@ -11960,8 +11812,8 @@
             },
             {
               "table": {
-                "name": "tenant",
-                "schema": "public"
+                "schema": "public",
+                "name": "tenant"
               },
               "array_relationships": [
                 {
@@ -11970,8 +11822,8 @@
                     "foreign_key_constraint_on": {
                       "column": "tenant_id",
                       "table": {
-                        "name": "approval",
-                        "schema": "request"
+                        "schema": "request",
+                        "name": "approval"
                       }
                     }
                   }
@@ -11982,8 +11834,8 @@
                     "foreign_key_constraint_on": {
                       "column": "tenant_id",
                       "table": {
-                        "name": "device",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "device"
                       }
                     }
                   }
@@ -11994,8 +11846,8 @@
                     "foreign_key_constraint_on": {
                       "column": "tenant_id",
                       "table": {
-                        "name": "ldap_connection",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "ldap_connection"
                       }
                     }
                   }
@@ -12006,8 +11858,8 @@
                     "foreign_key_constraint_on": {
                       "column": "tenant_id",
                       "table": {
-                        "name": "management",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "management"
                       }
                     }
                   }
@@ -12018,8 +11870,8 @@
                     "foreign_key_constraint_on": {
                       "column": "tenant_id",
                       "table": {
-                        "name": "owner",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "owner"
                       }
                     }
                   }
@@ -12030,8 +11882,8 @@
                     "foreign_key_constraint_on": {
                       "column": "tenant_wide_visible",
                       "table": {
-                        "name": "report",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "report"
                       }
                     }
                   }
@@ -12042,8 +11894,8 @@
                     "foreign_key_constraint_on": {
                       "column": "tenant_id",
                       "table": {
-                        "name": "tenant_network",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "tenant_network"
                       }
                     }
                   }
@@ -12054,8 +11906,8 @@
                     "foreign_key_constraint_on": {
                       "column": "tenant_id",
                       "table": {
-                        "name": "tenant_to_device",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "tenant_to_device"
                       }
                     }
                   }
@@ -12066,8 +11918,8 @@
                     "foreign_key_constraint_on": {
                       "column": "tenant_id",
                       "table": {
-                        "name": "ticket",
-                        "schema": "request"
+                        "schema": "request",
+                        "name": "ticket"
                       }
                     }
                   }
@@ -12078,8 +11930,8 @@
                     "foreign_key_constraint_on": {
                       "column": "tenant_id",
                       "table": {
-                        "name": "uiuser",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "uiuser"
                       }
                     }
                   }
@@ -12090,8 +11942,8 @@
                     "foreign_key_constraint_on": {
                       "column": "tenant_id",
                       "table": {
-                        "name": "usr",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "usr"
                       }
                     }
                   }
@@ -12181,8 +12033,8 @@
             },
             {
               "table": {
-                "name": "tenant_network",
-                "schema": "public"
+                "schema": "public",
+                "name": "tenant_network"
               },
               "object_relationships": [
                 {
@@ -12329,8 +12181,8 @@
             },
             {
               "table": {
-                "name": "tenant_to_device",
-                "schema": "public"
+                "schema": "public",
+                "name": "tenant_to_device"
               },
               "object_relationships": [
                 {
@@ -12406,8 +12258,8 @@
             },
             {
               "table": {
-                "name": "txt",
-                "schema": "public"
+                "schema": "public",
+                "name": "txt"
               },
               "object_relationships": [
                 {
@@ -12555,8 +12407,8 @@
             },
             {
               "table": {
-                "name": "uiuser",
-                "schema": "public"
+                "schema": "public",
+                "name": "uiuser"
               },
               "object_relationships": [
                 {
@@ -12585,8 +12437,8 @@
                     "foreign_key_constraint_on": {
                       "column": "ack_by",
                       "table": {
-                        "name": "alert",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "alert"
                       }
                     }
                   }
@@ -12597,8 +12449,8 @@
                     "foreign_key_constraint_on": {
                       "column": "user_id",
                       "table": {
-                        "name": "alert",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "alert"
                       }
                     }
                   }
@@ -12633,8 +12485,8 @@
                     "foreign_key_constraint_on": {
                       "column": "import_admin",
                       "table": {
-                        "name": "changelog_object",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "changelog_object"
                       }
                     }
                   }
@@ -12645,8 +12497,8 @@
                     "foreign_key_constraint_on": {
                       "column": "import_admin",
                       "table": {
-                        "name": "changelog_rule",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "changelog_rule"
                       }
                     }
                   }
@@ -12657,8 +12509,8 @@
                     "foreign_key_constraint_on": {
                       "column": "import_admin",
                       "table": {
-                        "name": "changelog_service",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "changelog_service"
                       }
                     }
                   }
@@ -12669,8 +12521,8 @@
                     "foreign_key_constraint_on": {
                       "column": "import_admin",
                       "table": {
-                        "name": "changelog_user",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "changelog_user"
                       }
                     }
                   }
@@ -12681,8 +12533,8 @@
                     "foreign_key_constraint_on": {
                       "column": "doku_admin",
                       "table": {
-                        "name": "changelog_object",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "changelog_object"
                       }
                     }
                   }
@@ -12693,8 +12545,8 @@
                     "foreign_key_constraint_on": {
                       "column": "doku_admin",
                       "table": {
-                        "name": "changelog_rule",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "changelog_rule"
                       }
                     }
                   }
@@ -12705,8 +12557,8 @@
                     "foreign_key_constraint_on": {
                       "column": "doku_admin",
                       "table": {
-                        "name": "changelog_service",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "changelog_service"
                       }
                     }
                   }
@@ -12717,8 +12569,8 @@
                     "foreign_key_constraint_on": {
                       "column": "doku_admin",
                       "table": {
-                        "name": "changelog_user",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "changelog_user"
                       }
                     }
                   }
@@ -12741,8 +12593,8 @@
                     "foreign_key_constraint_on": {
                       "column": "config_user",
                       "table": {
-                        "name": "config",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "config"
                       }
                     }
                   }
@@ -12765,8 +12617,8 @@
                     "foreign_key_constraint_on": {
                       "column": "user_id",
                       "table": {
-                        "name": "log_data_issue",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "log_data_issue"
                       }
                     }
                   }
@@ -12777,8 +12629,8 @@
                     "foreign_key_constraint_on": {
                       "column": "last_change_admin",
                       "table": {
-                        "name": "object",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "object"
                       }
                     }
                   }
@@ -12789,8 +12641,8 @@
                     "foreign_key_constraint_on": {
                       "column": "report_schedule_owner",
                       "table": {
-                        "name": "report_schedule",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "report_schedule"
                       }
                     }
                   }
@@ -12801,8 +12653,8 @@
                     "foreign_key_constraint_on": {
                       "column": "uiuser_id",
                       "table": {
-                        "name": "report_template_viewable_by_user",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "report_template_viewable_by_user"
                       }
                     }
                   }
@@ -12813,8 +12665,8 @@
                     "foreign_key_constraint_on": {
                       "column": "report_template_owner",
                       "table": {
-                        "name": "report_template",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "report_template"
                       }
                     }
                   }
@@ -12825,8 +12677,8 @@
                     "foreign_key_constraint_on": {
                       "column": "report_owner_id",
                       "table": {
-                        "name": "report",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "report"
                       }
                     }
                   }
@@ -12849,8 +12701,8 @@
                     "foreign_key_constraint_on": {
                       "column": "rule_owner",
                       "table": {
-                        "name": "rule_metadata",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_metadata"
                       }
                     }
                   }
@@ -12861,8 +12713,8 @@
                     "foreign_key_constraint_on": {
                       "column": "rule_last_certifier",
                       "table": {
-                        "name": "rule_metadata",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_metadata"
                       }
                     }
                   }
@@ -12873,8 +12725,8 @@
                     "foreign_key_constraint_on": {
                       "column": "last_change_admin",
                       "table": {
-                        "name": "rule",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule"
                       }
                     }
                   }
@@ -12885,8 +12737,8 @@
                     "foreign_key_constraint_on": {
                       "column": "last_change_admin",
                       "table": {
-                        "name": "service",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "service"
                       }
                     }
                   }
@@ -12921,8 +12773,8 @@
                     "foreign_key_constraint_on": {
                       "column": "requester_id",
                       "table": {
-                        "name": "ticket",
-                        "schema": "request"
+                        "schema": "request",
+                        "name": "ticket"
                       }
                     }
                   }
@@ -12957,8 +12809,8 @@
                     "foreign_key_constraint_on": {
                       "column": "last_change_admin",
                       "table": {
-                        "name": "usr",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "usr"
                       }
                     }
                   }
@@ -13472,8 +13324,8 @@
             },
             {
               "table": {
-                "name": "usergrp",
-                "schema": "public"
+                "schema": "public",
+                "name": "usergrp"
               },
               "object_relationships": [
                 {
@@ -13644,8 +13496,8 @@
             },
             {
               "table": {
-                "name": "usergrp_flat",
-                "schema": "public"
+                "schema": "public",
+                "name": "usergrp_flat"
               },
               "object_relationships": [
                 {
@@ -13746,8 +13598,8 @@
             },
             {
               "table": {
-                "name": "usr",
-                "schema": "public"
+                "schema": "public",
+                "name": "usr"
               },
               "object_relationships": [
                 {
@@ -13800,8 +13652,8 @@
                     "foreign_key_constraint_on": {
                       "column": "old_user_id",
                       "table": {
-                        "name": "changelog_user",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "changelog_user"
                       }
                     }
                   }
@@ -13812,8 +13664,8 @@
                     "foreign_key_constraint_on": {
                       "column": "new_user_id",
                       "table": {
-                        "name": "changelog_user",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "changelog_user"
                       }
                     }
                   }
@@ -13872,8 +13724,8 @@
                     "foreign_key_constraint_on": {
                       "column": "user_id",
                       "table": {
-                        "name": "rule_from",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_from"
                       }
                     }
                   }
@@ -13884,8 +13736,8 @@
                     "foreign_key_constraint_on": {
                       "column": "user_id",
                       "table": {
-                        "name": "rule_to",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_to"
                       }
                     }
                   }
@@ -13896,8 +13748,8 @@
                     "foreign_key_constraint_on": {
                       "column": "user_id",
                       "table": {
-                        "name": "rule_user_resolved",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule_user_resolved"
                       }
                     }
                   }
@@ -13908,8 +13760,8 @@
                     "foreign_key_constraint_on": {
                       "column": "usergrp_flat_member_id",
                       "table": {
-                        "name": "usergrp_flat",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "usergrp_flat"
                       }
                     }
                   }
@@ -13920,8 +13772,8 @@
                     "foreign_key_constraint_on": {
                       "column": "usergrp_flat_id",
                       "table": {
-                        "name": "usergrp_flat",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "usergrp_flat"
                       }
                     }
                   }
@@ -13932,8 +13784,8 @@
                     "foreign_key_constraint_on": {
                       "column": "usergrp_id",
                       "table": {
-                        "name": "usergrp",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "usergrp"
                       }
                     }
                   }
@@ -13944,8 +13796,8 @@
                     "foreign_key_constraint_on": {
                       "column": "usergrp_member_id",
                       "table": {
-                        "name": "usergrp",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "usergrp"
                       }
                     }
                   }
@@ -14119,92 +13971,92 @@
             },
             {
               "table": {
-                "name": "view_change_counter",
-                "schema": "public"
+                "schema": "public",
+                "name": "view_change_counter"
               }
             },
             {
               "table": {
-                "name": "view_changes",
-                "schema": "public"
+                "schema": "public",
+                "name": "view_changes"
               }
             },
             {
               "table": {
-                "name": "view_changes_by_changed_element_id",
-                "schema": "public"
+                "schema": "public",
+                "name": "view_changes_by_changed_element_id"
               }
             },
             {
               "table": {
-                "name": "view_device_names",
-                "schema": "public"
+                "schema": "public",
+                "name": "view_device_names"
               }
             },
             {
               "table": {
-                "name": "view_documented_change_counter",
-                "schema": "public"
+                "schema": "public",
+                "name": "view_documented_change_counter"
               }
             },
             {
               "table": {
-                "name": "view_import_status_errors",
-                "schema": "public"
+                "schema": "public",
+                "name": "view_import_status_errors"
               }
             },
             {
               "table": {
-                "name": "view_import_status_successful",
-                "schema": "public"
+                "schema": "public",
+                "name": "view_import_status_successful"
               }
             },
             {
               "table": {
-                "name": "view_import_status_table",
-                "schema": "public"
+                "schema": "public",
+                "name": "view_import_status_table"
               }
             },
             {
               "table": {
-                "name": "view_import_status_table_unsorted",
-                "schema": "public"
+                "schema": "public",
+                "name": "view_import_status_table_unsorted"
               }
             },
             {
               "table": {
-                "name": "view_obj_changes",
-                "schema": "public"
+                "schema": "public",
+                "name": "view_obj_changes"
               }
             },
             {
               "table": {
-                "name": "view_reportable_changes",
-                "schema": "public"
+                "schema": "public",
+                "name": "view_reportable_changes"
               }
             },
             {
               "table": {
-                "name": "view_rule_changes",
-                "schema": "public"
+                "schema": "public",
+                "name": "view_rule_changes"
               }
             },
             {
               "table": {
-                "name": "view_rule_source_or_destination",
-                "schema": "public"
+                "schema": "public",
+                "name": "view_rule_source_or_destination"
               }
             },
             {
               "table": {
-                "name": "view_svc_changes",
-                "schema": "public"
+                "schema": "public",
+                "name": "view_svc_changes"
               }
             },
             {
               "table": {
-                "name": "view_tenant_rules",
-                "schema": "public"
+                "schema": "public",
+                "name": "view_tenant_rules"
               },
               "select_permissions": [
                 {
@@ -14487,26 +14339,26 @@
             },
             {
               "table": {
-                "name": "view_undocumented_change_counter",
-                "schema": "public"
+                "schema": "public",
+                "name": "view_undocumented_change_counter"
               }
             },
             {
               "table": {
-                "name": "view_undocumented_changes",
-                "schema": "public"
+                "schema": "public",
+                "name": "view_undocumented_changes"
               }
             },
             {
               "table": {
-                "name": "view_user_changes",
-                "schema": "public"
+                "schema": "public",
+                "name": "view_user_changes"
               }
             },
             {
               "table": {
-                "name": "zone",
-                "schema": "public"
+                "schema": "public",
+                "name": "zone"
               },
               "object_relationships": [
                 {
@@ -14535,8 +14387,8 @@
                     "foreign_key_constraint_on": {
                       "column": "zone_id",
                       "table": {
-                        "name": "object",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "object"
                       }
                     }
                   }
@@ -14547,8 +14399,8 @@
                     "foreign_key_constraint_on": {
                       "column": "rule_from_zone",
                       "table": {
-                        "name": "rule",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule"
                       }
                     }
                   }
@@ -14559,8 +14411,8 @@
                     "foreign_key_constraint_on": {
                       "column": "rule_to_zone",
                       "table": {
-                        "name": "rule",
-                        "schema": "public"
+                        "schema": "public",
+                        "name": "rule"
                       }
                     }
                   }
@@ -16382,8 +16234,8 @@
                     "foreign_key_constraint_on": {
                       "column": "task_id",
                       "table": {
-                        "name": "approval",
-                        "schema": "request"
+                        "schema": "request",
+                        "name": "approval"
                       }
                     }
                   }
@@ -17049,8 +16901,8 @@
             },
             {
               "table": {
-                "name": "ticket",
-                "schema": "request"
+                "schema": "request",
+                "name": "ticket"
               },
               "object_relationships": [
                 {
@@ -17485,52 +17337,52 @@
           "functions": [
             {
               "function": {
-                "name": "filter_rule_nwobj_resolveds",
-                "schema": "public"
+                "schema": "public",
+                "name": "filter_rule_nwobj_resolveds"
               }
             },
             {
               "function": {
-                "name": "filter_rule_svc_resolveds",
-                "schema": "public"
+                "schema": "public",
+                "name": "filter_rule_svc_resolveds"
               }
             },
             {
               "function": {
-                "name": "filter_rule_user_resolveds",
-                "schema": "public"
+                "schema": "public",
+                "name": "filter_rule_user_resolveds"
               }
             },
             {
               "function": {
-                "name": "get_visible_devices_per_tenant",
-                "schema": "public"
+                "schema": "public",
+                "name": "get_visible_devices_per_tenant"
               }
             },
             {
               "function": {
-                "name": "get_visible_managements_per_tenant",
-                "schema": "public"
+                "schema": "public",
+                "name": "get_visible_managements_per_tenant"
               }
             }
           ],
           "configuration": {
             "connection_info": {
+              "use_prepared_statements": true,
               "database_url": {
                 "from_env": "HASURA_GRAPHQL_DATABASE_URL"
               },
               "isolation_level": "read-committed",
               "pool_settings": {
                 "connection_lifetime": 600,
+                "retries": 1,
                 "idle_timeout": 180,
-                "max_connections": 50,
-                "retries": 1
-              },
-              "use_prepared_statements": true
+                "max_connections": 50
+              }
             }
           }
         }
       ]
-    }  
+    }
   }
 }

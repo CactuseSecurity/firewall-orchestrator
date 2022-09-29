@@ -16,7 +16,7 @@ def has_config_changed (full_config, mgm_details, force=False):
         return 1
 
     try: # top level dict start, sid contains the domain information, so only sending domain during login
-        session_id = getter.login(mgm_details['user'], mgm_details['secret'], mgm_details['hostname'], str(mgm_details['port']), mgm_details['configPath'])
+        session_id = getter.login(mgm_details['import_credential']['user'], mgm_details['import_credential']['secret'], mgm_details['hostname'], str(mgm_details['port']), mgm_details['configPath'])
     except:
         raise common.FwLoginFailed     # maybe 2Temporary failure in name resolution"
 
@@ -43,7 +43,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
 
     if not parsing_config_only: # get config from cp fw mgr
         starttime = int(time.time())
-        sid = getter.login(mgm_details['user'], mgm_details['secret'], mgm_details['hostname'], str(mgm_details['port']), mgm_details['configPath'])
+        sid = getter.login(mgm_details['import_credential']['user'], mgm_details['import_credential']['secret'], mgm_details['hostname'], str(mgm_details['port']), mgm_details['configPath'])
 
         result_get_basic_config = get_basic_config (full_config, mgm_details, force=force, sid=sid, limit=str(limit), details_level='full', test_version='off')
 

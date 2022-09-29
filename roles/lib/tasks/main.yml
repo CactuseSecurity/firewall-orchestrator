@@ -14,39 +14,6 @@
         path: "{{ fworch_home }}/lib"
       register: lib_dir_check
 
-    - name: install libs needed for pdf creator nuget packet HakanL/WkHtmlToPdf-DotNet
-      package:
-        name: "{{ item }}"
-        state: present
-      loop:
-        - libgdiplus
-        - libc6-dev
-        - libjpeg62
-        - fontconfig
-        - xfonts-base
-        - xfonts-75dpi
-        - libssl-dev
-
-    - block:
-      - name: download wkhtmltox for ubuntu 22.04 only
-        get_url:
-          url: https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-2/wkhtmltox_0.12.6.1-2.jammy_amd64.deb
-          dest: "{{ fworch_home }}"
-          force: yes
-          mode: "0644"
-          owner: "{{ fworch_user }}"
-          group: "{{ fworch_group }}"
-        environment: "{{ proxy_env }}"
-
-      - name: install wkhtmltox for ubuntu 22.04 only
-        command: dpkg -i {{ fworch_home }}/wkhtmltox_0.12.6.1-2.jammy_amd64.deb
-
-      - name: remove wkhtmltox for ubuntu 22.04 only
-        file:
-          path: "{{ fworch_home }}/wkhtmltox_0.12.6.1-2.jammy_amd64.deb"
-          state: absent
-      when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_version'] == '22.04'
-
     - name: backup lib dir
       synchronize:
         src: "{{ fworch_home }}/lib"
@@ -59,14 +26,21 @@
         state: absent
         path: "{{ fworch_home }}/lib"
 
-    - name: create lib dir
+
+    - name: create {{ lib_tmp_dir }} including lib dir
       file:
-        path: "{{ lib_dir }}"
+        dest: "{{ lib_tmp_dir }}"
         state: directory
         owner: "{{ fworch_user }}"
         group: "{{ fworch_group }}"
 
-    - name: copy dotnet lib files to lib target
+    - name: install dotnet needed for both ui and middleware servers
+      include_tasks: install_dot_net.yml
+
+    - name: install wkhtml pdf library needed for both ui and middleware servers
+      include_tasks: install_wkhtml_pdf.yml
+
+    - name: copy {{ product_name }} dotnet lib files to lib target
       copy:
         src: "{{ item }}"
         dest: "{{ lib_dir }}"
@@ -90,4 +64,10 @@
       notify: "lib handler"
       when: installation_mode == "upgrade"
 
+    - name: mark lib role as "has already run"
+      set_fact:
+        lib_role_has_run: true
+
   become: yes
+  when: not lib_role_has_run|bool
+  # make sure lib role is only run once per host to save time

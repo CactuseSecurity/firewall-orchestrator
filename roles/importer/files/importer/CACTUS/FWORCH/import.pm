@@ -397,7 +397,10 @@ sub get_import_infos_for_mgm {
 	my $str_of_config_files = '';
 	my $version;
 
-	$sqlcode = "SELECT mgm_name,management.dev_typ_id,dev_typ_manufacturer,dev_typ_version,ssh_hostname,ssh_user,secret,ssh_public_key,ssh_port,config_path FROM management,stm_dev_typ WHERE stm_dev_typ.dev_typ_id=management.dev_typ_id AND mgm_id='$mgm_id'";
+	$sqlcode = "SELECT mgm_name,management.dev_typ_id,dev_typ_manufacturer,dev_typ_version,ssh_hostname, " .
+		" username as ssh_user,secret, public_key as ssh_public_key,ssh_port,config_path FROM management " .
+		" LEFT JOIN import_credential ON (management.import_credential_id=import_credential.id) LEFT JOIN stm_dev_typ USING (dev_typ_id) " .
+		" WHERE stm_dev_typ.dev_typ_id=management.dev_typ_id AND mgm_id='$mgm_id'";
 	$res_array_ref = exec_pgsql_cmd_return_array_ref($sqlcode, $fehler);
 	if (!defined($fehler) || $fehler || !defined($res_array_ref)) {
 		if (!defined($fehler)) {

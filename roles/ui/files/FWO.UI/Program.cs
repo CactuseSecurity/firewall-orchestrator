@@ -26,6 +26,5 @@ namespace FWO.Ui
                     webBuilder.UseStartup<Startup>();
                 });
         }
-
     }
 }

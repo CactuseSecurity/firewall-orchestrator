@@ -134,7 +134,14 @@
  
     protected override async Task OnInitializedAsync()
     {
-        managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+        try
+        {
+            managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, "", "", true);
+        }
         await Refresh();
     }
 
@@ -234,6 +241,19 @@
                 }
             }
 
+            List<ImportCredential> credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(FWO.Api.Client.Queries.DeviceQueries.getCredentials);
+            int deletedSampleCredentials = 0;
+            foreach (var credential in credentials)
+            {
+                if (credential.Name.EndsWith("_demo"))
+                {
+                    if (await DeleteCredential(credential))
+                    {
+                        deletedSampleCredentials++;
+                    }
+                }
+            }
+
             List<UiUser> users = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
             int deletedSampleUsers = 0;
             foreach (var user in users)
@@ -284,6 +304,10 @@
             {
                 text += $"{deletedSampleManagements} " + userConfig.GetText("managements");
             }
+            if(deletedSampleCredentials > 0)
+            {
+                text += $"{deletedSampleCredentials} " + userConfig.GetText("credential");
+            }
             if(deletedSampleUsers > 0)
             {
                 text += $" {deletedSampleUsers} " + userConfig.GetText("users");
@@ -325,6 +349,24 @@
         catch (Exception exception)
         {
             DisplayMessageInUi!(exception, userConfig.GetText("delete_management"), "", true);
+        }
+        return false;
+    }
+
+    private async Task<bool> DeleteCredential(ImportCredential credential)
+    {
+        try
+        {
+            var Variables = new { id = credential.Id };
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.deleteCredential, Variables)).DeletedId;
+            if (delId == credential.Id)
+            {
+                return true;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_credential"), "", true);
         }
         return false;
     }

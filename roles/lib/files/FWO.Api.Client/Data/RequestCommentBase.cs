@@ -6,7 +6,7 @@ namespace FWO.Api.Data
     public class RequestCommentBase
     {
         [JsonProperty("ref_id"), JsonPropertyName("ref_id")]
-        public long RefId { get; set; }
+        public long? RefId { get; set; }
 
         [JsonProperty("scope"), JsonPropertyName("scope")]
         public string Scope { get; set; } = "";

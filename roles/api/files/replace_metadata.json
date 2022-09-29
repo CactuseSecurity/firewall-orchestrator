@@ -515,6 +515,17 @@
               ],
               "update_permissions": [
                 {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "ack_by",
+                      "ack_timestamp"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                },
+                {
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
@@ -532,6 +543,17 @@
                       "source",
                       "title",
                       "user_id"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "ack_by",
+                      "ack_timestamp"
                     ],
                     "filter": {},
                     "check": null
@@ -569,6 +591,72 @@
                     ],
                     "filter": {},
                     "check": {}
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "ack_by",
+                      "ack_timestamp"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "ack_by",
+                      "ack_timestamp"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "ack_by",
+                      "ack_timestamp"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "ack_by",
+                      "ack_timestamp"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "ack_by",
+                      "ack_timestamp"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "ack_by",
+                      "ack_timestamp"
+                    ],
+                    "filter": {},
+                    "check": null
                   }
                 }
               ]
@@ -4039,7 +4127,53 @@
               ],
               "insert_permissions": [
                 {
+                  "role": "approver",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "data_issue_id",
+                      "import_id",
+                      "rule_id",
+                      "description",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_uid",
+                      "source",
+                      "suspected_cause",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "severity",
+                      "user_id",
+                      "issue_timestamp"
+                    ]
+                  }
+                },
+                {
                   "role": "auditor",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "data_issue_id",
+                      "import_id",
+                      "rule_id",
+                      "description",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_uid",
+                      "source",
+                      "suspected_cause",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "severity",
+                      "user_id",
+                      "issue_timestamp"
+                    ]
+                  }
+                },
+                {
+                  "role": "implementer",
                   "permission": {
                     "check": {},
                     "columns": [
@@ -4104,6 +4238,29 @@
                       "source",
                       "suspected_cause",
                       "user_id"
+                    ]
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "data_issue_id",
+                      "import_id",
+                      "rule_id",
+                      "description",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_uid",
+                      "source",
+                      "suspected_cause",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "severity",
+                      "user_id",
+                      "issue_timestamp"
                     ]
                   }
                 },
@@ -4175,9 +4332,79 @@
                       "issue_timestamp"
                     ]
                   }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "data_issue_id",
+                      "import_id",
+                      "rule_id",
+                      "description",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_uid",
+                      "source",
+                      "suspected_cause",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "severity",
+                      "user_id",
+                      "issue_timestamp"
+                    ]
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "data_issue_id",
+                      "import_id",
+                      "rule_id",
+                      "description",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_uid",
+                      "source",
+                      "suspected_cause",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "severity",
+                      "user_id",
+                      "issue_timestamp"
+                    ]
+                  }
                 }
               ],
               "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "data_issue_id",
+                      "description",
+                      "import_id",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "issue_timestamp",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_id",
+                      "rule_uid",
+                      "severity",
+                      "source",
+                      "suspected_cause",
+                      "user_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
                 {
                   "role": "auditor",
                   "permission": {
@@ -4227,6 +4454,30 @@
                   }
                 },
                 {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "data_issue_id",
+                      "description",
+                      "import_id",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "issue_timestamp",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_id",
+                      "rule_uid",
+                      "severity",
+                      "source",
+                      "suspected_cause",
+                      "user_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
                   "role": "importer",
                   "permission": {
                     "columns": [
@@ -4252,6 +4503,30 @@
                 },
                 {
                   "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "data_issue_id",
+                      "description",
+                      "import_id",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "issue_timestamp",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_id",
+                      "rule_uid",
+                      "severity",
+                      "source",
+                      "suspected_cause",
+                      "user_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "planner",
                   "permission": {
                     "columns": [
                       "data_issue_id",
@@ -4324,6 +4599,54 @@
                 },
                 {
                   "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "data_issue_id",
+                      "description",
+                      "import_id",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "issue_timestamp",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_id",
+                      "rule_uid",
+                      "severity",
+                      "source",
+                      "suspected_cause",
+                      "user_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "data_issue_id",
+                      "description",
+                      "import_id",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "issue_timestamp",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_id",
+                      "rule_uid",
+                      "severity",
+                      "source",
+                      "suspected_cause",
+                      "user_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reviewer",
                   "permission": {
                     "columns": [
                       "data_issue_id",

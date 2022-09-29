@@ -1,14 +1,13 @@
-from asyncio.log import logger
 import copy
 import jsonpickle
 from common import resolve_raw_objects, extend_string_list, list_delimiter, nat_postfix
 from fmgr_service import create_svc_object
 from fmgr_network import resolve_objects, create_network_object, get_first_ip_of_destination
 import fmgr_zone, fmgr_getter
-from fmgr_gw_networking import get_matching_route, get_ip_of_interface, get_device_from_package
+from fmgr_gw_networking import get_device_from_package
 from fwo_log import getFwoLogger
 from fwo_data_networking import get_matching_route_obj, get_ip_of_interface_obj
-from ipaddress import ip_address, IPv4Address
+from ipaddress import IPv4Address
 
 
 rule_access_scope_v4 = ['rules_global_header_v4', 'rules_adom_v4', 'rules_global_footer_v4']
@@ -47,7 +46,6 @@ def getAccessPolicy(sid, fm_api_url, raw_config, adom_name, device, limit):
     local_pkg_name = device['local_rulebase_name']
     global_pkg_name = device['global_rulebase_name']
     # pkg_name = device['package_name'] pkg_name is not used at all
-
 
     # get global header rulebase:
     if device['global_rulebase_name'] is None or device['global_rulebase_name'] == '':
@@ -90,7 +88,6 @@ def getNatPolicy(sid, fm_api_url, raw_config, adom_name, device, limit):
 def normalize_access_rules(full_config, config2import, import_id, mgm_details={}, jwt=None):
     logger = getFwoLogger()
     rules = []
-    # first_v4, first_v6 = check_headers_needed(full_config, rule_access_scope)
     first_v4 = True
     first_v6 = True
     nat_rule_number = 0
@@ -268,20 +265,6 @@ def normalize_nat_rules(full_config, config2import, import_id, jwt=None):
     config2import['rules'].extend(nat_rules)
 
 
-def check_headers_needed(full_config, rule_types):
-    found_v4 = False
-    found_v6 = False
-    for rule_table in rule_types:
-        if full_config[rule_table] is not None:
-            if rule_table in rule_access_scope_v4:
-                found_v4 = True
-            if rule_table in rule_access_scope_v6:
-                found_v6 = True
-    if found_v4 and found_v6:
-        return True, True
-    return False, False
-
-
 def insert_header(rules, import_id, header_text, rulebase_name, rule_uid, rule_number, src_refs, dst_refs):
     rule = {
         "control_id": import_id,
@@ -352,7 +335,6 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, im
                         logger.warning('src nat behind interface: found no matching route in rule with UID '
                             + rule['rule_uid'] + ', dest_ip: ' + destination_ip)
                     else:
-                        # destination_interface_ip = get_ip_of_interface(matching_route['interface'], config2import['networking'][device_name]['interfaces'])
                         destination_interface_ip = get_ip_of_interface_obj(matching_route.interface, dev_id, config2import['interfaces'])
                         interface_name = matching_route.interface
                         hideInterface=interface_name

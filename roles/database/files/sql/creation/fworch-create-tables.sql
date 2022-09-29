@@ -715,6 +715,37 @@ Create table "import_zone"
 	"last_change_time" Timestamp
 );
 
+---------------------------------------------------------------------------------------
+-- adding interfaces and routing for path analysis
+-- drop table if exists gw_route;
+-- drop table if exists gw_interface;
+
+create table if not exists gw_interface
+(
+    id SERIAL PRIMARY KEY,
+    routing_device INTEGER NOT NULL,
+    name VARCHAR NOT NULL,
+    ip CIDR,
+    state_up BOOLEAN DEFAULT TRUE,
+    ip_version INTEGER NOT NULL DEFAULT 4,
+    netmask_bits INTEGER NOT NULL
+);
+
+create table if not exists gw_route
+(
+    id SERIAL PRIMARY KEY,
+    routing_device INT NOT NULL,
+    target_gateway CIDR NOT NULL,
+    destination CIDR NOT NULL,
+    source CIDR,
+    interface_id INT,
+    interface VARCHAR,
+    static BOOLEAN DEFAULT TRUE,
+    metric INT,
+    distance INT,
+    ip_version INTEGER NOT NULL DEFAULT 4
+);
+
 -- (change)log tables -------------------------------------
 
 Create table "log_data_issue"

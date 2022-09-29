@@ -1,7 +1,4 @@
-from asyncio.log import logger
 from fwo_log import getFwoLogger
-
-# networking
 from netaddr import IPAddress, IPNetwork
 
 

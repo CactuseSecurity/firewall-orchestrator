@@ -100,8 +100,6 @@ def get_matching_route(destination_ip, routing_table):
     return None
 
 
-
-
 def get_ip_of_interface(interface, interface_list=[]):
 
     interface_details = next((sub for sub in interface_list if sub['name'] == interface), None)
@@ -149,7 +147,7 @@ def get_plain_device_names_without_vdoms(devices):
     return device_array
 
 
-# only getting one vdom as currntly assuming routing to be
+# only getting one vdom as currently assuming routing to be
 # the same for all vdoms on a device
 def get_device_names_plus_one_vdom(devices):
     device_array = []
@@ -306,37 +304,3 @@ def get_device_from_package(package_name, mgm_details):
             return dev['id']
     logger.debug('get_device_from_package - could not find device for package "' + package_name +  '"')
     return None
-
-
-# def test_if_default_route_exists(routing_table):
-#     default_route_v4 = list(filter(lambda default_route: default_route['destination'] == '0.0.0.0/0', routing_table))
-#     default_route_v6 =  list(filter(lambda default_route: default_route['destination'] == '::/0', routing_table))
-#     if default_route_v4 == [] and default_route_v6 == []:
-#         return False
-#     else:
-#         return True
-
-
-# def normalize_routes(full_config, config2import, import_id, jwt=None, mgm_id=None):
-#     logger = getFwoLogger()
-#     routes = []
-#     for route_orig in full_config['routing']:
-#         route = Route(dev_id, route_orig.target_gateway, route_orig.destination, 
-#             route_orig.static, source=route_orig.source, interface=route_orig.interface, metric=route_orig.metric,
-#             distance=route_orig.distance, ip_version=route_orig.ip_version)
-#         routes.append(route)
-
-#     config2import.update({'routes': routes})
-
-
-# def normalize_interfaces(full_config, config2import, import_id, jwt=None, mgm_id=None):
-#     logger = getFwoLogger()
-#     interfaces = []
-#     for iface_orig in full_config['interfaces']:
-#         iface = Interface(iface_orig.device, iface_orig.name, iface_orig.ip, 
-#             state_up=iface_orig.state_up, netmask_bits=iface_orig.netmask_bits, ip_version=iface_orig.ip_version)
-#         interfaces.append(iface)
-
-#     config2import.update({'routes': interfaces})
-
-# routing_device, name, ip, state_up=True, ip_version=4)

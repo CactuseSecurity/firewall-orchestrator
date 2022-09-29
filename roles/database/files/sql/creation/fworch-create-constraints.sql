@@ -21,3 +21,13 @@ ALTER TABLE owner_network ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and
 ALTER TABLE request.element ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
 --- implementation.element ---
 ALTER TABLE implementation.element ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
+
+
+ALTER TABLE gw_route DROP CONSTRAINT IF EXISTS gw_route_routing_device_foreign_key;
+ALTER TABLE gw_route ADD CONSTRAINT gw_route_routing_device_foreign_key FOREIGN KEY (routing_device) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+ALTER TABLE gw_route DROP CONSTRAINT IF EXISTS gw_route_interface_foreign_key;
+ALTER TABLE gw_route ADD CONSTRAINT gw_route_interface_foreign_key FOREIGN KEY (interface_id) REFERENCES gw_interface(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+ALTER TABLE gw_interface DROP CONSTRAINT IF EXISTS gw_interface_routing_device_foreign_key;
+ALTER TABLE gw_interface ADD CONSTRAINT gw_interface_routing_device_foreign_key FOREIGN KEY (routing_device) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;

@@ -208,7 +208,6 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0,
             except:
                 logger.error("import_management - unspecified error while importing config via FWO API: " + str(traceback.format_exc()))
                 raise
-
             time_write2api = int(time.time()) - time_get_config - start_time
             logger.debug("import_management - writing config to API and stored procedure import duration: " + str(time_write2api) + "s")
 
@@ -237,7 +236,7 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0,
                 logger.error("import_management - unspecified error while calculating config sizes: " + str(traceback.format_exc()))
                 raise
 
-            if (change_count > 0 or error_count > 0) and full_config_size < full_config_size_limit:  # store full config in case of change or error
+            if (debug_level>5 or change_count > 0 or error_count > 0) and full_config_size < full_config_size_limit:  # store full config in case of change or error
                 try:  # store full config in DB
                     error_count += fwo_api.store_full_json_config(fwo_config['fwo_api_base_url'], jwt, mgm_id, {
                         "importId": current_import_id, "mgmId": mgm_id, "config": full_config_json})
@@ -246,6 +245,9 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0,
                     raise
         else: # if no changes were found, we skip everything else without errors
             pass
+
+        if (debug_level>8):
+            logger.info(json.dumps(config2import, indent=2))
 
         error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)
         

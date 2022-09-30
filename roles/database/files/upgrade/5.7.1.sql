@@ -457,5 +457,80 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+CREATE OR REPLACE FUNCTION import_config_from_json ()
+    RETURNS TRIGGER
+    AS $BODY$
+DECLARE
+    import_id BIGINT;
+    r_import_result RECORD;
+    i_mgm_id INTEGER;
+BEGIN
+	SELECT INTO i_mgm_id mgm_id FROM import_control WHERE control_id=import_id;
+
+	-- first delete all old interfaces belonging to the current management:
+	DELETE FROM gw_interface WHERE routing_device IN 
+        (SELECT dev_id FROM device LEFT JOIN management ON (device.mgm_id=management.mgm_id AND management.mgm_id=i_mgm_id));
+
+	-- first delete all old routes belonging to the current management:
+	DELETE FROM gw_route WHERE routing_device IN 
+        (SELECT dev_id FROM device LEFT JOIN management ON (device.mgm_id=management.mgm_id AND management.mgm_id=i_mgm_id));
+
+	-- now re-insert the currently found interfaces: 
+    INSERT INTO gw_interface SELECT * FROM jsonb_populate_recordset(NULL::gw_interface, NEW.config -> 'interfaces');
+
+	-- now re-insert the currently found routes: 
+    INSERT INTO gw_route SELECT * FROM jsonb_populate_recordset(NULL::gw_route, NEW.config -> 'routing');
+
+    INSERT INTO import_object
+    SELECT
+        *
+    FROM
+        jsonb_populate_recordset(NULL::import_object, NEW.config -> 'network_objects');
+
+    INSERT INTO import_service
+    SELECT
+        *
+    FROM
+        jsonb_populate_recordset(NULL::import_service, NEW.config -> 'service_objects');
+
+    INSERT INTO import_user
+    SELECT
+        *
+    FROM
+        jsonb_populate_recordset(NULL::import_user, NEW.config -> 'user_objects');
+
+    INSERT INTO import_zone
+    SELECT
+        *
+    FROM
+        jsonb_populate_recordset(NULL::import_zone, NEW.config -> 'zone_objects');
+
+    INSERT INTO import_rule
+    SELECT
+        *
+    FROM
+        jsonb_populate_recordset(NULL::import_rule, NEW.config -> 'rules');
+
+    IF NEW.start_import_flag THEN
+        -- finally start the stored procedure import
+        PERFORM import_all_main(NEW.import_id, NEW.debug_mode);        
+    END IF;
+    RETURN NEW;
+END;
+$BODY$
+LANGUAGE plpgsql
+VOLATILE
+COST 100;
+ALTER FUNCTION public.import_config_from_json () OWNER TO fworch;
+
+DROP TRIGGER IF EXISTS import_config_insert ON import_config CASCADE;
+
+CREATE TRIGGER import_config_insert
+    BEFORE INSERT ON import_config
+    FOR EACH ROW
+    EXECUTE PROCEDURE import_config_from_json ();
+
+
 DROP TRIGGER IF EXISTS gw_route_add ON gw_route CASCADE;
 CREATE TRIGGER gw_route_add BEFORE INSERT ON gw_route FOR EACH ROW EXECUTE PROCEDURE gw_route_add();

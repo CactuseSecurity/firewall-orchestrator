@@ -7,8 +7,7 @@ import fmgr_zone, fmgr_getter
 from fmgr_gw_networking import get_device_from_package
 from fwo_log import getFwoLogger
 from fwo_data_networking import get_matching_route_obj, get_ip_of_interface_obj
-from ipaddress import IPv4Address
-
+import ipaddress
 
 rule_access_scope_v4 = ['rules_global_header_v4', 'rules_adom_v4', 'rules_global_footer_v4']
 rule_access_scope_v6 = ['rules_global_header_v6', 'rules_adom_v6', 'rules_global_footer_v6']
@@ -348,12 +347,14 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, im
                 if hideInterface is not None:
                     obj_name = 'hide_IF_ip_' + str(hideInterface) + '_' + str(destination_interface_ip)
                     obj_comment = 'FWO auto-generated dummy object for source nat'
-                    if destination_interface_ip is IPv4Address:
+                    if type(ipaddress.ip_address(str(destination_interface_ip))) is ipaddress.IPv6Address:
+                        HideNatIp = str(destination_interface_ip) + '/128'
+                    elif type(ipaddress.ip_address(str(destination_interface_ip))) is ipaddress.IPv4Address:
                         HideNatIp = str(destination_interface_ip) + '/32'
                     else:
-                        HideNatIp = str(destination_interface_ip) + '/128'
+                        HideNatIp = '0.0.0.0/32'
+                        logger.warning('found invalid HideNatIP ' + str(destination_interface_ip))
                     obj = create_network_object(import_id, obj_name, 'host', HideNatIp, obj_name, 'black', obj_comment, 'global')
-                
                     if obj not in config2import['network_objects']:
                         config2import['network_objects'].append(obj)
                     xlate_rule['rule_src'] = obj_name

@@ -21,7 +21,7 @@ namespace FWO.Api.Data
         public int? TenantId { get; set; }
 
         [JsonProperty("recert_interval"), JsonPropertyName("recert_interval")]
-        public DateTime? RecertInterval { get; set; }
+        public int? RecertInterval { get; set; }
 
         [JsonProperty("next_recert_date"), JsonPropertyName("next_recert_date")]
         public DateTime? NextRecertDate { get; set; }

@@ -105,6 +105,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("reqAllowObjectSearch"), JsonPropertyName("reqAllowObjectSearch")]
         public bool ReqAllowObjectSearch { get; set; } = false;
 
+        [JsonProperty("reqAllowManualOwnerAdmin"), JsonPropertyName("reqAllowManualOwnerAdmin")]
+        public bool ReqAllowManualOwnerAdmin { get; set; } = false;
+
         [JsonProperty("reqPriorities"), JsonPropertyName("reqPriorities")]
         public string ReqPriorities { get; set; } = "";
 

@@ -1037,6 +1037,8 @@ INSERT INTO txt VALUES ('reqAvailableTaskTypes','German', 	'Verf&uuml;gbare Auft
 INSERT INTO txt VALUES ('reqAvailableTaskTypes','English', 	'Available Task Types');
 INSERT INTO txt VALUES ('reqAllowObjectSearch', 'German', 	'Objektsuche erlauben');
 INSERT INTO txt VALUES ('reqAllowObjectSearch', 'English', 	'Allow object search');
+INSERT INTO txt VALUES ('reqAllowManualOwnerAdmin','German', 'Manuelle Eigent&uuml;merverwaltung erlauben');
+INSERT INTO txt VALUES ('reqAllowManualOwnerAdmin','English','Allow manual owner administration');
 INSERT INTO txt VALUES ('reqPriorities',        'German', 	'Priorit&auml;ten');
 INSERT INTO txt VALUES ('reqPriorities',        'English', 	'Priorities');
 INSERT INTO txt VALUES ('reqAutoCreateImplTasks','German', 	'Autom. Erzeugen von Implementierungs-Auftr&auml;gen');
@@ -1199,10 +1201,14 @@ INSERT INTO txt VALUES ('edit_owner',           'German',   'Eigent&uuml;mer bea
 INSERT INTO txt VALUES ('edit_owner',           'English',  'Edit owner');
 INSERT INTO txt VALUES ('delete_owner',         'German',   'Eigent&uuml;mer l&ouml;schen');
 INSERT INTO txt VALUES ('delete_owner',         'English',  'Delete owner');
-INSERT INTO txt VALUES ('recert_interval',      'German',   'Rezertifzierungsintervall');
-INSERT INTO txt VALUES ('recert_interval',      'English',  'Recertification interval');
+INSERT INTO txt VALUES ('recert_interval',      'German',   'Rezertifzierungsintervall (in Tagen)');
+INSERT INTO txt VALUES ('recert_interval',      'English',  'Recertification interval (in days)');
 INSERT INTO txt VALUES ('ext_app_id',           'German',   'Externe Anwendungs-Id');
 INSERT INTO txt VALUES ('ext_app_id',           'English',  'External Application Id');
+INSERT INTO txt VALUES ('dn',                   'German',   'Vollst&auml;ndiger Name');
+INSERT INTO txt VALUES ('dn',                   'English',  'Distinguished Name');
+INSERT INTO txt VALUES ('set_default',          'German',   'als Vorgabewert setzen');
+INSERT INTO txt VALUES ('set_default',          'English',  'Set as Default');
 
 
 -- monitoring
@@ -1733,6 +1739,8 @@ INSERT INTO txt VALUES ('E5284', 'German',  'Mandanten konnten nicht vom LDAP ge
 INSERT INTO txt VALUES ('E5284', 'English', 'Tenants could not be fetched from LDAP');
 INSERT INTO txt VALUES ('E5285', 'German',  'Mandant konnte nicht ge&auml;ndert werden');
 INSERT INTO txt VALUES ('E5285', 'English', 'Tenant could not be updated');
+INSERT INTO txt VALUES ('E5291', 'German',  'Eigent&uuml;mer konnte nicht gespeichert werden');
+INSERT INTO txt VALUES ('E5291', 'English', 'Owner could not be saved');
 
 INSERT INTO txt VALUES ('E5301', 'German',  'Konfiguration f&uuml;r Standardsprache konnte nicht gelesen werden: Wert auf Englisch gesetzt');
 INSERT INTO txt VALUES ('E5301', 'English', 'Error reading Config for default language: taking default English');

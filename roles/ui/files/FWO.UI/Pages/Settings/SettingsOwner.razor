@@ -21,18 +21,28 @@
     <h3>@(userConfig.GetText("owners"))</h3>
     @(userConfig.GetText("U5216"))
     <hr />
-    <button class="btn btn-sm btn-success" @onclick="AddOwner">@(userConfig.GetText("add_owner"))</button>
-    <br><br>
+    @if(userConfig.ReqAllowManualOwnerAdmin)
+    {
+        <button class="btn btn-sm btn-success" @onclick="AddOwner">@(userConfig.GetText("add_owner"))</button>
+        <br><br>
+    }
     <div class="m-2">
         <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="RequestOwner" Items="owners" PageSize="0" ColumnReorder="true">
-            <Column TableItem="RequestOwner" Title="@(userConfig.GetText("owners"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
-                <Template>
-                    <div class="btn-group">
-                        <button class="btn btn-sm btn-warning" @onclick="() => EditOwner(context)">@(userConfig.GetText("edit"))</button>
-                        <button class="btn btn-sm btn-danger" @onclick="() => RequestDeleteOwner(context)">@(userConfig.GetText("delete"))</button>
-                    </div>
-                </Template>
-            </Column>
+            @if(userConfig.ReqAllowManualOwnerAdmin)
+            {
+                <Column TableItem="RequestOwner" Title="@(userConfig.GetText("owners"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                    <Template>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-warning" @onclick="() => EditOwner(context)">@(userConfig.GetText("edit"))</button>
+                            <button class="btn btn-sm btn-danger" @onclick="() => RequestDeleteOwner(context)">@(userConfig.GetText("delete"))</button>
+                            @if(!context.IsDefault)
+                            {
+                                <button class="btn btn-sm btn-warning" @onclick="() => SetDefault(context)">@(userConfig.GetText("set_default"))</button>
+                            }
+                        </div>
+                    </Template>
+                </Column>
+            }
             <Column TableItem="RequestOwner" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
             <Column TableItem="RequestOwner" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
             <Column TableItem="RequestOwner" Title="@(userConfig.GetText("dn"))" Field="@(x => x.Dn)" Sortable="true" Filterable="true" />
@@ -52,12 +62,38 @@
         <Body>
             @if (EditOwnerMode)
             {
-                <div class="form-group row">
-                    <div class="col-sm-3">
-                        <label class="col-sm-2 col-form-label col-form-label-sm">@(actOwner.Id)</label>
+                <div class="col-sm-12">
+                    <div class="form-group row">
+                        <div class="col-sm-3">
+                            <div class="form-group row">
+                                <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                                <label class="col-sm-6 col-form-label col-form-label-sm">@(actOwner.Id)</label>
+                            </div>
+                        </div>
+                        <div class="col-sm-9">
+                            <div class="form-group row">
+                                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                                <input type="text" class=" col-sm-9 form-control form-control-sm" @bind="actOwner.Name" />
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-sm-8">
-                        <input type="text" class="form-control form-control-sm" @bind="actOwner.Name" />
+                    <div class="form-group row">
+                        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("dn"))*:</label>
+                        <div class="col-sm-8">
+                            <input type="text" class="form-control form-control-sm" @bind="actOwner.Dn" />
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("group"))*:</label>
+                        <div class="col-sm-8">
+                            <input type="text" class="form-control form-control-sm" @bind="actOwner.GroupDn" />
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("ext_app_id"))*:</label>
+                        <div class="col-sm-8">
+                            <input type="text" class="form-control form-control-sm" @bind="actOwner.ExtAppId" />
+                        </div>
                     </div>
                 </div>
             }
@@ -159,14 +195,51 @@
     {
         try
         {
-            // await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.OwnerQueries.upsertOwner, new { id = actOwner.Id, name = actOwner.Name });
             if(AddOwnerMode)
             {
-                owners.Add(actOwner);
+                var Variables = new
+                {
+                    name = actOwner.Name,
+                    dn = actOwner.Dn,
+                    groupDn = actOwner.GroupDn,
+                    tenantId = actOwner.TenantId,
+                    recertInterval = actOwner.RecertInterval,
+                    nextRecertDate = actOwner.NextRecertDate,
+                    appIdExternal = actOwner.ExtAppId
+                };
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.OwnerQueries.newOwner, Variables)).ReturnIds;
+                if (returnIds == null)
+                {
+                    DisplayMessageInUi!(null, userConfig.GetText("add_owner"), userConfig.GetText("E5291"), true);
+                }
+                else
+                {
+                    actOwner.Id = returnIds[0].NewId;
+                    owners.Add(actOwner);
+                }
             }
             else
             {
-                owners[owners.FindIndex(x => x.Id == actOwner.Id)] = actOwner;
+                var Variables = new
+                {
+                    id = actOwner.Id,
+                    name = actOwner.Name,
+                    dn = actOwner.Dn,
+                    groupDn = actOwner.GroupDn,
+                    tenantId = actOwner.TenantId,
+                    recertInterval = actOwner.RecertInterval,
+                    nextRecertDate = actOwner.NextRecertDate,
+                    appIdExternal = actOwner.ExtAppId
+                };
+                int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.OwnerQueries.updateOwner, Variables)).UpdatedId;
+                if(udId != actOwner.Id)
+                {
+                    DisplayMessageInUi!(null, userConfig.GetText("edit_owner"), userConfig.GetText("E5291"), true);
+                }
+                else
+                {
+                    owners[owners.FindIndex(x => x.Id == actOwner.Id)] = actOwner;
+                }
             }
             EditOwnerMode = false;
             AddOwnerMode = false;
@@ -194,13 +267,32 @@
     {
         try
         {
-            //await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.OwnerQueries.deleteOwner, new { id = actOwner.Id });
+            await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.OwnerQueries.deleteOwner, new { id = actOwner.Id });
             owners.Remove(actOwner);
             DeleteOwnerMode = false;
         }
         catch (Exception exception)
         {
             DisplayMessageInUi!(exception, userConfig.GetText("delete_owner"), "", true);
+        }
+    }
+
+    private async Task SetDefault(RequestOwner newDefaultOwner)
+    {
+        try
+        {
+            RequestOwner? oldDefaultOwner = owners.FirstOrDefault(x => x.IsDefault);
+            if(oldDefaultOwner != null)
+            {
+                await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.OwnerQueries.setDefaultOwner, new { id = oldDefaultOwner.Id, isDefault = false });
+                owners[owners.FindIndex(x => x.Id == oldDefaultOwner.Id)].IsDefault = false;
+            }
+            await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.OwnerQueries.setDefaultOwner, new { id = newDefaultOwner.Id, isDefault = true });
+            owners[owners.FindIndex(x => x.Id == newDefaultOwner.Id)].IsDefault = true;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("edit_owner"), "", true);
         }
     }
 }

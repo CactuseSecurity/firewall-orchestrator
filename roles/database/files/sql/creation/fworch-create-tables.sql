@@ -1126,7 +1126,7 @@ create table if not exists owner
     group_dn Varchar NOT NULL,
     is_default boolean default false,
     tenant_id int,
-    recert_interval interval,
+    recert_interval int,
 	next_recert_date Timestamp,
     app_id_external varchar not null
 );

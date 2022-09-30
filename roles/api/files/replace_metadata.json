@@ -1927,11 +1927,12 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "config",
-                      "debug_mode",
                       "import_id",
+                      "debug_mode",
+                      "start_import_flag",
+                      "chunk_number",
                       "mgm_id",
-                      "start_import_flag"
+                      "config"
                     ]
                   }
                 }
@@ -1941,11 +1942,12 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
-                      "config",
-                      "debug_mode",
                       "import_id",
+                      "debug_mode",
+                      "start_import_flag",
+                      "chunk_number",
                       "mgm_id",
-                      "start_import_flag"
+                      "config"
                     ],
                     "filter": {},
                     "allow_aggregations": true

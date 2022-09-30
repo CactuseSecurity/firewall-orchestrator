@@ -417,7 +417,6 @@ def split_config(config2import, current_import_id, mgm_id):
         single_chunk = {}
         for obj_list_name in object_lists:
             single_chunk[obj_list_name] = []
-
         for obj_list_name in object_lists:
             if current_chunk<len(conf_split_dict_of_lists[obj_list_name]):
                 single_chunk[obj_list_name] = conf_split_dict_of_lists[obj_list_name][current_chunk]
@@ -427,13 +426,16 @@ def split_config(config2import, current_import_id, mgm_id):
 
     # now adding meta data around (start_import_flag used as trigger)
     config_split_with_metadata = []
+    current_chunk_number = 0
     for conf_chunk in conf_split:
         config_split_with_metadata.append({
             "config": conf_chunk,
             "start_import_flag": False,
             "importId": int(current_import_id), 
             "mgmId": int(mgm_id), 
+            "chunk_number": current_chunk_number
         })
+        current_chunk_number += 1
     # setting the trigger in the last chunk:
     config_split_with_metadata[len(config_split_with_metadata)-1]["start_import_flag"] = True
     if fwo_globals.debug_level>0:

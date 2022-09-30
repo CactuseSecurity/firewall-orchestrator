@@ -75,16 +75,17 @@ DECLARE
     r_import_result RECORD;
     i_mgm_id INTEGER;
 BEGIN
-	SELECT INTO i_mgm_id mgm_id FROM import_control WHERE control_id=import_id;
+    IF NEW.chunk_number=0 THEN -- delete all networking data only when starting import, not for each chunk
+        SELECT INTO i_mgm_id mgm_id FROM import_control WHERE control_id=import_id;
 
-	-- first delete all old interfaces belonging to the current management:
-	DELETE FROM gw_interface WHERE routing_device IN 
-        (SELECT dev_id FROM device LEFT JOIN management ON (device.mgm_id=management.mgm_id AND management.mgm_id=i_mgm_id));
+        -- first delete all old interfaces belonging to the current management:
+        DELETE FROM gw_interface WHERE routing_device IN 
+            (SELECT dev_id FROM device LEFT JOIN management ON (device.mgm_id=management.mgm_id AND management.mgm_id=i_mgm_id));
 
-	-- first delete all old routes belonging to the current management:
-	DELETE FROM gw_route WHERE routing_device IN 
-        (SELECT dev_id FROM device LEFT JOIN management ON (device.mgm_id=management.mgm_id AND management.mgm_id=i_mgm_id));
-
+        -- first delete all old routes belonging to the current management:
+        DELETE FROM gw_route WHERE routing_device IN 
+            (SELECT dev_id FROM device LEFT JOIN management ON (device.mgm_id=management.mgm_id AND management.mgm_id=i_mgm_id));
+    END IF;
 	-- now re-insert the currently found interfaces: 
     INSERT INTO gw_interface SELECT * FROM jsonb_populate_recordset(NULL::gw_interface, NEW.config -> 'interfaces');
 

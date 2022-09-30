@@ -581,6 +581,7 @@ Create table "import_control"
 CREATE TABLE IF NOT EXISTS "import_config" (
     "import_id" bigint NOT NULL,
     "mgm_id" integer NOT NULL,
+    "chunk_number" integer,
     "config" jsonb NOT NULL,
 	"start_import_flag" Boolean NOT NULL Default FALSE,
 	"debug_mode" Boolean Default FALSE

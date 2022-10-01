@@ -19,6 +19,7 @@
                     <label for="assignedGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("assign_to")):</label>
                     <div class="col-sm-8">
                         <select id="assignedGroup" class="form-control-sm col-sm" @bind="StatefulObject.AssignedGroup">
+                            <option value="">-</option>
                             @foreach (var group in userAndGroupList)
                             {
                                 <option value="@group.Dn">@(group.Name)</option>

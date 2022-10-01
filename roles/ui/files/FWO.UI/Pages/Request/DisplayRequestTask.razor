@@ -113,7 +113,7 @@
                             </div>
                         </div>
                     </div>
-                    @if(ReqHandler.ActReqTask.TaskType == TaskType.access.ToString() || ReqHandler.ActReqTask.TaskType == TaskType.group.ToString())
+                    @if(ReqHandler.ActReqTask.TaskType == TaskType.access.ToString())
                     {
                         <div class="col-sm-3">
                             <div class="form-group row">
@@ -233,7 +233,7 @@
                     <DisplayAccessElements @bind-Sources="actSources" @bind-Destinations="actDestinations" @bind-Services="actServices" 
                         TaskId="ReqHandler.ActReqTask.Id" EditMode="ReqHandler.EditReqTaskMode"></DisplayAccessElements>
                 }
-                else if(ReqHandler.ActReqTask.TaskType == TaskType.group.ToString())
+                else if(ReqHandler.ActReqTask.TaskType == TaskType.group_create.ToString())
                 {
 
                 }

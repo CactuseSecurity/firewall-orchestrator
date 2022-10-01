@@ -22,7 +22,7 @@
             <select class="form-control form-control-sm" @bind="taskType">
                 @foreach (TaskType type in Enum.GetValues(typeof(TaskType)))
                 {
-                    <option value="@type">@(Enum.GetName(typeof(TaskType), type))</option>
+                    <option value="@type">@(userConfig.GetText(Enum.GetName(typeof(TaskType), type)))</option>
                 }
             </select>
         </div>
@@ -355,7 +355,9 @@ else
                 TaskType.master => "reqMasterStateMatrix",
                 TaskType.generic => "reqGenStateMatrix",
                 TaskType.access => "reqAccStateMatrix",
-                TaskType.group => "reqGrpStateMatrix",
+                TaskType.group_create => "reqGrpCreStateMatrix",
+                TaskType.group_modify => "reqGrpModStateMatrix",
+                TaskType.group_delete => "reqGrpDelStateMatrix",
                 _ => throw new Exception($"Error: wrong task type:" + taskType.ToString()),
             };
 

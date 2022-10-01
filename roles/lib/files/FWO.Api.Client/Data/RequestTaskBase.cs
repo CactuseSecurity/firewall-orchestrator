@@ -5,13 +5,14 @@ namespace FWO.Api.Data
 {
     public enum TaskType
     {
-        master,
-        generic,
-        access, 
-        group, // obj_group / obj_group_create, obj_group_modify, obj_group_delete  ??
-        //svc_group, own task type or just group??
+        master = 0,
+        generic = 1,
+        access = 2, 
         //rule_delete,
-        //rule_modify
+        //rule_modify,
+        group_create = 5,
+        group_modify = 6,
+        group_delete = 7
     }
 
     public enum RequestAction

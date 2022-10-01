@@ -18,7 +18,7 @@
                     <Column TableItem="RequestApproval" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                         <Template>
                             <div class="btn-group">
-                                @if(context.ApproverDn == null || context.ApproverDn == "")
+                                @if((context.ApproverDn == null || context.ApproverDn == "") && !ReqHandler.AddTicketMode)
                                 {
                                     <button class="btn btn-sm btn-success" @onclick:preventDefault @onclick="() => InitAddComment(context)">@(userConfig.GetText("add_comment"))</button>
                                     <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignApproval(context)">@(userConfig.GetText("assign"))</button>
@@ -60,7 +60,7 @@
     </Footer>
 </PopUp>
 
-<AssignObject @bind-Display="ReqHandler.DisplayAssignApprovalMode" ResetParent="Reset" StatefulObject="ReqHandler.ActApproval" Assign="ReqHandler.AssignApprovalGroup" ObjectName=""/>
+<AssignObject @bind-Display="ReqHandler.DisplayAssignApprovalMode" ResetParent="Reset" StatefulObject="ReqHandler.ActApproval" Assign="ReqHandler.AssignApprovalGroup" ObjectName="" Role="approver"/>
 <CommentObject @bind-Display="ReqHandler.DisplayCommentMode" ResetParent="Reset" ObjectName="" Save="ConfAddComment"/>
 
 @code

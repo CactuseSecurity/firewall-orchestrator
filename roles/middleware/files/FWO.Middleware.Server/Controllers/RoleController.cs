@@ -21,7 +21,7 @@ namespace FWO.Middleware.Controllers
 
         // GET: api/<ValuesController>
         [HttpGet]
-        [Authorize(Roles = "admin, auditor")]
+        [Authorize(Roles = "admin, auditor, fw-admin, requester, approver, planner, implementer, reviewer")]
         public async Task<List<RoleGetReturnParameters>> Get()
         {
             // No parameters

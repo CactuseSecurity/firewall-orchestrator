@@ -95,7 +95,7 @@
 }
 
 <DisplayImplementationTask Phase="Phase" ReqHandler="ReqHandler" ResetParent="Reset" StateMatrix="ReqHandler.ActStateMatrix" States="States"></DisplayImplementationTask>
-<AssignObject @bind-Display="ReqHandler.DisplayAssignMode" ResetParent="Reset" StatefulObject="ReqHandler.ActImplTask" Assign="ReqHandler.AssignImplTaskGroup" AssignBack="ReqHandler.AssignImplTaskBack" ObjectName="@ReqHandler.ActImplTask.Title"/>
+<AssignObject @bind-Display="ReqHandler.DisplayAssignMode" ResetParent="Reset" StatefulObject="ReqHandler.ActImplTask" Assign="ReqHandler.AssignImplTaskGroup" AssignBack="ReqHandler.AssignImplTaskBack" ObjectName="@ReqHandler.ActImplTask.Title" Role="implementer"/>
 <DeleteObject @bind-Display="ReqHandler.DisplayDeleteMode" ResetParent="Reset" Delete="ReqHandler.ConfDeleteImplTask" ObjectName="@(ReqHandler.ActImplTask.Title)"/>
 <DisplayApprovals @bind-Display="ReqHandler.DisplayApprovalMode" ReqHandler="ReqHandler" ResetParent="Reset" Approvals="ReqHandler.ActReqTask.Approvals" States="States"/>
 

@@ -28,7 +28,7 @@
                     @if(userAndGroupList.Count > 0)
                     {
                         <div class="col-sm-2">
-                            <AuthorizeView Roles="admin">
+                            <AuthorizeView Roles="admin, fw-admin, requester, approver, planner, implementer, reviewer">
                                 <Authorized>
                                     <button class="btn btn-sm btn-success" @onclick="async () => { await Assign(StatefulObject); await Close();}" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                                 </Authorized>
@@ -44,7 +44,7 @@
                     <form class="form-group row">
                         <label for="backAsssignedGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("back_to")):</label>
                         <label id="backAsssignedGroup" class="col-sm-8">@StatefulObject.RecentHandler.Name</label>
-                        <AuthorizeView Roles="admin">
+                        <AuthorizeView Roles="admin, fw-admin, requester, approver, planner, implementer, reviewer">
                             <Authorized>
                                 <button class="btn btn-sm btn-success" @onclick="async () => { await AssignBack(); await Close();}" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                             </Authorized>
@@ -91,6 +91,9 @@
     [Parameter]
     public string ObjectName { get; set; } = "";
 
+    [Parameter]
+    public string Role { get; set; } = "";
+
 
     private List<UiUser> userAndGroupList = new List<UiUser>();
 
@@ -99,7 +102,7 @@
     {
         try
         {
-            userAndGroupList = await RoleAccess.GetRoleMembers(middlewareClient, "reporter");
+            userAndGroupList = await RoleAccess.GetRoleMembers(middlewareClient, Role);
         }
         catch (Exception exception)
         {

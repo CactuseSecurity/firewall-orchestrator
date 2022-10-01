@@ -58,40 +58,40 @@
         </Table>
     </div>
 
-    <PopUp Title="@(userConfig.GetText("edit_owner"))" Show="@EditOwnerMode" OnClose="() => EditOwnerMode = false">
+    <PopUp Title="@(userConfig.GetText("edit_owner"))" Show="@EditOwnerMode" Large="true" OnClose="() => EditOwnerMode = false">
         <Body>
             @if (EditOwnerMode)
             {
                 <div class="col-sm-12">
                     <div class="form-group row">
-                        <div class="col-sm-3">
+                        <div class="col-sm-2">
                             <div class="form-group row">
                                 <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
                                 <label class="col-sm-6 col-form-label col-form-label-sm">@(actOwner.Id)</label>
                             </div>
                         </div>
-                        <div class="col-sm-9">
+                        <div class="col-sm-10">
                             <div class="form-group row">
-                                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
-                                <input type="text" class=" col-sm-9 form-control form-control-sm" @bind="actOwner.Name" />
+                                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                                <input type="text" class=" col-sm-10 form-control form-control-sm" @bind="actOwner.Name" />
                             </div>
                         </div>
                     </div>
                     <div class="form-group row">
-                        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("dn"))*:</label>
-                        <div class="col-sm-8">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("dn"))*:</label>
+                        <div class="col-sm-9">
                             <input type="text" class="form-control form-control-sm" @bind="actOwner.Dn" />
                         </div>
                     </div>
                     <div class="form-group row">
-                        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("group"))*:</label>
-                        <div class="col-sm-8">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("group"))*:</label>
+                        <div class="col-sm-9">
                             <input type="text" class="form-control form-control-sm" @bind="actOwner.GroupDn" />
                         </div>
                     </div>
                     <div class="form-group row">
-                        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("ext_app_id"))*:</label>
-                        <div class="col-sm-8">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_app_id"))*:</label>
+                        <div class="col-sm-9">
                             <input type="text" class="form-control form-control-sm" @bind="actOwner.ExtAppId" />
                         </div>
                     </div>
@@ -100,7 +100,7 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                <AuthorizeView Roles="admin, fw-admin">
+                <AuthorizeView Roles="admin">
                     <Authorized>
                         <button class="btn btn-sm btn-primary" @onclick="SaveOwner">@(userConfig.GetText("save"))</button>
                     </Authorized>

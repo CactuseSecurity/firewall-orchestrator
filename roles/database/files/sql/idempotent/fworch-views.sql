@@ -579,69 +579,6 @@ Create index IF NOT EXISTS idx_view_tenant_rules_tenant_id on view_tenant_rules(
 Create index IF NOT EXISTS idx_view_tenant_rules_mgm_id on view_tenant_rules(mgm_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_view_tenant_rules_unique ON view_tenant_rules(rule_id, tenant_id);
 
-
-
-CREATE OR REPLACE FUNCTION public.refresh_view_tenant_rule_tos()
- RETURNS trigger
- LANGUAGE plpgsql
-AS $function$
-BEGIN
-    REFRESH MATERIALIZED VIEW CONCURRENTLY view_tenant_rule_tos;
-    RETURN null;
-END $function$;
-
-CREATE TRIGGER refresh_view_tenant_rule_tos
-AFTER INSERT OR UPDATE OR DELETE OR TRUNCATE
-ON rule_to FOR EACH STATEMENT
-EXECUTE FUNCTION refresh_view_tenant_rule_tos();
-
-CREATE TRIGGER refresh_view_tenant_rule_tos
-AFTER INSERT OR UPDATE OR DELETE OR TRUNCATE
-ON tenant_network FOR EACH STATEMENT
-EXECUTE FUNCTION refresh_view_tenant_rule_tos();
-
-
-
-CREATE OR REPLACE FUNCTION public.refresh_view_tenant_rule_froms()
- RETURNS trigger
- LANGUAGE plpgsql
-AS $function$
-BEGIN
-    REFRESH MATERIALIZED VIEW CONCURRENTLY view_tenant_rule_froms;
-    RETURN null;
-END $function$;
-
-CREATE TRIGGER refresh_view_tenant_rule_froms
-AFTER INSERT OR UPDATE OR DELETE OR TRUNCATE
-ON rule_from FOR EACH STATEMENT
-EXECUTE FUNCTION refresh_view_tenant_rule_froms();
-
-CREATE TRIGGER refresh_view_tenant_rule_froms
-AFTER INSERT OR UPDATE OR DELETE OR TRUNCATE
-ON tenant_network FOR EACH STATEMENT
-EXECUTE FUNCTION refresh_view_tenant_rule_froms();
-
-
-
-CREATE OR REPLACE FUNCTION public.refresh_view_tenant_rules()
- RETURNS trigger
- LANGUAGE plpgsql
-AS $function$
-BEGIN
-    REFRESH MATERIALIZED VIEW CONCURRENTLY view_tenant_rules;
-    RETURN null;
-END $function$;
-
-CREATE TRIGGER refresh_view_tenant_rules
-AFTER INSERT OR UPDATE OR DELETE OR TRUNCATE
-ON rule FOR EACH STATEMENT
-EXECUTE FUNCTION refresh_view_tenant_rules();
-
-CREATE TRIGGER refresh_view_tenant_rules
-AFTER INSERT OR UPDATE OR DELETE OR TRUNCATE
-ON tenant_network FOR EACH STATEMENT
-EXECUTE FUNCTION refresh_view_tenant_rules();
-
 /*
 
 	query filterRulesByTenant($importId: bigint) {

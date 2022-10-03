@@ -107,20 +107,27 @@ RETURNS SETOF rule_from AS $$
     BEGIN
         t_id := (hasura_session ->> 'x-hasura-tenant-id')::integer;
 
-        FOR rule_to_obj IN
-            SELECT rt.*, tenant_network.tenant_id
-            FROM rule_to rt
-                LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat_id)
-                LEFT JOIN object ON (objgrp_flat_member_id=object.obj_id)
-                LEFT JOIN tenant_network ON
-                    (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip)
-            WHERE rule_id = rule.rule_id
-        LOOP
-            IF rule_to_obj.tenant_id = t_id THEN
-                show_all := true;
-                EXIT;
-            END IF;
-        END LOOP;
+        IF t_id IS NULL THEN
+            RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
+        ELSIF t_id = 1 THEN
+            show_all := true;
+        ELSE
+            FOR rule_to_obj IN
+                SELECT rt.*, tenant_network.tenant_id
+                FROM rule_to rt
+                    LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat_id)
+                    LEFT JOIN object ON (objgrp_flat_member_id=object.obj_id)
+                    LEFT JOIN tenant_network ON
+                        (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip)
+                WHERE rule_id = rule.rule_id
+            LOOP
+                IF rule_to_obj.tenant_id = t_id THEN
+                    show_all := true;
+                    EXIT;
+                END IF;
+            END LOOP;
+        END IF;
+
 
         IF show_all THEN
             RETURN QUERY SELECT *
@@ -148,26 +155,26 @@ RETURNS SETOF rule_to AS $$
     BEGIN
         t_id := (hasura_session ->> 'x-hasura-tenant-id')::integer;
 
-        --IF 'admin' = ANY (hasura_session ->> 'x-hasura-allowed-roles') THEN
-        --    RETURN QUERY SELECT *
-        --        FROM rule_to
-        --        WHERE rule_id = rule.rule_id;
-        --END IF;
-
-        FOR rule_from_obj IN
-            SELECT rf.*, tenant_network.tenant_id
-            FROM rule_from rf
-                LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat_id)
-                LEFT JOIN object ON (objgrp_flat_member_id=object.obj_id)
-                LEFT JOIN tenant_network ON
-                    (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip)
-            WHERE rule_id = rule.rule_id
-        LOOP
-            IF rule_from_obj.tenant_id = t_id THEN
-                show_all := true;
-                EXIT;
-            END IF;
-        END LOOP;
+        IF t_id IS NULL THEN
+            RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
+        ELSIF t_id = 1 THEN
+            show_all := true;
+        ELSE
+            FOR rule_from_obj IN
+                SELECT rf.*, tenant_network.tenant_id
+                FROM rule_from rf
+                    LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat_id)
+                    LEFT JOIN object ON (objgrp_flat_member_id=object.obj_id)
+                    LEFT JOIN tenant_network ON
+                        (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip)
+                WHERE rule_id = rule.rule_id
+            LOOP
+                IF rule_from_obj.tenant_id = t_id THEN
+                    show_all := true;
+                    EXIT;
+                END IF;
+            END LOOP;
+        END IF;
 
         IF show_all THEN
             RETURN QUERY SELECT *
@@ -200,15 +207,21 @@ RETURNS SETOF rule_from AS $$
             RETURN;
         END IF;
 
-        FOR rule_to_obj IN SELECT rule_to_id, tenant_id
-            FROM view_tenant_rule_tos
-            WHERE rule_id = rule.rule_id
-        LOOP
-            IF rule_to_obj.tenant_id = t_id THEN
-                show_all := true;
-                EXIT;
-            END IF;
-        END LOOP;
+        IF t_id IS NULL THEN
+            RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
+        ELSIF t_id = 1 THEN
+            show_all := true;
+        ELSE
+            FOR rule_to_obj IN SELECT rule_to_id, tenant_id
+                FROM view_tenant_rule_tos
+                WHERE rule_id = rule.rule_id
+            LOOP
+                IF rule_to_obj.tenant_id = t_id THEN
+                    show_all := true;
+                    EXIT;
+                END IF;
+            END LOOP;
+        END IF;
 
         IF show_all THEN
             RETURN QUERY SELECT rule_from_id, rule_id, obj_id, user_id, active, negated, rf_create, rf_last_seen
@@ -237,15 +250,21 @@ RETURNS SETOF rule_to AS $$
             RETURN;
         END IF;
 
-        FOR rule_from_obj IN SELECT rule_from_id, tenant_id
-            FROM view_tenant_rule_froms
-            WHERE rule_id = rule.rule_id
-        LOOP
-            IF rule_from_obj.tenant_id = t_id THEN
-                show_all := true;
-                EXIT;
-            END IF;
-        END LOOP;
+        IF t_id IS NULL THEN
+            RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
+        ELSIF t_id = 1 THEN
+            show_all := true;
+        ELSE
+            FOR rule_from_obj IN SELECT rule_from_id, tenant_id
+                FROM view_tenant_rule_froms
+                WHERE rule_id = rule.rule_id
+            LOOP
+                IF rule_from_obj.tenant_id = t_id THEN
+                    show_all := true;
+                    EXIT;
+                END IF;
+            END LOOP;
+        END IF;
 
         IF show_all THEN
             RETURN QUERY SELECT rule_to_id, rule_id, obj_id, user_id, rt_create, rt_last_seen, active, negated

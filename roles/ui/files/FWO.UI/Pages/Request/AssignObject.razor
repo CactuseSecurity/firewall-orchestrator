@@ -10,7 +10,7 @@
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("assign") + ": " + ObjectName)" Show="@Display" Large="true" OnClose="() => Display = false">
+<PopUp Title="@(userConfig.GetText("assign") + ": " + ObjectName)" Show="@Display" Large="true" OnClose="async () => await Close()">
     <Body>
         @if (Display)
         {
@@ -60,7 +60,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            <button class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -109,11 +109,6 @@
         {
             DisplayMessageInUi!(exception, userConfig.GetText("fetch_requests"), "", true);
         }
-    }
-
-    private void Cancel()
-    {
-        Display = false;
     }
 
     private async Task Close()

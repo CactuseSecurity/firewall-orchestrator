@@ -87,11 +87,6 @@
     public RequestStateDict States { get; set; } = new RequestStateDict();
 
 
-    private void Cancel()
-    {
-        Display = false;
-    }
-
     private async Task Close()
     {
         Display = false;
@@ -100,6 +95,7 @@
 
     private async Task Reset()
     {
+        ReqHandler.ResetApprovalActions();
         StateHasChanged();
     }
 

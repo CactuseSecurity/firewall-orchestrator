@@ -310,11 +310,6 @@
         await ResetParent();
     }
 
-    private async Task Reset()
-    {
-        StateHasChanged();
-    }
-
     private async Task PerformAction(RequestStateAction action)
     {
         await ReqHandler.ActionHandler.performAction(action, ReqHandler.ActImplTask, RequestObjectScopes.ImplementationTask);

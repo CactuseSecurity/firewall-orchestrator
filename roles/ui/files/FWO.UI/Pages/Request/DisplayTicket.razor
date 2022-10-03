@@ -89,17 +89,14 @@
                     </div>
                 </div>
 
-                @if(ReqHandler.EditTicketMode)
-                {
-                    <div class="col-sm-12">
-                        <div class="form-group row justify-content-center">
-                            @foreach(var action in offeredActions)
-                            {
-                                <button class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
-                            }
-                        </div>
+                <div class="col-sm-12">
+                    <div class="form-group row justify-content-center">
+                        @foreach(var action in offeredActions)
+                        {
+                            <button class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
+                        }
                     </div>
-                }
+                </div>
 
                 @if(Phase < WorkflowPhases.implementation)
                 {
@@ -198,10 +195,7 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (ReqHandler.DisplayReqTaskMode)
-        {
-            offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActTicket, RequestObjectScopes.Ticket, ReqHandler.Phase);
-        }
+        await Reset(); 
     }
 
     private async Task Close()
@@ -211,6 +205,10 @@
 
     private async Task Reset()
     {
+        if (ReqHandler.DisplayTicketMode)
+        {
+            offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActTicket, RequestObjectScopes.Ticket, ReqHandler.Phase);
+        }
         StateHasChanged();
     }
 
@@ -235,6 +233,7 @@
     private async Task PerformAction(RequestStateAction action)
     {
         await ReqHandler.ActionHandler.performAction(action, ReqHandler.ActTicket, RequestObjectScopes.Ticket);
+        await ResetParent();
     }
 
     private bool CheckPromoteTicket()

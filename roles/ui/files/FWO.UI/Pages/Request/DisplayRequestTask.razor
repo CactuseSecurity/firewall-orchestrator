@@ -379,7 +379,7 @@
         {
             InitElements();
             await InitComments();
-            offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActReqTask, RequestObjectScopes.RequestTask, ReqHandler.Phase);
+            await Reset();
         }
     }
 
@@ -402,12 +402,14 @@
 
     private async Task Reset()
     {
+        offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActReqTask, RequestObjectScopes.RequestTask, ReqHandler.Phase);
         StateHasChanged();
     }
 
     private async Task PerformAction(RequestStateAction action)
     {
         await ReqHandler.ActionHandler.performAction(action, ReqHandler.ActReqTask, RequestObjectScopes.RequestTask);
+        await Reset();
     }
 
     private async Task InitPromoteReqTask()

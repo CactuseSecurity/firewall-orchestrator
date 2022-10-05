@@ -9,7 +9,7 @@ import json, requests, requests.packages
 from datetime import datetime
 import jsonpickle
 
-def has_config_changed(_, __, ___):
+def has_config_changed(_, __, force=False):
     return True
 
 

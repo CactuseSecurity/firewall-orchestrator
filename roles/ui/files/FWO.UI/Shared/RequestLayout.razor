@@ -18,6 +18,13 @@
                 <li class="nav-item px-2">
                     <h5>@(userConfig.GetText("requests"))</h5>
                 </li>
+                <AuthorizeView Roles="admin, auditor, fw-admin">
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="request/ticketsoverview">
+                            <span class="oi oi-comment-square"></span> @(userConfig.GetText("tickets"))
+                        </NavLink>
+                    </li>
+                </AuthorizeView>
                 @if(stateMatrix.PhaseActive[WorkflowPhases.request])
                 {
                     <AuthorizeView Roles="admin, requester, auditor, fw-admin">

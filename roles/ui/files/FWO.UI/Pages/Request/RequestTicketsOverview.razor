@@ -3,13 +3,13 @@
 @using FWO.Config.Api
 @using FWO.Ui.Services
 
-@page "/request/tickets"
-@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
+@page "/request/ticketsoverview"
+@attribute [Authorize(Roles = "admin, auditor, fw-admin")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<h3>@(userConfig.GetText("create_ticket"))</h3>
+<h3>@(userConfig.GetText("all_readonly"))</h3>
 <hr />
 
 @if(InitComplete)
@@ -45,7 +45,7 @@
 
     private async Task Reset()
     {
-        reqHandler.ReadOnlyMode = false;
-        await reqHandler.Init();
+        reqHandler.ReadOnlyMode = true;
+        await reqHandler.Init(1);
     }
 }

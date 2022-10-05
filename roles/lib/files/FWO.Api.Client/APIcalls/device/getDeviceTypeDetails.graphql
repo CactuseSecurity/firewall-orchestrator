@@ -4,6 +4,7 @@ query getDeviceTypeDetails {
       name: dev_typ_name
       version: dev_typ_version
       manufacturer: dev_typ_manufacturer
+      isPureRoutingDevice: is_pure_routing_device
       predefinedObjects: dev_typ_predef_obj
     }
 }

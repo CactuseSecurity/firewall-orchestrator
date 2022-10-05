@@ -514,6 +514,7 @@ Create table "stm_dev_typ"
 	"dev_typ_config_file_basic_objects" Varchar,
 	"dev_typ_config_file_users" Varchar,
 	"dev_typ_is_multi_mgmt" Boolean Default FALSE,
+	"is_pure_routing_device" Boolean Default FALSE,
  primary key ("dev_typ_id")
 );
 

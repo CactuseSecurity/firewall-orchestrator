@@ -1319,6 +1319,30 @@
                   }
                 },
                 {
+                  "name": "gw_interfaces",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "routing_device",
+                      "table": {
+                        "name": "gw_interface",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "gw_routes",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "routing_device",
+                      "table": {
+                        "name": "gw_route",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "objects",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -1745,6 +1769,28 @@
                 "name": "gw_interface",
                 "schema": "public"
               },
+              "object_relationships": [
+                {
+                  "name": "device",
+                  "using": {
+                    "foreign_key_constraint_on": "routing_device"
+                  }
+                }
+              ],
+              "array_relationships": [
+                {
+                  "name": "gw_routes",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "interface_id",
+                      "table": {
+                        "name": "gw_route",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                }
+              ],
               "insert_permissions": [
                 {
                   "role": "importer",
@@ -1813,6 +1859,20 @@
                 "name": "gw_route",
                 "schema": "public"
               },
+              "object_relationships": [
+                {
+                  "name": "device",
+                  "using": {
+                    "foreign_key_constraint_on": "routing_device"
+                  }
+                },
+                {
+                  "name": "gw_interface",
+                  "using": {
+                    "foreign_key_constraint_on": "interface_id"
+                  }
+                }
+              ],
               "insert_permissions": [
                 {
                   "role": "importer",
@@ -9470,20 +9530,22 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "dev_typ_comment",
+                      "dev_typ_is_mgmt",
+                      "dev_typ_is_multi_mgmt",
+                      "is_pure_routing_device",
                       "dev_typ_config_file_basic_objects",
                       "dev_typ_config_file_rules",
                       "dev_typ_config_file_users",
-                      "dev_typ_id",
-                      "dev_typ_is_mgmt",
-                      "dev_typ_is_multi_mgmt",
                       "dev_typ_manufacturer",
                       "dev_typ_name",
+                      "dev_typ_version",
+                      "dev_typ_id",
+                      "dev_typ_comment",
                       "dev_typ_predef_obj",
-                      "dev_typ_predef_svc",
-                      "dev_typ_version"
+                      "dev_typ_predef_svc"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 },
                 {
@@ -9492,6 +9554,7 @@
                     "columns": [
                       "dev_typ_is_mgmt",
                       "dev_typ_is_multi_mgmt",
+                      "is_pure_routing_device",
                       "dev_typ_config_file_basic_objects",
                       "dev_typ_config_file_rules",
                       "dev_typ_config_file_users",
@@ -9511,29 +9574,9 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
-                      "dev_typ_comment",
-                      "dev_typ_config_file_basic_objects",
-                      "dev_typ_config_file_rules",
-                      "dev_typ_config_file_users",
-                      "dev_typ_id",
                       "dev_typ_is_mgmt",
                       "dev_typ_is_multi_mgmt",
-                      "dev_typ_manufacturer",
-                      "dev_typ_name",
-                      "dev_typ_predef_obj",
-                      "dev_typ_predef_svc",
-                      "dev_typ_version"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
-                  }
-                },
-                {
-                  "role": "middleware-server",
-                  "permission": {
-                    "columns": [
-                      "dev_typ_is_mgmt",
-                      "dev_typ_is_multi_mgmt",
+                      "is_pure_routing_device",
                       "dev_typ_config_file_basic_objects",
                       "dev_typ_config_file_rules",
                       "dev_typ_config_file_users",
@@ -9545,65 +9588,93 @@
                       "dev_typ_predef_obj",
                       "dev_typ_predef_svc"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "dev_typ_is_mgmt",
+                      "dev_typ_is_multi_mgmt",
+                      "is_pure_routing_device",
+                      "dev_typ_config_file_basic_objects",
+                      "dev_typ_config_file_rules",
+                      "dev_typ_config_file_users",
+                      "dev_typ_manufacturer",
+                      "dev_typ_name",
+                      "dev_typ_version",
+                      "dev_typ_id",
+                      "dev_typ_comment",
+                      "dev_typ_predef_obj",
+                      "dev_typ_predef_svc"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 },
                 {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
-                      "dev_typ_comment",
+                      "dev_typ_is_mgmt",
+                      "dev_typ_is_multi_mgmt",
+                      "is_pure_routing_device",
                       "dev_typ_config_file_basic_objects",
                       "dev_typ_config_file_rules",
                       "dev_typ_config_file_users",
-                      "dev_typ_id",
-                      "dev_typ_is_mgmt",
-                      "dev_typ_is_multi_mgmt",
                       "dev_typ_manufacturer",
                       "dev_typ_name",
+                      "dev_typ_version",
+                      "dev_typ_id",
+                      "dev_typ_comment",
                       "dev_typ_predef_obj",
-                      "dev_typ_predef_svc",
-                      "dev_typ_version"
+                      "dev_typ_predef_svc"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 },
                 {
                   "role": "reporter",
                   "permission": {
                     "columns": [
-                      "dev_typ_comment",
+                      "dev_typ_is_mgmt",
+                      "dev_typ_is_multi_mgmt",
+                      "is_pure_routing_device",
                       "dev_typ_config_file_basic_objects",
                       "dev_typ_config_file_rules",
                       "dev_typ_config_file_users",
-                      "dev_typ_id",
-                      "dev_typ_is_mgmt",
-                      "dev_typ_is_multi_mgmt",
                       "dev_typ_manufacturer",
                       "dev_typ_name",
+                      "dev_typ_version",
+                      "dev_typ_id",
+                      "dev_typ_comment",
                       "dev_typ_predef_obj",
-                      "dev_typ_predef_svc",
-                      "dev_typ_version"
+                      "dev_typ_predef_svc"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 },
                 {
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
-                      "dev_typ_comment",
+                      "dev_typ_is_mgmt",
+                      "dev_typ_is_multi_mgmt",
+                      "is_pure_routing_device",
                       "dev_typ_config_file_basic_objects",
                       "dev_typ_config_file_rules",
                       "dev_typ_config_file_users",
-                      "dev_typ_id",
-                      "dev_typ_is_mgmt",
-                      "dev_typ_is_multi_mgmt",
                       "dev_typ_manufacturer",
                       "dev_typ_name",
+                      "dev_typ_version",
+                      "dev_typ_id",
+                      "dev_typ_comment",
                       "dev_typ_predef_obj",
-                      "dev_typ_predef_svc",
-                      "dev_typ_version"
+                      "dev_typ_predef_svc"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -12752,6 +12823,6 @@
           }
         }
       ]
-    }  
+    }    
   }
 }

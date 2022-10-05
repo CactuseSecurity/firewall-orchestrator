@@ -8,6 +8,7 @@ fragment deviceDetails on device
       name: dev_typ_name
       version: dev_typ_version
       manufacturer: dev_typ_manufacturer
+      isPureRoutingDevice: is_pure_routing_device
     }
     management {
       id: mgm_id
@@ -20,8 +21,6 @@ fragment deviceDetails on device
     importDisabled: do_not_import
     forceInitialImport: force_initial_import
     hideInUi: hide_in_gui
-    # createDate: (only display this)
     creationDate: dev_create
-    # updateDate: (only display this)
     updateDate: dev_update
 }

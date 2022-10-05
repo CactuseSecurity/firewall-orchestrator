@@ -205,7 +205,6 @@
     private bool DeleteMode = false;
     private bool AddMode = false;
 
-    private Device newDevice = new Device();
     private Device actDevice = new Device();
     private bool workInProgress = false;
 
@@ -260,10 +259,10 @@
     private void Add()
     {
         AddMode = true;
-        newDevice = new Device()
+        Device newDevice = new Device()
         {
-            DeviceType = new DeviceType { Id = deviceTypes.First().Id },
-            Management = new Management { Id = managements.First().Id, DeviceType = new DeviceType { Id = deviceTypes.First().Id } }
+            DeviceType = deviceTypes.First(),
+            Management = new Management { Id = managements.First().Id, DeviceType = deviceTypes.First() }
         };
         Edit(newDevice);
     }
@@ -271,7 +270,7 @@
     private void Clone(Device device)
     {
         AddMode = true;
-        newDevice = new Device(device);
+        Device newDevice = new Device(device);
         newDevice.Id = 0;
         Edit(newDevice);
     }
@@ -335,12 +334,6 @@
                     EditMode = (udId == actDevice.Id ? false : true);
                     devices[devices.FindIndex(x => x.Id == actDevice.Id)] = actDevice;
                 }
-                // update actDevice for immediate display
-                DeviceType? devtype = deviceTypes.FirstOrDefault(x => x.Id == actDevice.DeviceType.Id) ?? throw new Exception("Unknown Device type");
-                actDevice.DeviceType.Name = devtype.Name;
-                actDevice.DeviceType.Version = devtype.Version;
-                Management? mgmt = managements.Find(x => x.Id == actDevice.Management.Id) ?? throw new Exception("Unknown Management");
-                actDevice.Management.Name = mgmt.Name;
             }
         }
         catch (Exception exception)
@@ -351,7 +344,7 @@
 
     private bool CheckValues()
     {
-        if (string.IsNullOrEmpty(actDevice.Name) || (actDevice.DeviceType.Manufacturer != "Cisco" && string.IsNullOrEmpty(actDevice.LocalRulebase)))
+        if (string.IsNullOrEmpty(actDevice.Name) || (actDevice.DeviceType.Manufacturer != "Cisco" && actDevice.DeviceType.Manufacturer != "DummyRouter" && string.IsNullOrEmpty(actDevice.LocalRulebase)))
         {
             DisplayMessageInUi!(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5102"), true);
             return false;

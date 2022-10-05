@@ -188,7 +188,7 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0,
                     # logger.exception("import_management - error while reading json import from file", traceback.format_exc())
                     error_string = "Could not read config file " + in_file
                     error_count += 1
-                    error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count)
+                    error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)
                     raise ConfigFileNotFound(error_string) from None
 
             # note: we need to run get_config in any case (even when importing from a file) as this function 

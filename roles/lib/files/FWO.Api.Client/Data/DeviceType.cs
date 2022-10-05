@@ -21,6 +21,9 @@ namespace FWO.Api.Data
         [JsonProperty("manufacturer"), JsonPropertyName("manufacturer")]
         public string Manufacturer { get; set; } = "";
 
+        [JsonProperty("is_pure_routing_device"), JsonPropertyName("is_pure_routing_device")]
+        public string IsPureRoutingDevice { get; set; }
+
         // [JsonProperty("predefinedObjects"), JsonPropertyName("predefinedObjects")]
         // public ??? PredefinedObjects { get; set; }
 
@@ -68,6 +71,7 @@ namespace FWO.Api.Data
             Name = deviceType.Name;
             Version = deviceType.Version;
             Manufacturer = deviceType.Manufacturer;
+            IsPureRoutingDevice = deviceType.IsPureRoutingDevice;
         }
 
         public string NameVersion()

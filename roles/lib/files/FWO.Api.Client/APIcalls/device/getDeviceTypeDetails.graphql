@@ -1,10 +1,5 @@
 query getDeviceTypeDetails {
   deviceType: stm_dev_typ(order_by: {dev_typ_name: asc, dev_typ_version:asc}) {
-      id: dev_typ_id
-      name: dev_typ_name
-      version: dev_typ_version
-      manufacturer: dev_typ_manufacturer
-      isPureRoutingDevice: is_pure_routing_device
-      predefinedObjects: dev_typ_predef_obj
+      ...deviceTypeDetails
     }
 }

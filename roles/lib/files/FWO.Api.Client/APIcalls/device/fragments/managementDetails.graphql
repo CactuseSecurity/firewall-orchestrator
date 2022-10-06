@@ -12,14 +12,7 @@ fragment ManagementDetails on management {
     is_key_pair
     id
   }
-  deviceType: stm_dev_typ {
-    id: dev_typ_id
-    name: dev_typ_name
-    version: dev_typ_version
-    manufacturer: dev_typ_manufacturer
-    isPureRoutingDevice: is_pure_routing_device
-  }
-  superManager: multi_device_manager_id
+  deviceType: stm_dev_typ { ...deviceTypeDetails }  superManager: multi_device_manager_id
   configPath: config_path
   importDisabled: do_not_import
   forceInitialImport: force_initial_import

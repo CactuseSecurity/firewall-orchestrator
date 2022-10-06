@@ -24,28 +24,31 @@
                         {
                             <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowApprovals(implTask)">@(userConfig.GetText("approvals"))</button>
                         }
-                        @if (ReqHandler.PlanReqTaskMode && implTask.StateId < ReqHandler.StateMatrix(implTask.TaskType).LowestEndState)
+                        @if (!ReqHandler.ReadOnlyMode)
                         {
-                            <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => EditImplTask(implTask)">@(userConfig.GetText("edit"))</button>
-                            <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteImplTask(implTask)">@(userConfig.GetText("delete"))</button>
-                        }
-                        else if (Phase >= WorkflowPhases.implementation && implTask.StateId >= ReqHandler.StateMatrix(implTask.TaskType).LowestInputState && ReqHandler.ActTicket.StateId >= ReqHandler.MasterStateMatrix.LowestInputState)
-                        {
-                            @if (implTask.StateId < ReqHandler.StateMatrix(implTask.TaskType).LowestStartedState)
+                            @if (ReqHandler.PlanReqTaskMode && implTask.StateId < ReqHandler.StateMatrix(implTask.TaskType).LowestEndState)
                             {
-                                <AuthorizeView Roles="admin, implementer, reviewer, fw-admin">
-                                    <Authorized Context="ctx">
-                                        <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await StartImplPhase(implTask)">@(userConfig.GetText("start_" + Phase.ToString()))</button>
-                                    </Authorized>
-                                    <NotAuthorized Context="ctx">
-                                        <button class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("start_" + Phase.ToString()))</button>
-                                    </NotAuthorized>
-                                </AuthorizeView>
+                                <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => EditImplTask(implTask)">@(userConfig.GetText("edit"))</button>
+                                <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteImplTask(implTask)">@(userConfig.GetText("delete"))</button>
                             }
-                            else if (implTask.StateId < ReqHandler.StateMatrix(implTask.TaskType).LowestEndState)
+                            else if (Phase >= WorkflowPhases.implementation && implTask.StateId >= ReqHandler.StateMatrix(implTask.TaskType).LowestInputState && ReqHandler.ActTicket.StateId >= ReqHandler.MasterStateMatrix.LowestInputState)
                             {
-                                <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await ContinueImplPhase(implTask)">@(userConfig.GetText("continue_" + Phase.ToString()))</button>
-                                <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignImplTask(implTask)">@(userConfig.GetText("assign"))</button>
+                                @if (implTask.StateId < ReqHandler.StateMatrix(implTask.TaskType).LowestStartedState)
+                                {
+                                    <AuthorizeView Roles="admin, implementer, reviewer, fw-admin">
+                                        <Authorized Context="ctx">
+                                            <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await StartImplPhase(implTask)">@(userConfig.GetText("start_" + Phase.ToString()))</button>
+                                        </Authorized>
+                                        <NotAuthorized Context="ctx">
+                                            <button class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("start_" + Phase.ToString()))</button>
+                                        </NotAuthorized>
+                                    </AuthorizeView>
+                                }
+                                else if (implTask.StateId < ReqHandler.StateMatrix(implTask.TaskType).LowestEndState)
+                                {
+                                    <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await ContinueImplPhase(implTask)">@(userConfig.GetText("continue_" + Phase.ToString()))</button>
+                                    <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignImplTask(implTask)">@(userConfig.GetText("assign"))</button>
+                                }
                             }
                         }
                     </div>

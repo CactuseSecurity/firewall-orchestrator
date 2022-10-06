@@ -94,6 +94,19 @@ namespace FWO.Ui.Services
             PrioList = System.Text.Json.JsonSerializer.Deserialize<List<RequestPriority>>(userConfig.ReqPriorities) ?? throw new Exception("Config data could not be parsed.");
         }
 
+        public void FilterForRequester()
+        {
+            List<RequestTicket> filteredTicketList = new List<RequestTicket>();
+            foreach(var ticket in TicketList)
+            {
+                if(userConfig.User.DbId == ticket.Requester?.DbId)
+                {
+                    filteredTicketList.Add(ticket);
+                }
+            }
+            TicketList = filteredTicketList;
+        }
+
         public StateMatrix StateMatrix(string taskType)
         {
             return stateMatrixDict.Matrices[taskType];

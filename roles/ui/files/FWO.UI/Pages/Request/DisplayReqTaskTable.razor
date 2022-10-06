@@ -26,7 +26,7 @@
                             <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => EditReqTask(context)">@(userConfig.GetText("edit"))</button>
                             <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteReqTask(context)">@(userConfig.GetText("delete"))</button>
                         }
-                        @if (Phase > WorkflowPhases.request)
+                        @if (Phase > WorkflowPhases.request && !ReqHandler.ReadOnlyMode)
                         {
                             @if (context.StateId >= ReqHandler.StateMatrix(context.TaskType).LowestInputState && context.StateId < ReqHandler.StateMatrix(context.TaskType).LowestStartedState)
                             {

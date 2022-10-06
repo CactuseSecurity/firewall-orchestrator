@@ -23,6 +23,9 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
     
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
     private RequestHandler reqHandler;
     private RequestStateDict states = new RequestStateDict();
     private bool InitComplete = false;
@@ -35,7 +38,7 @@
             await states.Init(apiConnection);
 
             reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, apiConnection, WorkflowPhases.review){};
-            await reqHandler.Init();
+            await Reset();
             reqHandler.SetContinueEnv(ObjAction.review);
     
             InitComplete = true;
@@ -48,6 +51,7 @@
 
     private async Task Reset()
     {
+        reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole("reviewer") || authenticationStateTask!.Result.User.IsInRole("admin"));
         await reqHandler.Init();
     }
     

@@ -89,14 +89,17 @@
                     </div>
                 </div>
 
-                <div class="col-sm-12">
-                    <div class="form-group row justify-content-center">
-                        @foreach(var action in offeredActions)
-                        {
-                            <button class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
-                        }
+                @if(!ReqHandler.ReadOnlyMode)
+                {
+                    <div class="col-sm-12">
+                        <div class="form-group row justify-content-center">
+                            @foreach(var action in offeredActions)
+                            {
+                                <button class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
+                            }
+                        </div>
                     </div>
-                </div>
+                }
 
                 @if(Phase < WorkflowPhases.implementation)
                 {

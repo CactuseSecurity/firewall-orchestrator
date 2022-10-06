@@ -22,6 +22,9 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
     
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+        
     private RequestHandler reqHandler;
     private RequestStateDict states = new RequestStateDict();
     private bool InitComplete = false;
@@ -45,7 +48,7 @@
 
     private async Task Reset()
     {
-        reqHandler.ReadOnlyMode = false;
+        reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole("requester") || authenticationStateTask!.Result.User.IsInRole("admin"));
         await reqHandler.Init();
     }
 }

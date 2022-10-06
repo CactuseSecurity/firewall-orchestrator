@@ -8,7 +8,7 @@
 
 @page "/monitoring"
 @page "/monitoring/main"
-@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, recertifier, workflow-user, workflow-admin, auditor, fw-admin")]
+@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, recertifier, auditor, fw-admin")]
 
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient

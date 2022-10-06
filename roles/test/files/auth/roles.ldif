@@ -41,18 +41,6 @@ objectClass: groupofuniquenames
 cn: auditor
 description: T0007
 
-dn: cn=workflow-user,ou=role,dc=fworch,dc=internal
-objectClass: top
-objectClass: groupofuniquenames
-cn: workflow-user
-description: T0008
-
-dn: cn=workflow-admin,ou=role,dc=fworch,dc=internal
-objectClass: top
-objectClass: groupofuniquenames
-cn: workflow-admin
-description: T0009
-
 dn: cn=fw-admin,ou=role,dc=fworch,dc=internal
 objectClass: top
 objectClass: groupofuniquenames

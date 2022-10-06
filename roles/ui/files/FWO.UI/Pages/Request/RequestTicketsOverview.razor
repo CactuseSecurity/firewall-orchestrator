@@ -4,7 +4,7 @@
 @using FWO.Ui.Services
 
 @page "/request/ticketsoverview"
-@attribute [Authorize(Roles = "admin, auditor, fw-admin")]
+@attribute [Authorize(Roles = "admin, auditor, fw-admin, requester")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -22,6 +22,9 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
     
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
     private RequestHandler reqHandler;
     private RequestStateDict states = new RequestStateDict();
     private bool InitComplete = false;
@@ -47,5 +50,11 @@
     {
         reqHandler.ReadOnlyMode = true;
         await reqHandler.Init(1);
+
+        // Todo: put filtering into graphql query
+        if(authenticationStateTask!.Result.User.IsInRole("requester") && !(authenticationStateTask!.Result.User.IsInRole("admin") || authenticationStateTask!.Result.User.IsInRole("fw-admin")))
+        {
+            reqHandler.FilterForRequester();
+        }
     }
 }

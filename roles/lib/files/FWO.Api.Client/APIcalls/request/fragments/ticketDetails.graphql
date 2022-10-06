@@ -5,6 +5,7 @@ fragment ticketDetails on request_ticket {
   date_completed
   state_id
   requester: uiuser {
+    uiuser_id
     uiuser_username
   }
   requester_dn

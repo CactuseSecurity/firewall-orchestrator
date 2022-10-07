@@ -1217,6 +1217,8 @@ INSERT INTO txt VALUES ('dn',                   'German',   'Vollst&auml;ndiger 
 INSERT INTO txt VALUES ('dn',                   'English',  'Distinguished Name');
 INSERT INTO txt VALUES ('set_default',          'German',   'als Vorgabewert setzen');
 INSERT INTO txt VALUES ('set_default',          'English',  'Set as Default');
+INSERT INTO txt VALUES ('reset_to_default',     'German',   'auf Vorgabewerte zur&uuml;cksetzen');
+INSERT INTO txt VALUES ('reset_to_default',     'English',  'Reset to Default');
 
 
 -- monitoring
@@ -1529,6 +1531,8 @@ INSERT INTO txt VALUES ('U5316', 'German',  'Definition der Statusmatrizen f&uum
 INSERT INTO txt VALUES ('U5316', 'English', 'Define the state matrices of the workflows. Be careful when changing workflow already in use!');
 INSERT INTO txt VALUES ('U5317', 'German',  'Verwaltung der Aktionsdefinitionen f&uuml;r die Workflows. Vorsicht bei &Auml;nderungen an einem bereits verwendeten Workflow!');
 INSERT INTO txt VALUES ('U5317', 'English', 'Set the action definitions of the workflows. Be careful when changing workflow already in use!');
+INSERT INTO txt VALUES ('U5318', 'German',  'Sind sie sicher, dass sie die Einstellungen zur&uuml;cksetzen wollen? &Auml;nderungen an den Workflows gehen verloren.');
+INSERT INTO txt VALUES ('U5318', 'English', 'Are you sure you want to reset the settings? Changes on workflows get lost.');
 
 INSERT INTO txt VALUES ('U5401', 'German',  'Passwort ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5401', 'English', 'Password changed.');

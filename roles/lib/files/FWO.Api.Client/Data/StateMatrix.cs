@@ -137,7 +137,7 @@ namespace FWO.Api.Client
         public Dictionary<WorkflowPhases, StateMatrix> GlobalMatrix { get; set; } = new Dictionary<WorkflowPhases, StateMatrix>();
 
 
-        public async Task Init(ApiConnection apiConnection, TaskType taskType = TaskType.master)
+        public async Task Init(ApiConnection apiConnection, TaskType taskType = TaskType.master, bool reset = false)
         {
             string matrixKey = taskType switch
             {
@@ -149,6 +149,11 @@ namespace FWO.Api.Client
                 TaskType.group_delete => "reqGrpDelStateMatrix",
                 _ => throw new Exception($"Error: wrong task type:" + taskType.ToString()),
             };
+
+            if(reset)
+            {
+                matrixKey += "Default";
+            }
 
             List<GlobalStateMatrixHelper> confData = await apiConnection.SendQueryAsync<List<GlobalStateMatrixHelper>>(ConfigQueries.getConfigItemByKey, new { key = matrixKey });
             GlobalStateMatrix glbStateMatrix = System.Text.Json.JsonSerializer.Deserialize<GlobalStateMatrix>(confData[0].ConfData) ?? throw new Exception("Config data could not be parsed.");

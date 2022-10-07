@@ -19,7 +19,7 @@
     <div class="form-group row">
         <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("type")):</label>
         <div class="col-sm-2">
-            <select class="form-control form-control-sm" @bind="taskType">
+            <select class="form-control form-control-sm" @bind="actTaskType">
                 @foreach (TaskType type in Enum.GetValues(typeof(TaskType)))
                 {
                     <option value="@type">@(userConfig.GetText(Enum.GetName(typeof(TaskType), type)))</option>
@@ -108,9 +108,11 @@
     <AuthorizeView Roles="admin">
         <Authorized>
             <button class="btn btn-sm btn-primary" @onclick="InitSaveMatrix" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+            <button class="btn btn-sm btn-danger" @onclick="InitResetMatrix" @onclick:preventDefault>@(userConfig.GetText("reset_to_default"))</button>
         </Authorized>
         <NotAuthorized>
             <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+            <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("reset_to_default"))</button>
         </NotAuthorized> 
     </AuthorizeView>
     <br><br>
@@ -130,6 +132,28 @@
                     </Authorized>
                     <NotAuthorized>
                         <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("save"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+                <button class="btn btn-sm btn-secondary" @onclick="CancelSaveMatrix">@(userConfig.GetText("cancel"))</button>
+            </div>
+        </Footer>
+    </PopUp>
+
+    <PopUp Title="@(userConfig.GetText("reset_to_default"))" Show="@ResetMatrixMode" OnClose="() => ResetMatrixMode = false">
+        <Body>
+            @if (ResetMatrixMode)
+            {
+                <p>@(userConfig.GetText("U5318"))</p>
+            }
+        </Body>
+        <Footer>
+            <div class="btn-group">
+                <AuthorizeView Roles="admin">
+                    <Authorized>
+                        <button class="btn btn-sm btn-danger" @onclick="ResetMatrix">@(userConfig.GetText("reset_to_default"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("reset_to_default"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
                 <button class="btn btn-sm btn-secondary" @onclick="CancelSaveMatrix">@(userConfig.GetText("cancel"))</button>
@@ -226,8 +250,9 @@ else
 
     private bool SelectStateMode = false;
     private bool SaveMatrixMode = false;
+    private bool ResetMatrixMode = false;
     private bool EditTargetStatesMode = false;
-    private TaskType taskType = TaskType.master;
+    private TaskType actTaskType = TaskType.master;
     private bool InitComplete = false;
 
     protected override async Task OnInitializedAsync()
@@ -255,7 +280,7 @@ else
     {
         try
         {
-            await actStateMatrix.Init(apiConnection, taskType);
+            await actStateMatrix.Init(apiConnection, actTaskType);
         }
         catch (Exception exception)
         {
@@ -350,7 +375,7 @@ else
         try
         {
             SaveMatrixMode = false;
-            string matrixKey = taskType switch
+            string matrixKey = actTaskType switch
             {
                 TaskType.master => "reqMasterStateMatrix",
                 TaskType.generic => "reqGenStateMatrix",
@@ -358,7 +383,7 @@ else
                 TaskType.group_create => "reqGrpCreStateMatrix",
                 TaskType.group_modify => "reqGrpModStateMatrix",
                 TaskType.group_delete => "reqGrpDelStateMatrix",
-                _ => throw new Exception($"Error: wrong task type:" + taskType.ToString()),
+                _ => throw new Exception($"Error: wrong task type:" + actTaskType.ToString()),
             };
 
             ConfigItem item = new ConfigItem 
@@ -379,5 +404,25 @@ else
     private void CancelSaveMatrix()
     {
         SaveMatrixMode = false;
+        ResetMatrixMode = false;
+    }
+
+    private void InitResetMatrix()
+    {
+        ResetMatrixMode = true;
+    }
+
+    private async Task ResetMatrix()
+    {
+        try
+        {
+            ResetMatrixMode = false;
+            await actStateMatrix.Init(apiConnection, actTaskType, true);
+            await SaveMatrix();           
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("reset_to_default"), "", true);
+        }
     }
 }

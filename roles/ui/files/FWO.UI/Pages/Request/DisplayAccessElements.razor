@@ -10,7 +10,7 @@
 <hr />
 <div class="form-group row col-sm-12">
     <div class="col-sm-4">
-        <label for="taskSource" class="col-sm-12 col-form-label col-form-label-sm">@(userConfig.GetText("source")):</label>
+        <label for="taskSource" class="col-sm-12 col-form-label col-form-label-sm">@(userConfig.GetText("source"))*:</label>
         @if (EditMode)
         {
             @foreach(var source in Sources.Where(x => (x.NetworkId != null && x.NetworkId != 0)))
@@ -54,7 +54,7 @@
         }
     </div>
     <div class="col-sm-4">
-        <label for="taskDest" class="col-sm-12 col-form-label col-form-label-sm">@(userConfig.GetText("destination")):</label>
+        <label for="taskDest" class="col-sm-12 col-form-label col-form-label-sm">@(userConfig.GetText("destination"))*:</label>
         @if (EditMode)
         {
             @foreach(var destination in Destinations.Where(x => (x.NetworkId != null && x.NetworkId != 0)))
@@ -98,7 +98,7 @@
         }
     </div>
     <div class="col-sm-4">
-        <label for="taskService" class="col-sm-12 col-form-label col-form-label-sm">@(userConfig.GetText("service")):</label>
+        <label for="taskService" class="col-sm-12 col-form-label col-form-label-sm">@(userConfig.GetText("service"))*:</label>
         @if (EditMode)
         {
             @foreach(var service in Services.Where(x => (x.ServiceId != null && x.ServiceId != 0)))

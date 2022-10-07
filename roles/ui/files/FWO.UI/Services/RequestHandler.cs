@@ -843,7 +843,7 @@ namespace FWO.Ui.Services
                     break;
                 case AutoCreateImplTaskOptions.enterInReqTask:
                     newImplTask = new RequestImplTask(reqTask)
-                        { TaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = reqTask.DeviceId, StateId = reqTask.StateId };
+                        { TaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = (reqTask.Devices != null && reqTask.Devices != "" ? Convert.ToInt32(reqTask.Devices) : null), StateId = reqTask.StateId };
                     newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
                     reqTask.ImplementationTasks.Add(newImplTask);
                     break;

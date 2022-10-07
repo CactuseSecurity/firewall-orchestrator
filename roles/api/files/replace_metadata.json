@@ -1800,18 +1800,6 @@
                   }
                 },
                 {
-                  "name": "reqtasks",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "device_id",
-                      "table": {
-                        "name": "reqtask",
-                        "schema": "request"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "rule_metadata",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -16384,12 +16372,6 @@
               },
               "object_relationships": [
                 {
-                  "name": "device",
-                  "using": {
-                    "foreign_key_constraint_on": "device_id"
-                  }
-                },
-                {
                   "name": "object",
                   "using": {
                     "foreign_key_constraint_on": "nw_obj_grp_id"
@@ -16518,7 +16500,7 @@
                       "task_type",
                       "title",
                       "current_handler",
-                      "device_id",
+                      "devices",
                       "nw_obj_grp_id",
                       "recent_handler",
                       "rule_action",
@@ -16550,7 +16532,7 @@
                       "task_type",
                       "title",
                       "current_handler",
-                      "device_id",
+                      "devices",
                       "nw_obj_grp_id",
                       "recent_handler",
                       "rule_action",
@@ -16581,7 +16563,7 @@
                       "task_type",
                       "title",
                       "current_handler",
-                      "device_id",
+                      "devices",
                       "nw_obj_grp_id",
                       "recent_handler",
                       "rule_action",
@@ -16612,7 +16594,7 @@
                       "task_type",
                       "title",
                       "current_handler",
-                      "device_id",
+                      "devices",
                       "nw_obj_grp_id",
                       "recent_handler",
                       "rule_action",
@@ -16643,7 +16625,7 @@
                       "task_type",
                       "title",
                       "current_handler",
-                      "device_id",
+                      "devices",
                       "nw_obj_grp_id",
                       "recent_handler",
                       "rule_action",
@@ -16674,7 +16656,7 @@
                       "task_type",
                       "title",
                       "current_handler",
-                      "device_id",
+                      "devices",
                       "nw_obj_grp_id",
                       "recent_handler",
                       "rule_action",
@@ -16705,7 +16687,7 @@
                       "task_type",
                       "title",
                       "current_handler",
-                      "device_id",
+                      "devices",
                       "nw_obj_grp_id",
                       "recent_handler",
                       "rule_action",
@@ -16783,7 +16765,7 @@
                       "task_type",
                       "title",
                       "current_handler",
-                      "device_id",
+                      "devices",
                       "nw_obj_grp_id",
                       "recent_handler",
                       "rule_action",

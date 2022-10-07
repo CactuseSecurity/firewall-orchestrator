@@ -11,6 +11,9 @@ namespace FWO.Api.Data
         [JsonProperty("reqtask_id"), JsonPropertyName("reqtask_id")]
         public long ReqTaskId { get; set; }
 
+        [JsonProperty("device_id"), JsonPropertyName("device_id")]
+        public int? DeviceId { get; set; }
+
         [JsonProperty("implementation_action"), JsonPropertyName("implementation_action")]
         public string ImplAction { get; set; } = FWO.Api.Data.RequestAction.create.ToString();
 
@@ -50,7 +53,7 @@ namespace FWO.Api.Data
             TargetBeginDate = reqtask.TargetBeginDate;
             TargetEndDate = reqtask.TargetEndDate;
             FreeText = reqtask.FreeText;
-            DeviceId = reqtask.DeviceId;
+            DeviceId = (reqtask.Devices != null && reqtask.Devices != "" ? Convert.ToInt32(reqtask.Devices) : null);
             if (reqtask.Elements != null && reqtask.Elements.Count > 0)
             {
                 ImplElements = new List<RequestImplElement>();

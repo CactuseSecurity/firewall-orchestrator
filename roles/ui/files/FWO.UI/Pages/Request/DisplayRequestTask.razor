@@ -38,17 +38,17 @@
                                 <div class="col-sm-8">
                                     @if (ReqHandler.EditReqTaskMode)
                                     {
-                                        <select class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.DeviceId">
+                                        <select class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.Devices">
                                             <option value="">-</option>
                                             @foreach (Device device in ReqHandler.Devices)
                                             {
-                                                <option value="@device.Id">@(device.Name)</option>
+                                                <option value="@device.Id.ToString()">@(device.Name)</option>
                                             }
                                         </select>
                                     }
                                     else
                                     {
-                                        <label class="col-sm-12 h-100 border bg-secondary">@(ReqHandler.ActReqTask.DeviceId != null && ReqHandler.ActReqTask.DeviceId != 0 ? ReqHandler.Devices[ReqHandler.Devices.FindIndex(x => x.Id == ReqHandler.ActReqTask.DeviceId)].Name : "")</label>
+                                        <label class="col-sm-12 h-100 border bg-secondary">@(ReqHandler.ActReqTask.Devices != null && ReqHandler.ActReqTask.Devices != "" ? ReqHandler.Devices[ReqHandler.Devices.FindIndex(x => x.Id == Convert.ToInt32(ReqHandler.ActReqTask.Devices))].Name : "")</label>
                                     }
                                 </div>
                             </div>
@@ -516,7 +516,7 @@
         {
             if (actSources.Count == 0 || actDestinations.Count == 0 || actServices.Count == 0 ||
                 (!ReqHandler.ActStateMatrix.PhaseActive[WorkflowPhases.planning] && userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask && 
-                (ReqHandler.ActReqTask.DeviceId == null || ReqHandler.ActReqTask.DeviceId == 0)))
+                (ReqHandler.ActReqTask.Devices == null || ReqHandler.ActReqTask.Devices == "")))
             {
                 DisplayMessageInUi!(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
                 return false;

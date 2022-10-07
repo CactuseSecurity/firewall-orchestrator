@@ -23,6 +23,9 @@ namespace FWO.Api.Data
         [JsonProperty("last_recert_date"), JsonPropertyName("last_recert_date")]
         public DateTime? LastRecertDate { get; set; }
 
+        [JsonProperty("devices"), JsonPropertyName("devices")]
+        public string? Devices { get; set; }
+
 
         public RequestReqTaskBase()
         { }
@@ -32,6 +35,7 @@ namespace FWO.Api.Data
             RequestAction = reqtask.RequestAction;
             Reason = reqtask.Reason;
             LastRecertDate = reqtask.LastRecertDate;
+            Devices = reqtask.Devices;
         }
 
         public override bool Sanitize()

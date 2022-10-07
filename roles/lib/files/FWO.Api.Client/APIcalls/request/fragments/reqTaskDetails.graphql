@@ -25,7 +25,7 @@ fragment reqTaskDetails on request_reqtask {
   assigned_group
   target_begin_date
   target_end_date
-  device_id
+  devices
   elements: elements {
     id
     task_id

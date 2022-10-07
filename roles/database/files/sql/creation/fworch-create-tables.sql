@@ -1003,7 +1003,7 @@ create table if not exists request.reqtask
 	assigned_group varchar,
 	target_begin_date Timestamp,
 	target_end_date Timestamp,
-	device_id int
+	devices varchar
 );
 
 create table if not exists request.reqelement 

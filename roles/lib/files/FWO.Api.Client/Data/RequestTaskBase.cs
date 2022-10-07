@@ -27,9 +27,6 @@ namespace FWO.Api.Data
         [JsonProperty("title"), JsonPropertyName("title")]
         public string Title { get; set; } = "";
 
-        [JsonProperty("device_id"), JsonPropertyName("device_id")]
-        public int? DeviceId { get; set; }
-
         [JsonProperty("task_number"), JsonPropertyName("task_number")]
         public int TaskNumber { get; set; }
 
@@ -75,7 +72,6 @@ namespace FWO.Api.Data
 
         public RequestTaskBase(RequestTaskBase reqtask) : base(reqtask)
         {
-            DeviceId = reqtask.DeviceId;
             Title = reqtask.Title;
             TaskNumber = reqtask.TaskNumber;
             TaskType = reqtask.TaskType;

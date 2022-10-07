@@ -196,7 +196,7 @@ namespace FWO.Ui.Services
                     validTo = reqtask.TargetEndDate,
                     reason = reqtask.Reason,
                     freeText = reqtask.FreeText,
-                    devices = reqtask.Devices
+                    devices = reqtask.SelectedDevices
                 };
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequestTask, Variables)).UpdatedId;
                 if(udId != reqtask.Id)

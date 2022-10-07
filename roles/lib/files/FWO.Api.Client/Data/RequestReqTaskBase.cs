@@ -24,7 +24,19 @@ namespace FWO.Api.Data
         public DateTime? LastRecertDate { get; set; }
 
         [JsonProperty("devices"), JsonPropertyName("devices")]
-        public string? Devices { get; set; }
+        public string SelectedDevices 
+        {  
+            get => System.Text.Json.JsonSerializer.Serialize<List<int>>(deviceList) ?? throw new Exception("DeviceList could not be parsed.");
+            set
+            {
+                if(value != null && value != "")
+                {
+                    deviceList = System.Text.Json.JsonSerializer.Deserialize<List<int>>(value) ?? throw new Exception("value could not be parsed.");
+                }
+            }
+        }
+
+        private List<int> deviceList { get; set; } = new List<int>();
 
 
         public RequestReqTaskBase()
@@ -35,8 +47,24 @@ namespace FWO.Api.Data
             RequestAction = reqtask.RequestAction;
             Reason = reqtask.Reason;
             LastRecertDate = reqtask.LastRecertDate;
-            Devices = reqtask.Devices;
+            SelectedDevices = reqtask.SelectedDevices;
         }
+
+        public List<int> getDeviceList()
+        {
+            return deviceList;
+        }
+
+        public void AddDeviceToList(int deviceId)
+        {
+            deviceList.Add(deviceId);
+        }
+
+        public void ChangeDeviceInList(int index, int deviceId)
+        {
+            deviceList[index] = deviceId;
+        }
+
 
         public override bool Sanitize()
         {

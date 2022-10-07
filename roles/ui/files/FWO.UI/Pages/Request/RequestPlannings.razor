@@ -52,7 +52,7 @@
 
     private async Task Reset()
     {
-        reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole("planner") || authenticationStateTask!.Result.User.IsInRole("admin"));
+        reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole("planner") || authenticationStateTask!.Result.User.IsInRole("fw-admin") || authenticationStateTask!.Result.User.IsInRole("admin"));
         await reqHandler.Init();
     }
 

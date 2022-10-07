@@ -14716,6 +14716,27 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "task_id",
+                      "initial_approval",
+                      "approver",
+                      "approver_group",
+                      "assigned_group",
+                      "current_handler",
+                      "recent_handler",
+                      "state_id",
+                      "tenant_id",
+                      "approval_date",
+                      "approval_deadline",
+                      "date_opened"
+                    ]
+                  }
+                },
+                {
                   "role": "planner",
                   "permission": {
                     "check": {},
@@ -14952,6 +14973,16 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "approval_id",
+                      "comment_id"
+                    ]
+                  }
+                },
+                {
                   "role": "implementer",
                   "permission": {
                     "check": {},
@@ -15139,6 +15170,20 @@
               "insert_permissions": [
                 {
                   "role": "approver",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "ref_id",
+                      "comment_text",
+                      "scope",
+                      "creator_id",
+                      "creation_date"
+                    ]
+                  }
+                },
+                {
+                  "role": "fw-admin",
                   "permission": {
                     "check": {},
                     "columns": [
@@ -15373,6 +15418,25 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "implementation_task_id",
+                      "network_object_id",
+                      "service_id",
+                      "user_id",
+                      "ip",
+                      "ip_proto_id",
+                      "original_nat_id",
+                      "port",
+                      "field",
+                      "implementation_action"
+                    ]
+                  }
+                },
+                {
                   "role": "planner",
                   "permission": {
                     "check": {},
@@ -15528,6 +15592,26 @@
                 }
               ],
               "update_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "implementation_task_id",
+                      "network_object_id",
+                      "service_id",
+                      "user_id",
+                      "ip",
+                      "ip_proto_id",
+                      "original_nat_id",
+                      "port",
+                      "field",
+                      "implementation_action"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                },
                 {
                   "role": "planner",
                   "permission": {
@@ -15677,6 +15761,35 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "reqtask_id",
+                      "assigned_group",
+                      "task_type",
+                      "title",
+                      "current_handler",
+                      "device_id",
+                      "nw_obj_grp_id",
+                      "recent_handler",
+                      "rule_action",
+                      "rule_tracking",
+                      "state_id",
+                      "svc_grp_id",
+                      "task_number",
+                      "user_grp_id",
+                      "free_text",
+                      "start",
+                      "stop",
+                      "target_begin_date",
+                      "target_end_date",
+                      "implementation_action"
+                    ]
+                  }
+                },
+                {
                   "role": "planner",
                   "permission": {
                     "check": {},
@@ -15928,6 +16041,36 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "reqtask_id",
+                      "assigned_group",
+                      "task_type",
+                      "title",
+                      "current_handler",
+                      "device_id",
+                      "nw_obj_grp_id",
+                      "recent_handler",
+                      "rule_action",
+                      "rule_tracking",
+                      "state_id",
+                      "svc_grp_id",
+                      "task_number",
+                      "user_grp_id",
+                      "free_text",
+                      "start",
+                      "stop",
+                      "target_begin_date",
+                      "target_end_date",
+                      "implementation_action"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                },
+                {
                   "role": "implementer",
                   "permission": {
                     "columns": [
@@ -16020,6 +16163,16 @@
               "insert_permissions": [
                 {
                   "role": "approver",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ]
+                  }
+                },
+                {
+                  "role": "fw-admin",
                   "permission": {
                     "check": {},
                     "columns": [
@@ -16726,6 +16879,21 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "assigned_group",
+                      "current_handler",
+                      "recent_handler",
+                      "start",
+                      "state_id",
+                      "stop"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                },
+                {
                   "role": "implementer",
                   "permission": {
                     "columns": [
@@ -16842,6 +17010,16 @@
               "insert_permissions": [
                 {
                   "role": "approver",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ]
+                  }
+                },
+                {
+                  "role": "fw-admin",
                   "permission": {
                     "check": {},
                     "columns": [
@@ -17426,6 +17604,22 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "assigned_group",
+                      "current_handler",
+                      "date_completed",
+                      "recent_handler",
+                      "state_id",
+                      "ticket_deadline",
+                      "ticket_priority"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                },
+                {
                   "role": "implementer",
                   "permission": {
                     "columns": [
@@ -17523,6 +17717,16 @@
               "insert_permissions": [
                 {
                   "role": "approver",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "comment_id",
+                      "ticket_id"
+                    ]
+                  }
+                },
+                {
+                  "role": "fw-admin",
                   "permission": {
                     "check": {},
                     "columns": [

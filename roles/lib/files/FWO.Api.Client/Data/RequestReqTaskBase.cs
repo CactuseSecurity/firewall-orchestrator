@@ -55,16 +55,10 @@ namespace FWO.Api.Data
             return deviceList;
         }
 
-        public void AddDeviceToList(int deviceId)
+        public void SetDeviceList (int[] devArray)
         {
-            deviceList.Add(deviceId);
+            deviceList = devArray.ToList();
         }
-
-        public void ChangeDeviceInList(int index, int deviceId)
-        {
-            deviceList[index] = deviceId;
-        }
-
 
         public override bool Sanitize()
         {

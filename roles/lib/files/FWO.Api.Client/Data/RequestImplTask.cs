@@ -53,7 +53,7 @@ namespace FWO.Api.Data
             TargetBeginDate = reqtask.TargetBeginDate;
             TargetEndDate = reqtask.TargetEndDate;
             FreeText = reqtask.FreeText;
-            DeviceId = (reqtask.getDeviceList().Count > 0 ? reqtask.getDeviceList()[0] : null);
+            DeviceId = null;
             if (reqtask.Elements != null && reqtask.Elements.Count > 0)
             {
                 ImplElements = new List<RequestImplElement>();

@@ -38,8 +38,7 @@
                                 <div class="col-sm-8">
                                     @if (ReqHandler.EditReqTaskMode)
                                     {
-                                        <select class="form-control form-control-sm" @bind="deviceToAdd">
-                                            <option value="0">-</option>
+                                        <select class="form-control form-control-sm" @bind="devicesToAdd" multiple>
                                             @foreach (Device device in ReqHandler.Devices)
                                             {
                                                 <option value="@device.Id">@(device.Name)</option>
@@ -48,7 +47,7 @@
                                     }
                                     else
                                     {
-                                        <label class="col-sm-12 h-100 border bg-secondary">@(ReqHandler.ActReqTask.getDeviceList().Count > 0 ? ReqHandler.Devices[ReqHandler.Devices.FindIndex(x => x.Id == ReqHandler.ActReqTask.getDeviceList()[0])].Name : "")</label>
+                                        <label class="col-sm-12 h-100 border bg-secondary">@DisplayDevices()</label>
                                     }
                                 </div>
                             </div>
@@ -356,7 +355,7 @@
 
     private List<RequestStateAction> offeredActions = new List<RequestStateAction>();
     private string allComments = "";
-    private int deviceToAdd;
+    private int[] devicesToAdd { get; set; } = new int[]{};
     
 
     protected override async Task OnInitializedAsync()
@@ -404,8 +403,18 @@
     private async Task Reset()
     {
         offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActReqTask, RequestObjectScopes.RequestTask, ReqHandler.Phase);
-        deviceToAdd = (ReqHandler.ActReqTask.getDeviceList().Count > 0 ? ReqHandler.ActReqTask.getDeviceList()[0] : 0);
+        devicesToAdd = ReqHandler.ActReqTask.getDeviceList().ToArray();
         StateHasChanged();
+    }
+
+    private string DisplayDevices()
+    {
+        List<string> devNames = new();
+        foreach(var devId in ReqHandler.ActReqTask.getDeviceList())
+        {
+            devNames.Add(ReqHandler.Devices[ReqHandler.Devices.FindIndex(x => x.Id == devId)].Name);
+        }
+        return string.Join(", ", devNames);
     }
 
     private async Task PerformAction(RequestStateAction action)
@@ -485,20 +494,10 @@
             {
                 DisplayMessageInUi!(null, userConfig.GetText("save_task"), userConfig.GetText("U0001"), true);
             }
-            if(deviceToAdd != 0)
-            {
-                if(ReqHandler.ActReqTask.getDeviceList().Count > 0)
-                {
-                    ReqHandler.ActReqTask.ChangeDeviceInList(0, deviceToAdd);
-                }
-                else
-                {
-                    ReqHandler.ActReqTask.AddDeviceToList(deviceToAdd);
-                }
-            }
             UpdateElements();
             if (CheckTaskValues())
             {
+                ReqHandler.ActReqTask.SetDeviceList(devicesToAdd);
                 if (ReqHandler.AddReqTaskMode)
                 {
                     await ReqHandler.AddApproval();
@@ -528,8 +527,7 @@
         if (ReqHandler.ActReqTask.TaskType == TaskType.access.ToString())
         {
             if (actSources.Count == 0 || actDestinations.Count == 0 || actServices.Count == 0 ||
-                (!ReqHandler.ActStateMatrix.PhaseActive[WorkflowPhases.planning] && userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask && 
-                (deviceToAdd == 0)))
+                (!ReqHandler.ActStateMatrix.PhaseActive[WorkflowPhases.planning] && userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask && devicesToAdd.Length == 0))
             {
                 DisplayMessageInUi!(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
                 return false;

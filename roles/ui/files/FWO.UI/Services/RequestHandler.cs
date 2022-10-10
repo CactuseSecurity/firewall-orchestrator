@@ -842,10 +842,14 @@ namespace FWO.Ui.Services
                     }
                     break;
                 case AutoCreateImplTaskOptions.enterInReqTask:
-                    newImplTask = new RequestImplTask(reqTask)
-                        { TaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = (reqTask.getDeviceList().Count > 0 ? reqTask.getDeviceList()[0] : null), StateId = reqTask.StateId };
-                    newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
-                    reqTask.ImplementationTasks.Add(newImplTask);
+                    foreach(var deviceId in reqTask.getDeviceList())
+                    {
+                        newImplTask = new RequestImplTask(reqTask)
+                            { TaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = deviceId, StateId = reqTask.StateId };
+                        newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
+                        newImplTask.Title += ": "+ Devices[Devices.FindIndex(x => x.Id == deviceId)].Name;
+                        reqTask.ImplementationTasks.Add(newImplTask);
+                    }
                     break;
                 default:
                     break;

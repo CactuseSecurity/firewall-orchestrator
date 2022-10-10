@@ -1,0 +1,86 @@
+﻿@typeparam ElementType
+
+<div class="btn-group" @onmouseout="Test2">
+	<div class="input-group input-group-sm" @onclick="Toggle">
+		<div class="input-group-prepend">
+			<span class="input-group-text"><span class="oi oi-magnifying-glass"></span></span>
+		</div>
+		<input class="custom-select" @onblur="Test" @oninput="Filter" @bind="searchValue" />
+	</div>
+	<ul class="dropdown-menu" style="@(Toggled ? "" : "display: inline;")">
+		<li><div class="dropdown-item" >@ElementTemplate(Value)</div></li>
+		<li><hr class="dropdown-divider"></li>
+		@foreach (ElementType element in filteredElements)
+		{
+			<li><button class="dropdown-item" @onclick="() => Value = element">@ElementTemplate(element)</button></li>
+		}
+	</ul>
+</div>
+
+
+@code
+{
+	[Parameter]
+	public Func<ElementType, string>? ElementToString { get; set; }
+
+	[Parameter]
+	public RenderFragment<ElementType>? ElementTemplate { get; set; }
+
+	private IEnumerable<ElementType>? filteredElements;
+	private IEnumerable<ElementType>? _elements;
+
+	[Parameter]
+	public IEnumerable<ElementType>? Elements
+	{
+		get { return _elements; }
+		set 
+		{ 
+			_elements = value;
+			filteredElements = value;
+			Value = _elements.FirstOrDefault();
+		}
+	}
+
+	private ElementType? _value;
+
+	[Parameter]
+	public ElementType? Value
+	{
+		get { return _value; }
+		set
+		{
+			_value = value;
+			ValueChanged.InvokeAsync(value);
+		}
+	}
+
+	[Parameter]
+	public EventCallback<ElementType> ValueChanged { get; set; }
+
+	public bool Toggled { get; private set; } = true;
+
+	private string searchValue = "";
+
+	public void Toggle()
+	{
+		Toggled = !Toggled;
+	}
+
+	private void Filter(ChangeEventArgs input)
+	{
+		if (ElementToString != null)
+		{
+			filteredElements = Elements.Where(e => ElementToString(e).Contains(input.Value.ToString()));
+		}
+	}
+
+	private void Test(FocusEventArgs input)
+	{
+		Task.Run(async () =>
+		{
+			await Task.Delay(200);
+			Toggled = true;
+			await InvokeAsync(StateHasChanged);				
+		});
+	}
+}

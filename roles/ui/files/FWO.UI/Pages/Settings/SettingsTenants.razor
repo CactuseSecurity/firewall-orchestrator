@@ -27,6 +27,13 @@
     }
 </div>
 
+<Dropdown Elements="@(new List<string> {"a", "b", "c"})" ElementToString="e => e">
+    <ElementTemplate Context="element">
+        @(element)
+    </ElementTemplate>
+</Dropdown>
+
+
 <div class="m-2">
     <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="Tenant" Items="tenants" PageSize="0" ColumnReorder="true">
         <Column TableItem="Tenant" Title="@(userConfig.GetText("tenant_action"))" Field="(x => x.Id)" Sortable="false" Filterable="false">

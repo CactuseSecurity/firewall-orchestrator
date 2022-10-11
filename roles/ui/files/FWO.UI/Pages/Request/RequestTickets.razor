@@ -4,7 +4,7 @@
 @using FWO.Ui.Services
 
 @page "/request/tickets"
-@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
+@attribute [Authorize(Roles = "admin, requester, auditor, fw-admin")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -34,6 +34,23 @@
     {
         try
         {
+            if(authenticationStateTask!.Result.User.IsInRole("admin"))
+            {
+                apiConnection.SetRole("admin");
+            }
+            else if(authenticationStateTask!.Result.User.IsInRole("requester"))
+            {
+                apiConnection.SetRole("requester");
+            }
+            else if(authenticationStateTask!.Result.User.IsInRole("fw-admin"))
+            {
+                apiConnection.SetRole("fw-admin");
+            }
+            else
+            {
+                apiConnection.SetRole("auditor");
+            }
+            
             await states.Init(apiConnection);
 
             reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, apiConnection, WorkflowPhases.request){};

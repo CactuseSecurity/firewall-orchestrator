@@ -40,7 +40,7 @@
             {
                 apiConnection.SetRole("admin");
             }
-            else if(authenticationStateTask!.Result.User.IsInRole("implementer"))
+            else if(authenticationStateTask!.Result.User.IsInRole("approver"))
             {
                 apiConnection.SetRole("approver");
             }
@@ -52,7 +52,7 @@
             {
                 apiConnection.SetRole("auditor");
             }
-            
+
             await states.Init(apiConnection);
 
             reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, apiConnection, WorkflowPhases.approval){};

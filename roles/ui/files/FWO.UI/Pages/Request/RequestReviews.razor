@@ -39,7 +39,7 @@
             {
                 apiConnection.SetRole("admin");
             }
-            else if(authenticationStateTask!.Result.User.IsInRole("implementer"))
+            else if(authenticationStateTask!.Result.User.IsInRole("reviewer"))
             {
                 apiConnection.SetRole("reviewer");
             }

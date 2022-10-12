@@ -17,7 +17,7 @@
 
 <div class="m-2">
     <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="Device" Items="devices" PageSize="0" ColumnReorder="true">
-        <Column TableItem="Device" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+        <Column TableItem="Device" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
                     <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">@(userConfig.GetText("clone"))</button>

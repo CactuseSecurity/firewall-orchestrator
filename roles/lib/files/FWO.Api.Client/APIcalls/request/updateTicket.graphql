@@ -1,0 +1,20 @@
+mutation updateTicket(
+  $id: bigint!
+  $title: String!
+  $reason: String
+  $state: Int
+  $deadline: timestamp
+  $priority: Int
+  ) {
+  update_request_ticket_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+    title: $title
+    reason: $reason
+    state_id: $state
+    ticket_deadline: $deadline
+    ticket_priority: $priority
+  }) {
+    UpdatedId: id
+  }
+}

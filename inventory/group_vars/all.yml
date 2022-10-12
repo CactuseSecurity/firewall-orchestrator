@@ -13,6 +13,7 @@ install_syslog: true
 run_on_github: false
 add_demo_data: true
 api_docu: false
+force_install: false
 # initialize upgrade files list to empty, needed when running in test only mode (-t test):
 upgrade_files: []
 
@@ -98,6 +99,7 @@ dotnet_mode: "Release"
 # dotnet_mode: "Debug"
 debug_level: "1"
 lib_dir: "{{ fworch_home }}/lib/files"
+lib_tmp_dir: "{{ fworch_home }}/lib/tmp"
 
 ### password generation
 randomly_generated_pwd: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters') }}"
@@ -122,3 +124,7 @@ test_fortigate_name: "fortigate{{ test_postfix }}"
 test_checkpoint_name: "checkpoint{{ test_postfix }}"
 test_credential_name: "credential02_test"
 csharp_test_start_dir: "{{ fworch_home }}/test/csharp/FWO.Test"
+
+# make sure lib role is only run once per host to save time
+# set initially to false
+lib_role_has_run: false

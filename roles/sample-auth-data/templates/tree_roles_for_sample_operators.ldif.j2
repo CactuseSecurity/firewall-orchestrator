@@ -4,11 +4,6 @@ changetype: modify
 add: uniquemember
 uniquemember: uid=user2{{ sample_postfix }},ou=tenant2{{ sample_postfix }},ou=operator,ou=user,dc=fworch,dc=internal
 
-dn: cn=workflow-user,ou=role,{{ openldap_path }}
-changetype: modify
-add: uniquemember
-uniquemember: uid=user2{{ sample_postfix }},ou=tenant2{{ sample_postfix }},ou=operator,ou=user,{{ openldap_path }}
-
 dn: cn=reporter,ou=role,{{ openldap_path }}
 changetype: modify
 add: uniquemember

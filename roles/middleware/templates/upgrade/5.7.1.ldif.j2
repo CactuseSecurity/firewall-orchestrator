@@ -1,0 +1,45 @@
+
+dn: cn=requester,ou=role,{{ openldap_path }}
+changetype: add
+objectClass: top
+objectClass: groupofuniquenames
+cn: requester
+uniqueMember:
+description: T0013
+
+
+dn: cn=approver,ou=role,{{ openldap_path }}
+changetype: add
+objectClass: top
+objectClass: groupofuniquenames
+cn: approver
+uniqueMember:
+description: T0014
+
+
+dn: cn=planner,ou=role,{{ openldap_path }}
+changetype: add
+objectClass: top
+objectClass: groupofuniquenames
+cn: planner
+uniqueMember:
+description: T0015
+
+
+dn: cn=implementer,ou=role,{{ openldap_path }}
+changetype: add
+objectClass: top
+objectClass: groupofuniquenames
+cn: implementer
+uniqueMember:
+description: T0016
+
+
+dn: cn=reviewer,ou=role,{{ openldap_path }}
+changetype: add
+objectClass: top
+objectClass: groupofuniquenames
+cn: reviewer
+uniqueMember:
+description: T0017
+

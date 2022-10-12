@@ -1,18 +1,24 @@
 ﻿@typeparam ElementType
 
-<div class="btn-group" @onmouseout="Test2">
+<div class="btn-group">
 	<div class="input-group input-group-sm" @onclick="Toggle">
 		<div class="input-group-prepend">
 			<span class="input-group-text"><span class="oi oi-magnifying-glass"></span></span>
 		</div>
-		<input class="custom-select" @onblur="Test" @oninput="Filter" @bind="searchValue" />
+		<input class="custom-select" @onfocus="ClearFilter" @onblur="ToggleWithDelay" @oninput="Filter" @bind="searchValue" />
 	</div>
 	<ul class="dropdown-menu" style="@(Toggled ? "" : "display: inline;")">
-		<li><div class="dropdown-item" >@ElementTemplate(Value)</div></li>
-		<li><hr class="dropdown-divider"></li>
-		@foreach (ElementType element in filteredElements)
+		@if (!Toggled)
 		{
-			<li><button class="dropdown-item" @onclick="() => Value = element">@ElementTemplate(element)</button></li>
+			@if (Value != null)
+			{
+				<li><div class="dropdown-item">@ElementTemplate(Value)</div></li>
+				<li><hr class="dropdown-divider"></li>
+			}
+			@foreach (ElementType element in FilteredElements)
+			{
+				<li><button class="dropdown-item" @onclick="() => Value = element">@ElementTemplate(element)</button></li>
+			}
 		}
 	</ul>
 </div>
@@ -21,22 +27,23 @@
 @code
 {
 	[Parameter]
-	public Func<ElementType, string>? ElementToString { get; set; }
+	public Func<ElementType, string> ElementToString { get; set; } = (o => o.ToString() ?? "");
 
 	[Parameter]
-	public RenderFragment<ElementType>? ElementTemplate { get; set; }
+	public RenderFragment<ElementType> ElementTemplate { get; set; } = element => __builder => { @element };
 
-	private IEnumerable<ElementType>? filteredElements;
-	private IEnumerable<ElementType>? _elements;
+	public IEnumerable<ElementType> FilteredElements { get; private set; } = Enumerable.Empty<ElementType>();
+
+	private IEnumerable<ElementType> _elements = Enumerable.Empty<ElementType>();
 
 	[Parameter]
-	public IEnumerable<ElementType>? Elements
+	public IEnumerable<ElementType> Elements
 	{
 		get { return _elements; }
 		set 
 		{ 
 			_elements = value;
-			filteredElements = value;
+			Filter(searchValue);
 			Value = _elements.FirstOrDefault();
 		}
 	}
@@ -50,6 +57,7 @@
 		set
 		{
 			_value = value;
+			DisplayValue(value);
 			ValueChanged.InvokeAsync(value);
 		}
 	}
@@ -68,17 +76,34 @@
 
 	private void Filter(ChangeEventArgs input)
 	{
-		if (ElementToString != null)
+		Filter((input.Value ?? "").ToString() ?? "");
+	}
+
+	private void Filter(string filter)
+	{
+		FilteredElements = Elements.Where(e => ElementToString(e).Contains(filter));
+	}
+
+	private void ClearFilter()
+	{
+		searchValue = "";
+		Filter(""); // No filter
+	}
+
+	private void DisplayValue(ElementType? value)
+	{
+		if (value != null)
 		{
-			filteredElements = Elements.Where(e => ElementToString(e).Contains(input.Value.ToString()));
+			searchValue = ElementToString(value);  // set search / display field to current value
 		}
 	}
 
-	private void Test(FocusEventArgs input)
+	private void ToggleWithDelay(FocusEventArgs input)
 	{
 		Task.Run(async () =>
 		{
-			await Task.Delay(200);
+			await Task.Delay(200); // Close with a slight delay, so that value changes can be processed
+			DisplayValue(Value); // Reset display
 			Toggled = true;
 			await InvokeAsync(StateHasChanged);				
 		});

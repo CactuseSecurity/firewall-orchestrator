@@ -1,0 +1,290 @@
+@using FWO.Api.Client
+@using FWO.Api.Data
+@using FWO.Config.Api
+@using FWO.Ui.Services
+
+@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+
+<PopUp Title="@(userConfig.GetText("request") + ": " + ReqHandler.ActTicket.Title)" Show="@ReqHandler.DisplayTicketMode" XLarge="true" OnClose="async () => Close()">
+    <Body>
+        @if (ReqHandler.DisplayTicketMode)
+        {
+            <form>
+                <div class="form-group row">
+                    <div class="col-sm-2">
+                        <div class="form-group row">
+                            <label for="ticketId" class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                            <div class="col-sm-6">
+                                <label class="col-sm-12 border bg-secondary">@ReqHandler.ActTicket.Id</label>
+                            </div>
+                        </div>
+                    </div>
+                    <label for="ticketTitle" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("title"))*:</label>
+                    <div class="col-sm-9">
+                        <input id="ticketTitle" type="text" class="form-control form-control-sm" readonly="@(!ReqHandler.EditTicketMode)" @bind="ReqHandler.ActTicket.Title" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-sm-3">
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
+                            <div class="col-sm-8">
+                                <label class="col-sm-12 border bg-secondary">@States.Name[ReqHandler.ActTicket.StateId]</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("requester")):</label>
+                            <div class="col-sm-8">
+                                <label class="col-sm-12 border bg-secondary">@ReqHandler.ActTicket.Requester?.Name</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("priority")):</label>
+                            <div class="col-sm-8">
+                                @if (ReqHandler.EditTicketMode)
+                                {
+                                    <select class="form-control form-control-sm" @bind="ReqHandler.ActTicket.Priority">
+                                        <option value="">-</option>
+                                        @foreach (var prio in ReqHandler.PrioList)
+                                        {
+                                            <option value="@prio.NumPrio">@(prio.Name)</option>
+                                        }
+                                    </select>
+                                }
+                                else
+                                {
+                                    <label class="col-sm-12 border bg-secondary">@(ReqHandler.ActTicket.Priority != null ? ReqHandler.ActTicket.Priority : "-")</label>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("deadline")):</label>
+                            <div class="col-sm-8">
+                                @if (ReqHandler.EditTicketMode)
+                                {
+                                    <input type="date" class="col-sm-12 form-control form-control-sm" @bind="ReqHandler.ActTicket.Deadline" />
+                                }
+                                else
+                                {
+                                    <label class="col-sm-12 border bg-secondary">@(ReqHandler.ActTicket.Deadline != null ? ((DateTime)ReqHandler.ActTicket.Deadline).ToShortDateString() : "-")</label>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
+                    <div class="col-sm-11">
+                        <textarea rows="3" type="text" class="form-control form-control-sm" readonly="@(!ReqHandler.EditTicketMode)" @bind="ReqHandler.ActTicket.Reason"/>   
+                    </div>
+                </div>
+
+                @if(!ReqHandler.ReadOnlyMode)
+                {
+                    <div class="col-sm-12">
+                        <div class="form-group row justify-content-center">
+                            @foreach(var action in offeredActions)
+                            {
+                                <button class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
+                            }
+                        </div>
+                    </div>
+                }
+
+                @if(Phase < WorkflowPhases.implementation)
+                {
+                    <h5>@(userConfig.GetText("tasks"))</h5>
+
+                    <DisplayReqTaskTable Phase="Phase" States="States" 
+                        ReqHandler="ReqHandler" ResetParent="Reset" StartPhase="StartPhase"/>
+                }
+                else
+                {
+                    <h5>@(userConfig.GetText("implementation_tasks"))</h5>
+
+                    <DisplayImplTaskTable Phase="Phase" States="States" 
+                        ReqHandler="ReqHandler" ResetParent="Reset" AllImplTasks="ReqHandler.AllImplTasks"
+                        StartImplPhase="StartImplPhase"/>
+                }
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            @if(ReqHandler.EditTicketMode)
+            {
+                <AuthorizeView Roles="admin, requester, fw-admin">
+                    <Authorized>
+                        <button class="btn btn-sm btn-primary" @onclick="InitSaveTicket">@(userConfig.GetText("save"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+            }
+            else if (CheckPromoteTicket())
+            {
+                <AuthorizeView Roles="admin, requester, approver, planner, implementer, reviewer, fw-admin">
+                    <Authorized>
+                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteTicket">@(userConfig.GetText("change_state"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("change_state"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+            }
+            <button class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText("confirm_cancel"))" Show="@ConfirmCancelMode" OnClose="() => ConfirmCancelMode = false">
+    <Body>
+        @if (ConfirmCancelMode)
+        {
+            <p>@(userConfig.GetText("U8003"))</p>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button class="btn btn-sm btn-danger" @onclick="ConfirmCancel">@(userConfig.GetText("ok"))</button>
+            <button class="btn btn-sm btn-secondary" @onclick="() => ConfirmCancelMode = false">@(userConfig.GetText("back_to_ticket"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PromoteObject @bind-Promote="ReqHandler.DisplaySaveTicketMode" ResetParent="Close" ObjectName="@ReqHandler.ActTicket.Title" Save="ReqHandler.SaveTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="ReqHandler.MasterStateMatrix" States="States"/>
+<PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Close" ObjectName="@ReqHandler.ActTicket.Title" Save="ReqHandler.PromoteTicket" StatefulObject="ReqHandler.ActTicket" StateMatrix="ReqHandler.MasterStateMatrix" States="States"/>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    
+    [Parameter]
+    public WorkflowPhases Phase { get; set; } = WorkflowPhases.approval;
+
+    [Parameter]
+    public RequestStateDict States { get; set; } = new RequestStateDict();
+
+    [Parameter]
+    public RequestHandler ReqHandler { get; set; }
+    
+    [Parameter]
+    public Func<Task> ResetParent { get; set; }
+
+    [Parameter]
+    public Func<RequestReqTask, Task>? StartPhase { get; set; }
+
+    [Parameter]
+    public Func<RequestImplTask, Task>? StartImplPhase { get; set; }
+
+
+    private List<int> possibleStates = new List<int>();
+    private List<RequestStateAction> offeredActions = new List<RequestStateAction>();
+    private bool ConfirmCancelMode = false;
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await Reset(); 
+    }
+
+    private async Task Close()
+    {
+        await ResetParent();
+    }
+
+    private async Task Reset()
+    {
+        if (ReqHandler.DisplayTicketMode)
+        {
+            offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActTicket, RequestObjectScopes.Ticket, ReqHandler.Phase);
+        }
+        StateHasChanged();
+    }
+
+    private async Task Cancel()
+    {
+        if(ReqHandler.EditTicketMode && ReqHandler.ActTicket.Id == 0 && ReqHandler.ActTicket.Tasks.Count > 0)
+        {
+            ConfirmCancelMode = true;
+        }
+        else
+        {
+            await Close();
+        }
+    }
+
+    private async Task ConfirmCancel()
+    {
+        ConfirmCancelMode = false;
+        await Close();
+    }
+
+    private async Task PerformAction(RequestStateAction action)
+    {
+        await ReqHandler.ActionHandler.performAction(action, ReqHandler.ActTicket, RequestObjectScopes.Ticket);
+        await ResetParent();
+    }
+
+    private bool CheckPromoteTicket()
+    {
+        if (ReqHandler.ActTicket.StateId < ReqHandler.MasterStateMatrix.LowestStartedState || ReqHandler.ActTicket.StateId >= ReqHandler.MasterStateMatrix.LowestEndState)
+        {
+            return false;
+        }
+        if(ReqHandler.ActTicket.Tasks.Count > 0)
+        {
+            List<int> taskStates = new List<int>();
+            foreach (RequestReqTask reqTask in ReqHandler.ActTicket.Tasks)
+            {
+                taskStates.Add(reqTask.StateId);
+            }
+            int newState = ReqHandler.MasterStateMatrix.getDerivedStateFromSubStates(taskStates);
+            if(newState == ReqHandler.ActTicket.StateId)
+            {
+                return false;
+            }
+            return true;
+        }
+        else
+        {
+            possibleStates = ReqHandler.MasterStateMatrix.getAllowedTransitions(ReqHandler.ActTicket.StateId);
+            if(possibleStates.Count == 1 && possibleStates[0] == ReqHandler.ActTicket.StateId)
+            {
+                return false;
+            }
+            return true;
+        }
+    }
+
+    private async Task InitPromoteTicket()
+    {
+        ReqHandler.SetTicketPopUpOpt(ObjAction.displayPromote);
+    }
+
+    private async Task InitSaveTicket()
+    {
+        if(ReqHandler.ActTicket.Tasks.Count == 0)
+        {
+            await ReqHandler.SaveTicket(ReqHandler.ActTicket);
+            await Close();
+        }
+        else
+        {
+            ReqHandler.SetTicketPopUpOpt(ObjAction.displaySaveTicket);
+        }
+    }
+}

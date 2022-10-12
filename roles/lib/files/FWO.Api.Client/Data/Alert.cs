@@ -20,7 +20,9 @@ namespace FWO.Api.Data
         RecursionLimitReached = 18,
         
         Autodiscovery = 21,
-        AutoDiscoveryErrorUnspecific = 22
+        AutoDiscoveryErrorUnspecific = 22,
+
+        WorkflowAlert = 31
     }
 
     public class Alert

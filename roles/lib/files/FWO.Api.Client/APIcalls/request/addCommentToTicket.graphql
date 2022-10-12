@@ -1,0 +1,13 @@
+mutation addCommentToTicket(
+  $ticketId: bigint!
+  $commentId: bigint!
+  ) {
+  insert_request_ticket_comment(objects: {
+    ticket_id: $ticketId
+    comment_id: $commentId
+  }) {
+    returning {
+      newId: ticket_id
+    }
+  }
+}

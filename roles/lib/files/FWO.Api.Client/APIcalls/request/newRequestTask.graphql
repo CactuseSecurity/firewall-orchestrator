@@ -1,0 +1,33 @@
+mutation newRequestTask(
+  $title: String!
+  $ticketId: bigint!
+  $taskNumber: Int
+  $state: Int
+  $taskType: String!
+  $requestAction: action_enum
+  $ruleAction: Int
+  $tracking: Int
+  $validFrom: timestamp
+  $validTo: timestamp
+  $reason: String
+  $freeText: String
+  ) {
+  insert_request_reqtask(objects: {
+    title: $title
+    ticket_id: $ticketId
+    task_number: $taskNumber
+    state_id: $state
+    task_type: $taskType
+    request_action: $requestAction
+    rule_action: $ruleAction
+    rule_tracking: $tracking
+    target_begin_date: $validFrom
+	  target_end_date: $validTo
+    reason: $reason
+    free_text: $freeText
+  }) {
+    returning {
+      newId: id
+    }
+  }
+}

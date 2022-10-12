@@ -1,0 +1,132 @@
+@using FWO.Api.Data
+@using FWO.Api.Client
+@using FWO.Config.Api
+@using FWO.Ui.Services
+
+@page "/request/implementations"
+@attribute [Authorize(Roles = "admin, implementer, auditor, fw-admin")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+<h3>@(userConfig.GetText("implementations"))</h3>
+<hr />
+
+@if(InitComplete)
+{
+    <div class="form-group row">
+        <label for="taskDevId" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("view")):</label>
+        <div class="col-sm-2">
+            <select id="taskDevId" class="form-control form-control-sm" @bind="DeviceId">
+                <option value="-1">@(userConfig.GetText("tickets"))</option>
+                <option value="0">@(userConfig.GetText("all_gateways"))</option>
+                @foreach (Device device in reqHandler.Devices)
+                {
+                    <option value="@device.Id">@(device.Name)</option>
+                }
+            </select>
+        </div>
+        <button class="btn btn-sm btn-primary" @onclick="SelectDevice">@(userConfig.GetText("select"))</button>
+    </div>
+
+    @if(DisplayTickets)
+    {
+        <DisplayTicketTable Phase="WorkflowPhases.implementation" States="states" ReqHandler="reqHandler" 
+            ResetParent="Reset" StartImplPhase="StartImplementTask"/>
+    }
+    else
+    {
+        <DisplayImplTaskTable Phase="WorkflowPhases.implementation" States="states" 
+            ReqHandler="reqHandler" ResetParent="Reset" AllImplTasks="allImplTasks" DeviceView="true"
+            StartImplPhase="StartImplementTask"/>
+    }
+}
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    private RequestHandler reqHandler;
+    private RequestStateDict states = new RequestStateDict();
+    private bool InitComplete = false;
+
+    private bool DisplayTickets = true;
+    private int DeviceId = -1;
+    private List<RequestImplTask> allImplTasks = new List<RequestImplTask>();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if(authenticationStateTask!.Result.User.IsInRole("admin"))
+            {
+                apiConnection.SetRole("admin");
+            }
+            else if(authenticationStateTask!.Result.User.IsInRole("implementer"))
+            {
+                apiConnection.SetRole("implementer");
+            }
+            else if(authenticationStateTask!.Result.User.IsInRole("fw-admin"))
+            {
+                apiConnection.SetRole("fw-admin");
+            }
+            else
+            {
+                apiConnection.SetRole("auditor");
+            }
+
+            await states.Init(apiConnection);
+
+            reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, apiConnection, WorkflowPhases.implementation){};
+            await Reset();
+            reqHandler.SetContinueEnv(ObjAction.implement);
+    
+            InitComplete = true;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_requests"), "", true);
+        }
+    }
+
+    private async Task SelectDevice()
+    {
+        allImplTasks = new List<RequestImplTask>();
+        if(DeviceId != -1)
+        {
+            foreach(var ticket in reqHandler.TicketList)
+            {
+                foreach(var reqTask in ticket.Tasks)
+                {
+                    foreach(var implTask in reqTask.ImplementationTasks)
+                    {
+                        if (DeviceId == 0 || implTask.DeviceId == DeviceId)
+                        {
+                            implTask.TicketId = ticket.Id;
+                            implTask.ReqTaskId = reqTask.Id;
+                            allImplTasks.Add(implTask);
+                        }
+                    }
+                }
+            }
+        }
+        DisplayTickets = (DeviceId == -1);
+    }
+
+    private async Task Reset()
+    {
+        reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole("implementer") || authenticationStateTask!.Result.User.IsInRole("fw-admin") || authenticationStateTask!.Result.User.IsInRole("admin"));
+        await reqHandler.Init();
+    }
+    
+    private async Task StartImplementTask(RequestImplTask implTask)
+    {
+        implTask.Start = DateTime.Now;
+        await reqHandler.StartWorkOnImplTask(implTask, ObjAction.implement);
+    }
+}

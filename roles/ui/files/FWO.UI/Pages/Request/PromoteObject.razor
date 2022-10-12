@@ -1,0 +1,122 @@
+@using FWO.Api.Client
+@using FWO.Config.Api
+
+@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+
+<PopUp Title="@(userConfig.GetText("change_state") + ": " + ObjectName)" Show="@Display" OnClose="async () => await Close()">
+    <Body>
+        @if (Display)
+        {
+            <div class="form-group row">
+                <label for="promoteObject" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("promote_to")):</label>
+                <div class="col-sm-8">
+                    <select id="promoteObject" class="form-control form-control-sm" @bind="StatefulObject.StateId">
+                        @foreach (int state in possibleStates)
+                        {
+                            <option value="@state">@(States.Name[state])</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            @if(WithComment)
+            {
+                <div class="form-group row">
+                    <label for="optComment" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
+                    <div class="col-sm-8">
+                        <input id="optComment" type="text" class="form-control form-control-sm" @bind="optComm" />
+                    </div>
+                </div>
+            }
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="admin, requester, approver, planner, implementer, reviewer, fw-admin">
+                <Authorized>
+                    <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="async () => {StatefulObject.SetOptComment(optComm); await Save(StatefulObject); await Close();}">@(userConfig.GetText("save"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    
+    [Parameter]
+    public bool Promote { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> PromoteChanged { get; set; }
+
+    [Parameter]
+    public Func<Task> ResetParent { get; set; }
+
+    [Parameter]
+    public string ObjectName { get; set; } = "";
+
+    [Parameter]
+    public bool WithComment { get; set; } = false;
+
+    [Parameter]
+    public Func<RequestStatefulObject, Task>? Save { get; set; }
+
+    [Parameter]
+    public RequestStatefulObject StatefulObject { get; set; } = new RequestStatefulObject();
+
+    [Parameter]
+    public StateMatrix StateMatrix { get; set; } = new StateMatrix();
+
+    [Parameter]
+    public RequestStateDict States { get; set; } = new RequestStateDict();
+
+
+    private bool Display { get; set; } = false;
+    private List<int> possibleStates = new List<int>();
+    private string? optComm;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Promote)
+        {
+            possibleStates = StateMatrix.getAllowedTransitions(StatefulObject.StateId);
+            if(possibleStates.Count == 1)
+            {
+                int oldState = StatefulObject.StateId;
+                StatefulObject.StateId = possibleStates[0];
+                if(WithComment && oldState >= StateMatrix.LowestStartedState)
+                {
+                    Display = true;
+                }
+                else
+                {
+                    await Save(StatefulObject);
+                    await Close();
+                }
+            }
+            else
+            {
+                Display = true;
+            }
+            Promote = false;
+        }
+    }
+
+    private async Task Close()
+    {
+        Display = false;
+        Promote = false;
+        await ResetParent();
+    }
+}

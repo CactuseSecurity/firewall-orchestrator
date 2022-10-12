@@ -2,10 +2,10 @@
 @using System.Net
 @using FWO.Api.Data
 @using FWO.Api.Client
+@using FWO.Ui.Services
 @using FWO.Middleware.Client
 @using FWO.Config.Api
 @using FWO.Middleware.RequestParameters
-@using FWO.Ui.Services
 @using RestSharp
 
 @page "/settings/roles"
@@ -21,7 +21,7 @@
 
 <div class="m-2">
     <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="Role" Items="roles" PageSize="0" ColumnReorder="true">
-        <Column TableItem="Role" Title="@(userConfig.GetText("action"))" Field="(x => x.Name)" Sortable="false" Filterable="false">
+        <Column TableItem="Role" Title="@(userConfig.GetText("actions"))" Field="(x => x.Name)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
                     @if (context.Name != "middleware-server" && context.Name != "anonymous")
@@ -241,30 +241,10 @@
         try
         {
             // get roles from LDAP
-            RestResponse<List<RoleGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetAllRoles();
-            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
+            roles = await RoleAccess.GetRolesFromInternalLdap(middlewareClient);
+            if (roles.Count == 0)
             {
                 DisplayMessageInUi!(null, userConfig.GetText("fetch_roles"), userConfig.GetText("E5251"), true);
-            }
-            else
-            {
-                foreach (var ldapRole in middlewareServerResponse.Data)
-                {
-                    Role role = new Role() { Dn = ldapRole.Role, Name = (new DistName(ldapRole.Role)).Role };
-                    foreach (var roleAttr in ldapRole.Attributes)
-                    {
-                        if (roleAttr.Key == "description")
-                        {
-                            role.Description = roleAttr.Value;
-                        }
-                        else if (roleAttr.Key == "user")
-                        {
-                            UiUser newUser = new UiUser() { Dn = roleAttr.Value, Name = (new DistName(roleAttr.Value)).UserName };
-                            role.Users.Add(newUser);
-                        }
-                    }
-                    roles.Add(role);
-                }
             }
 
             // get users

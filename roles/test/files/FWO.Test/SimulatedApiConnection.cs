@@ -23,5 +23,10 @@ namespace FWO.Test
         {
             throw new NotImplementedException();
         }
+
+        public override void SetRole(string role)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

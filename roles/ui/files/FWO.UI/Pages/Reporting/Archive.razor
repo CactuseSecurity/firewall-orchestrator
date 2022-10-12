@@ -9,7 +9,7 @@
 <h3>@(userConfig.GetText("archive"))</h3>
 
 <Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="ReportFile" Items="archivedReports" PageSize="0">
-    <Column TableItem="ReportFile" Title="@(userConfig.GetText("action"))">
+    <Column TableItem="ReportFile" Title="@(userConfig.GetText("actions"))">
         <Template>
             <div class="btn-group">
                 @if (!Exporting)

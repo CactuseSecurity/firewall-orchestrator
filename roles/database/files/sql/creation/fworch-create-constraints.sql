@@ -17,11 +17,11 @@ Alter Table "zone" add Constraint "Alter_Key10" UNIQUE ("mgm_id","zone_name");
 
 --- owner_network ---
 ALTER TABLE owner_network ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
---- request.element ---
-ALTER TABLE request.element ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
---- implementation.element ---
-ALTER TABLE implementation.element ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
+--- request elements ---
+ALTER TABLE request.reqelement ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
+ALTER TABLE request.implelement ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
 
+--- routing ---
 
 ALTER TABLE gw_route DROP CONSTRAINT IF EXISTS gw_route_routing_device_foreign_key;
 ALTER TABLE gw_route ADD CONSTRAINT gw_route_routing_device_foreign_key FOREIGN KEY (routing_device) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;

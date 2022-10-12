@@ -1,0 +1,109 @@
+@using FWO.Config.Api
+@using FWO.Ui.Services
+
+@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
+
+@inject UserConfig userConfig
+
+@if(Phase == WorkflowPhases.request && !ReqHandler.ReadOnlyMode)
+{
+    <button class="btn btn-success m-2" @onclick="AddTicket">@(userConfig.GetText("add_new_request"))</button>
+}
+
+<div class="m-2">
+    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="RequestTicket" Items="ReqHandler.TicketList" PageSize="0" ColumnReorder="true">
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+            <Template>
+                <div class="btn-group">
+                    @if (Phase == WorkflowPhases.request && context.StateId < ReqHandler.MasterStateMatrix.LowestEndState && !ReqHandler.ReadOnlyMode)
+                    {
+                        <button class="btn btn-sm btn-warning" @onclick="() => EditTicket(context)">@(userConfig.GetText("edit"))</button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-sm btn-primary" @onclick="() => ShowTicketDetails(context)">@(userConfig.GetText("details"))</button>
+                    }
+                </div>
+            </Template>
+        </Column>
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true" />
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("tasks"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" >
+            <Template>
+                @if(Phase < WorkflowPhases.implementation)
+                {
+                    @(context.Tasks.Count)
+                }
+                else
+                {
+                    @(context.NumberImplTasks())
+                }
+            </Template>
+        </Column>
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("requester"))" Field="@(x => x.Requester.Name)" Sortable="true" Filterable="true" />
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
+            <Template>
+                @(States.Name[context.StateId])
+            </Template>
+        </Column>
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("priority"))" Field="@(x => x.Priority)" Sortable="true" Filterable="false" >
+            <Template>
+                @(ReqHandler.PrioList.FirstOrDefault(x => x.NumPrio == context.Priority)?.Name)
+            </Template>
+        </Column>
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("deadline"))" Field="@(x => x.Deadline)" Sortable="true" Filterable="true" />
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("created"))" Field="@(x => x.CreationDate)" Sortable="true" Filterable="true" />
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("closed"))" Field="@(x => x.CompletionDate)" Sortable="true" Filterable="true" />
+    </Table>
+</div>
+
+<DisplayTicket Phase="Phase" States="States" ReqHandler="ReqHandler" ResetParent="Reset" 
+    StartPhase="StartPhase" StartImplPhase="StartImplPhase"/>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    
+    [Parameter]
+    public WorkflowPhases Phase { get; set; } = WorkflowPhases.request;
+
+    [Parameter]
+    public RequestStateDict States { get; set; } = new RequestStateDict();
+
+    [Parameter]
+    public RequestHandler ReqHandler { get; set; }
+
+    [Parameter]
+    public Func<Task> ResetParent { get; set; }
+
+    [Parameter]
+    public Func<RequestReqTask, Task>? StartPhase { get; set; }
+
+    [Parameter]
+    public Func<RequestImplTask, Task>? StartImplPhase { get; set; }
+
+
+    private async Task Reset()
+    {
+        ReqHandler.ResetTicketActions();
+        await ResetParent();
+        StateHasChanged();
+    }
+
+    private async Task ShowTicketDetails(RequestTicket ticket)
+    {
+        ReqHandler.SelectTicket(ticket, ObjAction.display);
+    }
+
+    private async Task AddTicket()
+    {
+        ReqHandler.SelectTicket(new RequestTicket(){ Requester = userConfig.User }, ObjAction.add);
+    }
+
+    private async Task EditTicket(RequestTicket ticket)
+    {
+        ReqHandler.SelectTicket(ticket, ObjAction.edit);
+    }
+}

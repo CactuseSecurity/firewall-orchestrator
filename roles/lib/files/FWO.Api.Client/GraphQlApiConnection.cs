@@ -65,6 +65,12 @@ namespace FWO.Api.Client
             graphQlClient.Options.ConfigureWebSocketConnectionInitPayload = httpClientOptions => new { headers = new { authorization = $"Bearer {jwt}" } };
         }
 
+        public override void SetRole(string role)
+        {
+            graphQlClient.HttpClient.DefaultRequestHeaders.Remove("x-hasura-role");
+            graphQlClient.HttpClient.DefaultRequestHeaders.Add("x-hasura-role", role);
+        }
+
         /// <summary>
         /// Sends an APICall (query, mutation)
         /// NB: SendQueryAsync always returns an array of objects (even if the result is a single element)

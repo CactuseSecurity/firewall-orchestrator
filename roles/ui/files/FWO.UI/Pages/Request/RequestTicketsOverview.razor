@@ -1,0 +1,77 @@
+@using FWO.Api.Data
+@using FWO.Api.Client
+@using FWO.Config.Api
+@using FWO.Ui.Services
+
+@page "/request/ticketsoverview"
+@attribute [Authorize(Roles = "admin, auditor, fw-admin, requester")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+<h3>@(userConfig.GetText("all_readonly"))</h3>
+<hr />
+
+@if(InitComplete)
+{
+    <DisplayTicketTable Phase="WorkflowPhases.request" States="states" ReqHandler="reqHandler" ResetParent="Reset"/>
+}
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    private RequestHandler reqHandler;
+    private RequestStateDict states = new RequestStateDict();
+    private bool InitComplete = false;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if(authenticationStateTask!.Result.User.IsInRole("admin"))
+            {
+                apiConnection.SetRole("admin");
+            }
+            else if(authenticationStateTask!.Result.User.IsInRole("fw-admin"))
+            {
+                apiConnection.SetRole("fw-admin");
+            }
+            else if(authenticationStateTask!.Result.User.IsInRole("requester"))
+            {
+                apiConnection.SetRole("requester");
+            }
+            else
+            {
+                apiConnection.SetRole("auditor");
+            }
+
+            await states.Init(apiConnection);
+
+            reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, apiConnection, WorkflowPhases.request){};
+            await Reset();
+            InitComplete = true;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_requests"), "", true);
+        }
+    }
+
+    private async Task Reset()
+    {
+        reqHandler.ReadOnlyMode = true;
+        await reqHandler.Init(1);
+
+        // Todo: put filtering into graphql query
+        if(authenticationStateTask!.Result.User.IsInRole("requester") && !(authenticationStateTask!.Result.User.IsInRole("admin") || authenticationStateTask!.Result.User.IsInRole("fw-admin")))
+        {
+            reqHandler.FilterForRequester();
+        }
+    }
+}

@@ -1,0 +1,22 @@
+mutation updateImplementationTaskState(
+  $id: bigint!
+  $state: Int
+  $start: timestamp
+  $stop: timestamp
+  $handler: Int
+  $recentHandler: Int
+  $assignedGroup: String
+  ) {
+  update_request_impltask_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+    state_id: $state
+    start: $start
+    stop: $stop
+    current_handler: $handler
+    recent_handler: $recentHandler
+    assigned_group: $assignedGroup
+  }) {
+    UpdatedId: id
+  }
+}

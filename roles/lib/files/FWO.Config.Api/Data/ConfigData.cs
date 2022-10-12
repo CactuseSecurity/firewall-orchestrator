@@ -1,14 +1,7 @@
-﻿using FWO.Logging;
-using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Reflection;
-using System.Text;
+﻿using Newtonsoft.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
+using FWO.Api.Data;
 
 namespace FWO.Config.Api.Data
 {
@@ -105,6 +98,22 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("maxImportInterval"), JsonPropertyName("maxImportInterval")]
         public int MaxImportInterval { get; set; } = 12;
+
+        [JsonProperty("reqAvailableTaskTypes"), JsonPropertyName("reqAvailableTaskTypes")]
+        public string ReqAvailableTaskTypes { get; set; } = "";
+
+        [JsonProperty("reqAllowObjectSearch"), JsonPropertyName("reqAllowObjectSearch")]
+        public bool ReqAllowObjectSearch { get; set; } = false;
+
+        [JsonProperty("reqAllowManualOwnerAdmin"), JsonPropertyName("reqAllowManualOwnerAdmin")]
+        public bool ReqAllowManualOwnerAdmin { get; set; } = false;
+
+        [JsonProperty("reqPriorities"), JsonPropertyName("reqPriorities")]
+        public string ReqPriorities { get; set; } = "";
+
+        [JsonProperty("reqAutoCreateImplTasks"), JsonPropertyName("reqAutoCreateImplTasks")]
+        public AutoCreateImplTaskOptions ReqAutoCreateImplTasks { get; set; } = AutoCreateImplTaskOptions.never;
+
 
         public ConfigData(bool editable = false)
         {

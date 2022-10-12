@@ -1,0 +1,5 @@
+query getTicketById($id: bigint!) {
+  request_ticket_by_pk(id: $id) {
+    ...ticketDetails
+  }
+}

@@ -1,0 +1,36 @@
+mutation updateImplementationTask(
+  $id: bigint!
+  $title: String
+  $reqTaskId: bigint!
+  $implIaskNumber: Int
+  $state: Int
+  $taskType: String!
+  $device: Int
+  $implAction: action_enum
+  $ruleAction: Int
+  $tracking: Int
+  $handler: Int
+  $validFrom: timestamp
+  $validTo: timestamp
+  $freeText: String
+  ) {
+  update_request_impltask_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+    title: $title
+    reqtask_id: $reqTaskId
+    task_number: $implIaskNumber
+    state_id: $state
+    task_type: $taskType
+    device_id: $device
+    implementation_action: $implAction
+    rule_action: $ruleAction
+    rule_tracking: $tracking
+    current_handler: $handler
+    target_begin_date: $validFrom
+	  target_end_date: $validTo
+    free_text: $freeText
+  }) {
+    UpdatedId: id
+  }
+}

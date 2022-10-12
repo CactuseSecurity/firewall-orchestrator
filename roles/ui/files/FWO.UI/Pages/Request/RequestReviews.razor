@@ -4,7 +4,7 @@
 @using FWO.Ui.Services
 
 @page "/request/reviews"
-@attribute [Authorize(Roles = "admin, reviewer, auditor, fw-admin")]
+@attribute [Authorize(Roles = "admin, reviewer, auditor")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -42,10 +42,6 @@
             else if(authenticationStateTask!.Result.User.IsInRole("reviewer"))
             {
                 apiConnection.SetRole("reviewer");
-            }
-            else if(authenticationStateTask!.Result.User.IsInRole("fw-admin"))
-            {
-                apiConnection.SetRole("fw-admin");
             }
             else
             {

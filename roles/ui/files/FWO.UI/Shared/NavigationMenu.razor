@@ -108,8 +108,11 @@
         userConfig.OnChange += OnChange;
         if(authenticationStateTask!.Result.User.IsInRole("admin") || 
             authenticationStateTask!.Result.User.IsInRole("fw-admin") ||
-            authenticationStateTask!.Result.User.IsInRole("requester") ||
             authenticationStateTask!.Result.User.IsInRole("auditor"))
+        {
+            firstPage = "/request/ticketsoverview";
+        }
+        else if(authenticationStateTask!.Result.User.IsInRole("requester"))
         {
             firstPage = "/request/tickets";
         }

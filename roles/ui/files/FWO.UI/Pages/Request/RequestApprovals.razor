@@ -4,7 +4,7 @@
 @using FWO.Ui.Services
 
 @page "/request/approvals"
-@attribute [Authorize(Roles = "admin, approver, auditor, fw-admin")]
+@attribute [Authorize(Roles = "admin, approver, auditor")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -43,10 +43,6 @@
             else if(authenticationStateTask!.Result.User.IsInRole("approver"))
             {
                 apiConnection.SetRole("approver");
-            }
-            else if(authenticationStateTask!.Result.User.IsInRole("fw-admin"))
-            {
-                apiConnection.SetRole("fw-admin");
             }
             else
             {

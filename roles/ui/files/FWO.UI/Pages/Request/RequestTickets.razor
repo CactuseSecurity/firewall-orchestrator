@@ -4,7 +4,7 @@
 @using FWO.Ui.Services
 
 @page "/request/tickets"
-@attribute [Authorize(Roles = "admin, requester, auditor, fw-admin")]
+@attribute [Authorize(Roles = "admin, requester, auditor")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -41,10 +41,6 @@
             else if(authenticationStateTask!.Result.User.IsInRole("requester"))
             {
                 apiConnection.SetRole("requester");
-            }
-            else if(authenticationStateTask!.Result.User.IsInRole("fw-admin"))
-            {
-                apiConnection.SetRole("fw-admin");
             }
             else
             {

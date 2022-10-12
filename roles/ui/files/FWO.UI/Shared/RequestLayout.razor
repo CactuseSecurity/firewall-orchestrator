@@ -27,7 +27,7 @@
                 </AuthorizeView>
                 @if(stateMatrix.PhaseActive[WorkflowPhases.request])
                 {
-                    <AuthorizeView Roles="admin, requester, auditor, fw-admin">
+                    <AuthorizeView Roles="admin, requester, auditor">
                         <li class="nav-item px-2">
                             <NavLink class="nav-link" href="request/tickets">
                                 <span class="oi oi-comment-square"></span> @(userConfig.GetText("create_ticket"))
@@ -37,7 +37,7 @@
                 }
                 @if(stateMatrix.PhaseActive[WorkflowPhases.approval])
                 {
-                    <AuthorizeView Roles="admin, approver, auditor, fw-admin">
+                    <AuthorizeView Roles="admin, approver, auditor">
                         <li class="nav-item px-2">
                             <NavLink class="nav-link" href="request/approvals">
                                 <span class="oi oi-check"></span> @(userConfig.GetText("approvals"))
@@ -67,7 +67,7 @@
                 }
                 @if(stateMatrix.PhaseActive[WorkflowPhases.review])
                 {
-                    <AuthorizeView Roles="admin, reviewer, auditor, fw-admin">
+                    <AuthorizeView Roles="admin, reviewer, auditor">
                         <li class="nav-item px-2">
                             <NavLink class="nav-link" href="request/reviews">
                                 <span class="oi oi-check"></span> @(userConfig.GetText("reviews"))

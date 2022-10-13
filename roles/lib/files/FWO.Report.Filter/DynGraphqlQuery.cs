@@ -27,7 +27,7 @@ namespace FWO.Report.Filter
         public string ReportTimeString { get; set; } = "";
         public List<int> RelevantManagementIds { get; set; } = new List<int>();
 
-        public ReportType ReportType { get; set; } = ReportType.None;
+        public ReportType ReportType { get; set; } = ReportType.Rules;
 
         // $mgmId and $relevantImporId are only needed for time based filtering
         private DynGraphqlQuery(string rawInput) { RawFilter = rawInput; }
@@ -102,7 +102,6 @@ namespace FWO.Report.Filter
                         change_type_id: {{ _eq: 3 }}
                         security_relevant: {{ _eq: true }}";
                         break;
-                    case ReportType.None:
                     default:
                         Log.WriteError("Filter", $"Unexpected report type found: {reportType}");
                         break;

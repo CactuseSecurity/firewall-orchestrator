@@ -34,9 +34,8 @@ namespace FWO.Report
             Management[] managementsWithRelevantImportId = await getRelevantImportIds(apiConnection);
 
             List<Management> resultList = new List<Management>();
-            int i;
 
-            for (i = 0; i < managementsWithRelevantImportId.Length; i++)
+            foreach (Management relevantMgmt in managementsWithRelevantImportId)
             {
                 if (ct.IsCancellationRequested)
                 {
@@ -45,8 +44,8 @@ namespace FWO.Report
                 }
 
                 // setting mgmt and relevantImporId QueryVariables 
-                Query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
-                Query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1 /* managment was not yet imported at that time */;
+                Query.QueryVariables["mgmId"] = relevantMgmt.Id;
+                Query.QueryVariables["relevantImportId"] = relevantMgmt.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1 /* managment was not yet imported at that time */;
                 resultList.Add((await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables))[0]);
             }
             Managements = resultList.ToArray();

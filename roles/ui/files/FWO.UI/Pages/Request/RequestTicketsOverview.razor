@@ -65,13 +65,20 @@
 
     private async Task Reset()
     {
-        reqHandler.ReadOnlyMode = true;
-        await reqHandler.Init(1);
-
-        // Todo: put filtering into graphql query
-        if(authenticationStateTask!.Result.User.IsInRole("requester") && !(authenticationStateTask!.Result.User.IsInRole("admin") || authenticationStateTask!.Result.User.IsInRole("fw-admin")))
+        try
         {
-            reqHandler.FilterForRequester();
+            reqHandler.ReadOnlyMode = true;
+            await reqHandler.Init(1);
+
+            // Todo: put filtering into graphql query
+            if(authenticationStateTask!.Result.User.IsInRole("requester") && !(authenticationStateTask!.Result.User.IsInRole("admin") || authenticationStateTask!.Result.User.IsInRole("fw-admin")))
+            {
+                reqHandler.FilterForRequester();
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("init_environment"), "", true);
         }
     }
 }

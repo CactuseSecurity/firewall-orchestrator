@@ -120,13 +120,27 @@
 
     private async Task Reset()
     {
-        reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole("implementer") || authenticationStateTask!.Result.User.IsInRole("fw-admin") || authenticationStateTask!.Result.User.IsInRole("admin"));
-        await reqHandler.Init();
+        try
+        {
+            reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole("implementer") || authenticationStateTask!.Result.User.IsInRole("fw-admin") || authenticationStateTask!.Result.User.IsInRole("admin"));
+            await reqHandler.Init();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("init_environment"), "", true);
+        }
     }
     
     private async Task StartImplementTask(RequestImplTask implTask)
     {
-        implTask.Start = DateTime.Now;
-        await reqHandler.StartWorkOnImplTask(implTask, ObjAction.implement);
+        try
+        {
+            implTask.Start = DateTime.Now;
+            await reqHandler.StartWorkOnImplTask(implTask, ObjAction.implement);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("start_work"), "", true);
+        }
     }
 }

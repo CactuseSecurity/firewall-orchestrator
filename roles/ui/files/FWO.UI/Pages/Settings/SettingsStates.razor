@@ -169,25 +169,25 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        await RefreshStates();
-        actions = await apiConnection.SendQueryAsync<List<RequestStateAction>>(FWO.Api.Client.Queries.RequestQueries.getActions);
-        InitComplete = true;
-    }
-
-    private async Task RefreshStates()
-    {
         try
         {
-            states = new List<RequestState>();
-            states = await apiConnection.SendQueryAsync<List<RequestState>>(FWO.Api.Client.Queries.RequestQueries.getStates);
-            statesDict = new RequestStateDict();
-            await statesDict.Init(apiConnection);
-            await GetUsedStates();
+            await RefreshStates();
+            actions = await apiConnection.SendQueryAsync<List<RequestStateAction>>(FWO.Api.Client.Queries.RequestQueries.getActions);
+            InitComplete = true;
         }
         catch (Exception exception)
         {
             DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
         }
+    }
+
+    private async Task RefreshStates()
+    {
+        states = new List<RequestState>();
+        states = await apiConnection.SendQueryAsync<List<RequestState>>(FWO.Api.Client.Queries.RequestQueries.getStates);
+        statesDict = new RequestStateDict();
+        await statesDict.Init(apiConnection);
+        await GetUsedStates();
     }
 
     private async Task GetUsedStates()

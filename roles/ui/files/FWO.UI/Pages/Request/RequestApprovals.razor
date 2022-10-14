@@ -65,12 +65,26 @@
 
     private async Task Reset()
     {
-        reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole("approver") || authenticationStateTask!.Result.User.IsInRole("admin"));
-        await reqHandler.Init();
+        try
+        {
+            reqHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole("approver") || authenticationStateTask!.Result.User.IsInRole("admin"));
+            await reqHandler.Init();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("init_environment"), "", true);
+        }
     }
 
     public async Task StartApproveTask(RequestReqTask reqTask)
     {
-        await reqHandler.StartWorkOnReqTask(reqTask, ObjAction.approve);
+        try
+        {
+            await reqHandler.StartWorkOnReqTask(reqTask, ObjAction.approve);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("start_work"), "", true);
+        }
     }
 }

@@ -575,6 +575,10 @@ INSERT INTO txt VALUES ('add_new_request',      'German', 	'Neuen Antrag hinzuf&
 INSERT INTO txt VALUES ('add_new_request',      'English', 	'Add new request');
 INSERT INTO txt VALUES ('fetch_requests',       'German', 	'Antr&auml;ge holen');
 INSERT INTO txt VALUES ('fetch_requests',       'English', 	'Fetch requests');
+INSERT INTO txt VALUES ('init_environment',     'German', 	'Umgebung initialisieren');
+INSERT INTO txt VALUES ('init_environment',     'English', 	'Init environment');
+INSERT INTO txt VALUES ('start_work',           'German', 	'Arbeit beginnen');
+INSERT INTO txt VALUES ('start_work',           'English', 	'Start work');
 INSERT INTO txt VALUES ('save_request',         'German', 	'Antrag speichern');
 INSERT INTO txt VALUES ('save_request',         'English', 	'Save request');
 INSERT INTO txt VALUES ('state',                'German', 	'Status');

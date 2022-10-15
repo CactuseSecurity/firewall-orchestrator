@@ -624,3 +624,8 @@ GRANT SELECT ON TABLE view_rule_source_or_destination TO GROUP secuadmins, repor
 -- view for import status
 GRANT SELECT ON TABLE view_import_status_table TO fworch;  -- {{fworch_home}}/bin/write_import_status_file.sh is run as fworch as it will also be invoked via cli
 GRANT SELECT ON TABLE view_import_status_table TO GROUP secuadmins, reporters; -- not really neccessary
+
+-- views for tenant filtering
+GRANT SELECT ON TABLE view_tenant_rules TO GROUP secuadmins, reporters;
+GRANT SELECT ON TABLE view_tenant_rule_tos TO GROUP secuadmins, reporters;
+GRANT SELECT ON TABLE view_tenant_rule_froms TO GROUP secuadmins, reporters;

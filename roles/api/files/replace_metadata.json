@@ -7283,6 +7283,28 @@
                   }
                 }
               ],
+              "computed_fields": [
+                {
+                  "name": "get_rule_froms_for_tenant",
+                  "definition": {
+                    "function": {
+                      "name": "get_rule_froms_for_tenant",
+                      "schema": "public"
+                    },
+                    "session_argument": "hasura_session"
+                  }
+                },
+                {
+                  "name": "get_rule_tos_for_tenant",
+                  "definition": {
+                    "function": {
+                      "name": "get_rule_tos_for_tenant",
+                      "schema": "public"
+                    },
+                    "session_argument": "hasura_session"
+                  }
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "auditor",
@@ -11909,9 +11931,323 @@
             },
             {
               "table": {
+                "name": "view_tenant_rule_froms",
+                "schema": "public"
+              },
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "rf_create",
+                      "rf_last_seen",
+                      "rule_from_id",
+                      "rule_id",
+                      "user_id",
+                      "active",
+                      "negated",
+                      "dev_id",
+                      "mgm_id",
+                      "tenant_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "rf_create",
+                      "rf_last_seen",
+                      "rule_from_id",
+                      "rule_id",
+                      "user_id",
+                      "active",
+                      "negated",
+                      "dev_id",
+                      "mgm_id",
+                      "tenant_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "rf_create",
+                      "rf_last_seen",
+                      "rule_from_id",
+                      "rule_id",
+                      "user_id",
+                      "active",
+                      "negated",
+                      "dev_id",
+                      "mgm_id",
+                      "tenant_id"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "dev_id": {
+                            "_in": "x-hasura-visible-devices"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "rf_create",
+                      "rf_last_seen",
+                      "rule_from_id",
+                      "rule_id",
+                      "user_id",
+                      "active",
+                      "negated",
+                      "dev_id",
+                      "mgm_id",
+                      "tenant_id"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "dev_id": {
+                            "_in": "x-hasura-visible-devices"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "rf_create",
+                      "rf_last_seen",
+                      "rule_from_id",
+                      "rule_id",
+                      "user_id",
+                      "active",
+                      "negated",
+                      "dev_id",
+                      "mgm_id",
+                      "tenant_id"
+                    ],
+                    "filter": {}
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "view_tenant_rule_tos",
+                "schema": "public"
+              },
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "rt_create",
+                      "rt_last_seen",
+                      "rule_id",
+                      "rule_to_id",
+                      "user_id",
+                      "active",
+                      "negated",
+                      "dev_id",
+                      "mgm_id",
+                      "tenant_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "rt_create",
+                      "rt_last_seen",
+                      "rule_id",
+                      "rule_to_id",
+                      "user_id",
+                      "active",
+                      "negated",
+                      "dev_id",
+                      "mgm_id",
+                      "tenant_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "rt_create",
+                      "rt_last_seen",
+                      "rule_id",
+                      "rule_to_id",
+                      "user_id",
+                      "active",
+                      "negated",
+                      "dev_id",
+                      "mgm_id",
+                      "tenant_id"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "dev_id": {
+                            "_in": "x-hasura-visible-devices"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "rt_create",
+                      "rt_last_seen",
+                      "rule_id",
+                      "rule_to_id",
+                      "user_id",
+                      "active",
+                      "negated",
+                      "dev_id",
+                      "mgm_id",
+                      "tenant_id"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "dev_id": {
+                            "_in": "x-hasura-visible-devices"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "rt_create",
+                      "rt_last_seen",
+                      "rule_id",
+                      "rule_to_id",
+                      "user_id",
+                      "active",
+                      "negated",
+                      "dev_id",
+                      "mgm_id",
+                      "tenant_id"
+                    ],
+                    "filter": {}
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
                 "name": "view_tenant_rules",
                 "schema": "public"
               },
+              "array_relationships": [
+                {
+                  "name": "tenant_rule_froms",
+                  "using": {
+                    "manual_configuration": {
+                      "column_mapping": {
+                        "rule_id": "rule_id",
+                        "tenant_id": "tenant_id"
+                      },
+                      "insertion_order": null,
+                      "remote_table": {
+                        "name": "view_tenant_rule_froms",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "tenant_rule_tos",
+                  "using": {
+                    "manual_configuration": {
+                      "column_mapping": {
+                        "rule_id": "rule_id",
+                        "tenant_id": "tenant_id"
+                      },
+                      "insertion_order": null,
+                      "remote_table": {
+                        "name": "view_tenant_rule_tos",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                }
+              ],
+              "computed_fields": [
+                {
+                  "name": "get_rule_froms_for_tenant_optimized",
+                  "definition": {
+                    "function": {
+                      "name": "get_rule_froms_for_tenant_optimized",
+                      "schema": "public"
+                    },
+                    "session_argument": "hasura_session"
+                  }
+                },
+                {
+                  "name": "get_rule_tos_for_tenant_optimized",
+                  "definition": {
+                    "function": {
+                      "name": "get_rule_tos_for_tenant_optimized",
+                      "schema": "public"
+                    },
+                    "session_argument": "hasura_session"
+                  }
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "auditor",
@@ -12602,6 +12938,6 @@
           }
         }
       ]
-    }  
+    }
   }
 }

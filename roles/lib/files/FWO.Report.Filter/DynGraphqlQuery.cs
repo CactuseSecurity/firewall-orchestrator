@@ -276,7 +276,7 @@ namespace FWO.Report.Filter
                                         rules(
                                             limit: $limit 
                                             offset: $offset
-                                            where: {{  access_rule: {{_eq: true}} {query.ruleWhereStatement} }} 
+                                            where: {{  access_rule: {{_eq: true}} get_rule_froms_for_tenant: {{}} {query.ruleWhereStatement} }} 
                                             order_by: {{ rule_num_numeric: asc }} )
                                             {{
                                                 mgm_id: mgm_id

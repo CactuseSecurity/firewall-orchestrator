@@ -8,7 +8,7 @@
     <Collapse Title="@(userConfig.GetText("templates"))" Style="@("primary")" StartToggled="false" @ref="collapseControl">
         <div class="card-body">
             <Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="ReportTemplate" Items="reportTemplates" PageSize="0">
-                <Column Title="@(userConfig.GetText("action"))" TableItem="ReportTemplate">
+                <Column Title="@(userConfig.GetText("actions"))" TableItem="ReportTemplate">
                     <Template Context="template">
                         @if (OnTemplateLoad != null)
                         {
@@ -18,7 +18,7 @@
                                 @if (template.Owner == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole("admin"))
                                 {
                                     <button class="btn btn-sm btn-warning" @onclick="() => { reportTemplateInEdit = decodeComment(template); 
-                                                                                             reportTypeInEdit = (reportTemplateInEdit.ReportParams.ReportType != null ? (ReportType)reportTemplateInEdit.ReportParams.ReportType : ReportType.None);
+                                                                                             reportTypeInEdit = (reportTemplateInEdit.ReportParams.ReportType != null ? (ReportType)reportTemplateInEdit.ReportParams.ReportType : ReportType.Rules);
                                                                                              ShowEditTemplateDialog = true; }">@(userConfig.GetText("edit"))</button>
                                     <button class="btn btn-sm btn-danger" @onclick="() => { reportTemplateInEdit = template; ShowDeleteTemplateDialog = true; }">@(userConfig.GetText("delete"))</button>
                                 }
@@ -115,7 +115,7 @@
 
     public List<ReportTemplate> reportTemplates { get; set; } = new List<ReportTemplate>();
     public ReportTemplate reportTemplateInEdit = new ReportTemplate();
-    private ReportType reportTypeInEdit = ReportType.None;
+    private ReportType reportTypeInEdit = ReportType.Rules;
 
     private string tmpTemplateCommentKey = "";
     private string tmpTemplateComment = "";

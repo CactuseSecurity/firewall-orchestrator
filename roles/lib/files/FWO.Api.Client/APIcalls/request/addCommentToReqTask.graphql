@@ -1,0 +1,13 @@
+mutation addCommentToReqTask(
+  $taskId: bigint!
+  $commentId: bigint!
+  ) {
+  insert_request_reqtask_comment(objects: {
+    task_id: $taskId
+    comment_id: $commentId
+  }) {
+    returning {
+      newId: task_id
+    }
+  }
+}

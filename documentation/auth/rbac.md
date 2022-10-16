@@ -18,10 +18,13 @@ The following roles are defined in ascending order of permissions:
 - importer - users can import config changes into the database
 - dbbackup - users that are able to read data tables for backup purposes
 - auditor - users that can view all data & settings (in the UI) but cannot make any changes
-- workflow-user - (for future use) users who can request firewall changes
-- workflow-admin - (for future use) users who can create change request workflows
 - recertifier - users who can re-certify or de-certify firewall rules
 - fw-admin - users who can document open changes
+- requester - users that have the right to create requests
+- approver - users that have the right to approve requests
+- planner - users that have the right to plan requests
+- implementer - users that have the right to implement requests
+- reviewer - users that have the right to review requests
 - admin - users with full access rights to firewall orchestrator (this is also the pre-defined hasura role 'admin')
 
 The above mentioned access rights are implemented on the following levels 

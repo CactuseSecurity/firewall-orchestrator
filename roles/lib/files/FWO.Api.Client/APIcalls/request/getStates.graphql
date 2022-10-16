@@ -1,0 +1,20 @@
+
+query getStates {
+  state_list: request_state (order_by: { id: asc }){
+    id
+    name
+    actions: state_actions {
+      action: action {
+        id
+        name
+        action_type
+        scope
+        task_type
+        phase
+        event
+        button_text
+        external_parameters
+      }
+    }
+  }
+}

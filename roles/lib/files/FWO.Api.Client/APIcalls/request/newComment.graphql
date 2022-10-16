@@ -1,0 +1,19 @@
+mutation newComment(
+  $refId: bigint
+  $scope: String
+  $creationDate: timestamp
+  $creator: Int
+  $text: String
+  ) {
+  insert_request_comment(objects: {
+    ref_id: $refId
+    scope: $scope
+    creation_date: $creationDate
+    creator_id: $creator
+    comment_text: $text
+  }) {
+    returning {
+      newId: id
+    }
+  }
+}

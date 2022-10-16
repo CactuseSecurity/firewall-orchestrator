@@ -2,10 +2,9 @@ namespace FWO.Report.Filter
 {
     public enum ReportType
     {
-        None,
-        Rules,
-        Changes,
-        Statistics,
-        NatRules
+        Rules = 1,
+        Changes = 2,
+        Statistics = 3,
+        NatRules = 4
     }
 }

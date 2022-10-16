@@ -168,11 +168,7 @@ BEGIN
 		END IF;
 		IF b_force_initial_import THEN UPDATE management SET force_initial_import=FALSE WHERE mgm_id=i_mgm_id; END IF; 	-- evtl. gesetztes management.force_initial_import-Flag loeschen	
 		v_err_pos := 'import_changelog_sync';
-		PERFORM import_changelog_sync (i_current_import_id, i_mgm_id); -- Abgleich zwischen import_changelog und changelog_xxx	
-
-		REFRESH MATERIALIZED VIEW CONCURRENTLY view_tenant_rule_tos;
-		REFRESH MATERIALIZED VIEW CONCURRENTLY view_tenant_rule_froms;
-		REFRESH MATERIALIZED VIEW CONCURRENTLY view_tenant_rules;
+		PERFORM import_changelog_sync (i_current_import_id, i_mgm_id); -- Abgleich zwischen import_changelog und changelog_xxx
 	EXCEPTION
 		WHEN OTHERS THEN -- read error from import_control and rollback
 			GET STACKED DIAGNOSTICS v_exception_message = MESSAGE_TEXT,

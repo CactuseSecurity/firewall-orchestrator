@@ -1,0 +1,119 @@
+@using FWO.Api.Client
+@using FWO.Config.Api
+@using FWO.Ui.Services
+@using FWO.Middleware.Client
+
+
+@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
+
+@inject ApiConnection apiConnection
+@inject MiddlewareClient middlewareClient
+@inject UserConfig userConfig
+
+<PopUp Title="@(userConfig.GetText("assign") + ": " + ObjectName)" Show="@Display" Large="true" OnClose="async () => await Close()">
+    <Body>
+        @if (Display)
+        {
+            <form>
+                <form class="form-group row">
+                    <label for="assignedGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("assign_to")):</label>
+                    <div class="col-sm-8">
+                        <select id="assignedGroup" class="form-control-sm col-sm" @bind="StatefulObject.AssignedGroup">
+                            <option value="">-</option>
+                            @foreach (var group in userAndGroupList)
+                            {
+                                <option value="@group.Dn">@(group.Name)</option>
+                            }
+                        </select>
+                    </div>
+                    @if(userAndGroupList.Count > 0)
+                    {
+                        <div class="col-sm-2">
+                            <AuthorizeView Roles="admin, fw-admin, requester, approver, planner, implementer, reviewer">
+                                <Authorized>
+                                    <button class="btn btn-sm btn-success" @onclick="async () => { await Assign(StatefulObject); await Close();}" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                                </Authorized>
+                                <NotAuthorized>
+                                    <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
+                                </NotAuthorized> 
+                            </AuthorizeView>
+                        </div>
+                    }
+                </form>
+                @if(AssignBack != null && StatefulObject.RecentHandler != null && StatefulObject.RecentHandler != StatefulObject.CurrentHandler)
+                {
+                    <form class="form-group row">
+                        <label for="backAsssignedGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("back_to")):</label>
+                        <label id="backAsssignedGroup" class="col-sm-8">@StatefulObject.RecentHandler.Name</label>
+                        <AuthorizeView Roles="admin, fw-admin, requester, approver, planner, implementer, reviewer">
+                            <Authorized>
+                                <button class="btn btn-sm btn-success" @onclick="async () => { await AssignBack(); await Close();}" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                            </Authorized>
+                            <NotAuthorized>
+                                <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
+                            </NotAuthorized> 
+                        </AuthorizeView>
+                    </form>
+                }
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public Func<Task> ResetParent { get; set; }
+
+    [Parameter]
+    public RequestStatefulObject StatefulObject { get; set; } = new RequestStatefulObject();
+
+    [Parameter]
+    public Func<RequestStatefulObject, Task>? Assign { get; set; }
+
+    [Parameter]
+    public Func<Task>? AssignBack { get; set; }
+
+    [Parameter]
+    public string ObjectName { get; set; } = "";
+
+    [Parameter]
+    public string Role { get; set; } = "";
+
+
+    private List<UiUser> userAndGroupList = new List<UiUser>();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            userAndGroupList = await RoleAccess.GetRoleMembers(middlewareClient, Role);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_requests"), "", true);
+        }
+    }
+
+    private async Task Close()
+    {
+        Display = false;
+        await ResetParent();
+    }
+}

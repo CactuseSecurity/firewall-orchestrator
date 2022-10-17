@@ -65,6 +65,8 @@ INSERT INTO txt VALUES ('coming_soon',		    'German', 	'(demn&auml;chst)');
 INSERT INTO txt VALUES ('coming_soon',		    'English', 	'(coming soon)');
 INSERT INTO txt VALUES ('in_progress',		    'German', 	'in Arbeit');
 INSERT INTO txt VALUES ('in_progress',		    'English', 	'in progress');
+INSERT INTO txt VALUES ('select', 				'German',	'Ausw&auml;hlen');
+INSERT INTO txt VALUES ('select', 				'English',	'Select');
 
 -- (re)login
 INSERT INTO txt VALUES ('login', 				'German',	'Anmelden');
@@ -105,8 +107,16 @@ INSERT INTO txt VALUES ('documentation', 		'German',	'Dokumentation');
 INSERT INTO txt VALUES ('documentation', 		'English',	'Documentation');
 INSERT INTO txt VALUES ('requests', 			'German',	'Antr&auml;ge');
 INSERT INTO txt VALUES ('requests', 			'English',	'Requests');
+INSERT INTO txt VALUES ('tickets', 			    'German',	'Tickets');
+INSERT INTO txt VALUES ('tickets', 			    'English',	'Tickets');
 INSERT INTO txt VALUES ('approvals', 			'German',	'Genehmigungen');
 INSERT INTO txt VALUES ('approvals', 			'English',	'Approvals');
+INSERT INTO txt VALUES ('plannings', 			'German',	'Planungen');
+INSERT INTO txt VALUES ('plannings', 			'English',	'Plannings');
+INSERT INTO txt VALUES ('implementations', 		'German',	'Implementierungen');
+INSERT INTO txt VALUES ('implementations', 		'English',	'Implementations');
+INSERT INTO txt VALUES ('reviews', 		        'German',	'Reviews');
+INSERT INTO txt VALUES ('reviews', 		        'English',	'Reviews');
 INSERT INTO txt VALUES ('scheduling', 			'German',	'Scheduling');
 INSERT INTO txt VALUES ('scheduling', 			'English',	'Scheduling');
 INSERT INTO txt VALUES ('archive', 				'German',	'Archiv');
@@ -115,6 +125,12 @@ INSERT INTO txt VALUES ('recertification', 		'German',	'Rezertifizierung');
 INSERT INTO txt VALUES ('recertification', 		'English',	'Recertification');
 INSERT INTO txt VALUES ('api', 		            'German',	'API');
 INSERT INTO txt VALUES ('api', 		            'English',	'API');
+INSERT INTO txt VALUES ('workflow', 			'German',	'Workflow');
+INSERT INTO txt VALUES ('workflow', 			'English',	'Workflow');
+INSERT INTO txt VALUES ('planning', 			'German',	'Planung');
+INSERT INTO txt VALUES ('planning', 			'English',	'Planning');
+INSERT INTO txt VALUES ('implementation', 		'German',	'Implementierung');
+INSERT INTO txt VALUES ('implementation', 		'English',	'Implementation');
 
 -- start
 INSERT INTO txt VALUES ('welcome_to',           'German', 	'Willkommen zu Firewall Orchestrator');
@@ -297,8 +313,6 @@ INSERT INTO txt VALUES ('download_json',		'German', 	'als JSON herunterladen');
 INSERT INTO txt VALUES ('download_json',		'English', 	'Download JSON');
 INSERT INTO txt VALUES ('save_as_template',		'German', 	'Als Vorlage speichern');
 INSERT INTO txt VALUES ('save_as_template',		'English', 	'Save as Template');
-INSERT INTO txt VALUES ('no_report_type_selected','German', 'Kein Report-Typ ausgew&auml;hlt.');
-INSERT INTO txt VALUES ('no_report_type_selected','English','No report type selected.');
 INSERT INTO txt VALUES ('no_device_selected',	'German', 	'Kein Device ausgew&auml;hlt.');
 INSERT INTO txt VALUES ('no_device_selected',	'English', 	'No device(s) selected.');
 INSERT INTO txt VALUES ('filter', 				'German', 	'Filter');
@@ -319,8 +333,8 @@ INSERT INTO txt VALUES ('trans_destination', 	'German', 	'Umgesetztes Ziel');
 INSERT INTO txt VALUES ('trans_destination', 	'English', 	'Translated Destination');
 INSERT INTO txt VALUES ('trans_services', 		'German', 	'Umgesetzte Dienste');
 INSERT INTO txt VALUES ('trans_services', 		'English', 	'Translated Services');
-INSERT INTO txt VALUES ('action', 				'German', 	'Aktionen');
-INSERT INTO txt VALUES ('action', 				'English', 	'Actions');
+INSERT INTO txt VALUES ('actions', 				'German', 	'Aktionen');
+INSERT INTO txt VALUES ('actions', 				'English', 	'Actions');
 INSERT INTO txt VALUES ('track', 				'German', 	'Logging');
 INSERT INTO txt VALUES ('track', 				'English', 	'Logging');
 INSERT INTO txt VALUES ('disabled',				'German', 	'Deaktiviert');
@@ -373,7 +387,7 @@ INSERT INTO txt VALUES ('all',		            'German', 	'Alle');
 INSERT INTO txt VALUES ('all',		            'English', 	'All');
 INSERT INTO txt VALUES ('rule',		            'German', 	'Regel');
 INSERT INTO txt VALUES ('rule',		            'English', 	'Rule');
-INSERT INTO txt VALUES ('objects',		        'German', 	'Objekt');
+INSERT INTO txt VALUES ('objects',		        'German', 	'Objekte');
 INSERT INTO txt VALUES ('objects',		        'English', 	'Objects');
 INSERT INTO txt VALUES ('change_time',		    'German', 	'&Auml;nderungszeit');
 INSERT INTO txt VALUES ('change_time',		    'English', 	'Change Time');
@@ -507,16 +521,214 @@ INSERT INTO txt VALUES ('delete_report',		'German', 	'Erstellten Report l&ouml;s
 INSERT INTO txt VALUES ('delete_report',		'English', 	'Delete generated report');
 
 -- requests
+INSERT INTO txt VALUES ('request',              'German', 	'Antrag');
+INSERT INTO txt VALUES ('request',              'English', 	'Request');
+INSERT INTO txt VALUES ('ticket',               'German', 	'Ticket');
+INSERT INTO txt VALUES ('ticket',               'English', 	'Ticket');
+INSERT INTO txt VALUES ('create_ticket', 		'German',	'Antrag stellen');
+INSERT INTO txt VALUES ('create_ticket', 	    'English',	'Create Ticket');
+INSERT INTO txt VALUES ('all_readonly',		    'German', 	'Alle Antr&auml;ge (nur lesend)');
+INSERT INTO txt VALUES ('all_readonly',		    'English', 	'All tickets (read only)');
+INSERT INTO txt VALUES ('task',                 'German', 	'Aufgabe');
+INSERT INTO txt VALUES ('task',                 'English', 	'Task');
+INSERT INTO txt VALUES ('element',              'German', 	'Element');
+INSERT INTO txt VALUES ('element',              'English', 	'Element');
+INSERT INTO txt VALUES ('reason', 				'German', 	'Grund');
+INSERT INTO txt VALUES ('reason', 				'English', 	'Reason');
+INSERT INTO txt VALUES ('service', 			    'German', 	'Dienst');
+INSERT INTO txt VALUES ('service', 			    'English', 	'Service');
+INSERT INTO txt VALUES ('master', 			    'German', 	'Master');
+INSERT INTO txt VALUES ('master', 			    'English', 	'Master');
+INSERT INTO txt VALUES ('access', 			    'German', 	'Zugriff');
+INSERT INTO txt VALUES ('access', 			    'English', 	'Access');
+INSERT INTO txt VALUES ('generic',              'German', 	'Generisch');
+INSERT INTO txt VALUES ('generic',              'English', 	'Generic');
+INSERT INTO txt VALUES ('group_create',         'German',   'Gruppe anlegen');
+INSERT INTO txt VALUES ('group_create',         'English',  'Create Group');
+INSERT INTO txt VALUES ('group_modify',         'German',   'Gruppe &auml;ndern');
+INSERT INTO txt VALUES ('group_modify',         'English',  'Modify Group');
+INSERT INTO txt VALUES ('group_delete',         'German',   'Gruppe l&ouml;schen');
+INSERT INTO txt VALUES ('group_delete',         'English',  'Delete Group');
+INSERT INTO txt VALUES ('action', 				'German', 	'Aktion');
+INSERT INTO txt VALUES ('action', 				'English', 	'Action');
+INSERT INTO txt VALUES ('rule_action', 			'German', 	'Regel-Aktion');
+INSERT INTO txt VALUES ('rule_action', 			'English', 	'Rule Action');
+INSERT INTO txt VALUES ('create',		        'German', 	'Anlegen');
+INSERT INTO txt VALUES ('create',		        'English', 	'Create');
+INSERT INTO txt VALUES ('modify',		        'German', 	'&Auml;ndern');
+INSERT INTO txt VALUES ('modify',		        'English', 	'Modify');
+INSERT INTO txt VALUES ('svc_group', 			'German', 	'Dienstgruppe');
+INSERT INTO txt VALUES ('svc_group', 			'English', 	'Service group');
+INSERT INTO txt VALUES ('obj_group', 			'German', 	'Objektgruppe');
+INSERT INTO txt VALUES ('obj_group', 			'English', 	'Object group');
+INSERT INTO txt VALUES ('rule_modify', 			'German', 	'Regel &auml;ndern');
+INSERT INTO txt VALUES ('rule_modify', 		    'English', 	'Modify Rule');
+INSERT INTO txt VALUES ('never', 			    'German', 	'Niemals');
+INSERT INTO txt VALUES ('never', 			    'English', 	'Never');
+INSERT INTO txt VALUES ('onlyForOneDevice', 	'German', 	'Nur wenn genau ein Ger&auml;t vorhanden');
+INSERT INTO txt VALUES ('onlyForOneDevice', 	'English', 	'Only if exactly one device available');
+INSERT INTO txt VALUES ('forEachDevice', 		'German', 	'F&uuml;r jedes Ger&auml;t');
+INSERT INTO txt VALUES ('forEachDevice', 		'English', 	'For each device');
+INSERT INTO txt VALUES ('enterInReqTask',       'German', 	'Ger&auml;t im Antrag eingeben');
+INSERT INTO txt VALUES ('enterInReqTask',       'English', 	'Enter device in request');
 INSERT INTO txt VALUES ('add_new_request',      'German', 	'Neuen Antrag hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_new_request',      'English', 	'Add new request');
 INSERT INTO txt VALUES ('fetch_requests',       'German', 	'Antr&auml;ge holen');
 INSERT INTO txt VALUES ('fetch_requests',       'English', 	'Fetch requests');
+INSERT INTO txt VALUES ('init_environment',     'German', 	'Umgebung initialisieren');
+INSERT INTO txt VALUES ('init_environment',     'English', 	'Init environment');
+INSERT INTO txt VALUES ('start_work',           'German', 	'Arbeit beginnen');
+INSERT INTO txt VALUES ('start_work',           'English', 	'Start work');
 INSERT INTO txt VALUES ('save_request',         'German', 	'Antrag speichern');
 INSERT INTO txt VALUES ('save_request',         'English', 	'Save request');
-INSERT INTO txt VALUES ('edit_request',         'German', 	'Antrag bearbeiten');
-INSERT INTO txt VALUES ('edit_request',         'English', 	'Edit request');
 INSERT INTO txt VALUES ('state',                'German', 	'Status');
 INSERT INTO txt VALUES ('state',                'English', 	'State');
+INSERT INTO txt VALUES ('tasks',                'German', 	'Aufgaben');
+INSERT INTO txt VALUES ('tasks',                'English', 	'Tasks');
+INSERT INTO txt VALUES ('add_task',             'German', 	'Aufgabe hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_task',             'English', 	'Add task');
+INSERT INTO txt VALUES ('save_task',            'German', 	'Aufgabe speichern');
+INSERT INTO txt VALUES ('save_task',            'English', 	'Save task');
+INSERT INTO txt VALUES ('delete_task',          'German', 	'Aufgabe l&ouml;schen');
+INSERT INTO txt VALUES ('delete_task',          'English', 	'Delete task');
+INSERT INTO txt VALUES ('elements',             'German', 	'Elemente');
+INSERT INTO txt VALUES ('elements',             'English', 	'Elements');
+INSERT INTO txt VALUES ('add_element',          'German', 	'Element hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_element',          'English', 	'Add element');
+INSERT INTO txt VALUES ('save_element',         'German', 	'Element speichern');
+INSERT INTO txt VALUES ('save_element',         'English', 	'Save element');
+INSERT INTO txt VALUES ('search_element',       'German', 	'Element suchen');
+INSERT INTO txt VALUES ('search_element',       'English', 	'Search element');
+INSERT INTO txt VALUES ('delete_element',       'German', 	'Element l&ouml;schen');
+INSERT INTO txt VALUES ('delete_element',       'English', 	'Delete element');
+INSERT INTO txt VALUES ('requester', 			'German',	'Antragsteller');
+INSERT INTO txt VALUES ('requester', 			'English',	'Requester');
+INSERT INTO txt VALUES ('promote', 		        'German',	'Status &auml;ndern');
+INSERT INTO txt VALUES ('promote', 		        'English',	'Promote');
+INSERT INTO txt VALUES ('promote_to', 			'German',	'Status &auml;ndern');
+INSERT INTO txt VALUES ('promote_to', 			'English',	'Promote to');
+INSERT INTO txt VALUES ('closed', 				'German',	'Geschlossen');
+INSERT INTO txt VALUES ('closed', 			    'English',	'Closed');
+INSERT INTO txt VALUES ('plan',                 'German', 	'Planen');
+INSERT INTO txt VALUES ('plan',                 'English', 	'Plan');
+INSERT INTO txt VALUES ('planner',              'German', 	'Planer');
+INSERT INTO txt VALUES ('planner',              'English', 	'Planner');
+INSERT INTO txt VALUES ('create_implementation','German', 	'Implementierung hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('create_implementation','English', 	'Create implementation task');
+INSERT INTO txt VALUES ('implementation_tasks', 'German', 	'Implementierungsaufgaben');
+INSERT INTO txt VALUES ('implementation_tasks', 'English', 	'Implementation tasks');
+INSERT INTO txt VALUES ('request_elements',     'German', 	'Auftragselemente');
+INSERT INTO txt VALUES ('request_elements',     'English', 	'Request elements');
+INSERT INTO txt VALUES ('change_state',         'German', 	'Status &auml;ndern');
+INSERT INTO txt VALUES ('change_state',         'English', 	'Change state');
+INSERT INTO txt VALUES ('approval', 			'German',	'Genehmigung');
+INSERT INTO txt VALUES ('approval', 			'English',	'Approval');
+INSERT INTO txt VALUES ('approve', 			    'German',	'Genehmigen');
+INSERT INTO txt VALUES ('approve', 			    'English',	'Approve');
+INSERT INTO txt VALUES ('save_approval',        'German', 	'Genehmigung speichern');
+INSERT INTO txt VALUES ('save_approval',        'English', 	'Save approval');
+INSERT INTO txt VALUES ('start_approval',       'German', 	'Genehmigung beginnen');
+INSERT INTO txt VALUES ('start_approval',       'English', 	'Start approval');
+INSERT INTO txt VALUES ('continue_approval',    'German', 	'Genehmigung fortsetzen');
+INSERT INTO txt VALUES ('continue_approval',    'English', 	'Continue approval');
+INSERT INTO txt VALUES ('start_planning',       'German', 	'Planung beginnen');
+INSERT INTO txt VALUES ('start_planning',       'English', 	'Start planning');
+INSERT INTO txt VALUES ('continue_planning',    'German', 	'Planung fortsetzen');
+INSERT INTO txt VALUES ('continue_planning',    'English', 	'Continue planning');
+INSERT INTO txt VALUES ('start_implementation', 'German', 	'Implementierung beginnen');
+INSERT INTO txt VALUES ('start_implementation', 'English', 	'Start implementation');
+INSERT INTO txt VALUES ('continue_implementation','German', 'Implementierung fortsetzen');
+INSERT INTO txt VALUES ('continue_implementation','English','Continue implementation');
+INSERT INTO txt VALUES ('start_review',         'German', 	'Review beginnen');
+INSERT INTO txt VALUES ('start_review',         'English', 	'Start review');
+INSERT INTO txt VALUES ('continue_review',      'German',   'Review fortsetzen');
+INSERT INTO txt VALUES ('continue_review',      'English',  'Continue review');
+INSERT INTO txt VALUES ('implement', 		    'German',	'Implementieren');
+INSERT INTO txt VALUES ('implement', 		    'English',	'Implement');
+INSERT INTO txt VALUES ('implementer', 		    'German',	'Implementierer');
+INSERT INTO txt VALUES ('implementer', 		    'English',	'Implementer');
+INSERT INTO txt VALUES ('promote_task', 		'German',	'Auftrag-Status &auml;ndern');
+INSERT INTO txt VALUES ('promote_task', 		'English',	'Promote task');
+INSERT INTO txt VALUES ('promote_ticket', 		'German',	'Antrag-Status &auml;ndern');
+INSERT INTO txt VALUES ('promote_ticket', 		'English',	'Promote ticket');
+INSERT INTO txt VALUES ('valid_from', 		    'German',	'G&uuml;ltig ab');
+INSERT INTO txt VALUES ('valid_from', 		    'English',	'Valid from');
+INSERT INTO txt VALUES ('valid_to', 		    'German',	'G&uuml;ltig bis');
+INSERT INTO txt VALUES ('valid_to', 		    'English',	'Valid to');
+INSERT INTO txt VALUES ('add_approval',         'German', 	'Genehmigung hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_approval',         'English', 	'Add approval');
+INSERT INTO txt VALUES ('approver',             'German', 	'Genehmiger');
+INSERT INTO txt VALUES ('approver',             'English',  'Approver');
+INSERT INTO txt VALUES ('approved',             'German', 	'Genehmigt');
+INSERT INTO txt VALUES ('approved',             'English',  'Approved');
+INSERT INTO txt VALUES ('opened',               'German', 	'Ge&ouml;ffnet');
+INSERT INTO txt VALUES ('opened',               'English',  'Opened');
+INSERT INTO txt VALUES ('deadline',             'German', 	'Deadline');
+INSERT INTO txt VALUES ('deadline',             'English',  'Deadline');
+INSERT INTO txt VALUES ('assign_to', 			'German',	'Weiterleiten an');
+INSERT INTO txt VALUES ('assign_to', 			'English',	'Assign to');
+INSERT INTO txt VALUES ('assign_group', 		'German',	'Gruppe zuweisen');
+INSERT INTO txt VALUES ('assign_group', 		'English',	'Assign group');
+INSERT INTO txt VALUES ('assigned', 			'German',	'Zugewiesen');
+INSERT INTO txt VALUES ('assigned', 			'English',	'Assigned');
+INSERT INTO txt VALUES ('back_to', 			    'German',	'Zur&uuml;ck zu');
+INSERT INTO txt VALUES ('back_to', 			    'English',	'Back to');
+INSERT INTO txt VALUES ('current_handler', 		'German',	'Aktueller Bearbeiter');
+INSERT INTO txt VALUES ('current_handler', 	    'English',	'Current handler');
+INSERT INTO txt VALUES ('handler', 		        'German',	'Bearbeiter');
+INSERT INTO txt VALUES ('handler', 	            'English',	'Handler');
+INSERT INTO txt VALUES ('review', 			    'German',	'Review');
+INSERT INTO txt VALUES ('review', 			    'English',	'Review');
+INSERT INTO txt VALUES ('verification', 		'German',	'Verifizierung');
+INSERT INTO txt VALUES ('verification', 		'English',	'Verification');
+INSERT INTO txt VALUES ('obj', 			        'German', 	'Obj');
+INSERT INTO txt VALUES ('obj', 			        'English', 	'Obj');
+INSERT INTO txt VALUES ('view', 			    'German', 	'Ansicht');
+INSERT INTO txt VALUES ('view', 			    'English', 	'View');
+INSERT INTO txt VALUES ('all_gateways',         'German', 	'Alle Gateways');
+INSERT INTO txt VALUES ('all_gateways',         'English', 	'All Gateways');
+INSERT INTO txt VALUES ('insert_ip',            'German', 	'IP einf&uuml;gen');
+INSERT INTO txt VALUES ('insert_ip',            'English', 	'Insert IP');
+INSERT INTO txt VALUES ('state_actions',        'German', 	'Statusaktionen');
+INSERT INTO txt VALUES ('state_actions',        'English', 	'State Actions');
+INSERT INTO txt VALUES ('add_action',           'German', 	'Aktion hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_action',           'English', 	'Add action');
+INSERT INTO txt VALUES ('edit_action',          'German', 	'Aktion bearbeiten');
+INSERT INTO txt VALUES ('edit_action',          'English', 	'Edit action');
+INSERT INTO txt VALUES ('delete_action',        'German', 	'Aktion l&ouml;schen');
+INSERT INTO txt VALUES ('delete_action',        'English', 	'Delete action');
+INSERT INTO txt VALUES ('save_action',          'German', 	'Aktion speichern');
+INSERT INTO txt VALUES ('save_action',          'English', 	'Save action');
+INSERT INTO txt VALUES ('scope', 			    'German', 	'Geltungsbereich');
+INSERT INTO txt VALUES ('scope', 			    'English', 	'Scope');
+INSERT INTO txt VALUES ('event', 			    'German', 	'Ereignis');
+INSERT INTO txt VALUES ('event', 			    'English', 	'Event');
+INSERT INTO txt VALUES ('phase', 			    'German', 	'Phase');
+INSERT INTO txt VALUES ('phase', 			    'English', 	'Phase');
+INSERT INTO txt VALUES ('task_type', 			'German', 	'Tasktyp');
+INSERT INTO txt VALUES ('task_type', 			'English', 	'Task type');
+INSERT INTO txt VALUES ('action_type', 		    'German', 	'Aktionstyp Ref');
+INSERT INTO txt VALUES ('action_type', 		    'English', 	'Action type');
+INSERT INTO txt VALUES ('external_params', 		'German', 	'Externe Parameter');
+INSERT INTO txt VALUES ('external_params', 		'English', 	'External params');
+INSERT INTO txt VALUES ('message_text', 		'German', 	'Nachricht');
+INSERT INTO txt VALUES ('message_text', 		'English', 	'Message text');
+INSERT INTO txt VALUES ('to_state', 		    'German', 	'Zielstatus');
+INSERT INTO txt VALUES ('to_state', 		    'English', 	'to State');
+INSERT INTO txt VALUES ('automatic', 		    'German', 	'Automatisch');
+INSERT INTO txt VALUES ('automatic', 		    'English', 	'Automatic');
+INSERT INTO txt VALUES ('free_text', 			'German', 	'Freitext');
+INSERT INTO txt VALUES ('free_text', 			'English', 	'Free Text');
+INSERT INTO txt VALUES ('back_to_ticket', 		'German', 	'Zur&uuml;ck zum Ticket');
+INSERT INTO txt VALUES ('back_to_ticket', 		'English', 	'Back to ticket');
+INSERT INTO txt VALUES ('confirm_cancel', 		'German', 	'Abbruch best&auml;tigen');
+INSERT INTO txt VALUES ('confirm_cancel', 		'English', 	'Confirm cancel');
+INSERT INTO txt VALUES ('priority', 		    'German', 	'Priorit&auml;t');
+INSERT INTO txt VALUES ('priority', 		    'English', 	'Priority');
+INSERT INTO txt VALUES ('comments',				'German', 	'Kommentare');
+INSERT INTO txt VALUES ('comments',				'English', 	'Comments');
+INSERT INTO txt VALUES ('button_text',			'German', 	'Schaltertext');
+INSERT INTO txt VALUES ('button_text',			'English', 	'Button Text');
 
 -- recertification
 INSERT INTO txt VALUES ('recertify',		    'German', 	'Rezertifizieren');
@@ -577,6 +789,12 @@ INSERT INTO txt VALUES ('standards',		    'German', 	'Standardeinstellungen');
 INSERT INTO txt VALUES ('standards',		    'English', 	'Defaults');
 INSERT INTO txt VALUES ('password_policy',      'German', 	'Passworteinstellungen');
 INSERT INTO txt VALUES ('password_policy',      'English', 	'Password Policy');
+INSERT INTO txt VALUES ('state_definitions',	'German', 	'Statusdefinitionen');
+INSERT INTO txt VALUES ('state_definitions',	'English', 	'State Definitions');
+INSERT INTO txt VALUES ('state_matrix',	        'German', 	'Statusmatrix');
+INSERT INTO txt VALUES ('state_matrix',	        'English', 	'State Matrix');
+INSERT INTO txt VALUES ('customizing',		    'German', 	'Einstellungen');
+INSERT INTO txt VALUES ('customizing',		    'English', 	'Customizing');
 INSERT INTO txt VALUES ('personal',             'German', 	'Pers&ouml;nlich');
 INSERT INTO txt VALUES ('personal',             'English', 	'Personal');
 INSERT INTO txt VALUES ('language',             'German', 	'Sprache');
@@ -825,6 +1043,24 @@ INSERT INTO txt VALUES ('ruleRemovalGracePeriod','German', 	'Frist zum L&ouml;sc
 INSERT INTO txt VALUES ('ruleRemovalGracePeriod','English', 'Rule Removal Grace Period (in days)');
 INSERT INTO txt VALUES ('commentRequired',      'German', 	'Kommentar Pflichtfeld');
 INSERT INTO txt VALUES ('commentRequired',      'English',  'Comment Required');
+INSERT INTO txt VALUES ('reqAvailableTaskTypes','German', 	'Verf&uuml;gbare Auftragstypen');
+INSERT INTO txt VALUES ('reqAvailableTaskTypes','English', 	'Available Task Types');
+INSERT INTO txt VALUES ('reqAllowObjectSearch', 'German', 	'Objektsuche erlauben');
+INSERT INTO txt VALUES ('reqAllowObjectSearch', 'English', 	'Allow object search');
+INSERT INTO txt VALUES ('reqAllowManualOwnerAdmin','German', 'Manuelle Eigent&uuml;merverwaltung erlauben');
+INSERT INTO txt VALUES ('reqAllowManualOwnerAdmin','English','Allow manual owner administration');
+INSERT INTO txt VALUES ('reqPriorities',        'German', 	'Priorit&auml;ten');
+INSERT INTO txt VALUES ('reqPriorities',        'English', 	'Priorities');
+INSERT INTO txt VALUES ('reqAutoCreateImplTasks','German', 	'Autom. Erzeugen von Implementierungs-Auftr&auml;gen');
+INSERT INTO txt VALUES ('reqAutoCreateImplTasks','English', 'Auto-create implementation tasks');
+INSERT INTO txt VALUES ('numeric_prio', 		'German', 	'Numerische Priorit&auml;t');
+INSERT INTO txt VALUES ('numeric_prio', 		'English', 	'Numeric Priority');
+INSERT INTO txt VALUES ('ticket_deadline',      'German', 	'Ticket-Deadline (in Tagen)');
+INSERT INTO txt VALUES ('ticket_deadline',      'English',  'Ticket Deadline (in days)');
+INSERT INTO txt VALUES ('approval_deadline_days','German', 	'Genehmigungs-Deadline (in Tagen)');
+INSERT INTO txt VALUES ('approval_deadline_days','English', 'Approval Deadline (in days)');
+INSERT INTO txt VALUES ('approval_deadline',    'German', 	'Genehmigungs-Deadline');
+INSERT INTO txt VALUES ('approval_deadline',    'English',  'Approval Deadline');
 INSERT INTO txt VALUES ('language_settings',    'German', 	'Spracheinstellungen');
 INSERT INTO txt VALUES ('language_settings',    'English', 	'Language Settings');
 INSERT INTO txt VALUES ('apply_changes',        'German', 	'&Auml;nderungen anwenden');
@@ -939,6 +1175,53 @@ INSERT INTO txt VALUES ('change_language',      'German', 	'&Auml;ndern der Pass
 INSERT INTO txt VALUES ('change_language',      'English', 	'Change Language');
 INSERT INTO txt VALUES ('recert_settings',      'German', 	'Rezertifizierungseinstellungen');
 INSERT INTO txt VALUES ('recert_settings',      'English', 	'Recertification Settings');
+INSERT INTO txt VALUES ('save_settings',        'German',   'Einstellungen speichern');
+INSERT INTO txt VALUES ('save_settings',        'English',  'Save settings');
+INSERT INTO txt VALUES ('available_states',     'German',   'Verf&uuml;gbare Stati');
+INSERT INTO txt VALUES ('available_states',     'English',  'Available states');
+INSERT INTO txt VALUES ('add_state',            'German',   'Status hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_state',            'English',  'Add state');
+INSERT INTO txt VALUES ('edit_state',           'German',   'Status bearbeiten');
+INSERT INTO txt VALUES ('edit_state',           'English',  'Edit state');
+INSERT INTO txt VALUES ('select_state',         'German',   'Status ausw&auml;hlen');
+INSERT INTO txt VALUES ('select_state',         'English',  'Select state');
+INSERT INTO txt VALUES ('delete_state',         'German',   'Status l&ouml;schen');
+INSERT INTO txt VALUES ('delete_state',         'English',  'Delete state');
+INSERT INTO txt VALUES ('from_state',           'German',   'Von Status');
+INSERT INTO txt VALUES ('from_state',           'English',  'From state');
+INSERT INTO txt VALUES ('to_states',            'German',   'Nach Stati');
+INSERT INTO txt VALUES ('to_states',            'English',  'To states');
+INSERT INTO txt VALUES ('allowed_transitions',  'German',   'erlaubte &Uuml;berg&auml;nge');
+INSERT INTO txt VALUES ('allowed_transitions',  'English',  'Allowed transitions');
+INSERT INTO txt VALUES ('special_states',       'German',   'Spezielle Stati');
+INSERT INTO txt VALUES ('special_states',       'English',  'Special states');
+INSERT INTO txt VALUES ('lowest_input_state',   'German',   'Niedrigster Eingangsstatus');
+INSERT INTO txt VALUES ('lowest_input_state',   'English',  'Lowest input state');
+INSERT INTO txt VALUES ('lowest_started_state', 'German',   'Niedrigster Bearbeitungsstatus');
+INSERT INTO txt VALUES ('lowest_started_state', 'English',  'Lowest started state');
+INSERT INTO txt VALUES ('lowest_end_state',     'German',   'Niedrigster Ausgangsstatus');
+INSERT INTO txt VALUES ('lowest_end_state',     'English',  'Lowest end state');
+INSERT INTO txt VALUES ('derived_state',        'German',   'Abgeleiteter Status');
+INSERT INTO txt VALUES ('derived_state',        'English',  'Derived state');
+INSERT INTO txt VALUES ('owners',               'German',   'Eigent&uuml;mer');
+INSERT INTO txt VALUES ('owners',               'English',  'Owners');
+INSERT INTO txt VALUES ('add_owner',            'German',   'Eigent&uuml;mer hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_owner',            'English',  'Add owner');
+INSERT INTO txt VALUES ('edit_owner',           'German',   'Eigent&uuml;mer bearbeiten');
+INSERT INTO txt VALUES ('edit_owner',           'English',  'Edit owner');
+INSERT INTO txt VALUES ('delete_owner',         'German',   'Eigent&uuml;mer l&ouml;schen');
+INSERT INTO txt VALUES ('delete_owner',         'English',  'Delete owner');
+INSERT INTO txt VALUES ('recert_interval',      'German',   'Rezertifzierungsintervall (in Tagen)');
+INSERT INTO txt VALUES ('recert_interval',      'English',  'Recertification interval (in days)');
+INSERT INTO txt VALUES ('ext_app_id',           'German',   'Externe Anwendungs-Id');
+INSERT INTO txt VALUES ('ext_app_id',           'English',  'External Application Id');
+INSERT INTO txt VALUES ('dn',                   'German',   'Vollst&auml;ndiger Name');
+INSERT INTO txt VALUES ('dn',                   'English',  'Distinguished Name');
+INSERT INTO txt VALUES ('set_default',          'German',   'als Vorgabewert setzen');
+INSERT INTO txt VALUES ('set_default',          'English',  'Set as Default');
+INSERT INTO txt VALUES ('reset_to_default',     'German',   'auf Vorgabewerte zur&uuml;cksetzen');
+INSERT INTO txt VALUES ('reset_to_default',     'English',  'Reset to Default');
+
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
@@ -1136,7 +1419,7 @@ INSERT INTO txt VALUES ('architecture',         'English',  'Firewall Orchestrat
 --            5400-5499: personal settings
 -- 6000-6999: API
 -- 7000-7999: Monitoring
--- 8000-8999: Request
+-- 8000-8999: Workflow
 
 -- user messages
 INSERT INTO txt VALUES ('U0001', 'German',  'Eingabetext wurde um nicht erlaubte Zeichen gek&uuml;rzt');
@@ -1161,6 +1444,8 @@ INSERT INTO txt VALUES ('U5013', 'German',  'Verwaltung der Voreinstellungen (nu
 INSERT INTO txt VALUES ('U5013', 'English', 'Administration of default settings (only by admin)');
 INSERT INTO txt VALUES ('U5014', 'German',  'Pers&ouml;nliche Nutzereinstellungen');
 INSERT INTO txt VALUES ('U5014', 'English', 'Personal settings for the individual user');
+INSERT INTO txt VALUES ('U5015', 'German',  'Verwaltung der Workflow-Voreinstellungen (nur f&uuml;r Admin)');
+INSERT INTO txt VALUES ('U5015', 'English', 'Administration of workflow settings (only by admin)');
 
 INSERT INTO txt VALUES ('U5101', 'German',  'Sind sie sicher, dass sie folgendes Management l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5101', 'English', 'Are you sure you want to delete management: ');
@@ -1223,6 +1508,10 @@ INSERT INTO txt VALUES ('U5214', 'German',  'Anzeige und Verwaltung aller Nutzer
 INSERT INTO txt VALUES ('U5214', 'English', 'Show and administrate all user groups (internal LDAP)');
 INSERT INTO txt VALUES ('U5215', 'German',  'Anzeige und Verwaltung aller Rollen (internes LDAP)');
 INSERT INTO txt VALUES ('U5215', 'English', 'Show and assign all user roles (internal LDAP)');
+INSERT INTO txt VALUES ('U5216', 'German',  'Anzeige und Verwaltung aller Eigent&uuml;mer');
+INSERT INTO txt VALUES ('U5216', 'English', 'Show and administrate all owners');
+INSERT INTO txt VALUES ('U5217', 'German',  'Sind sie sicher, dass sie folgenden Eigent&uuml;mer l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U5217', 'English', 'Are you sure you want to delete owner: ');
 
 INSERT INTO txt VALUES ('U5301', 'German',  'Einstellungen ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5301', 'English', 'Settings changed.');
@@ -1234,6 +1523,18 @@ INSERT INTO txt VALUES ('U5311', 'German',  'Verwaltung der Standard-Voreinstell
 INSERT INTO txt VALUES ('U5311', 'English', 'Set default values for all users and some technical parameters');
 INSERT INTO txt VALUES ('U5312', 'German',  'Verwaltung der Passwortregeln');
 INSERT INTO txt VALUES ('U5312', 'English', 'Set the policy for all user passwords');
+INSERT INTO txt VALUES ('U5313', 'German',  'Verwaltung der Statusdefinitionen f&uuml;r die Workflows. Vorsicht bei &Auml;nderungen an einem bereits verwendeten Workflow!');
+INSERT INTO txt VALUES ('U5313', 'English', 'Set the state definitions of the workflows. Be careful when changing workflow already in use!');
+INSERT INTO txt VALUES ('U5314', 'German',  'Verwaltung der Einstellungen f&uuml;r den Auftrags-Workflow. Vorsicht bei &Auml;nderungen an einem bereits verwendeten Workflow!');
+INSERT INTO txt VALUES ('U5314', 'English', 'Customize the request workflow. Be careful when changing workflow already in use!');
+INSERT INTO txt VALUES ('U5315', 'German',  'Sind sie sicher, dass sie die Einstellungen &auml;ndern wollen? &Auml;nderungen an bereits verwendeten Workflows k&ouml;nnen unerwartete Auswirkungen haben.');
+INSERT INTO txt VALUES ('U5315', 'English', 'Are you sure you want to change the settings? Changes on workflows already in use may have unexpected consequences.');
+INSERT INTO txt VALUES ('U5316', 'German',  'Definition der Statusmatrizen f&uuml;r die Workflows. Vorsicht bei &Auml;nderungen an einem bereits verwendeten Workflow!');
+INSERT INTO txt VALUES ('U5316', 'English', 'Define the state matrices of the workflows. Be careful when changing workflow already in use!');
+INSERT INTO txt VALUES ('U5317', 'German',  'Verwaltung der Aktionsdefinitionen f&uuml;r die Workflows. Vorsicht bei &Auml;nderungen an einem bereits verwendeten Workflow!');
+INSERT INTO txt VALUES ('U5317', 'English', 'Set the action definitions of the workflows. Be careful when changing workflow already in use!');
+INSERT INTO txt VALUES ('U5318', 'German',  'Sind sie sicher, dass sie die Einstellungen zur&uuml;cksetzen wollen? &Auml;nderungen an den Workflows gehen verloren.');
+INSERT INTO txt VALUES ('U5318', 'English', 'Are you sure you want to reset the settings? Changes on workflows get lost.');
 
 INSERT INTO txt VALUES ('U5401', 'German',  'Passwort ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5401', 'English', 'Password changed.');
@@ -1245,6 +1546,11 @@ INSERT INTO txt VALUES ('U5413', 'German',  'Anpassung der pers&ouml;nlichen Rep
 INSERT INTO txt VALUES ('U5413', 'English', 'Adapt your personal reporting settings');
 INSERT INTO txt VALUES ('U5414', 'German',  'Anpassung der pers&ouml;nlichen Rezertifizierungseinstellungen');
 INSERT INTO txt VALUES ('U5414', 'English', 'Adapt your personal recertification settings');
+
+INSERT INTO txt VALUES ('U5501', 'German',  'Sind sie sicher, dass sie folgenden Status l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U5501', 'English', 'Are you sure you want to delete state: ');
+INSERT INTO txt VALUES ('U5502', 'German',  'Sind sie sicher, dass sie folgende Aktion l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U5502', 'English', 'Are you sure you want to delete action: ');
 
 INSERT INTO txt VALUES ('U7001', 'German',  '&Uuml;berblick der Ereignisse im Firewall Orchestrator');
 INSERT INTO txt VALUES ('U7001', 'English', 'Alerts and events inside Firewall Orchestrator');
@@ -1262,6 +1568,14 @@ INSERT INTO txt VALUES ('U7401', 'German',  'Archiv der Autodiscovery-Nachrichte
 INSERT INTO txt VALUES ('U7401', 'English', 'View the past autodiscovery messages');
 INSERT INTO txt VALUES ('U7501', 'German',  'Archiv der Nachrichten der t&auml;glichen Checks');
 INSERT INTO txt VALUES ('U7501', 'English', 'View the past daily check messages');
+
+INSERT INTO txt VALUES ('U8001', 'German',  'Sind sie sicher, dass sie l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U8001', 'English', 'Are you sure you want to delete: ');
+INSERT INTO txt VALUES ('U8002', 'German',  'Neue Genehmigung zum Auftrag hinzugef&uuml;gt.');
+INSERT INTO txt VALUES ('U8002', 'English', 'New approval added to task.');
+INSERT INTO txt VALUES ('U8003', 'German',  'Sind sie sicher, dass sie abbrechen wollen? Bereits erzeugte Auftr&auml;ge gehen verloren.');
+INSERT INTO txt VALUES ('U8003', 'English', 'Are you sure you want to cancel? Already Created tasks will be lost.');
+
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -1301,6 +1615,8 @@ INSERT INTO txt VALUES ('E4001', 'German',  'Bitte Kommentar hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('E4001', 'English', 'Please insert a comment');
 INSERT INTO txt VALUES ('E4002', 'German',  'Keine Regeln f&uuml;r die gew&auml;hlten Kriterien gefunden');
 INSERT INTO txt VALUES ('E4002', 'English', 'No rules found for given criteria');
+INSERT INTO txt VALUES ('E4003', 'German',  'Keine &Auml;nderungen f&uuml;r die gew&auml;hlten Kriterien gefunden');
+INSERT INTO txt VALUES ('E4003', 'English', 'No changes found for given criteria');
 
 INSERT INTO txt VALUES ('E5101', 'German',  'L&ouml;schen des Managements nicht erlaubt, da noch Gateways zugeordnet sind. Diese zuerst l&ouml;schen wenn m&ouml;glich');
 INSERT INTO txt VALUES ('E5101', 'English', 'Deletion of management not allowed as there are related Gateways. Delete them first if possible');
@@ -1439,6 +1755,8 @@ INSERT INTO txt VALUES ('E5284', 'German',  'Mandanten konnten nicht vom LDAP ge
 INSERT INTO txt VALUES ('E5284', 'English', 'Tenants could not be fetched from LDAP');
 INSERT INTO txt VALUES ('E5285', 'German',  'Mandant konnte nicht ge&auml;ndert werden');
 INSERT INTO txt VALUES ('E5285', 'English', 'Tenant could not be updated');
+INSERT INTO txt VALUES ('E5291', 'German',  'Eigent&uuml;mer konnte nicht gespeichert werden');
+INSERT INTO txt VALUES ('E5291', 'English', 'Owner could not be saved');
 
 INSERT INTO txt VALUES ('E5301', 'German',  'Konfiguration f&uuml;r Standardsprache konnte nicht gelesen werden: Wert auf Englisch gesetzt');
 INSERT INTO txt VALUES ('E5301', 'English', 'Error reading Config for default language: taking default English');
@@ -1484,6 +1802,29 @@ INSERT INTO txt VALUES ('E7013', 'English', 'Last successful import too long ago
 
 INSERT INTO txt VALUES ('E8001', 'German',  'Antrag konnte nicht angelegt werden');
 INSERT INTO txt VALUES ('E8001', 'English', 'Request could not be created');
+INSERT INTO txt VALUES ('E8002', 'German',  'Antrag konnte nicht ge&auml;ndert werden');
+INSERT INTO txt VALUES ('E8002', 'English', 'Request could not be updated');
+INSERT INTO txt VALUES ('E8003', 'German',  'Aufgabe konnte nicht angelegt werden');
+INSERT INTO txt VALUES ('E8003', 'English', 'Task could not be created');
+INSERT INTO txt VALUES ('E8004', 'German',  'Aufgabe konnte nicht ge&auml;ndert werden');
+INSERT INTO txt VALUES ('E8004', 'English', 'Task could not be updated');
+INSERT INTO txt VALUES ('E8005', 'German',  'Aufgabe konnte nicht gel&ouml;scht werden');
+INSERT INTO txt VALUES ('E8005', 'English', 'Task could not be deleted');
+INSERT INTO txt VALUES ('E8006', 'German',  'Element konnte nicht angelegt werden');
+INSERT INTO txt VALUES ('E8006', 'English', 'Element could not be created');
+INSERT INTO txt VALUES ('E8007', 'German',  'Element konnte nicht ge&auml;ndert werden');
+INSERT INTO txt VALUES ('E8007', 'English', 'Element could not be updated');
+INSERT INTO txt VALUES ('E8008', 'German',  'Element konnte nicht gel&ouml;scht werden');
+INSERT INTO txt VALUES ('E8008', 'English', 'Element could not be deleted');
+INSERT INTO txt VALUES ('E8009', 'German',  'Genehmigung konnte nicht angelegt werden');
+INSERT INTO txt VALUES ('E8009', 'English', 'Approval could not be created');
+INSERT INTO txt VALUES ('E8010', 'German',  'Bitte Gruppe ausw&auml;hlen');
+INSERT INTO txt VALUES ('E8010', 'English', 'Please select group');
+INSERT INTO txt VALUES ('E8011', 'German',  'Aktion konnte nicht angelegt werden');
+INSERT INTO txt VALUES ('E8011', 'English', 'Action could not be created');
+INSERT INTO txt VALUES ('E8012', 'German',  'Kommentar konnte nicht angelegt werden');
+INSERT INTO txt VALUES ('E8012', 'English', 'Comment could not be created');
+
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');
@@ -1516,6 +1857,16 @@ INSERT INTO txt VALUES ('T0011', 'German',  'Nutzer mit vollem Zugriff auf den F
 INSERT INTO txt VALUES ('T0011', 'English', 'users with full access rights to firewall orchestrator');
 INSERT INTO txt VALUES ('T0012', 'German',  'Nutzer mit Berechtigung zum Rezertifizieren von Regeln');
 INSERT INTO txt VALUES ('T0012', 'English', 'users that have the right to recertify rules');
+INSERT INTO txt VALUES ('T0013', 'German',  'NNutzer mit Berechtigung zum Anlegen von Antr&auml;gen');
+INSERT INTO txt VALUES ('T0013', 'English', 'users that have the right to create requests');
+INSERT INTO txt VALUES ('T0014', 'German',  'Nutzer mit Berechtigung zum Genehmigen von Antr&auml;gen');
+INSERT INTO txt VALUES ('T0014', 'English', 'users that have the right to approve requests');
+INSERT INTO txt VALUES ('T0015', 'German',  'Nutzer mit Berechtigung zum Planen von Auftr&auml;gen');
+INSERT INTO txt VALUES ('T0015', 'English', 'users that have the right to plan requests');
+INSERT INTO txt VALUES ('T0016', 'German',  'Nutzer mit Berechtigung zum Implementieren von Auftr&auml;gen');
+INSERT INTO txt VALUES ('T0016', 'English', 'users that have the right to implement requests');
+INSERT INTO txt VALUES ('T0017', 'German',  'Nutzer mit Berechtigung zum Review von Auftr&auml;gen');
+INSERT INTO txt VALUES ('T0017', 'English', 'users that have the right to review requests');
 
 -- template comments
 INSERT INTO txt VALUES ('T0101', 'German',  'Aktuell aktive Regeln aller Gateways');
@@ -1832,7 +2183,7 @@ INSERT INTO txt VALUES ('H4014', 'English', 'Decertified rules can be displayed 
 INSERT INTO txt VALUES ('H4021', 'German',  'Dieses Rezertifizierungsszenario ist als Basis f&uuml;r weitere angepasste Abl&auml;ufe vorgesehen.');
 INSERT INTO txt VALUES ('H4021', 'English', 'This recertification scenario is intended to be a base for further customized workflows.');
 
-INSERT INTO txt VALUES ('H5001', 'German',  'Im diesem Abschnitt werden die Setup- und Verwaltungseinstellungen behandelt.
+INSERT INTO txt VALUES ('H5001', 'German',  'In diesem Abschnitt werden die Setup- und Verwaltungseinstellungen behandelt.
     Die meisten Einstellungen k&ouml;nnen nur von Nutzern mit der Administrator-Rolle gesehen und ge&auml;ndert werden.
     Der Auditor kann zwar die Einstellungen sehen, da er aber keine Schreibrechte hat, sind alle Schaltfl&auml;chen, die zu &Auml;nderungen f&uuml;hren w&uuml;rden, deaktiviert.
 ');
@@ -1960,7 +2311,7 @@ INSERT INTO txt VALUES ('H5115', 'English', 'Port*: Port number of the host.<br>
     If the target is Check Point R8x the connection is established via API. The default port number is 443. Remember to enable API access on your Check Point managment.<br>
     If the target is not Check Point R8x Firewall Orchestrator needs ssh-based access. The default port number is 22.
 ');
-INSERT INTO txt VALUES ('H5116', 'German',  'Login-Daten*: Zugangsdaten für den Import-Nutzer des Managements.<br>
+INSERT INTO txt VALUES ('H5116', 'German',  'Login-Daten*: Zugangsdaten f&uuml;r den Import-Nutzer des Managements.<br>
     Hier kann ein Satz Zugangsdaten ausgew&auml;hlt werden, der zum Login auf dem Management dient.
 ');
 INSERT INTO txt VALUES ('H5116', 'English', 'Import Credentials*: User/Password combination for logging into the management.<br>

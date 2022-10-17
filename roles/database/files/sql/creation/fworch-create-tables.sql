@@ -974,40 +974,46 @@ Create table "config"
 
 -- create schema
 create schema if not exists request;
-create schema if not exists implementation;
 
 CREATE TYPE rule_field_enum AS ENUM ('source', 'destination', 'service');
-CREATE TYPE task_type_enum AS ENUM ('access', 'svc_group', 'obj_group', 'rule_modify');
-CREATE TYPE request.action_enum AS ENUM ('create', 'delete', 'modifiy');
-CREATE TYPE request.state_enum AS ENUM ('draft', 'open', 'in progress', 'closed', 'cancelled');
+CREATE TYPE action_enum AS ENUM ('create', 'delete', 'modify');
 
 -- create tables
-create table if not exists request.task 
+create table if not exists request.reqtask 
 (
-    id SERIAL PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     title VARCHAR,
-    ticket_id int,
+    ticket_id bigint,
     task_number int,
-    state request.state_enum NOT NULL,
-    task_type task_type_enum NOT NULL,
-    request_action request.action_enum NOT NULL,
+    state_id int NOT NULL,
+    task_type VARCHAR NOT NULL,
+    request_action action_enum NOT NULL,
     rule_action int,
     rule_tracking int,
     start Timestamp,
     stop Timestamp,
     svc_grp_id int,
     nw_obj_grp_id int,
-    reason text
+	user_grp_id int,
+    free_text text,
+    reason text,
+	last_recert_date Timestamp,
+	current_handler int,
+	recent_handler int,
+	assigned_group varchar,
+	target_begin_date Timestamp,
+	target_end_date Timestamp,
+	devices varchar
 );
 
-create table if not exists request.element 
+create table if not exists request.reqelement 
 (
-    id SERIAL PRIMARY KEY,
-    request_action request.action_enum NOT NULL default 'create',
-    task_id int,
+    id BIGSERIAL PRIMARY KEY,
+    request_action action_enum NOT NULL default 'create',
+    task_id bigint,
     ip cidr,
     port int,
-    proto int,
+    ip_proto_id int,
     network_object_id bigint,
     service_id bigint,
     field rule_field_enum NOT NULL,
@@ -1017,28 +1023,99 @@ create table if not exists request.element
 
 create table if not exists request.approval 
 (
-    id SERIAL PRIMARY KEY,
-    task_id int,
+    id BIGSERIAL PRIMARY KEY,
+    task_id bigint,
     date_opened Timestamp NOT NULL default CURRENT_TIMESTAMP,
     approver_group Varchar,
     approval_date Timestamp,
     approver Varchar,
+	current_handler int,
+	recent_handler int,
+	assigned_group varchar,
     tenant_id int,
-    comment text
+	initial_approval boolean not null default true,
+	approval_deadline Timestamp,
+	state_id int NOT NULL
 );
 
 create table if not exists request.ticket 
 (
-    id SERIAL PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     title VARCHAR NOT NULL,
     date_created Timestamp NOT NULL default CURRENT_TIMESTAMP,
     date_completed Timestamp,
-    state_id request.state_enum NOT NULL,
+    state_id int NOT NULL,
     requester_id int,
     requester_dn Varchar,
     requester_group Varchar,
+	current_handler int,
+	recent_handler int,
+	assigned_group varchar,
     tenant_id int,
-    reason text
+    reason text,
+	external_ticket_id varchar,
+	external_ticket_source int,
+	ticket_deadline Timestamp,
+	ticket_priority int
+);
+
+create table if not exists request.comment 
+(
+    id BIGSERIAL PRIMARY KEY,
+    ref_id bigint,
+	scope varchar,
+	creation_date Timestamp,
+	creator_id int,
+	comment_text varchar
+);
+
+create table if not exists request.ticket_comment
+(
+    ticket_id bigint,
+    comment_id bigint
+);
+
+create table if not exists request.reqtask_comment
+(
+    task_id bigint,
+    comment_id bigint
+);
+
+create table if not exists request.approval_comment
+(
+    approval_id bigint,
+    comment_id bigint
+);
+
+create table if not exists request.impltask_comment
+(
+    task_id bigint,
+    comment_id bigint
+);
+
+create table if not exists request.state
+(
+    id Integer NOT NULL UNIQUE PRIMARY KEY,
+    name Varchar NOT NULL
+);
+
+create table if not exists request.action
+(
+    id SERIAL PRIMARY KEY,
+    name Varchar NOT NULL,
+	action_type Varchar NOT NULL,
+	scope Varchar,
+	task_type Varchar,
+	phase Varchar,
+	event Varchar,
+	button_text Varchar,
+	external_parameters Varchar
+);
+
+create table if not exists request.state_action
+(
+    state_id int,
+    action_id int
 );
 
 create table if not exists owner
@@ -1049,7 +1126,9 @@ create table if not exists owner
     group_dn Varchar NOT NULL,
     is_default boolean default false,
     tenant_id int,
-    recert_interval interval
+    recert_interval int,
+	next_recert_date Timestamp,
+    app_id_external varchar not null
 );
 
 create unique index if not exists only_one_default_owner on owner(is_default) 
@@ -1064,9 +1143,9 @@ create table if not exists owner_network
     ip_proto_id int
 );
 
-create table if not exists request_owner
+create table if not exists reqtask_owner
 (
-    request_task_id int,
+    reqtask_id bigint,
     owner_id int
 );
 
@@ -1076,11 +1155,11 @@ create table if not exists rule_owner
     rule_metadata_id bigint
 );
 
-create table if not exists implementation.element
+create table if not exists request.implelement
 (
-    id SERIAL PRIMARY KEY,
-    implementation_action request.action_enum NOT NULL default 'create',
-    implementation_task_id int,
+    id BIGSERIAL PRIMARY KEY,
+    implementation_action action_enum NOT NULL default 'create',
+    implementation_task_id bigint,
     ip cidr,
     port int,
     ip_proto_id int,
@@ -1091,18 +1170,27 @@ create table if not exists implementation.element
     original_nat_id int
 );
 
-create table if not exists implementation.task
+create table if not exists request.impltask
 (
-    id SERIAL PRIMARY KEY,
-    request_task_id int,
-    implementation_task_number int,
-    implementation_state request.state_enum NOT NULL default 'open',
+    id BIGSERIAL PRIMARY KEY,
+	title VARCHAR,
+    reqtask_id bigint,
+    task_number int,
+    state_id int NOT NULL,
+	task_type VARCHAR NOT NULL,
     device_id int,
-    implementation_action request.action_enum NOT NULL,
+    implementation_action action_enum NOT NULL,
     rule_action int,
     rule_tracking int,
     start timestamp,
     stop timestamp,
     svc_grp_id int,
-    nw_obj_grp_id int
+    nw_obj_grp_id int,
+	user_grp_id int,
+	free_text text,
+	current_handler int,
+	recent_handler int,
+	assigned_group varchar,
+	target_begin_date Timestamp,
+	target_end_date Timestamp
 );

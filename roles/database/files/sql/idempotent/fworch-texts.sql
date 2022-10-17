@@ -147,12 +147,10 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     vom Management-System alle definierten Domains/SubManager sowie Devices automatisch anlegt sowie &Auml;nderungen erkennt 
     und diese zur automatischen Konfigurations&auml;nderung anbietet.</li>
     <li>Einf&uuml;hrung Monitoring und Alerting Modul - folgende Ereignisse werden protokolliert, in eine Log-Datei geschrieben (zur ggf. weiteren Auswertung per SIEM)
-     und dem Nutzer in der Oberfl&auml;che zur Erinnerung angezeigt:
-     <ul>
-        <li>&Auml;nderungen an angebundenen Firewall-Systemen, die im regelm&auml;&szlig;ig laufenden Hintergrund-Auto-Discovery-Prozess erkannt werden</li>
-        <li>Beim Import auftretende Fehler</li>
-        <li>Warnungen & Fehler, die in der Nutzeroberfl&auml;che angezeigt werden</li>
-     </ul>
+     und dem Nutzer in der Oberfl&auml;che zur Erinnerung angezeigt</li>
+    <li>Neues Workflow module zum Beantragen von &Auml;nderungen</li>
+    <li>Cisco FireFlow Import-Module</li>
+    <li>Unterst&uuml;tzung f&uuml;r Debian Testing Betriebssystem</li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
@@ -164,12 +162,10 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>Device Auto Discovery functionality - only specify the Super Manager (FortiManager, MDS) details, everything else (ADOMs, Domains, devices) 
     will be auto-discovered. Also changes in devices/managers will be detected and offered for auto-configuration.</li>
     <li>Introduction of Monitoring and Alerting module - the following events will be logged internally as well as written into a log file 
-    (for further processing by a SIEM system) and will also be displayed in the UI as reminders to the relevant users:
-     <ul>
-        <li>Changes of the integrated firewall systems, which are detected by the background auto discovery process</li>
-        <li>import errors</li>
-        <li>all warnings and errors shown in the UI</li>
-     </ul>
+    (for further processing by a SIEM system) and will also be displayed in the UI as reminders to the relevant users</li>
+    <li>Introduction of workflow module for requesting changes</li>
+    <li>New Cisco FireFlow import module </li>
+    <li>Support for new operating system Debian testing</li>
 </ul>
 ');
 

@@ -3,6 +3,7 @@
 @using FWO.Ui.Data
 
 @inject UserConfig userConfig
+@inject IJSRuntime jsRuntime
 
 <CascadingValue Value="collapseDevices">
     <div class="p-3">
@@ -33,9 +34,10 @@
         <CascadingValue Value="collapseDevices">
             @foreach (ManagementSelect management in DeviceFilter.Managements)
             {
-                <div class="form-check">
+                <div class="form-check mb-1">
                     <input class="form-check-input" type="checkbox" id="@management.Id"
                             @bind="management.Selected"
+                            @ref="management.UiReference"
                             @oninput="async () => {
                                 management.Selected = !management.Selected;
                                 foreach (DeviceSelect device in management.Devices)
@@ -48,11 +50,11 @@
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="@device.Id"
                                         @bind="device.Selected"
-                                        @oninput="async () => {
+                                        @oninput="@(async () => {
                                             device.Selected = !device.Selected;
                                             DeviceFilter.SynchronizeMgmtFilter();
                                             await SetSelectAll();
-                                        }" />
+                                        })" />
                                 <label class="form-check-label" for="@device.Id">
                                     @device.Name
                                 </label>
@@ -112,6 +114,21 @@
         {
             cssClass += "-35";
         }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        foreach (ManagementSelect management in DeviceFilter.Managements)
+        {
+           await SetElementProperty(management.UiReference!.Value, "indeterminate",
+           management.Devices.Exists(d => d.Selected) && !management.Devices.TrueForAll(d => d.Selected)
+           /* any but not all devices selected */ );
+        }
+    }
+
+    public async Task SetElementProperty(ElementReference element, string property, object value)
+    {
+        await jsRuntime.InvokeVoidAsync("setProperty", element, property, value);
     }
 
     private async Task SetSelectAll()

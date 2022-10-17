@@ -36,7 +36,7 @@ namespace FWO.Config.Api
             string productVersion = ConfigFile.ProductVersion;
 
             Language[] uiLanguages = Array.Empty<Language>();
-            Dictionary<string, Dictionary<string, string>> langDict = new Dictionary<string, Dictionary<string, string>>();
+            Dictionary<string, Dictionary<string, string>> langDict = new();
 
             if (loadLanguageData)
             {
@@ -55,7 +55,7 @@ namespace FWO.Config.Api
                     foreach (Language lang in uiLanguages)
                     {
                         var languageVariable = new { language = lang.Name };
-                        Dictionary<string, string> dict = new Dictionary<string, string>();
+                        Dictionary<string, string> dict = new();
                         UiText[] uiTexts = await apiConnection.SendQueryAsync<UiText[]>(ConfigQueries.getTextsPerLanguage, languageVariable);
                         foreach (UiText text in uiTexts)
                             dict.Add(text.Id, text.Txt); // add "word" to dictionary

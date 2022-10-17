@@ -662,11 +662,6 @@
         Management[] managementsReportOrig = managementsReport;
         try
         {
-            if (selectedReportType == ReportType.None)  // display warning
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("no_report_type_selected"), userConfig.GetText("E1006"), true);
-                return;
-            }
             if (!deviceFilter.isAnyDeviceFilterSet())  // display warning
             {
                 DisplayMessageInUi!(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
@@ -729,9 +724,16 @@
             }
 
             processing = false;
-            if((currentReport is ReportRules || currentReport is ReportNatRules) && NoRuleFound())
+            if(NoRuleFound())
             {
-                DisplayMessageInUi!(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
+                if(currentReport is ReportRules || currentReport is ReportNatRules)
+                {
+                    DisplayMessageInUi!(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
+                }
+                else if(currentReport is ReportChanges)
+                {
+                    DisplayMessageInUi!(null, userConfig.GetText("generate_report"), userConfig.GetText("E4003"), true);
+                }
             }
 
             Log.WriteDebug("Report Generation", $"Generation Time: {DateTime.Now - startTime}.");
@@ -758,7 +760,7 @@
     {
         foreach (Management mgm in managementsReport)
         {
-            mgm.Ignore = (relevantManagements.Contains(mgm.Id) ? false : true);
+            mgm.Ignore = !relevantManagements.Contains(mgm.Id);
         }
     }
 

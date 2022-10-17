@@ -97,9 +97,15 @@ mgm_query = """
             mgm_name
             ssh_hostname
             ssh_port
-            secret
-            ssh_public_key
-            ssh_user
+            import_credential_id
+            import_credential {
+                user: username
+                secret
+                sshPublicKey: public_key
+                credential_name
+                is_key_pair
+                id
+            }
             dev_typ_id
             config_path
             do_not_import

@@ -149,7 +149,7 @@ namespace FWO.Middleware.Server
                     ReportBase reportRules = ReportBase.ConstructReport(report.Template.Filter, 
                         report.Template.ReportParams.DeviceFilter,
                         report.Template.ReportParams.TimeFilter, 
-                        (report.Template.ReportParams.ReportType != null ? (ReportType)report.Template.ReportParams.ReportType : ReportType.None),
+                        (report.Template.ReportParams.ReportType != null ? (ReportType)report.Template.ReportParams.ReportType : ReportType.Rules),
                         userConfig);
                     Management[] managementsReport = Array.Empty<Management>();
                     await reportRules.Generate(int.MaxValue, apiConnectionUserContext, 
@@ -222,7 +222,7 @@ namespace FWO.Middleware.Server
                 List<int> relevantManagements = deviceFilter.getSelectedManagements();
                 foreach (Management mgm in managementsReport)
                 {
-                    mgm.Ignore = (relevantManagements.Contains(mgm.Id) ? false : true);
+                    mgm.Ignore = !relevantManagements.Contains(mgm.Id);
                 }
             }
         }

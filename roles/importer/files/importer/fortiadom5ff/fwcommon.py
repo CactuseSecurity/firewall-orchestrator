@@ -10,6 +10,7 @@ import fmgr_getter
 from curses import raw
 from fwo_log import getFwoLogger
 from fmgr_gw_networking import getInterfacesAndRouting, normalize_network_data
+from fwo_data_networking import get_ip_of_interface_obj
 
 scope = ['global', 'adom']
 nw_obj_types = ['firewall/address', 'firewall/address6', 'firewall/addrgrp',

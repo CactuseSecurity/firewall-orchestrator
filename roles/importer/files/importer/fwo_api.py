@@ -141,9 +141,6 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables, debug_level=0):
                 name: mgm_name
                 hostname: ssh_hostname
                 port: ssh_port
-                # secret: secret
-                # sshPublicKey: ssh_public_key
-                # user: ssh_user
                 import_credential {
                     id
                     credential_name
@@ -274,13 +271,12 @@ def delete_import(fwo_api_base_url, jwt, current_import_id):
 def import_json_config(fwo_api_base_url, jwt, mgm_id, query_variables):
     logger = getFwoLogger()
     import_mutation = """
-        mutation import($importId: bigint!, $mgmId: Int!, $config: jsonb!, $start_import_flag: Boolean!, $debug_mode: Boolean!) {
-            insert_import_config(objects: {start_import_flag: $start_import_flag, import_id: $importId, mgm_id: $mgmId, config: $config, debug_mode: $debug_mode}) {
+        mutation import($importId: bigint!, $mgmId: Int!, $config: jsonb!, $start_import_flag: Boolean!, $debug_mode: Boolean!, $chunk_number: Int!) {
+            insert_import_config(objects: {start_import_flag: $start_import_flag, import_id: $importId, mgm_id: $mgmId, chunk_number: $chunk_number, config: $config, debug_mode: $debug_mode}) {
                 affected_rows
             }
         }
     """
-
     try:
         debug_mode = (fwo_globals.debug_level>0)
         query_variables.update({'debug_mode': debug_mode})

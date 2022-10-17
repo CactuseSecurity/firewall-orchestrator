@@ -81,7 +81,6 @@ namespace FWO.Report.Filter.Ast
         //                    throw new SemanticException($"Unexpected operator token.", Operator.Position);
         //            }
         //            break;
-        //        case ReportType.None:
         //        default:
         //            Log.WriteError("Filter", $"Unexpected report type found: {query.ReportType}");
         //            break;

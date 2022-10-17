@@ -27,7 +27,7 @@ namespace FWO.Report.Filter
         public string ReportTimeString { get; set; } = "";
         public List<int> RelevantManagementIds { get; set; } = new List<int>();
 
-        public ReportType ReportType { get; set; } = ReportType.None;
+        public ReportType ReportType { get; set; } = ReportType.Rules;
 
         // $mgmId and $relevantImporId are only needed for time based filtering
         private DynGraphqlQuery(string rawInput) { RawFilter = rawInput; }
@@ -102,7 +102,6 @@ namespace FWO.Report.Filter
                         change_type_id: {{ _eq: 3 }}
                         security_relevant: {{ _eq: true }}";
                         break;
-                    case ReportType.None:
                     default:
                         Log.WriteError("Filter", $"Unexpected report type found: {reportType}");
                         break;
@@ -233,7 +232,7 @@ namespace FWO.Report.Filter
                             where: {{ 
                                 hide_in_gui: {{_eq: false }}  
                                 mgm_id: {{_in: $mgmId }} 
-                                stm_dev_typ:{{dev_typ_is_multi_mgmt:{{_eq:false}} }}
+                                stm_dev_typ: {{dev_typ_is_multi_mgmt: {{_eq: false}} is_pure_routing_device: {{_eq: false}} }}
                             }}
                             order_by: {{ mgm_name: asc }}
                         ) 
@@ -244,7 +243,7 @@ namespace FWO.Report.Filter
                             services_aggregate(where: {{ {query.svcObjWhereStatement} }}) {{ aggregate {{ count }} }}
                             usrs_aggregate(where: {{ {query.userObjWhereStatement} }}) {{ aggregate {{ count }} }}
                             rules_aggregate(where: {{ {query.ruleWhereStatement} }}) {{ aggregate {{ count }} }}
-                            devices( where: {{ hide_in_gui: {{_eq: false }} }} order_by: {{ dev_name: asc }} )
+                            devices( where: {{ hide_in_gui: {{_eq: false }}, stm_dev_typ: {{is_pure_routing_device:{{_eq:false}} }} }} order_by: {{ dev_name: asc }} )
                             {{
                                 name: dev_name
                                 id: dev_id
@@ -264,7 +263,7 @@ namespace FWO.Report.Filter
                             {{ 
                                 mgm_id: {{_in: $mgmId }}, 
                                 hide_in_gui: {{_eq: false }} 
-                                stm_dev_typ:{{dev_typ_is_multi_mgmt:{{_eq:false}} }}
+                                stm_dev_typ: {{dev_typ_is_multi_mgmt: {{_eq: false}} is_pure_routing_device: {{_eq: false}} }}
                             }} order_by: {{ mgm_name: asc }} ) 
                             {{
                                 id: mgm_id
@@ -292,11 +291,11 @@ namespace FWO.Report.Filter
                     {(detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
 
                     query changeReport({paramString}) {{
-                        management(where: {{ hide_in_gui: {{_eq: false }} stm_dev_typ:{{dev_typ_is_multi_mgmt:{{_eq:false}} }} }} order_by: {{mgm_name: asc}}) 
+                        management(where: {{ hide_in_gui: {{_eq: false }} stm_dev_typ: {{dev_typ_is_multi_mgmt: {{_eq: false}} is_pure_routing_device: {{_eq: false}} }} }} order_by: {{mgm_name: asc}}) 
                         {{
                             id: mgm_id
                             name: mgm_name
-                            devices (where: {{ hide_in_gui: {{_eq: false}} }}, order_by: {{dev_name: asc}} )                           
+                            devices (where: {{ hide_in_gui: {{_eq: false}} stm_dev_typ:{{is_pure_routing_device:{{_eq:false}} }} }}, order_by: {{dev_name: asc}} )                           
                             {{
                                 id: dev_id
                                 name: dev_name
@@ -337,11 +336,11 @@ namespace FWO.Report.Filter
 
                     query natRulesReport ({paramString}) 
                     {{ 
-                        management( where: {{ mgm_id: {{_in: $mgmId }}, hide_in_gui: {{_eq: false }} stm_dev_typ:{{dev_typ_is_multi_mgmt:{{_eq:false}} }} }} order_by: {{ mgm_name: asc }} ) 
+                        management( where: {{ mgm_id: {{_in: $mgmId }}, hide_in_gui: {{_eq: false }} stm_dev_typ: {{dev_typ_is_multi_mgmt: {{_eq: false}} is_pure_routing_device: {{_eq: false}} }} }} order_by: {{ mgm_name: asc }} ) 
                             {{
                                 id: mgm_id
                                 name: mgm_name
-                                devices ( where: {{ hide_in_gui: {{_eq: false }} }} order_by: {{ dev_name: asc }} ) 
+                                devices ( where: {{ hide_in_gui: {{_eq: false }} stm_dev_typ:{{is_pure_routing_device:{{_eq:false}} }} }} order_by: {{ dev_name: asc }} ) 
                                     {{
                                         id: dev_id
                                         name: dev_name

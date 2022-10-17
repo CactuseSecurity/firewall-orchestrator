@@ -36,6 +36,7 @@
       - libsys-syslog-perl 
       - libexpect-perl
       - libcgi-pm-perl
+      - python3-jsonpickle
 
   - name: Install importer python modules
     package: name={{ item }} state=present

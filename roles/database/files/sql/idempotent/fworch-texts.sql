@@ -143,16 +143,14 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
         Der Quellcode kann auf <a href="https://github.com/CactuseSecurity/firewall-orchestrator" target="_blank">GitHub</a> eingesehen und heruntergeladen werden.</li>
     <li>GraphQL API f&uuml;r Automatisierungen</li>
     <li>Firewall-Regel Rezertifizierungsworkflow - beseitigen Sie ihre Altlasten und erf&uuml;llen Sie aktuelle regulatorische Anforderungen.</li>
-    <li>F&uuml;r FortiManager und CheckPoint (Stand-Alone & MDS Manager) ist eine Auto Discovery Funktion enthalten, die ausgehend 
-    vom Management-System alle definierten Domains/SubManager sowie Devices automatisch anlegt sowie &Auml;nderungen erkennt 
-    und diese zur automatischen Konfigurations&auml;nderung anbietet.</li>
-    <li>Einf&uuml;hrung Monitoring und Alerting Modul - folgende Ereignisse werden protokolliert, in eine Log-Datei geschrieben (zur ggf. weiteren Auswertung per SIEM)
-     und dem Nutzer in der Oberfl&auml;che zur Erinnerung angezeigt:
-     <ul>
-        <li>&Auml;nderungen an angebundenen Firewall-Systemen, die im regelm&auml;&szlig;ig laufenden Hintergrund-Auto-Discovery-Prozess erkannt werden</li>
-        <li>Beim Import auftretende Fehler</li>
-        <li>Warnungen & Fehler, die in der Nutzeroberfl&auml;che angezeigt werden</li>
-     </ul>
+    <li>F&uuml;r FortiManager und CheckPoint (Stand-Alone & MDS Manager) Auto Discovery</li>
+    <li>Monitoring und Alerting Modul</li>
+    <li>Neues Workflow module zum Beantragen von &Auml;nderungen</li>
+    <li>Cisco FireFlow Import-Module</li>
+    <li>Unterst&uuml;tzung f&uuml;r Debian Testing Betriebssystem</li>
+    <li>Beginn Routing/Interface Pfad Analyse (zun&auml;chst nur Fortinet)</li>
+    <li>Neuer Report-Typ: Regeln (aufgel&ouml;st) (alle Gruppe werden in Bestandteile aufgel&ouml;st; Report-Export als "Single Table")</li>
+    <li>IP-basierter Mandantenfilter</li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
@@ -161,15 +159,14 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
         The code can be viewed/downloaded from <a href="https://github.com/CactuseSecurity/firewall-orchestrator" target="_blank">GitHub</a></li>
     <li>GraphQL API for automation</li>
     <li>Firewall rule recertification workflow - remove unnecessary rules and meet current regulatory requirements.</li>
-    <li>Device Auto Discovery functionality - only specify the Super Manager (FortiManager, MDS) details, everything else (ADOMs, Domains, devices) 
-    will be auto-discovered. Also changes in devices/managers will be detected and offered for auto-configuration.</li>
-    <li>Introduction of Monitoring and Alerting module - the following events will be logged internally as well as written into a log file 
-    (for further processing by a SIEM system) and will also be displayed in the UI as reminders to the relevant users:
-     <ul>
-        <li>Changes of the integrated firewall systems, which are detected by the background auto discovery process</li>
-        <li>import errors</li>
-        <li>all warnings and errors shown in the UI</li>
-     </ul>
+    <li>Device Auto Discovery functionality</li>
+    <li>Introduction of Monitoring and Alerting module</li>
+    <li>Introduction of workflow module for requesting changes</li>
+    <li>New Cisco FireFlow import module </li>
+    <li>Support for new operating system Debian testing</li>
+    <li>Start routing/interface (currently implemented for fortinet only) import and path analysis</li>
+    <li>New report type: resolved rules (report without group objects, exporting into pure rule tables without additional object tables)</li>
+    <li>Adding IP-based tenant filtering</li>
 </ul>
 ');
 
@@ -313,8 +310,6 @@ INSERT INTO txt VALUES ('download_json',		'German', 	'als JSON herunterladen');
 INSERT INTO txt VALUES ('download_json',		'English', 	'Download JSON');
 INSERT INTO txt VALUES ('save_as_template',		'German', 	'Als Vorlage speichern');
 INSERT INTO txt VALUES ('save_as_template',		'English', 	'Save as Template');
-INSERT INTO txt VALUES ('no_report_type_selected','German', 'Kein Report-Typ ausgew&auml;hlt.');
-INSERT INTO txt VALUES ('no_report_type_selected','English','No report type selected.');
 INSERT INTO txt VALUES ('no_device_selected',	'German', 	'Kein Device ausgew&auml;hlt.');
 INSERT INTO txt VALUES ('no_device_selected',	'English', 	'No device(s) selected.');
 INSERT INTO txt VALUES ('filter', 				'German', 	'Filter');
@@ -373,6 +368,8 @@ INSERT INTO txt VALUES ('user_objects',		    'German', 	'Nutzerobjekte');
 INSERT INTO txt VALUES ('user_objects',		    'English', 	'User objects');
 INSERT INTO txt VALUES ('rules',		        'German', 	'Regeln');
 INSERT INTO txt VALUES ('rules',		        'English', 	'Rules');
+INSERT INTO txt VALUES ('resolvedrules',        'German', 	'Regeln (aufgel&ouml;st)');
+INSERT INTO txt VALUES ('resolvedrules',        'English', 	'Rules (resolved)');
 INSERT INTO txt VALUES ('changes',		        'German', 	'&Auml;nderungen');
 INSERT INTO txt VALUES ('changes',		        'English', 	'Changes');
 INSERT INTO txt VALUES ('statistics',		    'German', 	'Statistik');
@@ -457,6 +454,8 @@ INSERT INTO txt VALUES ('changes_report',	    'German', 	'Changes-Report');
 INSERT INTO txt VALUES ('changes_report',	    'English', 	'Changes Report');
 INSERT INTO txt VALUES ('statistics_report',	'German', 	'Statistik-Report');
 INSERT INTO txt VALUES ('statistics_report',	'English', 	'Statistics Report');
+INSERT INTO txt VALUES ('resolved_rules_report','German', 	'Regel-Report (aufgel&ouml;st)');
+INSERT INTO txt VALUES ('resolved_rules_report','English', 	'Rules Report (resolved)');
 INSERT INTO txt VALUES ('generated_on',	        'German', 	'Erstellt am');
 INSERT INTO txt VALUES ('generated_on',	        'English', 	'Generated on');
 
@@ -577,6 +576,10 @@ INSERT INTO txt VALUES ('add_new_request',      'German', 	'Neuen Antrag hinzuf&
 INSERT INTO txt VALUES ('add_new_request',      'English', 	'Add new request');
 INSERT INTO txt VALUES ('fetch_requests',       'German', 	'Antr&auml;ge holen');
 INSERT INTO txt VALUES ('fetch_requests',       'English', 	'Fetch requests');
+INSERT INTO txt VALUES ('init_environment',     'German', 	'Umgebung initialisieren');
+INSERT INTO txt VALUES ('init_environment',     'English', 	'Init environment');
+INSERT INTO txt VALUES ('start_work',           'German', 	'Arbeit beginnen');
+INSERT INTO txt VALUES ('start_work',           'English', 	'Start work');
 INSERT INTO txt VALUES ('save_request',         'German', 	'Antrag speichern');
 INSERT INTO txt VALUES ('save_request',         'English', 	'Save request');
 INSERT INTO txt VALUES ('state',                'German', 	'Status');
@@ -1417,7 +1420,7 @@ INSERT INTO txt VALUES ('architecture',         'English',  'Firewall Orchestrat
 --            5400-5499: personal settings
 -- 6000-6999: API
 -- 7000-7999: Monitoring
--- 8000-8999: Request
+-- 8000-8999: Workflow
 
 -- user messages
 INSERT INTO txt VALUES ('U0001', 'German',  'Eingabetext wurde um nicht erlaubte Zeichen gek&uuml;rzt');
@@ -1613,6 +1616,8 @@ INSERT INTO txt VALUES ('E4001', 'German',  'Bitte Kommentar hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('E4001', 'English', 'Please insert a comment');
 INSERT INTO txt VALUES ('E4002', 'German',  'Keine Regeln f&uuml;r die gew&auml;hlten Kriterien gefunden');
 INSERT INTO txt VALUES ('E4002', 'English', 'No rules found for given criteria');
+INSERT INTO txt VALUES ('E4003', 'German',  'Keine &Auml;nderungen f&uuml;r die gew&auml;hlten Kriterien gefunden');
+INSERT INTO txt VALUES ('E4003', 'English', 'No changes found for given criteria');
 
 INSERT INTO txt VALUES ('E5101', 'German',  'L&ouml;schen des Managements nicht erlaubt, da noch Gateways zugeordnet sind. Diese zuerst l&ouml;schen wenn m&ouml;glich');
 INSERT INTO txt VALUES ('E5101', 'English', 'Deletion of management not allowed as there are related Gateways. Delete them first if possible');
@@ -2179,7 +2184,7 @@ INSERT INTO txt VALUES ('H4014', 'English', 'Decertified rules can be displayed 
 INSERT INTO txt VALUES ('H4021', 'German',  'Dieses Rezertifizierungsszenario ist als Basis f&uuml;r weitere angepasste Abl&auml;ufe vorgesehen.');
 INSERT INTO txt VALUES ('H4021', 'English', 'This recertification scenario is intended to be a base for further customized workflows.');
 
-INSERT INTO txt VALUES ('H5001', 'German',  'Im diesem Abschnitt werden die Setup- und Verwaltungseinstellungen behandelt.
+INSERT INTO txt VALUES ('H5001', 'German',  'In diesem Abschnitt werden die Setup- und Verwaltungseinstellungen behandelt.
     Die meisten Einstellungen k&ouml;nnen nur von Nutzern mit der Administrator-Rolle gesehen und ge&auml;ndert werden.
     Der Auditor kann zwar die Einstellungen sehen, da er aber keine Schreibrechte hat, sind alle Schaltfl&auml;chen, die zu &Auml;nderungen f&uuml;hren w&uuml;rden, deaktiviert.
 ');
@@ -2307,7 +2312,7 @@ INSERT INTO txt VALUES ('H5115', 'English', 'Port*: Port number of the host.<br>
     If the target is Check Point R8x the connection is established via API. The default port number is 443. Remember to enable API access on your Check Point managment.<br>
     If the target is not Check Point R8x Firewall Orchestrator needs ssh-based access. The default port number is 22.
 ');
-INSERT INTO txt VALUES ('H5116', 'German',  'Login-Daten*: Zugangsdaten für den Import-Nutzer des Managements.<br>
+INSERT INTO txt VALUES ('H5116', 'German',  'Login-Daten*: Zugangsdaten f&uuml;r den Import-Nutzer des Managements.<br>
     Hier kann ein Satz Zugangsdaten ausgew&auml;hlt werden, der zum Login auf dem Management dient.
 ');
 INSERT INTO txt VALUES ('H5116', 'English', 'Import Credentials*: User/Password combination for logging into the management.<br>

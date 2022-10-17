@@ -1,12 +1,21 @@
 query getDevicesByManagement {
   management(
-    where: { hide_in_gui: { _eq: false }, stm_dev_typ:{dev_typ_is_multi_mgmt:{_eq:false} } }
+    where: {
+      hide_in_gui: { _eq: false }
+      stm_dev_typ: {
+        dev_typ_is_multi_mgmt: { _eq: false }
+        is_pure_routing_device: { _eq: false }
+      }
+    }
     order_by: { mgm_name: asc }
   ) {
     id: mgm_id
     name: mgm_name
     devices(
-      where: { hide_in_gui: { _eq: false } }
+      where: {
+        hide_in_gui: { _eq: false }
+        stm_dev_typ: { is_pure_routing_device: { _eq: false } }
+      }
       order_by: { dev_name: asc }
     ) {
       id: dev_id

@@ -166,7 +166,7 @@
                     }
                     else
                     {
-                        <label class="m-2">@((actUser.Groups != null && actUser.Groups.Count > 0) ? actUser.Groups.First() : "")</label>
+                        <label class="m-2">@(actUser.Groups.Count > 0 ? actUser.Groups.First() : "")</label>
                     }
                 </div>
                 <div class="form-group row">
@@ -185,7 +185,7 @@
                     }
                     else
                     {
-                        <label class="m-2">@((actUser.Roles != null && actUser.Roles.Count > 0) ? actUser.Roles.First() : "")</label>
+                        <label class="m-2">@((actUser.Roles.Count > 0) ? actUser.Roles.First() : "")</label>
                     }
                 </div>
             </form>
@@ -679,7 +679,7 @@
             selectedTenantId = newUser.Tenant?.Id;
             selectedGroupName = (newUser.Groups != null ? newUser.Groups.FirstOrDefault() : null);
             newUser.Groups = new List<string>();
-            selectedRoleName = (newUser.Roles != null ? newUser.Roles.FirstOrDefault() : null);
+            selectedRoleName = newUser.Roles.FirstOrDefault();
             newUser.Roles = new List<string>();
             Edit(newUser);
         }
@@ -821,19 +821,16 @@
     {
         try
         {
-            if (user.Groups != null)
+            foreach(string groupName in user.Groups)
             {
-                foreach(string groupName in user.Groups)
+                UserGroup? group = groups.FirstOrDefault(x => x.Name == groupName);
+                if (group != null)
                 {
-                    UserGroup? group = groups.FirstOrDefault(x => x.Name == groupName);
-                    if (group != null)
+                    GroupAddDeleteUserParameters addUserParameters = new GroupAddDeleteUserParameters { GroupDn = group.Dn, UserDn = user.Dn };
+                    RestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToGroup(addUserParameters);
+                    if ((middlewareServerResponse.StatusCode != HttpStatusCode.OK) || (middlewareServerResponse.Data == false))
                     {
-                        GroupAddDeleteUserParameters addUserParameters = new GroupAddDeleteUserParameters { GroupDn = group.Dn, UserDn = user.Dn };
-                        RestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToGroup(addUserParameters);
-                        if ((middlewareServerResponse.StatusCode != HttpStatusCode.OK) || (middlewareServerResponse.Data == false))
-                        {
-                            DisplayMessageInUi!(null, userConfig.GetText("assign_user_to_group"), userConfig.GetText("E5242"), true);
-                        }
+                        DisplayMessageInUi!(null, userConfig.GetText("assign_user_to_group"), userConfig.GetText("E5242"), true);
                     }
                 }
             }
@@ -848,19 +845,16 @@
     {
         try
         {
-            if (user.Roles != null)
+            foreach(string roleName in user.Roles)
             {
-                foreach(string roleName in user.Roles)
+                Role? role = roles.FirstOrDefault(x => x.Name == roleName);
+                if (role != null)
                 {
-                    Role? role = roles.FirstOrDefault(x => x.Name == roleName);
-                    if (role != null)
+                    RoleAddDeleteUserParameters parameters = new RoleAddDeleteUserParameters { Role = role.Dn, UserDn = user.Dn };
+                    RestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToRole(parameters);
+                    if ((middlewareServerResponse.StatusCode != HttpStatusCode.OK) || (middlewareServerResponse.Data == false))
                     {
-                        RoleAddDeleteUserParameters parameters = new RoleAddDeleteUserParameters { Role = role.Dn, UserDn = user.Dn };
-                        RestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToRole(parameters);
-                        if ((middlewareServerResponse.StatusCode != HttpStatusCode.OK) || (middlewareServerResponse.Data == false))
-                        {
-                            DisplayMessageInUi!(null, userConfig.GetText("assign_user_group_to_role"), userConfig.GetText("E5255"), true);
-                        }
+                        DisplayMessageInUi!(null, userConfig.GetText("assign_user_group_to_role"), userConfig.GetText("E5255"), true);
                     }
                 }
             }

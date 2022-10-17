@@ -16,20 +16,20 @@
 <Sidebar @ref="deviceSelectionSidebar" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth" >
     <div class="p-3">
         <h5 class="text-left">@(userConfig.GetText("report_type"))</h5>
-        <div class="col-sm-8">
-            <select id="reportType" class="form-control form-control-sm" value="@selectedReportType" @onchange="ReportTypeChanged">
-                @foreach (var reportType in Enum.GetValues(typeof(ReportType)))
-                {
-                    <option value="@reportType">@userConfig.GetText(reportType?.ToString()?.ToLower() ?? "")</option>
-                }
-            </select>
-        </div>
+        <Dropdown ElementType="ReportType" ElementToString="@(r => userConfig.GetText(r.ToString()?.ToLower() ?? ""))"
+            Value="selectedReportType" ValueChanged="ReportTypeChanged" Elements="Enum.GetValues(typeof(ReportType)).Cast<ReportType>()">
+            <ElementTemplate Context="reportType">
+                @userConfig.GetText(reportType.ToString()?.ToLower() ?? "")
+            </ElementTemplate>
+        </Dropdown>
     </div>
     <div class="p-3">
         <h5 class="text-left">@(userConfig.GetText("report_time"))</h5>
-        <div class="btn-group mr-1 ml-1 mb-1">
-            <label class="col-sm-8">@displayedTimeSelection</label>
-            <button class="btn btn-sm btn-secondary" @onclick="SelectTime">@(userConfig.GetText("change"))</button>
+        <div class="input-group">
+            <input type="text" class="form-control form-control-sm" disabled value="@displayedTimeSelection" />
+            <div class="input-group-append">
+                <button class="btn btn-sm btn-outline-info" @onclick="SelectTime">@(userConfig.GetText("change"))</button>
+            </div>
         </div>
     </div>
     <DeviceSelection @bind-DeviceFilter="deviceFilter" @bind-CollapseAll="collapseDevices" @bind-SelectAll="selectAll"></DeviceSelection>
@@ -412,9 +412,9 @@
         });
     }
 
-    private void ReportTypeChanged(ChangeEventArgs args)
+    private void ReportTypeChanged(ReportType newReportType)
     {
-        selectedReportType = (ReportType) Enum.Parse(typeof(ReportType), (args?.Value?.ToString() ?? throw new Exception("Undefined report type")), true);
+        selectedReportType = newReportType;
         DisplayTime();
         StateHasChanged();
     }

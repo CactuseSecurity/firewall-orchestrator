@@ -67,7 +67,7 @@ namespace FWO.Config.Api
             GlobalConfigOnChange(globalConfig, globalConfig.RawConfigItems);
             Log.WriteDebug("Get User Data", $"Get user data from user with DN: \"{userDn}\"");
             UiUser[]? users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = userDn });
-            if (users.Count() > 0)
+            if (users.Length > 0)
                 User = users[0];
             await SetUserId(apiConnection, User.DbId);
 
@@ -88,7 +88,7 @@ namespace FWO.Config.Api
 
         public string GetUserLanguage()
         {
-            return (User.Language != null ? User.Language : "");
+            return User.Language ?? "";
         }
 
         public void SetLanguage(string languageName)

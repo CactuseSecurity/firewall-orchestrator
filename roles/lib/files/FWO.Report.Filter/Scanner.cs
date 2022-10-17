@@ -123,7 +123,8 @@ namespace FWO.Report.Filter
 
         private List<Token> TryExtractToken(int beginPosition, string text, bool surroundedByWhitespace, int recusionDepth)
         {
-            if (recusionDepth > 1) {
+            if (recusionDepth > 1)
+            {
                 throw new Exception("Internal error: Stackoverflow. Please report this error.");
             }
 

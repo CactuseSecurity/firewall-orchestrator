@@ -96,7 +96,7 @@
                         break;
 
                     case ReportRules rulesReport:
-                        <RulesReport Managements="managementsReport" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"></RulesReport>
+                        <RulesReport Managements="managementsReport" SelectedReportType="selectedReportType" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"></RulesReport>
                         break;
 
                     case ReportChanges changesReport:
@@ -344,7 +344,7 @@
     private Management[] managementsAllObjects = new Management[0];
     private Management? globalStats = null;
 
-    private ReportType selectedReportType = ReportType.Rules;
+    public ReportType selectedReportType = ReportType.Rules;
 
     private DeviceFilter deviceFilter = new DeviceFilter();
     private bool selectAll = true;

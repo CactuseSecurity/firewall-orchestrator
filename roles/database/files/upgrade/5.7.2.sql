@@ -157,7 +157,3 @@ insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufac
      VALUES (17,'DummyRouter Management','1','DummyRouter','',false,true,true) ON CONFLICT DO NOTHING;
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt,dev_typ_is_mgmt,is_pure_routing_device)
     VALUES (18,'DummyRouter Gateway','1','DummyRouter','',false,false,true) ON CONFLICT DO NOTHING;
-
-
-
----- resolved rules report

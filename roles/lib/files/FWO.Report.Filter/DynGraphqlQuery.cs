@@ -69,6 +69,7 @@ namespace FWO.Report.Filter
                 switch (reportType)
                 {
                     case ReportType.Rules:
+                    case ReportType.ResolvedRules:
                     case ReportType.Statistics:
                     case ReportType.NatRules:
                         query.ruleWhereStatement +=
@@ -254,6 +255,7 @@ namespace FWO.Report.Filter
                     break;                
 
                 case ReportType.Rules:
+                case ReportType.ResolvedRules:
                     query.FullQuery = Queries.compact($@"
                     {(detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
 

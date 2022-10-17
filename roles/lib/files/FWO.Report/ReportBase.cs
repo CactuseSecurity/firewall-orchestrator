@@ -162,6 +162,7 @@ namespace FWO.Report
             {
                 ReportType.Statistics => new ReportStatistics(query, userConfig, reportType),
                 ReportType.Rules => new ReportRules(query, userConfig, reportType),
+                ReportType.ResolvedRules => new ReportRules(query, userConfig, reportType),
                 ReportType.Changes => new ReportChanges(query, userConfig, reportType),
                 ReportType.NatRules => new ReportNatRules(query, userConfig, reportType),
                 _ => throw new NotSupportedException("Report Type is not supported."),

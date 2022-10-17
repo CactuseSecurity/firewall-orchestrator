@@ -14,6 +14,8 @@ Alter Table "service" add Constraint "svc_altkey" UNIQUE ("mgm_id","svc_uid","sv
 Alter Table "stm_dev_typ" add Constraint "Alter_Key1" UNIQUE ("dev_typ_name","dev_typ_version");
 Alter Table "usr" add Constraint "usr_altkey" UNIQUE ("mgm_id","user_name","user_create");
 Alter Table "zone" add Constraint "Alter_Key10" UNIQUE ("mgm_id","zone_name");
+Alter Table "tenant" add Constraint "tenant_name_unique" UNIQUE("tenant_name")
+
 
 --- owner_network ---
 ALTER TABLE owner_network ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);

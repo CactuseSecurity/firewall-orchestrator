@@ -65,7 +65,7 @@ namespace FWO.Config.Api
         {
             foreach (PropertyInfo property in GetType().GetProperties())
             {
-                // Is Property storing config value?
+                // Is the property storing a config value (marked by JsonPropertyName Attribute)?
                 if (property.GetCustomAttribute<JsonPropertyNameAttribute>() != null)
                 {
                     string key = property.GetCustomAttribute<JsonPropertyNameAttribute>()!.Name;
@@ -88,11 +88,16 @@ namespace FWO.Config.Api
                     }
                     else
                     {
-                        // If this is a global config or the config item is a user config item
-                        if (UserId == 0 || property.GetCustomAttribute<UserConfigDataAttribute>() != null) 
+                        // If this is a global config 
+                        if (UserId == 0) 
                         {
-                            Log.WriteError("Load Config Items", $"Config item with key \"{key}\" could not be found. Using default value.");
+                            Log.WriteError("Load Global Config Items", $"Config item with key \"{key}\" could not be found. Using default value.");
                         }
+						// If this is a user config item (user might not have changed the default setting)
+						else if (property.GetCustomAttribute<UserConfigDataAttribute>() != null)
+                        {
+							Log.WriteDebug("Load Config Items", $"Config item with key \"{key}\" could not be found. User might not have customized the setting. Using default value.");
+						}
                     }
                 }
             }

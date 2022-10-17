@@ -15,7 +15,7 @@
 
 <form class="form-inline">
     <label for="languageSelect" class="col-form-label mr-2">@(userConfig.GetText("language"))</label>
-    <select id="languageSelect" class="form-control-sm mr-2" @bind="selectedLanguage">
+    <select id="languageSelect" class="form-control form-control-sm mr-2" @bind="selectedLanguage">
         @foreach (Language language in globalConfig.uiLanguages)
         {
             <option value="@(language.Name)">@(userConfig.GetText(language.Name))</option>

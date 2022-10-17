@@ -1,36 +1,48 @@
-﻿@typeparam ElementType
+﻿@using System.Reflection
+@typeparam ElementType
 
-<div class="btn-group">
-	<div class="input-group input-group-sm" @onclick="Toggle">
+@inject DomEventService eventService
+@inject IJSRuntime jsRuntime
+
+<div class="btn-group d-block">
+	<div class="input-group input-group-sm">
 		<div class="input-group-prepend">
 			<span class="input-group-text"><span class="oi oi-magnifying-glass"></span></span>
 		</div>
-		<input class="custom-select" @onfocus="ClearFilter" @onblur="ToggleWithDelay" @oninput="Filter" @bind="searchValue" />
+		<input class="custom-select d-block" @onclick="Toggle" @onfocus="ClearFilter" @onblur="ToggleWithDelay" @oninput="Filter" @bind="searchValue" />
 	</div>
-	<ul class="dropdown-menu" style="@(Toggled ? "" : "display: inline;")">
+	<ul id="@(Id)" class="dropdown-menu" style="@($"position: fixed; top: {y}px; left: {x}px; max-height: calc(100vh - {y}px - 10px); overflow: auto;" + (Toggled ? "" : " display: inline;"))">
 		@if (!Toggled)
 		{
 			@if (Value != null)
 			{
-				<li><div class="dropdown-item">@ElementTemplate(Value)</div></li>
-				<li><hr class="dropdown-divider"></li>
+				<li><div class="dropdown-item small">@ElementTemplate(Value)</div></li>
+				<li><hr class="dropdown-divider small"></li>
 			}
 			@foreach (ElementType element in FilteredElements)
 			{
-				<li><button class="dropdown-item" @onclick="() => Value = element">@ElementTemplate(element)</button></li>
+				<li><button type="button" @onclick="() => Value = element" class="dropdown-item small">@ElementTemplate(element)</button></li>
 			}
 		}
 	</ul>
 </div>
 
-
 @code
 {
+	int x;
+	int y;
+
+	[Parameter]
+	public string Id { get; set; } = new Random().Next().ToString();
+
 	[Parameter]
 	public Func<ElementType, string> ElementToString { get; set; } = (o => o.ToString() ?? "");
 
 	[Parameter]
-	public RenderFragment<ElementType> ElementTemplate { get; set; } = element => __builder => { @element };
+	public RenderFragment<ElementType> ElementTemplate { get; set; } = element => __builder => 
+	{
+		@element
+	};
 
 	public IEnumerable<ElementType> FilteredElements { get; private set; } = Enumerable.Empty<ElementType>();
 
@@ -43,8 +55,6 @@
 		set 
 		{ 
 			_elements = value;
-			Filter(searchValue);
-			Value = _elements.FirstOrDefault();
 		}
 	}
 
@@ -56,9 +66,12 @@
 		get { return _value; }
 		set
 		{
-			_value = value;
-			DisplayValue(value);
-			ValueChanged.InvokeAsync(value);
+			if (!Object.Equals(value, _value)) // value != _value
+			{
+				_value = value;
+				DisplayValue(_value);
+				ValueChanged.InvokeAsync(value);					
+			}
 		}
 	}
 
@@ -69,8 +82,21 @@
 
 	private string searchValue = "";
 
-	public void Toggle()
+	protected override async Task OnInitializedAsync()
 	{
+		// Toggle on resize of Window / scroll outside of dropdown (to avoid positional problems)
+		if (!eventService.Initialized)
+		{
+			await eventService.Initialize(jsRuntime);
+		}
+		eventService.OnGlobalResize += async () => { Toggled = true; await InvokeAsync(StateHasChanged); };
+		eventService.OnGlobalScroll += async (string elementId) => { if (elementId != $"dropdown-{Id}") { Toggled = true; await InvokeAsync(StateHasChanged); } };
+	}
+
+	private void Toggle(MouseEventArgs input)
+	{
+		x = (int)input.PageX - (int)input.OffsetX + 5;
+		y = (int)input.PageY - (int)input.OffsetY + 25;
 		Toggled = !Toggled;
 	}
 
@@ -81,7 +107,8 @@
 
 	private void Filter(string filter)
 	{
-		FilteredElements = Elements.Where(e => ElementToString(e).Contains(filter));
+		// case insensitive
+		FilteredElements = Elements.Where(e => ElementToString(e).ToLower().Contains(filter.ToLower()));
 	}
 
 	private void ClearFilter()
@@ -90,11 +117,11 @@
 		Filter(""); // No filter
 	}
 
-	private void DisplayValue(ElementType? value)
+	private void DisplayValue(ElementType? valueToDisplay)
 	{
-		if (value != null)
+		if (valueToDisplay != null)
 		{
-			searchValue = ElementToString(value);  // set search / display field to current value
+			searchValue = ElementToString(valueToDisplay);  // set search / display field to current value
 		}
 	}
 

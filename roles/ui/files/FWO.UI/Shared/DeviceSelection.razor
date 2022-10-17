@@ -34,7 +34,7 @@
         <CascadingValue Value="collapseDevices">
             @foreach (ManagementSelect management in DeviceFilter.Managements)
             {
-                <div class="form-check">
+                <div class="form-check mb-1">
                     <input class="form-check-input" type="checkbox" id="@management.Id"
                             @bind="management.Selected"
                             @ref="management.UiReference"

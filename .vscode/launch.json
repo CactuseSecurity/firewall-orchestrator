@@ -83,6 +83,17 @@
             ]
         },
         {
+            "name": "py-generate-tenant-data",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/test/files/tenant_networks/create_tenant_network_data.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": []
+        },
+        {
             "name": "py-change-comment",
             "type": "python",
             "request": "launch",

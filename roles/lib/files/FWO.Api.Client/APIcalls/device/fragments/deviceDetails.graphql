@@ -3,12 +3,7 @@ fragment deviceDetails on device
 {
     id: dev_id
     name: dev_name
-    deviceType: stm_dev_typ {
-      id: dev_typ_id
-      name: dev_typ_name
-      version: dev_typ_version
-      manufacturer: dev_typ_manufacturer
-    }
+    deviceType: stm_dev_typ { ...deviceTypeDetails }
     management {
       id: mgm_id
       name: mgm_name
@@ -20,8 +15,6 @@ fragment deviceDetails on device
     importDisabled: do_not_import
     forceInitialImport: force_initial_import
     hideInUi: hide_in_gui
-    # createDate: (only display this)
     creationDate: dev_create
-    # updateDate: (only display this)
     updateDate: dev_update
 }

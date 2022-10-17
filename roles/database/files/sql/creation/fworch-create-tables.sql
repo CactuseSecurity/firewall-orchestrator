@@ -62,9 +62,6 @@ Create table "management" -- contains an entry for each firewall management syst
 	"mgm_create" Timestamp NOT NULL Default now(),
 	"mgm_update" Timestamp NOT NULL Default now(),
 	"import_credential_id" Integer NOT NULL,
---	"ssh_public_key" Text,
---	"secret" Text NOT NULL,
---	"ssh_user" Varchar NOT NULL Default 'fworch',
 	"ssh_hostname" Varchar NOT NULL,
 	"ssh_port" Integer NOT NULL Default 22,
 	"last_import_md5_complete_config" Varchar Default 0,
@@ -517,6 +514,7 @@ Create table "stm_dev_typ"
 	"dev_typ_config_file_basic_objects" Varchar,
 	"dev_typ_config_file_users" Varchar,
 	"dev_typ_is_multi_mgmt" Boolean Default FALSE,
+	"is_pure_routing_device" Boolean Default FALSE,
  primary key ("dev_typ_id")
 );
 
@@ -584,6 +582,7 @@ Create table "import_control"
 CREATE TABLE IF NOT EXISTS "import_config" (
     "import_id" bigint NOT NULL,
     "mgm_id" integer NOT NULL,
+    "chunk_number" integer,
     "config" jsonb NOT NULL,
 	"start_import_flag" Boolean NOT NULL Default FALSE,
 	"debug_mode" Boolean Default FALSE
@@ -716,6 +715,37 @@ Create table "import_zone"
 	"control_id" BIGINT NOT NULL,
 	"zone_name" Text NOT NULL,
 	"last_change_time" Timestamp
+);
+
+---------------------------------------------------------------------------------------
+-- adding interfaces and routing for path analysis
+-- drop table if exists gw_route;
+-- drop table if exists gw_interface;
+
+create table if not exists gw_interface
+(
+    id SERIAL PRIMARY KEY,
+    routing_device INTEGER NOT NULL,
+    name VARCHAR NOT NULL,
+    ip CIDR,
+    state_up BOOLEAN DEFAULT TRUE,
+    ip_version INTEGER NOT NULL DEFAULT 4,
+    netmask_bits INTEGER NOT NULL
+);
+
+create table if not exists gw_route
+(
+    id SERIAL PRIMARY KEY,
+    routing_device INT NOT NULL,
+    target_gateway CIDR NOT NULL,
+    destination CIDR NOT NULL,
+    source CIDR,
+    interface_id INT,
+    interface VARCHAR,
+    static BOOLEAN DEFAULT TRUE,
+    metric INT,
+    distance INT,
+    ip_version INTEGER NOT NULL DEFAULT 4
 );
 
 -- (change)log tables -------------------------------------

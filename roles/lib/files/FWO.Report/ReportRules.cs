@@ -278,7 +278,7 @@ namespace FWO.Report
                 // show all objects used in this management's rules
 
                 int objNumber = 1;
-                if (management.ReportObjects != null)
+                if (management.ReportObjects != null && ReportType == ReportType.Rules)
                 {
                     report.AppendLine($"<h4>{userConfig.GetText("network_objects")}</h4>");
                     report.AppendLine("<hr>");
@@ -310,7 +310,7 @@ namespace FWO.Report
                     report.AppendLine("</table>");
                 }
 
-                if (management.ReportServices != null)
+                if (management.ReportServices != null && ReportType == ReportType.Rules)
                 {
                     report.AppendLine($"<h4>{userConfig.GetText("network_services")}</h4>");
                     report.AppendLine("<hr>");
@@ -348,7 +348,7 @@ namespace FWO.Report
                     report.AppendLine("</table>");
                 }
 
-                if (management.ReportUsers != null)
+                if (management.ReportUsers != null && ReportType == ReportType.Rules)
                 {
                     report.AppendLine($"<h4>{userConfig.GetText("users")}</h4>");
                     report.AppendLine("<hr>");

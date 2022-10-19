@@ -414,6 +414,10 @@
 
     private void ReportTypeChanged(ReportType newReportType)
     {
+        // clear report data when switching reportType
+        // as we would be missing src/dst/svc information in some cases           
+        managementsReport = new Management[] {};
+        globalStats = null;
         selectedReportType = newReportType;
         DisplayTime();
         StateHasChanged();

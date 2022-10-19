@@ -11,7 +11,7 @@
 		</div>
 		<input class="custom-select d-block" @onclick="Toggle" @onfocus="ClearFilter" @onblur="ToggleWithDelay" @oninput="Filter" @bind="searchValue" />
 	</div>
-	<ul id="@(Id)" class="dropdown-menu" style="@($"position: fixed; top: {y}px; left: {x}px; max-height: calc(100vh - {y}px - 10px); overflow: auto;" + (Toggled ? "" : " display: inline;"))">
+	<ul id="@(Id)" class="dropdown-menu" style="@($"position: fixed; top: {yPositionDropdown}px; left: {xPositionDropdown}px; max-height: calc(100vh - {yPositionDropdown}px - 10px); overflow: auto;" + (Toggled ? "" : " display: inline;"))">
 		@if (!Toggled)
 		{
 			@if (Value != null)
@@ -29,8 +29,8 @@
 
 @code
 {
-	int x;
-	int y;
+	int xPositionDropdown;
+	int yPositionDropdown;
 
 	[Parameter]
 	public string Id { get; set; } = new Random().Next().ToString();
@@ -94,9 +94,9 @@
 	}
 
 	private void Toggle(MouseEventArgs input)
-	{
-		x = (int)input.PageX - (int)input.OffsetX + 5;
-		y = (int)input.PageY - (int)input.OffsetY + 25;
+	{	
+		xPositionDropdown = (int)input.ClientX - (int)input.OffsetX + 5;
+		yPositionDropdown = (int)input.ClientY - (int)input.OffsetY + 25;
 		Toggled = !Toggled;
 	}
 

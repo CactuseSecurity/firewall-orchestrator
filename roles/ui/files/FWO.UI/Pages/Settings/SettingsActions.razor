@@ -2,11 +2,14 @@
 @using FWO.Api.Data
 @using FWO.Config.Api
 @using System.Text.Json
+@using FWO.Ui.Services
+@using FWO.Middleware.Client
 
 @page "/settings/stateactions"
 @attribute [Authorize(Roles = "admin, auditor")]
 
 @inject ApiConnection apiConnection
+@inject MiddlewareClient middlewareClient
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 
@@ -124,13 +127,11 @@
                                 <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("task_type")):</label>
                                 <select class="col-sm-8 form-control form-control-sm" @bind="actAction.TaskType">
                                     <option value="">@(userConfig.GetText("all"))</option>
-                                    @foreach (string taskType in Enum.GetNames(typeof(TaskType)))
-                                    {
-                                        @if(taskType != TaskType.master.ToString())
+                                        @foreach (TaskType taskType in availableTaskTypes.Where(x => x != TaskType.master))
                                         {
-                                            <option value="@taskType">@(userConfig.GetText(taskType))</option>
+                                            <option value="@taskType">@(userConfig.GetText(taskType.ToString()))</option>
                                         }
-                                    }
+                                     }
                                 </select>
                             </div>
                         </div>
@@ -173,9 +174,9 @@
                                     <div class="col-sm-8">
                                         <select id="selectGroup" class="form-control form-control-sm" @bind="actApprovalParams.ApproverGroup">
                                             <option value="">-</option>
-                                            @foreach (var group in groups)
+                                            @foreach (var group in userAndGroupList)
                                             {
-                                                <option value="@group">@(group)</option>
+                                                <option value="@group.Dn">@(group.Name)</option>
                                             }
                                         </select>
                                     </div>
@@ -255,7 +256,8 @@ else
 
     private List<RequestStateAction> actions = new List<RequestStateAction>();
     private List<RequestState> states = new List<RequestState>();
-    private List<string> groups = new List<string>();
+    private List<UiUser> userAndGroupList = new List<UiUser>();
+    private List<TaskType> availableTaskTypes { get; set; } = new List<TaskType>();
 
     private RequestStateAction actAction = new RequestStateAction();
     private ApprovalParams actApprovalParams = new ApprovalParams();
@@ -279,6 +281,8 @@ else
         {
             actions = await apiConnection.SendQueryAsync<List<RequestStateAction>>(FWO.Api.Client.Queries.RequestQueries.getActions);
             states = await apiConnection.SendQueryAsync<List<RequestState>>(FWO.Api.Client.Queries.RequestQueries.getStates);
+            availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<TaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
+            userAndGroupList = await RoleAccess.GetRoleMembers(middlewareClient, "approver");
         }
         catch (Exception exception)
         {

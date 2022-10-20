@@ -565,8 +565,8 @@ INSERT INTO txt VALUES ('rule_modify', 			'German', 	'Regel &auml;ndern');
 INSERT INTO txt VALUES ('rule_modify', 		    'English', 	'Modify Rule');
 INSERT INTO txt VALUES ('never', 			    'German', 	'Niemals');
 INSERT INTO txt VALUES ('never', 			    'English', 	'Never');
-INSERT INTO txt VALUES ('onlyForOneDevice', 	'German', 	'Nur wenn genau ein Ger&auml;t vorhanden');
-INSERT INTO txt VALUES ('onlyForOneDevice', 	'English', 	'Only if exactly one device available');
+INSERT INTO txt VALUES ('onlyForOneDevice', 	'German', 	'Nur eines wenn Ger&auml;t vorhanden');
+INSERT INTO txt VALUES ('onlyForOneDevice', 	'English', 	'Only one if device available');
 INSERT INTO txt VALUES ('forEachDevice', 		'German', 	'F&uuml;r jedes Ger&auml;t');
 INSERT INTO txt VALUES ('forEachDevice', 		'English', 	'For each device');
 INSERT INTO txt VALUES ('enterInReqTask',       'German', 	'Ger&auml;t im Antrag eingeben');
@@ -1399,6 +1399,14 @@ INSERT INTO txt VALUES ('introduction',         'German',   'Einf&uuml;hrung');
 INSERT INTO txt VALUES ('introduction',         'English',  'Introduction');
 INSERT INTO txt VALUES ('architecture',         'German',   'Die Firewall Orchestrator Architektur');
 INSERT INTO txt VALUES ('architecture',         'English',  'Firewall Orchestrator Architecture');
+INSERT INTO txt VALUES ('phases_roles', 	    'German', 	'Phasen und Rollen');
+INSERT INTO txt VALUES ('phases_roles', 		'English', 	'Phases and Roles');
+INSERT INTO txt VALUES ('task_types', 			'German', 	'Auftragstypen');
+INSERT INTO txt VALUES ('task_types', 			'English', 	'Task Types');
+INSERT INTO txt VALUES ('state_handling', 		'German', 	'Status-Verwaltung');
+INSERT INTO txt VALUES ('state_handling', 		'English', 	'State Handling');
+INSERT INTO txt VALUES ('checklist', 		    'German', 	'Checkliste');
+INSERT INTO txt VALUES ('checklist', 		    'English', 	'Checklist');
 
 -- text codes (roughly) categorized: 
 -- U: user texts (explanation or confirmation texts)
@@ -2223,6 +2231,15 @@ INSERT INTO txt VALUES ('H5014', 'English', 'The "Personal" chapter is accessibl
     <a href="/help/settings/language">Language</a> and <a href="/help/settings/report">Reporting</a> preferences. 
     Users with recertifier role have also the possibility to adjust their <a href="/help/settings/recertification">Recertification Setting</a>.
 ');
+INSERT INTO txt VALUES ('H5015', 'German',  'Das Kapitel "Workflow" dient dem Administrator, einen Workflow aufzusetzen. Dazu geh&ouml;rt die Definition der angebotenen <a href="/help/settings/stateactions">Aktionen</a>,
+    der verwendeten <a href="/help/settings/statedefinitions">Stati</a> und den Status&uuml;berg&auml;ngen in den zentralen <a href="/help/settings/statematrix">Status-Matrizen</a>.
+    In den <a href="/help/settings/workflowcustomizing">Einstellungen</a> k&ouml;nnen allgemeine Voreinstellungen zu den Workflows vorgenommen werden, ausserdem gibt es eine &Uuml;bersicht der vorhandenen <a href="/help/settings/owners">Eigent&uuml;mer</a>.
+');
+INSERT INTO txt VALUES ('H5015', 'English', 'The "Workflow" chapter helps the administrator to set up a workflow. This includes the definition of the offered <a href="/help/settings/stateactions">actions</a>,
+    the used <a href="/help/settings/statedefinitions">states</a>, and the state transitions in the central <a href="/help/settings/statematrix">state matrices</a>. 
+    In <a href="/help/settings/workflowcustomizing">customizing</a> general workflow settings can be done, additionally there is an overview of the <a href="/help/settings/owners">owners</a>.
+');
+
 INSERT INTO txt VALUES ('H5101', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Managements einrichten und verwalten.<br>
     Die "Klonen"-Schaltfl&auml;che unterst&uuml;tzt beim Definieren eines neuen Managements, indem Daten von einem existierenden kopiert werden.
     Vor dem Speichern muss sich mindestens einer der Parameter Hostname, Port oder Config Path von den existierenden Managements unterscheiden, wenn die Auswahl "Import Deaktiviert" nicht gesetzt ist.
@@ -2599,6 +2616,8 @@ INSERT INTO txt VALUES ('H5331', 'German',  'Alle definierten Rollen werden mit 
 INSERT INTO txt VALUES ('H5331', 'English', 'All defined roles in the system are displayed with a short explanation.<br>
     The admin can assign or remove users or user groups to/from the roles.
 ');
+INSERT INTO txt VALUES ('H5332', 'German',  'Die verf&uuml;gbaren Rollen k&ouml;nnen in mehrere Kategorien eingeteil werden:');
+INSERT INTO txt VALUES ('H5332', 'English', 'The provided roles can be divided into several categories:');
 INSERT INTO txt VALUES ('H5341', 'German',  'Aktionen: Der Admin hat die M&ouml;glichkeit, Nutzer den Rollen zuzuordnen oder sie von ihnen zu entfernen,
     ausser f&uuml;r "anonymous" oder "middleware-server", welche nur intern genutzt werden kann.
     Das Hinzuf&uuml;gen der Nutzer kann auf drei Arten erfolgen:
@@ -2625,6 +2644,14 @@ INSERT INTO txt VALUES ('H5352', 'German',  'Auswahl aus der Liste der bekannten
 INSERT INTO txt VALUES ('H5352', 'English', 'Select from the list of known users also displayed in the <a href="/help/settings/users">users settings</a>.');
 INSERT INTO txt VALUES ('H5353', 'German',  'Auswahl aus der Liste der internen Gruppen, wie sie in den <a href="/help/settings/groups">Gruppeneinstellungen</a> dargestellt wird.');
 INSERT INTO txt VALUES ('H5353', 'English', 'Select from the list of internal groups also displayed in the <a href="/help/settings/groups">groups settings</a>.');
+INSERT INTO txt VALUES ('H5361', 'German',  'Reporting und Rezertifizierung (regelbasiert): reporter, reporter-viewall, recertifier');
+INSERT INTO txt VALUES ('H5361', 'English', 'Reporting and recertification (rule based): reporter, reporter-viewall, recertifier');
+INSERT INTO txt VALUES ('H5362', 'German',  'Workflow: requester, approver, planner, implementer, reviewer');
+INSERT INTO txt VALUES ('H5362', 'English', 'Workflow: requester, approver, planner, implementer, reviewer');
+INSERT INTO txt VALUES ('H5363', 'German',  '&Uuml;bergeordnete Rollen: admin, fw-admin, auditor, (anonymous)');
+INSERT INTO txt VALUES ('H5363', 'English', 'Superordinate roles: admin, fw-admin, auditor, (anonymous)');
+INSERT INTO txt VALUES ('H5364', 'German',  'Technische Rollen: importer, dbbackup, middleware-server');
+INSERT INTO txt VALUES ('H5364', 'English', 'Technical roles: importer, dbbackup, middleware-server');
 INSERT INTO txt VALUES ('H5401', 'German',  'Der Admin kann verschiedene Standardwerte definieren, die dann f&uuml;r alle Nutzer gelten.<br>
     Manche von ihnen k&ouml;nnen in den individuellen Nutzereinstellungen &uuml;berschrieben werden.
 ');
@@ -2995,4 +3022,261 @@ INSERT INTO txt VALUES ('H7401', 'German', 'Hier werden alle Nachrichten, die al
 ');
 INSERT INTO txt VALUES ('H7401', 'English', 'All messages are listed here, which have been displayed for the respective user.
     The messages can be seen only by the user itself, except system errors which have raised an alert to be handled by the administrators.
+');
+
+INSERT INTO txt VALUES ('H8001', 'German',  'Das Workflow-Modul soll die Zusammenarbeit mehrerer beteiligter Akteure bei Arbeitsabl&auml;ufen im Umfeld der Netzwerkadministration unterst&uuml;tzen.
+    Um eine m&ouml;glichst grosse Vielzahl von Workflows abbilden zu k&ouml;nnen, werden diverse Konfigurationsm&ouml;glichkeiten angeboten.
+');
+INSERT INTO txt VALUES ('H8001', 'English', 'The Workflow module is intended to support the collaboration of several actors in the network administration environment.
+    To map as many of possible workflows, several configuration settings are offered.
+');
+INSERT INTO txt VALUES ('H8011', 'German',  '<a href="/help/workflow/objects">Objekte</a>: Den Rahmen f&uuml;r Antr&auml;ge bilden Tickets. Hier werden die eigentlichen fachlichen Auftr&auml;ge (Request tasks) gesammelt und verwaltet.
+    Diese k&ouml;nnen verschiedene Auspr&auml;gungen (Tasktypen) haben, je nach Art des Auftrags. An den fachlichen Auftr&auml;ge h&auml;ngen die Genehmigungen.
+    Aus den fachlichen Auftr&auml;gen k&ouml;nnen automatisch oder manuell ein oder mehrere Implementierungs-Auftr&auml;ge (Implementation tasks) erzeugt werden, welche die technische Umsetzung des Auftrags reflektieren.
+    Diesen 4 Objekttypen ist jeweils ein Status zugewiesen.
+');
+INSERT INTO txt VALUES ('H8011', 'English', '<a href="/help/workflow/objects">Objects</a>: The tickets are building the framework for requests. Here the functional tasks (Request Tasks) are collected and administrated.
+    These can have different flavors (Task Types), depending on the sort of order. The Approvals are associated to the Request Tasks.
+    Based on the Request Tasks, one or more Implementation Tasks can be generated automatically or manually, which reflect the technical realization of the request.
+    To each of these 4 object types there is a State assigned.
+');
+INSERT INTO txt VALUES ('H8012', 'German',  '<a href="/help/workflow/phases">Phasen und Rollen</a>: Die Bearbeitung der Auftr&auml;ge ist in Phasen unterteilt, welche an Rollen gebunden sind. 
+    Bei der Konfiguration des Workflows wird festgelegt, welche Phasen f&uuml;r die jeweiligen Tasktypen &uuml;berhaupt verwendet werden.
+');
+INSERT INTO txt VALUES ('H8012', 'English', '<a href="/help/workflow/phases">Phases and Roles</a>: Processing of the requests is divided into several phases, which are bound to roles.
+    During configuration it has to be fixed, which of the phases are used for the respective task types.
+');
+INSERT INTO txt VALUES ('H8013', 'German',  '<a href="/help/workflow/states">Stati</a>: Bei der Konfiguration des Workflows k&ouml;nnen Stati frei definiert und benannt werden.
+    Durch geeignete Wahl der Nummernkreise werden diese in den verschiedenen Phasen sichtbar bzw. bearbeitbar.    
+');
+INSERT INTO txt VALUES ('H8013', 'English', '<a href="/help/workflow/states">States</a>: During configuration of the workflow, states can be defined and named freely.
+    They become visible and processable in the different phases by choosing the appropriate number ranges.
+');
+INSERT INTO txt VALUES ('H8014', 'German',  '<a href="/help/workflow/actions">Aktionen</a>: Um die Bearbeitung der Auftr&auml;ge zu unterst&uuml;tzen, k&ouml;nnen Aktionen verschiedener Typen definiert werden. 
+    Dazu geh&ouml;ren automatische Status-Weiterleitungen oder das Anfordern weiterer Genehmigungen. Auch die Konfiguration f&uuml;r Aufrufe externer Komponenten ist vorgesehen.
+');
+INSERT INTO txt VALUES ('H8014', 'English', '<a href="/help/workflow/actions">Actions</a>: To support processing of the requests, different kinds of actions can be defined.
+    This includes automatic state promotions or the request of further approvals. Also configuration of calls to external components is in preparation.
+');
+INSERT INTO txt VALUES ('H8101', 'German',  'Das Workflow-Modul operiert mit 4 verschiedenen Objekttypen, welche der Statusbehandlung unterliegen.
+    Entsprechend der Objekthierarchie sind die Stati voneinander abh&auml;ngig.
+');
+INSERT INTO txt VALUES ('H8101', 'English', 'The workflow module operates on 4 different object types which are subject to state handling.
+    According to the object hierarchy their states are interdependent.
+');
+INSERT INTO txt VALUES ('H8111', 'German',  'Ticket: Bildet die Klammer f&uuml;r einen oder mehrere fachliche Auftr&auml;ge. Als Felder werden angeboten:');
+INSERT INTO txt VALUES ('H8111', 'English', 'Ticket: Serves as a clamp around one or more functional (request) tasks. Fields are:');
+INSERT INTO txt VALUES ('H8112', 'German',  'Titel: Pflichtfeld zur Kennzeichnung des Antrags.');
+INSERT INTO txt VALUES ('H8112', 'English', 'Title: Mandatory field to identify the request');
+INSERT INTO txt VALUES ('H8113', 'German',  'Status: Der Ticket-Status wird in der ersten Phase vom Antragssteller gesetzt, in sp&auml;teren Phasen aus den Stati der fachlicher Auftr&auml;ge ermittelt.');
+INSERT INTO txt VALUES ('H8113', 'English', 'State: The ticket state is set in the first phase by the requester, in later phases it is computed from the states of the request tasks.');
+INSERT INTO txt VALUES ('H8114', 'German',  'Antragsteller: Wird automatisch beim Anlegen des Tickets auf den erzeugenden Nutzer gesetzt.');
+INSERT INTO txt VALUES ('H8114', 'English', 'Requester: Is automatically set to the requesting user at ticket creation time.');
+INSERT INTO txt VALUES ('H8115', 'German',  'Priorit&auml;t: Es steht eine Liste von 5 <a href="/help/settings/workflowcustomizing">konfigurierbaren</a> Priorit&auml;tsstufen zur Auswahl.');
+INSERT INTO txt VALUES ('H8115', 'English', 'Priority: Can be selected from a list of 5 <a href="/help/settings/workflowcustomizing">configurable</a> priority levels.');
+INSERT INTO txt VALUES ('H8116', 'German',  'Deadline: Kann hier manuell gesetzt oder aus der Priorit&auml;t (soweit gesetzt) automatisch berechnet werden.');
+INSERT INTO txt VALUES ('H8116', 'English', 'Deadline: Can be set manually or computed automatically from the priority (if set).');
+INSERT INTO txt VALUES ('H8117', 'German',  'Grund: Dient vor allem der &uuml;bergreifenden Begr&uuml;ndung und Dokumentation.');
+INSERT INTO txt VALUES ('H8117', 'English', 'Reason: Primarily serves for overall motivation and documentation.');
+INSERT INTO txt VALUES ('H8118', 'German',  'Liste der fachlichen Auftr&auml;ge (bis Planungsphase) bzw. Liste der technischen Auftr&auml;ge (ab Implementierungsphase).');
+INSERT INTO txt VALUES ('H8118', 'English', 'List of functional tasks (up to planning phase) resp. list of implementation tasks (from implementation phase).');
+INSERT INTO txt VALUES ('H8131', 'German',  'Fachlicher Auftrag (Request task): Stellt die fachliche Sicht eines einzelnen Auftrags dar.
+    Einem fachlichen Auftrag k&ouml;nnen mehrere Implementierungs-Auftr&auml;ge (in der Regel je betroffenem Ger&auml;t einer) und mehrere Genehmigungen zugeordnet sein. Er enth&auml;lt folgende Felder:
+');
+INSERT INTO txt VALUES ('H8131', 'English', 'Functional (Request) task: Represents the functional view of a task.
+    Several implementation tasks (usually one per involved gateway) and approvals can be associated. It contains following fields:
+');
+INSERT INTO txt VALUES ('H8132', 'German',  'Titel: Pflichtfeld zur schnellen Kennzeichnung der Aufgabe. (In sp&auml;teren Ausbauphasen ist hier eine Unterst&uuml;tzung zur Einhaltung von Namenskonventionen m&ouml;glich).');
+INSERT INTO txt VALUES ('H8132', 'English', 'Title: Mandatory field for quick identification of the task. (In later releases a support for following name conventions is possible).');
+INSERT INTO txt VALUES ('H8133', 'German',  'Status: Der Aufrags-Status wird zun&auml;chst vom Ticket-Status, sp&auml;ter dann vom Status der zugeh&ouml;rigen Genehmigungen bzw. Implementierungsauftr&auml;gen abgeleitet. ');
+INSERT INTO txt VALUES ('H8133', 'English', 'State: The state of the request task is determined from the ticket state in the beginning, later from the associated approvals resp. implementation tasks.');
+INSERT INTO txt VALUES ('H8134', 'German',  'Bearbeiter: Hier wird automatisch der Nutzer, welcher den Auftrag als letztes bearbeitet hat, gesetzt.');
+INSERT INTO txt VALUES ('H8134', 'English', 'Handler: Automatically the last editing user of the request task is set.');
+INSERT INTO txt VALUES ('H8135', 'German',  'Zugewiesen: Ein fachlicher Auftrag kann einem anderen Nutzer explizit zugewiesen werden.');
+INSERT INTO txt VALUES ('H8135', 'English', 'Assigned: A request task can be assigned to another user explicitly.');
+INSERT INTO txt VALUES ('H8136', 'German',  'Tasktypspezifische Felder: Je nach ausgew&auml;hltem Auftragstyp werden unterschiedliche Felder eingeblendet (<a href="/help/workflow/tasktypes">Tasktypen</a>).');
+INSERT INTO txt VALUES ('H8136', 'English', 'Task type specific fields: Depending on the task type different fields are displayed (<a href="/help/workflow/tasktypes">Task types</a>)');
+INSERT INTO txt VALUES ('H8137', 'German',  'Grund: Dient vor allem der detaillierteren Dokumentation auf fachlicher Ebene und Erkl&auml;rung f&uuml;r Genehmiger und ggf. Planer. Wird in Phasen ab Implementierung nicht mehr dargestellt.');
+INSERT INTO txt VALUES ('H8137', 'English', 'Reason: Serves for a more detailled documentation on functional level and for explanations to approver and planner if activated. Not displayed in phases starting from implementation.');
+INSERT INTO txt VALUES ('H8138', 'German',  'Kommentare: In den Phasen Genehmigung und Planung k&ouml;nnen Kommentare zu dem fachlichen Auftrag hinzugef&uuml;gt werden. Sie werden mit Datum und Autor aufgelistet und k&ouml;nnen nicht gel&ouml;scht werden.');
+INSERT INTO txt VALUES ('H8138', 'English', 'Comments: In the approval and planning phase comments can be added to the request task. They are listed with date and author an can not be deleted.');
+INSERT INTO txt VALUES ('H8139', 'German',  'Start: Hier wird automatisch ein Zeitstempel eingetragen, sobald der Auftrag das erste mal nach der Genehmigung angefasst wird.
+	Falls aktiviert, kann dies den Beginn der Planungsphase markieren, ansonsten wird hier der Beginn der ersten Implementierung widergespiegelt.
+');
+INSERT INTO txt VALUES ('H8139', 'English', 'Start: Here the timestamp of the first change after approval is set.
+    If activated, this can mark the beginning of the planning phase, else the start of the first implementation is indicated.
+');
+INSERT INTO txt VALUES ('H8140', 'German',  'Stop: Wird der letzte Implementierungs-Auftrag des fachlichen Auftrags durch setzen des Stop-Datums als fertiggestellt markiert, wird auch hier der aktuelle Zeitstempel gesetzt.');
+INSERT INTO txt VALUES ('H8140', 'English', 'Stop: When the last implementation task of the request task is marked as finished by setting the stop date, also here the actual date is set.');
+INSERT INTO txt VALUES ('H8141', 'German',  'Liste der Implementierungs-Auftr&auml;ge falls schon vorhanden.');
+INSERT INTO txt VALUES ('H8141', 'English', 'List of implementation tasks if already existing.');
+INSERT INTO txt VALUES ('H8151', 'German',  'Implementierungs-Auftrag (Implementation task): Stellt die technische Sicht f&uuml;r die konkrete Implementierung eines einzelnen Auftrags dar. Er enth&auml;lt folgende weitgehend dem fachlichen Auftrag entsprechenden Felder:');
+INSERT INTO txt VALUES ('H8151', 'English', 'Inplementation Task: Represents the technical view for the implementation of the request task. It contains following fields, mostly corresponding to the request task:');
+INSERT INTO txt VALUES ('H8152', 'German',  'Titel (abgeleitet): Wird automatisch aus dem Titel des fachlichen Auftrags und dem Ger&auml;tenamen zusammengesetzt.');
+INSERT INTO txt VALUES ('H8152', 'English', 'Title (derived): Automatically composed from the title of the request task and the device name.');
+INSERT INTO txt VALUES ('H8153', 'German',  'Status: Status des Implementierungs-Auftrags.');
+INSERT INTO txt VALUES ('H8153', 'English', 'State: State of the implementation task.');
+INSERT INTO txt VALUES ('H8154', 'German',  'Implementierer: Hier wird automatisch der Nutzer, welcher den Implementierungs-Auftrag als letztes bearbeitet hat, gesetzt.');
+INSERT INTO txt VALUES ('H8154', 'English', 'Implementer: Automatically the last editing user of the implementation task is set.');
+INSERT INTO txt VALUES ('H8155', 'German',  'Zugewiesen: Ein Implementierungs-Auftrag kann einem anderen Nutzer explizit zugewiesen werden.');
+INSERT INTO txt VALUES ('H8155', 'English', 'Assigned: An implementation task can be assigned to another user explicitly.');
+INSERT INTO txt VALUES ('H8156', 'German',  'Tasktypspezifische Felder: werden aus den entsprechenden Feldern des fachlichen Auftrags weitgehend vorbelegt. Der Planer kann dann daran &Auml;nderungen vornehmen. Der Auftragstyp selbst kann nicht mehr ge&auml;ndert werden.');
+INSERT INTO txt VALUES ('H8156', 'English', 'Task type specific fields: are mostly prefilled from the corresponding fields of the request task. The planner can make changes on them. The task type itself can not be changed anymore.');
+INSERT INTO txt VALUES ('H8157', 'German',  'Kommentare: In den Phasen Implementierung und Review k&ouml;nnen Kommentare zu dem Implementierungs-Auftrag hinzugef&uuml;gt werden. Sie werden mit Datum und Autor aufgelistet und k&ouml;nnen nicht gel&ouml;scht werden.');
+INSERT INTO txt VALUES ('H8157', 'English', 'Comments: In the implementation and review phase comments can be added to the implementation task. They are listed with date and author an can not be deleted.');
+INSERT INTO txt VALUES ('H8158', 'German',  'Start: Hier wird automatisch ein Zeitstempel eingetragen, sobald der Implementierungs-Auftrag das erste mal nach der Planung angefasst wird.');
+INSERT INTO txt VALUES ('H8158', 'English', 'Start: Here the timestamp of the first change after planning is set.');
+INSERT INTO txt VALUES ('H8159', 'German',  'Stop: Wird bei Bearbeitung in der Implementierungsphase ein Status im Ausgangsbereich erreicht, wird hier der aktuelle Zeitstempel gesetzt. ');
+INSERT INTO txt VALUES ('H8159', 'English', 'Stop: When reaching a state in the outgoing range, the actual timestamp is set.');
+INSERT INTO txt VALUES ('H8171', 'German',  'Genehmigungen werden als eigenst&auml;ndige Objekte dem fachlichen Auftrag zugeordnet. Ein Auftrag gilt dann als genehmigt, wenn alle zugeordneten Einzelgenehmigungen den entsprechenden Status aufweisen.
+	Eine Genehmigung enth&auml;lt folgende Felder:
+');
+INSERT INTO txt VALUES ('H8171', 'English', 'Approvals are associated to the functional (request) task as separate objects. A request task is regarded as approved, if all related single approvals have the approprioate state.
+    An approval contains the following fields:
+');
+INSERT INTO txt VALUES ('H8172', 'German',  'Ge&ouml;ffnet: Zeitstempel des Anlegens der Genehmigung.');
+INSERT INTO txt VALUES ('H8172', 'English', 'Opened: Timestamp of the approval creation.');
+INSERT INTO txt VALUES ('H8173', 'German',  'Deadline: Beim Anlegen der Genehmigung wird automatisch eine Deadline gesetzt. 
+    Diese wird beim Anlegen des Auftrags aus der Priorit&auml;t des Tickets (<a href="/help/settings/workflowcustomizing">Einstellungen</a>) ermittelt.
+	Beim Anfordern weiterer Genehmigungen &uuml;ber <a href="/help/settings/stateactions">Aktionen</a> kann in dessen Parametern ebenfalls eine Deadline gesetzt werden.
+	Der Wert 0 hat dabei zur Folge, dass keine Deadline gesetzt wird.
+');
+INSERT INTO txt VALUES ('H8173', 'English', 'Deadline: On approval creation a deadline is set automatically. 
+    It is computed from the ticket priority at task creation time (<a href="/help/settings/workflowcustomizing">Customizing</a>).
+    The requesting of new approvals via <a href="/help/settings/stateactions">Actions</a> also allows setting of a deadline in the parameters.
+    The value 0 results in setting no deadline.
+');
+INSERT INTO txt VALUES ('H8174', 'German',  'Zugewiesen: Eine Genehmigung kann einem anderen Nutzer explizit zugewiesen werden.');
+INSERT INTO txt VALUES ('H8174', 'English', 'Assigned: An approval can be assigned to another user explicitly.');
+INSERT INTO txt VALUES ('H8175', 'German',  'Genehmigt: Erreicht die Genehmigung einen Status im Ausgangsbereich, wird hier der aktuelle Zeitstempel gesetzt.');
+INSERT INTO txt VALUES ('H8175', 'English', 'Approved: When the state of the approval reaches the outgoing range, the actual timestamp is set here.');
+INSERT INTO txt VALUES ('H8176', 'German',  'Genehmiger: Hier wird automatisch der Nutzer, der den Ausgangsstatus gesetzt hat, gesetzt.');
+INSERT INTO txt VALUES ('H8176', 'English', 'Approver: The user setting the state in the outgoing range is set here automatically.');
+INSERT INTO txt VALUES ('H8177', 'German',  'Status: Status der Genehmigung.');
+INSERT INTO txt VALUES ('H8177', 'English', 'State: State of the approval.');
+INSERT INTO txt VALUES ('H8178', 'German',  'Kommentare: Nach dem Anlegen einer Genehmigung bis zur erfolgten Genehmigung k&ouml;nnen Kommentare hinzugef&uuml;gt werden.
+	Dies ist &uuml;ber eine Schaltfl&auml;che in der Genehmigungs&uuml;bersicht oder beim Status&uuml;bergang (z.B. Ablehnung) selbst m&ouml;glich.
+	Die Kommentare werden mit Datum und Autor aufgelistet und k&ouml;nnen nicht gel&ouml;scht werden.
+');
+INSERT INTO txt VALUES ('H8178', 'English', 'Comments: After creation of an approval until it is approved comments can be added.
+    This can be done via a button in the approval overview or during state transition (e.g. reject).
+    Comments are listed with date and author an can not be deleted.
+');
+INSERT INTO txt VALUES ('H8201', 'German',  'Je nach Art der beantragten Aufgaben k&ouml;nnen verschiedene Workflow-Varianten erforderlich sein. 
+    Dies wird in den Tasktypen abgebildet, welche separat die jeweils n&ouml;tigen Felder anbieten und in verschiedenen Workflows konfiguriert werden k&ouml;nnen.
+    Die f&uuml;r die Nutzer verf&uuml;gbaren Tasktypen werden in den <a href="/help/settings/workflowcustomizing">Einstellungen</a> freigeschaltet.
+');
+INSERT INTO txt VALUES ('H8201', 'English', 'Depending on the kind of the requested duties, different workflow variants may be necessary.
+    They are represented in task types, which separately offer the needed fields and can be configured in different workflows.
+    The available task types for the users are activiated in the <a href="/help/settings/workflowcustomizing">Customizing</a> settings.
+');
+INSERT INTO txt VALUES ('H8211', 'German',  'Generisch: Eine einfache Variante, in der die beauftragte T&auml;tigkeit in einem Freitextfeld beschrieben wird.');
+INSERT INTO txt VALUES ('H8211', 'English', 'Generic: A basic variant, in which the requested activity is described in a free text field.');
+INSERT INTO txt VALUES ('H8212', 'German',  'Zugriff: Hier wird eine Reihe von Feldern angeboten, die f&uuml;r einen Antrag auf Netzwerkzugriff n&ouml;tig sind. 
+    Dazu geh&ouml;ren zwingend Angaben zu Quelle, Ziel und Dienst, Aktion, Regel-Aktion, Logging.
+    Bei entsprechender Konfiguration (keine Planungsphase, "Ger&auml;t im Antrag eingeben" in <a href="/help/settings/workflowcustomizing">Einstellungen</a>) m&uuml;ssen auch die betroffenen Gateways selektiert werden.
+    Hinzu kommen optionale Angaben wie G&uuml;ltigkeitszeitraum und Grund.
+');
+INSERT INTO txt VALUES ('H8212', 'English', 'Access: Here a couple of fields is offered, which are necessary to handle a request on network access.
+    That includes mandatory specifications of source, destination and service, as well as action, rule action and logging.
+    In case of the respective configuration (no planning phase, "Enter device in request" in <a href="/help/settings/workflowcustomizing">Customizing</a>) also the affected devices have to be selected.
+    Additionally there are optional information like validity range and reason.
+');
+INSERT INTO txt VALUES ('H8213', 'German',  'Die weiteren vorgesehenen Tasktypen "Gruppe anlegen", "Gruppe &auml;ndern" und "Gruppe l&ouml;schen" k&ouml;nnen zwar aktiviert und genutzt werden, sind aber noch nicht mit spezifischen Feldern versehen.');
+INSERT INTO txt VALUES ('H8213', 'English', 'Further task types "create group", "modify group" and "delete group" can be activated and used, but are not equipped with specific fields yet.');
+INSERT INTO txt VALUES ('H8301', 'German',  'Jeder Verarbeitungsschritt kann nur von Nutzern mit entsprechenden <a href="/help/settings/roles">Rollen</a> get&auml;tigt werden.
+    Dabei k&ouml;nnen einzelnen Nutzern auch mehrere Rollen zufallen. Die Rollen k&ouml;nnen individuell oder &uuml;ber <a href="/help/settings/groups">Gruppenzugeh&ouml;rigkeit</a> zugewiesen werden.
+    Hinzu kommt die Rolle des admin, welche einen Komplettzugriff erlaubt. Je nach Rolle des Bearbeiters sind nur die f&uuml;r ihn relevanten Teile der folgenden Rubriken sichtbar.
+');
+INSERT INTO txt VALUES ('H8301', 'English', 'Each processing step can only be done by users with adequate <a href="/help/settings/roles">Roles</a>.
+    Although, single users can be in possession of several roles. Roles can be aasigned individually or via <a href="/help/settings/groups">group membership</a>.
+    Additionally there is the role of the admin, who has always full access. Depending on the roles of the user, only the relevant parts of the following chapters are visible.
+');
+INSERT INTO txt VALUES ('H8311', 'German',  'Ticket-Liste (Rolle: requester, fw-admin): 
+    Dem Antragsteller steht eine &Uuml;bersicht &uuml;ber alle von ihm selbst angelegten Tickets aller Bearbeitungsstufen zur Verf&uuml;gung. Der fw-admin kann hier alle Tickets sehen.
+    &Auml;nderungen an den Tickets sind in dieser Ansicht nicht m&ouml;glich.
+');
+INSERT INTO txt VALUES ('H8311', 'English', 'Ticket List (Role: requester, fw-admin):
+    The requester gets an overview of all tickets in all processing states created by himself. The fw-admin has view on all tickets.
+    Changes on the tickets are not possible in this view. 
+');
+INSERT INTO txt VALUES ('H8312', 'German',  'Antrag stellen (Rolle: requester), voreingestellt: 
+    Antr&auml;ge k&ouml;nnen nur von Nutzern mit entsprechenden Rechten gestellt werden, definiert durch die Rolle (weitere Einschr&auml;nkungen auf die Eigent&uuml;merschaft ist in sp&auml;teren Versionen vorgesehen).
+    Solange noch kein Status des Ausgangsbereichs erreicht wurde, k&ouml;nnen Tickets beliebig ge&auml;ndert und fachliche Auftr&auml;ge angeh&auml;ngt, ge&auml;ndert oder gel&ouml;scht werden.
+    Um Inkonsistenzen zu vermeiden, werden angelegte Auftr&auml;ge erst beim ersten Speichern des Tickets mit erzeugt. Vorher sind sie nur lokal vorhanden und gehen beim Abbruch der Antragstellung verloren.
+    In sp&auml;teren Phasen sind keine inhaltlichen &Auml;nderungen an Ticket und fachlichen Auftr&auml;gen mehr m&ouml;glich, lediglich an Metadaten wie Status, Start und Stop sowie Kommentierungen.
+');
+INSERT INTO txt VALUES ('H8312', 'English', 'Create ticket (Role: requester), preselected:
+    Requests can only be created by users with according rights, defined by the roles (further restrictions on ownership are envisaged for later releases).
+    As long as no state in the exit range is reached, tickets can be changed arbitrarily, and request task can be added, changed or deleted.
+    To avoid inconsistencies, already built request tasks are created with the first save of the ticket. Before, they exist only locally and get lost on cancellation of ticket creation.
+    In later phases no changes of the ticket and request tasks contents are possible, only changes on metadata like state, start and stop, as well as adding comments can be done.
+');
+INSERT INTO txt VALUES ('H8313', 'German',  'Genehmigungen (Rolle: approver), voreingestellt: 
+    Der Workflow kann einen verpflichtenden Genehmigungsschritt vorsehen, bevor der Antrag weiter bearbeitet werden kann (<a href="/help/settings/statematrix">Status-Matrix</a>).
+    Beim erstmaligen Speichern des Antrags wird automatisch pro Auftrag ein Genehmigungsobjekt angelegt. 
+    Konfigurierbar &uuml;ber <a href="/help/workflow/actions">Aktionen</a> k&ouml;nnen in beliebigen Phasen weitere Genehmigungen angefordert werden.
+    Der Genehmiger kann das Ticket und die Auftr&auml;ge nicht mehr inhaltlich ver&auml;ndern, lediglich einen neuen Status setzen und Kommentare hinzuf&uuml;gen.
+    Hinzu kommen gegebenenfalls weitere vorkonfigurierte eingeblendete Aktionen.
+    Ein Auftrag gilt dann als genehmigt, wenn alle einzelnen Genehmigungen den entsprechenden Status erreicht haben. Danach kann der Genehmiger keine &Auml;nderungen mehr vornehmen.
+');
+INSERT INTO txt VALUES ('H8313', 'English', 'Approvals (Role: approver), preselected:
+    The workflow can be designed to contain a mandatory approval step before further work on the request ticket can be done (<a href="/help/settings/statematrix">State matrix</a>).
+    In the course of first saving the request ticket, an approval object is created automatically for each request task.
+    Configurable in <a href="/help/workflow/actions">Actions</a>, further approvals can be requested in arbitrary phases.
+    The approver is not allowed to make changes on the content of ticket and tasks, only set a new state or add comments.
+    Additionally there may be further preconfigured shown actions.
+    A request task counts as approved, if all single approvals have reached the appropriate state. Henceforward the approver can not perform changes anymore.
+');
+INSERT INTO txt VALUES ('H8314', 'German',  'Planungen (Rolle: planner, fw-admin), optional: 
+    Im Workflow kann vorgesehen werden, dass die Implementierungs-Auftr&auml;ge aus den fachlichen Auftr&auml;gen manuell von einem Planer erzeugt werden.
+    Ist diese Phase aktiviert, greift die automatische Erzeugung der Implementierungs-Auftr&auml;ge nicht (<a href="/help/settings/workflowcustomizing">Einstellungen</a>).
+    Stattdessen kann der Planer beliebige Implementierungs-Auftr&auml;ge erzeugen, editieren und l&ouml;schen. 
+    Dabei werden die Felder aus den analogen Feldern des fachlichen Auftrags zwar weitgehend vorbelegt, k&ouml;nnen aber beliebig den Erfordernissen entsprechend abge&auml;ndert werden.
+');
+INSERT INTO txt VALUES ('H8314', 'English', 'Plannings (Role: planner, fw-admin), optional:
+    The workflow can be designed to create implementation tasks from the request tasks manually by a planner.
+    In case this phase is active, the automatic creation of implementation tasks is deactivated (<a href="/help/settings/workflowcustomizing">Customizing</a>).
+    Instead, the planner can create, edit or delete arbitrarily implementation tasks.
+    When creating, the fields are largely prefilled by the corresponding fields in the request task, but can be changed according to the needs.
+');
+INSERT INTO txt VALUES ('H8315', 'German',  'Implementierungen (Rolle: implementer, fw-admin), voreingestellt: 
+    Hier wird die technische Umsetzung der einzelnen Auftr&auml;ge unterst&uuml;tzt und dokumentiert. Die fachlichen Auftr&auml;ge sind im Ticket nicht sichtbar, lediglich die Implementierungs-Auftr&auml;ge.
+    In der &Uuml;bersicht k&ouml;nnen f&uuml;r den Nutzer auch statt der Tickets direkt alle Implementierungs-Auftr&auml;ge oder nur die Implementierungs-Auftr&auml;ge f&uuml;r ein Ger&auml;t dargestellt werden.
+');
+INSERT INTO txt VALUES ('H8315', 'English', 'Implementations (Role: implementer, fw-admin), preselected:
+    Here the technical realization of the single tasks is supported and documented. Functional (request) tasks are not visible, only the implementation tasks.
+    In the overview, instead of the tickets, also a list of all implementation task or the implementation tasks for a special device can be displayed.
+');
+INSERT INTO txt VALUES ('H8316', 'German',  'Reviews (Rolle: reviewer), optional: 
+    Abschliessend kann der Workflow einen Review-Schritt vorsehen, um die Umsetzung des Antrags zu &uuml;berpr&uuml;fen. Dazu werden die Tickets mitsamt der Implementierungs-Auftr&auml;ge dargestellt.
+');
+INSERT INTO txt VALUES ('H8316', 'English', 'Reviews (Role: reviewer), optional: 
+    Finally the workflow can contain a review phase to check the implementation of the request. Therefore the tickets are displayed with their implementation tasks.
+');
+INSERT INTO txt VALUES ('H8317', 'German',  'Weitere Phasen zum Verifizieren und Rezertifizieren sind vorbereitet, aber noch nicht implementiert.');
+INSERT INTO txt VALUES ('H8317', 'English', 'Further phases for verification and recertification are prepared but not implemented yet.');
+INSERT INTO txt VALUES ('H8401', 'German',  'Stati und deren &Uuml;berg&auml;nge bilden die Basis der Workflows. Bei der Konfiguration k&ouml;nnen sie frei definiert und benannt werden (<a href="/help/settings/statedefinitions">Statusdefinitionen</a>).
+    Durch geeignete Wahl der Nummernkreise werden die Stati dann in den verschiedenen Phasen sichtbar bzw. benutzbar, was in den <a href="/help/settings/statematrix">Status-Matrizen</a> definiert wird.
+    In einer Status-Matrix werden pro Phase alle vorkommenden Stati mitsamt den m&ouml;glichen Status&uuml;berg&auml;ngen festgelegt.
+    Ausserdem werden drei Bereiche bestimmt: Eingangs-, Bearbeitungs- und Ausgangsbereich, welche f&uuml;r die Bearbeitbarkeit in der jeweiligen Phase entscheidend sind.
+    F&uuml;r das Ticket und jeden einzelnen Tasktypen werden separate Status-Matrizen angelegt, so dass sich deren Workflows unterscheiden k&ouml;nnen.
+    Auch m&uuml;ssen hier die Beziehungen der Stati der verschiedenen Objekttypen zueinander festgelegt werden.
+');
+INSERT INTO txt VALUES ('H8401', 'English', 'States and their transitions are the basis of the workflows. During configuration they can be defined and named freely (<a href="/help/settings/statedefinitions">State Definitions</a>).
+    Appropriate selection of number ranges make the states visible and usable in the different phases, which is defined in <a href="/help/settings/statematrix">State Matrices</a>.
+    In a state matrix all occurring states together with their transitions are defined per phase.
+    Additionally three ranges are set: Input, started and outgoing range, which decide about the possibility of making changes within the phase.
+    Ticket and the different task types get separate state matrices, so their workflows can vary.
+    Furtheron the relations between the states of the different object types have to be defined here.
+');
+INSERT INTO txt VALUES ('H8501', 'German',  'Die Aktionen der verschiedenen Typen dienen der Unterst&uuml;tzung und Automatisierung der Bearbeitung der Auftr&auml;ge.
+    Dazu geh&ouml;ren automatische Status-Weiterleitungen, das Anfordern weiterer Genehmigungen oder das Ausl&ouml;sen eines Alarms. Auch die Konfiguration f&uuml;r Aufrufe externer Komponenten ist vorgesehen.
+    Aktionen sind an Bedingungen gebunden und werden bestimmten Stati zugewiesen (<a href="/help/settings/stateactions">Aktionen anlegen</a>).
+    Sie bewirken bei Eintreffen der Bedingungen entweder eine automatische Ausf&uuml;hrung oder das Aufblenden einer Schaltfl&auml;che zur manuellen Ausf&uuml;hrung.
+');
+INSERT INTO txt VALUES ('H8501', 'English', 'Actions of different types provide a basis to support and automate the request handling.
+    That includes automatic state forwarding, adding new approvals or raising an alert. The configuration of calls to external components is planned.
+    Actions are bound to conditions and have to be assigned to certain states (<a href="/help/settings/stateactions">Configure Actions</a>).
+    If the conditions are met, they lead to automatic execution or the display of a button for manual execution of the action.
 ');

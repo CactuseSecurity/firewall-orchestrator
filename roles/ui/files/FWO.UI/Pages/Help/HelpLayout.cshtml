@@ -33,6 +33,11 @@
                     </a>
                 </li>
                 <li class="nav-item px-2">
+                    <a class="nav-link" href="/help/workflow/?lang=@($"{userConfig.GetUserLanguage()}")">
+                        <span class="oi oi-comment-square"></span> @userConfig.GetText("workflow")
+                    </a>
+                </li>
+                <li class="nav-item px-2">
                     <a class="nav-link" href="/help/recertification/?lang=@($"{userConfig.GetUserLanguage()}")">
                         <span class="oi oi-badge"></span> @userConfig.GetText("recertification")
                     </a>

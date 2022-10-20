@@ -18064,24 +18064,6 @@
           "functions": [
             {
               "function": {
-                "name": "filter_rule_nwobj_resolveds",
-                "schema": "public"
-              }
-            },
-            {
-              "function": {
-                "name": "filter_rule_svc_resolveds",
-                "schema": "public"
-              }
-            },
-            {
-              "function": {
-                "name": "filter_rule_user_resolveds",
-                "schema": "public"
-              }
-            },
-            {
-              "function": {
                 "name": "get_visible_devices_per_tenant",
                 "schema": "public"
               }

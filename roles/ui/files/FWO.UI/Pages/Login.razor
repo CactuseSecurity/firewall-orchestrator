@@ -7,6 +7,7 @@
 @using FWO.Config.Api
 @using FWO.Ui.Services
 @using RestSharp
+@using System.Security.Authentication
 
 @inject MiddlewareClient middlewareClient
 @inject ProtectedSessionStorage sessionStorage
@@ -152,7 +153,6 @@
                         showPasswordChangeForm = true;
                         StateHasChanged();
                     }
-                    loginInProgress = false;
                 }
                 else
                 {
@@ -161,15 +161,22 @@
 
                     // Visualisize the error by making border of all inputboxes red
                     InputClass = "is-invalid";
-                    loginInProgress = false;
                     await focusInput();
                     StateHasChanged();
                 }
             }
+            // Authentication exception (raised by us)
+            catch (AuthenticationException e)
+            {
+                errorMessage = userConfig.GetText(e.Message);
+            }
+            // Unknown exception
             catch (Exception)
             {
                 errorMessage = userConfig.GetText("E0012");
             }
+
+            loginInProgress = false;
         }
     }
 

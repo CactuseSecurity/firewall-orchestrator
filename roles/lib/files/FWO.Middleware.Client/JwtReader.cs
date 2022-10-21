@@ -26,29 +26,20 @@ namespace FWO.Middleware.Client
             jwtPublicKey = ConfigFile.JwtPublicKey ?? throw new Exception("Jwt public key could not be read form config file.");
         }
 
-        /// <summary>
-        /// checks if JWT in HTTP header conains admin role.
-        /// </summary>
-        /// <returns>true if JWT contains admin role, otherwise false</returns>
-        public bool JwtContainsAdminRole()
+		/// <summary>
+		/// Checks if JWT in HTTP header contains role.
+		/// </summary>
+        /// <param name="roleName">Role name to check.</param>
+		/// <returns>True if JWT contains specified role, otherwise false.</returns>
+		public bool ContainsRole(string roleName)
         {
-            Log.WriteDebug("Admin Role Jwt", "Checking Jwt for admin role.");
+			Log.WriteDebug($"{roleName} Role Jwt", "Checking Jwt for admin role.");
 
-            if (jwt == null)
-                throw new ArgumentNullException(nameof(jwt), "Jwt was not validated yet.");
+			if (jwt == null)
+				throw new ArgumentNullException(nameof(jwt), "Jwt was not validated yet.");
 
-            return jwt.Claims.FirstOrDefault(claim => claim.Type == "role" && claim.Value == "admin") != null;
-        }
-
-        public bool JwtContainsAuditorRole()
-        {
-            Log.WriteDebug("Admin Role Jwt", "Checking Jwt for auditor role.");
-
-            if (jwt == null)
-                throw new ArgumentNullException(nameof(jwt), "Jwt was not validated yet.");
-
-            return jwt.Claims.FirstOrDefault(claim => claim.Type == "role" && claim.Value == "auditor") != null;
-        }
+			return jwt.Claims.FirstOrDefault(claim => claim.Type == "role" && claim.Value == roleName) != null;
+		}
 
         public bool Validate()
         {

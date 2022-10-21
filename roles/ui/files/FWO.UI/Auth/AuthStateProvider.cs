@@ -11,6 +11,7 @@ using RestSharp;
 using System.Net;
 using FWO.Logging;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using System.Security.Authentication;
 
 namespace FWO.Ui.Auth
 {
@@ -66,19 +67,25 @@ namespace FWO.Ui.Auth
 
             if (apiAuthResponse.StatusCode == HttpStatusCode.OK)
             {
-                Log.WriteAudit("AuthenticateUser", $"user {username} successfully authenticated");
-
                 string jwt = apiAuthResponse.Data ?? throw new Exception("no response data");
+				JwtReader reader = new JwtReader(jwt);
+				reader.Validate();
 
-                // Save it in session storage.
-                await sessionStorage.SetAsync("jwt", jwt);
+                // importer is not allowed to login
+				if (reader.ContainsRole("importer"))
+                {
+                    throw new AuthenticationException("login_importer_error");
+                }
+
+				Log.WriteAudit("AuthenticateUser", $"user {username} successfully authenticated");
+
+				// Save it in session storage.
+				await sessionStorage.SetAsync("jwt", jwt);
 
                 // Add all user relevant information to the current session. Also used when reloading page.
                 await CreateUserContext(jwt, apiConnection, middlewareClient, userConfig, circuitHandler);
 
                 // Add jwt expiry timer
-                JwtReader reader = new JwtReader(jwt);
-                reader.Validate();
                 JwtEventService.AddJwtTimer(userConfig.User.Dn, (int)reader.TimeUntilExpiry().TotalMilliseconds - 1000 * 60 * userConfig.SessionTimeoutNoticePeriod);
             }
             return apiAuthResponse;

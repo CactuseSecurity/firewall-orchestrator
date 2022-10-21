@@ -206,5 +206,19 @@ app {
 .navbar-nav .active {
     font-weight: bold;
     font-style: italic;
-
 }
+
+.fly-in-animation {
+    animation: fly-in 1s ease-out;
+}
+
+@keyframes fly-in {
+    0% {
+        transform: translateY(200%);
+    }
+
+    100% {
+        transform: translateY(0%);
+    }
+}
+

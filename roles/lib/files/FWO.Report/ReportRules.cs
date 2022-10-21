@@ -6,6 +6,8 @@ using FWO.Api.Client.Queries;
 using FWO.Ui.Display;
 using FWO.Logging;
 using FWO.Config.Api;
+using System.Text.Json;
+using Newtonsoft.Json;
 
 namespace FWO.Report
 {
@@ -201,17 +203,91 @@ namespace FWO.Report
             throw new NotImplementedException();
         }
 
-        //public override string ToJson()
-        //{
-        //    return JsonSerializer.Serialize(Managements, new JsonSerializerOptions { WriteIndented = true, ReferenceHandler = ReferenceHandler.Preserve });
-        //}
+        public override string ExportToJson()
+        {
+            if (ReportType == ReportType.ResolvedRules)
+            {
+                StringBuilder report = new StringBuilder("{");
+                report.AppendLine($"\"report type\": \"{userConfig.GetText("resolved_rules_report")}\",");
+                report.AppendLine($"\"report generation date\": \"{DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)\",");
+                report.AppendLine($"\"date of configuration shown\": \"{DateTime.Parse(Query.ReportTimeString).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)\",");
+                report.AppendLine($"\"device filter\": \"{string.Join("; ", Array.ConvertAll(Managements, management => management.NameAndDeviceNames()))}\",");
+                report.AppendLine($"\"other filters\": \"{Query.RawFilter}\",");
+                report.AppendLine($"\"report generator\": \"Firewall Orchestrator - https://fwo.cactus.de/en\",");
+                report.AppendLine($"\"data protection level\": \"For internal use only\",");
+                report.AppendLine("\"managements\": [");
+                RuleDisplayJson ruleDisplay = new RuleDisplayJson(userConfig);
+                foreach (Management management in Managements.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+                        Array.Exists(mgt.Devices, device => device.Rules != null && device.Rules.Length > 0)))
+                {
+                    report.AppendLine($"{{\"{management.Name}\": {{");
+                    report.AppendLine($"\"gateways\": [{{");
+                    foreach (Device gateway in management.Devices)
+                    {
+                        if (gateway.Rules != null && gateway.Rules.Length > 0)
+                        {
+                            report.Append($"\"{gateway.Name}\": {{\n\"rules\": [");
+                            foreach (Rule rule in gateway.Rules)
+                            {
+                                report.Append($"{{");
+                                if (string.IsNullOrEmpty(rule.SectionHeader))
+                                {
+                                    report.Append(ruleDisplay.DisplayNumber(rule, gateway.Rules));
+                                    report.Append(ruleDisplay.DisplayName(rule));
+                                    report.Append(ruleDisplay.DisplaySourceZone(rule));
+                                    report.Append(ruleDisplay.DisplaySource(rule, location: "", reportType: this.ReportType));
+                                    report.Append(ruleDisplay.DisplayDestinationZone(rule));
+                                    report.Append(ruleDisplay.DisplayDestination(rule, location: "", reportType: this.ReportType));
+                                    report.Append(ruleDisplay.DisplayService(rule, location: "", reportType: this.ReportType));
+                                    report.Append(ruleDisplay.DisplayAction(rule));
+                                    report.Append(ruleDisplay.DisplayTrack(rule));
+                                    report.Append(ruleDisplay.DisplayEnabled(rule, export: true));
+                                    report.Append(ruleDisplay.DisplayUid(rule));
+                                    report.Append(ruleDisplay.DisplayComment(rule));
+                                    report = ruleDisplay.RemoveLastChars(report, 1); // remove last chars (comma)
+                                }
+                                else
+                                {
+                                    report.AppendLine("\"section header\": \"" + rule.SectionHeader + "\"");
+                                }
+                                report.Append("},");  // EO rule
+                            } // rules
+                            report = ruleDisplay.RemoveLastChars(report, 1); // remove last char (comma)
+                            report.Append("]"); // EO rules
+                            report.Append("}},"); // EO gateway 2x
+                        }
+                    } // gateways
+                    report = ruleDisplay.RemoveLastChars(report, 1); // remove last char (comma)
+                    report.Append("]"); // EO devices
+                    report.Append("}},"); // EO management 2x
+                } // managements
+                report = ruleDisplay.RemoveLastChars(report, 1); // remove last char (comma)
+                report.Append("]"); // EO managements
+                report.Append("}"); // EO top
+
+                // Debug:
+                string repStr = report.ToString();
+                dynamic json = JsonConvert.DeserializeObject(report.ToString());
+                JsonSerializerSettings settings = new JsonSerializerSettings();
+                settings.Formatting = Formatting.Indented;
+                return Newtonsoft.Json.JsonConvert.SerializeObject(json, settings);
+            }
+            else if (ReportType == ReportType.Rules)
+            {
+                return System.Text.Json.JsonSerializer.Serialize(Managements.Where(mgt => !mgt.Ignore), new JsonSerializerOptions { WriteIndented = true });
+            }
+            else
+            {
+                return null;
+            }
+        }
 
         private const int ColumnCount = 12;
 
         public override string ExportToHtml()
         {
             StringBuilder report = new StringBuilder();
-            RuleDisplay ruleDisplay = new RuleDisplay(userConfig);
+            RuleDisplayHtml ruleDisplay = new RuleDisplayHtml(userConfig);
 
             foreach (Management management in Managements.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                     Array.Exists(mgt.Devices, device => device.Rules != null && device.Rules.Length > 0)))
@@ -332,14 +408,14 @@ namespace FWO.Report
                         report.AppendLine($"<td>{objNumber++}</td>");
                         report.AppendLine($"<td>{svcobj.Name}</td>");
                         report.AppendLine($"<td><a name=svc{svcobj.Id}>{svcobj.Name}</a></td>");
-                        report.AppendLine($"<td>{((svcobj.Protocol!=null)?svcobj.Protocol.Name:"")}</td>");
+                        report.AppendLine($"<td>{((svcobj.Protocol != null) ? svcobj.Protocol.Name : "")}</td>");
                         if (svcobj.DestinationPortEnd != null && svcobj.DestinationPortEnd != svcobj.DestinationPort)
                             report.AppendLine($"<td>{svcobj.DestinationPort}-{svcobj.DestinationPortEnd}</td>");
                         else
                             report.AppendLine($"<td>{svcobj.DestinationPort}</td>");
                         if (svcobj.MemberNames != null && svcobj.MemberNames.Contains("|"))
                             report.AppendLine($"<td>{string.Join("<br>", svcobj.MemberNames.Split('|'))}</td>");
-                        else 
+                        else
                             report.AppendLine($"<td>{svcobj.MemberNames}</td>");
                         report.AppendLine($"<td>{svcobj.Uid}</td>");
                         report.AppendLine($"<td>{svcobj.Comment}</td>");

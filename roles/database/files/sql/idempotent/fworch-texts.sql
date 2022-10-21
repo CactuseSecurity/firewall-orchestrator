@@ -458,6 +458,8 @@ INSERT INTO txt VALUES ('resolved_rules_report','German', 	'Regel-Report (aufgel
 INSERT INTO txt VALUES ('resolved_rules_report','English', 	'Rules Report (resolved)');
 INSERT INTO txt VALUES ('generated_on',	        'German', 	'Erstellt am');
 INSERT INTO txt VALUES ('generated_on',	        'English', 	'Generated on');
+INSERT INTO txt VALUES ('date_of_config',	    'German', 	'Zeit der Konfiguration');
+INSERT INTO txt VALUES ('date_of_config',	    'English', 	'Time of configuration');
 
 -- schedule
 INSERT INTO txt VALUES ('schedule', 			'German',	'Terminplan');

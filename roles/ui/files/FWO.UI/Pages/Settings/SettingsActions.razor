@@ -32,11 +32,31 @@
             </Column>
             <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
             <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("action_type"))" Field="@(x => x.ActionType)" Sortable="true" Filterable="true" />
-            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("scope"))" Field="@(x => x.Scope)" Sortable="true" Filterable="true" />
-            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("task_type"))" Field="@(x => x.TaskType)" Sortable="true" Filterable="true" />
-            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("phase"))" Field="@(x => x.Phase)" Sortable="true" Filterable="true" />
-            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("event"))" Field="@(x => x.Event)" Sortable="true" Filterable="true" />
+            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("action_type"))" Field="@(x => x.ActionType)" Sortable="true" Filterable="true" >
+                <Template>
+                    @(context.ActionType != "" ? userConfig.GetText(context.ActionType) : "")
+                </Template>
+            </Column>
+            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("scope"))" Field="@(x => x.Scope)" Sortable="true" Filterable="true" >
+                <Template>
+                    @(context.TaskType != "" ? userConfig.GetText(context.Scope) : "")
+                </Template>
+            </Column>
+            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("task_type"))" Field="@(x => x.TaskType)" Sortable="true" Filterable="true" >
+                <Template>
+                    @(context.TaskType != "" ? userConfig.GetText(context.TaskType) : "")
+                </Template>
+            </Column>
+            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("phase"))" Field="@(x => x.Phase)" Sortable="true" Filterable="true" >
+                <Template>
+                    @(context.Phase != "" ? userConfig.GetText(context.Phase) : "")
+                </Template>
+            </Column>
+            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("event"))" Field="@(x => x.Event)" Sortable="true" Filterable="true" >
+                <Template>
+                    @(context.Event != null && context.Event != "" ? userConfig.GetText(context.Event) : "")
+                </Template>
+            </Column>
             <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("button_text"))" Field="@(x => x.ButtonText)" Sortable="true" Filterable="true" />
             <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("external_params"))" Field="@(x => x.ExternalParams)" Sortable="true" Filterable="true" />
         </Table>
@@ -67,8 +87,7 @@
                             <select class="col-sm-8 form-control form-control-sm" @bind="actAction.ActionType">
                                 @foreach (string action in Enum.GetNames(typeof(StateActionTypes)))
                                 {
-                                    <option value="@action">@action</option>
-                                    @* <option value="@action">@(userConfig.GetText(action))</option> *@
+                                    <option value="@action">@(userConfig.GetText(action))</option>
                                 }
                             </select>
                         </div>
@@ -79,8 +98,7 @@
                             <select class="col-sm-8 form-control form-control-sm" @bind="actAction.Event">
                                 @foreach (string eventt in Enum.GetNames(typeof(StateActionEvents)))
                                 {
-                                    <option value="@eventt">@eventt</option>
-                                    @* <option value="@eventt">@(userConfig.GetText(eventt))</option> *@
+                                    <option value="@eventt">@(userConfig.GetText(eventt))</option>
                                 }
                             </select>
                         </div>
@@ -114,8 +132,7 @@
                             <select class="col-sm-8 form-control form-control-sm" @bind="actAction.Scope">
                                 @foreach (string scope in Enum.GetNames(typeof(RequestObjectScopes)))
                                 {
-                                    <option value="@scope">@scope</option>
-                                    @* <option value="@scope">@(userConfig.GetText(scope))</option> *@
+                                    <option value="@scope">@(userConfig.GetText(scope))</option>
                                 }
                             </select>
                         </div>

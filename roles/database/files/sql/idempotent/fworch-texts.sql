@@ -537,18 +537,6 @@ INSERT INTO txt VALUES ('reason', 				'German', 	'Grund');
 INSERT INTO txt VALUES ('reason', 				'English', 	'Reason');
 INSERT INTO txt VALUES ('service', 			    'German', 	'Dienst');
 INSERT INTO txt VALUES ('service', 			    'English', 	'Service');
-INSERT INTO txt VALUES ('master', 			    'German', 	'Master');
-INSERT INTO txt VALUES ('master', 			    'English', 	'Master');
-INSERT INTO txt VALUES ('access', 			    'German', 	'Zugriff');
-INSERT INTO txt VALUES ('access', 			    'English', 	'Access');
-INSERT INTO txt VALUES ('generic',              'German', 	'Generisch');
-INSERT INTO txt VALUES ('generic',              'English', 	'Generic');
-INSERT INTO txt VALUES ('group_create',         'German',   'Gruppe anlegen');
-INSERT INTO txt VALUES ('group_create',         'English',  'Create Group');
-INSERT INTO txt VALUES ('group_modify',         'German',   'Gruppe &auml;ndern');
-INSERT INTO txt VALUES ('group_modify',         'English',  'Modify Group');
-INSERT INTO txt VALUES ('group_delete',         'German',   'Gruppe l&ouml;schen');
-INSERT INTO txt VALUES ('group_delete',         'English',  'Delete Group');
 INSERT INTO txt VALUES ('action', 				'German', 	'Aktion');
 INSERT INTO txt VALUES ('action', 				'English', 	'Action');
 INSERT INTO txt VALUES ('rule_action', 			'German', 	'Regel-Aktion');
@@ -707,7 +695,7 @@ INSERT INTO txt VALUES ('phase', 			    'German', 	'Phase');
 INSERT INTO txt VALUES ('phase', 			    'English', 	'Phase');
 INSERT INTO txt VALUES ('task_type', 			'German', 	'Tasktyp');
 INSERT INTO txt VALUES ('task_type', 			'English', 	'Task type');
-INSERT INTO txt VALUES ('action_type', 		    'German', 	'Aktionstyp Ref');
+INSERT INTO txt VALUES ('action_type', 		    'German', 	'Aktionstyp');
 INSERT INTO txt VALUES ('action_type', 		    'English', 	'Action type');
 INSERT INTO txt VALUES ('external_params', 		'German', 	'Externe Parameter');
 INSERT INTO txt VALUES ('external_params', 		'English', 	'External params');
@@ -729,6 +717,42 @@ INSERT INTO txt VALUES ('comments',				'German', 	'Kommentare');
 INSERT INTO txt VALUES ('comments',				'English', 	'Comments');
 INSERT INTO txt VALUES ('button_text',			'German', 	'Schaltertext');
 INSERT INTO txt VALUES ('button_text',			'English', 	'Button Text');
+
+-- enum values
+INSERT INTO txt VALUES ('master', 			    'German', 	'Master');
+INSERT INTO txt VALUES ('master', 			    'English', 	'Master');
+INSERT INTO txt VALUES ('access', 			    'German', 	'Zugriff');
+INSERT INTO txt VALUES ('access', 			    'English', 	'Access');
+INSERT INTO txt VALUES ('generic',              'German', 	'Generisch');
+INSERT INTO txt VALUES ('generic',              'English', 	'Generic');
+INSERT INTO txt VALUES ('group_create',         'German',   'Gruppe anlegen');
+INSERT INTO txt VALUES ('group_create',         'English',  'Create Group');
+INSERT INTO txt VALUES ('group_modify',         'German',   'Gruppe &auml;ndern');
+INSERT INTO txt VALUES ('group_modify',         'English',  'Modify Group');
+INSERT INTO txt VALUES ('group_delete',         'German',   'Gruppe l&ouml;schen');
+INSERT INTO txt VALUES ('group_delete',         'English',  'Delete Group');
+INSERT INTO txt VALUES ('OnSet',			    'German', 	'Beim Erreichen');
+INSERT INTO txt VALUES ('OnSet',			    'English', 	'On set');
+INSERT INTO txt VALUES ('OnLeave',			    'German', 	'Beim Verlassen');
+INSERT INTO txt VALUES ('OnLeave',			    'English', 	'On leave');
+INSERT INTO txt VALUES ('OfferButton',			'German', 	'Schaltfl&auml;che anbieten');
+INSERT INTO txt VALUES ('OfferButton',			'English', 	'Offer button');
+INSERT INTO txt VALUES ('AutoPromote',			'German', 	'Autom. Weiterleitung');
+INSERT INTO txt VALUES ('AutoPromote',			'English', 	'Auto-forward');
+INSERT INTO txt VALUES ('AddApproval',			'German', 	'Genehmigung hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('AddApproval',			'English', 	'Add approval');
+INSERT INTO txt VALUES ('SetAlert',			    'German', 	'Alarm ausl&ouml;sen');
+INSERT INTO txt VALUES ('SetAlert',			    'English', 	'Set alert');
+INSERT INTO txt VALUES ('ExternalCall',			'German', 	'Externer Aufruf');
+INSERT INTO txt VALUES ('ExternalCall',			'English', 	'External call');
+INSERT INTO txt VALUES ('Ticket',			    'German', 	'Ticket');
+INSERT INTO txt VALUES ('Ticket',			    'English', 	'Ticket');
+INSERT INTO txt VALUES ('RequestTask',			'German', 	'fachlicher Auftrag');
+INSERT INTO txt VALUES ('RequestTask',			'English', 	'Request Task');
+INSERT INTO txt VALUES ('ImplementationTask',	'German', 	'Implementierungs-Auftrag');
+INSERT INTO txt VALUES ('ImplementationTask',	'English', 	'Implementation Task');
+INSERT INTO txt VALUES ('Approval',			    'German', 	'Genehmigung');
+INSERT INTO txt VALUES ('Approval',			    'English', 	'Approval');
 
 -- recertification
 INSERT INTO txt VALUES ('recertify',		    'German', 	'Rezertifizieren');
@@ -2771,12 +2795,12 @@ INSERT INTO txt VALUES ('H5511', 'German',  'Allgemeine Parameter f&uuml;r alle 
 INSERT INTO txt VALUES ('H5511', 'English', 'General parameters for all action types: Here it can be defined, under which conditions an action should be performed.');
 INSERT INTO txt VALUES ('H5512', 'German',  'Name: Der Name, unter dem die Aktion den Stati zugeordnet wird (da intern eine Id verarbeitet wird, sind auch doppelt vergebene Namen m&ouml;glich).');
 INSERT INTO txt VALUES ('H5512', 'English', 'Name: The name to be found in the state assignment (as internally the Id is processed, duplicate names are possible).');
-INSERT INTO txt VALUES ('H5513', 'German',  'Ereignis: Es wird zwischen drei Ereignistypen unterschieden: Bei "OnSet" wird die Aktion beim Erreichen, bei "OnLeave" beim Verlassen des zugeordneten Status ausgel&ouml;st.
-    Bei "OfferButton" wird eine Schaltfl&auml;che zur manuellen Ausf&uuml;hrung in dem ausgew&auml;hlten Objekttyp eingeblendet, solange der zugeordnete Status besteht. In diesem Fall ist auch der auf der Schaltfl&auml;che erscheinende Text auszuf&uuml;llen.
+INSERT INTO txt VALUES ('H5513', 'German',  'Ereignis: Es wird zwischen drei Ereignistypen unterschieden: Bei "Beim Erreichen" wird die Aktion beim Erreichen, bei "Beim Verlassen" beim Verlassen des zugeordneten Status ausgel&ouml;st.
+    Bei "Schaltfl&auml;che anbieten" wird eine Schaltfl&auml;che zur manuellen Ausf&uuml;hrung in dem ausgew&auml;hlten Objekttyp eingeblendet, solange der zugeordnete Status besteht. In diesem Fall ist auch der auf der Schaltfl&auml;che erscheinende Text auszuf&uuml;llen.
     F&uuml;r den Objekttyp Genehmigung ist die Einblendung von Schaltfl&auml;chen (noch) nicht vorgesehen.
 ');
-INSERT INTO txt VALUES ('H5513', 'English', 'Event: It has to be distinguished between three event types:  For "OnSet" the action is performed, if the target state is reached, for "OnLeave", if this state is left.
-    With "OfferButton" a button for manual execution is displayed in the selected object type as long as it is in the assigned state. In this case also the text for the button has to be filled.
+INSERT INTO txt VALUES ('H5513', 'English', 'Event: It has to be distinguished between three event types:  For "On set" the action is performed, if the target state is reached, for "On leave", if this state is left.
+    With "Offer button" a button for manual execution is displayed in the selected object type as long as it is in the assigned state. In this case also the text for the button has to be filled.
     For approval objects the display of buttons is not provided (yet).
 ');
 INSERT INTO txt VALUES ('H5514', 'German',  'Phase: Hier kann die Aktion f&uuml;r alle Phasen zugelassen oder auf eine auszuw&auml;hlende Phase beschr&auml;nkt werden.');
@@ -2789,14 +2813,14 @@ INSERT INTO txt VALUES ('H5515', 'English', 'Scope: Here it can be defined, to w
 ');
 INSERT INTO txt VALUES ('H5521', 'German',  'Spezifische Parameter je nach ausgew&auml;hltem Aktionstyp: Hier wird definiert, was bei der Aktion passieren soll.');
 INSERT INTO txt VALUES ('H5521', 'English', 'Specific parameters depending on selected action type: Here can be defined, what should happen in the action.');
-INSERT INTO txt VALUES ('H5522', 'German',  'AutoPromote: Hier ist der Zielstatus festzulegen, der dem ausgew&auml;hlten Objekt durch die Aktion zugewiesen werden soll (der Ausgangsstatus ergibt sich dann durch die Zuordnung in der Statustabelle).');
-INSERT INTO txt VALUES ('H5522', 'English', 'AutoPromote: Here the target state is to be set, which should be assigned to the selected object in the action (the source state is the defined by the assignment of the action in the state table).');
-INSERT INTO txt VALUES ('H5523', 'German',  'AddApproval: Hier muss der Status angegeben werden, mit dem die neue Genehmigung angelegt werden soll. Des weiteren kann hier bereits eine Gruppenzuordnung und eine Deadline gesetzt werden.');
-INSERT INTO txt VALUES ('H5523', 'English', 'AddApproval: Here the desired state of the approval to be created has to be filled. Additionally a group assignment and a deadline can be set.');
-INSERT INTO txt VALUES ('H5524', 'German',  'SetAlert: Hier wird die im Alarm verwendete Meldung eingetragen.');
-INSERT INTO txt VALUES ('H5524', 'English', 'SetAlert: Here the message for the alert is filled.');
-INSERT INTO txt VALUES ('H5525', 'German',  'ExternalCall: Hier werden in zuk&uuml;nftigen Entwicklungen die f&uuml;r externe Aufrufe anzugebenden Parameter erfasst.');
-INSERT INTO txt VALUES ('H5525', 'English', 'ExternalCall: Here in later releases the parameters for external calls will be recorded.');
+INSERT INTO txt VALUES ('H5522', 'German',  'Autom. Weiterleitung: Hier ist der Zielstatus festzulegen, der dem ausgew&auml;hlten Objekt durch die Aktion zugewiesen werden soll (der Ausgangsstatus ergibt sich dann durch die Zuordnung in der Statustabelle).');
+INSERT INTO txt VALUES ('H5522', 'English', 'Auto-forward: Here the target state is to be set, which should be assigned to the selected object in the action (the source state is the defined by the assignment of the action in the state table).');
+INSERT INTO txt VALUES ('H5523', 'German',  'Genehmigung hinzuf&uuml;gen: Hier muss der Status angegeben werden, mit dem die neue Genehmigung angelegt werden soll. Des weiteren kann hier bereits eine Gruppenzuordnung und eine Deadline gesetzt werden.');
+INSERT INTO txt VALUES ('H5523', 'English', 'Add approval: Here the desired state of the approval to be created has to be filled. Additionally a group assignment and a deadline can be set.');
+INSERT INTO txt VALUES ('H5524', 'German',  'Alarm ausl&ouml;sen: Hier wird die im Alarm verwendete Meldung eingetragen.');
+INSERT INTO txt VALUES ('H5524', 'English', 'Set alert: Here the message for the alert is filled.');
+INSERT INTO txt VALUES ('H5525', 'German',  'Externer Aufruf: Hier werden in zuk&uuml;nftigen Entwicklungen die f&uuml;r externe Aufrufe anzugebenden Parameter erfasst.');
+INSERT INTO txt VALUES ('H5525', 'English', 'External call: Here in later releases the parameters for external calls will be recorded.');
 INSERT INTO txt VALUES ('H5531', 'German',  'Es k&ouml;nne beliebig viele neue Stati angelegt bzw. vorhandene Stati umbenannt, ggf. auch gel&ouml;scht werden. Die Namen und Nummern der Stati sind weitgehend frei w&auml;hlbar. 
     Zu beachten ist dabei, dass die Nummern zu den in den <a href="/help/settings/statematrix">Status-Matrizen</a> definierten Bereichen (Eingang, Bearbeitung, Ausgang) der jeweiligen Phasen passen.
     Da intern ausschliesslich die Nummern verarbeitet werden, sind auch doppelt vergebene Status-Namen (technisch) m&ouml;glich.
@@ -3427,26 +3451,26 @@ INSERT INTO txt VALUES ('H8501', 'English', 'Actions of different types provide 
     If the conditions are met, they lead to automatic execution or the display of a button for manual execution of the action.
     Currently following actions can be selected:
 ');
-INSERT INTO txt VALUES ('H8511', 'German',  'AutoPromote: Obwohl die Statusweiterleitung mit dem Mechanismus der Status-Matrix weitgehend abgebildet werden kann, erweitert diese Aktion die M&ouml;glichkeiten.
+INSERT INTO txt VALUES ('H8511', 'German',  'Autom. Weiterleitung: Obwohl die Statusweiterleitung mit dem Mechanismus der Status-Matrix weitgehend abgebildet werden kann, erweitert diese Aktion die M&ouml;glichkeiten.
 	So kann die Weiterleitung st&auml;rker auf bestimmte Objekttypen eingeschr&auml;nkt werden (die Status-Matrix gilt f&uuml;r alle Objekte eines Tasktyps). 
 	Auch ein Aufblenden einer speziellen Weiterleitung als "Shortcut" kann erw&uuml;nscht sein.
 ');
-INSERT INTO txt VALUES ('H8511', 'English', 'AutoPromote: Although state forwarding can widely be realized by the state matrix mechanism, this action enlarges the options.
+INSERT INTO txt VALUES ('H8511', 'English', 'Auto-forward: Although state forwarding can widely be realized by the state matrix mechanism, this action enlarges the options.
     The forwarding can be more restricted to dedicated object types (the state matrix is valid for all object types within a task type).
     Additionally the display of a special state transition as "Shortcut" may be desired.
 ');
-INSERT INTO txt VALUES ('H8512', 'German',  'AddApproval: Wenn im Verlauf des Workflows (z.B. vom Planer) festgestellt wird, dass weitere Genehmigungen eingeholt werden m&uuml;ssen, 
+INSERT INTO txt VALUES ('H8512', 'German',  'Genehmigung hinzuf&uuml;gen: Wenn im Verlauf des Workflows (z.B. vom Planer) festgestellt wird, dass weitere Genehmigungen eingeholt werden m&uuml;ssen, 
     kann man mit dieser Aktion weitere Genehmigungsobjekte erzeugen und zuweisen.
 ');
-INSERT INTO txt VALUES ('H8512', 'English', 'AddApproval: If in the course of the workflow it is realized (e.g. by the planner) that further approvals are necessary,
+INSERT INTO txt VALUES ('H8512', 'English', 'Add approval: If in the course of the workflow it is realized (e.g. by the planner) that further approvals are necessary,
     additional approval objects can be created and assigned with this action.
 ');
-INSERT INTO txt VALUES ('H8513', 'German',  'SetAlert: Unter Umst&auml;nden kann eine gezielte Alarmierung in einem Workflow n&uuml;tzlich sein (z.B. durch den Reviewer nach einer festgestellten Fehlimplementierung).');
-INSERT INTO txt VALUES ('H8513', 'English', 'SetAlert: Possibly a specific alerting within a workflow may be useful (e.g. by the reviewer in case of a wrong or dangerous implementaion).');
-INSERT INTO txt VALUES ('H8514', 'German',  'ExternalCall: Aufrufe externer Komponenenten bieten ein weites Spektrum von Erweiterungs- und Integrationsm&ouml;glichkeiten, die stark vom Systemumfeld abh&auml;ngen.
+INSERT INTO txt VALUES ('H8513', 'German',  'Alarm ausl&ouml;sen: Unter Umst&auml;nden kann eine gezielte Alarmierung in einem Workflow n&uuml;tzlich sein (z.B. durch den Reviewer nach einer festgestellten Fehlimplementierung).');
+INSERT INTO txt VALUES ('H8513', 'English', 'Set alert: Possibly a specific alerting within a workflow may be useful (e.g. by the reviewer in case of a wrong or dangerous implementaion).');
+INSERT INTO txt VALUES ('H8514', 'German',  'Externer Aufruf: Aufrufe externer Komponenenten bieten ein weites Spektrum von Erweiterungs- und Integrationsm&ouml;glichkeiten, die stark vom Systemumfeld abh&auml;ngen.
 	Hier sind f&uuml;r kommende Releases die Ankn&uuml;pfungspunkte f&uuml;r Erweiterungen vorgesehen.
 ');
-INSERT INTO txt VALUES ('H8514', 'English', 'ExternalCall: Calls to external components provide a wide range of extension or integration possibilities, which strongly depend on the system environment.
+INSERT INTO txt VALUES ('H8514', 'English', 'External call: Calls to external components provide a wide range of extension or integration possibilities, which strongly depend on the system environment.
     Here connecting factors for extensions future releases are planned.
 ');
 INSERT INTO txt VALUES ('H8601', 'German',  '');

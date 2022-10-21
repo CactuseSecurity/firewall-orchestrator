@@ -93,7 +93,7 @@ namespace FWO.Ui.Display
                     }
 
                     List<NetworkLocation> userNwObjectList = collectedUserNetworkObjects.ToList<NetworkLocation>();
-                    userNwObjectList.Sort(delegate (NetworkLocation x, NetworkLocation y) { return x.CompareTo(y); });
+                    userNwObjectList.Sort();
 
                     StringBuilder cell = new StringBuilder();
                     foreach (NetworkLocation networkLocation in userNwObjectList)

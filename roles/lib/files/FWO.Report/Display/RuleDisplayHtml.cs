@@ -55,7 +55,7 @@ namespace FWO.Ui.Display
                     }
 
                     List<NetworkLocation> userNwObjectList = collectedUserNetworkObjects.ToList<NetworkLocation>();
-                    userNwObjectList.Sort(delegate (NetworkLocation x, NetworkLocation y) { return x.CompareTo(y); });
+                    userNwObjectList.Sort();
 
                     foreach (NetworkLocation networkLocation in userNwObjectList)
                         result.Append(NetworkLocationToHtml(networkLocation, rule.MgmtId, location, style));

@@ -1,0 +1,40 @@
+﻿@page "/help/workflow/phases"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpWorkflowSidebar.cshtml"); 
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@(userConfig.GetText("phases_roles"))</h3>
+    @(Html.Raw(userConfig.GetText("H8301")))
+    <ul>
+        <li>
+            @(Html.Raw(userConfig.GetText("H8311")))
+        </li>
+        <li>
+            @(Html.Raw(userConfig.GetText("H8312")))
+        </li>
+        <li>
+            @(Html.Raw(userConfig.GetText("H8313")))
+        </li>
+        <li>
+            @(Html.Raw(userConfig.GetText("H8314")))
+        </li>
+        <li>
+            @(Html.Raw(userConfig.GetText("H8315")))
+        </li>
+        <li>
+            @(Html.Raw(userConfig.GetText("H8316")))
+        </li>
+        <li>
+            @(Html.Raw(userConfig.GetText("H8317")))
+        </li>
+    </ul>
+</div>

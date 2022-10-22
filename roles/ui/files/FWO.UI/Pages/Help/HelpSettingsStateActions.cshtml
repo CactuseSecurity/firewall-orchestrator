@@ -1,0 +1,53 @@
+﻿@page "/help/settings/stateactions"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@(userConfig.GetText("state_actions"))</h3>
+    @(Html.Raw(userConfig.GetText("H5501")))
+    <ul>
+        <li>
+            @(Html.Raw(userConfig.GetText("H5511")))
+            <ul>
+                <li>
+                    @(Html.Raw(userConfig.GetText("H5512")))
+                </li>
+                <li>
+                    @(Html.Raw(userConfig.GetText("H5513")))
+                </li>
+                <li>
+                    @(Html.Raw(userConfig.GetText("H5514")))
+                </li>
+                <li>
+                    @(Html.Raw(userConfig.GetText("H5515")))
+                </li>
+            </ul>
+        </li>
+        <li>
+            @(Html.Raw(userConfig.GetText("H5521")))
+            <ul>
+                <li>
+                    @(Html.Raw(userConfig.GetText("H5522")))
+                </li>
+                <li>
+                    @(Html.Raw(userConfig.GetText("H5523")))
+                </li>
+                <li>
+                    @(Html.Raw(userConfig.GetText("H5524")))
+                </li>
+                <li>
+                    @(Html.Raw(userConfig.GetText("H5525")))
+                </li>
+            </ul>
+        </li>
+    </ul>
+</div>

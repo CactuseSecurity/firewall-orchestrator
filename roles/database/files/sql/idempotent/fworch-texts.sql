@@ -731,6 +731,8 @@ INSERT INTO txt VALUES ('group_modify',         'German',   'Gruppe &auml;ndern'
 INSERT INTO txt VALUES ('group_modify',         'English',  'Modify Group');
 INSERT INTO txt VALUES ('group_delete',         'German',   'Gruppe l&ouml;schen');
 INSERT INTO txt VALUES ('group_delete',         'English',  'Delete Group');
+INSERT INTO txt VALUES ('None',			        'German', 	'Keine(r/s)');
+INSERT INTO txt VALUES ('None',			        'English', 	'None');
 INSERT INTO txt VALUES ('OnSet',			    'German', 	'Beim Erreichen');
 INSERT INTO txt VALUES ('OnSet',			    'English', 	'On set');
 INSERT INTO txt VALUES ('OnLeave',			    'German', 	'Beim Verlassen');
@@ -2805,7 +2807,7 @@ INSERT INTO txt VALUES ('H5513', 'English', 'Event: It has to be distinguished b
 ');
 INSERT INTO txt VALUES ('H5514', 'German',  'Phase: Hier kann die Aktion f&uuml;r alle Phasen zugelassen oder auf eine auszuw&auml;hlende Phase beschr&auml;nkt werden.');
 INSERT INTO txt VALUES ('H5514', 'English', 'Phase: Here the action can be permitted for all phases or restricted on a selected phase.');
-INSERT INTO txt VALUES ('H5515', 'German',  'Geltungsbereich: Hier wird festgelegt, auf welchen Objekttyp (Ticket, Request Task, Implementation Task, Approval) sich die Aktion bezieht. 
+INSERT INTO txt VALUES ('H5515', 'German',  'Geltungsbereich: Hier wird festgelegt, auf welchen Objekttyp (Ticket, fachlicher Auftrag, Implementierungs-Auftrag, Genehmigung) sich die Aktion bezieht. 
     F&uuml;r Request Task oder Implementation Task kann in einer weiteren Auswahl der zu ber&uuml;cksichtigende Tasktyp eingeschr&auml;nkt werden.
 ');
 INSERT INTO txt VALUES ('H5515', 'English', 'Scope: Here it can be defined, to which object type (Ticket, Request Task, Implementation Task, Approval) the action should reference.
@@ -3473,7 +3475,33 @@ INSERT INTO txt VALUES ('H8514', 'German',  'Externer Aufruf: Aufrufe externer K
 INSERT INTO txt VALUES ('H8514', 'English', 'External call: Calls to external components provide a wide range of extension or integration possibilities, which strongly depend on the system environment.
     Here connecting factors for extensions future releases are planned.
 ');
-INSERT INTO txt VALUES ('H8601', 'German',  '');
-INSERT INTO txt VALUES ('H8601', 'English', '');
+INSERT INTO txt VALUES ('H8601', 'German',  'Zum Aufsetzen eines Workflows empfiehlt es sich, in folgenden Schritten vorzugehen:
+    <ul>
+        <li><a href="/help/settings/workflowcustomizing">Einstellungen</a>: Auswahl der zu verwendenden Tasktypen</li>
+        <li><a href="/help/settings/statematrix">Status-Matrizen</a>: Festlegen der Phasen pro Tasktyp</li>
+        <li><a href="/help/workflow/states">Status-Definitionen</a>: Definition der benutzten Stati</li>
+        <li><a href="/help/settings/statematrix">Status-Matrizen</a>: Erstellen der Status-Matrizen pro Tasktyp</li>
+        <li><a href="/help/settings/stateactions">Aktionen</a>: Definition der Aktionen falls n&ouml;tig</li>
+        <li><a href="/help/workflow/states">Status-Definitionen</a>: Zuordnung Aktionen zu Stati</li>
+        <li><a href="/help/settings/workflowcustomizing">Einstellungen</a>: Festlegen der Priorit&auml;ten und Deadlines</li>
+        <li><a href="/help/settings/workflowcustomizing">Einstellungen</a>: Ausw&auml;hlen der Option zum "Autom. Erzeugen von Implementierungs-Auftr&auml;gen", falls Planungsphase deaktiviert</li>
+        <li><a href="/help/settings/groups">Gruppen</a>: Nutzergruppen einrichten und Nutzer zuweisen</li>
+        <li><a href="/help/settings/roles">Rollen</a>: Rollenzuweisungen zu den Nutzern/Gruppen</li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8601', 'English', 'For the setup of a workflow it is suggested to proceed in following steps:
+    <ul>
+        <li><a href="/help/settings/workflowcustomizing">Customizing</a>: Selection of the task types to be applied</li>
+        <li><a href="/help/settings/statematrix">State Matrices</a>: Definition of task types per phase</li>
+        <li><a href="/help/workflow/states">State Definitions</a>: Definition of the used states</li>
+        <li><a href="/help/settings/statematrix">State Matrices</a>: Construct the state matrices per task type</li>
+        <li><a href="/help/settings/stateactions">Actions</a>: Definition of the actions if needed</li>
+        <li><a href="/help/workflow/states">State Definitions</a>: Assignment of actions to states</li>
+        <li><a href="/help/settings/workflowcustomizing">Customizing</a>: Define the priority levels and deadlines</li>
+        <li><a href="/help/settings/workflowcustomizing">Customizing</a>: Select option for "Auto-create implementation tasks", if planning phase deactivated</li>
+        <li><a href="/help/settings/groups">Groups</a>: Set up user groups and assign users</li>
+        <li><a href="/help/settings/roles">Roles</a>: Assign roles to users/groups</li>
+    </ul>
+');
 INSERT INTO txt VALUES ('H8701', 'German',  '');
 INSERT INTO txt VALUES ('H8701', 'English', '');

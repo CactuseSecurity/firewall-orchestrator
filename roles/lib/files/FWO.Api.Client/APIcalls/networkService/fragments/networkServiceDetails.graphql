@@ -41,6 +41,12 @@ fragment networkServiceDetails on service {
     byFlatId: serviceBySvcgrpFlatMemberId {
       svc_id
       svc_name
+      svc_port
+      svc_port_end
+      protocol_name: stm_ip_proto {
+        id: ip_proto_id
+        name: ip_proto_name
+      }
       service_type: stm_svc_typ {
         name: svc_typ_name
       }

@@ -89,6 +89,8 @@ INSERT INTO txt VALUES ('permissions_title',	'German', 	'Berechtigungen');
 INSERT INTO txt VALUES ('permissions_title',	'English', 	'Permissions');
 INSERT INTO txt VALUES ('permissions_text',		'German', 	'Ihre Berechtigungen wurden ge&auml;ndert. Bitte geben Sie Ihr Passwort ein, um Ihre Berechtigungen zu aktualisieren!');
 INSERT INTO txt VALUES ('permissions_text',		'English', 	'Your permissions have been changed. Re-login to update your permissions.');
+INSERT INTO txt VALUES ('login_importer_error',	'German', 	'Nutzer mit der Rolle "Importer" d&uuml;rfen sich nicht an der Benutzeroberfl&auml;che anmelden. Diese Rolle dient einzig dem Importieren von eingebundenen Ger&auml;ten.');
+INSERT INTO txt VALUES ('login_importer_error',	'English', 	'Users with role "importer" are not allowed to log into the user interface. The only purpose of this role is to import included devices.');
 
 -- navigation
 INSERT INTO txt VALUES ('reporting', 			'German',	'Reporting');
@@ -143,16 +145,14 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
         Der Quellcode kann auf <a href="https://github.com/CactuseSecurity/firewall-orchestrator" target="_blank">GitHub</a> eingesehen und heruntergeladen werden.</li>
     <li>GraphQL API f&uuml;r Automatisierungen</li>
     <li>Firewall-Regel Rezertifizierungsworkflow - beseitigen Sie ihre Altlasten und erf&uuml;llen Sie aktuelle regulatorische Anforderungen.</li>
-    <li>F&uuml;r FortiManager und CheckPoint (Stand-Alone & MDS Manager) ist eine Auto Discovery Funktion enthalten, die ausgehend 
-    vom Management-System alle definierten Domains/SubManager sowie Devices automatisch anlegt sowie &Auml;nderungen erkennt 
-    und diese zur automatischen Konfigurations&auml;nderung anbietet.</li>
-    <li>Einf&uuml;hrung Monitoring und Alerting Modul - folgende Ereignisse werden protokolliert, in eine Log-Datei geschrieben (zur ggf. weiteren Auswertung per SIEM)
-     und dem Nutzer in der Oberfl&auml;che zur Erinnerung angezeigt:
-     <ul>
-        <li>&Auml;nderungen an angebundenen Firewall-Systemen, die im regelm&auml;&szlig;ig laufenden Hintergrund-Auto-Discovery-Prozess erkannt werden</li>
-        <li>Beim Import auftretende Fehler</li>
-        <li>Warnungen & Fehler, die in der Nutzeroberfl&auml;che angezeigt werden</li>
-     </ul>
+    <li>F&uuml;r FortiManager und CheckPoint (Stand-Alone & MDS Manager) Auto Discovery</li>
+    <li>Monitoring und Alerting Modul</li>
+    <li>Neues Workflow module zum Beantragen von &Auml;nderungen</li>
+    <li>Cisco FireFlow Import-Module</li>
+    <li>Unterst&uuml;tzung f&uuml;r Debian Testing Betriebssystem</li>
+    <li>Beginn Routing/Interface Pfad Analyse (zun&auml;chst nur Fortinet)</li>
+    <li>Neuer Report-Typ: Regeln (aufgel&ouml;st) (alle Gruppe werden in Bestandteile aufgel&ouml;st; Report-Export als "Single Table")</li>
+    <li>IP-basierter Mandantenfilter</li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
@@ -161,15 +161,14 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
         The code can be viewed/downloaded from <a href="https://github.com/CactuseSecurity/firewall-orchestrator" target="_blank">GitHub</a></li>
     <li>GraphQL API for automation</li>
     <li>Firewall rule recertification workflow - remove unnecessary rules and meet current regulatory requirements.</li>
-    <li>Device Auto Discovery functionality - only specify the Super Manager (FortiManager, MDS) details, everything else (ADOMs, Domains, devices) 
-    will be auto-discovered. Also changes in devices/managers will be detected and offered for auto-configuration.</li>
-    <li>Introduction of Monitoring and Alerting module - the following events will be logged internally as well as written into a log file 
-    (for further processing by a SIEM system) and will also be displayed in the UI as reminders to the relevant users:
-     <ul>
-        <li>Changes of the integrated firewall systems, which are detected by the background auto discovery process</li>
-        <li>import errors</li>
-        <li>all warnings and errors shown in the UI</li>
-     </ul>
+    <li>Device Auto Discovery functionality</li>
+    <li>Introduction of Monitoring and Alerting module</li>
+    <li>Introduction of workflow module for requesting changes</li>
+    <li>New Cisco FireFlow import module </li>
+    <li>Support for new operating system Debian testing</li>
+    <li>Start routing/interface (currently implemented for fortinet only) import and path analysis</li>
+    <li>New report type: resolved rules (report without group objects, exporting into pure rule tables without additional object tables)</li>
+    <li>Adding IP-based tenant filtering</li>
 </ul>
 ');
 
@@ -371,6 +370,8 @@ INSERT INTO txt VALUES ('user_objects',		    'German', 	'Nutzerobjekte');
 INSERT INTO txt VALUES ('user_objects',		    'English', 	'User objects');
 INSERT INTO txt VALUES ('rules',		        'German', 	'Regeln');
 INSERT INTO txt VALUES ('rules',		        'English', 	'Rules');
+INSERT INTO txt VALUES ('resolvedrules',        'German', 	'Regeln (aufgel&ouml;st)');
+INSERT INTO txt VALUES ('resolvedrules',        'English', 	'Rules (resolved)');
 INSERT INTO txt VALUES ('changes',		        'German', 	'&Auml;nderungen');
 INSERT INTO txt VALUES ('changes',		        'English', 	'Changes');
 INSERT INTO txt VALUES ('statistics',		    'German', 	'Statistik');
@@ -455,8 +456,12 @@ INSERT INTO txt VALUES ('changes_report',	    'German', 	'Changes-Report');
 INSERT INTO txt VALUES ('changes_report',	    'English', 	'Changes Report');
 INSERT INTO txt VALUES ('statistics_report',	'German', 	'Statistik-Report');
 INSERT INTO txt VALUES ('statistics_report',	'English', 	'Statistics Report');
+INSERT INTO txt VALUES ('resolved_rules_report','German', 	'Regel-Report (aufgel&ouml;st)');
+INSERT INTO txt VALUES ('resolved_rules_report','English', 	'Rules Report (resolved)');
 INSERT INTO txt VALUES ('generated_on',	        'German', 	'Erstellt am');
 INSERT INTO txt VALUES ('generated_on',	        'English', 	'Generated on');
+INSERT INTO txt VALUES ('date_of_config',	    'German', 	'Zeit der Konfiguration');
+INSERT INTO txt VALUES ('date_of_config',	    'English', 	'Time of configuration');
 
 -- schedule
 INSERT INTO txt VALUES ('schedule', 			'German',	'Terminplan');

@@ -10,7 +10,6 @@ namespace FWO.Middleware.Server
     public class JwtWriter
     {
         private readonly RsaSecurityKey jwtPrivateKey;
-        private int JwtMinutesValid;
 
         public JwtWriter(RsaSecurityKey jwtPrivateKey)
         {
@@ -18,7 +17,7 @@ namespace FWO.Middleware.Server
             JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
         }
 
-        public async Task<string> CreateJWT(UiUser? user = null)
+        public async Task<string> CreateJWT(UiUser? user = null, TimeSpan? lifetime = null)
         {
             if (user != null)
                 Log.WriteDebug("Jwt generation", $"Generating JWT for user {user.Name} ...");
@@ -28,7 +27,8 @@ namespace FWO.Middleware.Server
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
 
             UiUserHandler uiUserHandler = new UiUserHandler(CreateJWTMiddlewareServer());
-            JwtMinutesValid = await uiUserHandler.GetExpirationTime();
+            // if lifetime was speciefied use it, otherwise use standard lifetime
+            int jwtMinutesValid = (int)(lifetime?.TotalMinutes ?? await uiUserHandler.GetExpirationTime());
 
             ClaimsIdentity subject;
             if (user != null)
@@ -45,7 +45,7 @@ namespace FWO.Middleware.Server
                 subject: subject,
                 notBefore: DateTime.UtcNow.AddMinutes(-1), // we currently allow for some deviation in timing of the systems
                 issuedAt: DateTime.UtcNow.AddMinutes(-1),
-                expires: DateTime.UtcNow.AddMinutes(JwtMinutesValid),
+                expires: DateTime.UtcNow.AddMinutes(jwtMinutesValid),
                 signingCredentials: new SigningCredentials(jwtPrivateKey, SecurityAlgorithms.RsaSha256)
             );
 
@@ -101,19 +101,13 @@ namespace FWO.Middleware.Server
                 claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", $"{{ {string.Join(",", user.Tenant.VisibleDevices)} }}"));
             }
 
-            // adding roles
-            string[]? roles = user.Roles?.ToArray();
-
             // we need to create an extra list beacause hasura only accepts an array of roles even if there is only one
             List<string> hasuraRolesList = new List<string>();
 
-            if (roles != null)
+            foreach (string role in user.Roles)
             {
-                foreach (string role in roles)
-                {
-                    claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, role)); // Frontend Roles
-                    hasuraRolesList.Add(role); // Hasura Roles
-                }
+                claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, role)); // Frontend Roles
+                hasuraRolesList.Add(role); // Hasura Roles
             }
 
             // add hasura roles claim as array
@@ -121,7 +115,7 @@ namespace FWO.Middleware.Server
 
             // deciding on default-role
             string defaultRole = "";
-            if (roles != null && roles.Length > 0)
+            if (user.Roles.Count > 0)
             {
                 if (hasuraRolesList.Contains("admin"))
                     defaultRole = "admin";
@@ -134,7 +128,7 @@ namespace FWO.Middleware.Server
                 else if (hasuraRolesList.Contains("reporter"))
                     defaultRole = "reporter";
                 else
-                    defaultRole = roles[0]; // pick first role at random (todo: might need to be changed)
+                    defaultRole = user.Roles[0]; // pick first role at random (todo: might need to be changed)
             }
             else
             {

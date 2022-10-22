@@ -8,7 +8,13 @@ query getAllObjectDetails (
   $offset: Int
 ) {
   management(
-    where: { hide_in_gui: { _eq: false }, mgm_id: { _in: $management_id } }
+    where: { 
+      hide_in_gui: { _eq: false }
+      mgm_id: { _in: $management_id }
+      stm_dev_typ:{
+        is_pure_routing_device:{_eq:false}
+      }
+    }
     order_by: { mgm_name: asc }
   ) {
     id: mgm_id

@@ -4,7 +4,7 @@ using System.Text;
 
 namespace FWO.Ui.Display
 {
-    public class NatRuleDisplay : RuleDisplay
+    public class NatRuleDisplay : RuleDisplayHtml
     {
         public NatRuleDisplay(UserConfig userConfig) : base(userConfig)
         {}

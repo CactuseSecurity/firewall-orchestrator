@@ -120,7 +120,7 @@ BEGIN
 			SELECT INTO b_force_initial_import force_initial_import FROM management WHERE mgm_id=i_mgm_id;
 			IF b_force_initial_import THEN b_is_initial_import := TRUE; END IF;
 		END IF;
-	
+
 		-- import base objects
 		v_err_pos := 'import_zone_main';
 		PERFORM import_zone_main	(i_current_import_id, b_is_initial_import);

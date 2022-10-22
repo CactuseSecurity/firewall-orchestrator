@@ -46,6 +46,10 @@
         owner: root
         group: root
 
+    - name: disable apache2 default web site
+      command: "a2dissite 000-default"
+      ignore_errors: yes
+
     - name: enable {{ product_name }} web site
       command: "a2ensite {{ product_name }}-ui"
       register: testoutput

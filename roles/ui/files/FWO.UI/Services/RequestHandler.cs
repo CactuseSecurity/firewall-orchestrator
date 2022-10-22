@@ -460,10 +460,6 @@ namespace FWO.Ui.Services
                     ActReqTask.Start = DateTime.Now;
                     ActReqTask.CurrentHandler = userConfig.User;
                 }
-                if (Phase == WorkflowPhases.planning && ActReqTask.Stop == null && ActReqTask.StateId >= ActStateMatrix.LowestEndState)
-                {
-                    ActReqTask.Stop = DateTime.Now;
-                }
                 await UpdateActReqTaskState();
 
                 if(Phase == WorkflowPhases.planning)
@@ -779,7 +775,15 @@ namespace FWO.Ui.Services
                     ActImplTask.Stop = DateTime.Now;
                 }
                 await UpdateActImplTaskState();
-                if(!ActStateMatrix.PhaseActive[WorkflowPhases.planning] && ActReqTask.Stop == null)
+                bool openImplTask = false;
+                foreach(var impltask in ActReqTask.ImplementationTasks)
+                {
+                    if(impltask.Stop == null)
+                    {
+                        openImplTask = true;
+                    }
+                }
+                if(!openImplTask && ActReqTask.Stop == null)
                 {
                     ActReqTask.Stop = ActImplTask.Stop;
                 }

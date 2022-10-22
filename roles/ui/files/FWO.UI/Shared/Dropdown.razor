@@ -1,0 +1,138 @@
+﻿@using System.Reflection
+@typeparam ElementType
+
+@inject DomEventService eventService
+@inject IJSRuntime jsRuntime
+
+<div class="btn-group d-block">
+	<div class="input-group input-group-sm">
+		<div class="input-group-prepend">
+			<span class="input-group-text"><span class="oi oi-magnifying-glass"></span></span>
+		</div>
+		<input class="custom-select d-block" @onclick="Toggle" @onfocus="ClearFilter" @onblur="ToggleWithDelay" @oninput="Filter" @bind="searchValue" />
+	</div>
+	<ul id="@(Id)" class="dropdown-menu" style="@($"position: fixed; top: {yPositionDropdown}px; left: {xPositionDropdown}px; max-height: calc(100vh - {yPositionDropdown}px - 10px); overflow: auto;" + (Toggled ? "" : " display: inline;"))">
+		@if (!Toggled)
+		{
+			@if (Value != null)
+			{
+				<li><div class="dropdown-item small">@ElementTemplate(Value)</div></li>
+				<li><hr class="dropdown-divider small"></li>
+			}
+			@foreach (ElementType element in FilteredElements)
+			{
+				<li><button type="button" @onclick="() => Value = element" class="dropdown-item small">@ElementTemplate(element)</button></li>
+			}
+		}
+	</ul>
+</div>
+
+@code
+{
+	int xPositionDropdown;
+	int yPositionDropdown;
+
+	[Parameter]
+	public string Id { get; set; } = new Random().Next().ToString();
+
+	[Parameter]
+	public Func<ElementType, string> ElementToString { get; set; } = (o => o.ToString() ?? "");
+
+	[Parameter]
+	public RenderFragment<ElementType> ElementTemplate { get; set; } = element => __builder => 
+	{
+		@element
+	};
+
+	public IEnumerable<ElementType> FilteredElements { get; private set; } = Enumerable.Empty<ElementType>();
+
+	private IEnumerable<ElementType> _elements = Enumerable.Empty<ElementType>();
+
+	[Parameter]
+	public IEnumerable<ElementType> Elements
+	{
+		get { return _elements; }
+		set 
+		{ 
+			_elements = value;
+		}
+	}
+
+	private ElementType? _value;
+
+	[Parameter]
+	public ElementType? Value
+	{
+		get { return _value; }
+		set
+		{
+			if (!Object.Equals(value, _value)) // value != _value
+			{
+				_value = value;
+				DisplayValue(_value);
+				ValueChanged.InvokeAsync(value);					
+			}
+		}
+	}
+
+	[Parameter]
+	public EventCallback<ElementType> ValueChanged { get; set; }
+
+	public bool Toggled { get; private set; } = true;
+
+	private string searchValue = "";
+
+	protected override async Task OnInitializedAsync()
+	{
+		// Toggle on resize of Window / scroll outside of dropdown (to avoid positional problems)
+		if (!eventService.Initialized)
+		{
+			await eventService.Initialize(jsRuntime);
+		}
+		eventService.OnGlobalResize += async () => { Toggled = true; await InvokeAsync(StateHasChanged); };
+		eventService.OnGlobalScroll += async (string elementId) => { if (elementId != $"dropdown-{Id}") { Toggled = true; await InvokeAsync(StateHasChanged); } };
+	}
+
+	private void Toggle(MouseEventArgs input)
+	{	
+		xPositionDropdown = (int)input.ClientX - (int)input.OffsetX + 5;
+		yPositionDropdown = (int)input.ClientY - (int)input.OffsetY + 25;
+		Toggled = !Toggled;
+	}
+
+	private void Filter(ChangeEventArgs input)
+	{
+		Filter((input.Value ?? "").ToString() ?? "");
+	}
+
+	private void Filter(string filter)
+	{
+		// case insensitive
+		FilteredElements = Elements.Where(e => ElementToString(e).ToLower().Contains(filter.ToLower()));
+	}
+
+	private void ClearFilter()
+	{
+		searchValue = "";
+		Filter(""); // No filter
+	}
+
+	private void DisplayValue(ElementType? valueToDisplay)
+	{
+		if (valueToDisplay != null)
+		{
+			searchValue = ElementToString(valueToDisplay);  // set search / display field to current value
+		}
+	}
+
+	private void ToggleWithDelay(FocusEventArgs input)
+	{
+		Task.Run(async () =>
+		{
+			await Task.Delay(200); // Close with a slight delay, so that value changes can be processed
+			DisplayValue(Value); // Reset display
+			Toggled = true;
+			await InvokeAsync(StateHasChanged);				
+		});
+	}
+}

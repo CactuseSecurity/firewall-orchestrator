@@ -21,6 +21,12 @@ namespace FWO.Api.Data
         [JsonProperty("manufacturer"), JsonPropertyName("manufacturer")]
         public string Manufacturer { get; set; } = "";
 
+        [JsonProperty("isPureRoutingDevice"), JsonPropertyName("isPureRoutingDevice")]
+        public Boolean IsPureRoutingDevice { get; set; }
+
+        [JsonProperty("isManagement"), JsonPropertyName("isManagement")]
+        public Boolean IsManagement { get; set; }
+
         // [JsonProperty("predefinedObjects"), JsonPropertyName("predefinedObjects")]
         // public ??? PredefinedObjects { get; set; }
 
@@ -68,6 +74,8 @@ namespace FWO.Api.Data
             Name = deviceType.Name;
             Version = deviceType.Version;
             Manufacturer = deviceType.Manufacturer;
+            IsPureRoutingDevice = deviceType.IsPureRoutingDevice;
+            IsManagement = deviceType.IsManagement;
         }
 
         public string NameVersion()
@@ -83,6 +91,11 @@ namespace FWO.Api.Data
         public bool CanHaveDomain()
         {
             return !FortiManagers.Contains(Id);
+        }
+
+        public bool IsDummyRouter()
+        {
+            return Manufacturer == "DummyRouter";
         }
 
         public bool CanHaveSupermanager()

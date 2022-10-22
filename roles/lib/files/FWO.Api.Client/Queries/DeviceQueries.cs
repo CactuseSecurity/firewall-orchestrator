@@ -35,14 +35,18 @@ namespace FWO.Api.Client.Queries
             {
                 getDevicesByManagements = File.ReadAllText(QueryPath + "device/getDevicesByManagement.graphql");
                 getManagementsDetails = File.ReadAllText(QueryPath + "device/getManagementsDetails.graphql") + " " 
-                                        + File.ReadAllText(QueryPath + "device/fragments/managementDetails.graphql");
-                getDeviceTypeDetails = File.ReadAllText(QueryPath + "device/getDeviceTypeDetails.graphql");
+                                        + File.ReadAllText(QueryPath + "device/fragments/managementDetails.graphql") + " "
+                                        + File.ReadAllText(QueryPath + "device/fragments/deviceTypeDetails.graphql");
+                getDeviceTypeDetails = File.ReadAllText(QueryPath + "device/getDeviceTypeDetails.graphql") + " "
+                                        + File.ReadAllText(QueryPath + "device/fragments/deviceTypeDetails.graphql");
                 newManagement = File.ReadAllText(QueryPath + "device/newManagement.graphql");
                 updateManagement = File.ReadAllText(QueryPath + "device/updateManagement.graphql");
                 changeManagementState = File.ReadAllText(QueryPath + "device/changeManagementState.graphql");
                 deleteManagement = File.ReadAllText(QueryPath + "device/deleteManagement.graphql");
                 getDeviceDetails = File.ReadAllText(QueryPath + "device/getDeviceDetails.graphql") + " " 
-                                   + File.ReadAllText(QueryPath + "device/fragments/deviceDetails.graphql");
+                                    + File.ReadAllText(QueryPath + "device/fragments/deviceDetails.graphql") + " "
+                                    + File.ReadAllText(QueryPath + "device/fragments/deviceTypeDetails.graphql");
+
                 newDevice = File.ReadAllText(QueryPath + "device/newDevice.graphql");
                 updateDevice = File.ReadAllText(QueryPath + "device/updateDevice.graphql");
                 changeDeviceState = File.ReadAllText(QueryPath + "device/changeDeviceState.graphql");

@@ -1,0 +1,48 @@
+﻿@page "/help/settings/workflowcustomizing"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@(userConfig.GetText("customizing"))</h3>
+    @(Html.Raw(userConfig.GetText("H5561")))
+    <ul>
+        <li>
+            @(Html.Raw(userConfig.GetText("H5562")))
+        </li>
+        <li>
+            @(Html.Raw(userConfig.GetText("H5563")))
+        </li>
+        <li>
+            @(Html.Raw(userConfig.GetText("H5564")))
+        </li>
+        <li>
+            @(Html.Raw(userConfig.GetText("H5565")))
+        </li>
+        <li>
+            @(Html.Raw(userConfig.GetText("H5566")))
+            <ul>
+                <li>
+                    @(Html.Raw(userConfig.GetText("H5571")))
+                </li>
+                <li>
+                    @(Html.Raw(userConfig.GetText("H5572")))
+                </li>
+                <li>
+                    @(Html.Raw(userConfig.GetText("H5573")))
+                </li>
+                <li>
+                    @(Html.Raw(userConfig.GetText("H5574")))
+                </li>
+            </ul>
+        </li>
+    </ul>
+</div>

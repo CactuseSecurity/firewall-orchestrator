@@ -22,6 +22,7 @@ query getNatRulesOverview($mgmId: [Int!], $device_id: [Int!]) {
           active: { _eq: true }
           rule_disabled: { _eq: false }
           ruleByXlateRule: {}
+          get_rule_froms_for_tenant: {}
         }
         order_by: { rule_num_numeric: asc }
       ) {

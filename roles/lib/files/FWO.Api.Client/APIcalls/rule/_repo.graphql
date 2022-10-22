@@ -1,6 +1,9 @@
 
 query getSpecificRuleById($ruleId: Int!) {
-  rule(where: { rule_id: { _eq: $ruleId } }) {
+  rule(where: {
+    rule_id: { _eq: $ruleId },
+    get_rule_froms_for_tenant: {} # tenant allowed to see this rule (froms not all filtered out)
+  }) {
     ...ruleDetailsForReport
   }
 }

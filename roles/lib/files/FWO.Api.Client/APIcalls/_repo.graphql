@@ -261,6 +261,7 @@ query ruleFilterFullTextCurrent(
             { rule_dst: { _ilike: $fullText } }
             { rule_svc: { _ilike: $fullText } }
           ]
+          get_rule_froms_for_tenant: {}
         }
       }
       order_by: { rule_num_numeric: asc }
@@ -303,8 +304,8 @@ query ruleFilterFullTextInTime (
           importControlByRuleLastSeen: { stop_time: {_gt: $reportTime } }
           active: { _eq: $current }
           rule_src: { _in: $ruleSrcName }
-            rule_disabled: { _eq: false }
-            rule_froms: { object: { obj_ip: { _in: $ruleSrcIp } } }          
+          rule_disabled: { _eq: false }
+          get_rule_froms_for_tenant: { object: { obj_ip: { _in: $ruleSrcIp } } }          
         }
         order_by: { rule_num_numeric: asc }
       )  {
@@ -320,8 +321,8 @@ query ruleFilterFullTextInTime (
           importControlByRuleLastSeen: { stop_time: {_gt: $reportTime } }
           active: { _eq: $current }
           rule_src: { _in: $ruleSrcName }
-            rule_disabled: { _eq: false }
-            rule_froms: { object: { obj_ip: { _in: $ruleSrcIp } } }          
+          rule_disabled: { _eq: false }
+          get_rule_froms_for_tenant: { object: { obj_ip: { _in: $ruleSrcIp } } }
         }
         order_by: { rule_num_numeric: asc }
       ) {
@@ -370,7 +371,7 @@ query ruleFilterKVCurrent(
           active: { _eq: true }
           rule_src: { _in: $ruleSrcName }
           rule_disabled: { _eq: false }
-          rule_froms: { object: { obj_ip: { _in: $ruleSrcIp } } }
+          get_rule_froms_for_tenant: { object: { obj_ip: { _in: $ruleSrcIp } } }
         }
         order_by: { rule_num_numeric: asc }
       ) {
@@ -385,7 +386,7 @@ query ruleFilterKVCurrent(
           active: { _eq: true }
           rule_src: { _in: $ruleSrcName }
           rule_disabled: { _eq: false }
-          rule_froms: { object: { obj_ip: { _in: $ruleSrcIp } } }
+          get_rule_froms_for_tenant: { object: { obj_ip: { _in: $ruleSrcIp } } }
         }
         order_by: { rule_num_numeric: asc }
       ) {
@@ -437,9 +438,9 @@ query ruleFilterKVInTime(
         importControlByRuleLastSeen: { stop_time: { _gt: $reportTime } }
         rule_disabled: { _eq: false }
         rule_src: { _in: $ruleSrcName }
-        rule_froms: { object: { obj_ip: { _in: $ruleSrcIp } } }
         rule_dst: { _in: $ruleDstName }
-        rule_tos: { object: { obj_ip: { _in: $ruleDstIp } } }
+        get_rule_froms_for_tenant: { object: { obj_ip: { _in: $ruleSrcIp } } }
+        get_rule_tos_for_tenant: { object: { obj_ip: { _in: $ruleDstIp } } }
       }
       order_by: { rule_num_numeric: asc }
     ) {
@@ -485,9 +486,9 @@ query ruleFilterKVInTimeCount(
           importControlByRuleLastSeen: { stop_time: { _gt: $reportTime } }
           rule_disabled: { _eq: false }
           rule_src: { _in: $ruleSrcName }
-          rule_froms: { object: { obj_ip: { _in: $ruleSrcIp } } }
           rule_dst: { _in: $ruleDstName }
-          rule_tos: { object: { obj_ip: { _in: $ruleDstIp } } }
+          get_rule_froms_for_tenant: { object: { obj_ip: { _in: $ruleSrcIp } } }
+          get_rule_tos_for_tenant: { object: { obj_ip: { _in: $ruleDstIp } } }
         }
       ) {
         aggregate {
@@ -532,6 +533,7 @@ query ruleFilterKVInTimeSingleValues(
             { rule_src: { _ilike: $ruleSrcName1 } }
             { rule_src: { _ilike: $ruleSrcName2 } }
           ]
+          get_rule_froms_for_tenant: {}
         }
       }
       order_by: { rule_num_numeric: asc }

@@ -10,7 +10,7 @@
     rule_svc
     rule_svc_refs
     rule_svc_neg
-    rule_froms(where: {object:{obj_create:{_lte:$relevantImportId}, obj_last_seen:{_gte:$relevantImportId}}}) {
+    rule_froms: get_rule_froms_for_tenant(where: {object:{obj_create:{_lte:$relevantImportId}, obj_last_seen:{_gte:$relevantImportId}}}) {
       usr {
         ...userDetails
       }
@@ -18,7 +18,7 @@
         ...networkObjectDetails
       }
     }
-    rule_tos(where: {object:{obj_create:{_lte:$relevantImportId}, obj_last_seen:{_gte:$relevantImportId}}}) {
+    rule_tos: get_rule_tos_for_tenant(where: {object:{obj_create:{_lte:$relevantImportId}, obj_last_seen:{_gte:$relevantImportId}}}) {
       usr {
         ...userDetails
       }

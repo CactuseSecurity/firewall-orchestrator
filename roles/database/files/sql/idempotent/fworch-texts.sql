@@ -744,6 +744,8 @@ INSERT INTO txt VALUES ('OnLeave',			    'German', 	'Beim Verlassen');
 INSERT INTO txt VALUES ('OnLeave',			    'English', 	'On leave');
 INSERT INTO txt VALUES ('OfferButton',			'German', 	'Schaltfl&auml;che anbieten');
 INSERT INTO txt VALUES ('OfferButton',			'English', 	'Offer button');
+INSERT INTO txt VALUES ('DoNothing',			'German', 	'Keine Aktion');
+INSERT INTO txt VALUES ('DoNothing',			'English', 	'Do Nothing');
 INSERT INTO txt VALUES ('AutoPromote',			'German', 	'Autom. Weiterleitung');
 INSERT INTO txt VALUES ('AutoPromote',			'English', 	'Auto-forward');
 INSERT INTO txt VALUES ('AddApproval',			'German', 	'Genehmigung hinzuf&uuml;gen');
@@ -2820,8 +2822,12 @@ INSERT INTO txt VALUES ('H5515', 'English', 'Scope: Here it can be defined, to w
 ');
 INSERT INTO txt VALUES ('H5521', 'German',  'Spezifische Parameter je nach ausgew&auml;hltem Aktionstyp: Hier wird definiert, was bei der Aktion passieren soll.');
 INSERT INTO txt VALUES ('H5521', 'English', 'Specific parameters depending on selected action type: Here can be defined, what should happen in the action.');
-INSERT INTO txt VALUES ('H5522', 'German',  'Autom. Weiterleitung: Hier ist der Zielstatus festzulegen, der dem ausgew&auml;hlten Objekt durch die Aktion zugewiesen werden soll (der Ausgangsstatus ergibt sich dann durch die Zuordnung in der Statustabelle).');
-INSERT INTO txt VALUES ('H5522', 'English', 'Auto-forward: Here the target state is to be set, which should be assigned to the selected object in the action (the source state is the defined by the assignment of the action in the state table).');
+INSERT INTO txt VALUES ('H5522', 'German',  'Autom. Weiterleitung: Hier ist der Zielstatus festzulegen, der dem ausgew&auml;hlten Objekt durch die Aktion zugewiesen werden soll (der Ausgangsstatus ergibt sich dann durch die Zuordnung in der Statustabelle).
+    Wird der Wert "Automatisch" ausgew&auml;hlt, so wird der Status aus der Status-Matrix ermittelt.
+');
+INSERT INTO txt VALUES ('H5522', 'English', 'Auto-forward: Here the target state is to be set, which should be assigned to the selected object in the action (the source state is the defined by the assignment of the action in the state table).
+    If the value "Automatic" is selected, the state is computed by the state matrix.
+');
 INSERT INTO txt VALUES ('H5523', 'German',  'Genehmigung hinzuf&uuml;gen: Hier muss der Status angegeben werden, mit dem die neue Genehmigung angelegt werden soll. Des weiteren kann hier bereits eine Gruppenzuordnung und eine Deadline gesetzt werden.');
 INSERT INTO txt VALUES ('H5523', 'English', 'Add approval: Here the desired state of the approval to be created has to be filled. Additionally a group assignment and a deadline can be set.');
 INSERT INTO txt VALUES ('H5524', 'German',  'Alarm ausl&ouml;sen: Hier wird die im Alarm verwendete Meldung eingetragen.');
@@ -3484,10 +3490,10 @@ INSERT INTO txt VALUES ('H8601', 'German',  'Zum Aufsetzen eines Workflows empfi
     <ul>
         <li><a href="/help/settings/workflowcustomizing">Einstellungen</a>: Auswahl der zu verwendenden Tasktypen</li>
         <li><a href="/help/settings/statematrix">Status-Matrizen</a>: Festlegen der Phasen pro Tasktyp</li>
-        <li><a href="/help/workflow/states">Status-Definitionen</a>: Definition der benutzten Stati</li>
+        <li><a href="/help/settings/statedefinitions">Status-Definitionen</a>: Definition der benutzten Stati</li>
         <li><a href="/help/settings/statematrix">Status-Matrizen</a>: Erstellen der Status-Matrizen pro Tasktyp</li>
         <li><a href="/help/settings/stateactions">Aktionen</a>: Definition der Aktionen falls n&ouml;tig</li>
-        <li><a href="/help/workflow/states">Status-Definitionen</a>: Zuordnung Aktionen zu Stati</li>
+        <li><a href="/help/settings/statedefinitions">Status-Definitionen</a>: Zuordnung Aktionen zu Stati</li>
         <li><a href="/help/settings/workflowcustomizing">Einstellungen</a>: Festlegen der Priorit&auml;ten und Deadlines</li>
         <li><a href="/help/settings/workflowcustomizing">Einstellungen</a>: Ausw&auml;hlen der Option zum "Autom. Erzeugen von Implementierungs-Auftr&auml;gen", falls Planungsphase deaktiviert</li>
         <li><a href="/help/settings/groups">Gruppen</a>: Nutzergruppen einrichten und Nutzer zuweisen</li>
@@ -3498,10 +3504,10 @@ INSERT INTO txt VALUES ('H8601', 'English', 'For the setup of a workflow it is s
     <ul>
         <li><a href="/help/settings/workflowcustomizing">Customizing</a>: Selection of the task types to be applied</li>
         <li><a href="/help/settings/statematrix">State Matrices</a>: Definition of task types per phase</li>
-        <li><a href="/help/workflow/states">State Definitions</a>: Definition of the used states</li>
+        <li><a href="/help/settings/statedefinitions">State Definitions</a>: Definition of the used states</li>
         <li><a href="/help/settings/statematrix">State Matrices</a>: Construct the state matrices per task type</li>
         <li><a href="/help/settings/stateactions">Actions</a>: Definition of the actions if needed</li>
-        <li><a href="/help/workflow/states">State Definitions</a>: Assignment of actions to states</li>
+        <li><a href="/help/settings/statedefinitions">State Definitions</a>: Assignment of actions to states</li>
         <li><a href="/help/settings/workflowcustomizing">Customizing</a>: Define the priority levels and deadlines</li>
         <li><a href="/help/settings/workflowcustomizing">Customizing</a>: Select option for "Auto-create implementation tasks", if planning phase deactivated</li>
         <li><a href="/help/settings/groups">Groups</a>: Set up user groups and assign users</li>

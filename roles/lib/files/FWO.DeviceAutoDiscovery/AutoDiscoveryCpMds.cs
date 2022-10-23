@@ -68,6 +68,7 @@ namespace FWO.DeviceAutoDiscovery
                                     ForceInitialImport = true,
                                     HideInUi = false,
                                     ConfigPath = domain.Name,
+                                    DomainUid = domain.Uid,
                                     DebugLevel = superManagement.DebugLevel,
                                     SuperManagerId = superManagement.Id,
                                     DeviceType = new DeviceType { Id = 9 },
@@ -81,9 +82,9 @@ namespace FWO.DeviceAutoDiscovery
                                     currentManagement.SuperManagerId = null;
                                 }
 
-                                // session id pins this session to a specific domain (if domain is given during login) 
+                                // session id pins this session to a specific domain (if domain is given during login)
                                 RestResponse<CpSessionAuthInfo> sessionResponsePerDomain =
-                                    await restClientCP.AuthenticateUser(superManagement.ImportCredential.ImportUser, superManagement.ImportCredential.Secret, domain.Name);
+                                    await restClientCP.AuthenticateUser(superManagement.ImportCredential.ImportUser, superManagement.ImportCredential.Secret, domain.Uid);
 
                                 if (sessionResponsePerDomain.StatusCode == HttpStatusCode.OK &&
                                     sessionResponsePerDomain.IsSuccessful &&

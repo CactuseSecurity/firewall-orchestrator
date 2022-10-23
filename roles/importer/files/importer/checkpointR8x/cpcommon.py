@@ -73,7 +73,10 @@ def get_basic_config (config_json, mgm_details, force=False, config_filename=Non
 
     api_host = mgm_details['hostname']
     api_user =  mgm_details['import_credential']['user']
-    api_domain = mgm_details['configPath']
+    if mgm_details['domainUid'] != None:
+        api_domain = mgm_details['domainUid']
+    else:
+        api_domain = mgm_details['configPath']
     api_port = str(mgm_details['port'])
     api_password = mgm_details['import_credential']['secret']
     base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'

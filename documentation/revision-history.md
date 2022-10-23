@@ -225,9 +225,14 @@ adding report template format fk and permissions
 - bugfix filter line brackets
 - new central credentials handling for import
 
-### 5.7.2 - 31.10.2022
+### 5.7.2 - 21.10.2022
 - start routing/interface (implemented for fortinet only) import and path analysis
 - also adding dummy router for testing and interconnecting routing clouds
 - new report type: resolved rules (report without group objects, exporting into pure rule tables without additional object tables)
 - ip-based tenant filtering
 - new user management API call for creating JWTs with arbitrary lifetime
+
+### 5.8 - 31.10.2022
+- fix for CP R81 bug with certain installations - we now allow for domain UID as well as domain name for getting import data
+- also adding domain UID in auto discovery module
+- from now on reserving 3 digit version numbers for bug fixes only 

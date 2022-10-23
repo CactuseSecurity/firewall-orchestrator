@@ -23,6 +23,9 @@ namespace FWO.Api.Data
         [JsonProperty("configPath"), JsonPropertyName("configPath")]
         public string ConfigPath { get; set; } = "";
 
+        [JsonProperty("domainUid"), JsonPropertyName("domainUid")]
+        public string DomainUid { get; set; } = "";
+
         [JsonProperty("superManager"), JsonPropertyName("superManager")]
         public int? SuperManagerId { get; set; }
 
@@ -112,6 +115,7 @@ namespace FWO.Api.Data
             ImportCredentialId = management.ImportCredentialId;
             ImportCredential = new ImportCredential(management.ImportCredential);
             ConfigPath = management.ConfigPath;
+            DomainUid = management.DomainUid;
             ImporterHostname = management.ImporterHostname;
             Port = management.Port;
             ImportDisabled = management.ImportDisabled;
@@ -165,6 +169,7 @@ namespace FWO.Api.Data
             Name = Sanitizer.SanitizeMand(Name, ref shortened);
             Hostname = Sanitizer.SanitizeMand(Hostname, ref shortened);
             ConfigPath = Sanitizer.SanitizeMand(ConfigPath, ref shortened);
+            DomainUid = Sanitizer.SanitizeOpt(DomainUid, ref shortened);
             ImporterHostname = Sanitizer.SanitizeMand(ImporterHostname, ref shortened);
             Comment = Sanitizer.SanitizeCommentOpt(Comment, ref shortened);
             return shortened;

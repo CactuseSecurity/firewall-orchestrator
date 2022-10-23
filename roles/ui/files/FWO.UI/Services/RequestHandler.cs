@@ -385,7 +385,7 @@ namespace FWO.Ui.Services
         public async Task AssignReqTaskGroup(RequestStatefulObject statefulObject)
         {
             ActReqTask.AssignedGroup = statefulObject.AssignedGroup;
-            ActReqTask.RecentHandler = ActReqTask.CurrentHandler;
+            ActReqTask.RecentHandler = (ActReqTask.CurrentHandler != null ? ActReqTask.CurrentHandler : userConfig.User);
             if(CheckAssignValues(ActReqTask))
             {
                 await UpdateActReqTaskState();
@@ -396,7 +396,7 @@ namespace FWO.Ui.Services
         public async Task AssignReqTaskBack()
         {
             ActReqTask.AssignedGroup = ActReqTask.RecentHandler?.Dn;
-            ActReqTask.RecentHandler = ActReqTask.CurrentHandler;
+            ActReqTask.RecentHandler = (ActReqTask.CurrentHandler != null ? ActReqTask.CurrentHandler : userConfig.User);
             await UpdateActReqTaskState();
             DisplayAssignMode = false;
         }
@@ -718,7 +718,7 @@ namespace FWO.Ui.Services
         public async Task AssignImplTaskGroup(RequestStatefulObject statefulObject)
         {
             ActImplTask.AssignedGroup = statefulObject.AssignedGroup;
-            ActImplTask.RecentHandler = ActImplTask.CurrentHandler;
+            ActImplTask.RecentHandler = (ActImplTask.CurrentHandler != null ? ActImplTask.CurrentHandler : userConfig.User);
             if(CheckAssignValues(ActImplTask))
             {
                 await UpdateActImplTaskState();
@@ -729,7 +729,7 @@ namespace FWO.Ui.Services
         public async Task AssignImplTaskBack()
         {
             ActImplTask.AssignedGroup = ActImplTask.RecentHandler?.Dn;
-            ActImplTask.RecentHandler = ActImplTask.CurrentHandler;
+            ActImplTask.RecentHandler = (ActImplTask.CurrentHandler != null ? ActImplTask.CurrentHandler : userConfig.User);
             await UpdateActImplTaskState();
             DisplayAssignMode = false;
         }

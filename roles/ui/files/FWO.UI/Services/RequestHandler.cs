@@ -959,11 +959,11 @@ namespace FWO.Ui.Services
 
         private bool CheckAssignValues(RequestStatefulObject statefulObject)
         {
-            if (statefulObject.AssignedGroup == null || statefulObject.AssignedGroup == "")
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("assign_group"), userConfig.GetText("E8010"), true);
-                return false;
-            }
+            // if (statefulObject.AssignedGroup == null || statefulObject.AssignedGroup == "")
+            // {
+            //     DisplayMessageInUi!(null, userConfig.GetText("assign_group"), userConfig.GetText("E8010"), true);
+            //     return false;
+            // }
             return true;
         }
     }

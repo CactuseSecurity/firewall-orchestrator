@@ -130,12 +130,9 @@ namespace FWO.Middleware.Server
                     DateTime reportGenerationStartDate = DateTime.Now;
 
                     // get uiuser roles + tenant
-                    AuthManager authHandler = new AuthManager(jwtWriter, connectedLdaps, apiConnection);
+                    AuthManager authManager = new AuthManager(jwtWriter, connectedLdaps, apiConnection);
                     //AuthenticationRequestHandler authHandler = new AuthenticationRequestHandler(connectedLdaps, jwtWriter, apiConnection);
-                    
-                    report.Owner.Roles = await authHandler.GetRoles(report.Owner);
-                    report.Owner.Tenant = await authHandler.GetTenantAsync(report.Owner);
-                    string jwt = await jwtWriter.CreateJWT(report.Owner);
+                    string jwt = await authManager.AuthorizeUserAsync(report.Owner, validatePassword: false);
                     ApiConnection apiConnectionUserContext = new GraphQlApiConnection(apiServerUri, jwt);
                     GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(jwt);
                     UserConfig userConfig = await UserConfig.ConstructAsync(globalConfig, apiConnection, report.Owner.DbId);
@@ -154,7 +151,7 @@ namespace FWO.Middleware.Server
                         report.Template.ReportParams.TimeFilter, 
                         (report.Template.ReportParams.ReportType != null ? (ReportType)report.Template.ReportParams.ReportType : ReportType.Rules),
                         userConfig);
-                    Management[] managementsReport = new Management[0];
+                    Management[] managementsReport = Array.Empty<Management>();
                     await reportRules.Generate(int.MaxValue, apiConnectionUserContext, 
                         managementsReportIntermediate =>
                         {

@@ -1,5 +1,5 @@
 ### general settings
-product_version: "5.7.1"
+product_version: "5.7.2"
 ansible_become: yes
 ansible_user: "{{ lookup('env', 'USER') }}"
 ansible_become_method: sudo

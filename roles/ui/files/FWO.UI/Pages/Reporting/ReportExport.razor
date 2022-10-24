@@ -32,12 +32,7 @@
                             {
                                 <div>
                                     Paper Kind:
-                                    <select class="form-control form-control-sm" @bind="SelectedPaperKind">
-                                        @foreach (PaperKind paperKind in Enum.GetValues<PaperKind>())
-                                        {                      
-                                            <option value="@paperKind">@paperKind</option>
-                                        }
-                                    </select>
+                                    <Dropdown @bind-Value="SelectedPaperKind" Elements="Enum.GetValues<PaperKind>().Cast<PaperKind>()"></Dropdown>
                                     @if (SelectedPaperKind == PaperKind.Custom)
                                     {
                                         <div class="input-group input-group-sm mb-2 mt-2">

@@ -175,6 +175,12 @@ create table if not exists owner
     app_id_external varchar not null
 );
 
+-- this is only needed for upgrading early 5.7.1 installations  (5.7.1 --> 5.7.1)
+alter table owner add column if not exists app_id_external varchar not null;
+alter table owner add column  if not exists next_recert_date Timestamp;
+alter table owner drop column if exists recert_interval;
+alter table owner add column if not exists recert_interval integer;
+
 create unique index if not exists only_one_default_owner on owner(is_default) 
 where is_default = true;
 

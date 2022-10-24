@@ -10,6 +10,7 @@ query getImportStatus {
       name: dev_typ_name
       version: dev_typ_version
       manufacturer: dev_typ_manufacturer
+      isPureRoutingDevice: is_pure_routing_device
     }
     last_import: import_controls(order_by: { control_id: desc }, limit: 1) {
       control_id

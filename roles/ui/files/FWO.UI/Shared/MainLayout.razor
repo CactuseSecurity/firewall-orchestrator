@@ -161,17 +161,17 @@
             switch(type)
             {
                 case MessageType.Info:
-                    cssClass = "footer alert alert-info";
+                    cssClass = "footer alert alert-info fly-in-animation";
                     break;
                 case MessageType.Success:
-                    cssClass = "footer alert alert-success";
+                    cssClass = "footer alert alert-success fly-in-animation";
                     break;
                 case MessageType.Warning:
-                    cssClass = "footer alert alert-warning";
+                    cssClass = "footer alert alert-warning fly-in-animation";
                     break;
                 case MessageType.Error:
                     Task.Run(async () => await setAlert(title, message));
-                    cssClass = "footer alert alert-danger";
+                    cssClass = "footer alert alert-danger fly-in-animation";
                     showtime = showtime * 3; // show errors a bit longer
                     break;
             }
@@ -272,7 +272,7 @@
                 suspectedCause = cause,
                 description = description,
             };
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.MonitorQueries.addUiLogEntry, Variables)).ReturnIds;
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addUiLogEntry, Variables)).ReturnIds;
             if (returnIds == null)
             {
                 Log.WriteError("Write Log", "Log could not be written to database");

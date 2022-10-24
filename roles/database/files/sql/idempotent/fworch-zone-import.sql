@@ -1,12 +1,4 @@
--- $Id: iso-zone-import.sql,v 1.1.2.1 2007-12-13 08:48:49 tim Exp $
--- $Source: /home/cvs/iso/package/install/database/Attic/iso-zone-import.sql,v $
 
-----------------------------------------------------
--- FUNCTION:  import_zone_main
--- Zweck:     fuegt alle Zonen des aktuellen Imports in die zone-Tabelle
--- Parameter: control-id
--- RETURNS:   VOID
---
 CREATE OR REPLACE FUNCTION import_zone_main (BIGINT, BOOLEAN) RETURNS VOID AS $$
 DECLARE
 	i_current_import_id ALIAS FOR $1; -- ID des aktiven Imports

@@ -1,5 +1,6 @@
 using System.Text;
-using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Components;
 using Newtonsoft.Json;
 
 namespace FWO.Api.Data
@@ -15,6 +16,8 @@ namespace FWO.Api.Data
         [JsonProperty("devices"), JsonPropertyName("devices")]
         public List<DeviceSelect> Devices { get; set; } = new List<DeviceSelect>();
 
+        public ElementReference? UiReference { get; set; }
+
         public bool Selected { get; set; } = false;
     }
 
@@ -25,7 +28,7 @@ namespace FWO.Api.Data
 
         [JsonProperty("name"), JsonPropertyName("name")]
         public string? Name { get; set; }
-        
+
         public bool Selected { get; set; } = false;
     }
 
@@ -157,18 +160,8 @@ namespace FWO.Api.Data
         {
             foreach (ManagementSelect management in Managements)
             {
-                management.Selected = false;
-                if(management.Devices.Count > 0)
-                {
-                    management.Selected = true;
-                }
-                foreach (DeviceSelect device in management.Devices)
-                {
-                    if (!device.Selected)
-                    {
-                        management.Selected = false;
-                    }
-                }
+                int selectedDevicesCount = management.Devices.Where(d => d.Selected).Count();
+                management.Selected = management.Devices.Count > 0 && selectedDevicesCount == management.Devices.Count;
             }
         }
 

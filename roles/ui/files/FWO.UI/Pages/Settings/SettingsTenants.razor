@@ -19,16 +19,16 @@
 @(userConfig.GetText("U5212"))
 <hr />
 
-<div class="form-group row">
-    <button class="btn btn-success m-2" @onclick="NewTenant">@(userConfig.GetText("add_tenant"))</button>
+<div class="form-group row m-0">
+    <button class="btn btn-sm btn-success mr-2 mb-2 mt-2" @onclick="NewTenant">@(userConfig.GetText("add_tenant"))</button>
     @if (showCleanupButton)
     {
-        <button class="btn btn-danger m-2" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
+        <button class="btn btn-sm btn-danger m-2" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
     }
 </div>
 
-<div class="m-2">
-    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="Tenant" Items="tenants" PageSize="0" ColumnReorder="true">
+<div class="mt-2">
+    <Table class="table table-sm table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="Tenant" Items="tenants" PageSize="0" ColumnReorder="true">
         <Column TableItem="Tenant" Title="@(userConfig.GetText("tenant_action"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
@@ -39,24 +39,25 @@
                     }
                     else
                     {
-                        <label class="m-2">@(userConfig.GetText("U5207"))</label>
+                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("U5207"))</button>
                     }
                 </div>
             </Template>
         </Column>
         <Column TableItem="Tenant" Title="@(userConfig.GetText("gateway_action"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
-                <div class="btn-group">
-                    @if (context.Id != 1)
-                    {
+                @if (context.Id != 1)
+                {
+                    <div class="btn-group">
                         <button class="btn btn-sm btn-success" @onclick="() => AddDeviceToTenant(context)">@(userConfig.GetText("add_gateway"))</button>
                         <button class="btn btn-sm btn-danger" @onclick="() => DeleteDeviceFromTenant(context)">@(userConfig.GetText("delete_gateway"))</button>
-                    }
-                    else
-                    {
-                        <label class="m-2">@(userConfig.GetText("U5208"))</label>
-                    }
-                </div>
+                    </div>
+                }
+                else
+                {
+                    <label>@(userConfig.GetText("U5208"))</label>
+                }
+
             </Template>
         </Column>
         <Column TableItem="Tenant" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
@@ -162,12 +163,11 @@
             <form class="form-inline">
                 <label for="tenantDevice" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("gateways")):</label>
                 <div class="col-sm-8">
-                    <select id="tenantDevice" class="form-control form-control-sm" @bind="selectedDevice">
-                        @foreach (Device device in remainingDevices)
-                        {
-                            <option value="@device.Id">@(device.Name)</option>
-                        }
-                    </select>
+                    <Dropdown Id="tenantDevice" ElementType="Device" ElementToString="@(d => d?.Name ?? "")" Elements="remainingDevices" @bind-Value="selectedDevice">
+                        <ElementTemplate Context="d">
+                            @(d?.Name ?? "")
+                        </ElementTemplate>
+                    </Dropdown>
                 </div>
             </form>
         }
@@ -195,12 +195,17 @@
                 <div class="form-group row">
                     <label for="tenantDeviceDel" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("gateway")):</label>
                     <div class="col-sm-8">
-                        <select id="tenantDeviceDel" class="form-control form-control-sm" @bind="selectedDevice">
+                        <Dropdown Id="tenantDeviceDel" ElementType="Device" ElementToString="@(d => d?.Name ?? "")" Elements="Array.ConvertAll(actTenant.TenantDevices, d => d.VisibleDevice)" @bind-Value="selectedDevice">
+                            <ElementTemplate Context="d">
+                                @(d?.Name ?? "")
+                            </ElementTemplate>
+                        </Dropdown>
+@*                        <select id="tenantDeviceDel" class="form-control form-control-sm" @bind="selectedDevice">
                             @foreach (var device in actTenant.TenantDevices)
                             {
                                 <option value="@device.VisibleDevice.Id">@(device.VisibleDevice.Name)</option>
                             }
-                        </select>
+                        </select>*@
                     </div>
                 </div>
             </form>
@@ -269,7 +274,7 @@
     private List<UiUser> uiUsers = new List<UiUser>();
 
     private Tenant actTenant = new Tenant();
-    private int selectedDevice;
+    private Device? selectedDevice;
 
     private bool isTenant0 = false;
     private bool AddTenantMode = false;
@@ -489,7 +494,7 @@
             }
             else
             {
-                selectedDevice = remainingDevices.FirstOrDefault()?.Id ?? 0;
+                selectedDevice = remainingDevices.FirstOrDefault();
                 AddDeviceMode = true;
             }
         }
@@ -510,7 +515,7 @@
             }
             else
             {
-                selectedDevice = actTenant.TenantDevices.FirstOrDefault()?.VisibleDevice.Id ?? 0;
+                selectedDevice = actTenant.TenantDevices.FirstOrDefault()?.VisibleDevice;
                 DeleteDeviceMode = true;
             }
         }
@@ -520,16 +525,16 @@
         }
     }
 
-    private async Task AddDevice(int deviceId)
+    private async Task AddDevice(Device device)
     {
+
         try
         {
-            var Variables = new { tenantId = actTenant.Id, deviceId = deviceId };
+            var Variables = new { tenantId = actTenant.Id, deviceId = device.Id };
             ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.AuthQueries.addDeviceToTenant, Variables)).ReturnIds;
-            if (returnIds != null && returnIds[0].NewId == deviceId)
+            if (returnIds != null && returnIds[0].NewId == device.Id)
             {
-                Device newDevice = new Device() { Id = deviceId, Name = devices.Find(x => x.Id == deviceId)?.Name };
-                actTenant.TenantDevices = actTenant.TenantDevices.Append(new TenantDevice() { VisibleDevice = newDevice }).ToArray();
+                actTenant.TenantDevices = actTenant.TenantDevices.Append(new TenantDevice() { VisibleDevice = device }).ToArray();
                 AddDeviceMode = false;
             }
         }
@@ -539,8 +544,9 @@
         }
     }
 
-    private async Task DeleteDevice(int deviceId)
+    private async Task DeleteDevice(Device device)
     {
+        int deviceId = device.Id;
         try
         {
             var Variables = new { tenantId = actTenant.Id, deviceId = deviceId };

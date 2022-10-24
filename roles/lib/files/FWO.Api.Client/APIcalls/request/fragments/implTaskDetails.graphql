@@ -16,6 +16,13 @@ fragment implTaskDetails on request_impltask {
   nw_obj_grp_id
   user_grp_id
   current_handler: uiuser {
+    uiuser_id
+    uuid
+    uiuser_username
+  }
+  recent_handler: uiuser {
+    uiuser_id
+    uuid
     uiuser_username
   }
   target_begin_date

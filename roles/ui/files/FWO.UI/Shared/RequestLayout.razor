@@ -86,6 +86,9 @@
 
 @code
 {
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+
     private int sidebarWidth = 250;
     private StateMatrix stateMatrix = new StateMatrix();
     private bool InitComplete = false;
@@ -93,7 +96,14 @@
     protected override async Task OnInitializedAsync()
     {
         userConfig.OnChange += OnChange;
-        await stateMatrix.Init(WorkflowPhases.request, apiConnection);
+        try
+        {
+            await stateMatrix.Init(WorkflowPhases.request, apiConnection);
+        }
+        catch(Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("init_environment"), "", true);
+        }
         InitComplete = true;
     }
 

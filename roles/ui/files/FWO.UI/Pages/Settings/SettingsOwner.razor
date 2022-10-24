@@ -1,8 +1,5 @@
 ﻿@using FWO.Api.Client
 @using FWO.Config.Api
-@using FWO.Config.Api.Data
-@using FWO.Ui.Services
-@using System.Text.Json
 @using System.Net
 @using FWO.Middleware.Client
 @using FWO.Middleware.RequestParameters
@@ -37,7 +34,14 @@
                             <button class="btn btn-sm btn-danger" @onclick="() => RequestDeleteOwner(context)">@(userConfig.GetText("delete"))</button>
                             @if(!context.IsDefault)
                             {
-                                <button class="btn btn-sm btn-warning" @onclick="() => SetDefault(context)">@(userConfig.GetText("set_default"))</button>
+                                <AuthorizeView Roles="admin" Context="ctx">
+                                    <Authorized>
+                                        <button class="btn btn-sm btn-warning" @onclick="() => SetDefault(context)">@(userConfig.GetText("set_default"))</button>
+                                    </Authorized>
+                                    <NotAuthorized>
+                                        <button class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("set_default"))</button>
+                                    </NotAuthorized> 
+                                </AuthorizeView>
                             }
                         </div>
                     </Template>

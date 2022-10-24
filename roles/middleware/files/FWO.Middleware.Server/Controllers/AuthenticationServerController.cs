@@ -25,13 +25,31 @@ namespace FWO.Middleware.Controllers
             this.ldaps = ldaps;
         }
 
-        // GET: api/<LdapController>/TestConnection/5
+        /// <summary>
+        /// Test connection to the specified Ldap.
+        /// </summary>
+        /// <remarks>
+        /// Address (required) &#xA;
+        /// Port (required) &#xA; 
+        /// SearchUser AND SearchUserPassword (optional) - leads to test of search user binding &#xA;
+        /// WriteUser AND WriterUserPassword (optional) - leads to test of write user binding
+        /// </remarks>
+        /// <param name="parameters">Ldap connection parameters</param>
+        /// <returns></returns>
         [HttpGet("TestConnection")]
         [Authorize(Roles = "admin, auditor")]
-        public int TestConnection([FromBody] LdapGetUpdateParameters parameters)
+        public ActionResult<string> TestConnection([FromBody] LdapGetUpdateParameters parameters)
         {
-            Ldap ldapToTest = new Ldap(parameters);
-            return ldapToTest.TestConnection();
+            try
+            {
+                Ldap ldapToTest = new Ldap(parameters);
+                ldapToTest.TestConnection();
+            }
+            catch (Exception e)
+            {
+                Problem("Connection test failed: " + e.Message);
+            }
+            return Ok("Connection tested successfully");
         }
 
         // GET: api/<LdapController>

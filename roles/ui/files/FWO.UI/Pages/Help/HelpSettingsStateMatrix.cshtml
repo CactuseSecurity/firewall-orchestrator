@@ -1,0 +1,42 @@
+﻿@page "/help/settings/statematrix"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@(userConfig.GetText("state_matrix"))</h3>
+    @(Html.Raw(userConfig.GetText("H5541")))
+    <ul>
+        <li>
+            @(Html.Raw(userConfig.GetText("H5542")))
+        </li>
+        <li>
+            @(Html.Raw(userConfig.GetText("H5543")))
+        </li>
+        <li>
+            @(Html.Raw(userConfig.GetText("H5544")))
+        </li>
+        <li>
+            @(Html.Raw(userConfig.GetText("H5545")))
+            <ul>
+                <li>
+                    @(Html.Raw(userConfig.GetText("H5551")))
+                </li>
+                <li>
+                    @(Html.Raw(userConfig.GetText("H5552")))
+                </li>
+                <li>
+                    @(Html.Raw(userConfig.GetText("H5553")))
+                </li>
+            </ul>
+        </li>
+    </ul>
+</div>

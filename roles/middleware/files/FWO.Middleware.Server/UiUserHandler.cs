@@ -117,7 +117,7 @@ namespace FWO.Middleware.Server
                     id = id, 
                     loginTime = DateTime.UtcNow
                 };
-                return (await apiConn.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.AuthQueries.updateUserLastLogin, Variables)).PasswordMustBeChanged;
+                return (await apiConn.SendQueryAsync<ReturnId>(AuthQueries.updateUserLastLogin, Variables)).PasswordMustBeChanged;
             }
             catch(Exception exeption)
             {
@@ -136,7 +136,7 @@ namespace FWO.Middleware.Server
                     passwordMustBeChanged = passwordMustBeChanged,
                     changeTime = DateTime.UtcNow
                 };
-                await apiConn.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.AuthQueries.updateUserPasswordChange, Variables);
+                await apiConn.SendQueryAsync<ReturnId>(AuthQueries.updateUserPasswordChange, Variables);
             }
             catch(Exception exeption)
             {

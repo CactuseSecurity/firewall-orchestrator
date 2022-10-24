@@ -658,6 +658,8 @@ INSERT INTO txt VALUES ('opened',               'German', 	'Ge&ouml;ffnet');
 INSERT INTO txt VALUES ('opened',               'English',  'Opened');
 INSERT INTO txt VALUES ('deadline',             'German', 	'Deadline');
 INSERT INTO txt VALUES ('deadline',             'English',  'Deadline');
+INSERT INTO txt VALUES ('assign1', 			    'German',	'Zuweisen');
+INSERT INTO txt VALUES ('assign1', 			    'English',	'Assign');
 INSERT INTO txt VALUES ('assign_to', 			'German',	'Weiterleiten an');
 INSERT INTO txt VALUES ('assign_to', 			'English',	'Assign to');
 INSERT INTO txt VALUES ('assign_group', 		'German',	'Gruppe zuweisen');
@@ -3274,8 +3276,8 @@ INSERT INTO txt VALUES ('H8133', 'German',  'Status: Der Aufrags-Status wird zun
 INSERT INTO txt VALUES ('H8133', 'English', 'State: The state of the request task is determined from the ticket state in the beginning, later from the associated approvals resp. implementation tasks.');
 INSERT INTO txt VALUES ('H8134', 'German',  'Bearbeiter: Hier wird automatisch der Nutzer, welcher den Auftrag als letztes bearbeitet hat, gesetzt.');
 INSERT INTO txt VALUES ('H8134', 'English', 'Handler: Automatically the last editing user of the request task is set.');
-INSERT INTO txt VALUES ('H8135', 'German',  'Zugewiesen: Ein fachlicher Auftrag kann einem anderen Nutzer explizit zugewiesen werden.');
-INSERT INTO txt VALUES ('H8135', 'English', 'Assigned: A request task can be assigned to another user explicitly.');
+INSERT INTO txt VALUES ('H8135', 'German',  'Zugewiesen: Ein fachlicher Auftrag kann einem Nutzer explizit <a href="/help/workflow/phases">zugewiesen</a> sein.');
+INSERT INTO txt VALUES ('H8135', 'English', 'Assigned: A request task can be <a href="/help/workflow/phases">assigned</a> to a user explicitly.');
 INSERT INTO txt VALUES ('H8136', 'German',  'Tasktypspezifische Felder: Je nach ausgew&auml;hltem Auftragstyp werden unterschiedliche Felder eingeblendet (<a href="/help/workflow/tasktypes">Tasktypen</a>).');
 INSERT INTO txt VALUES ('H8136', 'English', 'Task type specific fields: Depending on the task type different fields are displayed (<a href="/help/workflow/tasktypes">Task types</a>)');
 INSERT INTO txt VALUES ('H8137', 'German',  'Grund: Dient vor allem der detaillierteren Dokumentation auf fachlicher Ebene und Erkl&auml;rung f&uuml;r Genehmiger und ggf. Planer. Wird in Phasen ab Implementierung nicht mehr dargestellt.');
@@ -3300,8 +3302,8 @@ INSERT INTO txt VALUES ('H8153', 'German',  'Status: Status des Implementierungs
 INSERT INTO txt VALUES ('H8153', 'English', 'State: State of the implementation task.');
 INSERT INTO txt VALUES ('H8154', 'German',  'Implementierer: Hier wird automatisch der Nutzer, welcher den Implementierungs-Auftrag als letztes bearbeitet hat, gesetzt.');
 INSERT INTO txt VALUES ('H8154', 'English', 'Implementer: Automatically the last editing user of the implementation task is set.');
-INSERT INTO txt VALUES ('H8155', 'German',  'Zugewiesen: Ein Implementierungs-Auftrag kann einem anderen Nutzer explizit zugewiesen werden.');
-INSERT INTO txt VALUES ('H8155', 'English', 'Assigned: An implementation task can be assigned to another user explicitly.');
+INSERT INTO txt VALUES ('H8155', 'German',  'Zugewiesen: Ein Implementierungs-Auftrag kann einem Nutzer explizit <a href="/help/workflow/phases">zugewiesen</a> sein.');
+INSERT INTO txt VALUES ('H8155', 'English', 'Assigned: An implementation task can be <a href="/help/workflow/phases">assigned</a> to a user explicitly.');
 INSERT INTO txt VALUES ('H8156', 'German',  'Tasktypspezifische Felder: werden aus den entsprechenden Feldern des fachlichen Auftrags weitgehend vorbelegt. Der Planer kann dann daran &Auml;nderungen vornehmen. Der Auftragstyp selbst kann nicht mehr ge&auml;ndert werden.');
 INSERT INTO txt VALUES ('H8156', 'English', 'Task type specific fields: are mostly prefilled from the corresponding fields of the request task. The planner can make changes on them. The task type itself can not be changed anymore.');
 INSERT INTO txt VALUES ('H8157', 'German',  'Kommentare: In den Phasen Implementierung und Review k&ouml;nnen Kommentare zu dem Implementierungs-Auftrag hinzugef&uuml;gt werden. Sie werden mit Datum und Autor aufgelistet und k&ouml;nnen nicht gel&ouml;scht werden.');
@@ -3415,20 +3417,32 @@ INSERT INTO txt VALUES ('H8314', 'German',  'Planungen (Rolle: planner, fw-admin
     Ist diese Phase aktiviert, greift die automatische Erzeugung der Implementierungs-Auftr&auml;ge nicht (<a href="/help/settings/workflowcustomizing">Einstellungen</a>).
     Stattdessen kann der Planer beliebige Implementierungs-Auftr&auml;ge erzeugen, editieren und l&ouml;schen. 
     Dabei werden die Felder aus den analogen Feldern des fachlichen Auftrags zwar weitgehend vorbelegt, k&ouml;nnen aber beliebig den Erfordernissen entsprechend abge&auml;ndert werden.
+    Die fachlichen Auftr&auml;ge k&ouml;nnen in dieser Phase auch anderen Nutzern oder Gruppen zugewiesen werden. 
+    Bei Bet&auml;tigen der entsprechenden Schaltfl&auml;che erscheint eine Auswahlliste aller Nutzer und internen Gruppen, welche den notwendigen Rollen f&uuml;r diese Planungsphase besitzen.
+    Wurde einem selbst auf diese Weise der Auftrag zugewiesen, wird auch eine Option zum direkten Zur&uuml;ckzuweisen angeboten.
 ');
 INSERT INTO txt VALUES ('H8314', 'English', 'Plannings (Role: planner, fw-admin), optional:
     The workflow can be designed to create implementation tasks from the request tasks manually by a planner.
     In case this phase is active, the automatic creation of implementation tasks is deactivated (<a href="/help/settings/workflowcustomizing">Customizing</a>).
     Instead, the planner can create, edit or delete arbitrarily implementation tasks.
     When creating, the fields are largely prefilled by the corresponding fields in the request task, but can be changed according to the needs.
+    The request tasks can also be assigned to other users or groups in this phase.
+    After pushing the respective button a selection list appears with all users and groups, which own the necessary roles for the planning phase.
+    If the task had been assigned to oneself this way, an option for direct assigning back is shown.
 ');
 INSERT INTO txt VALUES ('H8315', 'German',  'Implementierungen (Rolle: implementer, fw-admin), voreingestellt: 
     Hier wird die technische Umsetzung der einzelnen Auftr&auml;ge unterst&uuml;tzt und dokumentiert. Die fachlichen Auftr&auml;ge sind im Ticket nicht sichtbar, lediglich die Implementierungs-Auftr&auml;ge.
     In der &Uuml;bersicht k&ouml;nnen f&uuml;r den Nutzer auch statt der Tickets direkt alle Implementierungs-Auftr&auml;ge oder nur die Implementierungs-Auftr&auml;ge f&uuml;r ein Ger&auml;t dargestellt werden.
+    Die Implementierungs-Auftr&auml;ge k&ouml;nnen in dieser Phase auch anderen Nutzern oder Gruppen zugewiesen werden. 
+    Bei Bet&auml;tigen der entsprechenden Schaltfl&auml;che erscheint eine Auswahlliste aller Nutzer und internen Gruppen, welche den notwendigen Rollen f&uuml;r Implementierungsphase besitzen.
+    Wurde einem selbst auf diese Weise der Auftrag zugewiesen, wird auch eine Option zum direkten Zur&uuml;ckzuweisen angeboten.
 ');
 INSERT INTO txt VALUES ('H8315', 'English', 'Implementations (Role: implementer, fw-admin), preselected:
     Here the technical realization of the single tasks is supported and documented. Functional (request) tasks are not visible, only the implementation tasks.
     In the overview, instead of the tickets, also a list of all implementation task or the implementation tasks for a special device can be displayed.
+    The implementation tasks can also be assigned to other users or groups in this phase.
+    After pushing the respective button a selection list appears with all users and groups, which own the necessary roles for the implementation phase.
+    If the task had been assigned to oneself this way, an option for direct assigning back is shown.
 ');
 INSERT INTO txt VALUES ('H8316', 'German',  'Reviews (Rolle: reviewer), optional: 
     Abschliessend kann der Workflow einen Review-Schritt vorsehen, um die Umsetzung des Antrags zu &uuml;berpr&uuml;fen. Dazu werden die Tickets mitsamt der Implementierungs-Auftr&auml;ge dargestellt.

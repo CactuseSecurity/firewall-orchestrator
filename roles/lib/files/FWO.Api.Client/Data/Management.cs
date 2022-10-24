@@ -112,8 +112,10 @@ namespace FWO.Api.Data
             Id = management.Id;
             Name = management.Name;
             Hostname = management.Hostname;
-            ImportCredentialId = management.ImportCredentialId;
             ImportCredential = new ImportCredential(management.ImportCredential);
+            ImportCredentialId = management.ImportCredential.Id;
+            // ImportCredentialId = management.ImportCredentialId;
+            // ImportCredential = new ImportCredential(management.ImportCredential);
             ConfigPath = management.ConfigPath;
             DomainUid = management.DomainUid;
             ImporterHostname = management.ImporterHostname;

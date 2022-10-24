@@ -17,9 +17,13 @@ fragment reqTaskDetails on request_reqtask {
   free_text
   last_recert_date
   current_handler: uiuser {
+    uiuser_id
+    uuid
     uiuser_username
   }
   recent_handler: uiuser {
+    uiuser_id
+    uuid
     uiuser_username
   }
   assigned_group

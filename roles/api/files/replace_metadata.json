@@ -11063,7 +11063,8 @@
                       "dev_typ_name",
                       "dev_typ_predef_obj",
                       "dev_typ_predef_svc",
-                      "dev_typ_version"
+                      "dev_typ_version",
+                      "is_pure_routing_device"
                     ],
                     "filter": {}
                   }
@@ -11127,7 +11128,8 @@
                       "dev_typ_name",
                       "dev_typ_predef_obj",
                       "dev_typ_predef_svc",
-                      "dev_typ_version"
+                      "dev_typ_version",
+                      "is_pure_routing_device"
                     ],
                     "filter": {}
                   }
@@ -11191,7 +11193,8 @@
                       "dev_typ_name",
                       "dev_typ_predef_obj",
                       "dev_typ_predef_svc",
-                      "dev_typ_version"
+                      "dev_typ_version",
+                      "is_pure_routing_device"
                     ],
                     "filter": {}
                   }
@@ -11277,7 +11280,8 @@
                       "dev_typ_name",
                       "dev_typ_predef_obj",
                       "dev_typ_predef_svc",
-                      "dev_typ_version"
+                      "dev_typ_version",
+                      "is_pure_routing_device"
                     ],
                     "filter": {}
                   }
@@ -11297,7 +11301,8 @@
                       "dev_typ_name",
                       "dev_typ_predef_obj",
                       "dev_typ_predef_svc",
-                      "dev_typ_version"
+                      "dev_typ_version",
+                      "is_pure_routing_device"
                     ],
                     "filter": {}
                   }

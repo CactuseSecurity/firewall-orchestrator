@@ -157,16 +157,22 @@ namespace FWO.DeviceAutoDiscovery
                     else if (changedMgmt.Id == 0)   // adding new management
                     {
                         DeviceType devtype = new DeviceType();
+                        ImportCredential importCred = new ImportCredential();
                         if (changedMgmt.DeviceType != null || changedMgmt.DeviceType?.Id == 0)
                             devtype = changedMgmt.DeviceType;
                         else
                             devtype = new DeviceType() { Id = superManagement.DeviceType.GetManagementTypeId() };
 
+                        if (changedMgmt.ImportCredential != null || changedMgmt.ImportCredential?.Id == 0)
+                            importCred = changedMgmt.ImportCredential;
+                        else
+                            importCred = new ImportCredential() { Id = superManagement.ImportCredential.Id };
+
                         Management MgtVariables = new Management
                         {
                             Hostname = superManagement.Hostname,
-                            ImportCredentialId = superManagement.ImportCredential.Id, // ImportCredentialId,
-                            // ImportCredential = new ImportCredential(superManagement.ImportCredential.ImportUser, superManagement.ImportCredential.Secret),
+                            // ImportCredentialId = importCred.Id,
+                            ImportCredential = importCred,
                             ImporterHostname = superManagement.ImporterHostname,
                             DebugLevel = superManagement.DebugLevel,
                             Port = superManagement.Port,

@@ -165,7 +165,7 @@ namespace FWO.DeviceAutoDiscovery
                         Management MgtVariables = new Management
                         {
                             Hostname = superManagement.Hostname,
-                            ImportCredentialId = superManagement.ImportCredentialId,
+                            ImportCredentialId = superManagement.ImportCredential.Id, // ImportCredentialId,
                             // ImportCredential = new ImportCredential(superManagement.ImportCredential.ImportUser, superManagement.ImportCredential.Secret),
                             ImporterHostname = superManagement.ImporterHostname,
                             DebugLevel = superManagement.DebugLevel,

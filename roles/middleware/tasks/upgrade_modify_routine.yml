@@ -1,52 +1,36 @@
-- name: read ldif file from target
-  slurp:
-    src: "{{ middleware_ldif_dir }}/{{ outer_item }}.ldif"
-  register: big_encoded_ldif_file
+- name: create ldif files from big ldif file that contain only one change
+  copy:
+    dest: "{{ middleware_ldif_dir }}/{{ outer_item }}_{{ item.split(',')[0] }}.ldif"
+    content: "dn: {{ item }}"
+    force: yes
 
-- name: decode big ldif file
+- name: determine distinguished name and changetype
   set_fact:
-    big_ldif_file: "{{ big_encoded_ldif_file['content'] | b64decode }}"
+    distinguished_name: "{{ item.splitlines()[0] }}"
+    changetype: "{{ item.split('changetype: ')[1].splitlines()[0] }}"
 
-- name: create list from big ldif file
-  set_fact:
-    ldif_list: "{{ big_ldif_file.split('dn: ') }}"
+- name: test if distinguished name exists
+  # error code 32, when searchbase not existing
+  command: "ldapsearch -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -b {{ distinguished_name }}"
+  become: yes
+  register: search_existence
+  failed_when: (search_existence.rc != 0) and (search_existence.rc != 32)
 
-- block:
-  - name: create ldif files from big ldif file that contain only one change
-    copy:
-      dest: "{{ middleware_ldif_dir }}/{{ outer_item }}_{{ item.split(',')[0] }}.ldif"
-      content: "dn: {{ item }}"
-      force: yes
+- name: add ldap entry if not existing
+  command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ middleware_ldif_dir }}/{{ outer_item }}_{{ item.split(',')[0] }}.ldif"
+  when: (changetype == 'add') and (search_existence.stdout.split('result:')[1].splitlines()[0] is match('.*No such object'))
+  become: yes
 
-  - name: determine distinguished name and changetype
-    set_fact:
-      distinguished_name: "{{ item.splitlines()[0] }}"
-      changetype: "{{ item.split('changetype: ')[1].splitlines()[0] }}"
+- name: delete ldap entry if existing
+  # dont delete in case numEntries > 1, otherwise ldap nodes are disconected
+  command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ middleware_ldif_dir }}/{{ outer_item }}_{{ item.split(',')[0] }}.ldif"
+  when: (changetype == 'delete') and (search_existence.stdout.split('# numEntries:')[1].splitlines()[0] is match('\s1'))
+  become: yes
 
-  - name: test if distinguished name exists
-    # error code 32, when searchbase not existing
-    command: "ldapsearch -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -b {{ distinguished_name }}"
-    become: yes
-    register: search_existence
-    failed_when: (search_existence.rc != 0) and (search_existence.rc != 32)
-
-  - name: add ldap entry if not existing
-    command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ middleware_ldif_dir }}/{{ outer_item }}_{{ item.split(',')[0] }}.ldif"
-    when: (changetype == 'add') and (search_existence.stdout.split('result:')[1].splitlines()[0] is match('.*No such object'))
-    become: yes
-
-  - name: delete ldap entry if existing
-    # dont delete in case numEntries > 1, otherwise ldap nodes are disconected
-    command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ middleware_ldif_dir }}/{{ outer_item }}_{{ item.split(',')[0] }}.ldif"
-    when: (changetype == 'delete') and (search_existence.stdout.split('# numEntries:')[1].splitlines()[0] is match('\s1'))
-    become: yes
-
-  - name: modify ldap entry if existing
-    # error code 20, when attribute already exists
-    command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ middleware_ldif_dir }}/{{ outer_item }}_{{ item.split(',')[0] }}.ldif"
-    register: modify_out
-    when: (changetype == 'modify') and (search_existence.stdout.split('# numEntries:')[1].splitlines()[0] is match('\s1'))
-    become: yes
-    failed_when: (modify_out.rc != 0) and (modify_out.rc != 16) and (modify_out.rc != 20)
-
-  loop: "{{ ldif_list[1:] }}"
+- name: modify ldap entry if existing
+  # error code 20, when attribute already exists
+  command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ middleware_ldif_dir }}/{{ outer_item }}_{{ item.split(',')[0] }}.ldif"
+  register: modify_out
+  when: (changetype == 'modify') and (search_existence.stdout.split('# numEntries:')[1].splitlines()[0] is match('\s1'))
+  become: yes
+  failed_when: (modify_out.rc != 0) and (modify_out.rc != 16) and (modify_out.rc != 20)

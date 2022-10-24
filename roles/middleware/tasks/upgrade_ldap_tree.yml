@@ -28,4 +28,5 @@
 - name: 
   include_tasks: upgrade_modify_routine.yml
   loop: "{{ upgrade_files | sort }}"
-
+  loop_control:
+    loop_var: outer_item

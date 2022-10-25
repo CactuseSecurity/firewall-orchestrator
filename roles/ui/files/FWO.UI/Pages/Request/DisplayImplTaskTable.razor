@@ -31,7 +31,7 @@
                                 <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => EditImplTask(implTask)">@(userConfig.GetText("edit"))</button>
                                 <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteImplTask(implTask)">@(userConfig.GetText("delete"))</button>
                             }
-                            else if (Phase >= WorkflowPhases.implementation && implTask.StateId >= ReqHandler.StateMatrix(implTask.TaskType).LowestInputState && ReqHandler.ActTicket.StateId >= ReqHandler.MasterStateMatrix.LowestInputState)
+                            else if (Phase >= WorkflowPhases.implementation && implTask.StateId >= ReqHandler.StateMatrix(implTask.TaskType).LowestInputState && ReqHandler.TicketList.FirstOrDefault(x => x.Id == implTask.TicketId).StateId >= ReqHandler.MasterStateMatrix.LowestInputState)
                             {
                                 @if (implTask.StateId < ReqHandler.StateMatrix(implTask.TaskType).LowestStartedState)
                                 {

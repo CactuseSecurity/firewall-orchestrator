@@ -17,8 +17,8 @@ namespace FWO.Api.Data
         [JsonProperty("import_credential"), JsonPropertyName("import_credential")]
         public ImportCredential ImportCredential { get; set; }
 
-        [JsonProperty("import_credential_id"), JsonPropertyName("import_credential_id")]
-        public int ImportCredentialId { get; set; }
+        // [JsonProperty("import_credential_id"), JsonPropertyName("import_credential_id")]
+        // public int ImportCredentialId { get; set; }
 
         [JsonProperty("configPath"), JsonPropertyName("configPath")]
         public string ConfigPath { get; set; } = "";
@@ -104,7 +104,7 @@ namespace FWO.Api.Data
 
         public Management()
         {
-            ImportCredential= new ImportCredential();
+            // ImportCredential= new ImportCredential();
         }
 
         public Management(Management management)
@@ -112,10 +112,7 @@ namespace FWO.Api.Data
             Id = management.Id;
             Name = management.Name;
             Hostname = management.Hostname;
-            ImportCredential = new ImportCredential(management.ImportCredential);
-            ImportCredentialId = management.ImportCredential.Id;
-            // ImportCredentialId = management.ImportCredentialId;
-            // ImportCredential = new ImportCredential(management.ImportCredential);
+            ImportCredential = management.ImportCredential;
             ConfigPath = management.ConfigPath;
             DomainUid = management.DomainUid;
             ImporterHostname = management.ImporterHostname;

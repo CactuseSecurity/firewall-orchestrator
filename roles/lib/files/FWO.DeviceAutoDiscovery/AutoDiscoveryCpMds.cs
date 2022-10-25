@@ -60,8 +60,7 @@ namespace FWO.DeviceAutoDiscovery
                                     Name = superManagement.Name + "__" + domain.Name,
                                     ImporterHostname = superManagement.ImporterHostname,
                                     Hostname = superManagement.Hostname,
-                                    ImportCredentialId = superManagement.ImportCredential.Id,
-                                    // ImportCredential = new ImportCredential { Id = superManagement.ImportCredential.Id },
+                                    ImportCredential = superManagement.ImportCredential,
                                     Port = superManagement.Port,
                                     ImportDisabled = false,
                                     ForceInitialImport = true,
@@ -83,7 +82,7 @@ namespace FWO.DeviceAutoDiscovery
 
                                 // session id pins this session to a specific domain (if domain is given during login)
                                 RestResponse<CpSessionAuthInfo> sessionResponsePerDomain =
-                                    await restClientCP.AuthenticateUser(superManagement.ImportCredential.ImportUser, superManagement.ImportCredential.Secret, domain.Uid);
+                                    await restClientCP.AuthenticateUser(currentManagement.ImportCredential.ImportUser, currentManagement.ImportCredential.Secret, currentManagement.DomainUid);
 
                                 if (sessionResponsePerDomain.StatusCode == HttpStatusCode.OK &&
                                     sessionResponsePerDomain.IsSuccessful &&
@@ -91,7 +90,7 @@ namespace FWO.DeviceAutoDiscovery
                                     sessionResponsePerDomain.Data?.SessionId != "")
                                 {
                                     string sessionIdPerDomain = sessionResponsePerDomain.Data!.SessionId;
-                                    Log.WriteDebug("Autodiscovery", $"successful CP manager login, domain: {domain.Name}, got SessionID: {sessionIdPerDomain}");
+                                    Log.WriteDebug("Autodiscovery", $"successful CP manager login, domain: {domain.Name}/{domain.Uid}, got SessionID: {sessionIdPerDomain}");
 
                                     // now fetching per gateway information (including package and layer names)
                                     List<CpDevice> devList = await restClientCP.GetGateways(@sessionIdPerDomain, ManagementType);

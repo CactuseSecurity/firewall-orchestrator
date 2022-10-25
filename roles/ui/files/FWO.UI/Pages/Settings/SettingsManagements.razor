@@ -146,7 +146,7 @@
                     <div class="form-group row">
                         <label for="managementCredential" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("import_credential"))*:</label>
                         <div class="col-sm-8">
-                            <select id="managementCredential" class="form-control form-control-sm" @bind="actManagement.ImportCredentialId">
+                            <select id="managementCredential" class="form-control form-control-sm" @bind="actManagement.ImportCredential.Id">
                                 @foreach (ImportCredential cred in credentials)
                                 {
                                     <option value="@cred.Id">@(cred.Name)</option>
@@ -434,8 +434,7 @@
                         name = actManagement.Name,
                         devTypeId = actManagement.DeviceType.Id,
                         hostname = actManagement.Hostname,
-                        // importCredentialId = actManagement.ImportCredential.Id, // ImportCredentialId, 
-                        importCredentialId = actManagement.ImportCredentialId, // ImportCredentialId,
+                        importCredentialId = actManagement.ImportCredential.Id,
                         port = actManagement.Port,
                         importDisabled = actManagement.ImportDisabled,
                         forceInitialImport = actManagement.ForceInitialImport,
@@ -464,7 +463,7 @@
                         name = actManagement.Name,
                         devTypeId = actManagement.DeviceType.Id,
                         hostname = actManagement.Hostname,
-                        importCredentialId = actManagement.ImportCredentialId,
+                        importCredentialId = actManagement.ImportCredential.Id,
                         port = actManagement.Port,
                         importDisabled = actManagement.ImportDisabled,
                         forceInitialImport = actManagement.ForceInitialImport,
@@ -484,11 +483,13 @@
                 actManagement.DeviceType.Name = devtype.Name;
                 actManagement.DeviceType.Version = devtype.Version;
 
-                ImportCredential? cred = credentials.FirstOrDefault(x => x.Id == actManagement.ImportCredentialId) ?? throw new Exception("Unknown credentials");
-                actManagement.ImportCredential.Name = cred.Name;
-                actManagement.ImportCredential.Secret = cred.Secret;
-                actManagement.ImportCredential.PublicKey = cred.PublicKey;
-                actManagement.ImportCredential.IsKeyPair = cred.IsKeyPair;
+                ImportCredential? cred = credentials.FirstOrDefault(x => x.Id == actManagement.ImportCredential.Id) ?? throw new Exception("Unknown credentials");
+                actManagement.ImportCredential = cred;
+
+                // actManagement.ImportCredential.Name = cred.Name;
+                // actManagement.ImportCredential.Secret = cred.Secret;
+                // actManagement.ImportCredential.PublicKey = cred.PublicKey;
+                // actManagement.ImportCredential.IsKeyPair = cred.IsKeyPair;
             }
             StateHasChanged();
         }

@@ -27,7 +27,7 @@ namespace FWO.DeviceAutoDiscovery
                     CheckPointClient restClientCP = new CheckPointClient(superManagement);
                     string domainString = superManagement.ConfigPath;
                     if (superManagement.DomainUid != null && superManagement.DomainUid != "")
-                        domainString= superManagement.ConfigPath;
+                        domainString= superManagement.DomainUid;
                     RestResponse<CpSessionAuthInfo> sessionResponse = await restClientCP.AuthenticateUser(superManagement.ImportCredential.ImportUser, superManagement.ImportCredential.Secret, domainString);
                     if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && sessionResponse.Data?.SessionId != null && sessionResponse.Data?.SessionId != "")
                     {

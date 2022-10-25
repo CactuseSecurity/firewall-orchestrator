@@ -245,7 +245,13 @@ def enrich_config (config, mgm_details, limit=150, details_level='full', noapi=F
     if noapi == False:
         # if sid is None:
         # TODO: why is the re-genereation of a new sid necessary here?
-        sid = getter.login(mgm_details['import_credential']['user'],mgm_details['import_credential']['secret'],mgm_details['hostname'],mgm_details['port'],mgm_details['configPath'])
+
+        if mgm_details['domainUid'] != None:
+            api_domain = mgm_details['domainUid']
+        else:
+            api_domain = mgm_details['configPath']
+        
+        sid = getter.login(mgm_details['import_credential']['user'],mgm_details['import_credential']['secret'],mgm_details['hostname'],mgm_details['port'],api_domain)
         logger.debug ( "re-logged into api" )
 
         # if an object is not there:

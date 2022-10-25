@@ -177,6 +177,12 @@ namespace FWO.Ui.Services
         public void SetTicketEnv(RequestTicket ticket)
         {
             ActTicket = ticket;
+            ResetImplTaskList();
+            ActStateMatrix = MasterStateMatrix;
+        }
+
+        public void ResetImplTaskList()
+        {
             AllImplTasks = new List<RequestImplTask>();
             foreach(var reqTask in ActTicket.Tasks)
             {
@@ -187,7 +193,6 @@ namespace FWO.Ui.Services
                     AllImplTasks.Add(implTask);
                 }
             }
-            ActStateMatrix = MasterStateMatrix;
         }
 
         public void SetTicketOpt(ObjAction action)
@@ -313,7 +318,7 @@ namespace FWO.Ui.Services
 
         public void SetReqTaskEnv (RequestReqTask reqTask)
         {
-            ActReqTask = reqTask;
+            ActReqTask = new RequestReqTask(reqTask);
             RequestTicket? tick = TicketList.FirstOrDefault(x => x.Id == ActReqTask.TicketId);
             if(tick != null)
             {
@@ -487,7 +492,7 @@ namespace FWO.Ui.Services
         {
             if(approval != null)
             {
-                ActApproval = approval;
+                ActApproval = new RequestApproval(approval);
             }
             else
             {
@@ -641,7 +646,7 @@ namespace FWO.Ui.Services
 
         public void SetImplTaskEnv(RequestImplTask implTask)
         {
-            ActImplTask = implTask;
+            ActImplTask = new RequestImplTask(implTask);
             RequestTicket? tick = TicketList.FirstOrDefault(x => x.Id == ActImplTask.TicketId);
             if(tick != null)
             {
@@ -775,18 +780,8 @@ namespace FWO.Ui.Services
                     ActImplTask.Stop = DateTime.Now;
                 }
                 await UpdateActImplTaskState();
-                bool openImplTask = false;
-                foreach(var impltask in ActReqTask.ImplementationTasks)
-                {
-                    if(impltask.Stop == null)
-                    {
-                        openImplTask = true;
-                    }
-                }
-                if(!openImplTask && ActReqTask.Stop == null)
-                {
-                    ActReqTask.Stop = ActImplTask.Stop;
-                }
+                ResetImplTaskList();
+                SyncReqTaskStopTime();
                 await UpdateReqTaskStateFromImplTasks(ActReqTask);
                 await UpdateActTicketStateFromReqTasks();
                 DisplayPromoteMode = false;
@@ -794,6 +789,22 @@ namespace FWO.Ui.Services
             catch (Exception exception)
             {
                 DisplayMessageInUi!(exception, userConfig.GetText("save_task"), "", true);
+            }
+        }
+
+        public void SyncReqTaskStopTime()
+        {
+            bool openImplTask = false;
+            foreach(var impltask in ActReqTask.ImplementationTasks)
+            {
+                if(impltask.Stop == null)
+                {
+                    openImplTask = true;
+                }
+            }
+            if(!openImplTask && ActReqTask.Stop == null)
+            {
+                ActReqTask.Stop = ActImplTask.Stop;
             }
         }
 

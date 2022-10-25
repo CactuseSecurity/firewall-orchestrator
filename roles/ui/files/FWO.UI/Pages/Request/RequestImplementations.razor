@@ -37,7 +37,7 @@
     else
     {
         <DisplayImplTaskTable Phase="WorkflowPhases.implementation" States="states" 
-            ReqHandler="reqHandler" ResetParent="Reset" AllImplTasks="allImplTasks" DeviceView="true"
+            ReqHandler="reqHandler" ResetParent="SelectDevice" AllImplTasks="allImplTasks" DeviceView="true"
             StartImplPhase="StartImplementTask"/>
     }
 }
@@ -116,6 +116,8 @@
             }
         }
         DisplayTickets = (DeviceId == -1);
+        await Reset();
+        StateHasChanged();
     }
 
     private async Task Reset()

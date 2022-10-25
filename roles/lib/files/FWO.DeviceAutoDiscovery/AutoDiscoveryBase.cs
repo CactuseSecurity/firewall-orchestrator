@@ -173,6 +173,7 @@ namespace FWO.DeviceAutoDiscovery
                             ForceInitialImport = true,
                             HideInUi = false,
                             ConfigPath = changedMgmt.ConfigPath,
+                            DomainUid = changedMgmt.DomainUid,
                             Name = changedMgmt.Name,
                             DeviceType = devtype,
                             SuperManagerId = superManagement.Id

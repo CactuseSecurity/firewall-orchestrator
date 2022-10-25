@@ -25,8 +25,10 @@ namespace FWO.DeviceAutoDiscovery
                 {
                     Log.WriteDebug("Autodiscovery", $"discovering CP domains & gateways");
                     CheckPointClient restClientCP = new CheckPointClient(superManagement);
-
-                    RestResponse<CpSessionAuthInfo> sessionResponse = await restClientCP.AuthenticateUser(superManagement.ImportCredential.ImportUser, superManagement.ImportCredential.Secret, superManagement.ConfigPath);
+                    string domainString = superManagement.ConfigPath;
+                    if (superManagement.DomainUid != null && superManagement.DomainUid != "")
+                        domainString= superManagement.ConfigPath;
+                    RestResponse<CpSessionAuthInfo> sessionResponse = await restClientCP.AuthenticateUser(superManagement.ImportCredential.ImportUser, superManagement.ImportCredential.Secret, domainString);
                     if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && sessionResponse.Data?.SessionId != null && sessionResponse.Data?.SessionId != "")
                     {
                         // if (sessionResponse==null || sessionResponse.Data==null || sessionResponse.Data.SessionId==null || sessionResponse.Data.SessionId=="")
@@ -78,6 +80,7 @@ namespace FWO.DeviceAutoDiscovery
                                     currentManagement.Name = superManagement.Name;
                                     currentManagement.ConfigPath = "";
                                     currentManagement.SuperManagerId = null;
+                                    currentManagement.DomainUid = "";
                                 }
 
                                 // session id pins this session to a specific domain (if domain is given during login)

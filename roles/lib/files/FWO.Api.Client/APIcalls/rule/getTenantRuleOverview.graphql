@@ -1,12 +1,11 @@
-query listNatRulesDetails(
+query listRulesOverview(
   $management_id: [Int!]
   $device_id: [Int!]
-  $rule_id: [bigint!]
-  $rule_uid: [String!]
-  $ruleSrcName: [String!]
-  $ruleSrcIp: [cidr!]
+  $rule_src_name: [String!]
+  $rule_src_ip: [cidr!]
   $limit: Int
   $offset: Int
+  $tenant_filtering: Boolean
 ) {
   management(
     where: { mgm_id: { _in: $management_id } }
@@ -24,17 +23,16 @@ query listNatRulesDetails(
         limit: $limit
         offset: $offset
         where: {
-          rule_id: { _in: $rule_id }
-          rule_uid: { _in: $rule_uid }
           active: { _eq: true }
-          rule_src: { _in: $ruleSrcName }
-          rule_froms: { object: { obj_ip: { _in: $ruleSrcIp } } }
-          nat_rule: { _eq: true }
+          access_rule: { _eq: true }
+          rule_src: { _in: $rule_src_name }
+          rule_disabled: { _eq: false }
+          get_rule_froms_for_tenant: { object: { obj_ip: { _in: $rule_src_ip } } }
         }
         order_by: { rule_num_numeric: asc }
       ) {
         mgm_id: mgm_id
-        ...natRuleDetails
+        ...ruleOverview
       }
     }
   }

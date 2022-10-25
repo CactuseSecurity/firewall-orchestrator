@@ -334,6 +334,9 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
     private bool processing = false;
     private CancellationTokenSource tokenSource = new CancellationTokenSource();
 
@@ -774,7 +777,8 @@
 
         try
         {
-            DynGraphqlQuery query = Compiler.Compile(input);
+            var tenant_filtering = authenticationStateTask!.Result.User.IsInRole("reporter") || authenticationStateTask!.Result.User.IsInRole("recertifier");
+            DynGraphqlQuery query = Compiler.Compile(input, filtering: tenant_filtering);
 
             filterFeedbackStart = input;
             filterFeedbackError = "";

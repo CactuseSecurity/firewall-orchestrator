@@ -26,7 +26,7 @@ query listRulesOverview(
           access_rule: { _eq: true }
           rule_src: { _in: $rule_src_name }
           rule_disabled: { _eq: false }
-          get_rule_froms_for_tenant: { object: { obj_ip: { _in: $rule_src_ip } } }
+          rule_froms: { object: { obj_ip: { _in: $rule_src_ip } } }
         }
         order_by: { rule_num_numeric: asc }
       ) {

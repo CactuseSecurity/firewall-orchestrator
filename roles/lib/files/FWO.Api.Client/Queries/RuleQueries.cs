@@ -14,6 +14,13 @@ namespace FWO.Api.Client.Queries
         public static readonly string getRuleDetailsForReport;
         public static readonly string getRuleNetworkObjectDetails;
         public static readonly string getRuleIdsOfImport;
+
+        public static readonly string tenantRuleOverviewFragments;
+        public static readonly string tenantRuleDetailsFragments;
+        public static readonly string tenantRuleDetailsForReportFragments;
+        public static readonly string getTenantRuleOverview;
+        public static readonly string getTenantRuleDetails;
+        public static readonly string getTenantRuleDetailsForReport;
         public static readonly string updateRuleMetadataRecert;
         public static readonly string updateRuleMetadataDecert;
 
@@ -23,6 +30,13 @@ namespace FWO.Api.Client.Queries
         public static readonly string getNatRuleOverview;
         public static readonly string getNatRuleDetails;
         public static readonly string getNatRuleDetailsForReport;
+
+        public static readonly string getTenantNatRuleOverviewFragments;
+        public static readonly string getTenantNatRuleDetailsFragments;
+        public static readonly string getTenantNatRuleDetailsForReportFragments;
+        public static readonly string getTenantNatRuleOverview;
+        public static readonly string getTenantNatRuleDetails;
+        public static readonly string getTenantNatRuleDetailsForReport;
 
         static RuleQueries()
         {
@@ -67,6 +81,37 @@ namespace FWO.Api.Client.Queries
 
                 updateRuleMetadataDecert =
                     File.ReadAllText(QueryPath + "rule/updateRuleMetadataDecert.graphql");
+                
+
+                tenantRuleOverviewFragments =
+                    File.ReadAllText(QueryPath + "networkObject/fragments/networkObjectOverview.graphql") +
+                    File.ReadAllText(QueryPath + "networkService/fragments/networkServiceOverview.graphql") +
+                    File.ReadAllText(QueryPath + "user/fragments/userOverview.graphql") +
+                    File.ReadAllText(QueryPath + "rule/fragments/tenantRuleOverview.graphql");
+
+                getTenantRuleOverview =
+                    tenantRuleOverviewFragments +
+                    File.ReadAllText(QueryPath + "rule/getTenantRuleOverview.graphql");
+                
+                tenantRuleDetailsFragments =
+                    ObjectQueries.networkObjectDetailsFragment +
+                    ObjectQueries.networkServiceObjectDetailsFragment +
+                    ObjectQueries.userDetailsFragment +
+                    File.ReadAllText(QueryPath + "rule/fragments/tenantRuleDetails.graphql");
+                
+                tenantRuleDetailsForReportFragments =
+                    ObjectQueries.networkObjectDetailsFragment +
+                    ObjectQueries.networkServiceObjectDetailsFragment +
+                    ObjectQueries.userDetailsFragment +
+                    File.ReadAllText(QueryPath + "rule/fragments/tenantRuleDetailsForReport.graphql");
+                
+                getTenantRuleDetails =
+                    tenantRuleDetailsFragments +
+                    File.ReadAllText(QueryPath + "rule/getTenantRuleDetails.graphql");
+
+                getTenantRuleDetailsForReport =
+                    tenantRuleDetailsForReportFragments +
+                    File.ReadAllText(QueryPath + "rule/getTenantRuleDetails.graphql");
 
 
                 natRuleOverviewFragments = ruleOverviewFragments +
@@ -91,6 +136,31 @@ namespace FWO.Api.Client.Queries
                 getNatRuleDetailsForReport =
                     natRuleDetailsForReportFragments +
                     File.ReadAllText(QueryPath + "rule/getNatRuleDetails.graphql");
+                
+
+                getTenantNatRuleOverviewFragments =
+                    tenantRuleOverviewFragments +
+                    File.ReadAllText(QueryPath + "rule/fragments/tenantNatRuleOverview.graphql");
+                
+                getTenantNatRuleOverview =
+                    getTenantNatRuleOverviewFragments +
+                    File.ReadAllText(QueryPath + "rule/getTenantNatRuleOverview.graphql");
+                
+                getTenantNatRuleDetailsFragments =
+                    tenantRuleDetailsFragments +
+                    File.ReadAllText(QueryPath + "rule/fragments/tenantNatRuleDetails.graphql");
+                
+                getTenantNatRuleDetails =
+                    getTenantNatRuleDetailsFragments +
+                    File.ReadAllText(QueryPath + "rule/getTenantNatRuleDetails.graphql");
+                
+                getTenantNatRuleDetailsForReportFragments =
+                    tenantRuleDetailsForReportFragments +
+                    File.ReadAllText(QueryPath + "rule/fragments/tenantNatRuleDetailsForReport.graphql");
+                
+                getTenantNatRuleDetailsForReport =
+                    getTenantNatRuleDetailsForReportFragments +
+                    File.ReadAllText(QueryPath + "rule/getTenantNatRuleDetails.graphql");
 
             }
             catch (Exception exception)

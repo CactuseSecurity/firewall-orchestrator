@@ -4,6 +4,8 @@ using FWO.Api.Data;
 using System.Text.RegularExpressions;
 using FWO.Logging;
 
+using ApiConnection = FWO.Api.Client.GraphQlApiConnection;
+
 namespace FWO.Report.Filter
 {
     public class DynGraphqlQuery
@@ -202,7 +204,7 @@ namespace FWO.Report.Filter
             SetTimeFilter(ref query, timeFilter, reportType);
         }
 
-        public static DynGraphqlQuery GenerateQuery(string rawInput, AstNode? ast, DeviceFilter? deviceFilter, TimeFilter? timeFilter, ReportType? reportType, bool detailed)
+        public static DynGraphqlQuery GenerateQuery(string rawInput, AstNode? ast, DeviceFilter? deviceFilter, TimeFilter? timeFilter, ReportType? reportType, bool detailed, bool filtering)
         {
             DynGraphqlQuery query = new DynGraphqlQuery(rawInput);
 
@@ -257,7 +259,8 @@ namespace FWO.Report.Filter
                 case ReportType.Rules:
                 case ReportType.ResolvedRules:
                     query.FullQuery = Queries.compact($@"
-                    {(detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
+                    {(filtering ? detailed ? RuleQueries.tenantRuleDetailsForReportFragments : RuleQueries.tenantRuleOverviewFragments
+                                : detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
 
                     query rulesReport ({paramString}) 
                     {{ 

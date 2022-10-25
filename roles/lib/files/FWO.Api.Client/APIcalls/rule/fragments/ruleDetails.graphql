@@ -21,7 +21,7 @@ fragment ruleDetails on rule {
   access_rule
   nat_rule
   xlate_rule
-  rule_froms: get_rule_froms_for_tenant {
+  rule_froms {
     usr {
       ...userDetails
     }
@@ -33,7 +33,7 @@ fragment ruleDetails on rule {
     zone_name
     zone_id
   }
-  rule_tos: get_rule_tos_for_tenant {
+  rule_tos {
     usr {
       ...userDetails
     }

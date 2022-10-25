@@ -28,8 +28,8 @@ query listRulesDetails(
           rule_uid: { _in: $rule_uid }
           active: { _eq: true }
           rule_src: { _in: $ruleSrcName }
+          rule_froms: { object: { obj_ip: { _in: $ruleSrcIp } } }
           access_rule: { _eq: true }
-          get_rule_froms_for_tenant: { object: { obj_ip: { _in: $ruleSrcIp } } }
         }
         order_by: { rule_num_numeric: asc }
       ) {

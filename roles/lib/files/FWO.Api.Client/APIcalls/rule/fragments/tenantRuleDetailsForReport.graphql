@@ -1,4 +1,4 @@
-﻿fragment ruleDetails on rule {
+fragment ruleDetails on rule {
   rule_id
   rule_uid
   rule_action
@@ -21,7 +21,7 @@
   access_rule
   nat_rule
   xlate_rule  
-  rule_froms(where: {object:{obj_create:{_lte:$relevantImportId}, obj_last_seen:{_gte:$relevantImportId}}}) {
+  rule_froms: get_rule_froms_for_tenant(where: {object:{obj_create:{_lte:$relevantImportId}, obj_last_seen:{_gte:$relevantImportId}}}) {
     usr {
       ...userDetails
     }
@@ -33,7 +33,7 @@
     zone_name
     zone_id
   }
-  rule_tos(where: {object:{obj_create:{_lte:$relevantImportId}, obj_last_seen:{_gte:$relevantImportId}}}) {
+  rule_tos: get_rule_tos_for_tenant(where: {object:{obj_create:{_lte:$relevantImportId}, obj_last_seen:{_gte:$relevantImportId}}}) {
     usr {
       ...userDetails
     }

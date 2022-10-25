@@ -18,7 +18,7 @@ namespace FWO.Report.Filter
             else return null;
         }
 
-        public static DynGraphqlQuery Compile(string input, ReportType? reportType = null, DeviceFilter? deviceFilter = null, TimeFilter? timeFilter = null, bool detailed = false)
+        public static DynGraphqlQuery Compile(string input, ReportType? reportType = null, DeviceFilter? deviceFilter = null, TimeFilter? timeFilter = null, bool detailed = false, bool filtering = false)
         {
             bool detailedCalc = detailed || reportType == ReportType.ResolvedRules;
             Log.WriteDebug("Filter", $"Input: \"{input}\", Report Type: \"${reportType}\", Device Filter: \"{deviceFilter}\"");

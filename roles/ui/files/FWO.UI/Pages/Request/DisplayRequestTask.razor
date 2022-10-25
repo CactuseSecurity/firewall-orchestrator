@@ -269,9 +269,8 @@
                 {
                     <h5>@(userConfig.GetText("implementation_tasks"))</h5>
 
-                    <DisplayImplTaskTable Phase="Phase" States="States" 
-                        ReqHandler="ReqHandler" ResetParent="Reset" AllImplTasks="ReqHandler.ActReqTask.ImplementationTasks"
-                        StartImplPhase="StartImplPhase"/>
+                    <DisplayImplTaskTable Phase="Phase" States="States" ReqHandler="ReqHandler" ResetParent="Reset" 
+                        AllImplTasks="ReqHandler.ActReqTask.ImplementationTasks" StartImplPhase="StartImplPhase"/>
                 }
             </form>
         }
@@ -375,11 +374,18 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (ReqHandler.DisplayReqTaskMode)
+        try
         {
-            InitElements();
-            await InitComments();
-            await Reset();
+            if (ReqHandler.DisplayReqTaskMode)
+            {
+                InitElements();
+                await InitComments();
+                await Reset();
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("init_environment"), "", true);
         }
     }
 

@@ -58,7 +58,7 @@ def collect_nw_objects(object_table, nw_objects, debug_level=0, mgm_id=0):
                     else:
                         logger.warning("parse_network::collect_nw_objects - found range object '" +
                                        obj['name'] + "' without hyphen: " + ip_addr)
-                elif (obj_type in nw_obj_type_to_host_list):
+                elif (obj_type in nw_obj_type_to_host_list or obj_type == 'cluster-member'):
                     if debug_level > 5:
                         logger.debug("parse_network::collect_nw_objects - rewriting non-standard cp-host-type '" +
                                      obj['name'] + "' with object type '" + obj_type + "' to host")

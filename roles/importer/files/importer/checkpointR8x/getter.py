@@ -186,7 +186,7 @@ def collect_uids_from_rule(rule, nw_uids_found, svc_uids_found):
                 else:  # standard network objects as source, only here we have an uid value
                     nw_uids_found.append(src['uid'])
             else:
-                logger.warning ("found src without type field: " + json.dumps(src))                
+                #logger.warning ("found src without type field: " + json.dumps(src))                
                 if 'uid' in src:
                     nw_uids_found.append(src['uid'])
 

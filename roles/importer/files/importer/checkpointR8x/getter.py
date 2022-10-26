@@ -9,6 +9,7 @@ from common import FwLoginFailed
 from fwo_log import getFwoLogger
 import fwo_globals
 
+
 details_level = "full"    # 'standard'
 use_object_dictionary = 'false'
 
@@ -159,6 +160,7 @@ def get_changes(sid,api_host,api_port,fromdate):
 def collect_uids_from_rule(rule, nw_uids_found, svc_uids_found):
     # just a guard:
     if 'rule-number' in rule and 'type' in rule and rule['type'] != 'place-holder':
+        logger = getFwoLogger()
 
         if rule['type']=='access-rule': # normal rule (no nat) - merging lists
             lsources = rule["source"]
@@ -171,17 +173,23 @@ def collect_uids_from_rule(rule, nw_uids_found, svc_uids_found):
             lservices = [rule["translated-service"], rule["original-service"]]
 
         for src in lsources:
-            if src['type'] == 'LegacyUserAtLocation':
-                nw_uids_found.append(src["location"])
-            elif src['type'] == 'access-role':
-                if isinstance(src['networks'], str):  # just a single source
-                    if src['networks'] != 'any':   # ignore any objects as they do not contain a uid
-                        nw_uids_found.append(src['networks'])
-                else:  # more than one source
-                    for nw in src['networks']:
-                        nw_uids_found.append(nw)
-            else:  # standard network objects as source, only here we have an uid value
-                nw_uids_found.append(src['uid'])
+            if 'type' in src:
+                if src['type'] == 'LegacyUserAtLocation':
+                    nw_uids_found.append(src["location"])
+                elif src['type'] == 'access-role':
+                    if isinstance(src['networks'], str):  # just a single source
+                        if src['networks'] != 'any':   # ignore any objects as they do not contain a uid
+                            nw_uids_found.append(src['networks'])
+                    else:  # more than one source
+                        for nw in src['networks']:
+                            nw_uids_found.append(nw)
+                else:  # standard network objects as source, only here we have an uid value
+                    nw_uids_found.append(src['uid'])
+            else:
+                logger.warning ("found src without type field: " + json.dumps(src))                
+                if 'uid' in src:
+                    nw_uids_found.append(src['uid'])
+
         for dst in ldestinations:
             nw_uids_found.append(dst['uid'])
         for svc in lservices:

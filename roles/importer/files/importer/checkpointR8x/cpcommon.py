@@ -10,6 +10,7 @@ import fwo_alert, fwo_api
 import ipaddress 
 import fwo_globals
 
+
 def validate_ip_address(address):
     try:
         # ipaddress.ip_address(address)

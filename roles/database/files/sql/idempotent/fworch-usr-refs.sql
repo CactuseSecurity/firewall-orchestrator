@@ -1,5 +1,3 @@
--- $Id: iso-usr-refs.sql,v 1.1.2.5 2011-09-28 21:14:05 tim Exp $
--- $Source: /home/cvs/iso/package/install/database/Attic/iso-usr-refs.sql,v $
 
 /*
  import_usr_refhandler_main (INTEGER) RETURNS VOID
@@ -288,8 +286,10 @@ BEGIN
 		SELECT INTO r_group user_name FROM usr WHERE user_id = i_group_id;
 		PERFORM error_handling('ERR_GRP_MISS_USR', r_group.user_name || ', ' || v_member_name);
 	END IF;
-	INSERT INTO usergrp (usergrp_id,usergrp_member_id,import_created,import_last_seen)
-		VALUES (i_group_id,i_user_id,i_current_import_id,i_current_import_id);
+	IF NOT i_user_id IS NULL THEN
+		INSERT INTO usergrp (usergrp_id,usergrp_member_id,import_created,import_last_seen)
+			VALUES (i_group_id,i_user_id,i_current_import_id,i_current_import_id);
+	END IF;
     RETURN;
 END; 
 $$ LANGUAGE plpgsql;
@@ -311,8 +311,10 @@ BEGIN
 --        SELECT * FROM usergrp WHERE usergrp_member_id=i_old_id AND import_created<=i_current_import_id AND import_last_seen>=i_current_import_id
         SELECT * FROM usergrp WHERE usergrp_member_id=i_old_id AND active
 	LOOP -- die neue Beziehung wird eingefuegt
-		INSERT INTO usergrp (usergrp_id,usergrp_member_id,import_created,import_last_seen)
-			VALUES (r_usergrp.usergrp_id, i_new_id,i_current_import_id,i_current_import_id);
+		IF NOT i_new_id IS NULL THEN
+			INSERT INTO usergrp (usergrp_id,usergrp_member_id,import_created,import_last_seen)
+				VALUES (r_usergrp.usergrp_id, i_new_id,i_current_import_id,i_current_import_id);
+		END IF;
 	END LOOP;
 	RETURN;
 END;
@@ -339,8 +341,10 @@ BEGIN
 --	SELECT INTO v_temp user_name FROM usr WHERE user_id=i_user_id;
 --	v_temp := v_temp || ', id: ' || CAST(i_user_id AS VARCHAR);
 --	RAISE NOTICE 'adding usergrp_flat_self: %', v_temp;
-	INSERT INTO usergrp_flat (usergrp_flat_id,usergrp_flat_member_id,import_created,import_last_seen)
-		VALUES (i_user_id,i_user_id,i_current_import_id,i_current_import_id);
+	IF NOT i_user_id IS NULL THEN
+		INSERT INTO usergrp_flat (usergrp_flat_id,usergrp_flat_member_id,import_created,import_last_seen)
+			VALUES (i_user_id,i_user_id,i_current_import_id,i_current_import_id);
+	END IF;
 	RETURN;
 END; 
 $$ LANGUAGE plpgsql;
@@ -378,7 +382,7 @@ BEGIN
 	LOOP
 		SELECT INTO r_member_exists * FROM usergrp_flat WHERE
 			usergrp_flat_id=i_top_group_id AND usergrp_flat_member_id=r_member.usergrp_member_id;
-		IF NOT FOUND THEN
+		IF NOT FOUND AND NOT r_member.usergrp_member_id IS NULL THEN
 			INSERT INTO usergrp_flat (usergrp_flat_id,usergrp_flat_member_id,import_created,import_last_seen)
 				VALUES (i_top_group_id,r_member.usergrp_member_id,i_current_import_id,i_current_import_id);
 		END IF;
@@ -412,12 +416,7 @@ BEGIN
 	LOOP -- es wird die neue Beziehung eingefuegt, wenn sie noch nicht existiert
 		SELECT INTO r_member_exists * FROM usergrp_flat WHERE
 			usergrp_flat.usergrp_flat_id=r_usergrp_flat.usergrp_flat_id AND usergrp_flat_member_id=i_new_id;
-		IF NOT FOUND THEN
---			SELECT INTO v_temp user_name FROM usr WHERE user_id=i_new_id;
---			v_temp := 'adding usergrp_flat_self: ' || v_temp;
---			SELECT INTO v_temp1 user_name FROM usr WHERE user_id=r_usergrp_flat.usergrp_flat_id;
---			v_temp := v_temp || ' into flat group ' || v_temp1;
---			RAISE NOTICE '%', v_temp;
+		IF NOT FOUND AND NOT i_new_id IS NULL THEN
 			INSERT INTO usergrp_flat (usergrp_flat_id,usergrp_flat_member_id,import_created,import_last_seen)
 				VALUES (r_usergrp_flat.usergrp_flat_id, i_new_id, i_current_import_id, i_current_import_id);
 		END IF;

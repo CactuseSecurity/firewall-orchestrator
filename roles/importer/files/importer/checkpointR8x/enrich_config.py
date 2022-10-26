@@ -7,6 +7,7 @@ sys.path.append(importer_base_dir)
 sys.path.append(importer_base_dir + "/checkpointR8x")
 import cpcommon, fwo_log, getter
 
+
 parser = argparse.ArgumentParser(description='Read configuration from Check Point R8x management via API calls')
 parser.add_argument('-a', '--apihost', metavar='api_host', required=True, help='Check Point R8x management server')
 parser.add_argument('-w', '--password', metavar='api_password_file', default='import_user_secret', help='name of the file to read the password for management server from')

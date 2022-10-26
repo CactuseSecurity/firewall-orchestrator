@@ -53,89 +53,108 @@ def parse_single_rule_to_json(src_rule, rulebase, layer_name, import_id, rule_nu
             # SOURCE names
             rule_src_name = ''
             for src in src_rule["source"]:
-                if src['type'] == 'LegacyUserAtLocation':
-                    rule_src_name += src['name'] + common.list_delimiter
-                elif src['type'] == 'access-role':
-                    if isinstance(src['networks'], str):  # just a single source
-                        if src['networks'] == 'any':
-                            rule_src_name += src["name"] + \
-                                '@' + 'Any' + common.list_delimiter
-                        else:
-                            rule_src_name += src["name"] + '@' + \
-                                src['networks'] + common.list_delimiter
-                    else:  # more than one source
-                        for nw in src['networks']:
-                            rule_src_name += src[
-                                # TODO: this is not correct --> need to reverse resolve name from given UID
-                                "name"] + '@' + nw + common.list_delimiter
-                else:  # standard network objects as source
+                if 'type' in src:
+                    if src['type'] == 'LegacyUserAtLocation':
+                        rule_src_name += src['name'] + common.list_delimiter
+                    elif src['type'] == 'access-role':
+                        if isinstance(src['networks'], str):  # just a single source
+                            if src['networks'] == 'any':
+                                rule_src_name += src["name"] + \
+                                    '@' + 'Any' + common.list_delimiter
+                            else:
+                                rule_src_name += src["name"] + '@' + \
+                                    src['networks'] + common.list_delimiter
+                        else:  # more than one source
+                            for nw in src['networks']:
+                                rule_src_name += src[
+                                    # TODO: this is not correct --> need to reverse resolve name from given UID
+                                    "name"] + '@' + nw + common.list_delimiter
+                    else:  # standard network objects as source
+                        rule_src_name += src["name"] + common.list_delimiter
+                else:
+                    # assuming standard network object as source (interface) with missing type
                     rule_src_name += src["name"] + common.list_delimiter
+
             rule_src_name = rule_src_name[:-1]  # removing last list_delimiter
-            # common.csv_add_field(rule_src_name)  # src_names
 
             # SOURCE refs
             rule_src_ref = ''
             for src in src_rule["source"]:
-                if src['type'] == 'LegacyUserAtLocation':
-                    rule_src_ref += src["userGroup"] + '@' + \
-                        src["location"] + common.list_delimiter
-                elif src['type'] == 'access-role':
-                    if isinstance(src['networks'], str):  # just a single source
-                        if src['networks'] == 'any':
-                            rule_src_ref += src['uid'] + '@' + \
-                                cpcommon.any_obj_uid + common.list_delimiter
-                        else:
-                            rule_src_ref += src['uid'] + '@' + \
-                                src['networks'] + common.list_delimiter
-                    else:  # more than one source
-                        for nw in src['networks']:
-                            rule_src_ref += src['uid'] + \
-                                '@' + nw + common.list_delimiter
-                else:  # standard network objects as source
+                if 'type' in src:
+                    if src['type'] == 'LegacyUserAtLocation':
+                        rule_src_ref += src["userGroup"] + '@' + \
+                            src["location"] + common.list_delimiter
+                    elif src['type'] == 'access-role':
+                        if isinstance(src['networks'], str):  # just a single source
+                            if src['networks'] == 'any':
+                                rule_src_ref += src['uid'] + '@' + \
+                                    cpcommon.any_obj_uid + common.list_delimiter
+                            else:
+                                rule_src_ref += src['uid'] + '@' + \
+                                    src['networks'] + common.list_delimiter
+                        else:  # more than one source
+                            for nw in src['networks']:
+                                rule_src_ref += src['uid'] + \
+                                    '@' + nw + common.list_delimiter
+                    else:  # standard network objects as source
+                        rule_src_ref += src["uid"] + common.list_delimiter
+                else:
+                    # assuming standard network object as source (interface) with missing type
                     rule_src_ref += src["uid"] + common.list_delimiter
             rule_src_ref = rule_src_ref[:-1]  # removing last list_delimiter
 
             # rule_dst...
             rule_dst_name = ''
             for dst in src_rule["destination"]:
-                if dst['type'] == 'LegacyUserAtLocation':
-                    rule_dst_name += dst['name'] + common.list_delimiter
-                elif dst['type'] == 'access-role':
-                    if isinstance(dst['networks'], str):  # just a single source
-                        if dst['networks'] == 'any':
-                            rule_dst_name += dst["name"] + \
-                                '@' + 'Any' + common.list_delimiter
-                        else:
-                            rule_dst_name += dst["name"] + '@' + \
-                                dst['networks'] + common.list_delimiter
-                    else:  # more than one source
-                        for nw in dst['networks']:
-                            rule_dst_name += dst[
-                                # TODO: this is not correct --> need to reverse resolve name from given UID
-                                "name"] + '@' + nw + common.list_delimiter
-                else:  # standard network objects as destination
-                    rule_dst_name += dst["name"] + common.list_delimiter
+                if 'type' in dst:
+                    if dst['type'] == 'LegacyUserAtLocation':
+                        rule_dst_name += dst['name'] + common.list_delimiter
+                    elif dst['type'] == 'access-role':
+                        if isinstance(dst['networks'], str):  # just a single destination
+                            if dst['networks'] == 'any':
+                                rule_dst_name += dst["name"] + \
+                                    '@' + 'Any' + common.list_delimiter
+                            else:
+                                rule_dst_name += dst["name"] + '@' + \
+                                    dst['networks'] + common.list_delimiter
+                        else:  # more than one source
+                            for nw in dst['networks']:
+                                rule_dst_name += dst[
+                                    # TODO: this is not correct --> need to reverse resolve name from given UID
+                                    "name"] + '@' + nw + common.list_delimiter
+                    else:  # standard network objects as destination
+                        rule_dst_name += dst["name"] + common.list_delimiter
+                else:
+                    # assuming standard network object as destination (interface) with missing type
+                        rule_dst_name += dst["name"] + common.list_delimiter
+
             rule_dst_name = rule_dst_name[:-1]
 
             rule_dst_ref = ''
             for dst in src_rule["destination"]:
-                if dst['type'] == 'LegacyUserAtLocation':
-                    rule_dst_ref += dst["userGroup"] + '@' + \
-                        dst["location"] + common.list_delimiter
-                elif dst['type'] == 'access-role':
-                    if isinstance(dst['networks'], str):  # just a single source
-                        if dst['networks'] == 'any':
-                            rule_dst_ref += dst['uid'] + '@' + \
-                                cpcommon.any_obj_uid + common.list_delimiter
-                        else:
-                            rule_dst_ref += dst['uid'] + '@' + \
-                                dst['networks'] + common.list_delimiter
-                    else:  # more than one source
-                        for nw in dst['networks']:
-                            rule_dst_ref += dst['uid'] + \
-                                '@' + nw + common.list_delimiter
-                else:  # standard network objects as source
-                    rule_dst_ref += dst["uid"] + common.list_delimiter
+                if 'type' in dst:
+                    if dst['type'] == 'LegacyUserAtLocation':
+                        rule_dst_ref += dst["userGroup"] + '@' + \
+                            dst["location"] + common.list_delimiter
+                    elif dst['type'] == 'access-role':
+                        if isinstance(dst['networks'], str):  # just a single destination
+                            if dst['networks'] == 'any':
+                                rule_dst_ref += dst['uid'] + '@' + \
+                                    cpcommon.any_obj_uid + common.list_delimiter
+                            else:
+                                rule_dst_ref += dst['uid'] + '@' + \
+                                    dst['networks'] + common.list_delimiter
+                        else:  # more than one source
+                            for nw in dst['networks']:
+                                rule_dst_ref += dst['uid'] + \
+                                    '@' + nw + common.list_delimiter
+                    else:  # standard network objects as destination
+                        rule_dst_ref += dst["uid"] + common.list_delimiter
+
+                else:
+                    # assuming standard network object as destination (interface) with missing type
+                        rule_dst_ref += dst["uid"] + common.list_delimiter
+                    
             rule_dst_ref = rule_dst_ref[:-1]
 
             # rule_svc...

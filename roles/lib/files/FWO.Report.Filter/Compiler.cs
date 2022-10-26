@@ -22,7 +22,7 @@ namespace FWO.Report.Filter
         {
             bool detailedCalc = detailed || reportType == ReportType.ResolvedRules;
             Log.WriteDebug("Filter", $"Input: \"{input}\", Report Type: \"${reportType}\", Device Filter: \"{deviceFilter}\"");
-            return DynGraphqlQuery.GenerateQuery(input, CompileToAst(input), deviceFilter, timeFilter, reportType, detailedCalc);
+            return DynGraphqlQuery.GenerateQuery(input, CompileToAst(input), deviceFilter, timeFilter, reportType, detailedCalc, filtering);
         }
     }
 }

@@ -9274,40 +9274,6 @@
                   }
                 },
                 {
-                  "role": "recertifier",
-                  "permission": {
-                    "columns": [
-                      "obj_id",
-                      "rf_create",
-                      "rf_last_seen",
-                      "rule_from_id",
-                      "rule_id",
-                      "user_id",
-                      "active",
-                      "negated"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
-                  }
-                },
-                {
-                  "role": "reporter",
-                  "permission": {
-                    "columns": [
-                      "obj_id",
-                      "rf_create",
-                      "rf_last_seen",
-                      "rule_from_id",
-                      "rule_id",
-                      "user_id",
-                      "active",
-                      "negated"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
-                  }
-                },
-                {
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
@@ -10052,40 +10018,6 @@
                       "user_id"
                     ],
                     "filter": {}
-                  }
-                },
-                {
-                  "role": "recertifier",
-                  "permission": {
-                    "columns": [
-                      "active",
-                      "negated",
-                      "obj_id",
-                      "rt_create",
-                      "rt_last_seen",
-                      "rule_id",
-                      "rule_to_id",
-                      "user_id"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
-                  }
-                },
-                {
-                  "role": "reporter",
-                  "permission": {
-                    "columns": [
-                      "active",
-                      "negated",
-                      "obj_id",
-                      "rt_create",
-                      "rt_last_seen",
-                      "rule_id",
-                      "rule_to_id",
-                      "user_id"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
                   }
                 },
                 {

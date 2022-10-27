@@ -9274,6 +9274,22 @@
                   }
                 },
                 {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
@@ -10018,6 +10034,22 @@
                       "user_id"
                     ],
                     "filter": {}
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [],
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 },
                 {

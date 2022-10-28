@@ -171,8 +171,8 @@ else
     {
         try
         {
-            await RefreshStates();
             actions = await apiConnection.SendQueryAsync<List<RequestStateAction>>(FWO.Api.Client.Queries.RequestQueries.getActions);
+            await RefreshStates();
             InitComplete = true;
         }
         catch (Exception exception)
@@ -215,6 +215,25 @@ else
                 usedStateIds.Add(tmpStateMatrix.GlobalMatrix[key].LowestInputState);
                 usedStateIds.Add(tmpStateMatrix.GlobalMatrix[key].LowestStartedState);
                 usedStateIds.Add(tmpStateMatrix.GlobalMatrix[key].LowestEndState);
+            }
+        }
+        foreach(var action in actions)
+        {
+            if(action.ExternalParams != "")
+            {
+                if(action.ActionType == nameof(StateActionTypes.AutoPromote))
+                {
+                    usedStateIds.Add(Convert.ToInt32(action.ExternalParams));
+                }
+                else if(action.ActionType == nameof(StateActionTypes.AddApproval))
+                {
+                    try
+                    {
+                        usedStateIds.Add((System.Text.Json.JsonSerializer.Deserialize<ApprovalParams>(action.ExternalParams) ?? throw new Exception("Extparams could not be parsed.")).StateId);
+                    }
+                    catch(Exception)
+                    {}
+                }
             }
         }
     }

@@ -55,9 +55,16 @@
     [Parameter]
     public Func<string, Task>? Save { get; set; }
 
-
     private string commentText = "";
 
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if(Display)
+        {
+            commentText = "";
+        }
+    }
 
     private async Task Close()
     {

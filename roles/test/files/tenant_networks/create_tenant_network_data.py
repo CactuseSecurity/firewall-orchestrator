@@ -25,4 +25,3 @@ def createTenantTestData(tenantTopIpNet, numberOfTenantNetworks, tenantId):
 if __name__ == '__main__':
 
 	print(createTenantTestData(IPNetwork('10.0.0.0/12'), 1000, 6))
-	

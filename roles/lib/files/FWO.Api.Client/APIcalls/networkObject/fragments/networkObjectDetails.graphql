@@ -39,6 +39,8 @@ fragment networkObjectDetails on object {
       }
       obj_id
       obj_name
+      obj_ip
+      obj_ip_end
       type: stm_obj_typ {
         name: obj_typ_name
       }

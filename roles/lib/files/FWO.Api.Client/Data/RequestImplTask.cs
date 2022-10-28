@@ -29,7 +29,19 @@ namespace FWO.Api.Data
 
 
         public RequestImplTask()
-        { }
+        {}
+
+        public RequestImplTask(RequestImplTask implTask): base(implTask)
+        {
+            Id = implTask.Id;
+            ReqTaskId = implTask.ReqTaskId;
+            ImplAction = implTask.ImplAction;
+            DeviceId = implTask.DeviceId;
+            ImplElements = implTask.ImplElements;
+            Comments = implTask.Comments;
+            TicketId = implTask.TicketId;
+       }
+
 
         public RequestImplTask(RequestReqTask reqtask, bool copyComments = true)
         {
@@ -54,6 +66,7 @@ namespace FWO.Api.Data
             TargetEndDate = reqtask.TargetEndDate;
             FreeText = reqtask.FreeText;
             DeviceId = null;
+            TicketId = reqtask.TicketId;
             if (reqtask.Elements != null && reqtask.Elements.Count > 0)
             {
                 ImplElements = new List<RequestImplElement>();

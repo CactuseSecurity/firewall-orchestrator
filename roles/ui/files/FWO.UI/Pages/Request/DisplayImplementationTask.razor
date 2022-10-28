@@ -285,11 +285,18 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (ReqHandler.DisplayImplTaskMode)
+        try
         {
-            InitElements();
-            await InitComments();
-            offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActImplTask, RequestObjectScopes.ImplementationTask, ReqHandler.Phase);
+            if (ReqHandler.DisplayImplTaskMode)
+            {
+                InitElements();
+                await InitComments();
+                offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActImplTask, RequestObjectScopes.ImplementationTask, ReqHandler.Phase);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("init_environment"), "", true);
         }
     }
 

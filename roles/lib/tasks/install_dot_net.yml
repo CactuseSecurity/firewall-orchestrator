@@ -33,6 +33,17 @@
       when: ansible_facts['distribution']|lower != 'ubuntu' or 
         (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version'] is version('22', '<'))
 
+    - name: update /etc/apt/preferences for ubuntu >=22 (https://github.com/dotnet/sdk/issues/27129)
+      blockinfile:
+        path: /etc/apt/preferences
+        create: yes
+        block: |
+          Package: *net*
+          Pin: origin packages.microsoft.com
+          Pin-Priority: 1001
+      when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_version'] == '22.04'
+
+
     - name: Install apt-transport-https
       package: name=apt-transport-https state=present
 

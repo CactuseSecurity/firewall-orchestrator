@@ -1,5 +1,6 @@
 import common
 
+
 def csv_dump_user(user_name, user, import_id):
     user_line =  common.csv_add_field(import_id)                        # control_id
     user_line += common.csv_add_field(user_name)                        # user_name

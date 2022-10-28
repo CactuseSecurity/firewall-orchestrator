@@ -232,7 +232,10 @@ adding report template format fk and permissions
 - ip-based tenant filtering
 - new user management API call for creating JWTs with arbitrary lifetime
 
-### 5.8 - 31.10.2022
+### 5.8 - 23.10.2022
 - fix for CP R81 bug with certain installations - we now allow for domain UID as well as domain name for getting import data
 - also adding domain UID in auto discovery module
 - from now on reserving 3 digit version numbers for bug fixes only 
+
+### 5.8.1 - 26.10.2022
+- hotfix DB user group import

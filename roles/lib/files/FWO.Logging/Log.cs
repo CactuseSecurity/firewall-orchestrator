@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace FWO.Logging
@@ -8,7 +9,7 @@ namespace FWO.Logging
     public static class Log
     {
         private static SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
-        private static string lockFilePath = "abc.log";
+        private static string lockFilePath = $"/var/fworch/lock/{Assembly.GetEntryAssembly()?.GetName().Name}_log.lock";
         private static Random random = new Random();
 
         static Log() 

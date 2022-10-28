@@ -118,6 +118,8 @@ namespace FWO.Middleware.Server
             {
                 try
                 {
+                    Log.WriteInfo("Report Scheduling", $"Generating scheduled report \"{report.Name}\" with id \"{report.Id}\" for user \"{report.Owner.Name}\" with id \"{report.Owner.DbId}\" ...");
+
                     ReportFile reportFile = new ReportFile
                     { 
                         Name = $"{report.Name}_{dateTimeNowRounded.ToShortDateString()}",
@@ -132,7 +134,7 @@ namespace FWO.Middleware.Server
                     // get uiuser roles + tenant
                     AuthManager authManager = new AuthManager(jwtWriter, connectedLdaps, apiConnection);
                     //AuthenticationRequestHandler authHandler = new AuthenticationRequestHandler(connectedLdaps, jwtWriter, apiConnection);
-                    string jwt = await authManager.AuthorizeUserAsync(report.Owner, validatePassword: false);
+                    string jwt = await authManager.AuthorizeUserAsync(report.Owner, validatePassword: false, lifetime: TimeSpan.MaxValue);
                     ApiConnection apiConnectionUserContext = new GraphQlApiConnection(apiServerUri, jwt);
                     GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(jwt);
                     UserConfig userConfig = await UserConfig.ConstructAsync(globalConfig, apiConnection, report.Owner.DbId);
@@ -206,11 +208,11 @@ namespace FWO.Middleware.Server
 
                     await apiConnectionUserContext.SendQueryAsync<object>(ReportQueries.addGeneratedReport, queryVariables);
 
-                    Log.WriteInfo("Report Scheduling", $"Scheduled report \"{report.Name}\" for user \"{report.Owner.Name}\" with id \"{report.Owner.DbId}\" successfully generated.");
+                    Log.WriteInfo("Report Scheduling", $"Scheduled report \"{report.Name}\" with id \"{report.Id}\" for user \"{report.Owner.Name}\" with id \"{report.Owner.DbId}\" successfully generated.");
                 }
                 catch (Exception exception)
                 {
-                    Log.WriteError("Report Scheduling", $"Generating scheduled report \"{report.Name}\" lead to exception.", exception);
+                    Log.WriteError("Report Scheduling", $"Generating scheduled report \"{report.Name}\" with id \"{report.Id}\" lead to exception.", exception);
                 }
             }, token);
         }

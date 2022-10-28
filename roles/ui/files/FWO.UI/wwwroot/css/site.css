@@ -172,8 +172,7 @@ app {
 }
 
 .vheight75 {
-    max-height: 75vh;
-    max-height: calc(100vh - 100px);
+    max-height: calc(100vh - 300px);
 }
 
 .vheight100 {

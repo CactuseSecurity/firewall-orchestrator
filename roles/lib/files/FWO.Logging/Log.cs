@@ -7,7 +7,86 @@ namespace FWO.Logging
 {
     public static class Log
     {
-        private static object logLock = new object();
+        private static SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
+        private static string lockFilePath = "abc.log";
+        private static Random random = new Random();
+
+        static Log() 
+        {
+            Task.Factory.StartNew(async () =>
+            {
+                // log switch - log file locking
+                DateTime lastLockFileRead = new DateTime(0);
+                bool logOwned = false;
+
+                while (true)
+                {
+                    try
+                    {
+                        DateTime lastLockFileChange = File.GetLastWriteTime(lockFilePath);
+
+                        if (lastLockFileRead != lastLockFileChange)
+                        {
+                            using FileStream file = await GetFile(lockFilePath);
+                            // read file content
+                            using StreamReader reader = new StreamReader(file);
+                            string lockFileContent = (await reader.ReadToEndAsync()).Trim();
+
+                            // REQUESTED - lock was requested by log swap process
+                            // GRANTED - lock was granted by us
+                            // RELEASED - lock was released by log swap process
+                            // ACKNOWLEDGED - lock release was acknowledged by us
+                            if (lockFileContent.EndsWith("REQUESTED"))
+                            {
+                                // only request lock if it is not already requested by us
+                                if (!logOwned)
+                                {
+                                    semaphore.Wait();
+                                    logOwned = true;
+                                }
+                                using StreamWriter writer = new StreamWriter(file);
+                                await writer.WriteLineAsync("GRANTED");
+                            }
+                            if (lockFileContent.EndsWith("RELEASED"))
+                            {
+                                // only release lock if it was formerly requested by us
+                                if (logOwned) 
+                                { 
+                                    semaphore.Release();
+                                    logOwned = false;
+                                }
+                                using StreamWriter writer = new StreamWriter(file);
+                                await writer.WriteLineAsync("ACKNOWLEDGED");
+                            }
+
+                            lastLockFileRead = lastLockFileChange;
+                        }
+
+                        await Task.Delay(1000);
+                    }
+                    catch (Exception e)
+                    {
+                        //WriteError("Log file locking", "Error while accessing log lock file.", e);
+                    }
+                }
+            }, TaskCreationOptions.LongRunning);
+        }
+
+        private static async Task<FileStream> GetFile(string path)
+        {
+            while (true)
+            {
+                try
+                {
+                    return File.Open(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+                }
+                catch (Exception e) 
+                { 
+                    //WriteDebug("Log file locking", $"Could not access log lock file: {e.Message}.");
+                }
+                await Task.Delay(random.Next(100));
+            }
+        }
 
         [Conditional("DEBUG")]
         public static void WriteDebug(string Title, string Text, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
@@ -75,15 +154,14 @@ namespace FWO.Logging
 
         private static void WriteInColor(string Text, ConsoleColor? ForegroundColor = null, ConsoleColor? BackgroundColor = null)
         {
-            lock (logLock)
-            {
-                if (ForegroundColor != null)
-                    Console.ForegroundColor = (ConsoleColor)ForegroundColor;
-                if (BackgroundColor != null)
-                    Console.BackgroundColor = (ConsoleColor)BackgroundColor;
-                Console.Out.WriteLine(Text); // TODO: async method ?
-                Console.ResetColor();
-            }
+            semaphore.Wait();
+            if (ForegroundColor != null)
+                Console.ForegroundColor = (ConsoleColor)ForegroundColor;
+            if (BackgroundColor != null)
+                Console.BackgroundColor = (ConsoleColor)BackgroundColor;
+            Console.Out.WriteLine(Text); // TODO: async method ?
+            Console.ResetColor();
+            semaphore.Release();
         }
     }
 }

@@ -35,7 +35,7 @@ def collect_users_from_rule(rule, users):
                 else:
                     logger.warning("found src user without type field: " + json.dumps(src))
                     if 'name' in src and 'uid' in src:
-                        users.update({src["name"]: {'user_uid': src["uid"], 'user_typ': 'group'}})
+                        users.update({src["name"]: {'user_uid': src["uid"], 'user_typ': 'simple'}})
 
     else:  # section
         collect_users_from_rulebase(rule["rulebase"], users)

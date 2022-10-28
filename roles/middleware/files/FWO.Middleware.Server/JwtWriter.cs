@@ -81,7 +81,7 @@ namespace FWO.Middleware.Server
                 signingCredentials: new SigningCredentials(jwtPrivateKey, SecurityAlgorithms.RsaSha256)
             );
             string GeneratedToken = tokenHandler.WriteToken(token);
-            Log.WriteInfo("Jwt generation", $"Generated JWT {GeneratedToken} for middleware-server");
+            Log.WriteInfo("Jwt generation", $"Generated JWT {GeneratedToken} for middleware-server.");
             return GeneratedToken;
         }
 

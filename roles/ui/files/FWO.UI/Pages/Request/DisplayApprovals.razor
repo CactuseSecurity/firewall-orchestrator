@@ -21,7 +21,7 @@
                                 @if((context.ApproverDn == null || context.ApproverDn == "") && !ReqHandler.AddTicketMode && !ReqHandler.ReadOnlyMode)
                                 {
                                     <button class="btn btn-sm btn-success" @onclick:preventDefault @onclick="() => InitAddComment(context)">@(userConfig.GetText("add_comment"))</button>
-                                    <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignApproval(context)">@(userConfig.GetText("assign"))</button>
+                                    <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignApproval(context)">@(userConfig.GetText("assign1"))</button>
                                 }
                             </div>
                         </Template>
@@ -60,7 +60,7 @@
     </Footer>
 </PopUp>
 
-<AssignObject @bind-Display="ReqHandler.DisplayAssignApprovalMode" ResetParent="Reset" StatefulObject="ReqHandler.ActApproval" Assign="ReqHandler.AssignApprovalGroup" ObjectName="" Role="approver"/>
+<AssignObject @bind-Display="ReqHandler.DisplayAssignApprovalMode" ResetParent="Reset" StatefulObject="ReqHandler.ActApproval" Assign="ReqHandler.AssignApprovalGroup" ObjectName="" RoleList="validRoles"/>
 <CommentObject @bind-Display="ReqHandler.DisplayCommentMode" ResetParent="Reset" ObjectName="" Save="ConfAddComment"/>
 
 @code
@@ -86,6 +86,7 @@
     [Parameter]
     public RequestStateDict States { get; set; } = new RequestStateDict();
 
+    static List<string> validRoles = new List<string>(){"approver"};
 
     private async Task Close()
     {

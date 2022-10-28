@@ -14,6 +14,7 @@ fragment ManagementDetails on management {
   }
   deviceType: stm_dev_typ { ...deviceTypeDetails }  superManager: multi_device_manager_id
   configPath: config_path
+  domainUid: domain_uid
   importDisabled: do_not_import
   forceInitialImport: force_initial_import
   hideInUi: hide_in_gui

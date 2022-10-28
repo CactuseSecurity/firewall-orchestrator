@@ -29,7 +29,7 @@ namespace FWO.Ui.Services
         {
             List<RequestStateAction> stateActions = new List<RequestStateAction>();
             int searchedStateId = (toState ? statefulObject.StateId : statefulObject.ChangedFrom());
-            foreach(var actionHlp in states.FirstOrDefault(x => x.Id == searchedStateId)?.Actions ?? throw new Exception("Unknown stateId."))
+            foreach(var actionHlp in states.FirstOrDefault(x => x.Id == searchedStateId)?.Actions ?? throw new Exception("Unknown stateId:" + searchedStateId))
             {
                 if(actionHlp.Action.Scope == scope.ToString() 
                     && (!(actionHlp.Action.Scope == RequestObjectScopes.RequestTask.ToString() || actionHlp.Action.Scope == RequestObjectScopes.ImplementationTask.ToString())

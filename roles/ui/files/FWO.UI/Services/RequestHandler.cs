@@ -177,6 +177,12 @@ namespace FWO.Ui.Services
         public void SetTicketEnv(RequestTicket ticket)
         {
             ActTicket = ticket;
+            ResetImplTaskList();
+            ActStateMatrix = MasterStateMatrix;
+        }
+
+        public void ResetImplTaskList()
+        {
             AllImplTasks = new List<RequestImplTask>();
             foreach(var reqTask in ActTicket.Tasks)
             {
@@ -187,7 +193,6 @@ namespace FWO.Ui.Services
                     AllImplTasks.Add(implTask);
                 }
             }
-            ActStateMatrix = MasterStateMatrix;
         }
 
         public void SetTicketOpt(ObjAction action)
@@ -313,7 +318,7 @@ namespace FWO.Ui.Services
 
         public void SetReqTaskEnv (RequestReqTask reqTask)
         {
-            ActReqTask = reqTask;
+            ActReqTask = new RequestReqTask(reqTask);
             RequestTicket? tick = TicketList.FirstOrDefault(x => x.Id == ActReqTask.TicketId);
             if(tick != null)
             {
@@ -385,7 +390,7 @@ namespace FWO.Ui.Services
         public async Task AssignReqTaskGroup(RequestStatefulObject statefulObject)
         {
             ActReqTask.AssignedGroup = statefulObject.AssignedGroup;
-            ActReqTask.RecentHandler = ActReqTask.CurrentHandler;
+            ActReqTask.RecentHandler = (ActReqTask.CurrentHandler != null ? ActReqTask.CurrentHandler : userConfig.User);
             if(CheckAssignValues(ActReqTask))
             {
                 await UpdateActReqTaskState();
@@ -396,7 +401,7 @@ namespace FWO.Ui.Services
         public async Task AssignReqTaskBack()
         {
             ActReqTask.AssignedGroup = ActReqTask.RecentHandler?.Dn;
-            ActReqTask.RecentHandler = ActReqTask.CurrentHandler;
+            ActReqTask.RecentHandler = (ActReqTask.CurrentHandler != null ? ActReqTask.CurrentHandler : userConfig.User);
             await UpdateActReqTaskState();
             DisplayAssignMode = false;
         }
@@ -487,7 +492,7 @@ namespace FWO.Ui.Services
         {
             if(approval != null)
             {
-                ActApproval = approval;
+                ActApproval = new RequestApproval(approval);
             }
             else
             {
@@ -641,7 +646,7 @@ namespace FWO.Ui.Services
 
         public void SetImplTaskEnv(RequestImplTask implTask)
         {
-            ActImplTask = implTask;
+            ActImplTask = new RequestImplTask(implTask);
             RequestTicket? tick = TicketList.FirstOrDefault(x => x.Id == ActImplTask.TicketId);
             if(tick != null)
             {
@@ -718,7 +723,7 @@ namespace FWO.Ui.Services
         public async Task AssignImplTaskGroup(RequestStatefulObject statefulObject)
         {
             ActImplTask.AssignedGroup = statefulObject.AssignedGroup;
-            ActImplTask.RecentHandler = ActImplTask.CurrentHandler;
+            ActImplTask.RecentHandler = (ActImplTask.CurrentHandler != null ? ActImplTask.CurrentHandler : userConfig.User);
             if(CheckAssignValues(ActImplTask))
             {
                 await UpdateActImplTaskState();
@@ -729,7 +734,7 @@ namespace FWO.Ui.Services
         public async Task AssignImplTaskBack()
         {
             ActImplTask.AssignedGroup = ActImplTask.RecentHandler?.Dn;
-            ActImplTask.RecentHandler = ActImplTask.CurrentHandler;
+            ActImplTask.RecentHandler = (ActImplTask.CurrentHandler != null ? ActImplTask.CurrentHandler : userConfig.User);
             await UpdateActImplTaskState();
             DisplayAssignMode = false;
         }
@@ -775,18 +780,8 @@ namespace FWO.Ui.Services
                     ActImplTask.Stop = DateTime.Now;
                 }
                 await UpdateActImplTaskState();
-                bool openImplTask = false;
-                foreach(var impltask in ActReqTask.ImplementationTasks)
-                {
-                    if(impltask.Stop == null)
-                    {
-                        openImplTask = true;
-                    }
-                }
-                if(!openImplTask && ActReqTask.Stop == null)
-                {
-                    ActReqTask.Stop = ActImplTask.Stop;
-                }
+                ResetImplTaskList();
+                SyncReqTaskStopTime();
                 await UpdateReqTaskStateFromImplTasks(ActReqTask);
                 await UpdateActTicketStateFromReqTasks();
                 DisplayPromoteMode = false;
@@ -794,6 +789,22 @@ namespace FWO.Ui.Services
             catch (Exception exception)
             {
                 DisplayMessageInUi!(exception, userConfig.GetText("save_task"), "", true);
+            }
+        }
+
+        public void SyncReqTaskStopTime()
+        {
+            bool openImplTask = false;
+            foreach(var impltask in ActReqTask.ImplementationTasks)
+            {
+                if(impltask.Stop == null)
+                {
+                    openImplTask = true;
+                }
+            }
+            if(!openImplTask && ActReqTask.Stop == null)
+            {
+                ActReqTask.Stop = ActImplTask.Stop;
             }
         }
 
@@ -959,11 +970,11 @@ namespace FWO.Ui.Services
 
         private bool CheckAssignValues(RequestStatefulObject statefulObject)
         {
-            if (statefulObject.AssignedGroup == null || statefulObject.AssignedGroup == "")
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("assign_group"), userConfig.GetText("E8010"), true);
-                return false;
-            }
+            // if (statefulObject.AssignedGroup == null || statefulObject.AssignedGroup == "")
+            // {
+            //     DisplayMessageInUi!(null, userConfig.GetText("assign_group"), userConfig.GetText("E8010"), true);
+            //     return false;
+            // }
             return true;
         }
     }

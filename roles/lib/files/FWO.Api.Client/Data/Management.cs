@@ -17,11 +17,14 @@ namespace FWO.Api.Data
         [JsonProperty("import_credential"), JsonPropertyName("import_credential")]
         public ImportCredential ImportCredential { get; set; }
 
-        [JsonProperty("import_credential_id"), JsonPropertyName("import_credential_id")]
-        public int ImportCredentialId { get; set; }
+        // [JsonProperty("import_credential_id"), JsonPropertyName("import_credential_id")]
+        // public int ImportCredentialId { get; set; }
 
         [JsonProperty("configPath"), JsonPropertyName("configPath")]
         public string ConfigPath { get; set; } = "";
+
+        [JsonProperty("domainUid"), JsonPropertyName("domainUid")]
+        public string DomainUid { get; set; } = "";
 
         [JsonProperty("superManager"), JsonPropertyName("superManager")]
         public int? SuperManagerId { get; set; }
@@ -101,7 +104,7 @@ namespace FWO.Api.Data
 
         public Management()
         {
-            ImportCredential= new ImportCredential();
+            // ImportCredential= new ImportCredential();
         }
 
         public Management(Management management)
@@ -109,9 +112,12 @@ namespace FWO.Api.Data
             Id = management.Id;
             Name = management.Name;
             Hostname = management.Hostname;
-            ImportCredentialId = management.ImportCredentialId;
-            ImportCredential = new ImportCredential(management.ImportCredential);
+            if (management.ImportCredential != null)
+                ImportCredential = new ImportCredential(management.ImportCredential);
+            else
+                ImportCredential = new ImportCredential();
             ConfigPath = management.ConfigPath;
+            DomainUid = management.DomainUid;
             ImporterHostname = management.ImporterHostname;
             Port = management.Port;
             ImportDisabled = management.ImportDisabled;
@@ -165,6 +171,7 @@ namespace FWO.Api.Data
             Name = Sanitizer.SanitizeMand(Name, ref shortened);
             Hostname = Sanitizer.SanitizeMand(Hostname, ref shortened);
             ConfigPath = Sanitizer.SanitizeMand(ConfigPath, ref shortened);
+            DomainUid = Sanitizer.SanitizeOpt(DomainUid, ref shortened);
             ImporterHostname = Sanitizer.SanitizeMand(ImporterHostname, ref shortened);
             Comment = Sanitizer.SanitizeCommentOpt(Comment, ref shortened);
             return shortened;

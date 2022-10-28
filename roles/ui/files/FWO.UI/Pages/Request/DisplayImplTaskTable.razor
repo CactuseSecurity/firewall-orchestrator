@@ -31,7 +31,7 @@
                                 <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => EditImplTask(implTask)">@(userConfig.GetText("edit"))</button>
                                 <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteImplTask(implTask)">@(userConfig.GetText("delete"))</button>
                             }
-                            else if (Phase >= WorkflowPhases.implementation && implTask.StateId >= ReqHandler.StateMatrix(implTask.TaskType).LowestInputState && ReqHandler.ActTicket.StateId >= ReqHandler.MasterStateMatrix.LowestInputState)
+                            else if (Phase >= WorkflowPhases.implementation && implTask.StateId >= ReqHandler.StateMatrix(implTask.TaskType).LowestInputState && ReqHandler.TicketList.FirstOrDefault(x => x.Id == implTask.TicketId).StateId >= ReqHandler.MasterStateMatrix.LowestInputState)
                             {
                                 @if (implTask.StateId < ReqHandler.StateMatrix(implTask.TaskType).LowestStartedState)
                                 {
@@ -47,7 +47,7 @@
                                 else if (implTask.StateId < ReqHandler.StateMatrix(implTask.TaskType).LowestEndState)
                                 {
                                     <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await ContinueImplPhase(implTask)">@(userConfig.GetText("continue_" + Phase.ToString()))</button>
-                                    <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignImplTask(implTask)">@(userConfig.GetText("assign"))</button>
+                                    <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignImplTask(implTask)">@(userConfig.GetText("assign1"))</button>
                                 }
                             }
                         }
@@ -98,7 +98,7 @@
 }
 
 <DisplayImplementationTask Phase="Phase" ReqHandler="ReqHandler" ResetParent="Reset" StateMatrix="ReqHandler.ActStateMatrix" States="States"></DisplayImplementationTask>
-<AssignObject @bind-Display="ReqHandler.DisplayAssignMode" ResetParent="Reset" StatefulObject="ReqHandler.ActImplTask" Assign="ReqHandler.AssignImplTaskGroup" AssignBack="ReqHandler.AssignImplTaskBack" ObjectName="@ReqHandler.ActImplTask.Title" Role="implementer"/>
+<AssignObject @bind-Display="ReqHandler.DisplayAssignMode" ResetParent="Reset" StatefulObject="ReqHandler.ActImplTask" Assign="ReqHandler.AssignImplTaskGroup" AssignBack="ReqHandler.AssignImplTaskBack" ObjectName="@ReqHandler.ActImplTask.Title" RoleList="validRoles"/>
 <DeleteObject @bind-Display="ReqHandler.DisplayDeleteMode" ResetParent="Reset" Delete="ReqHandler.ConfDeleteImplTask" ObjectName="@(ReqHandler.ActImplTask.Title)"/>
 <DisplayApprovals @bind-Display="ReqHandler.DisplayApprovalMode" ReqHandler="ReqHandler" ResetParent="Reset" Approvals="ReqHandler.ActReqTask.Approvals" States="States"/>
 
@@ -129,6 +129,7 @@
     [Parameter]
     public Func<RequestImplTask, Task>? StartImplPhase { get; set; }
 
+    static List<string> validRoles = new List<string>(){"implementer", "fw-admin"};
 
     private async Task Reset()
     {

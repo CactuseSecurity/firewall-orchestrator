@@ -154,6 +154,7 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables, debug_level=0):
                     version: dev_typ_version
                 }
                 configPath: config_path
+                domainUid: domain_uid
                 importDisabled: do_not_import
                 forceInitialImport: force_initial_import
                 importerHostname: importer_hostname

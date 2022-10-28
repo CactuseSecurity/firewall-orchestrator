@@ -71,6 +71,7 @@ Create table "management" -- contains an entry for each firewall management syst
 	"clearing_import_ran" Boolean NOT NULL Default false,
 	"force_initial_import" Boolean NOT NULL Default FALSE,
 	"config_path" Varchar,
+	"domain_uid" Varchar,
 	"hide_in_gui" Boolean NOT NULL Default false,
 	"importer_hostname" Varchar,
 	"debug_level" Integer,

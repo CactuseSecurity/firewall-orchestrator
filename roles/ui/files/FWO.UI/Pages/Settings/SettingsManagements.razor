@@ -146,7 +146,7 @@
                     <div class="form-group row">
                         <label for="managementCredential" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("import_credential"))*:</label>
                         <div class="col-sm-8">
-                            <select id="managementCredential" class="form-control form-control-sm" @bind="actManagement.ImportCredentialId">
+                            <select id="managementCredential" class="form-control form-control-sm" @bind="actManagement.ImportCredential.Id">
                                 @foreach (ImportCredential cred in credentials)
                                 {
                                     <option value="@cred.Id">@(cred.Name)</option>
@@ -161,6 +161,12 @@
                         <label for="managementConfigPath" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("config_path")):</label>
                         <div class="col-sm-8">
                             <input id="managementConfigPath" type="text" class="form-control form-control-sm" @bind="actManagement.ConfigPath" />
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="managementDomainUid" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("domain_uid")):</label>
+                        <div class="col-sm-8">
+                            <input id="managementDomainUid" type="text" class="form-control form-control-sm" @bind="actManagement.DomainUid" />
                         </div>
                     </div>
                 }
@@ -428,12 +434,13 @@
                         name = actManagement.Name,
                         devTypeId = actManagement.DeviceType.Id,
                         hostname = actManagement.Hostname,
-                        importCredentialId = actManagement.ImportCredentialId,
+                        importCredentialId = actManagement.ImportCredential.Id,
                         port = actManagement.Port,
                         importDisabled = actManagement.ImportDisabled,
                         forceInitialImport = actManagement.ForceInitialImport,
                         hideInUi = actManagement.HideInUi,
                         configPath = actManagement.ConfigPath,
+                        domainUid = actManagement.DomainUid,
                         superManager = actManagement.SuperManagerId,
                         importerHostname = actManagement.ImporterHostname,
                         debugLevel = actManagement.DebugLevel,
@@ -457,12 +464,13 @@
                         name = actManagement.Name,
                         devTypeId = actManagement.DeviceType.Id,
                         hostname = actManagement.Hostname,
-                        importCredentialId = actManagement.ImportCredentialId,
+                        importCredentialId = actManagement.ImportCredential.Id,
                         port = actManagement.Port,
                         importDisabled = actManagement.ImportDisabled,
                         forceInitialImport = actManagement.ForceInitialImport,
                         hideInUi = actManagement.HideInUi,
                         configPath = actManagement.ConfigPath,
+                        domainUid = actManagement.DomainUid,
                         superManager = actManagement.SuperManagerId,
                         importerHostname = actManagement.ImporterHostname,
                         debugLevel = actManagement.DebugLevel,
@@ -477,11 +485,13 @@
                 actManagement.DeviceType.Name = devtype.Name;
                 actManagement.DeviceType.Version = devtype.Version;
 
-                ImportCredential? cred = credentials.FirstOrDefault(x => x.Id == actManagement.ImportCredentialId) ?? throw new Exception("Unknown credentials");
-                actManagement.ImportCredential.Name = cred.Name;
-                actManagement.ImportCredential.Secret = cred.Secret;
-                actManagement.ImportCredential.PublicKey = cred.PublicKey;
-                actManagement.ImportCredential.IsKeyPair = cred.IsKeyPair;
+                ImportCredential? cred = credentials.FirstOrDefault(x => x.Id == actManagement.ImportCredential.Id) ?? throw new Exception("Unknown credentials");
+                actManagement.ImportCredential = cred;
+
+                // actManagement.ImportCredential.Name = cred.Name;
+                // actManagement.ImportCredential.Secret = cred.Secret;
+                // actManagement.ImportCredential.PublicKey = cred.PublicKey;
+                // actManagement.ImportCredential.IsKeyPair = cred.IsKeyPair;
             }
             StateHasChanged();
         }

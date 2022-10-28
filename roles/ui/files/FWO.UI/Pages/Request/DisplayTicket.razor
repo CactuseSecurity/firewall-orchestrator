@@ -112,9 +112,8 @@
                 {
                     <h5>@(userConfig.GetText("implementation_tasks"))</h5>
 
-                    <DisplayImplTaskTable Phase="Phase" States="States" 
-                        ReqHandler="ReqHandler" ResetParent="Reset" AllImplTasks="ReqHandler.AllImplTasks"
-                        StartImplPhase="StartImplPhase"/>
+                    <DisplayImplTaskTable Phase="Phase" States="States" ReqHandler="ReqHandler" ResetParent="Reset" 
+                        AllImplTasks="ReqHandler.AllImplTasks" StartImplPhase="StartImplPhase"/>
                 }
             </form>
         }
@@ -208,11 +207,18 @@
 
     private async Task Reset()
     {
-        if (ReqHandler.DisplayTicketMode)
+        try
         {
-            offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActTicket, RequestObjectScopes.Ticket, ReqHandler.Phase);
+            if (ReqHandler.DisplayTicketMode)
+            {
+                offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActTicket, RequestObjectScopes.Ticket, ReqHandler.Phase);
+            }
+            StateHasChanged();
         }
-        StateHasChanged();
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("init_environment"), "", true);
+        }
     }
 
     private async Task Cancel()

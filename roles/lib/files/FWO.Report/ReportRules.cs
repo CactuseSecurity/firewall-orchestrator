@@ -211,7 +211,7 @@ namespace FWO.Report
 
         public override string ExportToJson()
         {
-            if (ReportType == ReportType.ResolvedRules)
+            if (ReportType == ReportType.ResolvedRules || ReportType == ReportType.ResolvedRulesTech)
             {
                 StringBuilder report = new StringBuilder("{");
                 report.AppendLine($"\"report type\": \"{userConfig.GetText("resolved_rules_report")}\",");

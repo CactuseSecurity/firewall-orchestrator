@@ -146,11 +146,11 @@
             {
                 if (currentReport.reportGenerationDuration<600)
                 {
-                    <small>Report generation took @currentReport.reportGenerationDuration.ToString("0.00") seconds.</small>
+                    <small>@(userConfig.GetText("report_duration")) @currentReport.reportGenerationDuration.ToString("0.00") @(userConfig.GetText("seconds")).</small>
                 }
                 else
                 {
-                    <small>Report generation took @(currentReport.reportGenerationDuration/60).ToString("0.00") minutes.</small>
+                    <small> @(userConfig.GetText("report_duration")) @(currentReport.reportGenerationDuration/60).ToString("0.00") @(userConfig.GetText("minutes")).</small>
                 }
             }
         }
@@ -435,6 +435,8 @@
         selectedReportType = newReportType;
         DisplayTime();
         StateHasChanged();
+        if (currentReport != null)
+            currentReport.reportGenerationDuration = 0;
     }
 
     private void InitTimes(TimeFilter timeFilter)

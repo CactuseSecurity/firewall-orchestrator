@@ -823,6 +823,10 @@
                     {
                         return false;
                     }
+                    if(dev.RuleChanges != null && dev.RuleChanges.Count() > 0)
+                    {
+                        return false;
+                    }
                 }
             }
         }

@@ -152,7 +152,6 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Unterst&uuml;tzung f&uuml;r Debian Testing Betriebssystem</li>
     <li>Beginn Routing/Interface Pfad Analyse (zun&auml;chst nur Fortinet)</li>
     <li>Neuer Report-Typ: Regeln (aufgel&ouml;st) (alle Gruppe werden in Bestandteile aufgel&ouml;st; Report-Export als "Single Table")</li>
-    <li>IP-basierter Mandantenfilter</li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
@@ -168,7 +167,6 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>Support for new operating system Debian testing</li>
     <li>Start routing/interface (currently implemented for fortinet only) import and path analysis</li>
     <li>New report type: resolved rules (report without group objects, exporting into pure rule tables without additional object tables)</li>
-    <li>Adding IP-based tenant filtering</li>
 </ul>
 ');
 

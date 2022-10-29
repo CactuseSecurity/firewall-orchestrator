@@ -28,6 +28,10 @@ fworchtest_home: "/home/{{ fworchtest_user }}"
 fworch_conf_dir: "{{ fworch_home }}/etc"
 fworch_conf_file: "{{ fworch_conf_dir }}/fworch.json"
 fworch_secrets_dir: "{{ fworch_conf_dir }}/secrets"
+fworch_log_dir: "/var/log/{{ product_name }}"
+fworch_log_lock_dir: "/var/{{ product_name }}/lock"
+fworch_mw_lockfile: "{{ fworch_log_lock_dir }}/middleware.lock"
+fworch_ui_lockfile: "{{ fworch_log_lock_dir }}/ui.lock"
 
 # setting default proxy (may be overwritten via --extra-vars)
 http_proxy: "{{ lookup('env','http_proxy') }}"

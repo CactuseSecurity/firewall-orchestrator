@@ -77,6 +77,7 @@ namespace FWO.Report
         public abstract Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, int maxFetchCycles, ApiConnection apiConnection, Func<Management[], Task> callback);
 
         public abstract string ExportToCsv();
+        public double reportGenerationDuration;
 
         public virtual string ExportToJson()
         {

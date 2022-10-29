@@ -140,6 +140,20 @@
             }
         </div>
     </div>
+    @if (currentReport != null)
+        {
+            if (currentReport.reportGenerationDuration != null && currentReport.reportGenerationDuration != 0)
+            {
+                if (currentReport.reportGenerationDuration<600)
+                {
+                    <small>Report generation took @currentReport.reportGenerationDuration.ToString("0.00") seconds.</small>
+                }
+                else
+                {
+                    <small>Report generation took @(currentReport.reportGenerationDuration/60).ToString("0.00") minutes.</small>
+                }
+            }
+        }
 </div>
 
 @* ==== RIGHT SIDEBAR ==== *@

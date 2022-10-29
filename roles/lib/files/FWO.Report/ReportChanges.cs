@@ -5,6 +5,7 @@ using FWO.Report.Filter;
 using FWO.Ui.Display;
 using FWO.Config.Api;
 using FWO.Logging;
+using System.Diagnostics;
 
 namespace FWO.Report
 {
@@ -28,6 +29,8 @@ namespace FWO.Report
 
         public override async Task Generate(int changesPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)
         {
+            Stopwatch watch = new System.Diagnostics.Stopwatch();
+            watch.Start();
             Query.QueryVariables["limit"] = changesPerFetch;
             Query.QueryVariables["offset"] = 0;
             bool gotNewObjects = true;
@@ -46,6 +49,8 @@ namespace FWO.Report
                 gotNewObjects = Managements.Merge(await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables));
                 await callback(Managements);
             }
+            watch.Stop();
+            reportGenerationDuration = watch.ElapsedMilliseconds/1000;
         }
 
         public override string SetDescription()

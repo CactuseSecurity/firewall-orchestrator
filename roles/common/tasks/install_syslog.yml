@@ -87,7 +87,7 @@
     path: "/etc/logrotate.d/{{ product_name }}"
     create: yes
     block: |
-      {{ fworch_log_dir }}/*.log {
+      {{ fworch_log_dir }}/middleware.log {
           compress
           maxage 7
           rotate 99
@@ -97,15 +97,55 @@
           sharedscripts
               prerotate
                 {{ fworch_home }}/scripts/acquire_lock.py {{ fworch_mw_lockfile }} >/dev/null 2>&1
-                {{ fworch_home }}/scripts/acquire_lock.py {{ fworch_ui_lockfile }} >/dev/null 2>&1
-                systemctl stop {{ product_name }}-importer-legacy.service >/dev/null 2>&1
               endscript
               postrotate
                 {{ fworch_home }}/scripts/release_lock.py {{ fworch_mw_lockfile }} >/dev/null 2>&1
+              endscript
+      }
+
+      {{ fworch_log_dir }}/ui.log {
+          compress
+          maxage 7
+          rotate 99
+          size=+4096k
+          missingok
+          copytruncate
+          sharedscripts
+              prerotate
+                {{ fworch_home }}/scripts/acquire_lock.py {{ fworch_ui_lockfile }} >/dev/null 2>&1
+              endscript
+              postrotate
                 {{ fworch_home }}/scripts/release_lock.py {{ fworch_ui_lockfile }} >/dev/null 2>&1
+              endscript
+      }
+
+      {{ fworch_log_dir }}/importer-legacy.log {
+          compress
+          maxage 7
+          rotate 99
+          size=+4096k
+          missingok
+          copytruncate
+          sharedscripts
+              prerotate
+                systemctl stop {{ product_name }}-importer-legacy.service >/dev/null 2>&1
+              endscript
+              postrotate
                 systemctl start {{ product_name }}-importer-legacy.service >/dev/null 2>&1
               endscript
       }
+
+      {{ fworch_log_dir }}/database.log {{ fworch_log_dir }}/ldap.log {{ fworch_log_dir }}/api.log 
+      {{ fworch_log_dir }}/importer-api.log {{ fworch_log_dir }}/audit.log {{ fworch_log_dir }}/alert.log 
+      {{ fworch_log_dir }}/webhook.log {
+          compress
+          maxage 7
+          rotate 99
+          size=+4096k
+          missingok
+          copytruncate
+      }
+
   become: yes
 
 - name: reload rsyslog service

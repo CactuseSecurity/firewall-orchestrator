@@ -240,5 +240,6 @@ adding report template format fk and permissions
 - hotfix DB user group import
 
 ### 5.8.2 - 31.10.2022
+- new report type resolved tech info (no names)
 - fix for log file rotation issues (log lock)
 - ip-based tenant filtering start

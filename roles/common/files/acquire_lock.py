@@ -1,9 +1,12 @@
+#!/usr/bin/python3
+
 import sys
 from time import sleep
 
-assert len(sys.argv) == 1
-lock_file_path = sys.argv[0]
+assert len(sys.argv) == 2
+lock_file_path = sys.argv[1]
 
+lock_file = None
 access_possible = False
 while not access_possible:
     try:
@@ -21,8 +24,9 @@ while not access_possible:
             elif lock_file_content.endswith("RELEASED"):
                 print("Waiting for release acknowledge.")
                 sleep(0.5)
-    except:
+    except Exception as e:
         sleep(0.1)
+        print(e)
     finally:
         if lock_file != None:
             lock_file.close()
@@ -34,8 +38,9 @@ while not access_requested:
         lock_file = open(lock_file_path, "w")
         lock_file.writelines("REQUESTED\n")
         access_requested = True
-    except:
+    except Exception as e:
         sleep(0.1)
+        print(e)
     finally:
         if lock_file != None:
             lock_file.close()
@@ -49,8 +54,9 @@ while not access_granted:
         lock_file.seek(0)
         access_granted = lock_file.readlines(
         )[-1].strip().endswith("GRANTED")
-    except:
+    except Exception as e:
         sleep(0.1)
+        print(e)
     finally:
         if lock_file != None:
             lock_file.close()

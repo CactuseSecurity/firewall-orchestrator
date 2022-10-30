@@ -83,6 +83,19 @@
             ]
         },
         {
+            "name": "py-acquire-lock",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/common/files/acquire_lock.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "/var/fworch/lock/FWO.Middleware.Server_log.lock"
+            ]
+        },
+        {
             "name": "py-generate-tenant-data",
             "type": "python",
             "request": "launch",

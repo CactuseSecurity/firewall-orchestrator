@@ -6,7 +6,6 @@ using FWO.Api.Client.Queries;
 using System.Text.Json;
 using FWO.Config.Api;
 using FWO.Logging;
-using System.Diagnostics;
 
 namespace FWO.Report
 {
@@ -32,8 +31,6 @@ namespace FWO.Report
 
         public override async Task Generate(int _, ApiConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)
         {
-            Stopwatch watch = new System.Diagnostics.Stopwatch();
-            watch.Start();
             Management[] managementsWithRelevantImportId = await getRelevantImportIds(apiConnection);
 
             List<Management> resultList = new List<Management>();
@@ -61,8 +58,6 @@ namespace FWO.Report
                 globalStatisticsManagement.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
                 globalStatisticsManagement.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
             }
-            watch.Stop();
-            reportGenerationDuration = watch.ElapsedMilliseconds/1000;
         }
 
         public override string ExportToJson()

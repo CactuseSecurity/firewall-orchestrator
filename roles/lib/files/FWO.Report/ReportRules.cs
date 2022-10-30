@@ -8,7 +8,6 @@ using FWO.Logging;
 using FWO.Config.Api;
 using System.Text.Json;
 using Newtonsoft.Json;
-using System.Diagnostics;
 
 namespace FWO.Report
 {
@@ -135,9 +134,6 @@ namespace FWO.Report
 
         public override async Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)
         {
-            Stopwatch watch = new System.Diagnostics.Stopwatch();
-            watch.Start();
-
              Query.QueryVariables["limit"] = rulesPerFetch;
             Query.QueryVariables["offset"] = 0;
             bool gotNewObjects = true;
@@ -172,8 +168,6 @@ namespace FWO.Report
                 }
                 await callback(Managements);
             }
-            watch.Stop();
-            reportGenerationDuration = watch.ElapsedMilliseconds/1000.0;
        }
 
         public override string SetDescription()

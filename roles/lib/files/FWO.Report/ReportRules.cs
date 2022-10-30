@@ -276,6 +276,10 @@ namespace FWO.Report
             {
                 return System.Text.Json.JsonSerializer.Serialize(Managements.Where(mgt => !mgt.Ignore), new JsonSerializerOptions { WriteIndented = true });
             }
+            else if (ReportType == ReportType.NatRules)
+            {
+                return System.Text.Json.JsonSerializer.Serialize(Managements.Where(mgt => !mgt.Ignore), new JsonSerializerOptions { WriteIndented = true });
+            }
             else
             {
                 return null;

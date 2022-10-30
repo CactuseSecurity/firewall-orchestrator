@@ -23,7 +23,7 @@
 {
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
-    
+
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
@@ -54,7 +54,7 @@
             reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, apiConnection, WorkflowPhases.approval){};
             await Reset();
             reqHandler.SetContinueEnv(ObjAction.approve);
-    
+
             InitComplete = true;
         }
         catch (Exception exception)
@@ -81,6 +81,7 @@
         try
         {
             await reqHandler.StartWorkOnReqTask(reqTask, ObjAction.approve);
+            //await reqHandler.ContinuePhase(reqTask);
         }
         catch (Exception exception)
         {

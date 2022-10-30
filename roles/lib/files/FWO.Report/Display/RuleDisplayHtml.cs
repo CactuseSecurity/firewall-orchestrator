@@ -33,6 +33,7 @@ namespace FWO.Ui.Display
                     }
                     break;
                 case ReportType.ResolvedRules:
+                case ReportType.ResolvedRulesTech:
                     HashSet<NetworkObject> collectedNetworkObjects = new HashSet<NetworkObject>();
                     HashSet<NetworkLocation> collectedUserNetworkObjects = new HashSet<NetworkLocation>();
                     if (side == "source")
@@ -58,7 +59,7 @@ namespace FWO.Ui.Display
                     userNwObjectList.Sort();
 
                     foreach (NetworkLocation networkLocation in userNwObjectList)
-                        result.Append(NetworkLocationToHtml(networkLocation, rule.MgmtId, location, style));
+                        result.Append(NetworkLocationToHtml(networkLocation, rule.MgmtId, location, style, reportType=reportType));
                     break;
             }
             result.AppendLine("</p>");
@@ -75,7 +76,7 @@ namespace FWO.Ui.Display
             return DisplaySourceOrDestination(rule, style, location, reportType, side: "destination");
         }
 
-        private StringBuilder NetworkLocationToHtml(NetworkLocation userNetworkObject, int mgmtId, string location = "", string style = "")
+        private StringBuilder NetworkLocationToHtml(NetworkLocation userNetworkObject, int mgmtId, string location = "", string style = "", ReportType reportType = ReportType.Rules)
         {
             string nwobjLink = "";
             string symbol = "oi oi-wrench";
@@ -91,14 +92,25 @@ namespace FWO.Ui.Display
             
             if (userNetworkObject.User?.Id != null)
             {
-                string userLink = location == "" ? $"user{userNetworkObject.User.Id}" : $"goto-report-m{mgmtId}-user{userNetworkObject.User.Id}";
-                result.AppendLine($"<span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{location}#{userLink}\" target=\"_top\" style=\"{style}\">{userNetworkObject.User.Name}</a>@");
+                if (reportType==ReportType.ResolvedRulesTech)
+                    result.Append($"{userNetworkObject.User.Name}@");
+                else
+                {
+                    string userLink = location == "" ? $"user{userNetworkObject.User.Id}" : $"goto-report-m{mgmtId}-user{userNetworkObject.User.Id}";
+                    result.Append($"<span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{location}#{userLink}\" target=\"_top\" style=\"{style}\">{userNetworkObject.User.Name}</a>@");
+                }
             }
 
             nwobjLink = location == "" ? $"nwobj{userNetworkObject.Object.Id}" : $"goto-report-m{mgmtId}-nwobj{userNetworkObject.Object.Id}";
 
-            result.Append($"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{location}#{nwobjLink}\" target=\"_top\" style=\"{style}\">{userNetworkObject.Object.Name}</a>");
+            if (reportType==ReportType.Rules || reportType==ReportType.ResolvedRules)
+            {
+                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{location}#{nwobjLink}\" target=\"_top\" style=\"{style}\">{userNetworkObject.Object.Name}</a>");
+                result.Append(" (");
+            }
             result.Append(DisplayIpRange(userNetworkObject.Object.IP, userNetworkObject.Object.IpEnd));
+            if (reportType==ReportType.Rules || reportType==ReportType.ResolvedRules)
+                result.Append(")");
             result.AppendLine("<br>");
             return result;
         }
@@ -117,6 +129,7 @@ namespace FWO.Ui.Display
                         result.Append(ServiceToHtml(service.Content, rule.MgmtId, location, style));
                     break;
                 case ReportType.ResolvedRules:
+                case ReportType.ResolvedRulesTech:
                     HashSet<NetworkService> collectedServices = new HashSet<NetworkService>();
                     foreach (ServiceWrapper service in rule.Services)
                         foreach (GroupFlat<NetworkService> nwService in service.Content.ServiceGroupFlats)
@@ -127,13 +140,13 @@ namespace FWO.Ui.Display
                     serviceList.Sort(delegate (NetworkService x, NetworkService y) { return x.Name.CompareTo(y.Name); });
 
                     foreach (NetworkService service in serviceList)
-                        result.Append(ServiceToHtml(service, rule.MgmtId, location, style));
+                        result.Append(ServiceToHtml(service, rule.MgmtId, location, style, reportType=reportType));
                     break;
             }
             result.AppendLine("</p>");
             return result.ToString();
         }
-        private StringBuilder ServiceToHtml(NetworkService service, int mgmtId, string location = "", string style = "")
+        private StringBuilder ServiceToHtml(NetworkService service, int mgmtId, string location = "", string style = "", ReportType reportType = ReportType.Rules)
         {
             string link = "";
             string symbol = "oi oi-wrench";
@@ -143,11 +156,18 @@ namespace FWO.Ui.Display
             else
                 symbol = "oi oi-wrench";
             link = location == "" ? $"svc{service.Id}" : $"goto-report-m{mgmtId}-svc{service.Id}";
-            result.Append($"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{location}#{link}\" target=\"_top\" style=\"{style}\">{service.Name}</a>");
+            if (reportType==ReportType.Rules || reportType==ReportType.ResolvedRules)
+                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{location}#{link}\" target=\"_top\" style=\"{style}\">{service.Name}</a>");
 
             if (service.DestinationPort != null)
-                result.Append(service.DestinationPort == service.DestinationPortEnd ? $" ({service.DestinationPort}/{service.Protocol?.Name})"
-                    : $" ({service.DestinationPort}-{service.DestinationPortEnd}/{service.Protocol?.Name})");
+            {
+                if (reportType==ReportType.Rules || reportType==ReportType.ResolvedRules)
+                    result.Append(" (");
+                result.Append(service.DestinationPort == service.DestinationPortEnd ? $"{service.DestinationPort}/{service.Protocol?.Name}"
+                    : $" {service.DestinationPort}-{service.DestinationPortEnd}/{service.Protocol?.Name}");
+                if (reportType==ReportType.Rules || reportType==ReportType.ResolvedRules)
+                    result.Append(")");
+            }
             result.AppendLine("<br>");
             return result;
         }

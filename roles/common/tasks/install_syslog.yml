@@ -135,9 +135,14 @@
               endscript
       }
 
-      {{ fworch_log_dir }}/database.log {{ fworch_log_dir }}/ldap.log {{ fworch_log_dir }}/api.log 
-      {{ fworch_log_dir }}/importer-api.log {{ fworch_log_dir }}/audit.log {{ fworch_log_dir }}/alert.log 
-      {{ fworch_log_dir }}/webhook.log {
+      {{ fworch_log_dir }}/database.log 
+      {{ fworch_log_dir }}/ldap.log 
+      {{ fworch_log_dir }}/api.log 
+      {{ fworch_log_dir }}/importer-api.log 
+      {{ fworch_log_dir }}/audit.log 
+      {{ fworch_log_dir }}/alert.log 
+      {{ fworch_log_dir }}/webhook.log 
+      {
           compress
           maxage 7
           rotate 99

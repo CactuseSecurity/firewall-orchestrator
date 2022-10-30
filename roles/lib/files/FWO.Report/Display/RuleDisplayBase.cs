@@ -34,22 +34,10 @@ namespace FWO.Ui.Display
         {
             return (rule.DestinationZone != null ? rule.DestinationZone.Name : "");
         }
-        // public string DisplaySourceOrDestination(Rule rule, string style = "", string location = "report", ReportType reportType = ReportType.Rules, string side = "source")
-        // {}
-
-        // public string DisplaySource(Rule rule, string style = "", string location = "report", ReportType reportType = ReportType.Rules)
-        // {
-        //     return DisplaySourceOrDestination(rule, style, location, reportType, side: "source");
-        // }
-
-        // public string DisplayDestination(Rule rule, string style = "", string location = "report", ReportType reportType = ReportType.Rules)
-        // {
-        //     return DisplaySourceOrDestination(rule, style, location, reportType, side: "destination");
-        // }
 
         public string DisplayIpRange(string Ip, string IpEnd)
         {
-            return (Ip != null && Ip != "" ? $" ({Ip}{(IpEnd != null && IpEnd != "" && IpEnd != Ip ? $"-{IpEnd}" : "")})" : "");
+            return (Ip != null && Ip != "" ? $"{Ip}{(IpEnd != null && IpEnd != "" && IpEnd != Ip ? $"-{IpEnd}" : "")}" : "");
         }
 
         public string DisplayAction(Rule rule)
@@ -61,9 +49,6 @@ namespace FWO.Ui.Display
         {
             return rule.Track;
         }
-
-
-        // public string  DisplayEnabled(Rule rule, bool export = false) {};
 
         public string DisplayUid(Rule rule)
         {

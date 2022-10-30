@@ -151,7 +151,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Cisco FireFlow Import-Module</li>
     <li>Unterst&uuml;tzung f&uuml;r Debian Testing Betriebssystem</li>
     <li>Beginn Routing/Interface Pfad Analyse (zun&auml;chst nur Fortinet)</li>
-    <li>Neuer Report-Typ: Regeln (aufgel&ouml;st) (alle Gruppe werden in Bestandteile aufgel&ouml;st; Report-Export als "Single Table")</li>
+    <li>Neue Report-Typen: Regeln (aufgel&ouml;st), Regeln technisch (alle Gruppe werden in Bestandteile aufgel&ouml;st; Report-Export als "Single Table")</li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
@@ -166,7 +166,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>New Cisco FireFlow import module </li>
     <li>Support for new operating system Debian testing</li>
     <li>Start routing/interface (currently implemented for fortinet only) import and path analysis</li>
-    <li>New report type: resolved rules (report without group objects, exporting into pure rule tables without additional object tables)</li>
+    <li>New report types: resolved rules, technical rules (report without group objects, exporting into pure rule tables without additional object tables)</li>
 </ul>
 ');
 

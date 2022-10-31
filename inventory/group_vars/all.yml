@@ -94,17 +94,9 @@ middleware_service_name: "{{ product_name }}-middleware"
 
 # middleware web server
 middleware_web_listener_port: 8888
-<<<<<<< HEAD
 middleware_uri: "https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/"
 ##### application server data
 middleware_internal_port: 8880
-# currently not used: web_server_name: "{{ middleware_hostname }}"
-=======
-middleware_uri: "https://{{ middleware_server_name }}:{{ middleware_web_listener_port }}/"
-
-##### application server data
-middleware_internal_port: 8880
->>>>>>> 98377d4bbf84d21bb1110a915667e3652c1636a9
 
 ###############################################################
 ui_admin_password_file: "{{ fworch_secrets_dir }}/ui_admin_pwd"

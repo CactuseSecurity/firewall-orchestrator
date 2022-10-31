@@ -75,12 +75,23 @@
         msg: "Could not find existing installation but running with installation_mode set to {{ installation_mode }}. Try running with installation_mode=new"
       when: not already_installed and installation_mode == "upgrade"
 
-    # - name: remove complete {{ fworch_home }} dir except for etc
-    #   file:
-    #     state: absent
-    #     path: "{{ fworch_home }}/{{ item }}"
-    #   loop:
-    #     - bin
+    - name: create group {{ fworch_group }}
+      group:
+        name: "{{ fworch_user }}"
+        gid: "{{ user_id }}"
+        state: present
+      
+    - name: add user {{ fworch_user }}
+      user:
+        name: "{{ fworch_user }}"
+        comment: "{{ product_name }} User"
+        uid: "{{ user_id }}"
+        home: "{{ fworch_home }}"
+        shell: /bin/bash
+        group: "{{ fworch_group }}"
+        generate_ssh_key: yes
+        ssh_key_bits: 4096
+        ssh_key_file: .ssh/id_rsa
 
     - name: include redhat install basics
       include_tasks: redhat_preps.yml
@@ -116,24 +127,6 @@
     - name: install rsyslog
       import_tasks: install_syslog.yml
       when: "install_syslog | bool"
-
-    - name: create group {{ fworch_group }}
-      group:
-        name: "{{ fworch_user }}"
-        gid: "{{ user_id }}"
-        state: present
-      
-    - name: add user {{ fworch_user }}
-      user:
-        name: "{{ fworch_user }}"
-        comment: "{{ product_name }} User"
-        uid: "{{ user_id }}"
-        home: "{{ fworch_home }}"
-        shell: /bin/bash
-        group: "{{ fworch_group }}"
-        generate_ssh_key: yes
-        ssh_key_bits: 4096
-        ssh_key_file: .ssh/id_rsa
 
     - name: create base {{ fworch_home }} directory
       file:

@@ -151,8 +151,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Cisco FireFlow Import-Module</li>
     <li>Unterst&uuml;tzung f&uuml;r Debian Testing Betriebssystem</li>
     <li>Beginn Routing/Interface Pfad Analyse (zun&auml;chst nur Fortinet)</li>
-    <li>Neuer Report-Typ: Regeln (aufgel&ouml;st) (alle Gruppe werden in Bestandteile aufgel&ouml;st; Report-Export als "Single Table")</li>
-    <li>IP-basierter Mandantenfilter</li>
+    <li>Neue Report-Typen: Regeln (aufgel&ouml;st), Regeln technisch (alle Gruppe werden in Bestandteile aufgel&ouml;st; Report-Export als "Single Table")</li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
@@ -167,8 +166,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>New Cisco FireFlow import module </li>
     <li>Support for new operating system Debian testing</li>
     <li>Start routing/interface (currently implemented for fortinet only) import and path analysis</li>
-    <li>New report type: resolved rules (report without group objects, exporting into pure rule tables without additional object tables)</li>
-    <li>Adding IP-based tenant filtering</li>
+    <li>New report types: resolved rules, technical rules (report without group objects, exporting into pure rule tables without additional object tables)</li>
 </ul>
 ');
 
@@ -372,6 +370,8 @@ INSERT INTO txt VALUES ('rules',		        'German', 	'Regeln');
 INSERT INTO txt VALUES ('rules',		        'English', 	'Rules');
 INSERT INTO txt VALUES ('resolvedrules',        'German', 	'Regeln (aufgel&ouml;st)');
 INSERT INTO txt VALUES ('resolvedrules',        'English', 	'Rules (resolved)');
+INSERT INTO txt VALUES ('resolvedrulestech',    'German', 	'Regeln (technisch)');
+INSERT INTO txt VALUES ('resolvedrulestech',    'English', 	'Rules (technical)');
 INSERT INTO txt VALUES ('changes',		        'German', 	'&Auml;nderungen');
 INSERT INTO txt VALUES ('changes',		        'English', 	'Changes');
 INSERT INTO txt VALUES ('statistics',		    'German', 	'Statistik');
@@ -390,6 +390,12 @@ INSERT INTO txt VALUES ('rule',		            'German', 	'Regel');
 INSERT INTO txt VALUES ('rule',		            'English', 	'Rule');
 INSERT INTO txt VALUES ('objects',		        'German', 	'Objekte');
 INSERT INTO txt VALUES ('objects',		        'English', 	'Objects');
+INSERT INTO txt VALUES ('report_duration',		'German', 	'Report-Generierung in');
+INSERT INTO txt VALUES ('report_duration',		'English', 	'Report generation took');
+INSERT INTO txt VALUES ('seconds',		        'German', 	'Sekunden');
+INSERT INTO txt VALUES ('seconds',		        'English', 	'seconds');
+INSERT INTO txt VALUES ('minutes',		        'German', 	'Minuten');
+INSERT INTO txt VALUES ('minutes',		        'English', 	'minutes');
 INSERT INTO txt VALUES ('change_time',		    'German', 	'&Auml;nderungszeit');
 INSERT INTO txt VALUES ('change_time',		    'English', 	'Change Time');
 INSERT INTO txt VALUES ('change_type',		    'German', 	'&Auml;nderungstyp');

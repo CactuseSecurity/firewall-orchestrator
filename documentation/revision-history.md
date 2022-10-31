@@ -229,7 +229,6 @@ adding report template format fk and permissions
 - start routing/interface (implemented for fortinet only) import and path analysis
 - also adding dummy router for testing and interconnecting routing clouds
 - new report type: resolved rules (report without group objects, exporting into pure rule tables without additional object tables)
-- ip-based tenant filtering
 - new user management API call for creating JWTs with arbitrary lifetime
 
 ### 5.8 - 23.10.2022
@@ -239,3 +238,9 @@ adding report template format fk and permissions
 
 ### 5.8.1 - 26.10.2022
 - hotfix DB user group import
+
+### 5.8.2 - 30.10.2022
+- new report type resolved tech info (no names)
+- fix for log file rotation issues (log lock)
+- ip-based tenant filtering start
+- fix change report warning for empty reports

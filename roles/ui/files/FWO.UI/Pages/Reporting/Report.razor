@@ -6,6 +6,7 @@
 @using System.Threading
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.Reporting.Reports
+@using System.Diagnostics
 
 @page "/report"
 
@@ -140,6 +141,20 @@
             }
         </div>
     </div>
+    @if (currentReport != null)
+        {
+            if (reportGenerationDuration != null && reportGenerationDuration != 0)
+            {
+                if (reportGenerationDuration<600)
+                {
+                    <small>@(userConfig.GetText("report_duration")) @reportGenerationDuration.ToString("0.00") @(userConfig.GetText("seconds")).</small>
+                }
+                else
+                {
+                    <small> @(userConfig.GetText("report_duration")) @(reportGenerationDuration/60.0).ToString("0.00") @(userConfig.GetText("minutes")).</small>
+                }
+            }
+        }
 </div>
 
 @* ==== RIGHT SIDEBAR ==== *@
@@ -337,6 +352,7 @@
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
+    public double reportGenerationDuration;
     private bool processing = false;
     private CancellationTokenSource tokenSource = new CancellationTokenSource();
 
@@ -424,6 +440,8 @@
         selectedReportType = newReportType;
         DisplayTime();
         StateHasChanged();
+        if (reportGenerationDuration != null)
+            reportGenerationDuration = 0;
     }
 
     private void InitTimes(TimeFilter timeFilter)
@@ -658,6 +676,8 @@
 
     private async Task GenerateReport()
     {
+        Stopwatch watch = new System.Diagnostics.Stopwatch();
+        watch.Start();
         tokenSource = new CancellationTokenSource();
         var token = tokenSource.Token;
 
@@ -755,6 +775,8 @@
             await InvokeAsync(StateHasChanged);
             DisplayMessageInUi!(exception, userConfig.GetText("generate_report"), "", true);
         }
+        watch.Stop();
+        reportGenerationDuration = watch.ElapsedMilliseconds/1000.0;
     }
 
     private void CancelGeneration()
@@ -810,6 +832,10 @@
                 foreach(var dev in mgmt.Devices)
                 {
                     if(dev.Rules != null && dev.Rules.Count() > 0)
+                    {
+                        return false;
+                    }
+                    if(dev.RuleChanges != null && dev.RuleChanges.Count() > 0)
                     {
                         return false;
                     }

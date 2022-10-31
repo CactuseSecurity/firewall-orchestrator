@@ -1,5 +1,5 @@
 ### general settings
-product_version: "5.7.2"
+product_version: "5.8.2"
 ansible_become: yes
 ansible_user: "{{ lookup('env', 'USER') }}"
 ansible_become_method: sudo
@@ -32,8 +32,6 @@ run_on_github: false
 add_demo_data: true
 api_docu: false
 force_install: false
-# initialize upgrade files list to empty, needed when running in test only mode (-t test):
-upgrade_files: []
 
 ### operating system settings
 user_id: 60320
@@ -41,8 +39,6 @@ fworch_user: "{{ product_name }}"
 fworch_group: "{{ fworch_user }}"
 fworch_parent_dir: "/usr/local"
 fworch_home: "{{ fworch_parent_dir }}/{{ product_name }}"
-fworchtest_user: "{{ product_name }}test"
-fworchtest_home: "/home/{{ fworchtest_user }}"
 fworch_conf_dir: "{{ fworch_home }}/etc"
 fworch_conf_file: "{{ fworch_conf_dir }}/fworch.json"
 fworch_secrets_dir: "{{ fworch_conf_dir }}/secrets"
@@ -63,21 +59,30 @@ http_proxy_import_parameter: ""
 # use the following syntax for authenticated proxy access:
 # http_proxy=http://USERNAME:PASSWORD@1.2.3.4:8080/
 
-test_packages:
-  - postgresql-client
-  - curl
 server_admin: "root@{{ api_ip_address }}"
 arch: x86_64
 redhat_major_version: "8"
 redhat_arch: "{{ redhat_major_version }}-{{ arch }}"
 
-### database stuff
+###############################################################
+### database
 fworch_db_port: 5432
 fworch_db_name: fworchdb
 fworch_dbadmin_name: dbadmin
 dbadmin_password_file: "{{ fworch_secrets_dir }}/dbadmin_pwd"
 fworch_db_password_file: "{{ fworch_secrets_dir }}/fworch_db_pwd"
 
+###############################################################
+### api
+api_service_name: fworch-hasura-docker-api
+api_container_name: "{{ product_name }}-api"
+api_ip_address: "127.0.0.1"
+api_web_port: 9443
+api_hasura_jwt_alg: "RS256"
+api_hasura_jwt_secret: "fake-jwt-secret-for-github-install"
+api_uri: "https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql"
+
+############################################################
 ### middleware server 
 jwt_private_key_file: "{{ fworch_secrets_dir }}/jwt_private_key.pem"
 jwt_public_key_file: "{{ fworch_secrets_dir }}/jwt_public_key.pem"
@@ -87,25 +92,24 @@ middleware_hostname: "127.0.0.1"
 ldif_changetype: add
 middleware_service_name: "{{ product_name }}-middleware"
 
-
 # middleware web server
 middleware_web_listener_port: 8888
+<<<<<<< HEAD
 middleware_uri: "https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/"
 ##### application server data
 middleware_internal_port: 8880
 # currently not used: web_server_name: "{{ middleware_hostname }}"
+=======
+middleware_uri: "https://{{ middleware_server_name }}:{{ middleware_web_listener_port }}/"
 
+##### application server data
+middleware_internal_port: 8880
+>>>>>>> 98377d4bbf84d21bb1110a915667e3652c1636a9
+
+###############################################################
 ui_admin_password_file: "{{ fworch_secrets_dir }}/ui_admin_pwd"
 ui_admin_testonly_password: "fworch.1"
 
-### database & api
-api_service_name: fworch-hasura-docker-api
-api_container_name: "{{ product_name }}-api"
-api_ip_address: "127.0.0.1"
-api_web_port: 9443
-api_hasura_jwt_alg: "RS256"
-api_hasura_jwt_secret: "fake-jwt-secret-for-github-install"
-api_uri: "https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql"
 
 ### dotnet
 dotnet_deb_name: "packages-microsoft-prod.deb"
@@ -126,6 +130,10 @@ middleware_server_syslog_id: "{{ product_name }}.middleware-server"
 ui_syslog_id: "{{ product_name }}-ui"
 ldap_syslog_id: slapd
 api_log_level: info
+fworch_log_dir: "/var/log/{{ product_name }}"
+fworch_log_lock_dir: "/var/{{ product_name }}/lock"
+fworch_mw_lockfile: "{{ fworch_log_lock_dir }}/FWO.Middleware.Server_log.lock"
+fworch_ui_lockfile: "{{ fworch_log_lock_dir }}/FWO.Ui_log.lock"
 
 ### apache: both package and dir name (needed both on ui and api hosts):
 webserver_package_name: apache2
@@ -133,6 +141,16 @@ http_conf_dir: /etc/{{ webserver_package_name }}/sites-available/
 wsgi_package_name: libapache2-mod-wsgi
 
 ################# testing #########################
+fworchtest_user: "{{ product_name }}test"
+fworchtest_home: "/home/{{ fworchtest_user }}"
+
+# initialize upgrade files list to empty, needed when running in test only mode (-t test):
+upgrade_files: []
+
+test_packages:
+  - postgresql-client
+  - curl
+
 test_dir: "{{ fworch_home }}/test"
 test_fortigate_name: "fortigate{{ test_postfix }}"
 test_checkpoint_name: "checkpoint{{ test_postfix }}"

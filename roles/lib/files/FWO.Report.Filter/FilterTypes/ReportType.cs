@@ -6,6 +6,7 @@ namespace FWO.Report.Filter
         Changes = 2,
         Statistics = 3,
         NatRules = 4,
-        ResolvedRules = 5
+        ResolvedRules = 5,
+        ResolvedRulesTech = 6
     }
 }

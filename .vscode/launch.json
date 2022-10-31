@@ -50,7 +50,7 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m13",
+                "-m5",
                 "-d9",
                 "-f",
                 "-s",
@@ -80,6 +80,19 @@
                 //"-i/home/tim/tmp/configs/mgm_id_56_config_native.json.anon", // local id 55
                 //"-i/home/tim/tmp/configs/mgm_id_1176_config_native.json.anon_error_in_fprs100-s999-rz99-xxx-PolicyNetwork.anon-with-broken-svc",
                 //"-l250"
+            ]
+        },
+        {
+            "name": "py-acquire-lock",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/common/files/acquire_lock.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "/var/fworch/lock/FWO.Middleware.Server_log.lock"
             ]
         },
         {

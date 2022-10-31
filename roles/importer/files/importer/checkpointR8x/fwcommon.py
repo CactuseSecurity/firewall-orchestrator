@@ -14,9 +14,14 @@ def has_config_changed (full_config, mgm_details, force=False):
 
     if full_config != {}:   # a native config was passed in, so we assume that an import has to be done (simulating changes here)
         return 1
+        # from 5.8 onwards: preferably use domain uid instead of domain name due to CP R81 bug with certain installations
+    if mgm_details['domainUid'] != None:
+        domain = mgm_details['domainUid']
+    else:
+        domain = mgm_details['configPath']
 
     try: # top level dict start, sid contains the domain information, so only sending domain during login
-        session_id = getter.login(mgm_details['import_credential']['user'], mgm_details['import_credential']['secret'], mgm_details['hostname'], str(mgm_details['port']), mgm_details['configPath'])
+        session_id = getter.login(mgm_details['import_credential']['user'], mgm_details['import_credential']['secret'], mgm_details['hostname'], str(mgm_details['port']), domain)
     except:
         raise common.FwLoginFailed     # maybe 2Temporary failure in name resolution"
 
@@ -43,7 +48,14 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
 
     if not parsing_config_only: # get config from cp fw mgr
         starttime = int(time.time())
-        sid = getter.login(mgm_details['import_credential']['user'], mgm_details['import_credential']['secret'], mgm_details['hostname'], str(mgm_details['port']), mgm_details['configPath'])
+
+        # from 5.8 onwards: preferably use domain uid instead of domain name due to CP R81 bug with certain installations
+        if mgm_details['domainUid'] != None:
+            domain = mgm_details['domainUid']
+        else:
+            domain = mgm_details['configPath']
+
+        sid = getter.login(mgm_details['import_credential']['user'], mgm_details['import_credential']['secret'], mgm_details['hostname'], str(mgm_details['port']), domain)
 
         result_get_basic_config = get_basic_config (full_config, mgm_details, force=force, sid=sid, limit=str(limit), details_level='full', test_version='off')
 

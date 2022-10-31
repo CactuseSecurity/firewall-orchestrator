@@ -236,7 +236,7 @@ insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufac
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_mgmt,is_pure_routing_device)
     VALUES (8,'JUNOS','10-21','Juniper','any;0;0;65535;;junos-predefined-service;simple;', true,false);
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_mgmt,is_pure_routing_device)
-    VALUES (9,'Check Point','R8x','Check Point','', false,false);
+    VALUES (9,'Check Point','R8x','Check Point','', true,false);
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_mgmt,is_pure_routing_device)
     VALUES (10,'FortiGate','5ff','Fortinet','', false,false);
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_mgmt,is_pure_routing_device)

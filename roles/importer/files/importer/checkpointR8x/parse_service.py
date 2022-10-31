@@ -1,5 +1,6 @@
 import re
-import common, cpcommon
+import common
+import cpcommon
 
 
 # collect_svcobjects writes svc info into global users dict
@@ -9,7 +10,8 @@ def collect_svc_objects(object_table, svc_objects):
         'service-udp': 17,
         'service-icmp': 1
     }
-    simple_obj_types = ['services-tcp','services-udp', 'services-dce-rpc','services-rpc','services-other','services-icmp','services-icmp6']
+    simple_obj_types = ['services-tcp', 'services-udp', 'services-dce-rpc',
+                        'services-rpc', 'services-other', 'services-icmp', 'services-icmp6']
 
     if object_table['object_type'] in cpcommon.svc_obj_table_names:
         session_timeout = ''
@@ -68,7 +70,7 @@ def collect_svc_objects(object_table, svc_objects):
                 if not 'color' in obj:
                     # print('warning: no color found for service ' + obj['name'])
                     obj['color'] = 'black'
-                if not 'comments' in obj or obj['comments']=='':
+                if not 'comments' in obj or obj['comments'] == '':
                     obj['comments'] = None
                 svc_objects.extend([{'svc_uid': obj['uid'], 'svc_name': obj['name'], 'svc_color': obj['color'],
                                      'svc_comment': obj['comments'],
@@ -112,4 +114,3 @@ def parse_service_objects_to_json(full_config, config2import, import_id, debug_l
         if svc_objects[idx]['svc_typ'] == 'group':
             add_member_names_for_svc_group(idx, svc_objects)
     config2import.update({'service_objects': svc_objects})
-    

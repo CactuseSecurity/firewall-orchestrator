@@ -134,7 +134,7 @@ namespace FWO.Report
 
         public override async Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)
         {
-            Query.QueryVariables["limit"] = rulesPerFetch;
+             Query.QueryVariables["limit"] = rulesPerFetch;
             Query.QueryVariables["offset"] = 0;
             bool gotNewObjects = true;
 
@@ -168,7 +168,7 @@ namespace FWO.Report
                 }
                 await callback(Managements);
             }
-        }
+       }
 
         public override string SetDescription()
         {
@@ -205,7 +205,7 @@ namespace FWO.Report
 
         public override string ExportToJson()
         {
-            if (ReportType == ReportType.ResolvedRules)
+            if (ReportType == ReportType.ResolvedRules || ReportType == ReportType.ResolvedRulesTech)
             {
                 StringBuilder report = new StringBuilder("{");
                 report.AppendLine($"\"report type\": \"{userConfig.GetText("resolved_rules_report")}\",");
@@ -273,6 +273,10 @@ namespace FWO.Report
                 return Newtonsoft.Json.JsonConvert.SerializeObject(json, settings);
             }
             else if (ReportType == ReportType.Rules)
+            {
+                return System.Text.Json.JsonSerializer.Serialize(Managements.Where(mgt => !mgt.Ignore), new JsonSerializerOptions { WriteIndented = true });
+            }
+            else if (ReportType == ReportType.NatRules)
             {
                 return System.Text.Json.JsonSerializer.Serialize(Managements.Where(mgt => !mgt.Ignore), new JsonSerializerOptions { WriteIndented = true });
             }

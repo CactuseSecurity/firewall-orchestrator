@@ -244,7 +244,7 @@
                             <label class="col-form-label col-form-label-sm">@(userConfig.GetText("comments")):</label>
                             @if(ReqHandler.PlanReqTaskMode || ReqHandler.ApproveReqTaskMode)
                             {
-                                <button class="btn btn-sm btn-success" @onclick:preventDefault @onclick="InitAddComment">@(userConfig.GetText("add_comment"))</button>
+                                <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="InitAddComment">@(userConfig.GetText("add_comment"))</button>
                             }
                         </div>
                         <div class="col-sm-11">
@@ -259,7 +259,7 @@
                         <div class="form-group row justify-content-center">
                             @foreach(var action in offeredActions)
                             {
-                                <button class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
+                                <button type="button" class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
                             }
                         </div>
                     </div>

@@ -67,7 +67,7 @@
                             <option value="@nwObject.Id">@(nwObject.Name)</option>
                         }
                     </select>
-                    <button class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteDestination(destination)">x</button>
+                    <button type="button" class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteDestination(destination)">x</button>
                 </div>
             }
             @foreach(var destination in Destinations.Where(x => (x.NetworkId == null || x.NetworkId == 0)))
@@ -75,7 +75,7 @@
                 <div class="form-group row">
                     <label class="col-sm-2">@(userConfig.GetText("ip")):</label>
                     <input type="text" class="col-sm-9 form-control form-control-sm" @bind="destination.Cidr.CidrString" />
-                    <button class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteDestination(destination)">x</button>
+                    <button type="button" class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteDestination(destination)">x</button>
                 </div>
             }
         }
@@ -111,7 +111,7 @@
                             <option value="@nwService.Id">@(nwService.Name)</option>
                         }
                     </select>
-                    <button class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteService(service)">x</button>
+                    <button type="button" class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteService(service)">x</button>
                 </div>
             }
             @foreach(var service in Services.Where(x => (x.ServiceId == null || x.ServiceId == 0)))
@@ -126,7 +126,7 @@
                             <option value="@proto.Id">@(proto.Name)</option>
                         }
                     </select>
-                    <button class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteService(service)">x</button>
+                    <button type="button" class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteService(service)">x</button>
                 </div>
             }
         }

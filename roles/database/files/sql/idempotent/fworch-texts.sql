@@ -1380,6 +1380,8 @@ INSERT INTO txt VALUES ('found_no_changes',     'English',	'no changes found');
 
 
 -- help pages
+INSERT INTO txt VALUES ('report_types',         'German', 	'Report-Typen');
+INSERT INTO txt VALUES ('report_types',         'English', 	'Report types');
 INSERT INTO txt VALUES ('filter_syntax',        'German', 	'Filtersyntax');
 INSERT INTO txt VALUES ('filter_syntax',        'English', 	'Filter Syntax');
 INSERT INTO txt VALUES ('report_data_output',   'German', 	'Reportdatenausgabe');
@@ -1980,6 +1982,27 @@ INSERT INTO txt VALUES ('H1101', 'English', '<li> All filtering is case insensit
     <li> Time filtering currently only works for points in time before the last import that found a config change. </li>
     <li> Rules are always deep-searched, meaning all groups in source, destination and service fields are resolved.
         There is currently no option to only search at the rule top-level.</li>
+');
+INSERT INTO txt VALUES ('H1102', 'German',  'Folgende Report-Typen stehen zur Auswahl:
+<ul>
+    <li>Regeln - Anzeige von Zugriffsregeln; Default-Report-Zeitpunkt: jetzt</li>
+    <li>Regeln (aufgel&ouml;st) - Anzeige von Zugriffsregeln, wobei s&auml;mtliche Gruppen in Quelle, Ziel und Dienst aufgel&ouml;st werden. 
+     Dies erm&ouml;glicht einen Export in einer einzigen Tabelle ohne Hilfstabellen, in denen die Objekt-Definitionen stehen. Default-Report-Zeitpunkt: jetzt</li>
+    <li>Regeln (technisch) - wie der aufgel&ouml;ste Regel-Report, nur dass Objektnamen nicht angezeigt werden. Default-Report-Zeitpunkt: jetzt</li>
+    <li>NAT-Regeln - Anzeige der NAT-Regeln und nicht der Zugriffsregeln. Default-Report-Zeitpunkt: jetzt</li>
+    <li>&Auml;nderungen - Anzeige von &Auml;nderungen in einem bestimmten Zeitraum. Default-Report-Zeitraum: dieses Jahr</li>
+    <li>Statistik - Anzeige von Statistikdaten &uuml;ber Anzahl von Objekten und Regeln. Default-Report-Zeitpunkt: jetzt</li>
+</ul>
+');
+INSERT INTO txt VALUES ('H1102', 'English',  'Choose from the following report types:
+<ul>
+    <li>Rules - display access rules; default report time: now</li>
+    <li>Rules (resolved) - display access rules but not showing any group structure but only resolved group content. Default report time: now</li>
+    <li>Rules (technical)</li>
+    <li>NAT-Regeln</li>
+    <li>&Auml;nderungen</li>
+    <li>Statistik</li>
+</ul>
 ');
 INSERT INTO txt VALUES ('H1111', 'German',  '<li>gateway (gw, firewall, fw, device, dev): Zus&auml;tzlich zu der in der <a href="/help/reporting/leftside">Linken Randleiste</a> zu t&auml;tigenden Auswahl spezifischer Devices
     kann hier noch die Auswahl weiter nach Namen eingeschr&auml;nkt werden. </li>

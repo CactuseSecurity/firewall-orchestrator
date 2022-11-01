@@ -1,0 +1,17 @@
+﻿@page "/help/reporting/types"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpReportingSidebar.cshtml"); 
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("report_types")</h3>
+        @(Html.Raw(userConfig.GetText("H1102")))
+</div>

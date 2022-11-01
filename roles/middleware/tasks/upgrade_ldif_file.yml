@@ -1,0 +1,16 @@
+- name: read ldif file from target
+  slurp:
+    src: "{{ middleware_ldif_dir }}/{{ outer_item }}.ldif"
+  register: big_encoded_ldif_file
+
+- name: decode big ldif file
+  set_fact:
+    big_ldif_file: "{{ big_encoded_ldif_file['content'] | b64decode }}"
+
+- name: create list from big ldif file
+  set_fact:
+    ldif_list: "{{ big_ldif_file.split('dn: ') }}"
+
+- name: 
+  include_tasks: upgrade_modify_routine.yml
+  loop: "{{ ldif_list[1:] }}"

@@ -1998,10 +1998,10 @@ INSERT INTO txt VALUES ('H1102', 'English',  'Choose from the following report t
 <ul>
     <li>Rules - display access rules; default report time: now</li>
     <li>Rules (resolved) - display access rules but not showing any group structure but only resolved group content. Default report time: now</li>
-    <li>Rules (technical)</li>
-    <li>NAT-Regeln</li>
-    <li>&Auml;nderungen</li>
-    <li>Statistik</li>
+    <li>Rules (technical) - display access rules, resolving groups and not showing object names. Default report time: now<</li>
+    <li>NAT Rules - display NAT rules instead of access rules. Default report time: now</li>
+    <li>Changes - display all changes in a defined time interval. Default report interval: this year</li>
+    <li>Statistics - display statistical data on the number of objects and rules. Default report time: now</li>
 </ul>
 ');
 INSERT INTO txt VALUES ('H1111', 'German',  '<li>gateway (gw, firewall, fw, device, dev): Zus&auml;tzlich zu der in der <a href="/help/reporting/leftside">Linken Randleiste</a> zu t&auml;tigenden Auswahl spezifischer Devices

@@ -15,8 +15,16 @@ namespace FWO.Ui.Display
         {
             result = new StringBuilder();
             result.AppendLine("<p>");
-            if (rule.SourceNegated)
-                result.AppendLine(userConfig.GetText("anything_but") + " <br>");
+            if (side=="source")
+            {
+                if (rule.SourceNegated)
+                    result.AppendLine(userConfig.GetText("anything_but") + " <br>");
+            }
+            else if (side=="destination")
+            {
+                if (rule.DestinationNegated)
+                    result.AppendLine(userConfig.GetText("anything_but") + " <br>");
+            }
 
             switch (reportType)
             {

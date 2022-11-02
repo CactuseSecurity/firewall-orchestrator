@@ -1,12 +1,12 @@
 ﻿@using BlazorTable
 @using FWO.Api.Data
-@using FWO.ApiClient
+@using FWO.Api.Client
 @using FWO.Config.Api
 
 @page "/monitoring/import_status"
 @attribute [Authorize(Roles = "admin, importer, auditor, fw-admin")]
 
-@inject APIConnection apiConnection
+@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 <h3>@(userConfig.GetText("import_status"))</h3>
@@ -17,7 +17,7 @@
 
 <div class="m-2">
     <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="ImportStatus" Items="sortedImportStati" PageSize="0" ColumnReorder="true" TableRowClass="@(stat => getTableRowClass(stat))">
-        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("action"))" Field="(x => x.MgmId)" Sortable="false" Filterable="false">
+        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("actions"))" Field="(x => x.MgmId)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
                     <button class="btn btn-sm btn-secondary" @onclick="() => Details(context)">@(userConfig.GetText("details"))</button>
@@ -103,7 +103,7 @@
     {
         try
         {
-            importStati = await apiConnection.SendQueryAsync<List<ImportStatus>>(FWO.ApiClient.Queries.DeviceQueries.getImportStatus);
+            importStati = await apiConnection.SendQueryAsync<List<ImportStatus>>(FWO.Api.Client.Queries.DeviceQueries.getImportStatus);
             countErrors();
             setSortPrio();
             sortedImportStati = importStati.OrderByDescending(stat=>stat.SortPrio).ToList();

@@ -1,5 +1,5 @@
 ﻿using FWO.Api.Data;
-using FWO.ApiClient;
+using FWO.Api.Client;
 using FWO.Logging;
 using System.Text.Json;
 
@@ -8,12 +8,12 @@ namespace FWO.DeviceAutoDiscovery
     public class AutoDiscoveryBase
     {
         public Management superManagement = new Management();
-        private readonly APIConnection apiConnection;
+        private readonly ApiConnection apiConnection;
 
         List<Management> existingManagements = new List<Management>();
 
 
-        public AutoDiscoveryBase(Management mgm, APIConnection apiConn)
+        public AutoDiscoveryBase(Management mgm, ApiConnection apiConn)
         {
             superManagement = mgm;
             apiConnection = apiConn;
@@ -35,7 +35,7 @@ namespace FWO.DeviceAutoDiscovery
             List<Management> deltaManagements = new List<Management>();
             try
             {
-                existingManagements = await apiConnection.SendQueryAsync<List<Management>>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails);
+                existingManagements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
 
                 foreach (Management discoveredMgmt in discoveredManagements.Where(x => x.ConfigPath != "global"))
                 {
@@ -165,8 +165,7 @@ namespace FWO.DeviceAutoDiscovery
                         Management MgtVariables = new Management
                         {
                             Hostname = superManagement.Hostname,
-                            ImportUser = superManagement.ImportUser,
-                            Secret = superManagement.Secret,
+                            ImportCredential = superManagement.ImportCredential,
                             ImporterHostname = superManagement.ImporterHostname,
                             DebugLevel = superManagement.DebugLevel,
                             Port = superManagement.Port,
@@ -174,6 +173,7 @@ namespace FWO.DeviceAutoDiscovery
                             ForceInitialImport = true,
                             HideInUi = false,
                             ConfigPath = changedMgmt.ConfigPath,
+                            DomainUid = changedMgmt.DomainUid,
                             Name = changedMgmt.Name,
                             DeviceType = devtype,
                             SuperManagerId = superManagement.Id

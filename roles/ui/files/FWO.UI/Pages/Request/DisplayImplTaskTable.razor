@@ -1,0 +1,184 @@
+@using FWO.Api.Client
+@using FWO.Api.Data
+@using FWO.Config.Api
+@using FWO.Ui.Services
+
+@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+@if (ReqHandler.PlanReqTaskMode)
+{
+    <button class="btn btn-success m-2" @onclick:preventDefault @onclick="AddImplTask">@(userConfig.GetText("create_implementation"))</button>
+}
+@if (AllImplTasks != null && AllImplTasks.Count > 0)
+{
+    <div class="m-2">
+        <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="RequestImplTask" Items="AllImplTasks" PageSize="0" ColumnReorder="true">
+            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                <Template>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowImplTask(implTask)">@(userConfig.GetText("details"))</button>
+                        @if(!ReqHandler.StateMatrix(implTask.TaskType).PhaseActive[WorkflowPhases.planning] && ReqHandler.StateMatrix(implTask.TaskType).PhaseActive[WorkflowPhases.approval])
+                        {
+                            <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowApprovals(implTask)">@(userConfig.GetText("approvals"))</button>
+                        }
+                        @if (!ReqHandler.ReadOnlyMode)
+                        {
+                            @if (ReqHandler.PlanReqTaskMode && implTask.StateId < ReqHandler.StateMatrix(implTask.TaskType).LowestEndState)
+                            {
+                                <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => EditImplTask(implTask)">@(userConfig.GetText("edit"))</button>
+                                <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteImplTask(implTask)">@(userConfig.GetText("delete"))</button>
+                            }
+                            else if (Phase >= WorkflowPhases.implementation && implTask.StateId >= ReqHandler.StateMatrix(implTask.TaskType).LowestInputState && ReqHandler.TicketList.FirstOrDefault(x => x.Id == implTask.TicketId).StateId >= ReqHandler.MasterStateMatrix.LowestInputState)
+                            {
+                                @if (implTask.StateId < ReqHandler.StateMatrix(implTask.TaskType).LowestStartedState)
+                                {
+                                    <AuthorizeView Roles="admin, implementer, reviewer, fw-admin">
+                                        <Authorized Context="ctx">
+                                            <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await StartImplPhase(implTask)">@(userConfig.GetText("start_" + Phase.ToString()))</button>
+                                        </Authorized>
+                                        <NotAuthorized Context="ctx">
+                                            <button class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("start_" + Phase.ToString()))</button>
+                                        </NotAuthorized>
+                                    </AuthorizeView>
+                                }
+                                else if (implTask.StateId < ReqHandler.StateMatrix(implTask.TaskType).LowestEndState)
+                                {
+                                    <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await ContinueImplPhase(implTask)">@(userConfig.GetText("continue_" + Phase.ToString()))</button>
+                                    <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignImplTask(implTask)">@(userConfig.GetText("assign1"))</button>
+                                }
+                            }
+                        }
+                    </div>
+                </Template>
+            </Column>
+            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("type"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" >
+                <Template>
+                    @(userConfig.GetText(implTask.TaskType))
+                </Template>
+            </Column>
+            @if(DeviceView)
+            {
+                <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("ticket"))" Field="@(x => x.TicketId)" Sortable="true" Filterable="false" >
+                    <Template>
+                        @(implTask.TicketId != 0 ? ReqHandler.TicketList[ReqHandler.TicketList.FindIndex(x => x.Id == implTask.TicketId)].Title : "")
+                    </Template>
+                </Column>
+                <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("task"))" Field="@(x => x.ReqTaskId)" Sortable="true" Filterable="false" >
+                    <Template>
+                        @(implTask.TicketId != 0 && implTask.ReqTaskId != 0 ?
+                            ReqHandler.TicketList[ReqHandler.TicketList.FindIndex(x => x.Id == implTask.TicketId)].Tasks.FirstOrDefault(x => x.Id == implTask.ReqTaskId).Title : "")
+                    </Template>
+                </Column>
+            }
+            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("number"))" Field="@(x => x.TaskNumber)" Sortable="true" Filterable="true" />
+            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("gateway"))" Field="@(x => x.DeviceId)" Sortable="true">
+                <Template>
+                    @(implTask.DeviceId != null && implTask.DeviceId != 0 ? ReqHandler.Devices[ReqHandler.Devices.FindIndex(x => x.Id == implTask.DeviceId)].Name : "")
+                </Template>
+            </Column>
+            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
+                <Template>
+                    @(States.Name[implTask.StateId])
+                </Template>
+            </Column>
+            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("implementer"))" Field="@(x => x.CurrentHandler.Name)" Sortable="true" Filterable="true" />
+            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("assigned"))" Field="@(x => x.AssignedGroup)" Sortable="true" Filterable="true" >
+                <Template>
+                    @(new DistName(implTask.AssignedGroup).UserName)
+                </Template>
+            </Column>
+            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("start"))" Field="@(x => x.Start)" Sortable="true" Filterable="true" />
+            <Column Context="implTask" TableItem="RequestImplTask" Title="@(userConfig.GetText("stop"))" Field="@(x => x.Stop)" Sortable="true" Filterable="true" />
+        </Table>
+    </div>
+}
+
+<DisplayImplementationTask Phase="Phase" ReqHandler="ReqHandler" ResetParent="Reset" StateMatrix="ReqHandler.ActStateMatrix" States="States"></DisplayImplementationTask>
+<AssignObject @bind-Display="ReqHandler.DisplayAssignMode" ResetParent="Reset" StatefulObject="ReqHandler.ActImplTask" Assign="ReqHandler.AssignImplTaskGroup" AssignBack="ReqHandler.AssignImplTaskBack" ObjectName="@ReqHandler.ActImplTask.Title" RoleList="validRoles"/>
+<DeleteObject @bind-Display="ReqHandler.DisplayDeleteMode" ResetParent="Reset" Delete="ReqHandler.ConfDeleteImplTask" ObjectName="@(ReqHandler.ActImplTask.Title)"/>
+<DisplayApprovals @bind-Display="ReqHandler.DisplayApprovalMode" ReqHandler="ReqHandler" ResetParent="Reset" Approvals="ReqHandler.ActReqTask.Approvals" States="States"/>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    
+    [Parameter]
+    public WorkflowPhases Phase { get; set; } = WorkflowPhases.approval;
+
+    [Parameter]
+    public RequestStateDict States { get; set; } = new RequestStateDict();
+
+    [Parameter]
+    public RequestHandler ReqHandler { get; set; }
+
+    [Parameter]
+    public Func<Task> ResetParent { get; set; }
+
+    [Parameter]
+    public List<RequestImplTask>? AllImplTasks { get; set; } = new List<RequestImplTask>();
+
+    [Parameter]
+    public bool DeviceView { get; set; } = false;
+
+    [Parameter]
+    public Func<RequestImplTask, Task>? StartImplPhase { get; set; }
+
+    static List<string> validRoles = new List<string>(){"implementer", "fw-admin"};
+
+    private async Task Reset()
+    {
+        await ResetParent();
+        ReqHandler.ResetImplTaskActions();
+        StateHasChanged();
+    }
+
+    private void ShowImplTask(RequestImplTask implTask)
+    {
+        ReqHandler.SelectImplTask(implTask, ObjAction.display);
+    }
+
+    private void AddImplTask()
+    {
+        RequestImplTask newTask = new RequestImplTask(ReqHandler.ActReqTask, false)
+        {
+            TaskNumber = ReqHandler.ActReqTask.HighestImplTaskNumber() + 1,
+            DeviceId = (ReqHandler.Devices.Count > 0 ? ReqHandler.Devices[0].Id : 0)
+        };
+        if(ReqHandler.Devices.Count > 0)
+        {
+            newTask.Title += ": "+ ReqHandler.Devices[ReqHandler.Devices.FindIndex(x => x.Id == ReqHandler.Devices[0].Id)].Name;
+        }
+        ReqHandler.SelectImplTask(newTask, ObjAction.add);
+    }
+
+    private void EditImplTask(RequestImplTask implTask)
+    {
+        ReqHandler.SelectImplTask(implTask, ObjAction.edit);
+    }
+
+    private void DeleteImplTask(RequestImplTask implTask)
+    {
+        ReqHandler.SelectImplTaskPopUp(implTask, ObjAction.displayDelete);
+    }
+
+    private void ShowApprovals(RequestImplTask implTask)
+    {
+        ReqHandler.SelectImplTaskPopUp(implTask, ObjAction.displayApprovals);
+    }
+
+    private async Task AssignImplTask(RequestImplTask implTask)
+    {
+        ReqHandler.SelectImplTaskPopUp(implTask, ObjAction.displayAssign);
+    }
+
+    private async Task ContinueImplPhase(RequestImplTask implTask)
+    {
+        await ReqHandler.ContinueImplPhase(implTask);
+    }
+}

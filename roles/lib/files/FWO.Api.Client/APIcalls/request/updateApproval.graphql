@@ -1,0 +1,18 @@
+mutation updateApproval(
+  $id: bigint!
+  $state: Int!
+  $approvalDate: timestamp
+  $approver: String
+  $assignedGroup: String
+  ) {
+  update_request_approval_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      state_id: $state
+      approval_date: $approvalDate
+      approver: $approver
+      assigned_group: $assignedGroup
+  }) {
+    UpdatedId: id
+  }
+}

@@ -56,7 +56,7 @@ namespace FWO.Api.Data
         [JsonProperty("svc_color_id"), JsonPropertyName("svc_color_id")]
         public int? ColorId { get; set; }
 
-        [JsonProperty("id_proto_id"), JsonPropertyName("id_proto_id")]
+        [JsonProperty("ip_proto_id"), JsonPropertyName("ip_proto_id")]
         public int? ProtoId { get; set; }
 
         [JsonProperty("protocol_name"), JsonPropertyName("protocol_name")]

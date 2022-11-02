@@ -11,18 +11,17 @@
 @using FWO.Config.Api
 @using FWO.Config.File
 @using System.Threading.Tasks
-@using FWO.ApiClient
+@using FWO.Api.Client
 @using FWO.Api.Data
 @using FWO.Middleware.Client
 @using Microsoft.IdentityModel.Tokens
 @using FWO.Middleware.RequestParameters
 @inject UserConfig userConfig
 
-@{ConfigFile configConnection = new ConfigFile(); string ApiUri = configConnection.ApiServerUri;}
-
 <div class="p-2">
     <h3>@userConfig.GetText("api_user_mgmt_head")</h3>
     @(Html.Raw(userConfig.GetText("umgmt_api_explain")))
-    <a target="_blank" href="@configConnection.MiddlewareServerUri/swagger">@configConnection.MiddlewareServerUri/swagger</a>
+    <a target="_blank" href="@ConfigFile.MiddlewareServerUri/swagger">@ConfigFile.MiddlewareServerUri/swagger</a>
     <br>
     @(Html.Raw(userConfig.GetText("umgmt_api_explain2")))
+</div>

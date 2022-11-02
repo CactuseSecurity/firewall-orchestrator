@@ -1,0 +1,6 @@
+
+query getOwners {
+  owner_list: owner (order_by: { id: asc }){
+    ...ownerDetails
+  }
+}

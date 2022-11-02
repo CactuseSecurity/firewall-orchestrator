@@ -4,7 +4,7 @@ using System.Text;
 
 namespace FWO.Ui.Display
 {
-    public class NatRuleDisplay : RuleDisplay
+    public class NatRuleDisplay : RuleDisplayHtml
     {
         public NatRuleDisplay(UserConfig userConfig) : base(userConfig)
         {}
@@ -41,7 +41,9 @@ namespace FWO.Ui.Display
                 if (source.User != null)
                     result.AppendLine($"<span class=\"oi oi-people\">&nbsp;</span><a href=\"{location}#{userLink}\" target=\"_top\" style=\"{style}\">{source.User.Name}</a>@");
                 result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"{location}#{nwobjLink}\" target=\"_top\" style=\"{style}\">{source.Object.Name}</a>");
+                result.Append(" (");
                 result.Append(DisplayIpRange(source.Object.IP, source.Object.IpEnd));
+                result.Append(")");
                 result.AppendLine("<br>");
             }
             result.AppendLine("</p>");
@@ -76,7 +78,9 @@ namespace FWO.Ui.Display
                                              : $"goto-report-m{rule.MgmtId}-nwobj{destination.Object.Id}";
 
                 result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"{location}#{link}\" target=\"_top\" style=\"{style}\">{destination.Object.Name}</a>");
+                result.Append(" (");
                 result.Append(DisplayIpRange(destination.Object.IP, destination.Object.IpEnd));
+                result.Append(")");
                 result.AppendLine("<br>");
             }
             result.AppendLine("</p>");

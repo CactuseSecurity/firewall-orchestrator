@@ -23,18 +23,6 @@
   when: ansible_facts['distribution']|lower == 'debian' or ansible_facts['distribution']|lower == 'ubuntu'
   ignore_errors: true
 
-# - set_fact:
-#     distribution_version: "debian/10"
-#     when: ansible_facts['distribution']|lower == 'debian'
-
-# - set_fact:
-#     distribution_version: "ubuntu/20.04"
-#     when: ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_version'] == '20.04'
-
-# - set_fact:
-#     distribution_version: "ubuntu/18.04"
-#     when: ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_version'] == '18.04'
-
 - name: find out installed postgres version
   script: "get_pg_version.sh"
   register: pg_version_result
@@ -55,11 +43,6 @@
       become_user: postgres
       register: drop_db
       ignore_errors: true
-
-    - name: fail when drop db failed
-      fail:
-        msg: database could not be dropped {{ drop_db.msg }}. Try to stop all sessions connected to the database before running uninstall again.
-      when: drop_db.failed
   when: pg_version|int < 13
 
 - block:
@@ -67,26 +50,38 @@
       command: psql -c 'drop database if exists fworchdb with ( force )'
       become_user: postgres
       register: drop_db
-
-    - name: fail when drop db failed
-      fail:
-        msg: database could not be dropped {{ drop_db }}. Try to stop all sessions connected to the database before running uninstall again.
-      when: drop_db.failed
   when: pg_version|int >= 13
 
-- name: remove db groups
-  postgresql_user:
-    name: "{{ item }}"
-    state: absent
-  loop: "{{ database_groups }}"
+- name: check if db still exists
+  postgresql_query:
+    db: "{{ fworch_db_name }}"
+    query: "select exists(SELECT datname FROM pg_catalog.pg_database WHERE lower(datname) = lower('fworchdb'))"
+  become: yes
   become_user: postgres
+  register: db_exists
+  ignore_errors: true
 
-- name: remove db users
-  postgresql_user:
-    name: "{{ item }}"
-    state: absent
-  loop: "{{ database_users }}"
-  become_user: postgres
+- block:
+  - name: fail when db still exists
+    fail:
+      msg: database could not be dropped {{ drop_db.msg }}. Try to stop all sessions connected to the database before running uninstall again.
+    when: db_exists|bool
+
+  - name: remove db groups
+    postgresql_user:
+      name: "{{ item }}"
+      state: absent
+    loop: "{{ database_groups }}"
+    become_user: postgres
+
+  - name: remove db users
+    postgresql_user:
+      name: "{{ item }}"
+      state: absent
+    loop: "{{ database_users }}"
+    become_user: postgres
+
+  ignore_errors: true
 
 - name: stop and disable slapd
   service:
@@ -205,4 +200,12 @@
       group:
         name: "{{ fworch_group }}"
         state: absent
+
+    # ssh-keygen -f "/usr/local/fworch/.ssh/known_hosts" -R "localhost"
+    - name: remove known host key
+      known_hosts:
+        name: "localhost"
+        path: "{{ fworch_home }}/.ssh/known_hosts"
+        state: absent
+
   become: yes

@@ -40,11 +40,11 @@ namespace FWO.Api.Data
 
         public string DefaultRole { get; set; } = "";
 
-        public List<string>? Roles { get; set; }
+        public List<string> Roles { get; set; } = new List<string>();
 
         public string Jwt { get; set; } = "";
 
-        public List<string>? Groups { get; set; }
+        public List<string> Groups { get; set; } = new List<string>();
 
         public UiUser()
         {
@@ -64,14 +64,8 @@ namespace FWO.Api.Data
             Password = user.Password;
             Email = user.Email;
             Language = user.Language;
-            if (user.Groups != null)
-            {
-                Groups = user.Groups;
-            }
-            if (user.Roles != null)
-            {
-                Roles = user.Roles;
-            }
+            Groups = user.Groups;
+            Roles = user.Roles;
             if (user.LdapConnection != null)
             {
                 LdapConnection = new UiLdapConnection(user.LdapConnection);
@@ -100,11 +94,13 @@ namespace FWO.Api.Data
             return new DistName(Dn).IsInternal();
         }
 
-        public void Sanitize()
+        public bool Sanitize()
         {
-            Name = Sanitizer.SanitizeLdapNameMand(Name);
-            Email = Sanitizer.SanitizeOpt(Email);
-            Password = Sanitizer.SanitizePasswMand(Password);
+            bool shortened = false;
+            Name = Sanitizer.SanitizeLdapNameMand(Name, ref shortened);
+            Email = Sanitizer.SanitizeOpt(Email, ref shortened);
+            Password = Sanitizer.SanitizePasswMand(Password, ref shortened);
+            return shortened;
         }
 
         public UserGetReturnParameters ToApiParams()

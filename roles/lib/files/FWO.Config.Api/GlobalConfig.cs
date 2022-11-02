@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using FWO.Logging;
 using FWO.Config.File;
-using FWO.ApiClient;
+using FWO.Api.Client;
 using FWO.Config.Api.Data;
-using FWO.ApiClient.Queries;
+using FWO.Api.Client.Queries;
 using System.ComponentModel;
 
 namespace FWO.Config.Api
@@ -31,13 +31,12 @@ namespace FWO.Config.Api
         public Language[] uiLanguages { get; set; }
         public Dictionary<string, Dictionary<string, string>> langDict { get; set; }
 
-        public static async Task<GlobalConfig> ConstructAsync(APIConnection apiConnection, bool loadLanguageData = true, ConfigFile? configFile = null)
+        public static async Task<GlobalConfig> ConstructAsync(ApiConnection apiConnection, bool loadLanguageData = true)
         {
-            ConfigFile config = configFile ?? new ConfigFile();
-            string productVersion = config.ProductVersion;
+            string productVersion = ConfigFile.ProductVersion;
 
             Language[] uiLanguages = Array.Empty<Language>();
-            Dictionary<string, Dictionary<string, string>> langDict = new Dictionary<string, Dictionary<string, string>>();
+            Dictionary<string, Dictionary<string, string>> langDict = new();
 
             if (loadLanguageData)
             {
@@ -56,7 +55,7 @@ namespace FWO.Config.Api
                     foreach (Language lang in uiLanguages)
                     {
                         var languageVariable = new { language = lang.Name };
-                        Dictionary<string, string> dict = new Dictionary<string, string>();
+                        Dictionary<string, string> dict = new();
                         UiText[] uiTexts = await apiConnection.SendQueryAsync<UiText[]>(ConfigQueries.getTextsPerLanguage, languageVariable);
                         foreach (UiText text in uiTexts)
                             dict.Add(text.Id, text.Txt); // add "word" to dictionary
@@ -77,10 +76,8 @@ namespace FWO.Config.Api
 
         public static async Task<GlobalConfig> ConstructAsync(string jwt, bool loadLanguageData = true)
         {
-            ConfigFile config = new ConfigFile();
-            APIConnection apiConnection = new APIConnection(config.ApiServerUri);
-            apiConnection.SetAuthHeader(jwt);
-            return await ConstructAsync(apiConnection, loadLanguageData, config);
+            ApiConnection apiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri, jwt);
+            return await ConstructAsync(apiConnection, loadLanguageData);
         }
 
         public override string GetText(string key) 
@@ -96,7 +93,7 @@ namespace FWO.Config.Api
         /// <summary>
         /// create a config collection (used centrally once in a UI server for all users)
         /// </summary>
-        private GlobalConfig(APIConnection apiConnection, string productVersion, Language[] uiLanguages, Dictionary<string, Dictionary<string, string>> langDict)
+        private GlobalConfig(ApiConnection apiConnection, string productVersion, Language[] uiLanguages, Dictionary<string, Dictionary<string, string>> langDict)
                 : base(apiConnection, 0)
         {
             this.productVersion = productVersion;

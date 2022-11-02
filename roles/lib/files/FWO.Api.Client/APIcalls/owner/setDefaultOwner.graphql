@@ -1,0 +1,12 @@
+mutation setDefaultOwner(
+  $id: Int!
+  $isDefault: Boolean!
+  ) {
+  update_owner_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      is_default: $isDefault
+  }) {
+    UpdatedId: id
+  }
+}

@@ -1,0 +1,31 @@
+﻿@page "/help/workflow"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpWorkflowSidebar.cshtml"); 
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("workflow")</h3>
+    @(Html.Raw(userConfig.GetText("H8001")))
+    <ul>
+        <li>
+            @(Html.Raw(userConfig.GetText("H8011")))
+        </li>
+        <li>
+            @(Html.Raw(userConfig.GetText("H8012")))
+        </li>
+        <li>
+            @(Html.Raw(userConfig.GetText("H8013")))
+        </li>
+        <li>
+            @(Html.Raw(userConfig.GetText("H8014")))
+        </li>
+    </ul>
+</div>

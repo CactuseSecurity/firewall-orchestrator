@@ -1,14 +1,7 @@
-﻿using FWO.Logging;
-using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Reflection;
-using System.Text;
+﻿using Newtonsoft.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
+using FWO.Api.Data;
 
 namespace FWO.Config.Api.Data
 {
@@ -21,6 +14,15 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("DefaultLanguage"), JsonPropertyName("DefaultLanguage")]
         public virtual string DefaultLanguage { get; set; } = "English";
+
+        [JsonProperty("sessionTimeout"), JsonPropertyName("sessionTimeout")]
+        public int SessionTimeout { get; set; } = 720;
+
+        [JsonProperty("sessionTimeoutNoticePeriod"), JsonPropertyName("sessionTimeoutNoticePeriod")]
+        public int SessionTimeoutNoticePeriod { get; set; } = 60;
+
+        //        [JsonProperty("maxMessages"), JsonPropertyName("maxMessages"), UserConfigData]
+        //        public int MaxMessages { get; set; } = 3;
 
         [JsonProperty("elementsPerFetch"), JsonPropertyName("elementsPerFetch"), UserConfigData]
         public int ElementsPerFetch { get; set; } = 100;
@@ -36,6 +38,12 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("importSleepTime"), JsonPropertyName("importSleepTime")]
         public int ImportSleepTime { get; set; } = 40;
+
+        [JsonProperty("importCheckCertificates"), JsonPropertyName("importCheckCertificates")]
+        public bool ImportCheckCertificates { get; set; } = false;
+
+        [JsonProperty("importSuppressCertificateWarnings"), JsonPropertyName("importSuppressCertificateWarnings")]
+        public bool ImportSuppressCertificateWarnings { get; set; } = true;
 
         [JsonProperty("autoDiscoverSleepTime"), JsonPropertyName("autoDiscoverSleepTime")]
         public int AutoDiscoverSleepTime { get; set; } = 24;
@@ -90,6 +98,22 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("maxImportInterval"), JsonPropertyName("maxImportInterval")]
         public int MaxImportInterval { get; set; } = 12;
+
+        [JsonProperty("reqAvailableTaskTypes"), JsonPropertyName("reqAvailableTaskTypes")]
+        public string ReqAvailableTaskTypes { get; set; } = "";
+
+        [JsonProperty("reqAllowObjectSearch"), JsonPropertyName("reqAllowObjectSearch")]
+        public bool ReqAllowObjectSearch { get; set; } = false;
+
+        [JsonProperty("reqAllowManualOwnerAdmin"), JsonPropertyName("reqAllowManualOwnerAdmin")]
+        public bool ReqAllowManualOwnerAdmin { get; set; } = false;
+
+        [JsonProperty("reqPriorities"), JsonPropertyName("reqPriorities")]
+        public string ReqPriorities { get; set; } = "";
+
+        [JsonProperty("reqAutoCreateImplTasks"), JsonPropertyName("reqAutoCreateImplTasks")]
+        public AutoCreateImplTaskOptions ReqAutoCreateImplTasks { get; set; } = AutoCreateImplTaskOptions.never;
+
 
         public ConfigData(bool editable = false)
         {

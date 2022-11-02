@@ -3,26 +3,17 @@ from fwo_log import getFwoLogger
 from netaddr import IPAddress, IPNetwork
 from functools import cmp_to_key
 import traceback
-import json
 import fmgr_getter
+import fwo_globals
+from fwo_data_networking import Route, Interface
+from fwo_data_networking import getRouteDestination
 
-
-def normalize_network_data(native_config, normalized_config, mgm_details, debug_level=0):
+def normalize_network_data(native_config, normalized_config, mgm_details):
 
     # currently only a single IP (v4+v6) per interface ;-)
-
-    # normalized_config {
-    #   "networking": {
-    #       "dev1_vdom1": {
-    #           "routingv4": [ route ],
-    #           "routingv6": [ route ],
-    #           "interfaces": [ interface ]
-    #       }
-    #    }
-    # }
     #
     # route: {
-    #     "destination": "1.2.3.0/24",
+    #     "ip_mask": "1.2.3.0/24",
     #     "gateway": "2.3.4.5",
     #     "metric": 20,
     #     "distance": 10,
@@ -39,16 +30,12 @@ def normalize_network_data(native_config, normalized_config, mgm_details, debug_
     #     "maskv6": 48
     # }
 
-    logger = getFwoLogger(debug_level=debug_level)
+    logger = getFwoLogger()
 
-    normalized_config.update({'networking': {}})
+    normalized_config.update({'routing': {}, 'interfaces': {} })
 
-    for plain_dev_name, plain_vdom_name, full_vdom_name in get_all_dev_names(mgm_details['devices']):
-        normalized_config['networking'].update({full_vdom_name: {
-            'routingv4': [],
-            'routingv6': [],
-            'interfaces': [],
-        }})
+    for dev_id, plain_dev_name, plain_vdom_name, full_vdom_name in get_all_dev_names(mgm_details['devices']):
+        normalized_config.update({'routing': [], 'interfaces': []})
 
         if 'routing-table-ipv4/' + full_vdom_name not in native_config:
             logger.warning('could not find routing data routing-table-ipv4/' + full_vdom_name)
@@ -56,64 +43,44 @@ def normalize_network_data(native_config, normalized_config, mgm_details, debug_
             normalized_config['networking'][full_vdom_name]['routingv4'] = []
         else:
             for route in native_config['routing-table-ipv4/' + full_vdom_name]:
-                gateway = None if route['gateway']=='0.0.0.0' else route['gateway'] # local network
-                normalized_config['networking'][full_vdom_name]['routingv4'].append({
-                    'destination': route['ip_mask'],
-                    'interface': route['interface'],
-                    'gateway': gateway,
-                    'metric': route['metric'],
-                    'distance': route['distance'],
-                    'type': route['type']
-                })
-            normalized_config['networking'][full_vdom_name]['routingv4'] = sort_reverse(normalized_config['networking'][full_vdom_name]['routingv4'], 'destination')
-
-        if not test_if_default_route_exists(normalized_config['networking'][full_vdom_name]['routingv4']):
-            logger.warning('found no default route in ipv4 table of device ' + full_vdom_name )
+                #gateway = None if route['gateway']=='0.0.0.0' else route['gateway'] # local network
+                normRoute = Route(dev_id, route['gateway'], route['ip_mask'], interface=route['interface'], metric=route['metric'], distance=route['distance'])
+                normalized_config['routing'].append(normRoute)
 
         if 'routing-table-ipv6/' + full_vdom_name not in native_config:
             logger.warning('could not find routing data routing-table-ipv6/' + full_vdom_name)
-            if debug_level>5:
+            if fwo_globals.debug_level>5:
                 logger.warning('native configs contains the following keys ' + str(native_config.keys()))
             normalized_config['networking'][full_vdom_name]['routingv6'] = []
         else:
             for route in native_config['routing-table-ipv6/' + full_vdom_name]:
-                gateway = None if route['gateway']=='::' else route['gateway'] # local network
-                normalized_config['networking'][full_vdom_name]['routingv6'].append({
-                    'destination': route['ip_mask'],
-                    'interface': route['interface'],
-                    'gateway': gateway,
-                    'metric': route['metric'],
-                    'distance': route['distance'],
-                    'type': route['type']
-                })
-            normalized_config['networking'][full_vdom_name]['routingv6'] = sort_reverse(normalized_config['networking'][full_vdom_name]['routingv6'], 'destination')
+                #gateway = None if route['gateway']=='::' else route['gateway'] # local network
+                normRoute = Route(dev_id, route['gateway'], route['ip_mask'], metric=route['metric'], 
+                    distance=route['distance'], interface=route['interface'], ip_version=6)
+                normalized_config['routing'].append(normRoute)
 
-        if test_if_default_route_exists(normalized_config['networking'][full_vdom_name]['routingv6']):
-            logger.warning('found no default route in ipv6 table of device ' + full_vdom_name )
-
+        normalized_config['routing'].sort(key=getRouteDestination,reverse=True)
+        
         for interface in native_config['interfaces_per_device/' + full_vdom_name]:
-            ipv6, ipv6mask = interface['ipv6']['ip6-address'].split('/')
-            if ipv6=='::' and ipv6mask=='0':
-                ipv6=None
-                ipv6mask = None
-            if interface['ip'][0]=='0.0.0.0' and interface['ip'][1]=='0.0.0.0':
-                ipv4 = None
-                ipv4mask = None
-            else:
-                ipv4 = interface['ip'][0]
-                ipv4mask = IPAddress(interface['ip'][1]).netmask_bits()
-            normalized_config['networking'][full_vdom_name]['interfaces'].append({
-                'name': interface['name'],
-                'ipv4': ipv4,
-                'maskv4': ipv4mask,
-                'ipv6': ipv6,
-                'maskv6': ipv6mask
-            })
+            if interface['ipv6']['ip6-address']!='::/0':
+                ipv6, netmask_bits = interface['ipv6']['ip6-address'].split('/')
+                normIfV6 = Interface(dev_id, interface['name'], IPAddress(ipv6), netmask_bits, ip_version=6)
+                normalized_config['interfaces'].append(normIfV6)
+
+            if interface['ip']!=['0.0.0.0','0.0.0.0']:
+                ipv4 = IPAddress(interface['ip'][0])
+                netmask_bits = IPAddress(interface['ip'][1]).netmask_bits()
+                normIfV4 = Interface(dev_id, interface['name'], ipv4, netmask_bits, ip_version=4)
+                normalized_config['interfaces'].append(normIfV4)
+
+    #devices_without_default_route = get_devices_without_default_route(normalized_config)
+    #if len(devices_without_default_route)>0:
+    #    logger.warning('found devices without default route')
 
 
-def get_matching_route(destination_ip, routing_table, debug_level=0):
+def get_matching_route(destination_ip, routing_table):
 
-    logger = getFwoLogger(debug_level=debug_level)
+    logger = getFwoLogger()
 
     def route_matches(ip, destination):
         ip_n = IPNetwork(ip).cidr
@@ -180,7 +147,7 @@ def get_plain_device_names_without_vdoms(devices):
     return device_array
 
 
-# only getting one vdom as currntly assuming routing to be
+# only getting one vdom as currently assuming routing to be
 # the same for all vdoms on a device
 def get_device_names_plus_one_vdom(devices):
     device_array = []
@@ -208,21 +175,22 @@ def get_device_plus_full_vdom_names(devices):
 def get_all_dev_names(devices):
     device_array_with_vdom = []
     for dev in devices:
+        dev_id = dev["id"]
         dev_name = strip_off_last_part(dev["name"])
         plain_vdom_name = get_last_part(dev["name"])
         full_vdom_name = dev["name"]
-        device_array_with_vdom.append([dev_name, plain_vdom_name, full_vdom_name])
+        device_array_with_vdom.append([dev_id, dev_name, plain_vdom_name, full_vdom_name])
     return device_array_with_vdom
 
 
 # get network information (currently only used for source nat)
-def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, limit, debug_level=0):
+def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, limit):
 
-    logger = getFwoLogger(debug_level=debug_level)
+    logger = getFwoLogger()
     # strip off vdom names, just deal with the plain device
     device_array = get_all_dev_names(devices)
 
-    for plain_dev_name, plain_vdom_name, full_vdom_name in device_array:
+    for dev_id, plain_dev_name, plain_vdom_name, full_vdom_name in device_array:
         logger.info("dev_name: " + plain_dev_name + ", full vdom_name: " + full_vdom_name)
 
         # getting interfaces of device
@@ -296,7 +264,7 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
         try:    # get interfaces from top level device (not vdom)
             fmgr_getter.update_config_with_fortinet_api_call(
                 raw_config, sid, fm_api_url, "/pm/config/device/" + plain_dev_name + "/global/system/interface",
-                "interfaces_per_device/" + full_vdom_name, payload=all_interfaces_payload, debug=debug_level, limit=limit, method="get")
+                "interfaces_per_device/" + full_vdom_name, payload=all_interfaces_payload, limit=limit, method="get")
         except:
             logger.warning("error while getting interfaces of device " + plain_vdom_name + ", vdom=" + plain_vdom_name + ", ignoring, traceback: " + str(traceback.format_exc()))
 
@@ -312,7 +280,7 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
                 fmgr_getter.update_config_with_fortinet_api_call(
                     routing_helper, sid, fm_api_url, "/sys/proxy/json",
                     "routing-table-" + ip_version + '/' + full_vdom_name,
-                    payload=payload, debug=debug_level, limit=limit, method="exec")
+                    payload=payload, limit=limit, method="exec")
                 
                 if "routing-table-" + ip_version + '/' + full_vdom_name in routing_helper:
                     routing_helper = routing_helper["routing-table-" + ip_version + '/' + full_vdom_name]
@@ -329,19 +297,10 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
             raw_config.update({"routing-table-" + ip_version + '/' + full_vdom_name: routing_table})
 
 
-def get_device_from_package(package_name, mgm_details, debug_level=0):
-    logger = getFwoLogger(debug_level=debug_level)
+def get_device_from_package(package_name, mgm_details):
+    logger = getFwoLogger()
     for dev in mgm_details['devices']:
         if dev['local_rulebase_name'] == package_name:
-            return dev['name']
+            return dev['id']
     logger.debug('get_device_from_package - could not find device for package "' + package_name +  '"')
     return None
-
-
-def test_if_default_route_exists(routing_table):
-    default_route_v4 = list(filter(lambda default_route: default_route['destination'] == '0.0.0.0/0', routing_table))
-    default_route_v6 =  list(filter(lambda default_route: default_route['destination'] == '::/0', routing_table))
-    if default_route_v4 == [] and default_route_v6 == []:
-        return False
-    else:
-        return True

@@ -1,8 +1,11 @@
 ﻿@using System.Text
 @using FWO.Report
 @using FWO.Config.Api
+@using WkHtmlToPdfDotNet
+@using System.Linq
+@using FWO.Report.Filter
 
-@inject APIConnection apiConnection
+@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 <button class="btn btn-sm btn-dark" @onclick='() => { if (ReportToExport != null) { ShowExportDialog = true; reportExportFile = new ReportFile { Name = "Report", OwnerId = userConfig.User.DbId }; } else { 
@@ -26,6 +29,28 @@
                             <label class="form-check-label" for="reportExportPdf">
                                 PDF
                             </label>
+                            @if (ExportPdf)
+                            {
+                                <div>
+                                    Paper Kind:
+                                    <Dropdown @bind-Value="SelectedPaperKind" Elements="Enum.GetValues<PaperKind>().Cast<PaperKind>()"></Dropdown>
+                                    @if (SelectedPaperKind == PaperKind.Custom)
+                                    {
+                                        <div class="input-group input-group-sm mb-2 mt-2">
+                                          <div class="input-group-prepend">
+                                            <span class="input-group-text">Width (mm)</span>
+                                          </div>
+                                          <input  @bind="PaperSizeWidth" min="1" max="1000000" type="number" class="form-control">
+                                        </div>
+                                        <div class="input-group input-group-sm mb-1">
+                                          <div class="input-group-prepend">
+                                            <span class="input-group-text">Height (mm)</span>
+                                          </div>
+                                          <input @bind="PaperSizeHeight" min="1" max="1000000" type="number" class="form-control">
+                                        </div>
+                                    }
+                                </div>
+                            }
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="reportExportHtml" @bind="ExportHtml">
@@ -34,9 +59,16 @@
                             </label>
                         </div>
                         <div class="form-check">
-                            <input disabled class="form-check-input" type="checkbox" id="reportExportCsv" @bind="ExportCsv">
+                            @if (ReportToExport.ReportType!=ReportType.ResolvedRules && ReportToExport.ReportType!=ReportType.ResolvedRulesTech)
+                            {
+                                <input disabled class="form-check-input" type="checkbox" id="reportExportCsv" @bind="ExportCsv">
+                            }
+                            else 
+                            {
+                                <input class="form-check-input" type="checkbox" id="reportExportCsv" @bind="ExportCsv">
+                            }
                             <label class="form-check-label" for="reportExportCsv">
-                                CSV @(userConfig.GetText("coming_soon"))
+                                CSV
                             </label>
                         </div>
                         <div class="form-check">
@@ -88,15 +120,23 @@ Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportD
     private bool ExportCsv = false;
     private bool ExportArchive = false;
     private ReportFile reportExportFile = new ReportFile();
+    private PaperKind SelectedPaperKind = PaperKind.A4;
 
     private bool ShowExportDialog = false;
     private bool ShowExportDownloadDialog = false;
 
     private bool Exporting = false;
 
+    private bool PaperKindChanged = false;
+    private int PaperSizeWidth = 0;
+    private int PaperSizeHeight = 0;
+
     private async Task Export()
     {
-        reportExportFile.Sanitize();
+        if (reportExportFile.Sanitize())
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("export_report"), userConfig.GetText("U0001"), true);
+        }
         if (ReportToExport != null)
         {
             await Task.Run(async () =>
@@ -113,7 +153,14 @@ Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportD
 
                     if (ExportPdf)
                     {
-                        reportExportFile.Pdf = Convert.ToBase64String(ReportToExport.ToPdf());
+                        try
+                        {
+                            reportExportFile.Pdf = Convert.ToBase64String(ReportToExport.ToPdf(SelectedPaperKind, PaperSizeWidth, PaperSizeHeight));                    
+                        }
+                        catch (KeyNotFoundException e)
+                        {
+                            throw new Exception("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
+                        }
                     }
 
                     if (ExportCsv)

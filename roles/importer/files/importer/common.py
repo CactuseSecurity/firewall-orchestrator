@@ -1,4 +1,5 @@
 from copy import deepcopy
+from textwrap import indent
 import traceback
 import sys, os, time, datetime
 import json, requests, requests.packages
@@ -10,8 +11,13 @@ from pathlib import Path
 sys.path.append(importer_base_dir) # adding absolute path here once
 import fwo_api
 from fwo_log import getFwoLogger, getFwoAlertLogger
+from fwo_config import readConfig
 from fwo_const import fw_module_name, full_config_size_limit, csv_delimiter, list_delimiter, line_delimiter, apostrophe, section_header_uids, nat_postfix, fwo_api_http_import_timeout
-from fwo_const import fwo_config_filename, importer_pwd_file, importer_user_name, import_tmp_path, fwo_api_base_url
+from fwo_const import fwo_config_filename, importer_pwd_file, importer_user_name, import_tmp_path # , fwo_api_base_url
+from urllib.parse import urlparse
+import fwo_globals
+import jsonpickle
+from fwo_data_networking import Interface, InterfaceSerializable, RouteSerializable
 
 # how many objects (network, services, rules, ...) should be sent to the FWO API in one go?
 # should be between 500 and 2.000 in production (results in a max obj number of max. 5 x this value - nwobj/svc/rules/...)
@@ -70,6 +76,15 @@ class ConfigFileNotFound(Exception):
             self.message = message
             super().__init__(self.message)
 
+
+class ImportRecursionLimitReached(Exception):
+    """Raised when recursion of function inimport process reaches max allowed recursion limit"""
+
+    def __init__(self, message="Max recursion level reached - aborting"):
+            self.message = message
+            super().__init__(self.message)
+
+
 #  import_management: import a single management (if no import for it is running)
 #     lock mgmt for import via FWORCH API call, generating new import_id y
 #     check if we need to import (no md5, api call if anything has changed since last import)
@@ -78,47 +93,43 @@ class ConfigFileNotFound(Exception):
 #     trigger import from json into csv and from there into destination tables
 #     release mgmt for import via FWORCH API call (also removing import_id y data from import_tables?)
 #     no changes: remove import_control?
-def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=None, limit=150, force=False, clearManagementData=False):
+def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0, 
+        in_file=None, limit=150, force=False, clearManagementData=False, suppress_cert_warnings_in=None):
+
     error_count = 0
     change_count = 0
     error_string = ''
     start_time = int(time.time())
-    debug_level=int(debug_level)
-    secret_filename = ''
+    debug_level=int(debug_level_in)
     config2import = { "network_objects": [], "service_objects": [], "user_objects": [], "zone_objects": [], "rules": [] }
     config_changed_since_last_import = True
 
-    # logger = set_log_level(log_level=debug_level, debug_level=debug_level)
-    logger = getFwoLogger(debug_level=debug_level)
-    
-    if ssl == '' or ssl == 'off':
-        requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
+    logger = getFwoLogger()
 
-    # read fwo config (API URLs)
-    with open(fwo_config_filename, "r") as fwo_config:
-        fwo_config = json.loads(fwo_config.read())
-    user_management_api_base_url = fwo_config['middleware_uri']
-    fwo_api_base_url = fwo_config['api_uri']
+    fwo_config = readConfig(fwo_config_filename)
 
     # authenticate to get JWT
     with open(importer_pwd_file, 'r') as file:
         importer_pwd = file.read().replace('\n', '')
-    if proxy is not None:
-        proxy = { "http_proxy": proxy, "https_proxy": proxy }
-    else:
-        proxy = None
-
     try:
-        jwt = fwo_api.login(importer_user_name, importer_pwd, user_management_api_base_url,
-                                ssl_verification=ssl, proxy=proxy)
+        jwt = fwo_api.login(importer_user_name, importer_pwd, fwo_config['user_management_api_base_url'])
     except FwoApiLoginFailed as e:
         logger.error(e.message)
         return e.message
     except:
         return "unspecified error during FWO API login"
 
+    # set global https connection values
+    fwo_globals.setGlobalValues (suppress_cert_warnings_in=suppress_cert_warnings_in, verify_certs_in=ssl_verification, debug_level_in=debug_level_in)
+    if fwo_globals.verify_certs is None:    # not defined via parameter
+        fwo_globals.verify_certs = fwo_api.get_config_value(fwo_config['fwo_api_base_url'], jwt, key='importCheckCertificates')=='True'
+    if fwo_globals.suppress_cert_warnings is None:    # not defined via parameter
+        fwo_globals.suppress_cert_warnings = fwo_api.get_config_value(fwo_config['fwo_api_base_url'], jwt, key='importSuppressCertificateWarnings')=='True'
+    if fwo_globals.suppress_cert_warnings: # not defined via parameter
+        requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
+
     try: # get mgm_details (fw-type, port, ip, user credentials):
-        mgm_details = fwo_api.get_mgm_details(fwo_api_base_url, jwt, {"mgmId": int(mgm_id)}, debug_level)
+        mgm_details = fwo_api.get_mgm_details(fwo_config['fwo_api_base_url'], jwt, {"mgmId": int(mgm_id)}, debug_level)
     except:
         logger.error("import_management - error while getting fw management details for mgm=" + str(mgm_id) )
         raise
@@ -133,32 +144,36 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
 
         # only run if this is the correct import module
         if mgm_details['importerHostname'] != gethostname():
-            logger.debug("import_management - this host (" + gethostname() + ") is not responsible for importing management " + str(mgm_id))
+            logger.info("import_management - this host (" + gethostname() + ") is not responsible for importing management " + str(mgm_id))
             return ""
 
         current_import_id = -1
+
         try: # set import lock
-            current_import_id = fwo_api.lock_import(fwo_api_base_url, jwt, {"mgmId": int(mgm_id)})
+            current_import_id = fwo_api.lock_import(fwo_config['fwo_api_base_url'], jwt, {"mgmId": int(mgm_id)})
         except:
             logger.error("import_management - failed to get import lock for management id " + str(mgm_id))
         if current_import_id == -1:
-            fwo_api.create_data_issue(fwo_api_base_url, jwt, mgm_id=int(mgm_id), severity=1, 
+            fwo_api.create_data_issue(fwo_config['fwo_api_base_url'], jwt, mgm_id=int(mgm_id), severity=1, 
                 description="failed to get import lock for management id " + str(mgm_id))
-            fwo_api.setAlert(fwo_api_base_url, jwt, import_id=current_import_id, title="import error", mgm_id=str(mgm_id), severity=1, role='importer', \
+            fwo_api.setAlert(fwo_config['fwo_api_base_url'], jwt, import_id=current_import_id, title="import error", mgm_id=str(mgm_id), severity=1, role='importer', \
                 description="fwo_api: failed to get import lock", source='import', alertCode=15, mgm_details=mgm_details)
             raise FwoApiFailedLockImport("fwo_api: failed to get import lock for management id " + str(mgm_id)) from None
 
         logger.info("starting import of management " + mgm_details['name'] + '(' + str(mgm_id) + "), import_id=" + str(current_import_id))
         full_config_json = {}
-        # get_config_response = 0
 
         if clearManagementData:
             logger.info('this import run will reset the configuration of this management to "empty"')
         else:
             if in_file is not None:    # read native config from file
                 try:
+                    # TODO: turn this api call into a function
                     if 'http://' in in_file or 'https://' in in_file:   # gettinf file via http(s)
-                        r = requests.get(in_file, headers={ 'Content-Type': 'application/json' }, verify=ssl, proxies=proxy)
+                        session = requests.Session()
+                        session.headers = { 'Content-Type': 'application/json' }
+                        session.verify=fwo_globals.verify_certs
+                        r = session.get(in_file, )
                         r.raise_for_status()
                         full_config_json = json.loads(r.content)
                     else:   # reading from local file
@@ -167,13 +182,13 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
                 except requests.exceptions.RequestException:
                     error_string = "got HTTP status code" + str(r.status_code) + " while trying to read config file from URL " + in_file
                     error_count += 1
-                    error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt, debug_level=debug_level)
+                    error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)
                     raise ConfigFileNotFound(error_string) from None
                 except:
                     # logger.exception("import_management - error while reading json import from file", traceback.format_exc())
                     error_string = "Could not read config file " + in_file
                     error_count += 1
-                    error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt, debug_level=debug_level)
+                    error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)
                     raise ConfigFileNotFound(error_string) from None
 
             # note: we need to run get_config in any case (even when importing from a file) as this function 
@@ -181,25 +196,24 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
             ### geting config from firewall manager ######################
             config_changed_since_last_import, error_string, error_count, change_count = get_config_sub(mgm_details, full_config_json, config2import, jwt, current_import_id, start_time,
                 in_file=in_file, import_tmp_path=import_tmp_path, error_string=error_string, error_count=error_count, change_count=change_count, 
-                proxy=proxy, limit=limit, debug_level=debug_level, force=force, ssl=ssl)
+                limit=limit, force=force)
 
         time_get_config = int(time.time()) - start_time
         logger.debug("import_management - getting config total duration " + str(time_get_config) + "s")
 
         if config_changed_since_last_import:
             try: # now we import the config via API chunk by chunk:
-                for config_chunk in split_config(config2import, current_import_id, mgm_id, debug_level):
-                    error_count += fwo_api.import_json_config(fwo_api_base_url, jwt, mgm_id, config_chunk, debug_level)
+                for config_chunk in split_config(config2import, current_import_id, mgm_id):
+                    error_count += fwo_api.import_json_config(fwo_config['fwo_api_base_url'], jwt, mgm_id, config_chunk)
             except:
                 logger.error("import_management - unspecified error while importing config via FWO API: " + str(traceback.format_exc()))
                 raise
-
             time_write2api = int(time.time()) - time_get_config - start_time
             logger.debug("import_management - writing config to API and stored procedure import duration: " + str(time_write2api) + "s")
 
             error_from_imp_control = "assuming error"
             try: # checking for errors during stored_procedure db imort in import_control table
-                error_from_imp_control = fwo_api.get_error_string_from_imp_control(fwo_api_base_url, jwt, {"importId": current_import_id})
+                error_from_imp_control = fwo_api.get_error_string_from_imp_control(fwo_config['fwo_api_base_url'], jwt, {"importId": current_import_id})
             except:
                 logger.error("import_management - unspecified error while getting error string: " + str(traceback.format_exc()))
 
@@ -209,22 +223,22 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
             # todo: if no objects found at all: at least throw a warning
 
             try: # get change count from db
-                change_count = fwo_api.count_changes_per_import(fwo_api_base_url, jwt, current_import_id)
+                change_count = fwo_api.count_changes_per_import(fwo_config['fwo_api_base_url'], jwt, current_import_id)
             except:
                 logger.error("import_management - unspecified error while getting change count: " + str(traceback.format_exc()))
                 raise
 
             try: # calculate config sizes
                 full_config_size = sys.getsizeof(json.dumps(full_config_json))
-                config2import_size = sys.getsizeof(json.dumps(config2import))
+                config2import_size = sys.getsizeof(jsonpickle.dumps(config2import))
                 logger.debug("full_config size: " + str(full_config_size) + " bytes, config2import size: " + str(config2import_size) + " bytes")
             except:
                 logger.error("import_management - unspecified error while calculating config sizes: " + str(traceback.format_exc()))
                 raise
 
-            if (change_count > 0 or error_count > 0) and full_config_size < full_config_size_limit:  # store full config in case of change or error
+            if (debug_level>5 or change_count > 0 or error_count > 0) and full_config_size < full_config_size_limit:  # store full config in case of change or error
                 try:  # store full config in DB
-                    error_count += fwo_api.store_full_json_config(fwo_api_base_url, jwt, mgm_id, {
+                    error_count += fwo_api.store_full_json_config(fwo_config['fwo_api_base_url'], jwt, mgm_id, {
                         "importId": current_import_id, "mgmId": mgm_id, "config": full_config_json})
                 except:
                     logger.error("import_management - unspecified error while storing full config: " + str(traceback.format_exc()))
@@ -232,16 +246,18 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
         else: # if no changes were found, we skip everything else without errors
             pass
 
-        error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt, debug_level=debug_level)
+        if (debug_level>8):
+            logger.info(json.dumps(config2import, indent=2))
+
+        error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)
         
     return error_count
 
 
 def get_config_sub(mgm_details, full_config_json, config2import, jwt, current_import_id, start_time,
-        in_file=None, import_tmp_path='.', error_string='', error_count=0, change_count=0, 
-        proxy='', limit=150, debug_level=0, force=False, ssl=''):
-
-    logger = getFwoLogger(debug_level)
+        in_file=None, import_tmp_path='.', error_string='', error_count=0, change_count=0, limit=150, force=False):
+    logger = getFwoLogger()
+    fwo_config = readConfig(fwo_config_filename)
 
     try: # pick product-specific importer:
         pkg_name = mgm_details['deviceType']['name'].lower().replace(' ', '') + mgm_details['deviceType']['version']
@@ -250,11 +266,9 @@ def get_config_sub(mgm_details, full_config_json, config2import, jwt, current_im
         logger.exception("import_management - error while loading product specific fwcommon module", traceback.format_exc())        
         raise
     
-    # Temporary failure in name resolution
     try: # get the config data from the firewall manager's API: 
         # check for changes from product-specific FW API
-        config_changed_since_last_import = in_file != None or fw_module.has_config_changed(full_config_json,
-            mgm_details, debug_level=debug_level, ssl_verification=ssl, proxy=proxy, force=force)
+        config_changed_since_last_import = in_file != None or fw_module.has_config_changed(full_config_json, mgm_details, force=force)
         if config_changed_since_last_import:
             logger.debug ( "has_config_changed: changes found or forced mode -> go ahead with getting config, Force = " + str(force))
         else:
@@ -262,33 +276,40 @@ def get_config_sub(mgm_details, full_config_json, config2import, jwt, current_im
 
         if config_changed_since_last_import:
             fw_module.get_config( # get config from product-specific FW API
-                config2import, full_config_json,  current_import_id, mgm_details, debug_level=debug_level, 
-                ssl_verification=ssl, proxy=proxy, limit=limit, force=force, jwt=jwt)
-    except FwLoginFailed as e:
+                config2import, full_config_json,  current_import_id, mgm_details, 
+                limit=limit, force=force, jwt=jwt)
+    except (FwLoginFailed) as e:
         error_string += "  login failed: mgm_id=" + str(mgm_details['id']) + ", mgm_name=" + mgm_details['name'] + ", " + e.message
         error_count += 1
         logger.error(error_string)
-        fwo_api.delete_import(fwo_api_base_url, jwt, current_import_id) # deleting trace of not even begun import
-        error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt, debug_level=debug_level)
+        fwo_api.delete_import(fwo_config['fwo_api_base_url'], jwt, current_import_id) # deleting trace of not even begun import
+        error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)
         raise FwLoginFailed(e.message)
+    except ImportRecursionLimitReached as e:
+        error_string += "  recursion limit reached: mgm_id=" + str(mgm_details['id']) + ", mgm_name=" + mgm_details['name'] + ", " + e.message
+        error_count += 1
+        logger.error(error_string)
+        fwo_api.delete_import(fwo_config['fwo_api_base_url'], jwt, current_import_id) # deleting trace of not even begun import
+        error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)
+        raise ImportRecursionLimitReached(e.message)
     except:
         error_string += "  import_management - unspecified error while getting config: " + str(traceback.format_exc())
         logger.error(error_string)
         error_count += 1
-        error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt, debug_level=debug_level)
+        error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)
         raise
 
     logger.debug("import_management: get_config completed (including normalization), duration: " + str(int(time.time()) - start_time) + "s") 
 
-    if config_changed_since_last_import and debug_level>2:   # debugging: writing config to json file
+    if config_changed_since_last_import and fwo_globals.debug_level>2:   # debugging: writing config to json file
         debug_start_time = int(time.time())
         try:
             normalized_config_filename = import_tmp_path + '/mgm_id_' + \
                 str(mgm_details['id']) + '_config_normalized.json'
             with open(normalized_config_filename, "w") as json_data:
-                json_data.write(json.dumps(config2import, indent=2))
+                json_data.write(json.dumps(jsonpickle.dumps(config2import)))
 
-            if debug_level>3:
+            if fwo_globals.debug_level>3:
                 full_native_config_filename = import_tmp_path + '/mgm_id_' + \
                     str(mgm_details['id']) + '_config_native.json'
                 with open(full_native_config_filename, "w") as json_data:  # create empty config file
@@ -302,24 +323,29 @@ def get_config_sub(mgm_details, full_config_json, config2import, jwt, current_im
     return config_changed_since_last_import, error_string, error_count, change_count
 
 
-def complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt, debug_level=0):
-    logger = getFwoLogger(debug_level=debug_level)
+def complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt):
+    logger = getFwoLogger()
+    fwo_config = readConfig(fwo_config_filename)
 
-    fwo_api.log_import_attempt(fwo_api_base_url, jwt, mgm_details['id'], successful=not error_count)
+    fwo_api.log_import_attempt(fwo_config['fwo_api_base_url'], jwt, mgm_details['id'], successful=not error_count)
 
     try: # CLEANUP: delete configs of imports (without changes) (if no error occured)
-        if fwo_api.delete_json_config_in_import_table(fwo_api_base_url, jwt, {"importId": current_import_id})<0:
+        if fwo_api.delete_json_config_in_import_table(fwo_config['fwo_api_base_url'], jwt, {"importId": current_import_id})<0:
             error_count += 1
     except:
-        logger.error("import_management - unspecified error cleaning up: " + str(traceback.format_exc()))
-        raise
+        logger.error("import_management - unspecified error cleaning up import_config: " + str(traceback.format_exc()))
+
+    try: # CLEANUP: delete data of this import from import_object/rule/service/user tables
+        if fwo_api.delete_import_object_tables(fwo_config['fwo_api_base_url'], jwt, {"importId": current_import_id})<0:
+            error_count += 1
+    except:
+        logger.error("import_management - unspecified error cleaning up import_ object tables: " + str(traceback.format_exc()))
 
     try: # finalize import by unlocking it
-        error_count += fwo_api.unlock_import(fwo_api_base_url, jwt, int(
+        error_count += fwo_api.unlock_import(fwo_config['fwo_api_base_url'], jwt, int(
             mgm_details['id']), datetime.datetime.now().isoformat(), current_import_id, error_count, change_count)
     except:
         logger.error("import_management - unspecified error while unlocking import: " + str(traceback.format_exc()))
-        raise
 
     import_result = "import_management: import no. " + str(current_import_id) + \
             " for management " + mgm_details['name'] + ' (id=' + str(mgm_details['id']) + ")" + \
@@ -329,8 +355,8 @@ def complete_import(current_import_id, error_string, start_time, mgm_details, ch
     import_result += ", ERRORS: " + error_string if len(error_string) > 0 else ""
     
     if error_count>0:
-        fwo_api.create_data_issue(fwo_api_base_url, jwt, import_id=current_import_id, severity=1, description=error_string)
-        fwo_api.setAlert(fwo_api_base_url, jwt, import_id=current_import_id, title="import error", mgm_id=mgm_details['id'], severity=2, role='importer', \
+        fwo_api.create_data_issue(fwo_config['fwo_api_base_url'], jwt, import_id=current_import_id, severity=1, description=error_string)
+        fwo_api.setAlert(fwo_config['fwo_api_base_url'], jwt, import_id=current_import_id, title="import error", mgm_id=mgm_details['id'], severity=2, role='importer', \
             description=error_string, source='import', alertCode=14, mgm_details=mgm_details)
 
     logger.info(import_result)
@@ -351,11 +377,34 @@ def split_list(list_in, max_list_length):
     return list_of_lists
 
 
-def split_config(config2import, current_import_id, mgm_id, debug_level):
+# split the config into chunks of max size "max_objs_per_chunk" to avoid 
+# timeout of import while writing data to import table
+# each object table to import is handled here 
+def split_config(config2import, current_import_id, mgm_id):
     conf_split_dict_of_lists = {}
     max_number_of_chunks = 0
-    for obj_list_name in ["network_objects", "service_objects", "user_objects", "rules", "zone_objects"]:
+
+    object_lists = ["network_objects", "service_objects", "user_objects", "rules", "zone_objects", "interfaces", "routing"]
+
+    for obj_list_name in object_lists:
         if obj_list_name in config2import:
+
+            if obj_list_name == 'interfaces':
+                if_obj_list = config2import['interfaces']
+                if_obj_list_ser = []
+                for iface in if_obj_list:
+                    if_obj_list_ser.append(InterfaceSerializable(iface))
+                if_dict = json.loads(jsonpickle.encode(if_obj_list_ser, unpicklable=False))
+                config2import['interfaces'] = if_dict
+
+            if obj_list_name == 'routing':
+                route_obj_list = config2import['routing']
+                route_obj_list_ser = []
+                for route in route_obj_list:
+                    route_obj_list_ser.append(RouteSerializable(route))
+                route_dict = json.loads(jsonpickle.encode(route_obj_list_ser, unpicklable=False))
+                config2import['routing'] = route_dict
+                
             split_list_tmp = split_list(config2import[obj_list_name], max_objs_per_chunk)
             conf_split_dict_of_lists.update({obj_list_name: split_list_tmp})
             if len(split_list_tmp)>max_number_of_chunks:
@@ -365,43 +414,31 @@ def split_config(config2import, current_import_id, mgm_id, debug_level):
     conf_split = []
     current_chunk = 0
     while current_chunk<max_number_of_chunks:
-        network_object_chunk = []
-        service_object_chunk = []
-        user_object_chunk = []
-        zone_object_chunk = []
-        rules_chunk = []
+        single_chunk = {}
+        for obj_list_name in object_lists:
+            single_chunk[obj_list_name] = []
+        for obj_list_name in object_lists:
+            if current_chunk<len(conf_split_dict_of_lists[obj_list_name]):
+                single_chunk[obj_list_name] = conf_split_dict_of_lists[obj_list_name][current_chunk]
 
-        if current_chunk<len(conf_split_dict_of_lists['network_objects']):
-            network_object_chunk = conf_split_dict_of_lists['network_objects'][current_chunk]
-        if current_chunk<len(conf_split_dict_of_lists['service_objects']):
-            service_object_chunk = conf_split_dict_of_lists['service_objects'][current_chunk]
-        if current_chunk<len(conf_split_dict_of_lists['user_objects']):
-            user_object_chunk = conf_split_dict_of_lists['user_objects'][current_chunk]
-        if current_chunk<len(conf_split_dict_of_lists['zone_objects']):
-            zone_object_chunk = conf_split_dict_of_lists['zone_objects'][current_chunk]
-        if current_chunk<len(conf_split_dict_of_lists['rules']):
-            rules_chunk = conf_split_dict_of_lists['rules'][current_chunk]
-
-        conf_split.append({
-            "network_objects": network_object_chunk,
-            "service_objects": service_object_chunk,
-            "user_objects": user_object_chunk,
-            "zone_objects": zone_object_chunk,
-            "rules": rules_chunk
-        })
+        conf_split.append(single_chunk)
         current_chunk += 1
 
-    # now adding meta data around
+    # now adding meta data around (start_import_flag used as trigger)
     config_split_with_metadata = []
+    current_chunk_number = 0
     for conf_chunk in conf_split:
         config_split_with_metadata.append({
             "config": conf_chunk,
             "start_import_flag": False,
             "importId": int(current_import_id), 
             "mgmId": int(mgm_id), 
+            "chunk_number": current_chunk_number
         })
+        current_chunk_number += 1
+    # setting the trigger in the last chunk:
     config_split_with_metadata[len(config_split_with_metadata)-1]["start_import_flag"] = True
-    if debug_level>0:
+    if fwo_globals.debug_level>0:
         config_split_with_metadata[len(config_split_with_metadata)-1]["debug_mode"] = True
     return config_split_with_metadata
 
@@ -457,6 +494,7 @@ def resolve_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_ke
 
 def resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type=None, obj_type='network', jwt=None, import_id=None, rule_uid=None, object_type=None, mgm_id=None):
     logger = getFwoLogger()
+    fwo_config = readConfig(fwo_config_filename)
 
     ref_list = []
     objects_not_found = []
@@ -501,14 +539,14 @@ def resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, ui
     for obj in objects_not_found:
 
         if obj != 'all' and obj != 'Original':
-            if not fwo_api.create_data_issue(fwo_api_base_url, jwt, import_id=import_id, obj_name=obj, severity=1, rule_uid=rule_uid, mgm_id=mgm_id, object_type=object_type):
+            if not fwo_api.create_data_issue(fwo_config['fwo_api_base_url'], jwt, import_id=import_id, obj_name=obj, severity=1, rule_uid=rule_uid, mgm_id=mgm_id, object_type=object_type):
                 logger.warning("resolve_raw_objects: encountered error while trying to log an import data issue using create_data_issue")
 
             desc = "found a broken network object reference '" + obj + "' "
             if object_type is not None:
                 desc +=  "(type=" + object_type + ") "
-            desc += "in rule with UID '" + rule_uid + "'"
-            fwo_api.setAlert(fwo_api_base_url, jwt, import_id=import_id, title="object reference error", mgm_id=mgm_id, severity=1, role='importer', \
+            desc += "in rule with UID '" + str(rule_uid) + "'"
+            fwo_api.setAlert(fwo_config['fwo_api_base_url'], jwt, import_id=import_id, title="object reference error", mgm_id=mgm_id, severity=1, role='importer', \
                 description=desc, source='import', alertCode=16)
 
     return delimiter.join(ref_list)
@@ -537,14 +575,14 @@ def writeAlertToLogFile(jsonData):
     logger.info(alertText)
 
 
-def set_ssl_verification(ssl_verification_mode, debug_level=0):
-    logger = getFwoLogger(debug_level=debug_level)
+def set_ssl_verification(ssl_verification_mode):
+    logger = getFwoLogger()
     if ssl_verification_mode == '' or ssl_verification_mode == 'off':
         ssl_verification = False
-        if debug_level>5:
+        if fwo_globals.debug_level>5:
             logger.debug("ssl_verification: False")
     else:
         ssl_verification = ssl_verification_mode
-        if debug_level>5:
+        if fwo_globals.debug_level>5:
             logger.debug("ssl_verification: [ca]certfile=" + ssl_verification)
     return ssl_verification

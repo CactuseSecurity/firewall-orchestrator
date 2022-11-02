@@ -50,13 +50,18 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m8",
-                "-d4",
+                "-m5",
+                "-d9",
                 "-f",
+                "-s",
+                //"-xhttp://10.6.5.10:3128",
                 //"-ihttps://fwodemodata.cactus.de/demo04_cpr8x.json",
-                //"-c",
+                //"-ihttps://fwodemodata.cactus.de/demo01_fortiMgrLab.json"
+                //"-ihttps://fwodemodata.cactus.de/demo05_fortiMgr2.json"
+                // "-ihttps://fwodemodata.cactus.de/big/fortiMgr_78111944ad43fe045687d8d6dc92256e.json"
+                //"-c"
                 //  41 - lab fortimanager
-                //"-i/tmp/mgm_id_8_config_native.json",
+                //"-i/home/tim/Downloads/mgm_id_9_config_native.json.anon"
                 //"-i/home/tim/tmp/configs/mgm_id_56_config_native.json.anon", // all rules, all objs local mgm_id 4
                 // "-i/home/tim/tmp/configs/mgm_id_56_config_native.json.anon", // 30k rules, local mgm_id 45
                 //"-i/home/tim/tmp/configs/mgm_id_52_config_native.json.anon", // many gateways, local mgm_id 49
@@ -74,8 +79,32 @@
                 //"-i/home/tim/tmp/configs/mgm_id_54_config_native.json.anon",
                 //"-i/home/tim/tmp/configs/mgm_id_56_config_native.json.anon", // local id 55
                 //"-i/home/tim/tmp/configs/mgm_id_1176_config_native.json.anon_error_in_fprs100-s999-rz99-xxx-PolicyNetwork.anon-with-broken-svc",
-                "-l250"
+                //"-l250"
             ]
+        },
+        {
+            "name": "py-acquire-lock",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/common/files/acquire_lock.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "/var/fworch/lock/FWO.Middleware.Server_log.lock"
+            ]
+        },
+        {
+            "name": "py-generate-tenant-data",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/test/files/tenant_networks/create_tenant_network_data.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": []
         },
         {
             "name": "py-change-comment",
@@ -146,6 +175,19 @@
             "args": [
                 "-f/home/tim/tmp/sting.cfg",
                 "-rFirstLayer shared with inline layer"
+            ]
+        },
+        {
+            "name": "py-cpr8x-api-test-call",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/api-test-call.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "--help"
             ]
         },
         {
@@ -261,7 +303,9 @@
             "request": "launch",
             "preLaunchTask": "build_test",
             "program": "/usr/bin/dotnet",
-            "args": [ "test" ],
+            "args": [
+                "test"
+            ],
             "cwd": "${workspaceFolder}/roles/test/files/FWO.Test",
             "stopAtEntry": true,
             "console": "integratedTerminal"

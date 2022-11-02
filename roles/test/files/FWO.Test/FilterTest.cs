@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace FWO.Test.Filter
+namespace FWO.Test
 {
     [TestFixture]
     public class FilterTest
@@ -49,6 +49,12 @@ namespace FWO.Test.Filter
         }
 
         [Test]
+        public void NotEquals()
+        {
+            var res = Compiler.Compile("(text!=cactus)", ReportType.Rules);
+        }
+
+        [Test]
         public void ExactEquals()
         {
             var res = Compiler.Compile("(text==cactus)", ReportType.Rules);
@@ -78,6 +84,13 @@ namespace FWO.Test.Filter
         public void Disabled()
         {
             var res = Compiler.Compile("disabled == true", ReportType.Rules);
+        }
+
+
+        [Test]
+        public void Brackets()
+        {
+            var res = Compiler.Compile("src=a&(dst=c)", ReportType.Rules);
         }
     }
 }

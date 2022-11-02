@@ -1,6 +1,6 @@
 ﻿using FWO.Api.Data;
-using FWO.ApiClient;
-using FWO.ApiClient.Queries;
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Logging;
 using FWO.Middleware.RequestParameters;
 using FWO.Middleware.Server;
@@ -15,9 +15,9 @@ namespace FWO.Middleware.Controllers
     public class UserController : ControllerBase
     {
         private readonly List<Ldap> ldaps;
-        private readonly APIConnection apiConnection;
+        private readonly ApiConnection apiConnection;
 
-        public UserController(List<Ldap> ldaps, APIConnection apiConnection)
+        public UserController(List<Ldap> ldaps, ApiConnection apiConnection)
         {
             this.ldaps = ldaps;
             this.apiConnection = apiConnection;
@@ -28,7 +28,7 @@ namespace FWO.Middleware.Controllers
         [Authorize(Roles = "admin, auditor")]
         public async Task<List<UserGetReturnParameters>> Get()
         {
-            List<UiUser> users = (await apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUsers)).ToList();
+            List<UiUser> users = (await apiConnection.SendQueryAsync<UiUser[]>(FWO.Api.Client.Queries.AuthQueries.getUsers)).ToList();
             List<UserGetReturnParameters> userList = new List<UserGetReturnParameters>();
             foreach (UiUser user in users)
             {
@@ -102,7 +102,7 @@ namespace FWO.Middleware.Controllers
                         passwordMustBeChanged = parameters.PwChangeRequired,
                         ldapConnectionId = (parameters.LdapId != 0 ? parameters.LdapId : (int?)null)
                     };
-                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addUser, Variables)).ReturnIds;
+                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.AuthQueries.addUser, Variables)).ReturnIds;
                     if(returnIds != null)
                     {
                         userId = returnIds[0].NewId;
@@ -151,7 +151,7 @@ namespace FWO.Middleware.Controllers
                         id = parameters.UserId,
                         email = email
                     };
-                    await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateUserEmail, Variables);
+                    await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.AuthQueries.updateUserEmail, Variables);
                 }
                 catch (Exception exception)
                 {
@@ -214,7 +214,7 @@ namespace FWO.Middleware.Controllers
                         errorMsg = currentLdap.SetPassword(user.Dn, parameters.NewPassword);
                         if (errorMsg == "")
                         {
-                            List<string> roles = currentLdap.GetRoles(new List<string>() { user.Dn }).ToList();
+                            List<string> roles = currentLdap.GetRoles(new List<string>() { user.Dn }).ToList(); // TODO: Group roles are not included
                             // the demo user (currently auditor) can't be forced to change password as he is not allowed to do it. Everyone else has to change it though
                             bool passwordMustBeChanged = !roles.Contains("auditor"); 
                             await UiUserHandler.UpdateUserPasswordChanged(apiConnection, user.Dn, passwordMustBeChanged);
@@ -295,7 +295,7 @@ namespace FWO.Middleware.Controllers
                 try
                 {
                     var Variables = new { id = user.DbId };
-                    await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.deleteUser, Variables);
+                    await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.AuthQueries.deleteUser, Variables);
                 }
                 catch (Exception exception)
                 {
@@ -311,7 +311,7 @@ namespace FWO.Middleware.Controllers
             List<UiUser> uiUsers;
             try
             {
-                uiUsers = (await apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUsers)).ToList();
+                uiUsers = (await apiConnection.SendQueryAsync<UiUser[]>(FWO.Api.Client.Queries.AuthQueries.getUsers)).ToList();
                 return uiUsers.FirstOrDefault(x => x.DbId == id);
             }
             catch (Exception exception)

@@ -1,22 +1,57 @@
-﻿using FWO.ApiClient;
-using FWO.ApiClient.Queries;
+﻿using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Logging;
 using FWO.Config.File;
 using FWO.Api.Data;
+using System.Text.Json.Serialization; 
+using Newtonsoft.Json; 
 
 namespace FWO.Middleware.Server
 {
+    public class ConfExpirationTime
+    {
+        [JsonProperty("config_value"), JsonPropertyName("config_value")]
+        public int ExpirationValue { get; set; }
+    }
+
     public class UiUserHandler
     {
+        private readonly string jwtToken;
+        private ApiConnection apiConn;
+
+        public UiUserHandler(string jwtToken)
+        {
+            this.jwtToken = jwtToken;
+            apiConn = new GraphQlApiConnection(ConfigFile.ApiServerUri, jwtToken);
+        }
+
+        public async Task<int> GetExpirationTime()
+        {
+            int expirationTime = 60 * 12;
+            try
+            {
+                List<ConfExpirationTime> resultList = await apiConn.SendQueryAsync<List<ConfExpirationTime>>(ConfigQueries.getConfigItemByKey, new { key = "sessionTimeout" });
+                if (resultList.Count > 0)
+                {
+                    expirationTime = resultList[0].ExpirationValue;
+                }
+            }
+            catch(Exception exeption)
+            {
+                Log.WriteError("Get ExpirationTime Error", $"Error while trying to find config value in database. Taking default value", exeption);
+            }
+            return expirationTime;
+        }
+
         /// <summary>
         /// if the user logs in for the first time, user details (excluding password) are written to DB bia API
         /// the database id is retrieved and added to the user 
         /// the user id is needed for allowing access to report_templates
         /// </summary>
         /// <returns> user including its db id </returns>
-        public static async Task<UiUser> HandleUiUserAtLogin(UiUser user, string jwtToken)
+        public async Task<UiUser> HandleUiUserAtLogin(UiUser user)
         {
-            APIConnection apiConn = new APIConnection(new ConfigFile().ApiServerUri, jwtToken);
+            ApiConnection apiConn = new GraphQlApiConnection(ConfigFile.ApiServerUri, jwtToken);
             bool userSetInDb = false;
             try
             {
@@ -46,7 +81,7 @@ namespace FWO.Middleware.Server
             return user;
         }
 
-        private static async Task AddUiUserToDb(APIConnection apiConn, UiUser user)
+        private static async Task AddUiUserToDb(ApiConnection apiConn, UiUser user)
         {
             try
             {
@@ -73,7 +108,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private static async Task<bool> UpdateLastLogin(APIConnection apiConn, int id)
+        private static async Task<bool> UpdateLastLogin(ApiConnection apiConn, int id)
         {
             try
             {
@@ -82,7 +117,7 @@ namespace FWO.Middleware.Server
                     id = id, 
                     loginTime = DateTime.UtcNow
                 };
-                return (await apiConn.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateUserLastLogin, Variables)).PasswordMustBeChanged;
+                return (await apiConn.SendQueryAsync<ReturnId>(AuthQueries.updateUserLastLogin, Variables)).PasswordMustBeChanged;
             }
             catch(Exception exeption)
             {
@@ -91,7 +126,7 @@ namespace FWO.Middleware.Server
             return true;
         }
 
-        public static async Task UpdateUserPasswordChanged(APIConnection apiConn, string userDn, bool passwordMustBeChanged = false)
+        public static async Task UpdateUserPasswordChanged(ApiConnection apiConn, string userDn, bool passwordMustBeChanged = false)
         {
             try
             {
@@ -101,7 +136,7 @@ namespace FWO.Middleware.Server
                     passwordMustBeChanged = passwordMustBeChanged,
                     changeTime = DateTime.UtcNow
                 };
-                await apiConn.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateUserPasswordChange, Variables);
+                await apiConn.SendQueryAsync<ReturnId>(AuthQueries.updateUserPasswordChange, Variables);
             }
             catch(Exception exeption)
             {

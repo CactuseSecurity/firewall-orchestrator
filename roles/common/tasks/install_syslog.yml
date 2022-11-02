@@ -7,7 +7,7 @@
 
 - name: create log dir for {{ product_name }} on ubuntu - owner syslog
   file:
-    path: "/var/log/{{ product_name }}/"
+    path: "{{ fworch_log_dir }}"
     state: directory
     owner: syslog
     group: syslog
@@ -17,7 +17,7 @@
     
 - name: create log dir for {{ product_name }} on debian - owner root
   file:
-    path: "/var/log/{{ product_name }}/"
+    path: "{{ fworch_log_dir }}"
     state: directory
     owner: root
     group: root
@@ -35,7 +35,7 @@
 
 - name: create log dir for {{ product_name }} on redhat - owner root
   file:
-    path: "/var/log/{{ product_name }}/"
+    path: "{{ fworch_log_dir }}"
     state: directory
     owner: root
     group: root
@@ -45,7 +45,7 @@
 
 # - name: create db log file for {{ product_name }} - owner postgres
 #   file:
-#     path: "/var/log/{{ product_name }}/database.log"
+#     path: "{{ fworch_log_dir }}/database.log"
 #     state: touch
 #     owner: postgres
 #     group: adm
@@ -70,16 +70,16 @@
         constant(value="\n")
       }
 
-      if $programname == '{{ product_name }}-database' then action(type="omfile" file="/var/log/{{ product_name }}/database.log" template="fworch")
-      if $programname == '{{ middleware_server_syslog_id }}' then action(type="omfile" file="/var/log/{{ product_name }}/middleware.log" template="fworch")
-      if $programname == '{{ ui_syslog_id }}' then action(type="omfile" file="/var/log/{{ product_name }}/ui.log" template="fworch")
-      if $programname == '{{ ldap_syslog_id }}' then action(type="omfile" file="/var/log/{{ product_name }}/ldap.log" template="fworch")
-      if $programname == '{{ product_name }}-api' then action(type="omfile" file="/var/log/{{ product_name }}/api.log" template="fworch")
-      if $programname startswith '{{ product_name }}-importer-legacy' then action(type="omfile" file="/var/log/{{ product_name }}/importer-legacy.log" template="fworch")
-      if $programname startswith '{{ product_name }}-importer-api' then action(type="omfile" file="/var/log/{{ product_name }}/importer-api.log" template="fworch")
-      if $programname startswith '{{ product_name }}' and $msg contains "Audit" then action(type="omfile" file="/var/log/{{ product_name }}/audit.log" template="fworch")
-      if $programname startswith '{{ product_name }}' and $msg contains "FWORCHAlert" then action(type="omfile" file="/var/log/{{ product_name }}/alert.log" template="fworch")
-      if $programname == '{{ product_name }}-webhook' then action(type="omfile" file="/var/log/{{ product_name }}/webhook.log" template="fworch")
+      if $programname == '{{ product_name }}-database' then action(type="omfile" file="{{ fworch_log_dir }}/database.log" template="fworch")
+      if $programname == '{{ middleware_server_syslog_id }}' then action(type="omfile" file="{{ fworch_log_dir }}/middleware.log" template="fworch")
+      if $programname == '{{ ui_syslog_id }}' then action(type="omfile" file="{{ fworch_log_dir }}/ui.log" template="fworch")
+      if $programname == '{{ ldap_syslog_id }}' then action(type="omfile" file="{{ fworch_log_dir }}/ldap.log" template="fworch")
+      if $programname == '{{ product_name }}-api' then action(type="omfile" file="{{ fworch_log_dir }}/api.log" template="fworch")
+      if $programname startswith '{{ product_name }}-importer-legacy' then action(type="omfile" file="{{ fworch_log_dir }}/importer-legacy.log" template="fworch")
+      if $programname startswith '{{ product_name }}-importer-api' then action(type="omfile" file="{{ fworch_log_dir }}/importer-api.log" template="fworch")
+      if $programname startswith '{{ product_name }}' and $msg contains "Audit" then action(type="omfile" file="{{ fworch_log_dir }}/audit.log" template="fworch")
+      if $programname startswith '{{ product_name }}' and $msg contains "FWORCHAlert" then action(type="omfile" file="{{ fworch_log_dir }}/alert.log" template="fworch")
+      if $programname == '{{ product_name }}-webhook' then action(type="omfile" file="{{ fworch_log_dir }}/webhook.log" template="fworch")
   become: yes
 
 - name: edit logrotate
@@ -87,7 +87,7 @@
     path: "/etc/logrotate.d/{{ product_name }}"
     create: yes
     block: |
-      /var/log/{{ product_name }}/*.log {
+      {{ fworch_log_dir }}/middleware.log {
           compress
           maxage 7
           rotate 99
@@ -96,12 +96,61 @@
           copytruncate
           sharedscripts
               prerotate
-                      systemctl stop {{ product_name }}-importer-legacy.service >/dev/null 2>&1
+                {{ fworch_home }}/scripts/acquire_lock.py {{ fworch_mw_lockfile }} >/dev/null 2>&1
               endscript
               postrotate
-                      systemctl start {{ product_name }}-importer-legacy.service >/dev/null 2>&1
+                {{ fworch_home }}/scripts/release_lock.py {{ fworch_mw_lockfile }} >/dev/null 2>&1
               endscript
       }
+
+      {{ fworch_log_dir }}/ui.log {
+          compress
+          maxage 7
+          rotate 99
+          size=+4096k
+          missingok
+          copytruncate
+          sharedscripts
+              prerotate
+                {{ fworch_home }}/scripts/acquire_lock.py {{ fworch_ui_lockfile }} >/dev/null 2>&1
+              endscript
+              postrotate
+                {{ fworch_home }}/scripts/release_lock.py {{ fworch_ui_lockfile }} >/dev/null 2>&1
+              endscript
+      }
+
+      {{ fworch_log_dir }}/importer-legacy.log {
+          compress
+          maxage 7
+          rotate 99
+          size=+4096k
+          missingok
+          copytruncate
+          sharedscripts
+              prerotate
+                systemctl stop {{ product_name }}-importer-legacy.service >/dev/null 2>&1
+              endscript
+              postrotate
+                systemctl start {{ product_name }}-importer-legacy.service >/dev/null 2>&1
+              endscript
+      }
+
+      {{ fworch_log_dir }}/database.log 
+      {{ fworch_log_dir }}/ldap.log 
+      {{ fworch_log_dir }}/api.log 
+      {{ fworch_log_dir }}/importer-api.log 
+      {{ fworch_log_dir }}/audit.log 
+      {{ fworch_log_dir }}/alert.log 
+      {{ fworch_log_dir }}/webhook.log 
+      {
+          compress
+          maxage 7
+          rotate 99
+          size=+4096k
+          missingok
+          copytruncate
+      }
+
   become: yes
 
 - name: reload rsyslog service

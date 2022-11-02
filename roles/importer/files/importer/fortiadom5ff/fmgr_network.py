@@ -5,8 +5,8 @@ from common import list_delimiter, resolve_objects, nat_postfix
 from fmgr_zone import add_zone_if_missing
 
 
-def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt=None, mgm_id=None, debug_level=0):
-    logger = getFwoLogger(debug_level=debug_level)
+def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt=None, mgm_id=None):
+    logger = getFwoLogger()
     nw_objects = []
     for obj_type in nw_obj_types:
         for obj_orig in full_config[obj_type]:
@@ -35,7 +35,7 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt
                 obj.update({ 'obj_typ': 'ip_range' })
                 obj.update({ 'obj_ip': obj_orig['startip'] })
                 obj.update({ 'obj_ip_end': obj_orig['endip'] })
-            elif 'start-ip' in obj_orig: # ippool object
+            elif 'start-ip' in obj_orig: # standard ip range object
                 obj.update({ 'obj_typ': 'ip_range' })
                 obj.update({ 'obj_ip': obj_orig['start-ip'] })
                 obj.update({ 'obj_ip_end': obj_orig['end-ip'] })
@@ -177,9 +177,9 @@ def remove_nat_ip_entries(config2import):
             obj.pop('obj_nat_ip')
 
 
-def get_first_ip_of_destination(obj_ref, config2import, debug_level=0):
+def get_first_ip_of_destination(obj_ref, config2import):
 
-    logger = getFwoLogger(debug_level=debug_level)
+    logger = getFwoLogger()
     if list_delimiter in obj_ref:
         obj_ref = obj_ref.split(list_delimiter)[0]
         # if destination does not contain exactly one ip, raise a warning 

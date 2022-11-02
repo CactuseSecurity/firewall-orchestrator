@@ -1,7 +1,8 @@
 ﻿@using BlazorTable
 @using System.Net
 @using FWO.Api.Data
-@using FWO.ApiClient
+@using FWO.Api.Client
+@using FWO.Ui.Services
 @using FWO.Middleware.Client
 @using FWO.Config.Api
 @using FWO.Middleware.RequestParameters
@@ -10,7 +11,7 @@
 @page "/settings/roles"
 @attribute [Authorize(Roles = "admin, auditor")]
 
-@inject APIConnection apiConnection
+@inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 
@@ -20,7 +21,7 @@
 
 <div class="m-2">
     <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="Role" Items="roles" PageSize="0" ColumnReorder="true">
-        <Column TableItem="Role" Title="@(userConfig.GetText("action"))" Field="(x => x.Name)" Sortable="false" Filterable="false">
+        <Column TableItem="Role" Title="@(userConfig.GetText("actions"))" Field="(x => x.Name)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
                     @if (context.Name != "middleware-server" && context.Name != "anonymous")
@@ -228,7 +229,7 @@
     private string selectedGroup = "";
     private int selectedLdapId;
     private string searchPattern = "";
-    
+
     private Role actRole = new Role();
 
     private bool AddMode = false;
@@ -240,38 +241,18 @@
         try
         {
             // get roles from LDAP
-            RestResponse<List<RoleGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetAllRoles();
-            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
+            roles = await RoleAccess.GetRolesFromInternalLdap(middlewareClient);
+            if (roles.Count == 0)
             {
                 DisplayMessageInUi!(null, userConfig.GetText("fetch_roles"), userConfig.GetText("E5251"), true);
             }
-            else
-            {
-                foreach (var ldapRole in middlewareServerResponse.Data)
-                {
-                    Role role = new Role() { Dn = ldapRole.Role, Name = (new DistName(ldapRole.Role)).Role };
-                    foreach (var roleAttr in ldapRole.Attributes)
-                    {
-                        if (roleAttr.Key == "description")
-                        {
-                            role.Description = roleAttr.Value;
-                        }
-                        else if (roleAttr.Key == "user")
-                        {
-                            UiUser newUser = new UiUser() { Dn = roleAttr.Value, Name = (new DistName(roleAttr.Value)).UserName };
-                            role.Users.Add(newUser);
-                        }
-                    }
-                    roles.Add(role);
-                }
-            }
 
             // get users
-            uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.ApiClient.Queries.AuthQueries.getUsers);
+            uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
             uiUsers = uiUsers.FindAll(x => x.DbId != 0);
 
             // get ldap connections
-            connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections);
+            connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(FWO.Api.Client.Queries.AuthQueries.getLdapConnections);
 
             // get groups from internal LDAP
             RestResponse<List<GroupGetReturnParameters>> middlewareServerGroupsResponse = await middlewareClient.GetInternalGroups();
@@ -423,6 +404,7 @@
                     roles[roles.FindIndex(x => x.Name == actRole.Name)] = actRole;
                     AddMode = false;
                     SearchMode = false;
+                    JwtEventService.PermissionsChanged(user.Dn);
                 }
             }
             catch (System.Exception exception)
@@ -453,7 +435,7 @@
                     viewAllDevices = false,
                     create = DateTime.Now
                 };
-                await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addTenant, Variables);
+                await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.AuthQueries.addTenant, Variables);
             }
         }
         catch (Exception exception)

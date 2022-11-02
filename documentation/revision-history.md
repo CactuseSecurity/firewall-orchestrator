@@ -212,5 +212,37 @@ adding report template format fk and permissions
 - no end ip address for obj types <> range
 - fixing range display in reporting
 
-### 5.6.9
-- handle import attempts
+### 5.6.9 - 28.04.2022
+- import of fw configs directly from URL (import-mgm.py -m 17 -i https://x.y/z.conf)
+- ldap connection check improvements
+- alerting - handle import attempts
+
+### 5.7.1 - 13.10.2022
+- new workflow module for requesting changes
+- new Cisco FireFlow import module 
+- support for new operating system debian testing
+- bugfix enrichable objects in CP NAT rules
+- bugfix filter line brackets
+- new central credentials handling for import
+
+### 5.7.2 - 21.10.2022
+- start routing/interface (implemented for fortinet only) import and path analysis
+- also adding dummy router for testing and interconnecting routing clouds
+- new report type: resolved rules (report without group objects, exporting into pure rule tables without additional object tables)
+- new user management API call for creating JWTs with arbitrary lifetime
+
+### 5.8 - 23.10.2022
+- fix for CP R81 bug with certain installations - we now allow for domain UID as well as domain name for getting import data
+- also adding domain UID in auto discovery module
+- from now on reserving 3 digit version numbers for bug fixes only 
+
+### 5.8.1 - 26.10.2022
+- hotfix DB user group import
+
+### 5.8.2 - 30.10.2022
+- new report type resolved tech info (no names)
+- fix for log file rotation issues (log lock)
+- fix change report warning for empty reports
+
+### 6.0 - 02.11.2022
+- clean-up work and new major version

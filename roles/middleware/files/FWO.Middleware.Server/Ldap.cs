@@ -4,6 +4,7 @@ using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using FWO.Api.Data;
 using FWO.Middleware.RequestParameters;
+using Microsoft.IdentityModel.Tokens;
 
 namespace FWO.Middleware.Server
 {
@@ -42,33 +43,20 @@ namespace FWO.Middleware.Server
             }
         }
 
-        public int TestConnection()
+        public void TestConnection()
         {
-            try
+            using (LdapConnection connection = Connect())
             {
-                using (LdapConnection connection = Connect())
+                if (!string.IsNullOrEmpty(SearchUser))
                 {
-                    try
-                    {
-                        connection.Bind(SearchUser, SearchUserPwd);
-                        if (!connection.Bound) return 2;
-                    }
-                    catch (Exception) { return 2; }
-                    if(WriteUser != null && WriteUser != "")
-                    {
-                        try
-                        {
-                            connection.Bind(WriteUser, WriteUserPwd);
-                            if (!connection.Bound) return 3;
-                        }
-                        catch (Exception) { return 3; }
-                    }
+                    connection.Bind(SearchUser, SearchUserPwd);
+                    if (!connection.Bound) throw new Exception("Binding failed for search user");
                 }
-                return 0;
-            }
-            catch (Exception)
-            {
-                return 1;
+                if (!string.IsNullOrEmpty(WriteUser))
+                {
+                    connection.Bind(WriteUser, WriteUserPwd);
+                    if (!connection.Bound) throw new Exception("Binding failed for write user");
+                }
             }
         }
 
@@ -116,7 +104,7 @@ namespace FWO.Middleware.Server
             return ((searchPattern == null || searchPattern == "") ? groupFilter : $"(&{groupFilter}{searchFilter})");
         }
 
-        public string ValidateUser(UiUser user)
+        public LdapEntry? GetLdapEntry(UiUser user, bool validateCredentials)
         {
             Log.WriteInfo("User Validation", $"Validating User: \"{user.Name}\" ...");
             try         
@@ -126,74 +114,53 @@ namespace FWO.Middleware.Server
                 {
                     // Authenticate as search user
                     connection.Bind(SearchUser, SearchUserPwd);
-                    string[] attrList = new string[]{"*", "memberof"};
 
-                    // Search for users in ldap with same name as user to validate
-                    LdapSearchResults possibleUsers = (LdapSearchResults)connection.Search(
-                        UserSearchPath,             // top-level path under which to search for user
-                        LdapConnection.ScopeSub,    // search all levels beneath
-                        getUserSearchFilter(user.Name),
-     //                   $"(|(&(sAMAccountName={user.Name})(objectClass=person))(&(objectClass=inetOrgPerson)(uid:dn:={user.Name})))", // matching both AD and openldap filter
-                        attrList,
-                        typesOnly: false
-                    );
+                    List<LdapEntry> possibleUserEntries = new List<LdapEntry>();
 
-                    while (possibleUsers.HasMore())
+                    // If dn was already provided
+                    if (!user.Dn.IsNullOrEmpty())
                     {
-                        LdapEntry currentUser = possibleUsers.Next();
-                      
-                        try
+                        // Try to read user entry directly
+                        LdapEntry? userEntry = connection.Read(user.Dn);
+                        if (userEntry != null)
                         {
-                            Log.WriteDebug("User Validation", $"Trying to validate user with distinguished name: \"{ currentUser.Dn}\" ...");
+                            possibleUserEntries.Add(userEntry);
+                        }
+                    }
+                    // Dn was not provided, search for user name
+                    else
+                    {
+                        string[] attrList = new string[] { "*", "memberof" };
 
-                            // Try to authenticate as user with given password
-                            connection.Bind(currentUser.Dn, user.Password);
+                        // Search for users in ldap with same name as user to validate
+                        possibleUserEntries = ((LdapSearchResults)connection.Search(
+                            UserSearchPath,             // top-level path under which to search for user
+                            LdapConnection.ScopeSub,    // search all levels beneath
+                            getUserSearchFilter(user.Name),
+                            // $"(|(&(sAMAccountName={user.Name})(objectClass=person))(&(objectClass=inetOrgPerson)(uid:dn:={user.Name})))", // matching both AD and openldap filter
+                            attrList,
+                            typesOnly: false
+                        )).ToList();
+                    }
 
-                            // If authentication was successful (user is bound)
-                            if (connection.Bound)
+                    // If credentials are not checked return user that was found first
+                    // It could happen that multiple users with the same name were found (impossible if dn was provided)
+                    if (!validateCredentials && possibleUserEntries.Count > 0)
+                    {
+                        return possibleUserEntries.First();
+                    }
+                    // If credentials should be checked
+                    else if (validateCredentials)
+                    {
+                        // Multiple users with the same name could have been found (impossible if dn was provided)
+                        foreach (LdapEntry possibleUserEntry in possibleUserEntries)
+                        {
+                            // Check credentials - if multiple users were found and the credentials are valid this is most definitely the correct user
+                            if (CredentialsValid(connection, possibleUserEntry.Dn, user.Password))
                             {
-                                // Return ldap dn
-                                Log.WriteDebug("User Validation", $"\"{ currentUser.Dn}\" successfully authenticated in {Address}:{Port}.");
-                                if (currentUser.GetAttributeSet().ContainsKey("mail"))
-                                {
-                                    user.Email = currentUser.GetAttribute("mail").StringValue;
-                                }
-
-                                // Simplest way as most ldap types should provide the memberof attribute.
-                                // - Probably this doesn't work for nested groups.
-                                // - Some systtems may only save the "primaryGroupID", then we would have to resolve the name.
-                                // - Some others may force us to look into all groups to find the membership.
-                                user.Groups = new List<string>();
-                                foreach(var attribute in currentUser.GetAttributeSet())
-                                {
-                                    if (attribute.Name.ToLower() == "memberof")
-                                    {
-                                        foreach(string membership in attribute.StringValueArray)
-                                        {
-                                            if(GroupSearchPath != null && membership.EndsWith(GroupSearchPath))
-                                            {
-                                                user.Groups.Add(membership);
-                                            }
-                                        }
-                                    }
-                                }
-                                return currentUser.Dn;
-                            }
-
-                            else
-                            {
-                                // this will probably never be reached as an error is thrown before
-                                // Incorrect password - do nothing, assume its another user with the same username
-                                Log.WriteDebug($"User Validation {Address}:{Port}", $"Found user with matching uid but different pwd: \"{ currentUser.Dn}\".");
+                                return possibleUserEntry;
                             }
                         }
-                        catch (LdapException exc)
-                        {
-                            if (exc.ResultCode == 49)  // 49 = InvalidCredentials
-                                Log.WriteDebug($"Duplicate user {Address}:{Port}", $"Found user with matching uid but different pwd: \"{ currentUser.Dn}\".");
-                            else
-                                Log.WriteError($"Ldap exception {Address}:{Port}", "Unexpected error while trying to validate user \"{ currentUser.Dn}\".");
-                        } 
                     }
                 }
             }
@@ -203,7 +170,68 @@ namespace FWO.Middleware.Server
             }
 
             Log.WriteInfo("Invalid Credentials", $"Invalid login credentials - could not authenticate user \"{ user.Name}\" on {Address}:{Port}.");
-            return "";
+            return null;
+        }
+
+        private bool CredentialsValid(LdapConnection connection, string dn, string password)
+        {
+            try
+            {
+                Log.WriteDebug("User Validation", $"Trying to validate user with distinguished name: \"{dn}\" ...");
+
+                // Try to authenticate as user with given password
+                connection.Bind(dn, password);
+
+                // If authentication was successful (user is bound)
+                if (connection.Bound)
+                {
+                    // Return ldap dn
+                    Log.WriteDebug("User Validation", $"\"{dn}\" successfully authenticated in {Address}:{Port}.");
+                    return true;
+                }
+                else
+                {
+                    // this will probably never be reached as an error is thrown before
+                    // Incorrect password - do nothing, assume its another user with the same username
+                    Log.WriteDebug($"User Validation {Address}:{Port}", $"Found user with matching uid but different pwd: \"{dn}\".");
+                }
+            }
+            catch (LdapException exc)
+            {
+                if (exc.ResultCode == 49)  // 49 = InvalidCredentials
+                    Log.WriteDebug($"Duplicate user {Address}:{Port}", $"Found user with matching uid but different pwd: \"{dn}\".");
+                else
+                    Log.WriteError($"Ldap exception {Address}:{Port}", $"Unexpected error while trying to validate user \"{dn}\".");
+            }
+            return false;
+        }
+
+        public string GetEmail(LdapEntry user)
+        {
+            return user.GetAttributeSet().ContainsKey("mail") ? user.GetAttribute("mail").StringValue : "";
+        }
+
+        public List<string> GetGroups(LdapEntry user)
+        {
+            // Simplest way as most ldap types should provide the memberof attribute.
+            // - Probably this doesn't work for nested groups.
+            // - Some systtems may only save the "primaryGroupID", then we would have to resolve the name.
+            // - Some others may force us to look into all groups to find the membership.
+            List<string> groups = new List<string>();
+            foreach (var attribute in user.GetAttributeSet())
+            {
+                if (attribute.Name.ToLower() == "memberof")
+                {
+                    foreach (string membership in attribute.StringValueArray)
+                    {
+                        if (GroupSearchPath != null && membership.EndsWith(GroupSearchPath))
+                        {
+                            groups.Add(membership);
+                        }
+                    }
+                }
+            }
+            return groups;
         }
 
         public string ChangePassword(string userDn, string oldPassword, string newPassword)

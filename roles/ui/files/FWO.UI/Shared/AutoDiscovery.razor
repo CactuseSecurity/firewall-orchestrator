@@ -1,11 +1,11 @@
 ﻿@using BlazorTable
 @using FWO.Config.Api
 @using FWO.Api.Data
-@using FWO.ApiClient
+@using FWO.Api.Client
 @using System.Text.Json;
-@using FWO.ApiClient.Queries
+@using FWO.Api.Client.Queries
 
-@inject APIConnection apiConnection
+@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 <PopUp Title="@(userConfig.GetText("autodiscovery") + headerText)" Show="@Display" XLarge="true"  OnClose="async () => await Close()">
@@ -16,7 +16,7 @@
             {
                 <h6>@(userConfig.GetText("managements"))</h6>
                 <Table class="table table-bordered table-responsive" TableItem="Management" Items="managementsToDisplay" PageSize="0" ColumnReorder="true">
-                    <Column TableItem="Management" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)">
+                    <Column TableItem="Management" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)">
                         <Template>
                             @if(!context.Ignore)
                             {
@@ -67,7 +67,7 @@
                             @if(context.Devices.Count() > 0)
                             {
                                 <Table class="table table-bordered table-responsive" TableItem="Device" Items="context.Devices" PageSize="0" ColumnReorder="true">
-                                    <Column TableItem="Device" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)">
+                                    <Column TableItem="Device" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)">
                                         <Template Context="Dev">
                                             @if(Dev.Relevant)
                                             {
@@ -231,7 +231,7 @@
     {
         try
         {
-            existingDevices = await apiConnection.SendQueryAsync<List<Device>>(FWO.ApiClient.Queries.DeviceQueries.getDeviceDetails);
+            existingDevices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
         }
         catch (Exception exception)
         {
@@ -267,7 +267,7 @@
     {
         try
         {
-            existingManagements = await apiConnection.SendQueryAsync<List<Management>>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails);
+            existingManagements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
             managementsToDisplay = new List<Management>();
             headerText = "";
             actAlertId = null;
@@ -536,20 +536,19 @@
                     name = discMgmt.Name,
                     devTypeId = discMgmt.DeviceType.Id,
                     hostname = discMgmt.Hostname,
-                    importUser = discMgmt.ImportUser,
-                    importUserSecret = discMgmt.Secret,
+                    importCredentialId = discMgmt.ImportCredential.Id,
                     port = discMgmt.Port,
-                    sshPublicKey = discMgmt.PublicKey,
                     importDisabled = discMgmt.ImportDisabled,
                     forceInitialImport = discMgmt.ForceInitialImport,
                     hideInUi = discMgmt.HideInUi,
                     configPath = discMgmt.ConfigPath,
+                    domainUid = discMgmt.DomainUid,
                     superManager = discMgmt.SuperManagerId,
                     importerHostname = discMgmt.ImporterHostname,
                     debugLevel = discMgmt.DebugLevel,
                     comment = discMgmt.Comment
                 };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newManagement, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.DeviceQueries.newManagement, Variables)).ReturnIds;
                 if (returnIds != null)
                 {
                     discMgmt.Id = returnIds[0].NewId;
@@ -635,7 +634,7 @@
                     hideInUi = discoveredDevice.HideInUi,
                     comment = discoveredDevice.Comment
                 };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newDevice, Variables)).ReturnIds;
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.DeviceQueries.newDevice, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
                     DisplayMessageInUi!(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5112"), true);
@@ -690,7 +689,7 @@
             else
             {
                 var Variables = new { id = disappearedManagement.Id };
-                int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.deleteManagement, Variables)).DeletedId;
+                int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.deleteManagement, Variables)).DeletedId;
                 if (delId == disappearedManagement.Id)
                 {
                     existingManagements.Remove(disappearedManagement);
@@ -715,7 +714,7 @@
         try
         {
             var Variables = new { id = management.Id, importDisabled = disable };
-            int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.changeManagementState, Variables)).UpdatedId;
+            int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.changeManagementState, Variables)).UpdatedId;
             if (udId == management.Id)
             {
                 if(disable)
@@ -740,7 +739,7 @@
         try
         {
             var Variables = new { id = disappearedDevice.Id };
-            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.deleteDevice, Variables)).DeletedId;
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.deleteDevice, Variables)).DeletedId;
             if (delId == disappearedDevice.Id)
             {
                 // remove device from existing management
@@ -761,7 +760,7 @@
         try
         {
             var Variables = new { id = device.Id, importDisabled = disable };
-            int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.changeDeviceState, Variables)).UpdatedId;
+            int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.changeDeviceState, Variables)).UpdatedId;
             if (udId == device.Id)
             {
                 if(disable)
@@ -874,7 +873,7 @@
         try
         {
             var Variables = new { tenantId = 1, deviceId = deviceId };
-            await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addDeviceToTenant, Variables);
+            await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.AuthQueries.addDeviceToTenant, Variables);
         }
         catch (System.Exception exception)
         {

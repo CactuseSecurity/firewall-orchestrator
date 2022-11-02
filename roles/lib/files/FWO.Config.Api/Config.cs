@@ -1,5 +1,5 @@
-﻿using FWO.ApiClient;
-using FWO.ApiClient.Queries;
+﻿using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Config.Api.Data;
 using FWO.Logging;
 using System;
@@ -18,7 +18,7 @@ namespace FWO.Config.Api
         /// <summary>
         /// Internal connection to api server. Used to get/edit config data.
         /// </summary>
-        protected APIConnection apiConnection;
+        protected ApiConnection apiConnection;
 
         public int UserId { get; private set; }
         public bool Initialized { get; private set; } = false;
@@ -31,12 +31,12 @@ namespace FWO.Config.Api
 
         protected Config() { }
 
-        protected Config(APIConnection apiConnection, int userId)
+        protected Config(ApiConnection apiConnection, int userId)
         {
             SetUserId(apiConnection, userId).Wait();
         }
 
-        public async Task SetUserId(APIConnection apiConnection, int userId, bool waitForFirstUpdate = true)
+        public async Task SetUserId(ApiConnection apiConnection, int userId, bool waitForFirstUpdate = true)
         {
             this.apiConnection = apiConnection;
             UserId = userId;
@@ -52,6 +52,7 @@ namespace FWO.Config.Api
             semaphoreSlim.Wait();
             try
             {
+                Log.WriteDebug("Config subscription update", "New config values received from config subscription");
                 RawConfigItems = configItems;
                 Update(configItems);
                 OnChange?.Invoke(this, configItems);
@@ -64,7 +65,7 @@ namespace FWO.Config.Api
         {
             foreach (PropertyInfo property in GetType().GetProperties())
             {
-                // Is Property storing config value?
+                // Is the property storing a config value (marked by JsonPropertyName Attribute)?
                 if (property.GetCustomAttribute<JsonPropertyNameAttribute>() != null)
                 {
                     string key = property.GetCustomAttribute<JsonPropertyNameAttribute>()!.Name;
@@ -87,17 +88,22 @@ namespace FWO.Config.Api
                     }
                     else
                     {
-                        // If this is a global config or the config item is a user config item
-                        if (UserId == 0 || property.GetCustomAttribute<UserConfigDataAttribute>() != null) 
+                        // If this is a global config 
+                        if (UserId == 0) 
                         {
-                            Log.WriteError("Load Config Items", $"Config item with key \"{key}\" could not be found. Using default value.");
+                            Log.WriteError("Load Global Config Items", $"Config item with key \"{key}\" could not be found. Using default value.");
                         }
+						// If this is a user config item (user might not have changed the default setting)
+						else if (property.GetCustomAttribute<UserConfigDataAttribute>() != null)
+                        {
+							Log.WriteDebug("Load Config Items", $"Config item with key \"{key}\" could not be found. User might not have customized the setting. Using default value.");
+						}
                     }
                 }
             }
         }
 
-        public async Task WriteToDatabase(ConfigData editedData, APIConnection apiConnection)
+        public async Task WriteToDatabase(ConfigData editedData, ApiConnection apiConnection)
         {
             await semaphoreSlim.WaitAsync();
             try
@@ -139,7 +145,7 @@ namespace FWO.Config.Api
             finally { semaphoreSlim.Release(); }
         }
 
-        protected void SubscriptionExceptionHandler(Exception exception)
+        protected static void SubscriptionExceptionHandler(Exception exception)
         {
             Log.WriteError("Config Subscription", "Config subscription lead to error.", exception);
         }

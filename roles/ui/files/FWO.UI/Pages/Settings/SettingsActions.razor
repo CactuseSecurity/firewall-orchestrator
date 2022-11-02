@@ -1,0 +1,446 @@
+﻿@using FWO.Api.Client
+@using FWO.Api.Data
+@using FWO.Config.Api
+@using System.Text.Json
+@using FWO.Ui.Services
+@using FWO.Middleware.Client
+
+@page "/settings/stateactions"
+@attribute [Authorize(Roles = "admin, auditor")]
+
+@inject ApiConnection apiConnection
+@inject MiddlewareClient middlewareClient
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+
+@if(InitComplete)
+{
+    <h3>@(userConfig.GetText("state_actions"))</h3>
+    @(userConfig.GetText("U5317"))
+    <hr />
+    <button class="btn btn-sm btn-success" @onclick="AddAction">@(userConfig.GetText("add_action"))</button>
+    <br><br>
+    <div class="m-2">
+        <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="RequestStateAction" Items="actions" PageSize="0" ColumnReorder="true">
+            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                <Template>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-warning" @onclick="() => EditAction(context)">@(userConfig.GetText("edit"))</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => RequestDeleteAction(context)">@(userConfig.GetText("delete"))</button>
+                    </div>
+                </Template>
+            </Column>
+            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("action_type"))" Field="@(x => x.ActionType)" Sortable="true" Filterable="true" >
+                <Template>
+                    @(context.ActionType != "" ? userConfig.GetText(context.ActionType) : "")
+                </Template>
+            </Column>
+            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("scope"))" Field="@(x => x.Scope)" Sortable="true" Filterable="true" >
+                <Template>
+                    @(context.TaskType != "" ? userConfig.GetText(context.Scope) : "")
+                </Template>
+            </Column>
+            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("task_type"))" Field="@(x => x.TaskType)" Sortable="true" Filterable="true" >
+                <Template>
+                    @(context.TaskType != "" ? userConfig.GetText(context.TaskType) : "")
+                </Template>
+            </Column>
+            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("phase"))" Field="@(x => x.Phase)" Sortable="true" Filterable="true" >
+                <Template>
+                    @(context.Phase != "" ? userConfig.GetText(context.Phase) : "")
+                </Template>
+            </Column>
+            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("event"))" Field="@(x => x.Event)" Sortable="true" Filterable="true" >
+                <Template>
+                    @(context.Event != null && context.Event != "" ? userConfig.GetText(context.Event) : "")
+                </Template>
+            </Column>
+            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("button_text"))" Field="@(x => x.ButtonText)" Sortable="true" Filterable="true" />
+            <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("external_params"))" Field="@(x => x.ExternalParams)" Sortable="true" Filterable="true" />
+        </Table>
+    </div>
+
+    <PopUp Title="@(userConfig.GetText("edit_action"))" Show="@EditActionMode" Large="true" OnClose="() => EditActionMode = false">
+        <Body>
+            @if (EditActionMode)
+            {
+                <div class="form-group row col-sm-12">
+                    <div class="col-sm-2">
+                        <div class="form-group row">
+                            <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                            <label class="col-sm-6 col-form-label col-form-label-sm">@(actAction.Id)</label>
+                        </div>
+                    </div>
+                    <div class="col-sm-10">
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                            <input type="text" class="col-sm-9 form-control form-control-sm" @bind="actAction.Name" />
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group row col-sm-12">
+                    <div class="col-sm-4">
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("action_type"))*:</label>
+                            <select class="col-sm-8 form-control form-control-sm" @bind="actAction.ActionType">
+                                @foreach (string action in Enum.GetNames(typeof(StateActionTypes)))
+                                {
+                                    <option value="@action">@(userConfig.GetText(action))</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("event")):</label>
+                            <select class="col-sm-8 form-control form-control-sm" @bind="actAction.Event">
+                                @foreach (string eventt in Enum.GetNames(typeof(StateActionEvents)))
+                                {
+                                    <option value="@eventt">@(userConfig.GetText(eventt))</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    @if(actAction.Event == StateActionEvents.OfferButton.ToString())
+                    {
+                        <div class="col-sm-4">
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("button_text")):</label>
+                                <input type="text" class="col-sm-8 form-control form-control-sm" @bind="actAction.ButtonText" />
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="form-group row col-sm-12">
+                    <div class="col-sm-4">
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("phase")):</label>
+                            <select class="col-sm-8 form-control form-control-sm" @bind="actAction.Phase">
+                                <option value="">@(userConfig.GetText("all"))</option>
+                                @foreach (string phase in Enum.GetNames(typeof(WorkflowPhases)))
+                                {
+                                    <option value="@phase">@(userConfig.GetText(phase))</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("scope")):</label>
+                            <select class="col-sm-8 form-control form-control-sm" @bind="actAction.Scope">
+                                @foreach (string scope in Enum.GetNames(typeof(RequestObjectScopes)))
+                                {
+                                    <option value="@scope">@(userConfig.GetText(scope))</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    @if(actAction.Scope == RequestObjectScopes.RequestTask.ToString() || actAction.Scope == RequestObjectScopes.ImplementationTask.ToString())
+                    {
+                        <div class="col-sm-4">
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("task_type")):</label>
+                                <select class="col-sm-8 form-control form-control-sm" @bind="actAction.TaskType">
+                                    <option value="">@(userConfig.GetText("all"))</option>
+                                        @foreach (TaskType taskType in availableTaskTypes.Where(x => x != TaskType.master))
+                                        {
+                                            <option value="@taskType">@(userConfig.GetText(taskType.ToString()))</option>
+                                        }
+                                     }
+                                </select>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="form-group row col-sm-12">
+                    @switch (actAction.ActionType)
+                    {
+                        case nameof(StateActionTypes.AutoPromote):
+                            <div class="col-sm-4">
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("to_state")):</label>
+                                    <select class="col-sm-8 form-control form-control-sm" @bind="toState">
+                                        <option value="-1">@(userConfig.GetText("automatic"))</option>
+                                        @foreach (var state in states)
+                                        {
+                                            <option value="@state.Id">@(state.Name)</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                            break;
+                        case nameof(StateActionTypes.AddApproval):
+                            <div class="col-sm-4">
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("state"))*:</label>
+                                    <div class="col-sm-8">
+                                        <select id="selectState" class="form-control form-control-sm" @bind="actApprovalParams.StateId">
+                                            @foreach (var state in states)
+                                            {
+                                                <option value="@state.Id">@(state.Name)</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-4">
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("group")):</label>
+                                    <div class="col-sm-8">
+                                        <select id="selectGroup" class="form-control form-control-sm" @bind="actApprovalParams.ApproverGroup">
+                                            <option value="">-</option>
+                                            @foreach (var group in userAndGroupList)
+                                            {
+                                                <option value="@group.Dn">@(group.Name)</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-4">
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("deadline")):</label>
+                                    <input type="number" class="col-sm-8 form-control form-control-sm" @bind="actApprovalParams.Deadline" />
+                                </div>
+                            </div>
+                            break;
+                        case nameof(StateActionTypes.SetAlert):
+                            <div class="col-sm-12">
+                                <div class="form-group row">
+                                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("message_text")):</label>
+                                    <input type="text" class="col-sm-10 form-control form-control-sm" @bind="message" />
+                                </div>
+                            </div>
+                            break;
+                        case nameof(StateActionTypes.ExternalCall):
+                            break;
+                        default:
+                            break;
+                    }
+                </div>
+            }
+        </Body>
+        <Footer>
+            <div class="btn-group">
+                <AuthorizeView Roles="admin, fw-admin">
+                    <Authorized>
+                        <button class="btn btn-sm btn-primary" @onclick="SaveAction">@(userConfig.GetText("save"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+                <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            </div>
+        </Footer>
+    </PopUp>
+
+    <PopUp Title="@(userConfig.GetText("delete_action"))" Show="@DeleteActionMode" OnClose="() => DeleteActionMode = false">
+        <Body>
+            @if (DeleteActionMode)
+            {
+                <p>@(userConfig.GetText("U5502") + actAction.Name + "?")</p>
+            }
+        </Body>
+        <Footer>
+            <div class="btn-group">
+                <AuthorizeView Roles="admin, fw-admin">
+                    <Authorized>
+                        <button class="btn btn-sm btn-danger" @onclick="DeleteAction">@(userConfig.GetText("delete"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+                <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            </div>
+        </Footer>
+    </PopUp>
+}
+else
+{
+    <div class="spinner-border" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+}
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+
+    private List<RequestStateAction> actions = new List<RequestStateAction>();
+    private List<RequestState> states = new List<RequestState>();
+    private List<UiUser> userAndGroupList = new List<UiUser>();
+    private List<TaskType> availableTaskTypes { get; set; } = new List<TaskType>();
+
+    private RequestStateAction actAction = new RequestStateAction();
+    private ApprovalParams actApprovalParams = new ApprovalParams();
+    private int toState = -1;
+    private string message = "";
+
+    private bool EditActionMode = false;
+    private bool AddActionMode = false;
+    private bool DeleteActionMode = false;
+    private bool InitComplete = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshActions();
+        InitComplete = true;
+    }
+
+    private async Task RefreshActions()
+    {
+        try
+        {
+            actions = await apiConnection.SendQueryAsync<List<RequestStateAction>>(FWO.Api.Client.Queries.RequestQueries.getActions);
+            states = await apiConnection.SendQueryAsync<List<RequestState>>(FWO.Api.Client.Queries.RequestQueries.getStates);
+            availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<TaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
+            userAndGroupList = await RoleAccess.GetRoleMembers(middlewareClient, "approver");
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private void AddAction()
+    {
+        AddActionMode = true;
+        EditAction(new RequestStateAction());
+    }
+
+    private void EditAction(RequestStateAction action)
+    {
+        actAction = action;
+        if(action.ExternalParams != "" && action.ExternalParams != "{}")
+        {
+            switch(action.ActionType)
+            {
+                case nameof(StateActionTypes.AutoPromote):
+                    toState = Convert.ToInt32(action.ExternalParams);
+                    break;
+                case nameof(StateActionTypes.AddApproval):
+                    actApprovalParams = System.Text.Json.JsonSerializer.Deserialize<ApprovalParams>(action.ExternalParams) ?? throw new Exception("Extparams could not be parsed.");
+                    break;
+                case nameof(StateActionTypes.SetAlert):
+                    message = actAction.ExternalParams;
+                    break;
+                case nameof(StateActionTypes.ExternalCall):
+                    break;
+                default:
+                    break;
+            }
+        }
+        EditActionMode = true;
+    }
+
+    private async Task SaveAction()
+    {
+        try
+        {
+            switch(actAction.ActionType)
+            {
+                case nameof(StateActionTypes.AutoPromote):
+                    actAction.ExternalParams = toState.ToString();
+                    break;
+                case nameof(StateActionTypes.AddApproval):
+                    actAction.ExternalParams = JsonSerializer.Serialize(actApprovalParams);
+                    break;
+                case nameof(StateActionTypes.SetAlert):
+                    actAction.ExternalParams = message;
+                    break;
+                case nameof(StateActionTypes.ExternalCall):
+                    break;
+                default:
+                    break;
+            }
+
+            if(AddActionMode)
+            {
+                var Variables = new
+                {
+                    name = actAction.Name,
+                    actionType = actAction.ActionType,
+                    scope = actAction.Scope,
+                    taskType = actAction.TaskType,
+                    phase = actAction.Phase,
+                    eventt = actAction.Event,
+                    buttonText = actAction.ButtonText,
+                    externalParameters = actAction.ExternalParams
+                };
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newAction, Variables)).ReturnIds;
+                if (returnIds == null)
+                {
+                    DisplayMessageInUi!(null, userConfig.GetText("save_action"), userConfig.GetText("E8011"), true);
+                }
+                else
+                {
+                    actAction.Id = returnIds[0].NewId;
+                    actions.Add(actAction);
+                    EditActionMode = false;
+                    AddActionMode = false;
+                }
+            }
+            else
+            {
+                var Variables = new
+                {
+                    id = actAction.Id,
+                    name = actAction.Name,
+                    actionType = actAction.ActionType,
+                    scope = actAction.Scope,
+                    taskType = actAction.TaskType,
+                    phase = actAction.Phase,
+                    eventt = actAction.Event,
+                    buttonText = actAction.ButtonText,
+                    externalParameters = actAction.ExternalParams
+                };
+                int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateAction, Variables)).UpdatedId;
+                if(udId != actAction.Id)
+                {
+                    DisplayMessageInUi!(null, userConfig.GetText("save_action"), userConfig.GetText("E8011"), true);
+                }
+                else
+                {
+                    actions[actions.FindIndex(x => x.Id == actAction.Id)] = actAction;
+                    EditActionMode = false;
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("save_action"), "", true);
+        }
+    }
+
+    private void Cancel()
+    {
+        EditActionMode = false;
+        AddActionMode = false;
+        DeleteActionMode = false;
+    }
+
+    private void RequestDeleteAction(RequestStateAction action)
+    {
+        actAction = action;
+        DeleteActionMode = true;
+    }
+
+    private async Task DeleteAction()
+    {
+        try
+        {
+            await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.deleteAction, new { id = actAction.Id });
+            actions.Remove(actAction);
+            DeleteActionMode = false;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_action"), "", true);
+        }
+    }
+}

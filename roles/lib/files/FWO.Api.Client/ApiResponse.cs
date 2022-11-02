@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace FWO.ApiClient
+namespace FWO.Api.Client
 {
     //public class ApiResponse<ResponseType>
     //{

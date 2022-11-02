@@ -1,5 +1,5 @@
-﻿using FWO.ApiClient;
-using FWO.ApiClient.Queries;
+﻿using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Api.Data;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
@@ -11,7 +11,7 @@ namespace FWO.Middleware.Server
 {
     public class AutoDiscoverScheduler
     {
-        private readonly APIConnection apiConnection;
+        private readonly ApiConnection apiConnection;
         private GlobalConfig globalConfig;
         private long? lastMgmtAlertId;
         private List<Alert> openAlerts = new List<Alert>();
@@ -19,18 +19,17 @@ namespace FWO.Middleware.Server
         private System.Timers.Timer ScheduleTimer = new();
         private System.Timers.Timer AutoDiscoverTimer = new();
 
-        public static async Task<AutoDiscoverScheduler> CreateAsync(APIConnection apiConnection)
+        public static async Task<AutoDiscoverScheduler> CreateAsync(ApiConnection apiConnection)
         {
             GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
             return new AutoDiscoverScheduler(apiConnection, globalConfig);
         }
     
-        private AutoDiscoverScheduler(APIConnection apiConnection, GlobalConfig globalConfig)
+        private AutoDiscoverScheduler(ApiConnection apiConnection, GlobalConfig globalConfig)
         {
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
             globalConfig.OnChange += GlobalConfig_OnChange;
-
             startScheduleTimer();
         }
 

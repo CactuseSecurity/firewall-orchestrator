@@ -31,10 +31,6 @@ Please follow our [Code of conduct](code-of-conduct.md) in the context of any co
 
 ## 2. Repo overview
 
-[Firewall Orchestrator](https://github.com/CactuseSecurity/firewall-orchestrator) has the following contributing guides:
-
-For all contributions, a CLA (Contributor License Agreement) needs to be signed [here](https://cla-assistant.io/CactuseSecurity/firewall-orchestrator) before (or after) the pull request has been submitted. A bot will prompt contributors to sign the CLA via a pull request comment, if necessary.
-
 <a name="first-timers"></a>
 
 ## 3. First time contributors welcome!
@@ -88,7 +84,7 @@ Our goal is to keep our Firewall Orchestrator stable and secure. If you would li
 
 - If you're working on an issue, please comment that you are doing so to prevent duplicate work by others also.
 
-- Squash your commits and refer to the issue using `fix #<issue-no>` or `close #<issue-no>` in the commit message, at the end.
+- Refer to an issue using `fix #<issue-no>` or `close #<issue-no>` in the commit message, at the end.
   For example: `resolve answers to everything (fix #42)` or `resolve answers to everything, fix #42`
 
 - Rebase master with your branch before submitting a pull request.

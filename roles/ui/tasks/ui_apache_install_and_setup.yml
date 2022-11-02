@@ -2,9 +2,33 @@
 - block:
     - name: Install webserver packages
       package: name={{ item }} state=present
-      with_items:
+      loop:
         - "{{ webserver_package_name }}"
+        - "{{ wsgi_package_name }}"
       environment: "{{ proxy_env }}"
+
+    - name: create apache certificates
+      include_role:
+        name: openssl-cert
+      vars:
+        openssl_cert_path: /etc/apache2/ssl
+        openssl_user: root
+        openssl_private_key: "{{ openssl_cert_path }}/server.key"
+        openssl_csr: "{{ openssl_cert_path }}/server.csr"
+        openssl_country: DE
+        openssl_state: Hessen
+        openssl_location: Frankfurt
+        openssl_organization: Cactus eSecurity
+        openssl_email_address: "fworch@cactus.de"
+        openssl_cert: "{{ openssl_cert_path }}/server.crt"
+      when: installation_mode == "new"
+
+    - name: copy cert to /etc/ssl/certs/ to make it acceptable
+      copy:
+        src: "/etc/apache2/ssl/server.crt"
+        dest: "/etc/ssl/certs/"
+        remote_src: yes
+      when: installation_mode == "new"
 
     - name: enable apache modules proxy proxy_http ssl
       apache2_module: state=present name={{ item }}
@@ -21,22 +45,10 @@
         dest: "{{ http_conf_dir }}/{{ product_name }}-ui.conf"
         owner: root
         group: root
-        
-    - name: create apache certificates
-      include_role:
-        name: openssl-cert
-      vars:
-        openssl_cert_path: /etc/apache2/ssl
-        openssl_user: root
-        openssl_private_key: "{{ openssl_cert_path }}/server.key"
-        openssl_csr: "{{ openssl_cert_path }}/server.csr"
-        openssl_country: DE
-        openssl_state: Hessen
-        openssl_location: Frankfurt
-        openssl_organization: Cactus eSecurity
-        openssl_email_address: "fworch@cactus.de"
-        openssl_cert: "{{ openssl_cert_path }}/server.crt"
-      when: installation_mode == "new"
+
+    - name: disable apache2 default web site
+      command: "a2dissite 000-default"
+      ignore_errors: yes
 
     - name: enable {{ product_name }} web site
       command: "a2ensite {{ product_name }}-ui"

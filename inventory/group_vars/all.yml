@@ -1,5 +1,6 @@
 ### general settings
-product_version: "5.6.9"
+product_version: "6.0"
+
 ansible_python_interpreter: /usr/bin/python3
 ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 product_name: fworch
@@ -13,8 +14,7 @@ install_syslog: true
 run_on_github: false
 add_demo_data: true
 api_docu: false
-# initialize upgrade files list to empty, needed when running in test only mode (-t test):
-upgrade_files: []
+force_install: false
 
 ### operating system settings
 user_id: 60320
@@ -22,35 +22,33 @@ fworch_user: "{{ product_name }}"
 fworch_group: "{{ fworch_user }}"
 fworch_parent_dir: "/usr/local"
 fworch_home: "{{ fworch_parent_dir }}/{{ product_name }}"
-fworchtest_user: "{{ product_name }}test"
-fworchtest_home: "/home/{{ fworchtest_user }}"
 fworch_conf_dir: "{{ fworch_home }}/etc"
 fworch_conf_file: "{{ fworch_conf_dir }}/fworch.json"
 fworch_secrets_dir: "{{ fworch_conf_dir }}/secrets"
 
-# set your proxy here:
-http_proxy: ""
-# use the following syntax for authenticated proxy access:
-# http_proxy=http://USERNAME:PASSWORD@1.2.3.4:8080/
-https_proxy: "{{ http_proxy }}"
-proxy_exceptions: "127.0.0.1, localhost"
+# setting default proxy (may be overwritten via --extra-vars)
+http_proxy: "{{ lookup('env','http_proxy') }}"
+https_proxy: "{{ lookup('env','https_proxy') }}"
+proxy_exceptions: "{{ lookup('env','no_proxy') }}"
 proxy_env:
         http_proxy: "{{ http_proxy }}"
         https_proxy: "{{ https_proxy }}"
         HTTP_PROXY: "{{ http_proxy }}"
         HTTPS_PROXY: "{{ https_proxy }}"
         no_proxy: "{{ proxy_exceptions }}"
-#        validate_certs: false
+
+http_proxy_import_parameter: ""
 # proxy in capitals needed for debian and ubuntu <20
-test_packages:
-  - postgresql-client
-  - curl
+# use the following syntax for authenticated proxy access:
+# http_proxy=http://USERNAME:PASSWORD@1.2.3.4:8080/
+
 server_admin: "root@{{ api_ip_address }}"
 arch: x86_64
 redhat_major_version: "8"
 redhat_arch: "{{ redhat_major_version }}-{{ arch }}"
 
-### database stuff
+###############################################################
+### database
 fworch_db_port: 5432
 # fworch_db_host: 10.1.1.83
 fworch_db_host: localhost
@@ -59,27 +57,8 @@ fworch_dbadmin_name: dbadmin
 dbadmin_password_file: "{{ fworch_secrets_dir }}/dbadmin_pwd"
 fworch_db_password_file: "{{ fworch_secrets_dir }}/fworch_db_pwd"
 
-### middleware server 
-jwt_private_key_file: "{{ fworch_secrets_dir }}/jwt_private_key.pem"
-jwt_public_key_file: "{{ fworch_secrets_dir }}/jwt_public_key.pem"
-
-middleware_hostname: "127.0.0.1"
-ldif_changetype: add
-middleware_service_name: "{{ product_name }}-middleware"
-
-
-# middleware web server
-middleware_server_name: 127.0.0.1
-middleware_web_listener_port: 8888
-middleware_uri: "https://{{ middleware_server_name }}:{{ middleware_web_listener_port }}/"
-##### application server data
-middleware_internal_port: 8880
-# currently not used: web_server_name: "{{ middleware_server_name }}"
-
-ui_admin_password_file: "{{ fworch_secrets_dir }}/ui_admin_pwd"
-ui_admin_testonly_password: "fworch.1"
-
-### database & api
+###############################################################
+### api
 api_service_name: fworch-hasura-docker-api
 api_container_name: "{{ product_name }}-api"
 api_ip_address: "127.0.0.1"
@@ -88,6 +67,29 @@ api_hasura_jwt_alg: "RS256"
 api_hasura_jwt_secret: "fake-jwt-secret-for-github-install"
 api_uri: "https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql"
 
+############################################################
+### middleware server 
+jwt_private_key_file: "{{ fworch_secrets_dir }}/jwt_private_key.pem"
+jwt_public_key_file: "{{ fworch_secrets_dir }}/jwt_public_key.pem"
+ldap_manager_pwd_file: "{{ fworch_secrets_dir }}/ldap_manager_pwd"
+
+middleware_hostname: "127.0.0.1"
+ldif_changetype: add
+middleware_service_name: "{{ product_name }}-middleware"
+
+# middleware web server
+middleware_server_name: 127.0.0.1
+middleware_web_listener_port: 8888
+middleware_uri: "https://{{ middleware_server_name }}:{{ middleware_web_listener_port }}/"
+
+##### application server data
+middleware_internal_port: 8880
+
+###############################################################
+ui_admin_password_file: "{{ fworch_secrets_dir }}/ui_admin_pwd"
+ui_admin_testonly_password: "fworch.1"
+
+
 ### dotnet
 dotnet_deb_name: "packages-microsoft-prod.deb"
 dotnet_version: "6.0"
@@ -95,9 +97,10 @@ dotnet_mode: "Release"
 # dotnet_mode: "Debug"
 debug_level: "1"
 lib_dir: "{{ fworch_home }}/lib/files"
+lib_tmp_dir: "{{ fworch_home }}/lib/tmp"
 
 ### password generation
-random_generated_pw: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters') }}"
+randomly_generated_pwd: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters') }}"
 
 ### logging
 syslog_proto: tcp
@@ -107,13 +110,33 @@ middleware_server_syslog_id: "{{ product_name }}.middleware-server"
 ui_syslog_id: "{{ product_name }}-ui"
 ldap_syslog_id: slapd
 api_log_level: info
+fworch_log_dir: "/var/log/{{ product_name }}"
+fworch_log_lock_dir: "/var/{{ product_name }}/lock"
+fworch_mw_lockfile: "{{ fworch_log_lock_dir }}/FWO.Middleware.Server_log.lock"
+fworch_ui_lockfile: "{{ fworch_log_lock_dir }}/FWO.Ui_log.lock"
 
 ### apache: both package and dir name (needed both on ui and api hosts):
 webserver_package_name: apache2
 http_conf_dir: /etc/{{ webserver_package_name }}/sites-available/
+wsgi_package_name: libapache2-mod-wsgi
 
 ################# testing #########################
+fworchtest_user: "{{ product_name }}test"
+fworchtest_home: "/home/{{ fworchtest_user }}"
+
+# initialize upgrade files list to empty, needed when running in test only mode (-t test):
+upgrade_files: []
+
+test_packages:
+  - postgresql-client
+  - curl
+
 test_dir: "{{ fworch_home }}/test"
 test_fortigate_name: "fortigate{{ test_postfix }}"
 test_checkpoint_name: "checkpoint{{ test_postfix }}"
+test_credential_name: "credential02_test"
 csharp_test_start_dir: "{{ fworch_home }}/test/csharp/FWO.Test"
+
+# make sure lib role is only run once per host to save time
+# set initially to false
+lib_role_has_run: false

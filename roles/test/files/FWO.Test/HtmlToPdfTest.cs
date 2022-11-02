@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using WkHtmlToPdfDotNet;
 using FWO.Logging;
 
-namespace FWO.Test.HtmlToPdf
+namespace FWO.Test
 {
     [TestFixture]
     internal class HtmlToPdfTest
@@ -15,11 +15,6 @@ namespace FWO.Test.HtmlToPdf
         // Pdf converter
         protected readonly SynchronizedConverter converter;
 
-        // [SetUp]
-        // public void Setup()
-        // {
-            
-        // }
         public HtmlToPdfTest()
         {
             converter = new SynchronizedConverter(new PdfTools());
@@ -55,13 +50,19 @@ namespace FWO.Test.HtmlToPdf
             };
 
             byte[] pdf = converter.Convert(doc);
-            string filePath = "/tmp/test.pdf";
+            string filePath = "test.pdf";
             using (var s = File.OpenWrite(filePath)) {
               var bw = new BinaryWriter(s);
               bw.Write(pdf);
             }
             Assert.That(filePath, Does.Exist);
             Assert.Greater(new System.IO.FileInfo(filePath).Length, 5000);
+        }
+
+        [OneTimeTearDown]
+        public void OnFinished()
+        {
+            File.Delete("test.pdf");
         }
     }
 }

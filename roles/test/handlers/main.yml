@@ -33,22 +33,13 @@
         END $do$
     listen: "test importer handler"
 
-  - name: delete test checkpoint gateway
+  - name: delete test checkpoint R8x credentials cascading to deletion of mgmt and gw 
     postgresql_query:
       db: "{{ fworch_db_name }}"
       query: >
         DO $do$ BEGIN 
-        DELETE FROM device WHERE dev_name='{{ test_checkpoint_name }}'; 
+        DELETE FROM import_credential WHERE credential_name='{{ test_credential_name }}'; 
         END $do$ 
-    listen: "test importer handler"
-
-  - name: delete test checkpoint management
-    postgresql_query:
-      db: "{{ fworch_db_name }}"
-      query: >
-        DO $do$ BEGIN 
-        DELETE FROM management WHERE mgm_name='{{ test_checkpoint_name }}'; 
-        END $do$
     listen: "test importer handler"
 
   - name: delete tenant tenant1
@@ -60,14 +51,14 @@
         END $do$
     listen: "test importer handler"
 
-  - name: delete devices for tenant tenant1
-    postgresql_query:
-      db: "{{ fworch_db_name }}"
-      query: >
-        DO $do$ BEGIN 
-        DELETE FROM tenant_to_device WHERE tenant_id=(SELECT tenant_id FROM tenant WHERE tenant_name='tenant1{{ sample_postfix }}'); 
-        END $do$
-    listen: "test importer handler"
+  # - name: delete devices for tenant tenant1
+  #   postgresql_query:
+  #     db: "{{ fworch_db_name }}"
+  #     query: >
+  #       DO $do$ BEGIN 
+  #       DELETE FROM tenant_to_device WHERE tenant_id=(SELECT tenant_id FROM tenant WHERE tenant_name='tenant1{{ sample_postfix }}'); 
+  #       END $do$
+  #   listen: "test importer handler"
 
   - name: delete tenant tenant2
     postgresql_query:
@@ -82,7 +73,7 @@
   become_user: postgres
 
 - name: find ldap entries with test_postfix
-  command: "ldapsearch -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ fworch_secrets_dir }}/ldap_manager_pw.txt -b {{ openldap_path }} -x '(|(cn=*{{ sample_postfix }}*)(ou=*{{ sample_postfix }}*)(uid=*{{ sample_postfix }}*))'"
+  command: "ldapsearch -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -b {{ openldap_path }} -x '(|(cn=*{{ sample_postfix }}*)(ou=*{{ sample_postfix }}*)(uid=*{{ sample_postfix }}*))'"
   register: ldap_entries_to_delete
   listen: "test importer handler"
   become: yes
@@ -96,7 +87,7 @@
   listen: "test importer handler"
 
 - name: delete ldap test data
-  command: "ldapdelete -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ fworch_secrets_dir }}/ldap_manager_pw.txt -x {{ item | regex_replace('\\s', '') | regex_replace('dc=internal.*', 'dc=internal') }}"
+  command: "ldapdelete -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x {{ item | regex_replace('\\s', '') | regex_replace('dc=internal.*', 'dc=internal') }}"
   listen: "test importer handler"
   loop: "{{ delete_list2 }}"
   become: yes

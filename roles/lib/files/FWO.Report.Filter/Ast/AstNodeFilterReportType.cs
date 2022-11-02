@@ -17,6 +17,7 @@ namespace FWO.Report.Filter.Ast
             semanticValue = Value.Text switch
             {
                 "rules" or "rule" => ReportType.Rules,
+                "resolvedrules" or "resolvedrule" => ReportType.ResolvedRules,
                 "statistics" or "statistic" => ReportType.Statistics,
                 "changes" or "change" => ReportType.Changes,
                 "natrules" or "nat_rules" => ReportType.NatRules,

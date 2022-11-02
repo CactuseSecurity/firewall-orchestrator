@@ -1,0 +1,34 @@
+---
+- name: recover backup
+  synchronize:
+    src: "{{ fworch_home }}/backup_api/api"
+    dest: "{{ fworch_home }}"
+  delegate_to: "{{ inventory_hostname }}"
+  listen: "api handler"
+  when: api_handler_guard == "start"
+  become: yes
+
+- name: delete backup
+  file:
+    state: absent
+    path: "{{ fworch_home }}/backup_api"
+  listen: "api handler"
+  become: yes
+
+# set variable to indicate that we are in rollback mode
+- set_fact:
+    api_rollback_is_running: true
+  listen: "api handler"
+
+- name: restore from backup
+  include_tasks: hasura-install.yml
+  listen: "api handler"
+  
+- name: fail message
+  debug:
+    msg:
+    - "An error occured during the upgrade of role {{ role_name }}"
+    - "Please restart the server {{ inventory_hostname }}"
+    - "Try to upgrade {{ product_name }} later or contact support at support@cactus.de"
+  listen: "api handler"
+  when: api_handler_guard == "start"

@@ -6,7 +6,7 @@ using System.Security.Cryptography;
 
 namespace FWO.Config.File
 {
-    class KeyImporter
+    public class KeyImporter
     {
         public static RsaSecurityKey? ExtractKeyFromPem(string rawKey, bool isPrivateKey)
         {
@@ -29,19 +29,30 @@ namespace FWO.Config.File
                         provider.ImportPkcs8PrivateKey(new ReadOnlySpan<byte>(keyBytes), out _);
                     }
                 }
-                else   // public key
-                    provider.ImportSubjectPublicKeyInfo(new ReadOnlySpan<byte>(keyBytes), out _);
+                else // public key
+                {
+                    if (isRsaKey)
+                    {
+                        provider.ImportRSAPublicKey(new ReadOnlySpan<byte>(keyBytes), out _);
+                    }
+                    else
+                    {
+                        provider.ImportSubjectPublicKeyInfo(new ReadOnlySpan<byte>(keyBytes), out _);
+                    }
+                }
+
                 rsaKey = new RsaSecurityKey(provider);
             }
             catch (Exception exception)
             {
                 Log.WriteError("Extract Key", $"unexpected error while trying to extract rsakey from PEM formatted key {rawKey}.", exception);
+                throw;
             }
 
             return rsaKey;
         }
 
-        public static (string key, bool isRsa) ExtractKeyFromPemAsString(string rawKey)
+        private static (string key, bool isRsa) ExtractKeyFromPemAsString(string rawKey)
         {
             bool isRsaKey = true;
             string keyText = "";
@@ -59,6 +70,7 @@ namespace FWO.Config.File
             catch (Exception exception)
             {
                 Log.WriteError("Key extraction", "Error while trying to read key from file.", exception);
+                throw;
             }
           
             Log.WriteDebug("Key extraction", "Key was succesfully extracted.");

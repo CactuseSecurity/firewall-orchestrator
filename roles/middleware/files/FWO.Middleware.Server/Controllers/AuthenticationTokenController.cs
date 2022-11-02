@@ -1,34 +1,46 @@
 ﻿using FWO.Api.Data;
-using FWO.ApiClient;
-using FWO.ApiClient.Queries;
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Logging;
 using FWO.Middleware.Server;
 using Microsoft.AspNetCore.Mvc;
+using FWO.Middleware.RequestParameters;
+using System.Security.Authentication;
+using Microsoft.AspNetCore.Authentication.OAuth;
+using Novell.Directory.Ldap;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authorization;
+using System.Data;
 
 namespace FWO.Middleware.Controllers
 {
+    /// <summary>
+    /// Authentication token generation. Token is of type JSON web token (JWT).
+    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     public class AuthenticationTokenController : ControllerBase
     {
         private readonly JwtWriter jwtWriter;
         private readonly List<Ldap> ldaps;
-        private readonly APIConnection apiConnection;
+        private readonly ApiConnection apiConnection;
 
-        public AuthenticationTokenController(JwtWriter jwtWriter, List<Ldap> ldaps, APIConnection apiConnection)
+        public AuthenticationTokenController(JwtWriter jwtWriter, List<Ldap> ldaps, ApiConnection apiConnection)
         {
             this.jwtWriter = jwtWriter;
             this.ldaps = ldaps;
             this.apiConnection = apiConnection;
         }
 
-        public class AuthenticationTokenGetParameters
-        {
-            public string? Username { get; set; }
-            public string? Password {  get; set; }
-        }
-
-        // GET: api/<JwtController>
+        /// <summary>
+        /// Generates an authentication token (jwt) given valid credentials.  
+        /// </summary>
+        /// <remarks>
+        /// Username (required)&#xA;
+        /// Password (required)
+        /// </remarks>
+        /// <param name="parameters">Credentials</param>
+        /// <returns>Jwt, if credentials are vaild.</returns>
         [HttpPost("Get")]
         public async Task<ActionResult<string>> GetAsync([FromBody] AuthenticationTokenGetParameters parameters)
         {
@@ -41,7 +53,7 @@ namespace FWO.Middleware.Controllers
                     string? username = parameters.Username;
                     string? password = parameters.Password;
 
-                    // Create User from given parameters / If user no login data provided => anonymous login
+                    // Create User from given parameters / If user does not provide login data => anonymous login
                     if (username != null && password != null)
                         user = new UiUser { Name = username, Password = password };
                 }
@@ -49,9 +61,64 @@ namespace FWO.Middleware.Controllers
                 AuthManager authManager = new AuthManager(jwtWriter, ldaps, apiConnection);
 
                 // Authenticate user
-                string jwt = await authManager.AuthorizeUserAsync(user);
+                string jwt = await authManager.AuthorizeUserAsync(user, validatePassword: true);
 
                 return Ok(jwt);
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        /// <summary>
+        /// Generates an authentication token (jwt) for the specified user given valid admin credentials.  
+        /// </summary>
+        /// <remarks>
+        /// AdminUsername (required) - Example: "admin" &#xA;
+        /// AdminPassword (required) - Example: "password" &#xA;
+        /// Lifetime (optional) - Example: "365.12:02:00" ("days.hours:minutes:seconds") &#xA;
+        /// TargetUserDn OR TargetUserName (required) - Example: "uid=demo_user,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal" OR "demo_user" 
+        /// </remarks>
+        /// <param name="parameters">Admin Credentials, Lifetime, User</param>
+        /// <returns>User jwt, if credentials are vaild.</returns>
+        [HttpPost("GetForUser")]
+        public async Task<ActionResult<string>> GetAsyncForUser([FromBody] AuthenticationTokenGetForUserParameters parameters)
+        {
+            try
+            {
+                string adminUsername = parameters.AdminUsername;
+                string adminPassword = parameters.AdminPassword;
+                TimeSpan lifetime = parameters.Lifetime;
+                string targetUserName = parameters.TargetUserName;
+                string targetUserDn = parameters.TargetUserDn;
+
+                AuthManager authManager = new AuthManager(jwtWriter, ldaps, apiConnection);
+                UiUser adminUser = new UiUser() { Name = adminUsername, Password = adminPassword };
+                // Check if admin valids are valid
+                try
+                {
+                    await authManager.AuthorizeUserAsync(adminUser, validatePassword: true);
+                    if (!adminUser.Roles.Contains("admin"))
+                    {
+                        throw new AuthenticationException("Provided credentials do not belong to a user with role admin.");
+                    }
+                }
+                catch (Exception e)
+                {
+                    throw new AuthenticationException("Error while validating admin credentials: " + e.Message);
+                }
+                // Check if username is valid and generate jwt
+                try
+                {
+                    UiUser targetUser = new UiUser { Name = targetUserName, Dn = targetUserDn };
+                    string jwt = await authManager.AuthorizeUserAsync(targetUser, validatePassword: false, lifetime);
+                    return Ok(jwt);
+                }
+                catch (Exception e)
+                {
+                    throw new AuthenticationException("Error while validating user credentials (user name): " + e.Message);
+                }
             }
             catch (Exception e)
             {
@@ -64,10 +131,9 @@ namespace FWO.Middleware.Controllers
     {
         private readonly JwtWriter jwtWriter;
         private readonly List<Ldap> ldaps;
-        private readonly APIConnection apiConnection;
-        private Ldap loggedInLdap = new Ldap();
+        private readonly ApiConnection apiConnection;
 
-        public AuthManager(JwtWriter jwtWriter, List<Ldap> ldaps, APIConnection apiConnection)
+        public AuthManager(JwtWriter jwtWriter, List<Ldap> ldaps, ApiConnection apiConnection)
         {
             this.jwtWriter = jwtWriter;
             this.ldaps = ldaps;
@@ -75,65 +141,82 @@ namespace FWO.Middleware.Controllers
         }
 
         /// <summary>
-        /// 
+        /// Validates user credentials and retrieves user information. Returns a jwt containing it.
         /// </summary>
-        /// <param name="user"></param>
-        /// <returns>jwt if credentials are valid</returns>
-        public async Task<string> AuthorizeUserAsync(UiUser? user)
+        /// <param name="user">User to validate. Must contain username / dn and password if <paramref name="validatePassword"/> == true.</param>
+        /// <param name="validatePassword">Check password if true.</param>
+        /// <returns>Jwt, User infos (dn, email, groups, roles, tenant), if credentials are valid.</returns>
+        public async Task<string> AuthorizeUserAsync(UiUser? user, bool validatePassword, TimeSpan? lifetime = null)
         {
             // Case: anonymous user
             if (user == null)
                 return await jwtWriter.CreateJWT();
 
-            // Validate user credentials and get ldap distinguish name
-            user.Dn = await GetLdapDistinguishedName(user);
+            // Retrieve ldap entry for user (throws exception if credentials are invalid)
+            (LdapEntry ldapUser, Ldap ldap) = await GetLdapEntry(user, validatePassword);
+
+            // Get dn of user
+            user.Dn = ldapUser.Dn;
+
+            // Get email of user
+            user.Email = ldap.GetEmail(ldapUser);
+
+            // Get groups of user
+            user.Groups = ldap.GetGroups(ldapUser);
 
             // Get roles of user
             user.Roles = await GetRoles(user);
 
             // Get tenant of user
-            user.Tenant = await GetTenantAsync(user);
+            user.Tenant = await GetTenantAsync(ldapUser, ldap);
 
-            user.LdapConnection.Id = loggedInLdap.Id;
+            // Remember the hosting ldap
+            user.LdapConnection.Id = ldap.Id;
 
             // Create JWT for validated user with roles and tenant
-            return (await jwtWriter.CreateJWT(user));
+            return await jwtWriter.CreateJWT(user, lifetime);
         }
 
-        private async Task<string> GetLdapDistinguishedName(UiUser user)
+        public async Task<(LdapEntry, Ldap)> GetLdapEntry(UiUser user, bool validatePassword)
         {
-            Log.WriteDebug("User validation", $"Trying to validate {user.Name}...");
+            Log.WriteDebug("User Authentication", $"Trying to ldap entry for user: {user.Name + " " + user.Dn}...");
 
-            if (user.Name == "")
+            if (user.Dn == "" && user.Name == "")
             {
-                throw new Exception("A0001 Invalid credentials. Username must not be empty");
+                throw new Exception("A0001 Invalid credentials. Username / User DN must not be empty.");
             }
 
             else
             {
-                string userDn = "";
-                List<Task> ldapDnRequests = new List<Task>();
+                LdapEntry? ldapEntry = null;
+                Ldap? ldap = null;
+                List<Task> ldapValidationRequests = new List<Task>();
                 object dnLock = new object();
+                bool ldapFound = false;
 
                 foreach (Ldap currentLdap in ldaps.Where(x => x.Active))
                 {
-                    ldapDnRequests.Add(Task.Run(() =>
+                    ldapValidationRequests.Add(Task.Run(() =>
                     {
-                        Log.WriteDebug("User Authentication", $"Trying to authenticate \"{user.Dn}\" against LDAP {currentLdap.Address}:{currentLdap.Port} ...");
+                        Log.WriteDebug("User Authentication", $"Trying to authenticate {user.Name + " " + user.Dn} against LDAP {currentLdap.Address}:{currentLdap.Port} ...");
 
                         try
                         {
-                            string currentDn = currentLdap.ValidateUser(user);
+                            LdapEntry? currentLdapEntry = currentLdap.GetLdapEntry(user, validatePassword);
 
-                            if (currentDn != "")
+                            if (currentLdapEntry != null)
                             {
                                 // User was successfully authenticated via this LDAP
-                                Log.WriteInfo("User Authentication", $"User successfully validated as {user} with DN {currentDn}");
+                                Log.WriteInfo("User Authentication", $"User {user.Name + " " + currentLdapEntry.Dn} found.");
 
                                 lock (dnLock)
                                 {
-                                    loggedInLdap = currentLdap;
-                                    userDn = currentDn;
+                                    if (!ldapFound)
+                                    {
+                                        ldapEntry = currentLdapEntry;
+                                        ldap = currentLdap;
+                                        ldapFound = true;
+                                    }
                                 }
                             }
                         }
@@ -144,14 +227,16 @@ namespace FWO.Middleware.Controllers
                     }));
                 }
 
-                while (ldapDnRequests.Count > 0)
+                while (ldapValidationRequests.Count > 0)
                 {
-                    Task finishedDnRequest = await Task.WhenAny(ldapDnRequests);
+                    Task finishedDnRequest = await Task.WhenAny(ldapValidationRequests);
 
-                    if (!string.IsNullOrWhiteSpace(userDn))
-                        return userDn;
+                    if (ldapEntry != null && ldap != null)
+                    {
+                        return (ldapEntry, ldap);
+                    }
 
-                    ldapDnRequests.Remove(finishedDnRequest);
+                    ldapValidationRequests.Remove(finishedDnRequest);
                 }
             }
 
@@ -161,14 +246,11 @@ namespace FWO.Middleware.Controllers
 
         public async Task<List<string>> GetRoles(UiUser user)
         {
-            List<string> dnList = new List<string>();
-            dnList.Add(user.Dn);
-            if (user.Groups != null && user.Groups.Count > 0)
-            {
-                dnList.AddRange(user.Groups);
-            }
+            List<string> dnList = new() { user.Dn };
+            // search all groups where user is member for group associated roles
+            dnList.AddRange(user.Groups);
 
-            List<string> UserRoles = new List<string>();
+            List<string> userRoles = new List<string>();
             object rolesLock = new object();
 
             List<Task> ldapRoleRequests = new List<Task>();
@@ -185,7 +267,7 @@ namespace FWO.Middleware.Controllers
 
                         lock (rolesLock)
                         {
-                            UserRoles.AddRange(currentRoles);
+                            userRoles.AddRange(currentRoles);
                         }
                     }));
                 }
@@ -194,42 +276,33 @@ namespace FWO.Middleware.Controllers
             await Task.WhenAll(ldapRoleRequests);
 
             // If no roles found
-            if (UserRoles.Count == 0)
+            if (userRoles.Count == 0)
             {
                 // Use anonymous role
                 Log.WriteWarning("Missing roles", $"No roles for user \"{user.Dn}\" could be found. Using anonymous role.");
-                UserRoles.Add("anonymous");
+                userRoles.Add("anonymous");
             }
 
-            return UserRoles;
+            return userRoles;
         }
 
-        public async Task<Tenant?> GetTenantAsync(UiUser user)
+        public async Task<Tenant?> GetTenantAsync(LdapEntry user, Ldap ldap)
         {
             Tenant tenant = new Tenant();
-            if(loggedInLdap.Id == 0 && user.LdapConnection != null) // user is already assigned to ldap (scheduled reports)
+            if (ldap.TenantId != null)
             {
-                Ldap? existingLdap = ldaps.FirstOrDefault(x => x.Id == user.LdapConnection.Id);
-                if (existingLdap != null)
-                {
-                    loggedInLdap = existingLdap;
-                }
-            }
-
-            if (loggedInLdap.TenantId != null)
-            {
-                Log.WriteDebug("Get Tenant", $"This LDAP has the fixed tenant {loggedInLdap.TenantId.Value}");
-                tenant.Id = loggedInLdap.TenantId.Value;
+                Log.WriteDebug("Get Tenant", $"This LDAP has the fixed tenant {ldap.TenantId.Value}");
+                tenant.Id = ldap.TenantId.Value;
             }
             else
             {
-                tenant.Name = new DistName(user.Dn).getTenant(loggedInLdap.TenantLevel);
+                tenant.Name = new DistName(user.Dn).getTenant(ldap.TenantLevel);
                 if (tenant.Name == "")
                 {
                     return null;
                 }
                 Log.WriteDebug("Get Tenant", $"extracting TenantName as: {tenant.Name} from {user.Dn}");
-                if(loggedInLdap.GlobalTenantName != null && tenant.Name == loggedInLdap.GlobalTenantName)
+                if (tenant.Name == ldap.GlobalTenantName)
                 {
                     tenant.Id = 1;
                 }
@@ -237,7 +310,7 @@ namespace FWO.Middleware.Controllers
                 {
                     var tenNameObj = new { tenant_name = tenant.Name };
                     Tenant[] tenants = await apiConnection.SendQueryAsync<Tenant[]>(AuthQueries.getTenantId, tenNameObj, "getTenantId");
-                    if (tenants.Count() > 0)
+                    if (tenants.Length > 0)
                     {
                         tenant.Id = tenants[0].Id;
                     }
@@ -246,15 +319,15 @@ namespace FWO.Middleware.Controllers
                         // tenant unknown: create in db. This should only happen for users from external Ldaps
                         try
                         {
-                            var Variables = new 
-                            { 
+                            var Variables = new
+                            {
                                 name = tenant.Name,
                                 project = "",
                                 comment = "",
                                 viewAllDevices = false,
                                 create = DateTime.Now
                             };
-                            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addTenant, Variables)).ReturnIds;
+                            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addTenant, Variables)).ReturnIds;
                             if (returnIds != null)
                             {
                                 tenant.Id = returnIds[0].NewId;
@@ -268,14 +341,13 @@ namespace FWO.Middleware.Controllers
                         }
                         catch (Exception exception)
                         {
-                            Log.WriteAudit("AddTenant", $"Adding Tenant {tenant.Name} locally failed: {exception.Message}");
+                            Log.WriteError("AddTenant", $"Adding Tenant {tenant.Name} locally failed: {exception.Message}");
                             return null;
                         }
                     }
                 }
             }
 
-            // TODO: Both api calls in this method can be shortened to to a single query / api call
             var tenIdObj = new { tenantId = tenant.Id };
 
             Device[] deviceIds = await apiConnection.SendQueryAsync<Device[]>(AuthQueries.getVisibleDeviceIdsPerTenant, tenIdObj, "getVisibleDeviceIdsPerTenant");

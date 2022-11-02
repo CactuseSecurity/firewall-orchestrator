@@ -7,7 +7,7 @@ using FWO.Config;
 using System.Text.RegularExpressions;
 
 
-namespace FWO.ApiClient.Queries
+namespace FWO.Api.Client.Queries
 {
     public class Queries
     {

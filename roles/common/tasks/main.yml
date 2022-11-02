@@ -1,136 +1,193 @@
-- block: 
+  - block: 
 
-  - name: assert ansible version
-    assert:
-      that:
-        - "{{ ansible_version.string is version_compare('2.8', '>=') }}"
-      msg: Ansible 2.8 or above is required
+    - name: assert ansible version
+      fail:
+        msg: Ansible 2.8 or above is required
+      when: ansible_version.full is version('2.8', '<')
 
-  - name: check for existing main config file {{ fworch_conf_file }}
-    stat:
-      path: "{{ fworch_conf_file }}"
-    register: already_installed
+    - name: update operating system package cache .deb based
+      apt:
+        update_cache: yes
+      when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian"
 
-  - set_fact:
-      already_installed: "{{ already_installed.stat.exists }}"
-  
-  - debug:
-      msg: "installation_mode={{ installation_mode }}, already_installed={{ already_installed }}"
-  
-  - name: fail if unknown installation_mode is set
-    fail:
-      msg: "Found undefined installation_mode: {{ installation_mode }}, aborting."
-    when: installation_mode != "new" and installation_mode != "uninstall" and installation_mode != "upgrade"
+    - name: check for existing upgradable packages
+      command: apt list --upgradable
+      register: upgradable_packages
+      when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian"
 
-  - name: fail if already installed and installation_mode is new
-    fail:
-      msg: "Found existing installation but running with installation_mode set to {{ installation_mode }}. If you want to upgrade, use 'installation_mode=upgrade'."
-    when: already_installed|bool and installation_mode == "new"
+    - block:
+      - debug:
+          msg: "current number of upgradable packages: {{ upgradable_packages.stdout_lines|length-1 }}"
 
-  - name: fail if not already installed and installation_mode is upgrade
-    fail:
-      msg: "Could not find existing installation but running with installation_mode set to {{ installation_mode }}. Try running with installation_mode=new"
-    when: not already_installed and installation_mode == "upgrade"
+      - name: assert there are no upgradable packages. upgrades must be run interactively outside the FWORCH installer
+        fail:
+          msg:
+            - There are upgradable OS packages available, please run OS upgrade before running FWORCH installer. 
+            - Use "-e force_install=yes" to overwrite this check and install anyway at your own risk.
+        when: |
+          (ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian")
+          and upgradable_packages.stdout_lines|length > 1
 
-  - name: remove complete {{ fworch_home }} dir except for etc
-    file:
-      state: absent
-      path: "{{ fworch_home }}/{{ item }}"
-    loop:
-      - bin
+      when: not force_install|bool and not run_on_github|bool
 
-  - name: include redhat install basics
-    include_tasks: redhat_preps.yml
-    when: installation_mode == "new" and ansible_os_family == "RedHat"
+    - name: update operating system packages .deb based (for github actions or enforced run)
+      apt:
+        upgrade: dist
+        update_cache: yes
+      when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian" and run_on_github|bool
 
-  - name: update operating system packages .deb based
-    apt:
-      upgrade: dist
-    when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian"
+    - name: update operating system packages .rpm based (untested)
+      yum:
+        upgrade: dist
+      when: ansible_facts['distribution'] == "Red Hat" or ansible_facts['distribution'] == "CentOS"
 
-  - name: update operating system packages .rpm based (untested)
-    yum:
-      upgrade: dist
-    when: ansible_facts['distribution'] == "Red Hat" or ansible_facts['distribution'] == "CentOS"
+    - name: install packages rsync, acl (for non-root user in ansible)
+      package:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - rsync
+        - acl
 
-  - name: install packages rsync
-    package:
-      name: "rsync"
-      state: present
+    - name: check for existing main config file {{ fworch_conf_file }}
+      stat:
+        path: "{{ fworch_conf_file }}"
+      register: already_installed
 
-  - name: install rsyslog
-    import_tasks: install_syslog.yml
-    when: "install_syslog | bool"
-
-  - name: create group {{ fworch_group }}
-    group:
-      name: "{{ fworch_user }}"
-      gid: "{{ user_id }}"
-      state: present
+    - set_fact:
+        already_installed: "{{ already_installed.stat.exists }}"
     
-  - name: add user {{ fworch_user }}
-    user:
-      name: "{{ fworch_user }}"
-      comment: "{{ product_name }} User"
-      uid: "{{ user_id }}"
-      home: "{{ fworch_home }}"
-      shell: /bin/bash
-      group: "{{ fworch_group }}"
-      generate_ssh_key: yes
-      ssh_key_bits: 4096
-      ssh_key_file: .ssh/id_rsa
+    - debug:
+        msg: "installation_mode={{ installation_mode }}, already_installed={{ already_installed }}"
+    
+    - name: fail if unknown installation_mode is set
+      fail:
+        msg: "Found undefined installation_mode: {{ installation_mode }}, aborting."
+      when: installation_mode != "new" and installation_mode != "uninstall" and installation_mode != "upgrade"
 
-  - name: create base {{ fworch_home }} directory
-    file:
-      path: "{{ fworch_home }}"
-      state: directory
-      owner: "{{ fworch_user }}"
-      group: "{{ fworch_group }}"
-      mode: "0775"
+    - name: fail if already installed and installation_mode is new
+      fail:
+        msg: "Found existing installation but running with installation_mode set to {{ installation_mode }}. If you want to upgrade, use 'installation_mode=upgrade'."
+      when: already_installed|bool and installation_mode == "new"
 
-  - name: add proxy setting to fworch users .profile and .bashrc
-    blockinfile:
-      path: "{{ fworch_home }}/{{ item }}"
-      create: yes
-      mode: "0644"
-      owner: "{{ fworch_user }}"
-      group: "{{ fworch_group }}"
-      block: |
-        http_proxy={{ http_proxy }}
-        https_proxy={{ http_proxy }}
-    loop:
-      - .bashrc
-      - .profile
+    - name: fail if not already installed and installation_mode is upgrade
+      fail:
+        msg: "Could not find existing installation but running with installation_mode set to {{ installation_mode }}. Try running with installation_mode=new"
+      when: not already_installed and installation_mode == "upgrade"
 
-  - name: create etc dir
-    file:
-      path: "{{ fworch_home }}/etc"
-      state: directory
-      owner: "{{ fworch_user }}"
-      group: "{{ fworch_group }}"
-      mode: '0755'
+    - name: create group {{ fworch_group }}
+      group:
+        name: "{{ fworch_user }}"
+        gid: "{{ user_id }}"
+        state: present
+      
+    - name: add user {{ fworch_user }}
+      user:
+        name: "{{ fworch_user }}"
+        comment: "{{ product_name }} User"
+        uid: "{{ user_id }}"
+        home: "{{ fworch_home }}"
+        shell: /bin/bash
+        group: "{{ fworch_group }}"
+        generate_ssh_key: yes
+        ssh_key_bits: 4096
+        ssh_key_file: .ssh/id_rsa
 
-  - name: create dir for passwords
-    file:
-      path: "{{ fworch_home }}/etc/secrets"
-      state: directory
-      owner: "{{ fworch_user }}"
-      group: "{{ fworch_group }}"
-      mode: '0700'
+    - name: include redhat install basics
+      include_tasks: redhat_preps.yml
+      when: installation_mode == "new" and ansible_os_family == "RedHat"
 
-  - name: copy iso.conf to target
-    copy:
-      src: iso.conf
-      dest: "{{ fworch_home }}/etc/iso.conf"
-      owner: "{{ fworch_user }}"
-      group: "{{ fworch_group }}"
+    - name: create var lock directory
+      file:
+        path: "{{ fworch_log_lock_dir }}"
+        state: directory
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        mode: "0775"
 
-  - name: include fworch.yaml config file creator
-    import_tasks: conf_file_creator.yml
+    - name: create scripts directory
+      file:
+        path: "{{ fworch_home }}/scripts"
+        state: directory
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        mode: "0775"
 
-  - name: include upgrade script
-    import_tasks: run-upgrades.yml
-    when: "installation_mode == 'upgrade'"
+    - name: copy log lock scripts
+      copy:
+        src: "{{ item }}"
+        dest: "{{ fworch_home }}/scripts/"
+        mode: "0755"
+        owner: "{{ fworch_user}}"
+        group: "{{ fworch_user}}"
+      loop:
+        - acquire_lock.py
+        - release_lock.py
 
-  become: yes
-  
+    - name: install rsyslog
+      import_tasks: install_syslog.yml
+      when: "install_syslog | bool"
+
+    - name: create base {{ fworch_home }} directory
+      file:
+        path: "{{ fworch_home }}"
+        state: directory
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        mode: "0775"
+
+    - name: add proxy setting to fworch users .profile and .bashrc
+      blockinfile:
+        path: "{{ fworch_home }}/{{ item }}"
+        create: yes
+        mode: "0644"
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        block: |
+          http_proxy={{ http_proxy }}
+          https_proxy={{ http_proxy }}
+      loop:
+        - .bashrc
+        - .profile
+
+    - name: create etc dir
+      file:
+        path: "{{ fworch_home }}/etc"
+        state: directory
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        mode: '0755'
+
+    - name: create dir for passwords
+      file:
+        path: "{{ fworch_home }}/etc/secrets"
+        state: directory
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        mode: '0700'
+
+    - set_fact:
+        wsgi_package_name: "{{ wsgi_package_name }}-py3"
+      when: | 
+        (ansible_facts['distribution']|lower == 'debian' and ansible_facts['distribution_major_version'] == 'testing')
+        or 
+        (ansible_facts['distribution']|lower == 'debian' and ansible_facts['distribution_major_version'] is version('10', '>'))
+        or 
+        (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version'] is version('20', '>'))
+
+    - name: copy iso.conf to target
+      copy:
+        src: iso.conf
+        dest: "{{ fworch_home }}/etc/iso.conf"
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+
+    - name: include fworch.yaml config file creator
+      import_tasks: conf_file_creator.yml
+
+    - name: include upgrade script
+      import_tasks: run-upgrades.yml
+      when: "installation_mode == 'upgrade'"
+
+    become: yes
+    

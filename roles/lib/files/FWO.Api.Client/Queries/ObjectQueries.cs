@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using System.IO;
-using FWO.Logging;
+﻿using FWO.Logging;
 
-namespace FWO.ApiClient.Queries
+namespace FWO.Api.Client.Queries
 {
     public class ObjectQueries : Queries
     {

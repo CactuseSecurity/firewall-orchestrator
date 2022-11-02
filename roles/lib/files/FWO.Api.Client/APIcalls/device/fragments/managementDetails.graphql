@@ -3,17 +3,18 @@ fragment ManagementDetails on management {
   name: mgm_name
   hostname: ssh_hostname
   port: ssh_port
-  secret: secret
-  sshPublicKey: ssh_public_key
-  user: ssh_user
-  deviceType: stm_dev_typ {
-    id: dev_typ_id
-    name: dev_typ_name
-    version: dev_typ_version
-    manufacturer: dev_typ_manufacturer
+  import_credential_id
+  import_credential {
+    user: username
+    secret
+    sshPublicKey: public_key
+    credential_name
+    is_key_pair
+    id
   }
-  superManager: multi_device_manager_id
+  deviceType: stm_dev_typ { ...deviceTypeDetails }  superManager: multi_device_manager_id
   configPath: config_path
+  domainUid: domain_uid
   importDisabled: do_not_import
   forceInitialImport: force_initial_import
   hideInUi: hide_in_gui

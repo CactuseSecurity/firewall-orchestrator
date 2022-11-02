@@ -1,8 +1,8 @@
 using FWO.Api.Data;
 using System.Text;
-using FWO.ApiClient;
+using FWO.Api.Client;
 using FWO.Report.Filter;
-using FWO.ApiClient.Queries;
+using FWO.Api.Client.Queries;
 using System.Text.Json;
 using FWO.Config.Api;
 using FWO.Logging;
@@ -16,7 +16,7 @@ namespace FWO.Report
 
         public ReportStatistics(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
 
-        public override async Task<bool> GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback)
+        public override async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback)
         {
             await callback(Managements);
             // currently no further objects to be fetched
@@ -24,19 +24,18 @@ namespace FWO.Report
             return true;
         }
 
-        public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, int maxFetchCycles, APIConnection apiConnection, Func<Management[], Task> callback)
+        public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, int maxFetchCycles, ApiConnection apiConnection, Func<Management[], Task> callback)
         {
             return Task.FromResult<bool>(true);
         }
 
-        public override async Task Generate(int _, APIConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)
+        public override async Task Generate(int _, ApiConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)
         {
             Management[] managementsWithRelevantImportId = await getRelevantImportIds(apiConnection);
 
             List<Management> resultList = new List<Management>();
-            int i;
 
-            for (i = 0; i < managementsWithRelevantImportId.Length; i++)
+            foreach (Management relevantMgmt in managementsWithRelevantImportId)
             {
                 if (ct.IsCancellationRequested)
                 {
@@ -45,8 +44,8 @@ namespace FWO.Report
                 }
 
                 // setting mgmt and relevantImporId QueryVariables 
-                Query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
-                Query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1 /* managment was not yet imported at that time */;
+                Query.QueryVariables["mgmId"] = relevantMgmt.Id;
+                Query.QueryVariables["relevantImportId"] = relevantMgmt.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1 /* managment was not yet imported at that time */;
                 resultList.Add((await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables))[0]);
             }
             Managements = resultList.ToArray();

@@ -1,0 +1,34 @@
+﻿@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<nav class="sidebar fixed sidebar-dark bg-dark shadow">
+    <div class="sidebar-main d-flex flex-row" style="left:0px;">
+        <div class="sidebar-dark bg-dark" style="width:250px; overflow-x:scroll;">
+            <ul class="sidebar-nav mr-auto">
+                <p></p>
+                <h5>@(userConfig.GetText("workflow"))</h5>
+                <a class="nav-link" href="/help/workflow/objects/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-layers"></span> @(userConfig.GetText("objects"))
+                </a>
+                <a class="nav-link" href="/help/workflow/tasktypes/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-browser"></span> @(userConfig.GetText("task_types"))
+                </a>
+                <a class="nav-link" href="/help/workflow/phases/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-loop-square"></span> @(userConfig.GetText("phases_roles"))
+                </a>
+                <a class="nav-link" href="/help/workflow/states/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-tag"></span> @(userConfig.GetText("state_handling"))
+                </a>
+                <a class="nav-link" href="/help/workflow/actions/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-arrow-right"></span> @(userConfig.GetText("actions"))
+                </a>
+                <a class="nav-link" href="/help/workflow/checklist/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-check"></span> @(userConfig.GetText("checklist"))
+                </a>
+                <a class="nav-link" href="/help/workflow/examples/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-eye"></span> @(userConfig.GetText("examples"))
+                </a>
+            </ul>
+        </div>
+    </div>
+</nav>

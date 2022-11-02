@@ -1,4 +1,4 @@
-using FWO.ApiClient;
+using FWO.Api.Client;
 using FWO.Ui.Auth;
 using FWO.Middleware.Client;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -28,21 +28,18 @@ namespace FWO.Ui
             services.AddServerSideBlazor();
 
             services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
-
             services.AddScoped<CircuitHandlerService, CircuitHandlerService>();
 
-            ConfigFile configConnection = new ConfigFile();
+            string ApiUri = ConfigFile.ApiServerUri;
+            string MiddlewareUri = ConfigFile.MiddlewareServerUri;
+            string ProductVersion = ConfigFile.ProductVersion;
 
-            string ApiUri = configConnection.ApiServerUri;
-            string MiddlewareUri = configConnection.MiddlewareServerUri;
-            string ProductVersion = configConnection.ProductVersion;
-
-            services.AddScoped<APIConnection>(_ => new APIConnection(ApiUri));
+            services.AddScoped<ApiConnection>(_ => new GraphQlApiConnection(ApiUri));
             services.AddScoped<MiddlewareClient>(_ => new MiddlewareClient(MiddlewareUri));
+            
             // create "anonymous" (empty) jwt
-
             MiddlewareClient middlewareClient = new MiddlewareClient(MiddlewareUri);
-            APIConnection apiConn = new APIConnection(ApiUri);
+            ApiConnection apiConn = new GraphQlApiConnection(ApiUri);
 
             RestResponse<string> createJWTResponse = middlewareClient.CreateInitialJWT().Result;
             bool connectionEstablished = createJWTResponse.IsSuccessful;
@@ -67,6 +64,8 @@ namespace FWO.Ui
             GlobalConfig globalConfig = Task.Run(async() => await GlobalConfig.ConstructAsync(jwt)).Result;
             services.AddSingleton<GlobalConfig>(_ => globalConfig);    
             services.AddScoped<UserConfig>(_ => new UserConfig(globalConfig));
+
+            services.AddScoped(_ => new DomEventService());
 
             services.AddBlazorTable();
         }

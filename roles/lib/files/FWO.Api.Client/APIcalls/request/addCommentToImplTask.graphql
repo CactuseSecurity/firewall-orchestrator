@@ -1,0 +1,13 @@
+mutation addCommentToImplTask(
+  $taskId: bigint!
+  $commentId: bigint!
+  ) {
+  insert_request_impltask_comment(objects: {
+    task_id: $taskId
+    comment_id: $commentId
+  }) {
+    returning {
+      newId: task_id
+    }
+  }
+}

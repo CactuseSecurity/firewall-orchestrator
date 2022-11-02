@@ -8,9 +8,9 @@
 
 @page "/monitoring"
 @page "/monitoring/main"
-@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, recertifier, workflow-user, workflow-admin, auditor, fw-admin")]
+@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, recertifier, auditor, fw-admin")]
 
-@inject APIConnection apiConnection
+@inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 
@@ -27,7 +27,7 @@
     else
     {
         <Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="Alert" Items="alertEntrys" PageSize="100">
-            <Column Context="alert" TableItem="Alert" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)">
+            <Column Context="alert" TableItem="Alert" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)">
                 <Template>
                     @if(alert.Source == GlobalConfig.kAutodiscovery && alert.AlertCode != AlertCode.AutoDiscoveryErrorUnspecific)
                     {
@@ -134,7 +134,14 @@
  
     protected override async Task OnInitializedAsync()
     {
-        managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails);
+        try
+        {
+            managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, "", "", true);
+        }
         await Refresh();
     }
 
@@ -221,7 +228,7 @@
         {
             RemoveSampleDataMode = false;
             workInProgress = true;
-            List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails);
+            List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
             int deletedSampleManagements = 0;
             foreach (var management in managements)
             {
@@ -234,7 +241,20 @@
                 }
             }
 
-            List<UiUser> users = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.ApiClient.Queries.AuthQueries.getUsers);
+            List<ImportCredential> credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(FWO.Api.Client.Queries.DeviceQueries.getCredentials);
+            int deletedSampleCredentials = 0;
+            foreach (var credential in credentials)
+            {
+                if (credential.Name.EndsWith("_demo"))
+                {
+                    if (await DeleteCredential(credential))
+                    {
+                        deletedSampleCredentials++;
+                    }
+                }
+            }
+
+            List<UiUser> users = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
             int deletedSampleUsers = 0;
             foreach (var user in users)
             {
@@ -247,7 +267,7 @@
                 }
             }
 
-            List<Tenant> tenants = await apiConnection.SendQueryAsync<List<Tenant>>(FWO.ApiClient.Queries.AuthQueries.getTenants);
+            List<Tenant> tenants = await apiConnection.SendQueryAsync<List<Tenant>>(FWO.Api.Client.Queries.AuthQueries.getTenants);
             int deletedSampleTenants = 0;
             foreach (var tenant in tenants)
             {
@@ -284,6 +304,10 @@
             {
                 text += $"{deletedSampleManagements} " + userConfig.GetText("managements");
             }
+            if(deletedSampleCredentials > 0)
+            {
+                text += $"{deletedSampleCredentials} " + userConfig.GetText("credential");
+            }
             if(deletedSampleUsers > 0)
             {
                 text += $" {deletedSampleUsers} " + userConfig.GetText("users");
@@ -316,7 +340,7 @@
         try
         {
             var Variables = new { id = management.Id };
-            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.deleteManagement, Variables)).DeletedId;
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.deleteManagement, Variables)).DeletedId;
             if (delId == management.Id)
             {
                 return true;
@@ -325,6 +349,24 @@
         catch (Exception exception)
         {
             DisplayMessageInUi!(exception, userConfig.GetText("delete_management"), "", true);
+        }
+        return false;
+    }
+
+    private async Task<bool> DeleteCredential(ImportCredential credential)
+    {
+        try
+        {
+            var Variables = new { id = credential.Id };
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.deleteCredential, Variables)).DeletedId;
+            if (delId == credential.Id)
+            {
+                return true;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_credential"), "", true);
         }
         return false;
     }

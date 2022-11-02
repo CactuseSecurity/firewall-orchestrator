@@ -29,31 +29,31 @@
 
                 TokenKind.SourceNegated => new TokenSyntax
                 (
-                    WhiteSpaceRequiered: new string[] { "srcnegate", "sourcenegate", "sourcenegated", "source-negate", "source-negated" },
+                    WhiteSpaceRequiered: new string[] { "sourcenegated", "srcnegate", "sourcenegate", "source-negate", "source-negated" },
                     NoWhiteSpaceRequiered: new string[] { }
                 ),
 
                 TokenKind.DestinationNegated => new TokenSyntax
                 (
-                    WhiteSpaceRequiered: new string[] { "dstnegate", "destinationnegate", "destinationnegated", "destination-negate", "destination-negated" },
+                    WhiteSpaceRequiered: new string[] { "destinationnegated", "dstnegate", "destinationnegate", "destination-negate", "destination-negated" },
                     NoWhiteSpaceRequiered: new string[] { }
                 ),
 
                 TokenKind.ServiceNegated => new TokenSyntax
                 (
-                    WhiteSpaceRequiered: new string[] { "svcnegate", "servicenegate", "servicenegated", "service-negate", "service-negated" },
+                    WhiteSpaceRequiered: new string[] { "servicenegated", "svcnegate", "servicenegate", "service-negate", "service-negated" },
                     NoWhiteSpaceRequiered: new string[] { }
                 ),
 
                 TokenKind.Source => new TokenSyntax
                 (
-                    WhiteSpaceRequiered: new string[] { "src", "source" },
+                    WhiteSpaceRequiered: new string[] { "source", "src" },
                     NoWhiteSpaceRequiered: new string[] { }
                 ),
 
                 TokenKind.Destination => new TokenSyntax
                 (
-                    WhiteSpaceRequiered: new string[] { "dst", "dest", "destination" },
+                    WhiteSpaceRequiered: new string[] { "destination", "dst", "dest"  },
                     NoWhiteSpaceRequiered: new string[] { }
                 ),
 
@@ -83,7 +83,7 @@
 
                 TokenKind.Service => new TokenSyntax
                 (
-                    WhiteSpaceRequiered: new string[] { "svc", "service", "srv" },
+                    WhiteSpaceRequiered: new string[] { "service", "svc", "srv" },
                     NoWhiteSpaceRequiered: new string[] { }
                 ),
 
@@ -95,7 +95,7 @@
 
                 TokenKind.Protocol => new TokenSyntax
                 (
-                    WhiteSpaceRequiered: new string[] { "proto", "protocol" },
+                    WhiteSpaceRequiered: new string[] { "protocol", "proto" },
                     NoWhiteSpaceRequiered: new string[] { }
                 ),
 
@@ -113,7 +113,7 @@
 
                 TokenKind.ReportType => new TokenSyntax
                 (
-                    WhiteSpaceRequiered: new string[] { "type", "report-type" },
+                    WhiteSpaceRequiered: new string[] { "reporttype", "type", "report-type"  },
                     NoWhiteSpaceRequiered: new string[] {  }
                 ),
 
@@ -156,19 +156,19 @@
                 TokenKind.EQ => new TokenSyntax
                 (
                     WhiteSpaceRequiered: new string[] { "eq" },
-                    NoWhiteSpaceRequiered: new string[] { "=", ":" }
+                    NoWhiteSpaceRequiered: new string[] { "=" }
                 ),
 
                 TokenKind.EEQ => new TokenSyntax
                 (
                     WhiteSpaceRequiered: new string[] { "eeq" },
-                    NoWhiteSpaceRequiered: new string[] { "==", "::" }
+                    NoWhiteSpaceRequiered: new string[] { "==" }
                 ),
 
                 TokenKind.NEQ => new TokenSyntax
                 (
                     WhiteSpaceRequiered: new string[] { "neq" },
-                    NoWhiteSpaceRequiered: new string[] { "!=", "!:" }
+                    NoWhiteSpaceRequiered: new string[] { "!=" }
                 ),
 
                 TokenKind.LSS => new TokenSyntax

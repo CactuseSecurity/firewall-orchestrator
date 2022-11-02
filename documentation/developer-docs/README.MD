@@ -2,10 +2,10 @@
 
 ## Contributing
 
-- create a fork of our (cactus) repo (https://github.com/CactuseSecurity/firewall-orchestrator)
+- create a fork of the [Cactus eSecurity firewall orchestrator repo](https://github.com/CactuseSecurity/firewall-orchestrator)
 - make changes only within the "develop" branch
-- open pull request from your fork branch "develop" to the same branch in the cactus repo
-- for adding an import module for a new firewall type please see (https://github.com/CactuseSecurity/firewall-orchestrator/tree/develop/documentation/developer-docs/importer).
+- open pull request from your fork branch "develop" to the same branch in the Cactus eSecurity firewall orchestrator repo
+- do you for example want to know how to add an [import module for a new firewall type](importer/readme.md)?
 
 
 ## Misc

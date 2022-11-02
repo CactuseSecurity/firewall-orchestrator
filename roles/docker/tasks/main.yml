@@ -12,10 +12,12 @@
       - curl
       - software-properties-common
 
-  - name: add apt signing key for docker
-    apt_key:
+  - name: adding docker apt signing key
+    get_url:
       url: https://download.docker.com/linux/ubuntu/gpg
-      state: present
+      dest: /etc/apt/trusted.gpg.d/docker.asc
+      force: yes
+      mode: "0644"
     environment: "{{ proxy_env }}"
 
   - name: add docker repo

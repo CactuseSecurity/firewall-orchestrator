@@ -1,0 +1,343 @@
+﻿@using FWO.Api.Client
+@using FWO.Config.Api
+
+@page "/settings/statedefinitions"
+@attribute [Authorize(Roles = "admin, auditor")]
+
+@inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+
+@if(InitComplete)
+{
+    <h3>@(userConfig.GetText("available_states"))</h3>
+    @(userConfig.GetText("U5313"))
+    <hr />
+    <button class="btn btn-sm btn-success" @onclick="AddState">@(userConfig.GetText("add_state"))</button>
+    <br><br>
+    <div class="m-2">
+        <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="RequestState" Items="states" PageSize="0" ColumnReorder="true">
+            <Column TableItem="RequestState" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                <Template>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-warning" @onclick="() => EditState(context)">@(userConfig.GetText("edit"))</button>
+                        @if(!usedStateIds.Exists(x => x == context.Id))
+                        {
+                            <button class="btn btn-sm btn-danger" @onclick="() => RequestDeleteState(context)">@(userConfig.GetText("delete"))</button>
+                        }
+                    </div>
+                </Template>
+            </Column>
+            <Column TableItem="RequestState" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+            <Column TableItem="RequestState" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+            <Column TableItem="RequestState" Title="@(userConfig.GetText("state_actions"))" Field="@(x => x.Actions)" Sortable="false">
+                <Template>
+                    @(context.ActionList())
+                </Template>
+            </Column>
+        </Table>
+    </div>
+
+    <PopUp Title="@(userConfig.GetText("edit_state"))" Show="@EditStateMode" OnClose="() => EditStateMode = false">
+        <Body>
+            @if (EditStateMode)
+            {
+                <div class="form-group row">
+                    <div class="col-sm-3">
+                        @if (AddStateMode)
+                        {
+                            <input type="number" class="form-control form-control-sm" @bind="actState.Id" />
+                        }
+                        else
+                        {
+                            <label class="col-sm-2 col-form-label col-form-label-sm">@(actState.Id)</label>
+                        }
+                    </div>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control form-control-sm" @bind="actState.Name" />
+                    </div>
+                </div>
+                <br><br>
+                <button class="btn btn-sm btn-success" @onclick="SelectAction">@(userConfig.GetText("add_action"))</button>
+                <br><br>
+                <div class="m-2">
+                    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="RequestStateActionDataHelper" Items="actState.Actions" PageSize="0" ColumnReorder="true">
+                        <Column TableItem="RequestStateActionDataHelper" Title="@(userConfig.GetText("actions"))" Field="(x => x.Action.Id)" Sortable="false" Filterable="false">
+                            <Template>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-danger" @onclick="() => RemoveActionFromState(context)">@(userConfig.GetText("remove"))</button>
+                                </div>
+                            </Template>
+                        </Column>
+                        <Column TableItem="RequestStateActionDataHelper" Title="@(userConfig.GetText("id"))" Field="@(x => x.Action.Id)" Sortable="true" Filterable="true" />
+                        <Column TableItem="RequestStateActionDataHelper" Title="@(userConfig.GetText("name"))" Field="@(x => x.Action.Name)" Sortable="true" Filterable="true" />
+                    </Table>
+                </div>
+            }
+        </Body>
+        <Footer>
+            <div class="btn-group">
+                <AuthorizeView Roles="admin">
+                    <Authorized>
+                        <button class="btn btn-sm btn-primary" @onclick="SaveState">@(userConfig.GetText("save"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+                <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            </div>
+        </Footer>
+    </PopUp>
+
+    <PopUp Title="@(userConfig.GetText("delete_state"))" Show="@DeleteStateMode" OnClose="() => DeleteStateMode = false">
+        <Body>
+            @if (DeleteStateMode)
+            {
+                <p>@(userConfig.GetText("U5501") + actState.Name + "?")</p>
+            }
+        </Body>
+        <Footer>
+            <div class="btn-group">
+                <AuthorizeView Roles="admin">
+                    <Authorized>
+                        <button class="btn btn-sm btn-danger" @onclick="DeleteState">@(userConfig.GetText("delete"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+                <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            </div>
+        </Footer>
+    </PopUp>
+
+    <PopUp Title="@(userConfig.GetText("select_action"))" Show="@SelectActionMode" OnClose="() => SelectActionMode = false">
+        <Body>
+            @if (SelectActionMode)
+            {
+                <div class="col-sm-8">
+                    <select class="form-control form-control-sm" @bind="actionIdToAdd">
+                        @foreach (var action in actions)
+                        {
+                            <option value="@action.Id">@(action.Name)</option>
+                        }
+                    </select>
+                </div>
+            }
+        </Body>
+        <Footer>
+            <div class="btn-group">
+                <AuthorizeView Roles="admin">
+                    <Authorized>
+                        <button class="btn btn-sm btn-primary" @onclick="AddActionToState">@(userConfig.GetText("add"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("add"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+                <button class="btn btn-sm btn-secondary" @onclick="CancelSelect">@(userConfig.GetText("cancel"))</button>
+            </div>
+        </Footer>
+    </PopUp>
+}
+else
+{
+    <div class="spinner-border" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+}
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+
+    private List<RequestState> states = new List<RequestState>();
+    private List<int> usedStateIds = new List<int>();
+    private RequestStateDict statesDict = new RequestStateDict();
+    private RequestState actState = new RequestState();
+
+    private List<RequestStateAction> actions = new List<RequestStateAction>();
+    private int actionIdToAdd;
+
+    private bool EditStateMode = false;
+    private bool AddStateMode = false;
+    private bool DeleteStateMode = false;
+    private bool InitComplete = false;
+    private bool SelectActionMode = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            actions = await apiConnection.SendQueryAsync<List<RequestStateAction>>(FWO.Api.Client.Queries.RequestQueries.getActions);
+            await RefreshStates();
+            InitComplete = true;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private async Task RefreshStates()
+    {
+        states = new List<RequestState>();
+        states = await apiConnection.SendQueryAsync<List<RequestState>>(FWO.Api.Client.Queries.RequestQueries.getStates);
+        statesDict = new RequestStateDict();
+        await statesDict.Init(apiConnection);
+        await GetUsedStates();
+    }
+
+    private async Task GetUsedStates()
+    {
+        usedStateIds = new List<int>();
+        GlobalStateMatrix tmpStateMatrix = new GlobalStateMatrix();
+        foreach(TaskType type in Enum.GetValues(typeof(TaskType)))
+        {
+            await tmpStateMatrix.Init(apiConnection, type);
+            foreach(var key in tmpStateMatrix.GlobalMatrix.Keys)
+            {
+                foreach(var stateId in tmpStateMatrix.GlobalMatrix[key].Matrix.Keys)
+                {
+                    usedStateIds.Add(stateId);
+                    foreach(var toState in tmpStateMatrix.GlobalMatrix[key].Matrix[stateId])
+                    {
+                        usedStateIds.Add(toState);
+                    }
+                }
+                foreach(var stateId in tmpStateMatrix.GlobalMatrix[key].DerivedStates.Keys)
+                {
+                    usedStateIds.Add(stateId);
+                    usedStateIds.Add(tmpStateMatrix.GlobalMatrix[key].DerivedStates[stateId]);
+                }
+                usedStateIds.Add(tmpStateMatrix.GlobalMatrix[key].LowestInputState);
+                usedStateIds.Add(tmpStateMatrix.GlobalMatrix[key].LowestStartedState);
+                usedStateIds.Add(tmpStateMatrix.GlobalMatrix[key].LowestEndState);
+            }
+        }
+        foreach(var action in actions)
+        {
+            if(action.ExternalParams != "")
+            {
+                if(action.ActionType == nameof(StateActionTypes.AutoPromote))
+                {
+                    usedStateIds.Add(Convert.ToInt32(action.ExternalParams));
+                }
+                else if(action.ActionType == nameof(StateActionTypes.AddApproval))
+                {
+                    try
+                    {
+                        usedStateIds.Add((System.Text.Json.JsonSerializer.Deserialize<ApprovalParams>(action.ExternalParams) ?? throw new Exception("Extparams could not be parsed.")).StateId);
+                    }
+                    catch(Exception)
+                    {}
+                }
+            }
+        }
+    }
+
+    private void AddState()
+    {
+        AddStateMode = true;
+        int firstFreeId = 0;
+        while (states.Find(x => x.Id == firstFreeId) != null)
+        {
+            firstFreeId++;
+        }
+        EditState(new RequestState(){ Id = firstFreeId });
+    }
+
+    private void EditState(RequestState state)
+    {
+        actState = state;
+        EditStateMode = true;
+    }
+
+    private async Task SaveState()
+    {
+        try
+        {
+            await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.upsertState, new { id = actState.Id, name = actState.Name });
+            if(AddStateMode)
+            {
+                states.Add(actState);
+            }
+            else
+            {
+                states[states.FindIndex(x => x.Id == actState.Id)] = actState;
+            }
+            EditStateMode = false;
+            AddStateMode = false;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("edit_state"), "", true);
+        }
+    }
+
+    private void Cancel()
+    {
+        EditStateMode = false;
+        AddStateMode = false;
+        DeleteStateMode = false;
+    }
+
+    private void RequestDeleteState(RequestState state)
+    {
+        actState = state;
+        DeleteStateMode = true;
+    }
+
+    private async Task DeleteState()
+    {
+        try
+        {
+            await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.deleteState, new { id = actState.Id });
+            states.Remove(actState);
+            DeleteStateMode = false;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_state"), "", true);
+        }
+    }
+
+    private void SelectAction()
+    {
+        SelectActionMode = true;
+    }
+
+    private void CancelSelect()
+    {
+        SelectActionMode = false;
+    }
+
+    private async Task AddActionToState()
+    {
+        try
+        {
+            await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.addStateAction, new { stateId = actState.Id, actionId = actionIdToAdd });
+            actState.Actions.Add(new RequestStateActionDataHelper(){ Action = actions.FirstOrDefault(x => x.Id == actionIdToAdd) });
+            SelectActionMode = false;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("edit_state"), "", true);
+        }
+    }
+
+    private async Task RemoveActionFromState(RequestStateActionDataHelper action)
+    {
+        try
+        {
+            await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.removeStateAction, new { stateId = actState.Id, actionId = action.Action.Id });
+            actState.Actions.Remove(action);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("edit_state"), "", true);
+        }
+    }
+}

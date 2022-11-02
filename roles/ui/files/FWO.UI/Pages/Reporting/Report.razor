@@ -6,34 +6,35 @@
 @using System.Threading
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.Reporting.Reports
+@using System.Diagnostics
 
 @page "/report"
 
-@inject APIConnection Connection
+@inject ApiConnection Connection
 @inject UserConfig userConfig
 
 @* ==== LEFT SIDEBAR ==== *@
-    <Sidebar @ref="deviceSelectionSidebar" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth" >
-        <div class="p-3">
-            <h5 class="text-left">@(userConfig.GetText("report_type"))</h5>
-            <div class="col-sm-8">
-                <select id="reportType" class="form-control form-control-sm" value="@selectedReportType" @onchange="ReportTypeChanged">
-                    @foreach (var reportType in Enum.GetValues(typeof(ReportType)))
-                    {
-                        <option value="@reportType">@userConfig.GetText(reportType?.ToString()?.ToLower() ?? "")</option>
-                    }
-                </select>
+<Sidebar @ref="deviceSelectionSidebar" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth" >
+    <div class="p-3">
+        <h5 class="text-left">@(userConfig.GetText("report_type"))</h5>
+        <Dropdown ElementType="ReportType" ElementToString="@(r => userConfig.GetText(r.ToString()?.ToLower() ?? ""))"
+            Value="selectedReportType" ValueChanged="ReportTypeChanged" Elements="CustomSortReportType(Enum.GetValues(typeof(ReportType)).Cast<ReportType>().ToList())">
+            <ElementTemplate Context="reportType">
+                @userConfig.GetText(reportType.ToString()?.ToLower() ?? "")
+            </ElementTemplate>
+        </Dropdown>
+    </div>
+    <div class="p-3">
+        <h5 class="text-left">@(userConfig.GetText("report_time"))</h5>
+        <div class="input-group">
+            <input type="text" class="form-control form-control-sm" disabled value="@displayedTimeSelection" />
+            <div class="input-group-append">
+                <button class="btn btn-sm btn-outline-info" @onclick="SelectTime">@(userConfig.GetText("change"))</button>
             </div>
         </div>
-        <div class="p-3">
-            <h5 class="text-left">@(userConfig.GetText("report_time"))</h5>
-            <div class="btn-group mr-1 ml-1 mb-1">
-                <label class="col-sm-8">@displayedTimeSelection</label>
-                <button class="btn btn-sm btn-secondary" @onclick="SelectTime">@(userConfig.GetText("change"))</button>
-            </div>
-        </div>
-        <DeviceSelection @bind-DeviceFilter="deviceFilter" @bind-CollapseAll="collapseDevices" @bind-SelectAll="selectAll"></DeviceSelection>
-    </Sidebar>
+    </div>
+    <DeviceSelection @bind-DeviceFilter="deviceFilter" @bind-CollapseAll="collapseDevices" @bind-SelectAll="selectAll"></DeviceSelection>
+</Sidebar>
 
 @* ==== Middle div ==== *@
 <div style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px");">
@@ -49,7 +50,7 @@
         </div>
     </form>
 
-    <div class="btn-group sticky-marker-60" style="z-index: 16;">
+    <div class="btn-group m-1 sticky-marker-60" style="z-index: 16;">
         @if (processing == false)
         {
             <button class="btn btn-sm btn-primary" @onclick="GenerateReport">@(userConfig.GetText("generate_report"))</button>
@@ -92,11 +93,11 @@
                 @switch (currentReport)
                 {
                     case ReportNatRules natRulesReport:
-                        <RulesReport NatRules="true" Managements="managementsReport" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"></RulesReport>
+                        <RulesReport NatRules="true" Managements="managementsReport" SelectedReportType="selectedReportType" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"></RulesReport>
                         break;
 
                     case ReportRules rulesReport:
-                        <RulesReport Managements="managementsReport" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"></RulesReport>
+                        <RulesReport Managements="managementsReport" SelectedReportType="selectedReportType" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"></RulesReport>
                         break;
 
                     case ReportChanges changesReport:
@@ -140,6 +141,20 @@
             }
         </div>
     </div>
+    @if (currentReport != null)
+        {
+            if (reportGenerationDuration != null && reportGenerationDuration != 0)
+            {
+                if (reportGenerationDuration<600)
+                {
+                    <small>@(userConfig.GetText("report_duration")) @reportGenerationDuration.ToString("0.00") @(userConfig.GetText("seconds")).</small>
+                }
+                else
+                {
+                    <small> @(userConfig.GetText("report_duration")) @(reportGenerationDuration/60.0).ToString("0.00") @(userConfig.GetText("minutes")).</small>
+                }
+            }
+        }
 </div>
 
 @* ==== RIGHT SIDEBAR ==== *@
@@ -166,9 +181,9 @@
                     <div class="mt-2">
                         <CascadingValue Value="collapseSidebarReport">
                             <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="report" InputDataType="Management" Data="managementsReport.Where(m => (m.Devices.Where(d => d.Rules != null && d.Rules.Count() > 0).Count() > 0))" NameExtractor="man => man.Name"
-                                                NetworkObjectExtractor="man => man.ReportObjects?.Select(ro => ro.Content).ToArray()"
-                                                NetworkServiceExtractor="man => man.ReportServices?.Select(rs => rs.Content).ToArray()"
-                                                NetworkUserExtractor="man => man.ReportUsers?.Select(ru => ru.Content).ToArray()" />
+                                                NetworkObjectExtractor="man => man.ReportObjects"
+                                                NetworkServiceExtractor="man => man.ReportServices"
+                                                NetworkUserExtractor="man => man.ReportUsers" />
                         </CascadingValue>
                     </div>
                 </Tab>
@@ -181,9 +196,9 @@
                         <CascadingValue Value="collapseSidebarRule">
                             <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="rule" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule" Data="selectedItemsRuleReportTable"
                                                 NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
-                                                NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object).Union(rule.Tos.Select(nl => nl.Object)).Union(rule.NatData.TranslatedFroms.Select(nl => nl.Object)).Union(rule.NatData.TranslatedTos.Select(nl => nl.Object)).ToArray()"
-                                                NetworkServiceExtractor="rule => rule.Services.Select(sw => sw.Content).Union(rule.NatData.TranslatedServices.Select(sw => sw.Content)).ToArray()"
-                                                NetworkUserExtractor="rule => rule.Froms.Select(nl => nl.User).Distinct().Where(u => u != null).ToArray()" />
+                                                NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object).Union(rule.Tos.Select(nl => nl.Object)).Union(rule.NatData.TranslatedFroms.Select(nl => nl.Object)).Union(rule.NatData.TranslatedTos.Select(nl => nl.Object)).OrderBy(o => o.Name).ToArray()"
+                                                NetworkServiceExtractor="rule => rule.Services.Select(sw => sw.Content).Union(rule.NatData.TranslatedServices.Select(sw => sw.Content)).OrderBy(s => s.Name).ToArray()"
+                                                NetworkUserExtractor="rule => rule.Froms.Select(nl => nl.User).Distinct().Where(u => u != null).OrderBy(u => u.Name).ToArray()" />
                         </CascadingValue>
                     </div>
                 </Tab>
@@ -334,6 +349,7 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
+    public double reportGenerationDuration;
     private bool processing = false;
     private CancellationTokenSource tokenSource = new CancellationTokenSource();
 
@@ -344,7 +360,7 @@
     private Management[] managementsAllObjects = new Management[0];
     private Management? globalStats = null;
 
-    private ReportType selectedReportType = ReportType.Rules;
+    public ReportType selectedReportType = ReportType.Rules;
 
     private DeviceFilter deviceFilter = new DeviceFilter();
     private bool selectAll = true;
@@ -412,11 +428,17 @@
         });
     }
 
-    private void ReportTypeChanged(ChangeEventArgs args)
+    private void ReportTypeChanged(ReportType newReportType)
     {
-        selectedReportType = (ReportType) Enum.Parse(typeof(ReportType), (args?.Value?.ToString() ?? throw new Exception("Undefined report type")), true);
+        // clear report data when switching reportType
+        // as we would be missing src/dst/svc information in some cases           
+        managementsReport = new Management[] {};
+        globalStats = null;
+        selectedReportType = newReportType;
         DisplayTime();
         StateHasChanged();
+        if (reportGenerationDuration != null)
+            reportGenerationDuration = 0;
     }
 
     private void InitTimes(TimeFilter timeFilter)
@@ -583,9 +605,9 @@
 
                     queryVars = new Dictionary<string, object>()
                     {
+                        { "management_id", (int) id },
                         { "limit", userConfig.ElementsPerFetch },
-                        { "offset", 0 },
-                        { "management_id", (int) id }
+                        { "offset", 0 }
                     };
 
                     break;
@@ -594,9 +616,9 @@
 
                     queryVars = new Dictionary<string, object>()
                     {
+                        { "mgmIds", (int) id },
                         { "limit", userConfig.ElementsPerFetch },
-                        { "offset", 0 },
-                        { "mgmIds", (int) id }
+                        { "offset", 0 }
                     };
 
                     if (currentReport != null)
@@ -611,9 +633,9 @@
 
                     queryVars = new Dictionary<string, object>()
                     {
+                        { "rule_id", id },
                         { "limit", userConfig.ElementsPerFetch },
-                        { "offset", (int)0 },
-                        { "rule_id", id }
+                        { "offset", (int)0 }
                     };
 
                     break;
@@ -651,6 +673,8 @@
 
     private async Task GenerateReport()
     {
+        Stopwatch watch = new System.Diagnostics.Stopwatch();
+        watch.Start();
         tokenSource = new CancellationTokenSource();
         var token = tokenSource.Token;
 
@@ -662,11 +686,6 @@
         Management[] managementsReportOrig = managementsReport;
         try
         {
-            if (selectedReportType == ReportType.None)  // display warning
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("no_report_type_selected"), userConfig.GetText("E1006"), true);
-                return;
-            }
             if (!deviceFilter.isAnyDeviceFilterSet())  // display warning
             {
                 DisplayMessageInUi!(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
@@ -729,9 +748,16 @@
             }
 
             processing = false;
-            if((currentReport is ReportRules || currentReport is ReportNatRules) && NoRuleFound())
+            if(NoRuleFound())
             {
-                DisplayMessageInUi!(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
+                if(currentReport is ReportRules || currentReport is ReportNatRules)
+                {
+                    DisplayMessageInUi!(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
+                }
+                else if(currentReport is ReportChanges)
+                {
+                    DisplayMessageInUi!(null, userConfig.GetText("generate_report"), userConfig.GetText("E4003"), true);
+                }
             }
 
             Log.WriteDebug("Report Generation", $"Generation Time: {DateTime.Now - startTime}.");
@@ -746,6 +772,8 @@
             await InvokeAsync(StateHasChanged);
             DisplayMessageInUi!(exception, userConfig.GetText("generate_report"), "", true);
         }
+        watch.Stop();
+        reportGenerationDuration = watch.ElapsedMilliseconds/1000.0;
     }
 
     private void CancelGeneration()
@@ -758,7 +786,7 @@
     {
         foreach (Management mgm in managementsReport)
         {
-            mgm.Ignore = (relevantManagements.Contains(mgm.Id) ? false : true);
+            mgm.Ignore = !relevantManagements.Contains(mgm.Id);
         }
     }
 
@@ -803,9 +831,37 @@
                     {
                         return false;
                     }
+                    if(dev.RuleChanges != null && dev.RuleChanges.Count() > 0)
+                    {
+                        return false;
+                    }
                 }
             }
         }
         return true;
+    }
+
+    private List<ReportType> CustomSortReportType(List<ReportType> ListIn)
+    {
+        List<ReportType> ListOut = new List<ReportType>();
+        List<ReportType> orderedReportTypeList = new List<ReportType>
+            (
+                new ReportType[] 
+                    {
+                        ReportType.Rules, ReportType.ResolvedRules, ReportType.ResolvedRulesTech, ReportType.NatRules, ReportType.Changes, ReportType.Statistics
+                    }
+            ); 
+        foreach (ReportType reportType in orderedReportTypeList)
+        {
+            ReportType foundType = ListIn.Find(x => x == reportType);
+            if (foundType != null)
+            {
+                ListOut.Add(foundType);
+                ListIn.Remove(foundType);
+            }
+        }
+        // finally add remaining report types
+        ListOut.AddRange(ListIn);
+        return ListOut;
     }
 }

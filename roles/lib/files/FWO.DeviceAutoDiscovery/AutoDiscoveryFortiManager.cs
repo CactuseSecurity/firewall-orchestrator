@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using RestSharp;
 using FWO.Api.Data;
-using FWO.ApiClient;
+using FWO.Api.Client;
 using FWO.Logging;
 using FWO.Rest.Client;
 
@@ -9,7 +9,7 @@ namespace FWO.DeviceAutoDiscovery
 {
     public class AutoDiscoveryFortiManager : AutoDiscoveryBase
     {
-        public AutoDiscoveryFortiManager(Management superManagement, APIConnection apiConn) : base(superManagement, apiConn) { }
+        public AutoDiscoveryFortiManager(Management superManagement, ApiConnection apiConn) : base(superManagement, apiConn) { }
         public override async Task<List<Management>> Run()
         {
             List<Management> discoveredDevices = new List<Management>();
@@ -27,7 +27,7 @@ namespace FWO.DeviceAutoDiscovery
                 Log.WriteDebug("Autodiscovery", $"discovering FortiManager adoms, vdoms, devices");
                 FortiManagerClient restClientFM = new FortiManagerClient(superManagement);
 
-                RestResponse<SessionAuthInfo> sessionResponse = await restClientFM.AuthenticateUser(superManagement.ImportUser, superManagement.Secret);
+                RestResponse<SessionAuthInfo> sessionResponse = await restClientFM.AuthenticateUser(superManagement.ImportCredential.ImportUser, superManagement.ImportCredential.Secret);
                 if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && sessionResponse?.Data?.SessionId != null && sessionResponse?.Data?.SessionId != "")
                 {
                     string sessionId = sessionResponse!.Data!.SessionId;
@@ -77,8 +77,7 @@ namespace FWO.DeviceAutoDiscovery
                                 Name = superManagement.Name + "__" + adom.Name,
                                 ImporterHostname = superManagement.ImporterHostname,
                                 Hostname = superManagement.Hostname,
-                                ImportUser = superManagement.ImportUser,
-                                Secret = superManagement.Secret,
+                                ImportCredential = superManagement.ImportCredential,
                                 Port = superManagement.Port,
                                 ImportDisabled = false,
                                 ForceInitialImport = true,

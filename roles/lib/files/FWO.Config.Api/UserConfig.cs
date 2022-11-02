@@ -1,9 +1,9 @@
 ﻿using System.Text.RegularExpressions;
 using FWO.Logging;
 using FWO.Config.Api.Data;
-using FWO.ApiClient;
+using FWO.Api.Client;
 using FWO.Api.Data;
-using FWO.ApiClient.Queries;
+using FWO.Api.Client.Queries;
 using System.Reflection;
 using System.Text.Json.Serialization;
 
@@ -20,7 +20,7 @@ namespace FWO.Config.Api
 
         public UiUser User { private set; get; }
 
-        public static async Task<UserConfig> ConstructAsync(GlobalConfig globalConfig, APIConnection apiConnection, int userId)
+        public static async Task<UserConfig> ConstructAsync(GlobalConfig globalConfig, ApiConnection apiConnection, int userId)
         {
             UiUser[] users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDbId, new { userId = userId });
             UiUser? user = users.FirstOrDefault();
@@ -32,7 +32,7 @@ namespace FWO.Config.Api
             return new UserConfig(globalConfig, apiConnection, user);
         }
 
-        public UserConfig(GlobalConfig globalConfig, APIConnection apiConnection, UiUser user) : base(apiConnection, user.DbId)
+        public UserConfig(GlobalConfig globalConfig, ApiConnection apiConnection, UiUser user) : base(apiConnection, user.DbId)
         {
             User = user;
             Translate = globalConfig.langDict[user.Language!];
@@ -62,12 +62,12 @@ namespace FWO.Config.Api
             InvokeOnChange(this, changedItems);
         }
 
-        public async Task SetUserInformation(string userDn, APIConnection apiConnection)
+        public async Task SetUserInformation(string userDn, ApiConnection apiConnection)
         {
             GlobalConfigOnChange(globalConfig, globalConfig.RawConfigItems);
             Log.WriteDebug("Get User Data", $"Get user data from user with DN: \"{userDn}\"");
             UiUser[]? users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = userDn });
-            if (users.Count() > 0)
+            if (users.Length > 0)
                 User = users[0];
             await SetUserId(apiConnection, User.DbId);
 
@@ -78,7 +78,7 @@ namespace FWO.Config.Api
             await ChangeLanguage(User.Language, apiConnection);
         }
 
-        public async Task ChangeLanguage(string languageName, APIConnection apiConnection)
+        public async Task ChangeLanguage(string languageName, ApiConnection apiConnection)
         {
             await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.updateUserLanguage, new { id = User.DbId, language = languageName });
             Translate = globalConfig.langDict[languageName];
@@ -88,7 +88,7 @@ namespace FWO.Config.Api
 
         public string GetUserLanguage()
         {
-            return (User.Language != null ? User.Language : "");
+            return User.Language ?? "";
         }
 
         public void SetLanguage(string languageName)

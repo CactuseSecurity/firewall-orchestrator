@@ -1,5 +1,5 @@
-﻿using FWO.ApiClient.Queries;
-using FWO.ApiClient;
+﻿using FWO.Api.Client.Queries;
+using FWO.Api.Client;
 using FWO.Api.Data;
 using FWO.Logging;
 using FWO.Middleware.Server;
@@ -17,21 +17,39 @@ namespace FWO.Middleware.Controllers
     public class AuthenticationServerController : ControllerBase
     {
         private List<Ldap> ldaps;
-        private readonly APIConnection apiConnection;
+        private readonly ApiConnection apiConnection;
 
-        public AuthenticationServerController(APIConnection apiConnection, List<Ldap> ldaps)
+        public AuthenticationServerController(ApiConnection apiConnection, List<Ldap> ldaps)
         {
             this.apiConnection = apiConnection;
             this.ldaps = ldaps;
         }
 
-        // GET: api/<LdapController>/TestConnection/5
+        /// <summary>
+        /// Test connection to the specified Ldap.
+        /// </summary>
+        /// <remarks>
+        /// Address (required) &#xA;
+        /// Port (required) &#xA; 
+        /// SearchUser AND SearchUserPassword (optional) - leads to test of search user binding &#xA;
+        /// WriteUser AND WriterUserPassword (optional) - leads to test of write user binding
+        /// </remarks>
+        /// <param name="parameters">Ldap connection parameters</param>
+        /// <returns></returns>
         [HttpGet("TestConnection")]
         [Authorize(Roles = "admin, auditor")]
-        public int TestConnection([FromBody] LdapGetUpdateParameters parameters)
+        public ActionResult<string> TestConnection([FromBody] LdapGetUpdateParameters parameters)
         {
-            Ldap ldapToTest = new Ldap(parameters);
-            return ldapToTest.TestConnection();
+            try
+            {
+                Ldap ldapToTest = new Ldap(parameters);
+                ldapToTest.TestConnection();
+            }
+            catch (Exception e)
+            {
+                Problem("Connection test failed: " + e.Message);
+            }
+            return Ok("Connection tested successfully");
         }
 
         // GET: api/<LdapController>

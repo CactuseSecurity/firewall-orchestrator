@@ -4,7 +4,7 @@
 
 Universal test structure: <https://martinfowler.com/articles/practical-test-pyramid.html#TheTestPyramid>
 
-## Ansible testing:
+## Ansible integration testing
 - <https://docs.ansible.com/ansible/latest/reference_appendices/test_strategies.html>
 - <https://www.ansible.com/blog/five-questions-testing-ansible-playbooks-roles>
 - <https://docs.ansible.com/ansible/latest/dev_guide/testing_units.html>

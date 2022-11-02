@@ -17,8 +17,12 @@ namespace FWO.Api.Data
         ImportLocked = 15,
         ImportBrokenObjectReferences = 16,
         MalformedIpAddress = 17,
+        RecursionLimitReached = 18,
+        
         Autodiscovery = 21,
-        AutoDiscoveryErrorUnspecific = 22
+        AutoDiscoveryErrorUnspecific = 22,
+
+        WorkflowAlert = 31
     }
 
     public class Alert

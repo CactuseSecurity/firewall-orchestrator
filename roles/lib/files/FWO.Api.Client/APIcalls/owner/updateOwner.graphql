@@ -1,0 +1,24 @@
+mutation updateOwner(
+  $id: Int!
+  $name: String!
+  $dn: String!
+  $groupDn: String!
+  $tenantId: Int
+  $recertInterval: Int
+  $nextRecertDate: timestamp
+  $appIdExternal: String!
+  ) {
+  update_owner_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      name: $name
+      dn: $dn
+      group_dn: $groupDn
+      tenant_id: $tenantId
+      recert_interval: $recertInterval
+      next_recert_date: $nextRecertDate
+      app_id_external: $appIdExternal
+  }) {
+    UpdatedId: id
+  }
+}

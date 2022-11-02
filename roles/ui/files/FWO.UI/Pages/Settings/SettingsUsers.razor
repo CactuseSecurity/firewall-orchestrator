@@ -1,7 +1,7 @@
 @using BlazorTable
 @using System.Net
 @using FWO.Api.Data
-@using FWO.ApiClient
+@using FWO.Api.Client
 @using FWO.Middleware.Client
 @using FWO.Config.Api
 @using FWO.Middleware.RequestParameters
@@ -11,7 +11,7 @@
 @page "/settings/users"
 @attribute [Authorize(Roles = "admin, auditor")]
 
-@inject APIConnection apiConnection
+@inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 @inject GlobalConfig globalConfig
@@ -38,7 +38,7 @@
 
 <div class="m-2">
     <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="UiUser" Items="uiUsers" PageSize="0" ColumnReorder="true">
-        <Column TableItem="UiUser" Title="@(userConfig.GetText("action"))" Field="(x => x.DbId)" Sortable="false" Filterable="false">
+        <Column TableItem="UiUser" Title="@(userConfig.GetText("actions"))" Field="(x => x.DbId)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
                     <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">@(userConfig.GetText("clone"))</button>
@@ -166,7 +166,7 @@
                     }
                     else
                     {
-                        <label class="m-2">@((actUser.Groups != null && actUser.Groups.Count > 0) ? actUser.Groups.First() : "")</label>
+                        <label class="m-2">@(actUser.Groups.Count > 0 ? actUser.Groups.First() : "")</label>
                     }
                 </div>
                 <div class="form-group row">
@@ -185,7 +185,7 @@
                     }
                     else
                     {
-                        <label class="m-2">@((actUser.Roles != null && actUser.Roles.Count > 0) ? actUser.Roles.First() : "")</label>
+                        <label class="m-2">@((actUser.Roles.Count > 0) ? actUser.Roles.First() : "")</label>
                     }
                 </div>
             </form>
@@ -344,12 +344,12 @@
     {
         try
         {
-            connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections);
+            connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(FWO.Api.Client.Queries.AuthQueries.getLdapConnections);
             writableLdaps = connectedLdaps.FindAll(x => x.IsWritable());
             internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal()) ?? throw new Exception(userConfig.GetText("E5207"));
 
             // Get the tenants
-            tenants = await apiConnection.SendQueryAsync<List<Tenant>>(FWO.ApiClient.Queries.AuthQueries.getTenants);
+            tenants = await apiConnection.SendQueryAsync<List<Tenant>>(FWO.Api.Client.Queries.AuthQueries.getTenants);
 
             // Get users from uiusers table
             RestResponse<List<UserGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetUsers();
@@ -561,30 +561,10 @@
     {
         try
         {
-            RestResponse<List<RoleGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetAllRoles();
-            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
+            roles = await RoleAccess.GetRolesFromInternalLdap(middlewareClient);
+            if (roles.Count == 0)
             {
                 DisplayMessageInUi!(null, userConfig.GetText("fetch_roles"), userConfig.GetText("E5251"), true);
-            }
-            else
-            {
-                foreach (var ldapRole in middlewareServerResponse.Data)
-                {
-                    Role role = new Role() { Dn = ldapRole.Role, Name = (new DistName(ldapRole.Role)).Role };
-                    foreach (var roleAttr in ldapRole.Attributes)
-                    {
-                        if (roleAttr.Key == "description")
-                        {
-                            role.Description = roleAttr.Value;
-                        }
-                        else if (roleAttr.Key == "user")
-                        {
-                            UiUser newUser = new UiUser() { Dn = roleAttr.Value, Name = (new DistName(roleAttr.Value)).UserName };
-                            role.Users.Add(newUser);
-                        }
-                    }
-                    roles.Add(role);
-                }
             }
         }
         catch (System.Exception exception)
@@ -602,7 +582,7 @@
                 id = user.DbId,
                 email = user.Email
             };
-            await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateUserEmail, Variables);
+            await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.AuthQueries.updateUserEmail, Variables);
         }
         catch (Exception exception)
         {
@@ -629,7 +609,7 @@
                 passwordMustBeChanged = user.PasswordMustBeChanged,
                 ldapConnectionId = user.LdapConnection.Id
             };
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addUser, Variables)).ReturnIds;
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.AuthQueries.addUser, Variables)).ReturnIds;
             if(returnIds != null)
             {
                 user.DbId = returnIds[0].NewId;
@@ -699,7 +679,7 @@
             selectedTenantId = newUser.Tenant?.Id;
             selectedGroupName = (newUser.Groups != null ? newUser.Groups.FirstOrDefault() : null);
             newUser.Groups = new List<string>();
-            selectedRoleName = (newUser.Roles != null ? newUser.Roles.FirstOrDefault() : null);
+            selectedRoleName = newUser.Roles.FirstOrDefault();
             newUser.Roles = new List<string>();
             Edit(newUser);
         }
@@ -753,7 +733,10 @@
     {
         try
         {
-            actUser.Sanitize();
+            if (actUser.Sanitize())
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("add_user"), userConfig.GetText("U0001"), true);
+            }
             if (AddMode)
             {
                 SynchronizeUserData(actUser); 
@@ -838,19 +821,16 @@
     {
         try
         {
-            if (user.Groups != null)
+            foreach(string groupName in user.Groups)
             {
-                foreach(string groupName in user.Groups)
+                UserGroup? group = groups.FirstOrDefault(x => x.Name == groupName);
+                if (group != null)
                 {
-                    UserGroup? group = groups.FirstOrDefault(x => x.Name == groupName);
-                    if (group != null)
+                    GroupAddDeleteUserParameters addUserParameters = new GroupAddDeleteUserParameters { GroupDn = group.Dn, UserDn = user.Dn };
+                    RestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToGroup(addUserParameters);
+                    if ((middlewareServerResponse.StatusCode != HttpStatusCode.OK) || (middlewareServerResponse.Data == false))
                     {
-                        GroupAddDeleteUserParameters addUserParameters = new GroupAddDeleteUserParameters { GroupDn = group.Dn, UserDn = user.Dn };
-                        RestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToGroup(addUserParameters);
-                        if ((middlewareServerResponse.StatusCode != HttpStatusCode.OK) || (middlewareServerResponse.Data == false))
-                        {
-                            DisplayMessageInUi!(null, userConfig.GetText("assign_user_to_group"), userConfig.GetText("E5242"), true);
-                        }
+                        DisplayMessageInUi!(null, userConfig.GetText("assign_user_to_group"), userConfig.GetText("E5242"), true);
                     }
                 }
             }
@@ -865,19 +845,16 @@
     {
         try
         {
-            if (user.Roles != null)
+            foreach(string roleName in user.Roles)
             {
-                foreach(string roleName in user.Roles)
+                Role? role = roles.FirstOrDefault(x => x.Name == roleName);
+                if (role != null)
                 {
-                    Role? role = roles.FirstOrDefault(x => x.Name == roleName);
-                    if (role != null)
+                    RoleAddDeleteUserParameters parameters = new RoleAddDeleteUserParameters { Role = role.Dn, UserDn = user.Dn };
+                    RestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToRole(parameters);
+                    if ((middlewareServerResponse.StatusCode != HttpStatusCode.OK) || (middlewareServerResponse.Data == false))
                     {
-                        RoleAddDeleteUserParameters parameters = new RoleAddDeleteUserParameters { Role = role.Dn, UserDn = user.Dn };
-                        RestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToRole(parameters);
-                        if ((middlewareServerResponse.StatusCode != HttpStatusCode.OK) || (middlewareServerResponse.Data == false))
-                        {
-                            DisplayMessageInUi!(null, userConfig.GetText("assign_user_group_to_role"), userConfig.GetText("E5255"), true);
-                        }
+                        DisplayMessageInUi!(null, userConfig.GetText("assign_user_group_to_role"), userConfig.GetText("E5255"), true);
                     }
                 }
             }
@@ -945,7 +922,7 @@
         try
         {
             var Variables = new { id = user.DbId };
-            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.deleteUser, Variables)).DeletedId;
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.AuthQueries.deleteUser, Variables)).DeletedId;
             if (delId == user.DbId)
             {
                 uiUsers.Remove(user);

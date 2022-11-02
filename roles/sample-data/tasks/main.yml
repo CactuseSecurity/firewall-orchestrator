@@ -6,8 +6,11 @@
 
 - name: install package postgresql-client for adding sample devices to db
   package:
-    name: postgresql-client
+    name: "{{ item }}"
     state: present
+  loop:
+    - postgresql-client
+    - cron
   become: yes
 
 - name: add localhost hostkey to known_hosts

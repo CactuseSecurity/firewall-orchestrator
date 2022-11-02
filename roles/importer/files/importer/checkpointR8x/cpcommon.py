@@ -5,11 +5,10 @@ from fwo_log import getFwoLogger
 sys.path.append(importer_base_dir + '/checkpointR8x')
 import json
 import time
-#import parse_network, parse_rule, parse_service, parse_user
-#import common, getter
 import getter
 import fwo_alert, fwo_api
 import ipaddress 
+import fwo_globals
 
 
 def validate_ip_address(address):
@@ -38,7 +37,7 @@ original_obj_uid = "85c0f50f-6d8a-4528-88ab-5fb11d8fe16c"
 # used for nat only (both svc and nw obj)
 
 
-def get_ip_of_obj(obj, mgm_id=0):
+def get_ip_of_obj(obj, mgm_id=None):
     if 'ipv4-address' in obj:
         ip_addr = obj['ipv4-address']
     elif 'ipv6-address' in obj:
@@ -70,21 +69,24 @@ def get_ip_of_obj(obj, mgm_id=0):
 ##################### 2nd-level functions ###################################
 
 def get_basic_config (config_json, mgm_details, force=False, config_filename=None,
-    proxy=None, limit=150, details_level='full', test_version='off', debug_level=0, ssl_verification='', sid=None):
-    logger = getFwoLogger(debug_level=debug_level)
+    limit=150, details_level='full', test_version='off', debug_level=0, ssl_verification=True, sid=None):
+    logger = getFwoLogger()
 
     api_host = mgm_details['hostname']
-    api_user =  mgm_details['user']
-    api_domain = mgm_details['configPath']
+    api_user =  mgm_details['import_credential']['user']
+    if mgm_details['domainUid'] != None:
+        api_domain = mgm_details['domainUid']
+    else:
+        api_domain = mgm_details['configPath']
     api_port = str(mgm_details['port'])
-    api_password = mgm_details['secret']
+    api_password = mgm_details['import_credential']['secret']
     base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
     use_object_dictionary = 'false'
 
     # top level dict start, sid contains the domain information, so only sending domain during login
     if sid is None:  # if sid was not passed, login and get it
-        sid = getter.login(api_user,api_password,api_host,api_port,api_domain,ssl_verification, proxy)
-    v_url = getter.get_api_url (sid, api_host, api_port, api_user, base_url, limit, test_version, ssl_verification, proxy, debug_level=debug_level)
+        sid = getter.login(api_user,api_password,api_host,api_port,api_domain,ssl_verification)
+    v_url = getter.get_api_url (sid, api_host, api_port, api_user, base_url, limit, test_version, ssl_verification, debug_level=debug_level)
 
     config_json.update({'rulebases': [], 'nat_rulebases': [] })
     show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary,'details-level':details_level}
@@ -95,14 +97,14 @@ def get_basic_config (config_json, mgm_details, force=False, config_filename=Non
             show_params_rules['name'] = device['global_rulebase_name']
             # get global layer rulebase
             logger.debug ( "getting layer: " + show_params_rules['name'] )
-            current_layer_json = getter.get_layer_from_api_as_dict (api_host, api_port, v_url, sid, ssl_verification, proxy, show_params_rules, layername=device['global_rulebase_name'], debug_level=debug_level)
+            current_layer_json = getter.get_layer_from_api_as_dict (api_host, api_port, v_url, sid, show_params_rules, layername=device['global_rulebase_name'])
             if current_layer_json is None:
                 return 1
             # now also get domain rules 
             show_params_rules['name'] = device['local_rulebase_name']
             current_layer_json['layername'] = device['local_rulebase_name']
             logger.debug ( "getting domain rule layer: " + show_params_rules['name'] )
-            domain_rules = getter.get_layer_from_api_as_dict (api_host, api_port, v_url, sid, ssl_verification, proxy, show_params_rules, layername=device['local_rulebase_name'], debug_level=debug_level)
+            domain_rules = getter.get_layer_from_api_as_dict (api_host, api_port, v_url, sid, show_params_rules, layername=device['local_rulebase_name'])
             if current_layer_json is None:
                 return 1
 
@@ -113,11 +115,11 @@ def get_basic_config (config_json, mgm_details, force=False, config_filename=Non
                     for rule in chunk['rulebase']:
                         if "type" in rule and rule["type"] == "place-holder":
                             logger.debug ("found domain rules place-holder: " + str(rule) + "\n\n")
-                            current_layer_json = getter.insert_layer_after_place_holder(current_layer_json, domain_rules, rule['uid'], debug_level=debug_level)
+                            current_layer_json = getter.insert_layer_after_place_holder(current_layer_json, domain_rules, rule['uid'])
         else:   # no global rules, just get local ones
             show_params_rules['name'] = device['local_rulebase_name']
             logger.debug ( "getting layer: " + show_params_rules['name'] )
-            current_layer_json = getter.get_layer_from_api_as_dict (api_host, api_port, v_url, sid, ssl_verification, proxy, show_params_rules, layername=device['local_rulebase_name'], debug_level=debug_level)
+            current_layer_json = getter.get_layer_from_api_as_dict (api_host, api_port, v_url, sid, show_params_rules, layername=device['local_rulebase_name'])
             if current_layer_json is None:
                 return 1
 
@@ -129,7 +131,7 @@ def get_basic_config (config_json, mgm_details, force=False, config_filename=Non
             show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary,'details-level':details_level, 'package': device['package_name'] }
             if debug_level>3:
                 logger.debug ( "getting nat rules for package: " + device['package_name'] )
-            nat_rules = getter.get_nat_rules_from_api_as_dict (api_host, api_port, v_url, sid, ssl_verification, proxy, show_params_rules, debug_level=debug_level)
+            nat_rules = getter.get_nat_rules_from_api_as_dict (api_host, api_port, v_url, sid, show_params_rules)
             if len(nat_rules)>0:
                 config_json['nat_rulebases'].append(nat_rules)
             else:
@@ -150,7 +152,7 @@ def get_basic_config (config_json, mgm_details, force=False, config_filename=Non
             logger.debug ( "obj_type: "+ obj_type )
         while (current<total) :
             show_params_objs['offset']=current
-            objects = getter.cp_api_call(v_url, show_cmd, show_params_objs, sid, ssl_verification, proxy)
+            objects = getter.cp_api_call(v_url, show_cmd, show_params_objs, sid)
             object_table["object_chunks"].append(objects)
             if 'total' in objects  and 'to' in objects:
                 total=objects['total']
@@ -162,7 +164,7 @@ def get_basic_config (config_json, mgm_details, force=False, config_filename=Non
                 if debug_level>5:
                     logger.debug ( obj_type +" total:"+ str(total) )
         config_json["object_tables"].append(object_table)
-    logout_result = getter.cp_api_call(v_url, 'logout', {}, sid, ssl_verification, proxy)
+    logout_result = getter.cp_api_call(v_url, 'logout', {}, sid)
 
     # only write config to file if config_filename is given
     if config_filename != None and len(config_filename)>1:
@@ -172,9 +174,9 @@ def get_basic_config (config_json, mgm_details, force=False, config_filename=Non
 
 
 ################# enrich #######################
-def enrich_config (config, mgm_details, proxy=None, limit=150, details_level='full', debug_level=0, ssl_verification='', noapi=False, sid=None):
+def enrich_config (config, mgm_details, limit=150, details_level='full', noapi=False, sid=None):
 
-    logger = getFwoLogger(debug_level=debug_level)
+    logger = getFwoLogger()
     base_url = 'https://' + mgm_details['hostname'] + ':' + str(mgm_details['port']) + '/web_api/'
     nw_objs_from_obj_tables = []
     svc_objs_from_obj_tables = []
@@ -191,15 +193,15 @@ def enrich_config (config, mgm_details, proxy=None, limit=150, details_level='fu
     while found_new_inline_layers is True:
         # sweep existing rules for inline layer links
         inline_layers = []
-        for rulebase in config['rulebases']:
-            getter.get_inline_layer_names_from_rulebase(rulebase, inline_layers, debug_level=debug_level)
+        for rulebase in config['rulebases'] + config['nat_rulebases']:
+            getter.get_inline_layer_names_from_rulebase(rulebase, inline_layers)
 
         if len(inline_layers) == len(old_inline_layers):
             found_new_inline_layers = False
         else:
             old_inline_layers = inline_layers
             for layer in inline_layers:
-                if debug_level>5:
+                if fwo_globals.debug_level>5:
                     logger.debug ( "found inline layer " + layer )
                 # enrich config --> get additional layers referenced in top level layers by name
                 # also handle possible recursion (inline layer containing inline layer(s))
@@ -209,15 +211,16 @@ def enrich_config (config, mgm_details, proxy=None, limit=150, details_level='fu
     # next phase: how to logically link layer guard with rules in layer? --> AND of src, dst & svc between layer guard and each rule in layer?
 
     #################################################################################
-    # get object data which is only contained as uid in config by making addtional api calls
+    # get object data which is only contained as uid in config by making additional api calls
     # get all object uids (together with type) from all rules in fields src, dst, svc
     nw_uids_from_rulebase = []
     svc_uids_from_rulebase = []
 
-    for rulebase in config['rulebases']:
-        if debug_level>5:
-            logger.debug ( "Searching for all uids in rulebase: " + rulebase['layername'] )
-        getter.collect_uids_from_rulebase(rulebase, nw_uids_from_rulebase, svc_uids_from_rulebase, "top_level", debug_level=debug_level)
+    for rulebase in config['rulebases'] + config['nat_rulebases']:
+        if fwo_globals.debug_level>5:
+            if 'layername' in rulebase:
+                logger.debug ( "Searching for all uids in rulebase: " + rulebase['layername'] )
+        getter.collect_uids_from_rulebase(rulebase, nw_uids_from_rulebase, svc_uids_from_rulebase, "top_level")
 
     # remove duplicates from uid lists
     nw_uids_from_rulebase = list(set(nw_uids_from_rulebase))
@@ -236,14 +239,20 @@ def enrich_config (config, mgm_details, proxy=None, limit=150, details_level='fu
     missing_nw_object_uids.append(original_obj_uid)
     missing_svc_object_uids.append(original_obj_uid)
 
-    if debug_level>4:
+    if fwo_globals.debug_level>4:
         logger.debug ( "found missing nw objects: '" + ",".join(missing_nw_object_uids) + "'" )
         logger.debug ( "found missing svc objects: '" + ",".join(missing_svc_object_uids) + "'" )
 
     if noapi == False:
         # if sid is None:
         # TODO: why is the re-genereation of a new sid necessary here?
-        sid = getter.login(mgm_details['user'],mgm_details['secret'],mgm_details['hostname'],mgm_details['port'],mgm_details['configPath'],ssl_verification, proxy)
+
+        if mgm_details['domainUid'] != None:
+            api_domain = mgm_details['domainUid']
+        else:
+            api_domain = mgm_details['configPath']
+        
+        sid = getter.login(mgm_details['import_credential']['user'],mgm_details['import_credential']['secret'],mgm_details['hostname'],mgm_details['port'],api_domain)
         logger.debug ( "re-logged into api" )
 
         # if an object is not there:
@@ -251,7 +260,7 @@ def enrich_config (config, mgm_details, proxy=None, limit=150, details_level='fu
         for missing_obj in missing_nw_object_uids:
             show_params_host = {'details-level':details_level,'uid':missing_obj}
             logger.debug ( "fetching obj with uid: " + missing_obj)
-            obj = getter.cp_api_call(base_url, 'show-object', show_params_host, sid, ssl_verification, proxy)
+            obj = getter.cp_api_call(base_url, 'show-object', show_params_host, sid)
             if 'object' in obj:
                 obj = obj['object']
                 if (obj['type'] == 'CpmiAnyObject'):
@@ -303,7 +312,7 @@ def enrich_config (config, mgm_details, proxy=None, limit=150, details_level='fu
 
         for missing_obj in missing_svc_object_uids:
             show_params_host = {'details-level':details_level,'uid':missing_obj}
-            obj = getter.cp_api_call(base_url, 'show-object', show_params_host, sid, ssl_verification, proxy)
+            obj = getter.cp_api_call(base_url, 'show-object', show_params_host, sid)
             obj = obj['object']
             if (obj['type'] == 'CpmiAnyObject'):
                 json_obj = {"object_type": "services-other", "object_chunks": [ {
@@ -326,7 +335,7 @@ def enrich_config (config, mgm_details, proxy=None, limit=150, details_level='fu
                 # print ("WARNING - enrich_config - missing svc obj of unexpected type: '" + obj['type'] + "': " + missing_obj)
             logger.debug ( "missing svc obj: " + missing_obj + " added")
 
-        logout_result = getter.cp_api_call(base_url, 'logout', {}, sid, ssl_verification, proxy)
+        logout_result = getter.cp_api_call(base_url, 'logout', {}, sid)
     
     logger.debug ( "checkpointR8x/enrich_config - duration: " + str(int(time.time()) - starttime) + "s" )
 

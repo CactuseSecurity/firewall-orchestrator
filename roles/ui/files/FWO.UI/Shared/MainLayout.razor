@@ -1,13 +1,22 @@
 ﻿@inherits LayoutComponentBase
 @using FWO.Config.Api
-@using FWO.ApiClient
+@using FWO.Api.Client
 @using FWO.Api.Data
-@using FWO.ApiClient.Queries
+@using FWO.Api.Client.Queries
+@using FWO.Middleware.Client
+@using FWO.Ui.Auth
+@using FWO.Ui.Services
 @using System.Timers
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using RestSharp
 
-
-@inject APIConnection apiConnection
+@inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject MiddlewareClient middlewareClient
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider authenticationProvider
+@inject ProtectedSessionStorage sessionStorage
+@inject CircuitHandlerService circuitHandler
 
 <div style="z-index:15; top:0px;" class="position-sticky">
     <NavigationMenu @bind-ShowAlert="showAlert"/>
@@ -28,6 +37,19 @@
             <div>@dialogTitle - @dialogMessage</div>
             <div class="oi oi-x" @onclick="@(() => { messageDialogShow = false; StateHasChanged();})"></div>
         </div>
+        @if (showReloginInput)
+        {
+            <div class="input-group">
+              <input class="form-control form-control-sm @reloginCssClass" @bind="password" type="password" placeholder="Password" @onkeypress="@(() => reloginCssClass = "")">
+              <div class="input-group-append">
+                <button class="btn btn-sm btn-primary" @onclick="Relogin">Re-login</button>
+              </div>
+            </div>
+            @if (!string.IsNullOrEmpty(reloginErrorMessage))
+            {
+                <label class="mt-1 mb-1 text-danger">@reloginErrorMessage</label>                
+            }
+        }
     </div>
 }
 
@@ -46,6 +68,11 @@
     private string cssClass = "";
     private object errorLock = new object();
 
+    private string reloginErrorMessage = "";
+    private string reloginCssClass = "";
+    private bool showReloginInput;
+    private string? password;
+
     public enum MessageType
     {
         Info,
@@ -54,42 +81,97 @@
         Error
     }
 
-
     protected override void OnInitialized()
     {
         var user = authenticationStateTask!.Result.User;
         DisplayMessageInUiFunction = DisplayMessageInUi;
 
+        JwtEventService.OnPermissionChanged += OnPermissionsChanged;
+        JwtEventService.OnJwtAboutToExpire += OnJwtAboutToExpire;
+
         alertSubscription = apiConnection.GetSubscription<List<Alert>>(ApiExceptionHandler, OnAlertUpdate, MonitorQueries.subscribeAlertChanges);
     }
 
+    private void OnPermissionsChanged(object? sender, string userDn)
+    {
+        if (userDn == userConfig.User.Dn)
+        {
+            showReloginInput = true;
+            ShowMessage(userConfig.GetText("permissions_title"), userConfig.GetText("permissions_text"), MessageType.Info, showtime: -1);
+        }
+    }
+
+    private void OnJwtAboutToExpire(object? sender, string userDn)
+    {
+        if (userDn == userConfig.User.Dn)
+        {
+            showReloginInput = true;
+            ShowMessage(userConfig.GetText("jwt_expiry_title"), userConfig.GetText("jwt_expiry_text"), MessageType.Info, showtime: -1);
+        }
+    }
+
+    private async Task Relogin()
+    {
+        string errorMessage = userConfig.GetText("relogin_error");
+
+        if (password == null)
+        {
+            password = "";
+        }
+        try
+        {
+            RestResponse<string> authResponse = await ((AuthStateProvider)authenticationProvider).Login(userConfig.User.Name,
+            password, apiConnection, middlewareClient, userConfig, sessionStorage, circuitHandler);
+            if (authResponse.StatusCode == System.Net.HttpStatusCode.OK) 
+            { 
+                showReloginInput = false;
+                messageDialogShow = false;
+                reloginErrorMessage = "";
+                password = "";
+                return;
+            }
+            else
+            {
+                // There was an error trying to authenticate the user. Probably invalid credentials
+                errorMessage = (authResponse.Data != null ? userConfig.GetApiText(authResponse.Data) : "Middleware Api Error: " + authResponse.Content);            
+            }
+        }
+        catch (Exception ex){ Log.WriteError("Re-login", "Re-login unsuccessful.", ex); }
+
+        reloginErrorMessage = errorMessage;
+        reloginCssClass = "is-invalid";
+    }
+    
     private void OnAlertUpdate(List<Alert> alerts)
     {
         showAlert = alerts.Count() > 0;
         InvokeAsync(StateHasChanged);
     }
 
-    private void ShowMessage(string title, string message, MessageType type)
+    private void ShowMessage(string title, string message, MessageType type, int? showtime = null)
     {
         // Needed so there is no chance an error is announced by 2 threads at the same time.
         lock (errorLock)
         {
-            int showtime = userConfig.MessageViewTime * 1000; // convert to milliseconds
+            if (showtime == null)
+            {
+                showtime = userConfig.MessageViewTime * 1000; // convert to milliseconds
+            }
             
             switch(type)
             {
                 case MessageType.Info:
-                    cssClass = "footer alert alert-info";
+                    cssClass = "footer alert alert-info fly-in-animation";
                     break;
                 case MessageType.Success:
-                    cssClass = "footer alert alert-success";
+                    cssClass = "footer alert alert-success fly-in-animation";
                     break;
                 case MessageType.Warning:
-                    cssClass = "footer alert alert-warning";
+                    cssClass = "footer alert alert-warning fly-in-animation";
                     break;
                 case MessageType.Error:
                     Task.Run(async () => await setAlert(title, message));
-                    cssClass = "footer alert alert-danger";
+                    cssClass = "footer alert alert-danger fly-in-animation";
                     showtime = showtime * 3; // show errors a bit longer
                     break;
             }
@@ -98,9 +180,9 @@
             dialogMessage = message;
             messageDialogShow = true;
 
-            if(showtime > 0)
+            if (showtime > 0)
             {
-                Timer messageTimer = new Timer(showtime);
+                Timer messageTimer = new Timer(showtime.Value);
                 messageTimer.Elapsed += HideMessage;
                 messageTimer.AutoReset = false;
                 messageTimer.Start();
@@ -147,12 +229,9 @@
             // first some recurring specific messages
             if (exception.Message.Contains("JWTExpired"))
             {
-                // todo: consider redirect to login page
                 Log.WriteError("Auth Token Error", "JWT expired in session.", exception);
-                severity = 1;
-                messageType = MessageType.Warning;
-                cause = userConfig.GetText("jwt_expiry");
-                description = userConfig.GetText("E0003");
+                NavigationManager.NavigateTo("/logout");
+                return;
             }
             else if (exception.Message == "no such type exists in the schema: 'cidr'")
             {
@@ -193,7 +272,7 @@
                 suspectedCause = cause,
                 description = description,
             };
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.MonitorQueries.addUiLogEntry, Variables)).ReturnIds;
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(MonitorQueries.addUiLogEntry, Variables)).ReturnIds;
             if (returnIds == null)
             {
                 Log.WriteError("Write Log", "Log could not be written to database");
@@ -228,7 +307,7 @@
                 description = message,
                 alertCode = (int)AlertCode.UiError
             };
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.MonitorQueries.addAlert, Variables)).ReturnIds;
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.MonitorQueries.addAlert, Variables)).ReturnIds;
             if (returnIds != null)
             {
                 try

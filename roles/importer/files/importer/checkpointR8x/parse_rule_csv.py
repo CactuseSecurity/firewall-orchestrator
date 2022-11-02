@@ -1,6 +1,6 @@
 from fwo_log import getFwoLogger
 import json
-import common, cpcommon, parse_rule
+import common, cpcommon, parse_rule, fwo_const
 
 
 def create_section_header(section_name, layer_name, import_id, rule_uid, rule_num, section_header_uids, parent_uid):
@@ -40,7 +40,7 @@ def create_domain_rule_header(section_name, layer_name, import_id, rule_uid, rul
 
 
 def csv_dump_rule(rule, layer_name, import_id, rule_num, parent_uid, debug_level=0):
-    logger = getFwoLogger(debug_level=debug_level)
+    logger = getFwoLogger()
     rule_csv = ''
 
     # reference to domain rule layer, filling up basic fields
@@ -170,15 +170,18 @@ def csv_dump_rule(rule, layer_name, import_id, rule_num, parent_uid, debug_level
     return rule_csv
 
 
-def csv_dump_rules(rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, debug_level=0):
-    logger = getFwoLogger(debug_level=debug_level)
+def csv_dump_rules(rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, debug_level=0, recursion_level=1):
+    logger = getFwoLogger()
     result = ''
+    
+    if recursion_level>fwo_const.max_recursion_level:
+        raise common.ImportRecursionLimitReached("csv_dump_rules") from None
 
     if 'layerchunks' in rulebase:
         for chunk in rulebase['layerchunks']:
             if 'rulebase' in chunk:
                 for rules_chunk in chunk['rulebase']:
-                    rule_num, rules_in_csv = csv_dump_rules(rules_chunk, layer_name, import_id, rule_num, section_header_uids, parent_uid, debug_level=debug_level)
+                    rule_num, rules_in_csv = csv_dump_rules(rules_chunk, layer_name, import_id, rule_num, section_header_uids, parent_uid, debug_level=debug_level, recursion_level=recursion_level+1)
                     result += rules_in_csv
             else:
                 logger.warning("found no rulebase in chunk:\n" + json.dumps(chunk, indent=2))

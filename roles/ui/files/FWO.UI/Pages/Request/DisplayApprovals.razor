@@ -1,0 +1,118 @@
+@using FWO.Api.Client
+@using FWO.Config.Api
+@using FWO.Ui.Services
+
+
+@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+
+<PopUp Title="@(userConfig.GetText("approvals"))" Show="@Display" XLarge="true" OnClose="async () => await Close()">
+    <Body>
+        @if (Display)
+        {
+            <div class="m-2">
+                <Table class="table table-bordered table-responsive overflow-auto sticky-header" TableItem="RequestApproval" Items="Approvals" PageSize="0" ColumnReorder="true">
+                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                        <Template>
+                            <div class="btn-group">
+                                @if((context.ApproverDn == null || context.ApproverDn == "") && !ReqHandler.AddTicketMode && !ReqHandler.ReadOnlyMode)
+                                {
+                                    <button class="btn btn-sm btn-success" @onclick:preventDefault @onclick="() => InitAddComment(context)">@(userConfig.GetText("add_comment"))</button>
+                                    <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignApproval(context)">@(userConfig.GetText("assign1"))</button>
+                                }
+                            </div>
+                        </Template>
+                    </Column>                    
+                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("opened"))" Field="@(x => x.DateOpened)" Sortable="true" Filterable="true" />
+                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("deadline"))" Field="@(x => x.Deadline)" Sortable="true" Filterable="true" />
+                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("assigned"))" Field="@(x => x.AssignedGroup)" Sortable="true" Filterable="true" >
+                        <Template>
+                            @(new DistName(context.AssignedGroup).UserName)
+                        </Template>
+                    </Column>
+                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("approved"))" Field="@(x => x.ApprovalDate)" Sortable="true" Filterable="true" />
+                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("approver"))" Field="@(x => x.ApproverDn)" Sortable="true" Filterable="true" >
+                        <Template>
+                            @(new DistName(context.ApproverDn).UserName)
+                        </Template>
+                    </Column>
+                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="true" >
+                        <Template>
+                            @(States.Name[context.StateId])
+                        </Template>
+                    </Column>
+                    <Column TableItem="RequestApproval" Title="@(userConfig.GetText("comments"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
+                        <Template>
+                            @(context.getAllComments())
+                        </Template>
+                    </Column>
+                </Table>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("ok"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<AssignObject @bind-Display="ReqHandler.DisplayAssignApprovalMode" ResetParent="Reset" StatefulObject="ReqHandler.ActApproval" Assign="ReqHandler.AssignApprovalGroup" ObjectName="" RoleList="validRoles"/>
+<CommentObject @bind-Display="ReqHandler.DisplayCommentMode" ResetParent="Reset" ObjectName="" Save="ConfAddComment"/>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public RequestHandler ReqHandler { get; set; }
+
+    [Parameter]
+    public Func<Task> ResetParent { get; set; }
+
+    [Parameter]
+    public List<RequestApproval> Approvals { get; set; } = new List<RequestApproval>();
+
+    [Parameter]
+    public RequestStateDict States { get; set; } = new RequestStateDict();
+
+    static List<string> validRoles = new List<string>(){"approver"};
+
+    private async Task Close()
+    {
+        Display = false;
+        await ResetParent();
+    }
+
+    private async Task Reset()
+    {
+        ReqHandler.ResetApprovalActions();
+        StateHasChanged();
+    }
+
+    private async Task AssignApproval(RequestApproval approval)
+    {
+        await ReqHandler.SelectApprovalPopUp(approval, ObjAction.displayAssign);
+    }
+
+    private async Task InitAddComment(RequestApproval approval)
+    {
+        await ReqHandler.SelectApprovalPopUp(approval, ObjAction.displayComment);
+    }
+    private async Task ConfAddComment(string commentText)
+    {
+        await ReqHandler.ConfAddCommentToApproval(commentText);
+        StateHasChanged();
+    }
+
+}

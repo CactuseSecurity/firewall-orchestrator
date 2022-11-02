@@ -10,6 +10,7 @@ import json
 import sys
 import fwo_log
 
+
 parser = argparse.ArgumentParser(description='parse json configuration file from Check Point R8x management')
 parser.add_argument('-f', '--config_file', required=True, help='name of config file to parse (json format)')
 parser.add_argument('-i', '--import_id', default='0', help='unique import id')
@@ -31,7 +32,7 @@ result = ""
 
 # log config
 debug_level = int(args.debug)
-logger = fwo_log.getFwoLogger(debug_level=debug_level)
+logger = fwo_log.getFwoLogger()
 
 args = parser.parse_args()
 if len(sys.argv)==1:

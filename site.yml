@@ -18,6 +18,7 @@
     - importer
     - api
 
+
 - hosts: all
   tasks:
     - name: uninstall product
@@ -70,9 +71,7 @@
 
 - hosts: frontends
   roles:
-    # do not install lib role twice (for non distributed install, already installed for middlewareserver)
-    # todo: this does not work when using "ui" tag - lib is not built then!
-    - { role: lib, when: "'middlewareserver' not in group_names and not installation_mode == 'uninstall'"}
+    - { role: lib, when: "not installation_mode == 'uninstall'"}
     - { role: ui, when: "not installation_mode == 'uninstall'"}
   tags:
     - frontend

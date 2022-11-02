@@ -14,14 +14,17 @@ namespace FWO.Api.Data
         [JsonProperty("hostname"), JsonPropertyName("hostname")]
         public string Hostname { get; set; } = "";
 
-        [JsonProperty("user"), JsonPropertyName("user")]
-        public string? ImportUser { get; set; }
+        [JsonProperty("import_credential"), JsonPropertyName("import_credential")]
+        public ImportCredential ImportCredential { get; set; }
 
-        [JsonProperty("secret"), JsonPropertyName("secret")]
-        public string Secret { get; set; } = "";
+        // [JsonProperty("import_credential_id"), JsonPropertyName("import_credential_id")]
+        // public int ImportCredentialId { get; set; }
 
         [JsonProperty("configPath"), JsonPropertyName("configPath")]
         public string ConfigPath { get; set; } = "";
+
+        [JsonProperty("domainUid"), JsonPropertyName("domainUid")]
+        public string DomainUid { get; set; } = "";
 
         [JsonProperty("superManager"), JsonPropertyName("superManager")]
         public int? SuperManagerId { get; set; }
@@ -31,9 +34,6 @@ namespace FWO.Api.Data
 
         [JsonProperty("port"), JsonPropertyName("port")]
         public int Port { get; set; }
-
-        [JsonProperty("sshPublicKey"), JsonPropertyName("sshPublicKey")]
-        public string? PublicKey { get; set; }
 
         [JsonProperty("importDisabled"), JsonPropertyName("importDisabled")]
         public bool ImportDisabled { get; set; }
@@ -66,13 +66,13 @@ namespace FWO.Api.Data
         public NetworkUser[] Users { get; set; } = new NetworkUser[]{};
 
         [JsonProperty("reportNetworkObjects"), JsonPropertyName("reportNetworkObjects")]
-        public NetworkObjectWrapper[] ReportObjects { get; set; } = new NetworkObjectWrapper[]{};
+        public NetworkObject[] ReportObjects { get; set; } = new NetworkObject[]{};
 
         [JsonProperty("reportServiceObjects"), JsonPropertyName("reportServiceObjects")]
-        public ServiceWrapper[] ReportServices { get; set; } = new ServiceWrapper[]{};
+        public NetworkService[] ReportServices { get; set; } = new NetworkService[]{};
 
         [JsonProperty("reportUserObjects"), JsonPropertyName("reportUserObjects")]
-        public UserWrapper[] ReportUsers { get; set; } = new UserWrapper[]{};
+        public NetworkUser[] ReportUsers { get; set; } = new NetworkUser[]{};
 
         [JsonProperty("deviceType"), JsonPropertyName("deviceType")]
         public DeviceType DeviceType { get; set; } = new DeviceType();
@@ -103,19 +103,23 @@ namespace FWO.Api.Data
         public ObjectStatistics RuleStatistics { get; set; } = new ObjectStatistics();
 
         public Management()
-        {}
+        {
+            // ImportCredential= new ImportCredential();
+        }
 
         public Management(Management management)
         {
             Id = management.Id;
             Name = management.Name;
             Hostname = management.Hostname;
-            ImportUser = management.ImportUser;
-            Secret = management.Secret;
+            if (management.ImportCredential != null)
+                ImportCredential = new ImportCredential(management.ImportCredential);
+            else
+                ImportCredential = new ImportCredential();
             ConfigPath = management.ConfigPath;
+            DomainUid = management.DomainUid;
             ImporterHostname = management.ImporterHostname;
             Port = management.Port;
-            PublicKey = management.PublicKey;
             ImportDisabled = management.ImportDisabled;
             ForceInitialImport = management.ForceInitialImport;
             HideInUi = management.HideInUi;
@@ -160,16 +164,17 @@ namespace FWO.Api.Data
             }
         }
 
-        public void Sanitize()
+        public bool Sanitize()
         {
-            Name = Sanitizer.SanitizeMand(Name);
-            Hostname = Sanitizer.SanitizeMand(Hostname);
-            ImportUser = Sanitizer.SanitizeOpt(ImportUser);
-            ConfigPath = Sanitizer.SanitizeMand(ConfigPath);
-            ImporterHostname = Sanitizer.SanitizeMand(ImporterHostname);
-            Comment = Sanitizer.SanitizeOpt(Comment);
-            PublicKey = Sanitizer.SanitizeKeyOpt(PublicKey);
-            Secret = (DeviceType.IsLegacyDevType() ? Sanitizer.SanitizeKeyMand(Secret) : Sanitizer.SanitizePasswMand(Secret));
+            bool shortened = false;
+            shortened = ImportCredential.Sanitize();
+            Name = Sanitizer.SanitizeMand(Name, ref shortened);
+            Hostname = Sanitizer.SanitizeMand(Hostname, ref shortened);
+            ConfigPath = Sanitizer.SanitizeMand(ConfigPath, ref shortened);
+            DomainUid = Sanitizer.SanitizeOpt(DomainUid, ref shortened);
+            ImporterHostname = Sanitizer.SanitizeMand(ImporterHostname, ref shortened);
+            Comment = Sanitizer.SanitizeCommentOpt(Comment, ref shortened);
+            return shortened;
         }
     }
 
@@ -245,6 +250,11 @@ namespace FWO.Api.Data
                     newObjects = true;
             }
             return newObjects;
+        }
+
+        public static string NameAndDeviceNames(this Management management)
+        {
+            return $"{management.Name} [{string.Join(", ", Array.ConvertAll(management.Devices, device => device.Name))}]";
         }
     }
 }

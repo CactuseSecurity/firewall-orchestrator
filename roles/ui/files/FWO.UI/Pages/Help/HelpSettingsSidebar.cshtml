@@ -7,6 +7,9 @@
             <ul class="sidebar-nav mr-auto">
                 <p></p>
                 <h5>@(userConfig.GetText("devices"))</h5>
+                <a class="nav-link" href="/help/settings/credentials/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-key"></span> @(userConfig.GetText("import_credential"))
+                </a>
                 <a class="nav-link" href="/help/settings/managements/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="oi oi-inbox"></span> @(userConfig.GetText("managements"))
                 </a>
@@ -35,6 +38,22 @@
                 </a>
                 <a class="nav-link" href="/help/settings/passwordpolicy/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="oi oi-document"></span> @(userConfig.GetText("password_policy"))
+                </a>
+                <h5>@(userConfig.GetText("workflow"))</h5>
+                <a class="nav-link" href="/help/settings/stateactions/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-arrow-right"></span> @(userConfig.GetText("state_actions"))
+                </a>
+                <a class="nav-link" href="/help/settings/statedefinitions/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-tag"></span> @(userConfig.GetText("state_definitions"))
+                </a>
+                <a class="nav-link" href="/help/settings/statematrix/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-loop-square"></span> @(userConfig.GetText("state_matrix"))
+                </a>
+                <a class="nav-link" href="/help/settings/workflowcustomizing/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-cog"></span> @(userConfig.GetText("customizing"))
+                </a>
+                <a class="nav-link" href="/help/settings/owners/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-flag"></span> @(userConfig.GetText("owners"))
                 </a>
                 <h5>@(userConfig.GetText("personal"))</h5>
                 <a class="nav-link" href="/help/settings/password/?lang=@($"{userConfig.GetUserLanguage()}")">

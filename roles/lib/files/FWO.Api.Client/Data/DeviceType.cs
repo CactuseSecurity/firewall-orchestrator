@@ -1,8 +1,12 @@
-using System.Text.Json.Serialization; 
+using System.ComponentModel;
+using System.Globalization;
+using System.Text.Json.Serialization;
+using FWO.Api.Client;
 using Newtonsoft.Json;
-
 namespace FWO.Api.Data
 {
+    [Newtonsoft.Json.JsonConverter(typeof(NoTypeConverterJsonConverter<DeviceType>))]
+    [TypeConverter(typeof(JsonStringConverter<DeviceType>))]
     public class DeviceType
     {
         [JsonProperty("id"), JsonPropertyName("id")]
@@ -16,6 +20,12 @@ namespace FWO.Api.Data
 
         [JsonProperty("manufacturer"), JsonPropertyName("manufacturer")]
         public string Manufacturer { get; set; } = "";
+
+        [JsonProperty("isPureRoutingDevice"), JsonPropertyName("isPureRoutingDevice")]
+        public Boolean IsPureRoutingDevice { get; set; }
+
+        [JsonProperty("isManagement"), JsonPropertyName("isManagement")]
+        public Boolean IsManagement { get; set; }
 
         // [JsonProperty("predefinedObjects"), JsonPropertyName("predefinedObjects")]
         // public ??? PredefinedObjects { get; set; }
@@ -41,14 +51,19 @@ namespace FWO.Api.Data
             // Supermgmt -> Gateway
             { 12, 10},  // FortiManager 5ff-> FortiGate 5ff
             { 13, 9 },   // Check Point MDS R8x-> Check Point R8x (?)
-            { 9, 9 }   // Check Point R8x Mgr-> Check Point R8x Mgr
+            { 9, 9 },   // Check Point R8x Mgr-> Check Point R8x Mgr
+            { 14, 16}   // Cisco Firepower
         };
 
         public static List<int> CheckPointManagers = new List<int>
         {  
-             13, 9   // Check Point MDS R8x and Check Point R8x
+            13, 9   // Check Point MDS R8x and Check Point R8x
         };
 
+        public static List<int> FortiManagers = new List<int>
+        {  
+            12   // FortiManager 5ff
+        };
 
         public DeviceType()
         {}
@@ -59,6 +74,8 @@ namespace FWO.Api.Data
             Name = deviceType.Name;
             Version = deviceType.Version;
             Manufacturer = deviceType.Manufacturer;
+            IsPureRoutingDevice = deviceType.IsPureRoutingDevice;
+            IsManagement = deviceType.IsManagement;
         }
 
         public string NameVersion()
@@ -69,6 +86,16 @@ namespace FWO.Api.Data
         public bool IsLegacyDevType()
         {
             return LegacyDevTypeList.Contains(Id);
+        }
+
+        public bool CanHaveDomain()
+        {
+            return !FortiManagers.Contains(Id);
+        }
+
+        public bool IsDummyRouter()
+        {
+            return Manufacturer == "DummyRouter";
         }
 
         public bool CanHaveSupermanager()
@@ -99,6 +126,11 @@ namespace FWO.Api.Data
         public int GetGatewayTypeId()
         {
             return SupermanagerGatewayMap[Id];
+        }
+
+        public override string ToString()
+        {
+            return JsonConvert.SerializeObject(this);
         }
     }
 }

@@ -2,15 +2,14 @@ mutation updateManagement(
   $id: Int!
   $name: String!
   $devTypeId: Int!
-  $importUser: String!
-  $importUserSecret: String!
+  $importCredentialId: Int!
   $hostname: String!
   $port: Int!
-  $sshPublicKey: String
   $importDisabled: Boolean!
   $forceInitialImport: Boolean!
   $hideInUi: Boolean!
   $configPath: String
+  $domainUid: String
   $importerHostname: String
   $comment: String
   $tenantId: Int
@@ -23,12 +22,11 @@ mutation updateManagement(
       mgm_name: $name
       dev_typ_id: $devTypeId
       ssh_hostname: $hostname
-      ssh_user: $importUser
-      secret: $importUserSecret
+      import_credential_id: $importCredentialId
       config_path: $configPath
+      domain_uid: $domainUid
       importer_hostname: $importerHostname
       ssh_port: $port
-      ssh_public_key: $sshPublicKey
       do_not_import: $importDisabled
       force_initial_import: $forceInitialImport
       hide_in_gui: $hideInUi

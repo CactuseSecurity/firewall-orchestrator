@@ -7,11 +7,13 @@
     src: "{{ item }}"
     dest: "{{  middleware_ldif_dir }}/{{ item | basename | regex_replace('\\.j2$', '') }}"
     force: yes
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
   with_fileglob:
     - ../templates/ldif_files/*.j2
   become: yes
 
-- name: add tree
+    - name: add tree
   command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{  middleware_ldif_dir }}/tree_{{ item }}.ldif"
   loop:
     - level_0

@@ -246,3 +246,6 @@ adding report template format fk and permissions
 
 ### 6.0 - 02.11.2022
 - clean-up work and new major version
+
+### 6.0.1 - 03.11.2022
+- bugfix release with small issues (userconfig re-login, ldif upgrade bug)

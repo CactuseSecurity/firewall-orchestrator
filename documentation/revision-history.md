@@ -244,3 +244,6 @@ adding report template format fk and permissions
 - fix for log file rotation issues (log lock)
 - ip-based tenant filtering start
 - fix change report warning for empty reports
+
+### 6.0 - 02.11.2022
+- minor consolidation work and new version

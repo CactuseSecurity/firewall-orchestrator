@@ -219,7 +219,7 @@ adding report template format fk and permissions
 
 ### 5.7.1 - 13.10.2022
 - new workflow module for requesting changes
-- new Cisco FireFlow import module 
+- new Cisco FirePower import module 
 - support for new operating system debian testing
 - bugfix enrichable objects in CP NAT rules
 - bugfix filter line brackets

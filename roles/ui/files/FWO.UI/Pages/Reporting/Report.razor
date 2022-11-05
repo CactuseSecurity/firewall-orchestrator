@@ -699,7 +699,10 @@
             // collapse report templates
             reportTemplateControl.Collapse();
 
-            currentReport = ReportBase.ConstructReport(filterInput, deviceFilter, savedTimeFilter, selectedReportType, userConfig);
+            // determine whether to use ip filtering
+            var tenantFiltering = authenticationStateTask!.Result.User.IsInRole("reporter") || authenticationStateTask!.Result.User.IsInRole("recertifier");
+
+            currentReport = ReportBase.ConstructReport(filterInput, deviceFilter, savedTimeFilter, selectedReportType, userConfig, tenantFiltering: tenantFiltering);
 
             // save selected managements before resetting
             List<int> relevantManagements = deviceFilter.getSelectedManagements();
@@ -799,8 +802,8 @@
 
         try
         {
-            var tenant_filtering = authenticationStateTask!.Result.User.IsInRole("reporter") || authenticationStateTask!.Result.User.IsInRole("recertifier");
-            DynGraphqlQuery query = Compiler.Compile(input, filtering: tenant_filtering);
+            var tenantFiltering = authenticationStateTask!.Result.User.IsInRole("reporter") || authenticationStateTask!.Result.User.IsInRole("recertifier");
+            DynGraphqlQuery query = Compiler.Compile(input, tenantFiltering: tenantFiltering);
 
             filterFeedbackStart = input;
             filterFeedbackError = "";

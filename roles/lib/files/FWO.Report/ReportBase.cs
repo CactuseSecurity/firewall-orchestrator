@@ -158,9 +158,9 @@ namespace FWO.Report
             return converter.Convert(doc);
         }
 
-        public static ReportBase ConstructReport(string filterInput, DeviceFilter deviceFilter, TimeFilter timeFilter, ReportType reportType, UserConfig userConfig)
+        public static ReportBase ConstructReport(string filterInput, DeviceFilter deviceFilter, TimeFilter timeFilter, ReportType reportType, UserConfig userConfig, bool tenantFiltering = false)
         {
-            DynGraphqlQuery query = Compiler.Compile(filterInput, reportType, deviceFilter, timeFilter);
+            DynGraphqlQuery query = Compiler.Compile(filterInput, reportType, deviceFilter, timeFilter, tenantFiltering: tenantFiltering);
 
             return reportType switch
             {

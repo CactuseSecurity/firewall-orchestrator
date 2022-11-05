@@ -128,6 +128,9 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
     private TabSet? rsbTabset;
     private AnchorNavToRSB? anchorNavToRSB;
 
@@ -203,8 +206,11 @@
                 return;
             }
 
+            // determine whether to use ip filtering
+            var tenantFiltering = authenticationStateTask!.Result.User.IsInRole("reporter") || authenticationStateTask!.Result.User.IsInRole("recertifier");
+
             SyncFilterToDisplay();
-            currentReport = ReportBase.ConstructReport(filterInput, deviceFilter, new TimeFilter(), ReportType.Rules, userConfig);
+            currentReport = ReportBase.ConstructReport(filterInput, deviceFilter, new TimeFilter(), ReportType.Rules, userConfig, tenantFiltering: tenantFiltering);
 
             DateTime startTime = DateTime.Now;
             managements = new Management[0]; // reset management data when switching between reports

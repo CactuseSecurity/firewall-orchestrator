@@ -31,9 +31,9 @@ namespace FWO.Api.Client.Queries
         public static readonly string getNatRuleDetails;
         public static readonly string getNatRuleDetailsForReport;
 
-        public static readonly string getTenantNatRuleOverviewFragments;
-        public static readonly string getTenantNatRuleDetailsFragments;
-        public static readonly string getTenantNatRuleDetailsForReportFragments;
+        public static readonly string tenantNatRuleOverviewFragments;
+        public static readonly string tenantNatRuleDetailsFragments;
+        public static readonly string tenantNatRuleDetailsForReportFragments;
         public static readonly string getTenantNatRuleOverview;
         public static readonly string getTenantNatRuleDetails;
         public static readonly string getTenantNatRuleDetailsForReport;
@@ -138,28 +138,28 @@ namespace FWO.Api.Client.Queries
                     File.ReadAllText(QueryPath + "rule/getNatRuleDetails.graphql");
                 
 
-                getTenantNatRuleOverviewFragments =
+                tenantNatRuleOverviewFragments =
                     tenantRuleOverviewFragments +
                     File.ReadAllText(QueryPath + "rule/fragments/tenantNatRuleOverview.graphql");
                 
                 getTenantNatRuleOverview =
-                    getTenantNatRuleOverviewFragments +
+                    tenantNatRuleOverviewFragments +
                     File.ReadAllText(QueryPath + "rule/getTenantNatRuleOverview.graphql");
                 
-                getTenantNatRuleDetailsFragments =
+                tenantNatRuleDetailsFragments =
                     tenantRuleDetailsFragments +
                     File.ReadAllText(QueryPath + "rule/fragments/tenantNatRuleDetails.graphql");
                 
                 getTenantNatRuleDetails =
-                    getTenantNatRuleDetailsFragments +
+                    tenantNatRuleDetailsFragments +
                     File.ReadAllText(QueryPath + "rule/getTenantNatRuleDetails.graphql");
                 
-                getTenantNatRuleDetailsForReportFragments =
+                tenantNatRuleDetailsForReportFragments =
                     tenantRuleDetailsForReportFragments +
                     File.ReadAllText(QueryPath + "rule/fragments/tenantNatRuleDetailsForReport.graphql");
                 
                 getTenantNatRuleDetailsForReport =
-                    getTenantNatRuleDetailsForReportFragments +
+                    tenantNatRuleDetailsForReportFragments +
                     File.ReadAllText(QueryPath + "rule/getTenantNatRuleDetails.graphql");
 
             }

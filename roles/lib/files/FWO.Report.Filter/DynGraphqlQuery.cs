@@ -205,7 +205,7 @@ namespace FWO.Report.Filter
             SetTimeFilter(ref query, timeFilter, reportType);
         }
 
-        public static DynGraphqlQuery GenerateQuery(string rawInput, AstNode? ast, DeviceFilter? deviceFilter, TimeFilter? timeFilter, ReportType? reportType, bool detailed, bool filtering)
+        public static DynGraphqlQuery GenerateQuery(string rawInput, AstNode? ast, DeviceFilter? deviceFilter, TimeFilter? timeFilter, ReportType? reportType, bool detailed, bool tenantFiltering)
         {
             DynGraphqlQuery query = new DynGraphqlQuery(rawInput);
 
@@ -261,7 +261,7 @@ namespace FWO.Report.Filter
                 case ReportType.ResolvedRules:
                 case ReportType.ResolvedRulesTech:
                     query.FullQuery = Queries.compact($@"
-                    {(filtering ? detailed ? RuleQueries.tenantRuleDetailsForReportFragments : RuleQueries.tenantRuleOverviewFragments
+                    {(tenantFiltering ? detailed ? RuleQueries.tenantRuleDetailsForReportFragments : RuleQueries.tenantRuleOverviewFragments
                                 : detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
 
                     query rulesReport ({paramString}) 
@@ -282,7 +282,7 @@ namespace FWO.Report.Filter
                                         rules(
                                             limit: $limit 
                                             offset: $offset
-                                            where: {{  access_rule: {{_eq: true}} get_rule_froms_for_tenant: {{}} {query.ruleWhereStatement} }} 
+                                            where: {{  access_rule: {{_eq: true}} {(tenantFiltering ? "get_rule_froms_for_tenant: {}" : "")} {query.ruleWhereStatement} }} 
                                             order_by: {{ rule_num_numeric: asc }} )
                                             {{
                                                 mgm_id: mgm_id
@@ -339,7 +339,8 @@ namespace FWO.Report.Filter
 
                 case ReportType.NatRules:
                     query.FullQuery = Queries.compact($@"
-                    {(detailed ? RuleQueries.natRuleDetailsForReportFragments : RuleQueries.natRuleOverviewFragments)}
+                    {(tenantFiltering ? detailed ?  RuleQueries.tenantNatRuleDetailsForReportFragments : RuleQueries.tenantNatRuleOverviewFragments
+                                : detailed ? RuleQueries.natRuleDetailsForReportFragments : RuleQueries.natRuleOverviewFragments)}
 
                     query natRulesReport ({paramString}) 
                     {{ 
@@ -354,7 +355,7 @@ namespace FWO.Report.Filter
                                         rules(
                                             limit: $limit 
                                             offset: $offset
-                                            where: {{  nat_rule: {{_eq: true}}, ruleByXlateRule: {{}} {query.ruleWhereStatement} }} 
+                                            where: {{  nat_rule: {{_eq: true}}, ruleByXlateRule: {{}} {(tenantFiltering ? "get_rule_froms_for_tenant: {}" : "")} {query.ruleWhereStatement} }} 
                                             order_by: {{ rule_num_numeric: asc }} )
                                             {{
                                                 mgm_id: mgm_id

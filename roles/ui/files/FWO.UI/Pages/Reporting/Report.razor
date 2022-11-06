@@ -570,6 +570,8 @@
 
         Management[] managements = new Management[0];
 
+        var tenantFiltering = authenticationStateTask!.Result.User.IsInRole("reporter") || authenticationStateTask!.Result.User.IsInRole("recertifier");
+
         try
         {
             string query = "";
@@ -595,10 +597,8 @@
                     query = ObjectQueries.getUserDetails;
                     break;
                 case rule:
-                    if (nat)
-                        query = RuleQueries.getNatRuleDetails;
-                    else
-                        query = RuleQueries.getRuleDetails;
+                    query = tenantFiltering ? nat ? RuleQueries.getTenantNatRuleDetails : RuleQueries.getTenantRuleDetails
+                                            : nat ? RuleQueries.getNatRuleDetails : RuleQueries.getRuleDetails;
                     break;
             }
 

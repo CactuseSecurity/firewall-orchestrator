@@ -570,7 +570,7 @@
 
         Management[] managements = new Management[0];
 
-        var tenantFiltering = authenticationStateTask!.Result.User.IsInRole("reporter") || authenticationStateTask!.Result.User.IsInRole("recertifier");
+        var tenantFiltering = int.Parse(authenticationStateTask!.Result.User.Claims.FirstOrDefault(c => c.Type == "x-hasura-tenant-id")!.Value) > 1;
 
         try
         {
@@ -700,7 +700,7 @@
             reportTemplateControl.Collapse();
 
             // determine whether to use ip filtering
-            var tenantFiltering = authenticationStateTask!.Result.User.IsInRole("reporter") || authenticationStateTask!.Result.User.IsInRole("recertifier");
+            var tenantFiltering = int.Parse(authenticationStateTask!.Result.User.Claims.FirstOrDefault(c => c.Type == "x-hasura-tenant-id")!.Value) > 1;
 
             currentReport = ReportBase.ConstructReport(filterInput, deviceFilter, savedTimeFilter, selectedReportType, userConfig, tenantFiltering: tenantFiltering);
 
@@ -802,7 +802,7 @@
 
         try
         {
-            var tenantFiltering = authenticationStateTask!.Result.User.IsInRole("reporter") || authenticationStateTask!.Result.User.IsInRole("recertifier");
+            var tenantFiltering = int.Parse(authenticationStateTask!.Result.User.Claims.FirstOrDefault(c => c.Type == "x-hasura-tenant-id")!.Value) > 1;
             DynGraphqlQuery query = Compiler.Compile(input, tenantFiltering: tenantFiltering);
 
             filterFeedbackStart = input;

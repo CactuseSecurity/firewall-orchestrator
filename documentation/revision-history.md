@@ -242,5 +242,7 @@ adding report template format fk and permissions
 ### 5.8.2 - 30.10.2022
 - new report type resolved tech info (no names)
 - fix for log file rotation issues (log lock)
-- ip-based tenant filtering start
 - fix change report warning for empty reports
+
+### 6.0 - 02.11.2022
+- clean-up work and new major version

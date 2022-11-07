@@ -371,6 +371,13 @@ namespace FWO.Ui.Services
             if(actPossibleStates.Count == 1 && actPossibleStates[0] >= ActStateMatrix.LowestStartedState && actPossibleStates[0] < ActStateMatrix.LowestEndState)
             {
                 ActReqTask.StateId = actPossibleStates[0];
+                // TODO: Adjust for multiple approvals
+                SetApprovalEnv();
+                List<int> nextApprovalState = ActStateMatrix.getAllowedTransitions(ActApproval.StateId);
+                if (nextApprovalState.Count == 1 && nextApprovalState[0] >= ActStateMatrix.LowestStartedState && nextApprovalState[0] < ActStateMatrix.LowestEndState)
+                {
+                    ActReqTask.Approvals[0].StateId = nextApprovalState[0];
+                }
             }
             await UpdateActReqTaskState();
             await UpdateActTicketStateFromReqTasks();

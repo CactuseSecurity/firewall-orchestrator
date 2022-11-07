@@ -170,6 +170,9 @@ namespace FWO.Middleware.Controllers
             // Get tenant of user
             user.Tenant = await GetTenantAsync(ldapUser, ldap);
 
+            // Remember the hosting ldap
+            user.LdapConnection.Id = ldap.Id;
+
             // Create JWT for validated user with roles and tenant
             return await jwtWriter.CreateJWT(user, lifetime);
         }

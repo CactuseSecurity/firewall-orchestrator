@@ -60,17 +60,34 @@ BEGIN
 END;
 $BODY$;
 
-CREATE OR REPLACE FUNCTION public.filter_rule_nwobj_resolveds(management_row management, rule_ids bigint[], import_id bigint)
- RETURNS SETOF object
- LANGUAGE sql
- STABLE
-AS $function$
-  SELECT o.*
-  FROM rule_nwobj_resolved r JOIN object o ON (r.obj_id=o.obj_id)
-  WHERE r.mgm_id = management_row.mgm_id AND rule_id = any (rule_ids) AND r.created <= import_id AND (r.removed IS NULL OR r.removed >= import_id)
-  GROUP BY o.obj_id
-  ORDER BY MAX(obj_name), o.obj_id
-$function$;
+CREATE OR REPLACE FUNCTION filter_rule_nwobj_resolveds(management_row management, rule_ids bigint[], import_id bigint, hasura_session json)
+RETURNS SETOF object AS $$
+    DECLARE t_id integer;
+    
+    BEGIN
+        t_id := (hasura_session ->> 'x-hasura-tenant-id')::integer;
+
+        IF t_id IS NULL THEN
+            RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
+        ELSIF t_id = 1 THEN
+            RETURN QUERY SELECT o.*
+                FROM rule_nwobj_resolved r
+                    LEFT JOIN object o ON (r.obj_id=o.obj_id)
+                WHERE r.mgm_id = management_row.mgm_id AND rule_id = any (rule_ids) AND r.created <= import_id AND (r.removed IS NULL OR r.removed >= import_id)
+                GROUP BY o.obj_id
+                ORDER BY MAX(obj_name), o.obj_id;
+        ELSE
+            RETURN QUERY SELECT o.*
+                FROM rule_nwobj_resolved r
+                    LEFT JOIN object o ON (r.obj_id=o.obj_id)
+                    LEFT JOIN tenant_network ON
+                        (o.obj_ip>>=tenant_net_ip OR o.obj_ip<<=tenant_net_ip)
+                WHERE r.mgm_id = management_row.mgm_id AND rule_id = any (rule_ids) AND r.created <= import_id AND (r.removed IS NULL OR r.removed >= import_id) AND tenant_id = t_id
+                GROUP BY o.obj_id
+                ORDER BY MAX(obj_name), o.obj_id;
+        END IF;
+    END;
+$$ LANGUAGE 'plpgsql' STABLE;
 
 CREATE OR REPLACE FUNCTION public.filter_rule_svc_resolveds(management_row management, rule_ids bigint[], import_id bigint)
  RETURNS SETOF service

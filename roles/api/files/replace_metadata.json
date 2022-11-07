@@ -5272,7 +5272,8 @@
                     "function": {
                       "name": "filter_rule_nwobj_resolveds",
                       "schema": "public"
-                    }
+                    },
+                    "session_argument": "hasura_session"
                   }
                 },
                 {

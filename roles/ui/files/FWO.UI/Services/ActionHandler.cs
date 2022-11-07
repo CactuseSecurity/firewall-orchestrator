@@ -2,7 +2,6 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Logging;
-using NetTools;
 
 
 namespace FWO.Ui.Services
@@ -108,7 +107,7 @@ namespace FWO.Ui.Services
                     break;
                 case nameof(StateActionTypes.TrafficPathAnalysis):
                     setScope(statefulObject, scope);
-                    requestHandler.ActReqTask.SetDeviceList(await (new PathAnalysis(apiConnection)).getAllDevices(requestHandler.ActReqTask.Elements));
+                    await requestHandler.HandlePathAnalysisAction(action.ExternalParams);
                     break;
                 case nameof(StateActionTypes.ExternalCall):
                     await callExternal(action);

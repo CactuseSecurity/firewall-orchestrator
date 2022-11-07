@@ -20,7 +20,8 @@ namespace FWO.Ui.Services
         displayDelete,
         displaySaveTicket,
         displayComment,
-        displayCleanup
+        displayCleanup,
+        displayPathAnalysis
     }
 
     public class RequestHandler
@@ -64,6 +65,7 @@ namespace FWO.Ui.Services
         public bool DisplayDeleteMode = false;
         public bool DisplayCleanupMode = false;
         public bool DisplayCommentMode = false;
+        public bool DisplayPathAnalysisMode = false;
         
 
         private Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
@@ -365,6 +367,7 @@ namespace FWO.Ui.Services
             DisplayPromoteMode = action == ObjAction.displayPromote;
             DisplayDeleteMode = action == ObjAction.displayDelete;
             DisplayCommentMode = action == ObjAction.displayComment;
+            DisplayPathAnalysisMode = action == ObjAction.displayPathAnalysis;
         }
 
         public void ResetReqTaskActions()
@@ -381,6 +384,7 @@ namespace FWO.Ui.Services
             DisplayPromoteMode = false;
             DisplayDeleteMode = false;
             DisplayCommentMode = false;
+            DisplayPathAnalysisMode = false;
         }
 
         public async Task StartWorkOnReqTask(RequestReqTask reqTask, ObjAction action)
@@ -515,6 +519,33 @@ namespace FWO.Ui.Services
             }
         } 
 
+        public async Task HandlePathAnalysisAction(string extParams = "")
+        {
+            try
+            {
+                PathAnalysisActionParams pathAnalysisParams = new PathAnalysisActionParams();
+                if(extParams != "")
+                {
+                    pathAnalysisParams = System.Text.Json.JsonSerializer.Deserialize<PathAnalysisActionParams>(extParams) ?? throw new Exception("Extparams could not be parsed.");
+                }
+
+                switch(pathAnalysisParams.Option)
+                {
+                    case PathAnalysisOptions.WriteToDeviceList:
+                        ActReqTask.SetDeviceList(await (new PathAnalysis(apiConnection)).getAllDevices(ActReqTask.Elements));
+                        break;
+                    case PathAnalysisOptions.DisplayFoundDevices:
+                        SetReqTaskPopUpOpt(ObjAction.displayPathAnalysis);
+                        break;
+                    default:
+                        break;
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi!(exception, userConfig.GetText("path_analysis"), "", true);
+            }
+        }
 
         // approvals
 

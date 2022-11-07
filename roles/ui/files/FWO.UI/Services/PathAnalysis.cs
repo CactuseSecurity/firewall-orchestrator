@@ -3,10 +3,25 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Logging;
 using NetTools;
+using System.Text.Json.Serialization; 
+using Newtonsoft.Json;
 
 
 namespace FWO.Ui.Services
 {
+    public enum PathAnalysisOptions
+    {
+        WriteToDeviceList, 
+        DisplayFoundDevices
+    }
+
+    public class PathAnalysisActionParams
+    {
+        [JsonProperty("option"), JsonPropertyName("option")]
+        public PathAnalysisOptions Option { get; set; } = PathAnalysisOptions.DisplayFoundDevices;
+    }
+
+
     public class PathAnalysis
     {
         private List<RequestState> states = new List<RequestState>();

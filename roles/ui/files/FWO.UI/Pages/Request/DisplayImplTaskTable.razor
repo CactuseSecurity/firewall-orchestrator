@@ -11,6 +11,19 @@
 @if (ReqHandler.PlanReqTaskMode)
 {
     <button class="btn btn-success m-2" @onclick:preventDefault @onclick="AddImplTask">@(userConfig.GetText("create_implementation"))</button>
+    @if(ReqHandler.ActReqTask.TaskType == TaskType.access.ToString())
+    {
+        <button class="btn btn-success m-2" @onclick:preventDefault @onclick="CheckImplTasks">@(userConfig.GetText("check_impltasks"))</button>
+        <button class="btn btn-warning m-2" @onclick:preventDefault @onclick="AutocreateImplTasks">@(userConfig.GetText("auto_create_impltasks"))</button>
+        @if(ReqHandler.ActReqTask.ImplementationTasks.Count > 0)
+        {
+            <button class="btn btn-danger m-2" @onclick:preventDefault @onclick="CleanupImplTasks">@(userConfig.GetText("cleanup_impltasks"))</button>
+        }
+        else
+        {
+            <button class="btn btn-danger m-2" disabled>@(userConfig.GetText("cleanup_impltasks"))</button>
+        }
+    }
 }
 @if (AllImplTasks != null && AllImplTasks.Count > 0)
 {
@@ -97,9 +110,38 @@
     </div>
 }
 
+<PopUp Title="@(userConfig.GetText("check_impltasks"))" Show="@DisplayInfo" Large="true" OnClose="() => DisplayInfo = false">
+    <Body>
+        @if (DisplayInfo)
+        {
+            @if(deviceCheck.Count == 0)
+            {
+                @(userConfig.GetText("no_gws_found"))
+            }
+            else
+            {
+                <div class="m-2">
+                    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="KeyValuePair<string, bool>" Items="deviceCheck" PageSize="0" ColumnReorder="true">
+                        <Column TableItem="KeyValuePair<string, bool>" Title="@(userConfig.GetText("device"))" Field="@(x => x.Key)" Sortable="true" Filterable="true" />
+                        <Column TableItem="KeyValuePair<string, bool>" Title="@(userConfig.GetText("impltask_created"))" Field="@(x => x.Value)" Sortable="false">
+                            <Template>
+                                @(GlobalConfig.ShowBool(context.Value))
+                            </Template>
+                        </Column>
+                    </Table>
+                </div>
+            }
+        }
+    </Body>
+    <Footer>
+        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => DisplayInfo = false">@(userConfig.GetText("ok"))</button>
+    </Footer>
+</PopUp>
+
 <DisplayImplementationTask Phase="Phase" ReqHandler="ReqHandler" ResetParent="Reset" StateMatrix="ReqHandler.ActStateMatrix" States="States"></DisplayImplementationTask>
 <AssignObject @bind-Display="ReqHandler.DisplayAssignMode" ResetParent="Reset" StatefulObject="ReqHandler.ActImplTask" Assign="ReqHandler.AssignImplTaskGroup" AssignBack="ReqHandler.AssignImplTaskBack" ObjectName="@ReqHandler.ActImplTask.Title" RoleList="validRoles"/>
 <DeleteObject @bind-Display="ReqHandler.DisplayDeleteMode" ResetParent="Reset" Delete="ReqHandler.ConfDeleteImplTask" ObjectName="@(ReqHandler.ActImplTask.Title)"/>
+<DeleteObject @bind-Display="ReqHandler.DisplayCleanupMode" ResetParent="Reset" Delete="ReqHandler.ConfCleanupImplTasks" ObjectName="@(userConfig.GetText("all_impltasks"))"/>
 <DisplayApprovals @bind-Display="ReqHandler.DisplayApprovalMode" ReqHandler="ReqHandler" ResetParent="Reset" Approvals="ReqHandler.ActReqTask.Approvals" States="States"/>
 
 
@@ -130,6 +172,9 @@
     public Func<RequestImplTask, Task>? StartImplPhase { get; set; }
 
     static List<string> validRoles = new List<string>(){"implementer", "fw-admin"};
+    private bool DisplayInfo = false;
+    private List<KeyValuePair<string, bool>> deviceCheck = new List<KeyValuePair<string, bool>>();
+
 
     private async Task Reset()
     {
@@ -155,6 +200,27 @@
             newTask.Title += ": "+ ReqHandler.Devices[ReqHandler.Devices.FindIndex(x => x.Id == ReqHandler.Devices[0].Id)].Name;
         }
         ReqHandler.SelectImplTask(newTask, ObjAction.add);
+    }
+
+    private async Task AutocreateImplTasks()
+    {
+        await ReqHandler.CreateAccessImplTasksFromPathAnalysis(ReqHandler.ActReqTask);
+    }
+
+    private async Task CheckImplTasks()
+    {
+        List<Device> foundDevices = await (new PathAnalysis(apiConnection)).getAllDevices(ReqHandler.ActReqTask.Elements);
+        deviceCheck = new List<KeyValuePair<string, bool>>();
+        foreach(var dev in foundDevices)
+        {
+            deviceCheck.Add(new KeyValuePair<string, bool>(dev.Name ?? "", ReqHandler.ActReqTask.ImplementationTasks.FirstOrDefault(x => x.DeviceId == dev.Id) != null));
+        }
+        DisplayInfo = true;
+    }
+
+    private void CleanupImplTasks()
+    {
+        ReqHandler.SetImplTaskPopUpOpt(ObjAction.displayCleanup);
     }
 
     private void EditImplTask(RequestImplTask implTask)

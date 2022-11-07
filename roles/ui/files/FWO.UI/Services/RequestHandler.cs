@@ -19,7 +19,8 @@ namespace FWO.Ui.Services
         displayPromote,
         displayDelete,
         displaySaveTicket,
-        displayComment
+        displayComment,
+        displayCleanup
     }
 
     public class RequestHandler
@@ -61,6 +62,7 @@ namespace FWO.Ui.Services
         public bool DisplayPromoteMode = false;
         public bool DisplaySaveTicketMode = false;
         public bool DisplayDeleteMode = false;
+        public bool DisplayCleanupMode = false;
         public bool DisplayCommentMode = false;
         
 
@@ -700,6 +702,7 @@ namespace FWO.Ui.Services
         {
             DisplayPromoteMode = action == ObjAction.displayPromote;
             DisplayDeleteMode = action == ObjAction.displayDelete;
+            DisplayCleanupMode = action == ObjAction.displayCleanup;
             DisplayAssignMode = action == ObjAction.displayAssign;
             DisplayCommentMode = action == ObjAction.displayComment;
             DisplayApprovalMode = action == ObjAction.displayApprovals;
@@ -714,6 +717,7 @@ namespace FWO.Ui.Services
 
             DisplayPromoteMode = false;
             DisplayDeleteMode = false;
+            DisplayCleanupMode = false;
             DisplayAssignMode = false;
             DisplayCommentMode = false;
             DisplayApprovalMode = false;
@@ -838,8 +842,18 @@ namespace FWO.Ui.Services
         public async Task ConfDeleteImplTask()
         {
             await dbAcc.DeleteImplTaskFromDb(ActImplTask);
-            ActReqTask.ImplementationTasks.Remove(ActImplTask);
+            ActReqTask.ImplementationTasks.RemoveAt(ActReqTask.ImplementationTasks.FindIndex(x => x.Id == ActImplTask.Id));
             DisplayDeleteMode = false;
+        }
+
+        public async Task ConfCleanupImplTasks()
+        {
+            foreach(var impltask in ActReqTask.ImplementationTasks)
+            {
+                await dbAcc.DeleteImplTaskFromDb(impltask);
+            }
+            ActReqTask.ImplementationTasks.Clear();
+            DisplayCleanupMode = false;
         }
 
         private async Task AutoCreateOrUpdateImplTasks()
@@ -882,31 +896,23 @@ namespace FWO.Ui.Services
                     case AutoCreateImplTaskOptions.onlyForOneDevice:
                         if(Devices.Count > 0)
                         {
-                            newImplTask = new RequestImplTask(reqTask)
-                                { TaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = Devices[0].Id, StateId = reqTask.StateId };
-                            newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
-                            reqTask.ImplementationTasks.Add(newImplTask);
+                            await createAccessImplTask(reqTask, Devices[0].Id, false);
                         }
                         break;
                     case AutoCreateImplTaskOptions.forEachDevice:
                         foreach(var device in Devices)
                         {
-                            newImplTask = new RequestImplTask(reqTask)
-                                { TaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = device.Id, StateId = reqTask.StateId };
-                            newImplTask.Title += ": "+ Devices[Devices.FindIndex(x => x.Id == device.Id)].Name;
-                            newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
-                            reqTask.ImplementationTasks.Add(newImplTask);
+                            await createAccessImplTask(reqTask, device.Id);
                         }
                         break;
                     case AutoCreateImplTaskOptions.enterInReqTask:
                         foreach(var deviceId in reqTask.getDeviceList())
                         {
-                            newImplTask = new RequestImplTask(reqTask)
-                                { TaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = deviceId, StateId = reqTask.StateId };
-                            newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
-                            newImplTask.Title += ": "+ Devices[Devices.FindIndex(x => x.Id == deviceId)].Name;
-                            reqTask.ImplementationTasks.Add(newImplTask);
+                            await createAccessImplTask(reqTask, deviceId);
                         }
+                        break;
+                    case AutoCreateImplTaskOptions.afterPathAnalysis:
+                        await CreateAccessImplTasksFromPathAnalysis(reqTask);
                         break;
                     default:
                         break;
@@ -919,6 +925,30 @@ namespace FWO.Ui.Services
                 newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
                 reqTask.ImplementationTasks.Add(newImplTask);
             }
+        }
+
+        public async Task CreateAccessImplTasksFromPathAnalysis(RequestReqTask reqTask)
+        {
+            foreach(var device in await (new PathAnalysis(apiConnection)).getAllDevices(reqTask.Elements))
+            {
+                if(reqTask.ImplementationTasks.FirstOrDefault(x => x.DeviceId == device.Id) == null)
+                {
+                    await createAccessImplTask(reqTask, device.Id);
+                }
+            }
+        }
+
+        private async Task createAccessImplTask(RequestReqTask reqTask, int deviceId, bool adaptTitle=true)
+        {
+            RequestImplTask newImplTask;
+            newImplTask = new RequestImplTask(reqTask)
+                { TaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = deviceId, StateId = reqTask.StateId };
+            if(adaptTitle)
+            {
+                newImplTask.Title += ": "+ Devices[Devices.FindIndex(x => x.Id == deviceId)].Name;
+            }
+            newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
+            reqTask.ImplementationTasks.Add(newImplTask);
         }
 
 

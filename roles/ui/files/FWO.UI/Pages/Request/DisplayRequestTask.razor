@@ -8,7 +8,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("task") + ": " + ReqHandler.ActReqTask.Title)" Show="@ReqHandler.DisplayReqTaskMode" XLarge="true" OnClose="async () => Close()">
+<PopUp Title="@(userConfig.GetText("task") + ": " + ReqHandler.ActReqTask.Title)" Show="@ReqHandler.DisplayReqTaskMode" XLarge="true" OnClose="async () => await Close()">
     <Body>
         @if (ReqHandler.DisplayReqTaskMode)
         {
@@ -253,7 +253,7 @@
                     </div>
                 }
 
-                @if(ReqHandler.PlanReqTaskMode || ReqHandler.ApproveReqTaskMode)
+                @if(ReqHandler.EditReqTaskMode || ReqHandler.PlanReqTaskMode || ReqHandler.ApproveReqTaskMode)
                 {
                     <div class="col-sm-12">
                         <div class="form-group row justify-content-center">

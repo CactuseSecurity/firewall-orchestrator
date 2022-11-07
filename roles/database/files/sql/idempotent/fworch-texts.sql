@@ -531,7 +531,7 @@ INSERT INTO txt VALUES ('fetch_report',		    'English', 	'Fetch downloads of gen
 INSERT INTO txt VALUES ('delete_report',		'German', 	'Erstellten Report l&ouml;schen');
 INSERT INTO txt VALUES ('delete_report',		'English', 	'Delete generated report');
 
--- requests
+-- workflow
 INSERT INTO txt VALUES ('request',              'German', 	'Antrag');
 INSERT INTO txt VALUES ('request',              'English', 	'Request');
 INSERT INTO txt VALUES ('ticket',               'German', 	'Ticket');
@@ -562,14 +562,6 @@ INSERT INTO txt VALUES ('obj_group', 			'German', 	'Objektgruppe');
 INSERT INTO txt VALUES ('obj_group', 			'English', 	'Object group');
 INSERT INTO txt VALUES ('rule_modify', 			'German', 	'Regel &auml;ndern');
 INSERT INTO txt VALUES ('rule_modify', 		    'English', 	'Modify Rule');
-INSERT INTO txt VALUES ('never', 			    'German', 	'Niemals');
-INSERT INTO txt VALUES ('never', 			    'English', 	'Never');
-INSERT INTO txt VALUES ('onlyForOneDevice', 	'German', 	'Nur eines wenn Ger&auml;t vorhanden');
-INSERT INTO txt VALUES ('onlyForOneDevice', 	'English', 	'Only one if device available');
-INSERT INTO txt VALUES ('forEachDevice', 		'German', 	'F&uuml;r jedes Ger&auml;t');
-INSERT INTO txt VALUES ('forEachDevice', 		'English', 	'For each device');
-INSERT INTO txt VALUES ('enterInReqTask',       'German', 	'Ger&auml;t im Antrag eingeben');
-INSERT INTO txt VALUES ('enterInReqTask',       'English', 	'Enter device in request');
 INSERT INTO txt VALUES ('add_new_request',      'German', 	'Neuen Antrag hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_new_request',      'English', 	'Add new request');
 INSERT INTO txt VALUES ('fetch_requests',       'German', 	'Antr&auml;ge holen');
@@ -612,8 +604,18 @@ INSERT INTO txt VALUES ('plan',                 'German', 	'Planen');
 INSERT INTO txt VALUES ('plan',                 'English', 	'Plan');
 INSERT INTO txt VALUES ('planner',              'German', 	'Planer');
 INSERT INTO txt VALUES ('planner',              'English', 	'Planner');
-INSERT INTO txt VALUES ('create_implementation','German', 	'Implementierung hinzuf&uuml;gen');
-INSERT INTO txt VALUES ('create_implementation','English', 	'Create implementation task');
+INSERT INTO txt VALUES ('create_implementation','German', 	'Einzelne Implementierung hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('create_implementation','English', 	'Create single implementation task');
+INSERT INTO txt VALUES ('auto_create_impltasks','German', 	'Implementierungen autom. erzeugen');
+INSERT INTO txt VALUES ('auto_create_impltasks','English', 	'Autocreate implementation tasks');
+INSERT INTO txt VALUES ('cleanup_impltasks',    'German', 	'Alle Implementierungen aufr&auml;umen');
+INSERT INTO txt VALUES ('cleanup_impltasks',    'English', 	'Clean up all implementation tasks');
+INSERT INTO txt VALUES ('all_impltasks',        'German', 	'Alle Implementierungen');
+INSERT INTO txt VALUES ('all_impltasks',        'English', 	'All implementation tasks');
+INSERT INTO txt VALUES ('check_impltasks',      'German', 	'Implementierungen pr&uuml;fen');
+INSERT INTO txt VALUES ('check_impltasks',      'English', 	'Check implementation tasks');
+INSERT INTO txt VALUES ('impltask_created',     'German', 	'Implementierung angelegt');
+INSERT INTO txt VALUES ('impltask_created',     'English', 	'Implementation task created');
 INSERT INTO txt VALUES ('implementation_tasks', 'German', 	'Implementierungsaufgaben');
 INSERT INTO txt VALUES ('implementation_tasks', 'English', 	'Implementation tasks');
 INSERT INTO txt VALUES ('request_elements',     'German', 	'Auftragselemente');
@@ -760,6 +762,8 @@ INSERT INTO txt VALUES ('AddApproval',			'German', 	'Genehmigung hinzuf&uuml;gen
 INSERT INTO txt VALUES ('AddApproval',			'English', 	'Add approval');
 INSERT INTO txt VALUES ('SetAlert',			    'German', 	'Alarm ausl&ouml;sen');
 INSERT INTO txt VALUES ('SetAlert',			    'English', 	'Set alert');
+INSERT INTO txt VALUES ('TrafficPathAnalysis',  'German', 	'Pfadanalyse');
+INSERT INTO txt VALUES ('TrafficPathAnalysis',  'English', 	'Path Analysis');
 INSERT INTO txt VALUES ('ExternalCall',			'German', 	'Externer Aufruf');
 INSERT INTO txt VALUES ('ExternalCall',			'English', 	'External call');
 INSERT INTO txt VALUES ('Ticket',			    'German', 	'Ticket');
@@ -770,6 +774,16 @@ INSERT INTO txt VALUES ('ImplementationTask',	'German', 	'Implementierungs-Auftr
 INSERT INTO txt VALUES ('ImplementationTask',	'English', 	'Implementation Task');
 INSERT INTO txt VALUES ('Approval',			    'German', 	'Genehmigung');
 INSERT INTO txt VALUES ('Approval',			    'English', 	'Approval');
+INSERT INTO txt VALUES ('never', 			    'German', 	'Niemals');
+INSERT INTO txt VALUES ('never', 			    'English', 	'Never');
+INSERT INTO txt VALUES ('onlyForOneDevice', 	'German', 	'Nur eines wenn Ger&auml;t vorhanden');
+INSERT INTO txt VALUES ('onlyForOneDevice', 	'English', 	'Only one if device available');
+INSERT INTO txt VALUES ('forEachDevice', 		'German', 	'F&uuml;r jedes Ger&auml;t');
+INSERT INTO txt VALUES ('forEachDevice', 		'English', 	'For each device');
+INSERT INTO txt VALUES ('enterInReqTask',       'German', 	'Ger&auml;t im Antrag eingeben');
+INSERT INTO txt VALUES ('enterInReqTask',       'English', 	'Enter device in request');
+INSERT INTO txt VALUES ('afterPathAnalysis',    'German', 	'nach Pfadanalyse');
+INSERT INTO txt VALUES ('afterPathAnalysis',    'English', 	'After path analysis');
 
 -- network analysis
 INSERT INTO txt VALUES ('network_analysis', 	'German',	'Netzanalyse');

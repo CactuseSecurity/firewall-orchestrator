@@ -13,7 +13,7 @@
     - ../templates/ldif_files/*.j2
   become: yes
 
-    - name: add tree
+- name: add tree
   command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{  middleware_ldif_dir }}/tree_{{ item }}.ldif"
   loop:
     - level_0

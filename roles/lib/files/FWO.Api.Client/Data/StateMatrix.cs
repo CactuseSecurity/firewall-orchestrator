@@ -78,15 +78,25 @@ namespace FWO.Api.Client
                 return 0;
             }
             int stateOut = 0;
+            int backAssignedState = LowestInputState;
             int initState = 0;
             int inWorkState = LowestEndState;
             int minFinishedState = 999;
+            int backAssignedTasks = 0;
             int openTasks = 0;
             int inWorkTasks = 0;
             int finishedTasks = 0;
             foreach(int state in statesIn)
             {
-                if(state < LowestStartedState)
+                if(state < LowestInputState)
+                {
+                    backAssignedTasks++;
+                    if(state < backAssignedState)
+                    {
+                        backAssignedState = state;
+                    }
+                }
+                else if(state < LowestStartedState)
                 {
                     openTasks++;
                     initState = state;
@@ -108,7 +118,12 @@ namespace FWO.Api.Client
                     }
                 }
             }
-            if(inWorkTasks > 0)
+
+            if(backAssignedTasks > 0)
+            {
+                stateOut = backAssignedState;
+            }
+            else if(inWorkTasks > 0)
             {
                 stateOut = inWorkState;
             }
@@ -124,6 +139,7 @@ namespace FWO.Api.Client
             {
                 stateOut = LowestStartedState;
             }
+
             if(DerivedStates.ContainsKey(stateOut))
             {
                 return DerivedStates[stateOut];

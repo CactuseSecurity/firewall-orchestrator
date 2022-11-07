@@ -28,15 +28,23 @@ namespace FWO.Ui.Services
         private List<RequestStateAction> getRelevantActions(RequestStatefulObject statefulObject, RequestObjectScopes scope, bool toState=true)
         {
             List<RequestStateAction> stateActions = new List<RequestStateAction>();
-            int searchedStateId = (toState ? statefulObject.StateId : statefulObject.ChangedFrom());
-            foreach(var actionHlp in states.FirstOrDefault(x => x.Id == searchedStateId)?.Actions ?? throw new Exception("Unknown stateId:" + searchedStateId))
+            try
             {
-                if(actionHlp.Action.Scope == scope.ToString() 
-                    && (!(actionHlp.Action.Scope == RequestObjectScopes.RequestTask.ToString() || actionHlp.Action.Scope == RequestObjectScopes.ImplementationTask.ToString())
-                     || actionHlp.Action.TaskType == "" || actionHlp.Action.TaskType == ((RequestTaskBase)statefulObject).TaskType))
+                int searchedStateId = (toState ? statefulObject.StateId : statefulObject.ChangedFrom());
+                foreach(var actionHlp in states.FirstOrDefault(x => x.Id == searchedStateId)?.Actions ?? throw new Exception("Unknown stateId:" + searchedStateId))
                 {
-                    stateActions.Add(actionHlp.Action);
+                    if(actionHlp.Action.Scope == scope.ToString() 
+                        && (!(actionHlp.Action.Scope == RequestObjectScopes.RequestTask.ToString() || actionHlp.Action.Scope == RequestObjectScopes.ImplementationTask.ToString())
+                        || actionHlp.Action.TaskType == "" || actionHlp.Action.TaskType == ((RequestTaskBase)statefulObject).TaskType))
+                    {
+                        stateActions.Add(actionHlp.Action);
+                    }
                 }
+            }
+            catch(Exception exc)
+            {
+                // unknown stateId probably by misconfiguration
+                Log.WriteError("Get relevant actions", $"Exception thrown and ignored: ", exc);
             }
             return stateActions;
         }

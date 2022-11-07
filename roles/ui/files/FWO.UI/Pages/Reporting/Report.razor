@@ -6,6 +6,7 @@
 @using System.Threading
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.Reporting.Reports
+@using System.Diagnostics
 
 @page "/report"
 
@@ -16,20 +17,20 @@
 <Sidebar @ref="deviceSelectionSidebar" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth" >
     <div class="p-3">
         <h5 class="text-left">@(userConfig.GetText("report_type"))</h5>
-        <div class="col-sm-8">
-            <select id="reportType" class="form-control form-control-sm" value="@selectedReportType" @onchange="ReportTypeChanged">
-                @foreach (var reportType in Enum.GetValues(typeof(ReportType)))
-                {
-                    <option value="@reportType">@userConfig.GetText(reportType?.ToString()?.ToLower() ?? "")</option>
-                }
-            </select>
-        </div>
+        <Dropdown ElementType="ReportType" ElementToString="@(r => userConfig.GetText(r.ToString()?.ToLower() ?? ""))"
+            Value="selectedReportType" ValueChanged="ReportTypeChanged" Elements="Enum.GetValues(typeof(ReportType)).Cast<ReportType>()">
+            <ElementTemplate Context="reportType">
+                @userConfig.GetText(reportType.ToString()?.ToLower() ?? "")
+            </ElementTemplate>
+        </Dropdown>
     </div>
     <div class="p-3">
         <h5 class="text-left">@(userConfig.GetText("report_time"))</h5>
-        <div class="btn-group mr-1 ml-1 mb-1">
-            <label class="col-sm-8">@displayedTimeSelection</label>
-            <button class="btn btn-sm btn-secondary" @onclick="SelectTime">@(userConfig.GetText("change"))</button>
+        <div class="input-group">
+            <input type="text" class="form-control form-control-sm" disabled value="@displayedTimeSelection" />
+            <div class="input-group-append">
+                <button class="btn btn-sm btn-outline-info" @onclick="SelectTime">@(userConfig.GetText("change"))</button>
+            </div>
         </div>
     </div>
     <DeviceSelection @bind-DeviceFilter="deviceFilter" @bind-CollapseAll="collapseDevices" @bind-SelectAll="selectAll"></DeviceSelection>
@@ -96,7 +97,7 @@
                         break;
 
                     case ReportRules rulesReport:
-                        <RulesReport Managements="managementsReport" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"></RulesReport>
+                        <RulesReport Managements="managementsReport" SelectedReportType="selectedReportType" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"></RulesReport>
                         break;
 
                     case ReportChanges changesReport:
@@ -140,6 +141,20 @@
             }
         </div>
     </div>
+    @if (currentReport != null)
+        {
+            if (reportGenerationDuration != null && reportGenerationDuration != 0)
+            {
+                if (reportGenerationDuration<600)
+                {
+                    <small>@(userConfig.GetText("report_duration")) @reportGenerationDuration.ToString("0.00") @(userConfig.GetText("seconds")).</small>
+                }
+                else
+                {
+                    <small> @(userConfig.GetText("report_duration")) @(reportGenerationDuration/60.0).ToString("0.00") @(userConfig.GetText("minutes")).</small>
+                }
+            }
+        }
 </div>
 
 @* ==== RIGHT SIDEBAR ==== *@
@@ -334,6 +349,7 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
+    public double reportGenerationDuration;
     private bool processing = false;
     private CancellationTokenSource tokenSource = new CancellationTokenSource();
 
@@ -344,7 +360,7 @@
     private Management[] managementsAllObjects = new Management[0];
     private Management? globalStats = null;
 
-    private ReportType selectedReportType = ReportType.Rules;
+    public ReportType selectedReportType = ReportType.Rules;
 
     private DeviceFilter deviceFilter = new DeviceFilter();
     private bool selectAll = true;
@@ -412,11 +428,17 @@
         });
     }
 
-    private void ReportTypeChanged(ChangeEventArgs args)
+    private void ReportTypeChanged(ReportType newReportType)
     {
-        selectedReportType = (ReportType) Enum.Parse(typeof(ReportType), (args?.Value?.ToString() ?? throw new Exception("Undefined report type")), true);
+        // clear report data when switching reportType
+        // as we would be missing src/dst/svc information in some cases           
+        managementsReport = new Management[] {};
+        globalStats = null;
+        selectedReportType = newReportType;
         DisplayTime();
         StateHasChanged();
+        if (reportGenerationDuration != null)
+            reportGenerationDuration = 0;
     }
 
     private void InitTimes(TimeFilter timeFilter)
@@ -651,6 +673,8 @@
 
     private async Task GenerateReport()
     {
+        Stopwatch watch = new System.Diagnostics.Stopwatch();
+        watch.Start();
         tokenSource = new CancellationTokenSource();
         var token = tokenSource.Token;
 
@@ -748,6 +772,8 @@
             await InvokeAsync(StateHasChanged);
             DisplayMessageInUi!(exception, userConfig.GetText("generate_report"), "", true);
         }
+        watch.Stop();
+        reportGenerationDuration = watch.ElapsedMilliseconds/1000.0;
     }
 
     private void CancelGeneration()
@@ -802,6 +828,10 @@
                 foreach(var dev in mgmt.Devices)
                 {
                     if(dev.Rules != null && dev.Rules.Count() > 0)
+                    {
+                        return false;
+                    }
+                    if(dev.RuleChanges != null && dev.RuleChanges.Count() > 0)
                     {
                         return false;
                     }

@@ -55,12 +55,26 @@
         </Column>
         <Column TableItem="Management" Title="@(userConfig.GetText("host"))" Field="@(x => x.Hostname)" Sortable="true">
             <Template>
-                @(context.Host())
+                @if (!context.DeviceType.IsDummyRouter())
+                {
+                    @(context.Host())
+                }
+                else
+                {
+                    <p>-</p>
+                }
             </Template>
         </Column>
         <Column TableItem="Management" Title="@(userConfig.GetText("import_credential"))" Field="@(x => x.ImportCredential.Id)" Sortable="true">
             <Template>
-                @(context.ImportCredential.Name)
+                @if (!context.DeviceType.IsDummyRouter())
+                {
+                    @(context.ImportCredential.Name)
+                }
+                else
+                {
+                    <p>-</p>
+                }
             </Template>
         </Column>
         <Column TableItem="Management" Title="@(userConfig.GetText("config_path"))" Field="@(x => x.ConfigPath)" Sortable="true" Filterable="true" />
@@ -107,40 +121,52 @@
                         <select id="managementDevType" class="form-control form-control-sm" @bind="actManagement.DeviceType">
                             @foreach (DeviceType devType in deviceTypes)
                             {
-                                <option value="@devType">@(devType.NameVersion())</option>
+                                @if (devType.IsManagement) 
+                                {
+                                    <option value="@devType">@(devType.NameVersion())</option>
+                                }
                             }
                         </select>
                     </div>
                 </div>
-                <div class="form-group row">
-                    <label for="managementHostname" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("hostname"))*:</label>
-                    <div class="col-sm-8">
-                        <input id="managementHostname" type="text" class="form-control form-control-sm" @bind="actManagement.Hostname" />
+                @if (!actManagement.DeviceType.IsDummyRouter())
+                {
+                    <div class="form-group row">
+                        <label for="managementHostname" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("hostname"))*:</label>
+                        <div class="col-sm-8">
+                            <input id="managementHostname" type="text" class="form-control form-control-sm" @bind="actManagement.Hostname" />
+                        </div>
                     </div>
-                </div>
-                <div class="form-group row">
-                    <label for="managementPort" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
-                    <div class="col-sm-2">
-                        <input id="managementPort" type="text" class="form-control form-control-sm" @bind="actManagement.Port" />
+                    <div class="form-group row">
+                        <label for="managementPort" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
+                        <div class="col-sm-2">
+                            <input id="managementPort" type="text" class="form-control form-control-sm" @bind="actManagement.Port" />
+                        </div>
                     </div>
-                </div>
-                <div class="form-group row">
-                    <label for="managementCredential" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("import_credential"))*:</label>
-                    <div class="col-sm-8">
-                        <select id="managementCredential" class="form-control form-control-sm" @bind="actManagement.ImportCredentialId">
-                            @foreach (ImportCredential cred in credentials)
-                            {
-                                <option value="@cred.Id">@(cred.Name)</option>
-                            }
-                        </select>
+                    <div class="form-group row">
+                        <label for="managementCredential" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("import_credential"))*:</label>
+                        <div class="col-sm-8">
+                            <select id="managementCredential" class="form-control form-control-sm" @bind="actManagement.ImportCredential.Id">
+                                @foreach (ImportCredential cred in credentials)
+                                {
+                                    <option value="@cred.Id">@(cred.Name)</option>
+                                }
+                            </select>
+                        </div>
                     </div>
-                </div>
+                }
                 @if (actManagement.DeviceType.CanHaveDomain())
                 {
                     <div class="form-group row">
                         <label for="managementConfigPath" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("config_path")):</label>
                         <div class="col-sm-8">
                             <input id="managementConfigPath" type="text" class="form-control form-control-sm" @bind="actManagement.ConfigPath" />
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="managementDomainUid" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("domain_uid")):</label>
+                        <div class="col-sm-8">
+                            <input id="managementDomainUid" type="text" class="form-control form-control-sm" @bind="actManagement.DomainUid" />
                         </div>
                     </div>
                 }
@@ -408,12 +434,13 @@
                         name = actManagement.Name,
                         devTypeId = actManagement.DeviceType.Id,
                         hostname = actManagement.Hostname,
-                        importCredentialId = actManagement.ImportCredentialId,
+                        importCredentialId = actManagement.ImportCredential.Id,
                         port = actManagement.Port,
                         importDisabled = actManagement.ImportDisabled,
                         forceInitialImport = actManagement.ForceInitialImport,
                         hideInUi = actManagement.HideInUi,
                         configPath = actManagement.ConfigPath,
+                        domainUid = actManagement.DomainUid,
                         superManager = actManagement.SuperManagerId,
                         importerHostname = actManagement.ImporterHostname,
                         debugLevel = actManagement.DebugLevel,
@@ -437,12 +464,13 @@
                         name = actManagement.Name,
                         devTypeId = actManagement.DeviceType.Id,
                         hostname = actManagement.Hostname,
-                        importCredentialId = actManagement.ImportCredentialId,
+                        importCredentialId = actManagement.ImportCredential.Id,
                         port = actManagement.Port,
                         importDisabled = actManagement.ImportDisabled,
                         forceInitialImport = actManagement.ForceInitialImport,
                         hideInUi = actManagement.HideInUi,
                         configPath = actManagement.ConfigPath,
+                        domainUid = actManagement.DomainUid,
                         superManager = actManagement.SuperManagerId,
                         importerHostname = actManagement.ImporterHostname,
                         debugLevel = actManagement.DebugLevel,
@@ -457,11 +485,13 @@
                 actManagement.DeviceType.Name = devtype.Name;
                 actManagement.DeviceType.Version = devtype.Version;
 
-                ImportCredential? cred = credentials.FirstOrDefault(x => x.Id == actManagement.ImportCredentialId) ?? throw new Exception("Unknown credentials");
-                actManagement.ImportCredential.Name = cred.Name;
-                actManagement.ImportCredential.Secret = cred.Secret;
-                actManagement.ImportCredential.PublicKey = cred.PublicKey;
-                actManagement.ImportCredential.IsKeyPair = cred.IsKeyPair;
+                ImportCredential? cred = credentials.FirstOrDefault(x => x.Id == actManagement.ImportCredential.Id) ?? throw new Exception("Unknown credentials");
+                actManagement.ImportCredential = cred;
+
+                // actManagement.ImportCredential.Name = cred.Name;
+                // actManagement.ImportCredential.Secret = cred.Secret;
+                // actManagement.ImportCredential.PublicKey = cred.PublicKey;
+                // actManagement.ImportCredential.IsKeyPair = cred.IsKeyPair;
             }
             StateHasChanged();
         }
@@ -473,13 +503,16 @@
 
     private bool CheckValues(Management mgm, string checkCause)
     {
-        if (mgm.Name == null || mgm.Name == "" || 
-            mgm.Hostname == null || mgm.Hostname == "")
+        if
+            (
+                mgm.Name == null || mgm.Name == "" || 
+                (mgm.DeviceType.Manufacturer != "DummyRouter" && (mgm.Hostname == null || mgm.Hostname == ""))
+            )
         {
             DisplayMessageInUi!(null, checkCause, userConfig.GetText("E5102"), true);
             return false;
         }
-        if (mgm.Port < 1 || mgm.Port > 65535)
+        if (mgm.DeviceType.Manufacturer != "DummyRouter" && (mgm.Port < 1 || mgm.Port > 65535))
         {
             DisplayMessageInUi!(null, checkCause, userConfig.GetText("E5103"), true);
             return false;

@@ -760,7 +760,7 @@ namespace FWO.Ui.Services
                     stop = reqtask.Stop,
                     handler = reqtask.CurrentHandler?.DbId,
                     recentHandler = reqtask.RecentHandler?.DbId,
-                    assignedGroup = reqtask.AssignedGroup,
+                    assignedGroup = reqtask.AssignedGroup
                 };
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequestTaskState, Variables)).UpdatedId;
                 if(udId != reqtask.Id)

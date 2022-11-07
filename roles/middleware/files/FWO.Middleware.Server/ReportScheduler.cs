@@ -118,6 +118,8 @@ namespace FWO.Middleware.Server
             {
                 try
                 {
+                    Log.WriteInfo("Report Scheduling", $"Generating scheduled report \"{report.Name}\" with id \"{report.Id}\" for user \"{report.Owner.Name}\" with id \"{report.Owner.DbId}\" ...");
+
                     ReportFile reportFile = new ReportFile
                     { 
                         Name = $"{report.Name}_{dateTimeNowRounded.ToShortDateString()}",
@@ -130,12 +132,9 @@ namespace FWO.Middleware.Server
                     DateTime reportGenerationStartDate = DateTime.Now;
 
                     // get uiuser roles + tenant
-                    AuthManager authHandler = new AuthManager(jwtWriter, connectedLdaps, apiConnection);
+                    AuthManager authManager = new AuthManager(jwtWriter, connectedLdaps, apiConnection);
                     //AuthenticationRequestHandler authHandler = new AuthenticationRequestHandler(connectedLdaps, jwtWriter, apiConnection);
-                    
-                    report.Owner.Roles = await authHandler.GetRoles(report.Owner);
-                    report.Owner.Tenant = await authHandler.GetTenantAsync(report.Owner);
-                    string jwt = await jwtWriter.CreateJWT(report.Owner);
+                    string jwt = await authManager.AuthorizeUserAsync(report.Owner, validatePassword: false, lifetime: TimeSpan.MaxValue);
                     ApiConnection apiConnectionUserContext = new GraphQlApiConnection(apiServerUri, jwt);
                     GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(jwt);
                     UserConfig userConfig = await UserConfig.ConstructAsync(globalConfig, apiConnection, report.Owner.DbId);
@@ -154,7 +153,7 @@ namespace FWO.Middleware.Server
                         report.Template.ReportParams.TimeFilter, 
                         (report.Template.ReportParams.ReportType != null ? (ReportType)report.Template.ReportParams.ReportType : ReportType.Rules),
                         userConfig);
-                    Management[] managementsReport = new Management[0];
+                    Management[] managementsReport = Array.Empty<Management>();
                     await reportRules.Generate(int.MaxValue, apiConnectionUserContext, 
                         managementsReportIntermediate =>
                         {
@@ -209,11 +208,11 @@ namespace FWO.Middleware.Server
 
                     await apiConnectionUserContext.SendQueryAsync<object>(ReportQueries.addGeneratedReport, queryVariables);
 
-                    Log.WriteInfo("Report Scheduling", $"Scheduled report \"{report.Name}\" for user \"{report.Owner.Name}\" with id \"{report.Owner.DbId}\" successfully generated.");
+                    Log.WriteInfo("Report Scheduling", $"Scheduled report \"{report.Name}\" with id \"{report.Id}\" for user \"{report.Owner.Name}\" with id \"{report.Owner.DbId}\" successfully generated.");
                 }
                 catch (Exception exception)
                 {
-                    Log.WriteError("Report Scheduling", $"Generating scheduled report \"{report.Name}\" lead to exception.", exception);
+                    Log.WriteError("Report Scheduling", $"Generating scheduled report \"{report.Name}\" with id \"{report.Id}\" lead to exception.", exception);
                 }
             }, token);
         }

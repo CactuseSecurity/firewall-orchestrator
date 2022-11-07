@@ -6,7 +6,7 @@ using FWO.Middleware.Server;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-
+using System.Reflection;
 
 object changesLock = new object(); // LOCK
 
@@ -96,7 +96,14 @@ builder.Services.AddAuthentication(confOptions =>
 });
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "FWO.Middleware", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "FWO Middleware API Documentation",
+        Description = "A documentation of the REST API interface for the FWO Middleware.",
+        Version = "v1"
+    });
+    string documentationPath = Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml");
+    c.IncludeXmlComments(documentationPath);
 });
 
 var app = builder.Build();

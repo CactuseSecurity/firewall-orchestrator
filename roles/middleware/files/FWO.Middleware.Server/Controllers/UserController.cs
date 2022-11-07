@@ -214,7 +214,7 @@ namespace FWO.Middleware.Controllers
                         errorMsg = currentLdap.SetPassword(user.Dn, parameters.NewPassword);
                         if (errorMsg == "")
                         {
-                            List<string> roles = currentLdap.GetRoles(new List<string>() { user.Dn }).ToList();
+                            List<string> roles = currentLdap.GetRoles(new List<string>() { user.Dn }).ToList(); // TODO: Group roles are not included
                             // the demo user (currently auditor) can't be forced to change password as he is not allowed to do it. Everyone else has to change it though
                             bool passwordMustBeChanged = !roles.Contains("auditor"); 
                             await UiUserHandler.UpdateUserPasswordChanged(apiConnection, user.Dn, passwordMustBeChanged);

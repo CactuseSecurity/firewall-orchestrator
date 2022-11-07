@@ -8,6 +8,7 @@ mutation newManagementWithExistingCredentials(
   $forceInitialImport: Boolean!
   $hideInUi: Boolean!
   $configPath: String
+  $domainUid: String
   $importerHostname: String
   $comment: String
   $tenantId: Int
@@ -21,6 +22,7 @@ mutation newManagementWithExistingCredentials(
       ssh_hostname: $hostname
       import_credential_id: $importCredentialId
       config_path: $configPath
+      domain_uid: $domainUid
       importer_hostname: $importerHostname
       ssh_port: $port
       do_not_import: $importDisabled

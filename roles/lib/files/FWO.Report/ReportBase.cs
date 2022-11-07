@@ -41,7 +41,9 @@ namespace FWO.Report
     </head>
     <body>
         <h2>##Title##</h2>
-        <p>Filter: ##Filter## - ##GeneratedOn##: ##Date##</p>
+        <p>Filter: ##Filter##</p>
+        <p>##Date-of-Config##: ##GeneratedFor## (UTC)</p>
+        <p>##GeneratedOn##: ##Date## (UTC)</p>
         <p>Devices: ##DeviceFilter##</p>
         <hr>
         ##Body##
@@ -99,8 +101,10 @@ namespace FWO.Report
             {
                 HtmlTemplate = HtmlTemplate.Replace("##Title##", title);
                 HtmlTemplate = HtmlTemplate.Replace("##Filter##", filter);
-                HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
                 HtmlTemplate = HtmlTemplate.Replace("##GeneratedOn##", userConfig.GetText("generated_on"));
+                HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
+                HtmlTemplate = HtmlTemplate.Replace("##Date-of-Config##", userConfig.GetText("date_of_config"));
+                HtmlTemplate = HtmlTemplate.Replace("##GeneratedFor##", DateTime.Parse(Query.ReportTimeString).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
                 HtmlTemplate = HtmlTemplate.Replace("##DeviceFilter##", string.Join("; ", Array.ConvertAll(Managements, management => management.NameAndDeviceNames())));
                 HtmlTemplate = HtmlTemplate.Replace("##Body##", htmlReport.ToString());
                 htmlExport = HtmlTemplate.ToString();
@@ -162,6 +166,8 @@ namespace FWO.Report
             {
                 ReportType.Statistics => new ReportStatistics(query, userConfig, reportType),
                 ReportType.Rules => new ReportRules(query, userConfig, reportType),
+                ReportType.ResolvedRules => new ReportRules(query, userConfig, reportType),
+                ReportType.ResolvedRulesTech => new ReportRules(query, userConfig, reportType),
                 ReportType.Changes => new ReportChanges(query, userConfig, reportType),
                 ReportType.NatRules => new ReportNatRules(query, userConfig, reportType),
                 _ => throw new NotSupportedException("Report Type is not supported."),

@@ -244,7 +244,7 @@
                             <label class="col-form-label col-form-label-sm">@(userConfig.GetText("comments")):</label>
                             @if(ReqHandler.PlanReqTaskMode || ReqHandler.ApproveReqTaskMode)
                             {
-                                <button class="btn btn-sm btn-success" @onclick:preventDefault @onclick="InitAddComment">@(userConfig.GetText("add_comment"))</button>
+                                <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="InitAddComment">@(userConfig.GetText("add_comment"))</button>
                             }
                         </div>
                         <div class="col-sm-11">
@@ -259,7 +259,7 @@
                         <div class="form-group row justify-content-center">
                             @foreach(var action in offeredActions)
                             {
-                                <button class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
+                                <button type="button" class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
                             }
                         </div>
                     </div>
@@ -269,9 +269,8 @@
                 {
                     <h5>@(userConfig.GetText("implementation_tasks"))</h5>
 
-                    <DisplayImplTaskTable Phase="Phase" States="States" 
-                        ReqHandler="ReqHandler" ResetParent="Reset" AllImplTasks="ReqHandler.ActReqTask.ImplementationTasks"
-                        StartImplPhase="StartImplPhase"/>
+                    <DisplayImplTaskTable Phase="Phase" States="States" ReqHandler="ReqHandler" ResetParent="Reset" 
+                        AllImplTasks="ReqHandler.ActReqTask.ImplementationTasks" StartImplPhase="StartImplPhase"/>
                 }
             </form>
         }
@@ -304,7 +303,7 @@
             {
                 <AuthorizeView Roles="admin, approver, fw-admin">
                     <Authorized>
-                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitApproveTask">@(userConfig.GetText("approve"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitApproveTask">@(userConfig.GetText("approve"))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("approve"))</button>
@@ -325,7 +324,7 @@
 {
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
-    
+
     [Parameter]
     public WorkflowPhases Phase { get; set; } = WorkflowPhases.request;
 
@@ -348,7 +347,7 @@
     private List<TaskType> availableTaskTypes { get; set; } = new List<TaskType>();
     private List<RuleAction> ruleActions = new List<RuleAction>();
     private List<Tracking> trackings = new List<Tracking>();
-    
+
     List<NwObjectElement> actSources = new List<NwObjectElement>();
     List<NwObjectElement> actDestinations = new List<NwObjectElement>();
     List<NwServiceElement> actServices = new List<NwServiceElement>();
@@ -356,7 +355,7 @@
     private List<RequestStateAction> offeredActions = new List<RequestStateAction>();
     private string allComments = "";
     private int[] devicesToAdd { get; set; } = new int[]{};
-    
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -375,11 +374,18 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (ReqHandler.DisplayReqTaskMode)
+        try
         {
-            InitElements();
-            await InitComments();
-            await Reset();
+            if (ReqHandler.DisplayReqTaskMode)
+            {
+                InitElements();
+                await InitComments();
+                await Reset();
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("init_environment"), "", true);
         }
     }
 

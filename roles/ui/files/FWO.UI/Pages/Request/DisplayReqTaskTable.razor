@@ -44,7 +44,7 @@
                                 <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await ContinuePhase(context)">@(userConfig.GetText("continue_" + Phase.ToString()))</button>
                                 @if(Phase == WorkflowPhases.planning)
                                 {
-                                    <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignTask(context)">@(userConfig.GetText("assign"))</button>
+                                    <button class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignTask(context)">@(userConfig.GetText("assign1"))</button>
                                 }
                             }
                         }
@@ -92,7 +92,7 @@
 }
 
 <DisplayRequestTask Phase="Phase" States="States" ReqHandler="ReqHandler" ResetParent="Reset" StartImplPhase="StartImplPhase"/>
-<AssignObject @bind-Display="ReqHandler.DisplayAssignMode" ResetParent="Reset" StatefulObject="ReqHandler.ActReqTask" Assign="ReqHandler.AssignReqTaskGroup" AssignBack="ReqHandler.AssignReqTaskBack" ObjectName="@ReqHandler.ActReqTask.Title" Role="planner"/>
+<AssignObject @bind-Display="ReqHandler.DisplayAssignMode" ResetParent="Reset" StatefulObject="ReqHandler.ActReqTask" Assign="ReqHandler.AssignReqTaskGroup" AssignBack="ReqHandler.AssignReqTaskBack" ObjectName="@ReqHandler.ActReqTask.Title" RoleList="validRoles"/>
 <DeleteObject @bind-Display="ReqHandler.DisplayDeleteMode" ResetParent="Reset" Delete="ReqHandler.ConfDeleteReqTask" ObjectName="@ReqHandler.ActReqTask.Title"/>
 <DisplayApprovals @bind-Display="ReqHandler.DisplayApprovalMode" ReqHandler="ReqHandler" ResetParent="Reset" Approvals="ReqHandler.ActReqTask.Approvals" States="States"/>
 
@@ -120,6 +120,7 @@
     [Parameter]
     public Func<RequestImplTask, Task>? StartImplPhase { get; set; }
 
+    static List<string> validRoles = new List<string>(){"planner", "fw-admin"};
 
     private async Task Reset()
     {

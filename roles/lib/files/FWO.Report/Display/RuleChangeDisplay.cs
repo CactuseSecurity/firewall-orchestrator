@@ -12,12 +12,12 @@ namespace FWO.Ui.Display
         // private static StringBuilder result;
 
         private UserConfig userConfig;
-        private RuleDisplay ruleDisplay;
+        private RuleDisplayHtml ruleDisplay;
 
         public RuleChangeDisplay(UserConfig userConfig)
         {
             this.userConfig = userConfig;
-            ruleDisplay = new RuleDisplay(userConfig);
+            ruleDisplay = new RuleDisplayHtml(userConfig);
         }
 
         public string DisplayChangeTime(RuleChange ruleChange)

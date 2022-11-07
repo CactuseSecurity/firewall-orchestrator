@@ -75,21 +75,6 @@
         msg: "Could not find existing installation but running with installation_mode set to {{ installation_mode }}. Try running with installation_mode=new"
       when: not already_installed and installation_mode == "upgrade"
 
-    - name: remove complete {{ fworch_home }} dir except for etc
-      file:
-        state: absent
-        path: "{{ fworch_home }}/{{ item }}"
-      loop:
-        - bin
-
-    - name: include redhat install basics
-      include_tasks: redhat_preps.yml
-      when: installation_mode == "new" and ansible_os_family == "RedHat"
-
-    - name: install rsyslog
-      import_tasks: install_syslog.yml
-      when: "install_syslog | bool"
-
     - name: create group {{ fworch_group }}
       group:
         name: "{{ fworch_user }}"
@@ -107,6 +92,41 @@
         generate_ssh_key: yes
         ssh_key_bits: 4096
         ssh_key_file: .ssh/id_rsa
+
+    - name: include redhat install basics
+      include_tasks: redhat_preps.yml
+      when: installation_mode == "new" and ansible_os_family == "RedHat"
+
+    - name: create var lock directory
+      file:
+        path: "{{ fworch_log_lock_dir }}"
+        state: directory
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        mode: "0775"
+
+    - name: create scripts directory
+      file:
+        path: "{{ fworch_home }}/scripts"
+        state: directory
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        mode: "0775"
+
+    - name: copy log lock scripts
+      copy:
+        src: "{{ item }}"
+        dest: "{{ fworch_home }}/scripts/"
+        mode: "0755"
+        owner: "{{ fworch_user}}"
+        group: "{{ fworch_user}}"
+      loop:
+        - acquire_lock.py
+        - release_lock.py
+
+    - name: install rsyslog
+      import_tasks: install_syslog.yml
+      when: "install_syslog | bool"
 
     - name: create base {{ fworch_home }} directory
       file:

@@ -5293,6 +5293,16 @@
                       "schema": "public"
                     }
                   }
+                },
+                {
+                  "name": "get_objects_for_tenant",
+                  "definition": {
+                    "function": {
+                      "name": "get_objects_for_tenant",
+                      "schema": "public"
+                    },
+                    "session_argument": "hasura_session"
+                  }
                 }
               ],
               "insert_permissions": [

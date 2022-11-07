@@ -11,7 +11,7 @@ query getNetworkObjectDetails(
   management(where: { mgm_id: { _in: $management_id }, stm_dev_typ:{dev_typ_is_multi_mgmt:{_eq:false}} }) {
     id: mgm_id
     name: mgm_name
-    networkObjects: objects(
+    networkObjects: get_objects_for_tenant(
       limit: $limit
       offset: $offset
       where: {
@@ -21,7 +21,6 @@ query getNetworkObjectDetails(
         obj_ip: { _in: $obj_ip }
         obj_uid: { _in: $nwObjUid }
       }
-      order_by: { obj_name: asc }
     ) {
       ...networkObjectDetails
     }

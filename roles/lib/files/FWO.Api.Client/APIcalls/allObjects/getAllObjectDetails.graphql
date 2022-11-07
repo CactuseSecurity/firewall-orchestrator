@@ -19,7 +19,7 @@ query getAllObjectDetails (
   ) {
     id: mgm_id
     name: mgm_name
-    networkObjects: objects (
+    networkObjects: get_objects_for_tenant (
       limit: $limit
       offset: $offset
       where: {
@@ -28,7 +28,6 @@ query getAllObjectDetails (
         obj_name: { _in: $obj_name }
         obj_uid: { _in: $uid }
       }
-      order_by: { obj_name: asc }
     ) {
       ...networkObjectDetails
     }

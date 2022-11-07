@@ -114,6 +114,34 @@ AS $function$
 $function$;
 
 
+CREATE OR REPLACE FUNCTION get_objects_for_tenant(management_row management, hasura_session json)
+RETURNS SETOF object AS $$
+    DECLARE t_id integer;
+    
+    BEGIN
+        t_id := (hasura_session ->> 'x-hasura-tenant-id')::integer;
+
+        IF t_id IS NULL THEN
+            RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
+        ELSIF t_id = 1 THEN
+            RETURN QUERY SELECT o.*
+                FROM object o
+                WHERE o.mgm_id = management_row.mgm_id
+                GROUP BY o.obj_id
+                ORDER BY MAX(obj_name), o.obj_id;
+        ELSE
+            RETURN QUERY SELECT o.*
+                FROM object o
+                    LEFT JOIN tenant_network ON
+                        (o.obj_ip>>=tenant_net_ip OR o.obj_ip<<=tenant_net_ip)
+                WHERE o.mgm_id = management_row.mgm_id AND tenant_id = t_id
+                GROUP BY o.obj_id
+                ORDER BY MAX(obj_name), o.obj_id;
+        END IF;
+    END;
+$$ LANGUAGE 'plpgsql' STABLE;
+
+
 -- does not use any views
 CREATE OR REPLACE FUNCTION get_rule_froms_for_tenant(rule rule, hasura_session json)
 RETURNS SETOF rule_from AS $$

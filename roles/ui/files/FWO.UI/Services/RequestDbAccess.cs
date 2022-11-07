@@ -158,6 +158,7 @@ namespace FWO.Ui.Services
                 else
                 {
                     returnId = returnIds[0].NewId;
+                    reqtask.Id = returnId;
                     foreach(var element in reqtask.Elements)
                     {
                         element.TaskId = returnId;
@@ -354,6 +355,7 @@ namespace FWO.Ui.Services
                 else
                 {
                     returnId = returnIds[0].NewId;
+                    approval.Id = returnId;
                     await ActionHandler.DoStateChangeActions(approval, RequestObjectScopes.Approval);
                 }
             }
@@ -423,6 +425,7 @@ namespace FWO.Ui.Services
                 else
                 {
                     returnId = returnIds[0].NewId;
+                    impltask.Id = returnId;
                     foreach(var element in impltask.ImplElements)
                     {
                         element.ImplTaskId = returnId;

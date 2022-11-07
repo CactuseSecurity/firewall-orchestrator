@@ -894,7 +894,16 @@ namespace FWO.Ui.Services
         public async Task UpdateActImplTaskState()
         {
             await dbAcc.UpdateImplTaskStateInDb(ActImplTask);
-            ActReqTask.ImplementationTasks[ActReqTask.ImplementationTasks.FindIndex(x => x.Id == ActImplTask.Id)] = ActImplTask;
+            int index = ActReqTask.ImplementationTasks.FindIndex(x => x.Id == ActImplTask.Id);
+            if(index >= 0)
+            {
+                ActReqTask.ImplementationTasks[index] = ActImplTask;
+            }
+            else
+            {
+                // due to actions the impl task may not be assigned
+                ActReqTask.ImplementationTasks.Add(ActImplTask);
+            }
         }
 
         public async Task UpdateActReqTaskStateFromApprovals()

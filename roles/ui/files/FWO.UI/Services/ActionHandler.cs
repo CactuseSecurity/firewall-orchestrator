@@ -70,12 +70,18 @@ namespace FWO.Ui.Services
                 List<RequestStateAction> stateActions = getRelevantActions(statefulObject, scope);
                 foreach(var action in stateActions.Where(x => (x.Event == StateActionEvents.OnSet.ToString())))
                 {
-                    await performAction(action, statefulObject, scope);
+                    if(action.Phase == "" || action.Phase == requestHandler.Phase.ToString())
+                    {
+                        await performAction(action, statefulObject, scope);
+                    }
                 }
                 List<RequestStateAction> fromStateActions = getRelevantActions(statefulObject, scope, false);
                 foreach(var action in fromStateActions.Where(x => (x.Event == StateActionEvents.OnLeave.ToString())))
                 {
-                    await performAction(action, statefulObject, scope);
+                    if(action.Phase == "" || action.Phase == requestHandler.Phase.ToString())
+                    {
+                        await performAction(action, statefulObject, scope);
+                    }
                 }
                 statefulObject.ResetStateChanged();
             }

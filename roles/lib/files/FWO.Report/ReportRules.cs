@@ -134,7 +134,7 @@ namespace FWO.Report
 
         public override async Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)
         {
-             Query.QueryVariables["limit"] = rulesPerFetch;
+            Query.QueryVariables["limit"] = rulesPerFetch;
             Query.QueryVariables["offset"] = 0;
             bool gotNewObjects = true;
 
@@ -168,7 +168,7 @@ namespace FWO.Report
                 }
                 await callback(Managements);
             }
-       }
+        }
 
         public override string SetDescription()
         {
@@ -193,16 +193,11 @@ namespace FWO.Report
 
             if (ReportType == ReportType.ResolvedRules || ReportType == ReportType.ResolvedRulesTech)
             {
-                StringBuilder report = new StringBuilder("");
-                report.AppendLine($"# report type: {userConfig.GetText("resolved_rules_report")}");
-                report.AppendLine($"# report generation date: {DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)");
-                report.AppendLine($"# date of configuration shown: {DateTime.Parse(Query.ReportTimeString).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)");
-                report.AppendLine($"# device filter: {string.Join("; ", Array.ConvertAll(Managements, management => management.NameAndDeviceNames()))}");
-                report.AppendLine($"# other filters: {Query.RawFilter}");
-                report.AppendLine($"# report generator: Firewall Orchestrator - https://fwo.cactus.de/en");
-                report.AppendLine($"# data protection level: For internal use only");
-                // report.AppendLine("# managements\": [");
+                StringBuilder report = new StringBuilder();
                 RuleDisplayCsv ruleDisplay = new RuleDisplayCsv(userConfig);
+
+                report.AppendLine(ruleDisplay.DisplayReportHeader(this));
+
                 foreach (Management management in Managements.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                         Array.Exists(mgt.Devices, device => device.Rules != null && device.Rules.Length > 0)))
                 {

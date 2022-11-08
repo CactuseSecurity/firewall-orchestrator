@@ -1,6 +1,7 @@
 ﻿using FWO.Api.Data;
 using FWO.Config.Api;
 using System.Text;
+using FWO.Report;
 using FWO.Report.Filter;
 
 namespace FWO.Ui.Display
@@ -10,6 +11,22 @@ namespace FWO.Ui.Display
 
         public RuleDisplayCsv(UserConfig userConfig) : base(userConfig)
         { }
+        public string DisplayReportHeader(ReportRules rules)
+        {
+            StringBuilder report = new StringBuilder();
+            report.AppendLine($"# report type: {userConfig.GetText("resolved_rules_report")}");
+            report.AppendLine($"# report generation date: {DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)");
+            report.AppendLine($"# date of configuration shown: {DateTime.Parse(rules.Query.ReportTimeString).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)");
+            report.AppendLine($"# device filter: {string.Join("; ", Array.ConvertAll(rules.Managements, management => management.NameAndDeviceNames()))}");
+            report.AppendLine($"# other filters: {rules.Query.RawFilter}");
+            report.AppendLine($"# report generator: Firewall Orchestrator - https://fwo.cactus.de/en");
+            report.AppendLine($"# data protection level: For internal use only");
+            report.AppendLine($"#");
+            report.AppendLine($"# rule CSV field names:");
+            report.AppendLine($"# \"management-name\",\"device-name\",\"rule-number\",\"rule-name\",\"source-zone\",\"source-negated\",\"source\",\"destination-zone\",\"destination-negated\",\"destination\",\"service-negated\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"");
+            return $"{report.ToString()}";
+        }                
+
         public new string DisplayNumber(Rule rule, Rule[] rules)
         {
             return $"{rule.DisplayOrderNumber.ToString()},";
@@ -51,10 +68,10 @@ namespace FWO.Ui.Display
         public string DisplaySourceOrDestination(Rule rule, string style = "", string location = "report", ReportType reportType = ReportType.Rules, string side = "source")
         {
             result = new StringBuilder("");
-            if (side=="source")
-                result.Append($"\"{((rule.SourceNegated)? "source negated" : "")}\",");
-            else if (side=="destination")
-                result.Append($"\"{((rule.DestinationNegated)? "destination negated" : "")}\",");
+            if (side == "source")
+                result.Append($"{((rule.SourceNegated) ? "\"source-negated\"" : "")},");
+            else if (side == "destination")
+                result.Append($"{((rule.DestinationNegated) ? "\"destination-negated\"" : "")},");
 
             if (reportType == ReportType.ResolvedRules || reportType == ReportType.ResolvedRulesTech)
             {
@@ -85,7 +102,7 @@ namespace FWO.Ui.Display
                 StringBuilder cell = new StringBuilder();
                 foreach (NetworkLocation networkLocation in userNwObjectList)
                 {
-                    cell.Append(NetworkLocationToCsv(networkLocation, rule.MgmtId, location, style, reportType=reportType).ToString());
+                    cell.Append(NetworkLocationToCsv(networkLocation, rule.MgmtId, location, style, reportType = reportType).ToString());
                 }
                 cell.Remove(cell.ToString().Length - 2, 2);  // get rid of final line break
                 result.Append($"\"{cell}\",");
@@ -112,13 +129,13 @@ namespace FWO.Ui.Display
                 result.Append($"{userNetworkObject.User.Name}@");
             }
 
-            if (reportType!=ReportType.ResolvedRulesTech)
+            if (reportType != ReportType.ResolvedRulesTech)
             {
                 result.Append($"{userNetworkObject.Object.Name}");
                 result.Append(" (");
             }
             result.Append(DisplayIpRange(userNetworkObject.Object.IP, userNetworkObject.Object.IpEnd));
-            if (reportType!=ReportType.ResolvedRulesTech)
+            if (reportType != ReportType.ResolvedRulesTech)
             {
                 result.Append(")");
             }
@@ -129,7 +146,7 @@ namespace FWO.Ui.Display
         public string DisplayService(Rule rule, string style = "", string location = "report", ReportType reportType = ReportType.Rules)
         {
             result = new StringBuilder();
-            result.Append($"\"{((rule.ServiceNegated)? "negated" : "")}\",");
+            result.Append($"{((rule.ServiceNegated) ? "\"service-negated\"" : "")},");
 
             switch (reportType)
             {
@@ -148,8 +165,8 @@ namespace FWO.Ui.Display
 
                     StringBuilder cell = new StringBuilder();
                     foreach (NetworkService service in serviceList)
-                        cell.Append(ServiceToCsv(service, rule.MgmtId, location, style, reportType=reportType).ToString());
-                    
+                        cell.Append(ServiceToCsv(service, rule.MgmtId, location, style, reportType = reportType).ToString());
+
                     cell.Remove(cell.ToString().Length - 2, 2);  // get rid of final line break
                     result.Append($"\"{cell}\",");
                     break;
@@ -166,7 +183,7 @@ namespace FWO.Ui.Display
                     result.Append(service.DestinationPort == service.DestinationPortEnd ? $" ({service.DestinationPort}/{service.Protocol?.Name})"
                         : $" ({service.DestinationPort}-{service.DestinationPortEnd}/{service.Protocol?.Name})");
             }
-            else 
+            else
             {
                 if (service.DestinationPort == null)
                     result.Append($"{service.Name}");
@@ -180,7 +197,7 @@ namespace FWO.Ui.Display
 
         public string DisplayEnabled(Rule rule, bool export = false)
         {
-            return $"\"{((rule.Disabled)?"disabled":"enabled")}\",";
+            return $"\"{((rule.Disabled) ? "disabled" : "enabled")}\",";
         }
     }
 }

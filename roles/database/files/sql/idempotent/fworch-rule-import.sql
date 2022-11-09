@@ -179,15 +179,19 @@ DECLARE
 	i_prev_numeric_value BIGINT;
 	i_next_numeric_value BIGINT;
 	i_numeric_value BIGINT;
+	v_rulebase_name VARCHAR;
 
 BEGIN
 	RAISE DEBUG 'import_rules_set_rule_num_numeric - start';
 	SELECT INTO i_mgm_id mgm_id FROM device WHERE dev_id=i_dev_id;
+	SELECT INTO v_rulebase_name local_rulebase_name FROM device WHERE dev_id=i_dev_id;
 	RAISE DEBUG 'import_rules_set_rule_num_numeric - mgm_id=%, dev_id=%, before inserting', i_mgm_id, i_dev_id;
+	i_prev_numeric_value := NULL;
 	FOR r_rule IN -- set rule_num_numeric for changed (i.e. "new") rules
 		SELECT rule.rule_id, rule_num_numeric FROM import_rule LEFT JOIN rule USING (rule_uid) WHERE
 			active AND
 			import_rule.control_id = i_current_control_id AND
+			import_rule.rulebase_name = v_rulebase_name AND
 			rule.dev_id=i_dev_id 
 			ORDER BY import_rule.rule_num
 	LOOP

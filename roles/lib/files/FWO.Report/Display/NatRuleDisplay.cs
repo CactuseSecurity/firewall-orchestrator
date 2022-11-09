@@ -78,7 +78,9 @@ namespace FWO.Ui.Display
                                              : $"goto-report-m{rule.MgmtId}-nwobj{destination.Object.Id}";
 
                 result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"{location}#{link}\" target=\"_top\" style=\"{style}\">{destination.Object.Name}</a>");
+                result.Append(" (");
                 result.Append(DisplayIpRange(destination.Object.IP, destination.Object.IpEnd));
+                result.Append(")");
                 result.AppendLine("<br>");
             }
             result.AppendLine("</p>");

@@ -28,7 +28,7 @@ include: file:///etc/ldap/schema/core.ldif
 include: file:///etc/ldap/schema/cosine.ldif
 include: file:///etc/ldap/schema/inetorgperson.ldif
 include: file:///etc/ldap/schema/nis.ldif
-{% if not ((ansible_distribution|lower == 'debian' and ansible_distribution_version == 'testing') or (ansible_distribution|lower == 'ubuntu' and ansible_distribution_version is version ('22', '>='))) %}
+{% if not ((ansible_facts['distribution_release']|lower == 'bookworm') or (ansible_distribution|lower == 'ubuntu' and ansible_distribution_version is version ('22', '>='))) %}
 include: file:///etc/ldap/schema/ppolicy.ldif
 {% endif %}
 

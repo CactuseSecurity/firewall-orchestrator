@@ -22,6 +22,8 @@
     src: "../templates/upgrade/{{ item }}.ldif.j2"
     dest: "{{ middleware_ldif_dir }}/{{ item }}.ldif"
     force: yes
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
   loop: "{{ upgrade_files }}"
   become: yes
 

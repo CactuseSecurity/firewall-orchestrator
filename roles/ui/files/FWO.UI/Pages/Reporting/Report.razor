@@ -18,7 +18,7 @@
     <div class="p-3">
         <h5 class="text-left">@(userConfig.GetText("report_type"))</h5>
         <Dropdown ElementType="ReportType" ElementToString="@(r => userConfig.GetText(r.ToString()?.ToLower() ?? ""))"
-            Value="selectedReportType" ValueChanged="ReportTypeChanged" Elements="Enum.GetValues(typeof(ReportType)).Cast<ReportType>()">
+            Value="selectedReportType" ValueChanged="ReportTypeChanged" Elements="CustomSortReportType(Enum.GetValues(typeof(ReportType)).Cast<ReportType>().ToList())">
             <ElementTemplate Context="reportType">
                 @userConfig.GetText(reportType.ToString()?.ToLower() ?? "")
             </ElementTemplate>
@@ -93,7 +93,7 @@
                 @switch (currentReport)
                 {
                     case ReportNatRules natRulesReport:
-                        <RulesReport NatRules="true" Managements="managementsReport" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"></RulesReport>
+                        <RulesReport NatRules="true" Managements="managementsReport" SelectedReportType="selectedReportType" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"></RulesReport>
                         break;
 
                     case ReportRules rulesReport:
@@ -839,5 +839,29 @@
             }
         }
         return true;
+    }
+
+    private List<ReportType> CustomSortReportType(List<ReportType> ListIn)
+    {
+        List<ReportType> ListOut = new List<ReportType>();
+        List<ReportType> orderedReportTypeList = new List<ReportType>
+            (
+                new ReportType[] 
+                    {
+                        ReportType.Rules, ReportType.ResolvedRules, ReportType.ResolvedRulesTech, ReportType.NatRules, ReportType.Changes, ReportType.Statistics
+                    }
+            ); 
+        foreach (ReportType reportType in orderedReportTypeList)
+        {
+            ReportType foundType = ListIn.Find(x => x == reportType);
+            if (foundType != null)
+            {
+                ListOut.Add(foundType);
+                ListIn.Remove(foundType);
+            }
+        }
+        // finally add remaining report types
+        ListOut.AddRange(ListIn);
+        return ListOut;
     }
 }

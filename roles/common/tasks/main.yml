@@ -169,11 +169,11 @@
     - set_fact:
         wsgi_package_name: "{{ wsgi_package_name }}-py3"
       when: | 
-        (ansible_facts['distribution']|lower == 'debian' and ansible_facts['distribution_major_version'] == 'testing')
+        (ansible_facts['distribution_release']|lower == 'bookworm')
         or 
-        (ansible_facts['distribution']|lower == 'debian' and ansible_facts['distribution_major_version'] is version('10', '>'))
+        (ansible_facts['distribution']|lower == 'debian' and ansible_facts['distribution_major_version']|int is version('10', '>'))
         or 
-        (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version'] is version('20', '>'))
+        (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version']|int is version('20', '>'))
 
     - name: copy iso.conf to target
       copy:

@@ -450,7 +450,7 @@ namespace FWO.Ui.Services
             {
                 await dbAcc.UpdateReqTaskInDb(ActReqTask);
             }
-            ActTicket.Tasks[ActTicket.Tasks.FindIndex(x => x.Id == ActReqTask.Id)] = ActReqTask;
+            ActTicket.Tasks[ActTicket.Tasks.FindIndex(x => x.TaskNumber == ActReqTask.TaskNumber)] = ActReqTask;
         }
 
         public async Task ConfDeleteReqTask()

@@ -1,5 +1,5 @@
 ### general settings
-product_version: "5.8.2"
+product_version: "6.0.1"
 
 ansible_python_interpreter: /usr/bin/python3
 ansible_ssh_common_args: '-o StrictHostKeyChecking=no'

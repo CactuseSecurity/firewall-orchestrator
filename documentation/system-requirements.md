@@ -27,6 +27,8 @@ Supported operating systms:
 - Ubuntu >=18.04 (LTS only)
 - Debian >=10
 
+Recommended: Ubuntu 20.04, Debian 11
+
 ### Requirements Network Connection
 - For software download during installation and upgrade:
   - Either direct Internet connection via http or https or http(s) proxy-based Internet connection.

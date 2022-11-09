@@ -22,10 +22,13 @@
     src: "../templates/upgrade/{{ item }}.ldif.j2"
     dest: "{{ middleware_ldif_dir }}/{{ item }}.ldif"
     force: yes
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
   loop: "{{ upgrade_files }}"
   become: yes
 
 - name: 
-  include_tasks: upgrade_modify_routine.yml
+  include_tasks: upgrade_ldif_file.yml
   loop: "{{ upgrade_files | sort }}"
-
+  loop_control:
+    loop_var: outer_item

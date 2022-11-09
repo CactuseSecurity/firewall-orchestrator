@@ -51,8 +51,16 @@ namespace FWO.Ui.Display
         public string DisplaySourceOrDestination(Rule rule, string style = "", string location = "report", ReportType reportType = ReportType.Rules, string side = "source")
         {
             result = new StringBuilder();
-            if (rule.SourceNegated)
-                result.AppendLine($"\"{side} negated\": {rule.SourceNegated.ToString().ToLower()},");
+            if (side=="source")
+            {
+                if (rule.SourceNegated)
+                    result.AppendLine($"\"{side} negated\": {rule.SourceNegated.ToString().ToLower()},");
+            }
+            else if (side=="destination")
+            {
+                if (rule.DestinationNegated)
+                    result.AppendLine($"\"{side} negated\": {rule.DestinationNegated.ToString().ToLower()},");
+            }
 
             result.Append($"\"{side}\": [");
 

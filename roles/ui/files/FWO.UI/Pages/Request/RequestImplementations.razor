@@ -138,6 +138,7 @@
         try
         {
             implTask.Start = DateTime.Now;
+            implTask.Stop = null;
             await reqHandler.StartWorkOnImplTask(implTask, ObjAction.implement);
         }
         catch (Exception exception)

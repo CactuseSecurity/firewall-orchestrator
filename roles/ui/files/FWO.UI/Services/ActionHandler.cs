@@ -99,6 +99,21 @@ namespace FWO.Ui.Services
                     }
                     break;
                 case nameof(StateActionTypes.AddApproval):
+                    switch(scope)
+                    {
+                        case RequestObjectScopes.Ticket:
+                            break;
+                        case RequestObjectScopes.RequestTask:
+                            requestHandler.SetReqTaskEnv((RequestReqTask)statefulObject);
+                            break;
+                        case RequestObjectScopes.ImplementationTask:
+                            requestHandler.SetImplTaskEnv((RequestImplTask)statefulObject);
+                            break;
+                        case RequestObjectScopes.Approval:
+                            break;
+                        default:
+                            break;
+                    }
                     await requestHandler.AddApproval(action.ExternalParams);
                     break;
                 case nameof(StateActionTypes.SetAlert):

@@ -56,9 +56,8 @@ namespace FWO.Ui
                 connectionEstablished = createJWTResponse.IsSuccessful;
             }
 
-            string jwt = createJWTResponse.Data;
+            string jwt = createJWTResponse.Data ?? throw new Exception("Received empty jwt.");
             apiConn.SetAuthHeader(jwt);
-            //((AuthStateProvider)AuthService).AuthenticateUser(jwt);
 
             // get all non-confidential configuration settings and add to a global service (for all users)
             GlobalConfig globalConfig = Task.Run(async() => await GlobalConfig.ConstructAsync(jwt)).Result;

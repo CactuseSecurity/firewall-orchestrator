@@ -22,6 +22,11 @@ namespace FWO.Ui.Services
 
         public static void AddJwtTimer(string userDn, int time)
         {
+            // Dispose old timer (if existing)
+            if (jwtExpiryTimers.ContainsKey(userDn))
+            {
+                jwtExpiryTimers[userDn].Dispose();
+            }
             jwtExpiryTimers[userDn] = new Timer(_ => JwtAboutToExpire(userDn), null, time, time);
         }
     }

@@ -28,15 +28,23 @@ namespace FWO.Ui.Services
         private List<RequestStateAction> getRelevantActions(RequestStatefulObject statefulObject, RequestObjectScopes scope, bool toState=true)
         {
             List<RequestStateAction> stateActions = new List<RequestStateAction>();
-            int searchedStateId = (toState ? statefulObject.StateId : statefulObject.ChangedFrom());
-            foreach(var actionHlp in states.FirstOrDefault(x => x.Id == searchedStateId)?.Actions ?? throw new Exception("Unknown stateId:" + searchedStateId))
+            try
             {
-                if(actionHlp.Action.Scope == scope.ToString() 
-                    && (!(actionHlp.Action.Scope == RequestObjectScopes.RequestTask.ToString() || actionHlp.Action.Scope == RequestObjectScopes.ImplementationTask.ToString())
-                     || actionHlp.Action.TaskType == "" || actionHlp.Action.TaskType == ((RequestTaskBase)statefulObject).TaskType))
+                int searchedStateId = (toState ? statefulObject.StateId : statefulObject.ChangedFrom());
+                foreach(var actionHlp in states.FirstOrDefault(x => x.Id == searchedStateId)?.Actions ?? throw new Exception("Unknown stateId:" + searchedStateId))
                 {
-                    stateActions.Add(actionHlp.Action);
+                    if(actionHlp.Action.Scope == scope.ToString() 
+                        && (!(actionHlp.Action.Scope == RequestObjectScopes.RequestTask.ToString() || actionHlp.Action.Scope == RequestObjectScopes.ImplementationTask.ToString())
+                        || actionHlp.Action.TaskType == "" || actionHlp.Action.TaskType == ((RequestTaskBase)statefulObject).TaskType))
+                    {
+                        stateActions.Add(actionHlp.Action);
+                    }
                 }
+            }
+            catch(Exception exc)
+            {
+                // unknown stateId probably by misconfiguration
+                Log.WriteError("Get relevant actions", $"Exception thrown and ignored: ", exc);
             }
             return stateActions;
         }
@@ -62,12 +70,18 @@ namespace FWO.Ui.Services
                 List<RequestStateAction> stateActions = getRelevantActions(statefulObject, scope);
                 foreach(var action in stateActions.Where(x => (x.Event == StateActionEvents.OnSet.ToString())))
                 {
-                    await performAction(action, statefulObject, scope);
+                    if(action.Phase == "" || action.Phase == requestHandler.Phase.ToString())
+                    {
+                        await performAction(action, statefulObject, scope);
+                    }
                 }
                 List<RequestStateAction> fromStateActions = getRelevantActions(statefulObject, scope, false);
                 foreach(var action in fromStateActions.Where(x => (x.Event == StateActionEvents.OnLeave.ToString())))
                 {
-                    await performAction(action, statefulObject, scope);
+                    if(action.Phase == "" || action.Phase == requestHandler.Phase.ToString())
+                    {
+                        await performAction(action, statefulObject, scope);
+                    }
                 }
                 statefulObject.ResetStateChanged();
             }
@@ -85,6 +99,21 @@ namespace FWO.Ui.Services
                     }
                     break;
                 case nameof(StateActionTypes.AddApproval):
+                    switch(scope)
+                    {
+                        case RequestObjectScopes.Ticket:
+                            break;
+                        case RequestObjectScopes.RequestTask:
+                            requestHandler.SetReqTaskEnv((RequestReqTask)statefulObject);
+                            break;
+                        case RequestObjectScopes.ImplementationTask:
+                            requestHandler.SetImplTaskEnv((RequestImplTask)statefulObject);
+                            break;
+                        case RequestObjectScopes.Approval:
+                            break;
+                        default:
+                            break;
+                    }
                     await requestHandler.AddApproval(action.ExternalParams);
                     break;
                 case nameof(StateActionTypes.SetAlert):

@@ -39,7 +39,7 @@
             </Column>
             <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("scope"))" Field="@(x => x.Scope)" Sortable="true" Filterable="true" >
                 <Template>
-                    @(context.TaskType != "" ? userConfig.GetText(context.Scope) : "")
+                    @(context.Scope != "" ? userConfig.GetText(context.Scope) : "")
                 </Template>
             </Column>
             <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("task_type"))" Field="@(x => x.TaskType)" Sortable="true" Filterable="true" >

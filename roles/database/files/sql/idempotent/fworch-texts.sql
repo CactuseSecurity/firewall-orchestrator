@@ -2682,7 +2682,7 @@ INSERT INTO txt VALUES ('H5331', 'German',  'Alle definierten Rollen werden mit 
 INSERT INTO txt VALUES ('H5331', 'English', 'All defined roles in the system are displayed with a short explanation.<br>
     The admin can assign or remove users or user groups to/from the roles.
 ');
-INSERT INTO txt VALUES ('H5332', 'German',  'Die verf&uuml;gbaren Rollen k&ouml;nnen in mehrere Kategorien eingeteil werden:');
+INSERT INTO txt VALUES ('H5332', 'German',  'Die verf&uuml;gbaren Rollen k&ouml;nnen in mehrere Kategorien eingeteilt werden:');
 INSERT INTO txt VALUES ('H5332', 'English', 'The provided roles can be divided into several categories:');
 INSERT INTO txt VALUES ('H5341', 'German',  'Aktionen: Der Admin hat die M&ouml;glichkeit, Nutzer den Rollen zuzuordnen oder sie von ihnen zu entfernen,
     ausser f&uuml;r "anonymous" oder "middleware-server", welche nur intern genutzt werden kann.
@@ -2899,13 +2899,13 @@ INSERT INTO txt VALUES ('H5542', 'English', 'Phases: The workflow phases provide
 ');
 INSERT INTO txt VALUES ('H5543', 'German',  'Status&uuml;berg&auml;nge: F&uuml;r jeden in einer Phase vorkommenden Status muss hier festgelegt werden, in welche Stati von dort beim Speichern gewechselt werden kann. 
     Diese werden dann bei den jeweiligen Aktionen in einer Liste angeboten. Ist nur der &Uuml;bergang zu genau einem Status m&ouml;glich, so wird dieser &Uuml;bergang automatisch ohne R&uuml;ckfrage ausgef&uuml;hrt.
-    (z.B. ist in der Standardkonfiguration nur der &Uuml;bergang "Requested" -> "In Approval" eingetragen, so dass beim bet&auml;tigen von "Genehmigung beginnen" automatisch letzterer Status gesetzt wird.)
+    (z.B. ist in der Standardkonfiguration nur der &Uuml;bergang "Requested" -&amp;gt; "In Approval" eingetragen, so dass beim bet&auml;tigen von "Genehmigung beginnen" automatisch letzterer Status gesetzt wird.)
     Soll eine Aktion, die ein Speichern bewirkt, auch ohne Statuswechsel stattfinden k&ouml;nnen, so ist der Ausgangszustand auch in der Liste der Zielzust&auml;nde aufzunehmen.
     Es ist darauf zu achten, dass alle vorkommenden Zielstati der &Uuml;bergangsmatrizen auch in den Ausgangsstati zu finden sind.
 ');
 INSERT INTO txt VALUES ('H5543', 'English', 'State transitions: For each state appearing in a phase it has to be defined, to which states transitions are possible on saving.
     These states are displayed in a list in the particular actions. If there is only the transition to exactly one state possible, this transition is performed automatically without further dialogue.
-    (E.g. in the default configuration the transition "Requested" -> "In Approval" is listed, so that on pushing the button "Start approval" the latter state is set automatically.)
+    (E.g. in the default configuration the transition "Requested" -&amp;gt; "In Approval" is listed, so that on pushing the button "Start approval" the latter state is set automatically.)
     If an action leading to a storage should also have the possibility to be performed without state change, the source state has to be added also to the target state list.
     Make sure that all used target states in all transition matrices also appear in the source states.
 ');
@@ -3559,5 +3559,350 @@ INSERT INTO txt VALUES ('H8601', 'English', 'For the setup of a workflow it is s
         <li><a href="/help/settings/roles">Roles</a>: Assign roles to users/groups</li>
     </ul>
 ');
-INSERT INTO txt VALUES ('H8701', 'German',  '');
-INSERT INTO txt VALUES ('H8701', 'English', '');
+INSERT INTO txt VALUES ('H8701', 'German',  'Die folgenden Beispiele sollen ein Schlaglicht auf die verschiedenen Konfigurationsm&ouml;glichkeiten des Workflowmoduls werfen.
+    Sie k&ouml;nnen gleichzeitig oder voneinander unabh&auml;ngig ausprobiert werden (mit Ausnahme von Beispiel 5, welches auf den in Beispiel 4 definierten Stati aufsetzt). 
+    Es wurden hier englische Namen f&uuml;r Stati oder Aktionen gew&auml;hlt (wie sie ja auch vorinstalliert sind),
+    eine beliebige Umbenennung (z. B. &Uuml;bersetzung ins Deutsche) ist nat&uuml;rlich jederzeit und einfach m&ouml;glich.
+');
+INSERT INTO txt VALUES ('H8701', 'English', 'Following examples are intended to give an idea about the different configuration options of the workflow module.
+    They can be used all together or independently (with exeption of example 5, which uses the states defined in example 4).
+    Names of states or actions are given arbitrarily and can be changed (e.g. translated) easily at any time.
+');
+INSERT INTO txt VALUES ('H8711', 'German',  '<H4>1) Einf&uuml;gen eines neuen Status in die Genehmigungsphase</H4>
+    Dient zum Markieren von "geparkten" offenen Genehmigungen (nur zu erreichen von "In Approval" und zur&uuml;ck)
+    <ul>
+        <li>Einstellungen -&amp;gt; Statusdefinitionen -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; Eingabe Id: 61 
+            (Nummer im Bereich zwischen niedrigstem Bearbeitungs- und niedrigstem Ausgangsstatus der Genehmigungsphase), Name: "Approval on Hold" -&amp;gt; Speichern</li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Master
+            <ul>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Approval on Hold" ausw&auml;hlen</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: "Approval on Hold" bearbeiten -&amp;gt; Status hinzuf&uuml;gen 
+                    -&amp;gt; "Approval on Hold" ausw&auml;hlen -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "In Approval" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: "In Approval" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Approval on Hold" ausw&auml;hlen -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Zugriff
+            <ul>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Approval on Hold" ausw&auml;hlen</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: "Approval on Hold" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Approval on Hold" ausw&auml;hlen 
+                    -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "In Approval" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: "In Approval" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Approval on Hold" ausw&auml;hlen -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8711', 'English', '<H4>1) Insert new state to approval phase</H4>
+    Serves for marking of "parked" open approvals (only reachable from "In Approval" and back)
+    <ul>
+        <li>Settings -&amp;gt; State Definitions -&amp;gt; Add State -&amp;gt; Insert Id: 61 
+            (Id has to be in the range between lowest started state and lowest exit state of approval phase), Name: "Approval on Hold" -&amp;gt; Save</li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Master
+            <ul>
+                <li>Approval: Allowed transitions: Add State -&amp;gt; Select "Approval on Hold"</li>
+                <li>Approval: Allowed transitions: Edit "Approval on Hold" -&amp;gt; Add State -&amp;gt; Select "Approval on Hold" -&amp;gt; Add State -&amp;gt; Select "In Approval" -&amp;gt; Ok</li>
+                <li>Approval: Allowed transitions: Edit "In Approval" -&amp;gt; Add State -&amp;gt; Select "Approval on Hold" -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Access
+            <ul>
+                <li>Approval: Allowed transitions: Add State -&amp;gt; Select "Approval on Hold"</li>
+                <li>Approval: Allowed transitions: Edit "Approval on Hold" -&amp;gt; Add State -&amp;gt; Select "Approval on Hold" -&amp;gt; Add State -&amp;gt; Select "In Approval" -&amp;gt; Ok</li>
+                <li>Approval: Allowed transitions: Edit "In Approval" -&amp;gt; Add State -&amp;gt; Select "Approval on Hold" -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8712', 'German',  '<H4>2) R&uuml;cksprung in vorherige Phase</H4>
+    Soll beispielsweise dem Genehmiger erlaubt werden, den Antrag an den Antragsteller zur&uuml;ckzuschicken, 
+    kann einfach in der Status-Matrix ein &Uuml;bergang zu einem Status im Eingangsbeerich der Antragsphase eingetragen werden.
+    Dann wird dieser Status beim Genehmigen automatisch als m&ouml;glicher Zielstatus angezeigt.
+    Zur leichteren Erkennung f&uuml;r den Antragsteller wird in diesem Beispiel in der anzuspringenden Phase ein weiterer Status definiert und in der Status-Matrix mit den erw&uuml;nschten Status&uuml;berg&auml;ngen versehen:
+    <ul>
+        <li>Einstellungen -&amp;gt; Statusdefinitionen -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; Eingabe Id: 1, Name: "Back To Requester" -&amp;gt; Speichern 
+            (Nummer im Bereich zwischen niedrigstem Eingangs- und niedrigstem Bearbeitungsstatus der Request-Phase)</li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Master
+            <ul>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Back To Requester" ausw&auml;hlen</li>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: "Back To Requester" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Back To Requester" ausw&auml;hlen 
+                    -&amp;gt; Status hinzuf&uuml;gene -&amp;gt; "Requested" ausw&auml;hlen -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Discarded" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Back To Requester" ausw&auml;hlen</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Zugriff 
+            <ul>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Back To Requester" ausw&auml;hlen</li>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: "Back To Requester" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Back To Requester" ausw&auml;hlen 
+                    -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Requested" ausw&auml;hlen -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Discarded" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: "In Approval" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Back To Requester" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Back To Requester" ausw&auml;hlen</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: "Back To Requester" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "In Approval" ausw&auml;hlen -&amp;gt; Status hinzuf&uuml;gen 
+                    -&amp;gt; "Approved" ausw&auml;hlen -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Rejected" ausw&auml;hlen -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Back To Requester" ausw&auml;hlen -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8712', 'English', '<H4>2) Jump back to previous phase</H4>
+    If an approver should be able to send back a ticket to the requester, a new transition to a state in the input range of the request phase can be inserted easily into the state matrix.
+    This state is then offered automatically as target state for the approver.
+    For easier identification for the requester, in this example a new state is defined and equipped with the necessary transitions in the state matrix:
+    <ul>
+        <li>Settings -&amp;gt; State Definitions -&amp;gt; Add State -&amp;gt; Insert Id: 1, Name: "Back To Requester" -&amp;gt; Save 
+            (Id in the range between lowest imput and lowest started state of Request phase)</li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Master
+            <ul>
+                <li>Request: Allowed transitions: Add State -&amp;gt; Select "Back To Requester"</li>
+                <li>Request: Allowed transitions: Edit "Back To Requester" -&amp;gt; Add State -&amp;gt; Select "Back To Requester" 
+                    -&amp;gt; Add State -&amp;gt; Select "Requested" -&amp;gt; Add State -&amp;gt; Select "Discarded" -&amp;gt; Ok</li>
+                <li>Approval: Allowed transitions: Add State -&amp;gt; Select "Back To Requester"</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Access 
+            <ul>
+                <li>Request: Allowed transitions: Add State -&amp;gt; Select "Back To Requester"</li>
+                <li>Request: Allowed transitions: Edit "Back To Requester" -&amp;gt; Add State -&amp;gt; Select "Back To Requester" 
+                    -&amp;gt; Add State -&amp;gt; Select "Requested" -&amp;gt; Add State -&amp;gt; Select "Discarded" -&amp;gt; Ok</li>
+                <li>Approval: Allowed transitions: Edit "In Approval" -&amp;gt; Add State -&amp;gt; Select "Back To Requester" -&amp;gt; Ok</li>
+                <li>Approval: Allowed transitions: Add State -&amp;gt; Select "Back To Requester"</li>
+                <li>Approval: Allowed transitions: Edit "Back To Requester" -&amp;gt; Add State -&amp;gt; Select "In Approval" -&amp;gt; Add State -&amp;gt; Select "Approved" 
+                    -&amp;gt; Add State -&amp;gt; Select "Rejected" -&amp;gt; Add State -&amp;gt; Select "Back To Requester" -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8713', 'German',  '<H4>3) Auslassen von Phasen f&uuml;r bestimmten Tasktyp</H4>
+    In diesem Beispiel soll die Genehmigungsphase f&uuml;r Generische Aufgaben &uuml;bersprungen werden:
+    <ul>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Generisch
+            <ul>
+                <li>Genehmigung: Phase deselektieren (die &Uuml;bergangsmatrix wird ausgeblendet)
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: "Requested" bearbeiten -&amp;gt; Abgeleiteter Status: "To Implement" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "To Implement" ausw&auml;hlen</li>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: "To Implement" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "In Implementation" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: "Approved" l&ouml;schen (wird nicht mehr ben&ouml;tigt)</li>
+                <li>Implementierung: Spezielle Stati: Niedrigster Eingangsstatus: "To Implement" ausw&auml;hlen</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8713', 'English', '<H4>3) Skip phase for specific Task Type</H4>
+    In this example the approval phase for generic task is skipped: 
+    <ul>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Generic
+            <ul>
+                <li>Approval: unselect phase (the transition matrix disappears)
+                <li>Request: Allowed transitions: Edit "Requested" -&amp;gt; Derived State: Select "To Implement" -&amp;gt; Ok</li>
+                <li>Implementation: Allowed transitions: Add State -&amp;gt; Select "To Implement"</li>
+                <li>Implementation: Allowed transitions: Edit "To Implement" -&amp;gt; Add State -&amp;gt; Select "In Implementation" -&amp;gt; Ok</li>
+                <li>Implementation: Allowed transitions: Remove "Approved" (not necessary any more)</li>
+                <li>Implementation: Special States: Lowest input state: Select "To Implement"</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8714', 'German',  '<H4>4) Aktion Autom. Weiterleitung</H4>
+    Als weitere Option ist es auch m&ouml;glich, eine Aktion vom Typ Autom. Weiterleitung zu nutzen.
+    In diesem Beispiel wird beim Reject durch den Implementer (nur zu erreichen nach vorherigem Status "Implementation Trouble") das Ticket automatisch wieder dem Requester zur Best&auml;tigung vorgelegt
+    (der Einfachheit halber werden die vorhandenen Stati soweit m&ouml;glich weiterverwendet, eine Definition weiterer Stati wie "Acknowledge Reject" und "Try again" w&uuml;rde sich aber anbieten):
+    <ul>
+        <li>Einstellungen -&amp;gt; Statusdefinitionen -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; Eingabe Id: 2, Name "Rejected By Implementer" -&amp;gt; Speichern</li>
+        <li>Einstellungen -&amp;gt; Statusaktionen -&amp;gt; Aktion hinzuf&uuml;gen -&amp;gt; Name: "Acknowledge Reject", Aktionstyp: "Autom. Weiterleitung", Ereignis: "Beim Erreichen", Phase: "Implementierung", 
+            Geltungsbereich: "Implementierungs-Auftrag", Tasktyp: "All", Zielstatus: "Rejected By Implementer" -&amp;gt; Speichern</li>
+        <li>Einstellungen -&amp;gt; Statusdefinitionen -&amp;gt; "Rejected" bearbeiten -&amp;gt; Aktion hinzuf&uuml;gen -&amp;gt; "Acknowledge Reject" ausw&auml;hlen -&amp;gt; Speichern</li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Master
+            <ul>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Rejected By Implementer" ausw&auml;hlen</li>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: "Rejected By Implementer" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Discarded" ausw&auml;hlen 
+                    -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Requested" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Rejected By Implementer" ausw&auml;hlen</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Generisch
+            <ul>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Rejected By Implementer" ausw&auml;hlen</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Zugriff
+            <ul>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Rejected By Implementer" ausw&auml;hlen</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8714', 'English', '<H4>4) Action Auto-forward</H4>
+    As further option it is possible to use an action of type Auto-forward.
+    In this example in case of a reject by the implementer (only reachable from the preceeding state Implementation Trouble") the ticket is assigned back to the requester for confirmation
+    (for simplicity the existing states are reused if possible, a definition of further states as "Acknowledge Reject" and "Try again" would be appropriate):
+    <ul>
+        <li>Settings -&amp;gt; State Definitions -&amp;gt; Add State -&amp;gt; Insert Id: 2, Name "Rejected By Implementer" -&amp;gt; Save</li>
+        <li>Settings -&amp;gt; State Actions -&amp;gt; Add Action -&amp;gt; Name: "Acknowledge Reject", Action Type: "Auto-forward", Event: "On Set", Phase: "Implementation", 
+            Scope: "Implementation Task", Task Type: "All", To State: "Rejected By Implementer" -&amp;gt; Save</li>
+        <li>Settings -&amp;gt; State Definitions -&amp;gt; Edit "Rejected" -&amp;gt; Add Action -&amp;gt; Select "Acknowledge Reject" -&amp;gt; Save</li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Master
+            <ul>
+                <li>Request: Allowed transitions: Add State -&amp;gt; Select "Rejected By Implementer"</li>
+                <li>Request: Allowed transitions: Edit "Rejected By Implementer" -&amp;gt; Add State -&amp;gt; Select "Discarded" -&amp;gt; Add State -&amp;gt; Select "Requested" -&amp;gt; Ok</li>
+                <li>Implementation: Allowed transitions: Add State -&amp;gt; Select "Rejected By Implementer"</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Generic
+            <ul>
+                <li>Implementation: Allowed transitions: Add State -&amp;gt; Select "Rejected By Implementer"</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Access
+            <ul>
+                <li>Implementation: Allowed transitions: Add State -&amp;gt; Select "Rejected By Implementer"</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8715', 'German',  '<H4>5) Automatische Aktion Genehmigung hinzuf&uuml;gen</H4>
+    Nun soll f&uuml;r den erneuten Versuch nach "Rejected By Implementer" (Beispiel 4) statt die alte zu &uuml;berschreiben eine neue Genemigung erzeugt werden.
+    Daf&uuml;r wird der noch unbenutzte Status "To approve" nach "Requested again" umbenannt (nat&uuml;rlich k&ouml;nnte stattdessen auch ein neuer Status definiert werden):
+    <ul>
+        <li>Einstellungen -&amp;gt; Statusdefinitionen -&amp;gt; Status "50: To Approve" bearbeiten -&amp;gt; Name &auml;ndern in "Requested again" -&amp;gt; Speichern</li>
+        <li>Einstellungen -&amp;gt; Statusaktionen -&amp;gt; Aktion hinzuf&uuml;gen -&amp;gt; Name: "Reapprove", Aktionstyp: "Genehmigung hinzuf&uuml;gen", Ereignis: "Beim Erreichen", 
+            Phase: "Antrag", Geltungsbereich: "fachlicher Auftrag", Tasktyp: "Zugriff", Zielstatus: "Requested again" -&amp;gt; Speichern</li>
+        <li>Einstellungen -&amp;gt; Statusdefinitionen -&amp;gt; "Requested again" bearbeiten -&amp;gt; Aktion hinzuf&uuml;gen -&amp;gt; "Reapprove" ausw&auml;hlen -&amp;gt; Speichern</li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Master
+            <ul>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Requested again" ausw&auml;hlen</li>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: "Rejected By Implementer" bearbeiten -&amp;gt; "Requested" l&ouml;schen -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Requested again" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Requested again" ausw&auml;hlen</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: "Requested again" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "In Approval" ausw&auml;hlen -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Zugriff
+            <ul>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Requested again" ausw&auml;hlen</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Requested again" ausw&auml;hlen</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: "Requested again" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "In Approval" ausw&auml;hlen -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlene: Generisch
+            <ul>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Requested again" ausw&auml;hlen</li>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: "Requested again" bearbeiten -&amp;gt; Abgeleiteter Status: "To Implement" ausw&auml;hlen -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8715', 'English', '<H4>5) Automatic action Add Approval</H4>
+    Now, when resending the request after reaching the state "Rejected By Implementer" (example 4), instead of overwriting the old approval a new approval should be created.
+    Therefore the currently unused state "To approve" is renamed to "Requested again" (of course instead a new state could be defined):
+    <ul>
+        <li>Settings -&amp;gt; State Definitions -&amp;gt; Edit State "50: To Approve" -&amp;gt; Change Name to "Requested again" -&amp;gt; Save</li>
+        <li>Settings -&amp;gt; State Actions -&amp;gt; Add Action -&amp;gt; Name: "Reapprove", Action Type: "Add approval", Event: "On Set", 
+            Phase: "Request", Scope: "Request Task", Task Type: "Access", To State: "Requested again" -&amp;gt; Save</li>
+        <li>Settings -&amp;gt; State Definitions -&amp;gt; Edit "Requested again" -&amp;gt; Add Action -&amp;gt; Select "Reapprove" -&amp;gt; Save</li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Master
+            <ul>
+                <li>Request: Allowed transitions: Add State -&amp;gt; Select "Requested again"</li>
+                <li>Request: Allowed transitions: Edit "Rejected By Implementer" -&amp;gt; Remove "Requested" -&amp;gt; Add State -&amp;gt; Select "Requested again" -&amp;gt; Ok</li>
+                <li>Approval: Allowed transitions: Add State -&amp;gt; Select "Requested again"</li>
+                <li>Approval: Allowed transitions: Edit "Requested again" -&amp;gt; Add State -&amp;gt; Select "In Approval" -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Access
+            <ul>
+                <li>Request: Allowed transitions: Add State -&amp;gt; Select "Requested again"</li>
+                <li>Approval: Allowed transitions: Add State -&amp;gt; Select "Requested again"</li>
+                <li>Approval: Allowed transitions: Edit "Requested again" -&amp;gt; Add State -&amp;gt; Select "In Approval" -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Generic
+            <ul>
+                <li>Request: Allowed transitions: Add State -&amp;gt; Select "Requested again"</li>
+                <li>Request: Allowed transitions: Edit "Requested again" -&amp;gt; Derived State: Select "To Implement" -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8716', 'German',  '<H4>6) Aktion Genehmigung hinzuf&uuml;gen als Schaltfl&auml;che</H4>
+    Der Genehmiger soll die M&ouml;glichkeit bekommen, bei Bedarf ein weiteres Approval zu erzeugen (um es z.B. jemand anderem zuzuweisen).
+    Daf&uuml;r soll eine Schaltfl&auml;che mit dem Text "weitere Genehmigung erforderlich" angeboten werden, die beim Bearbeiten des Auftrags im Status "In approval" erscheint:
+    <ul>
+        <li>Einstellungen -&amp;gt; Statusaktionen -&amp;gt; Aktion hinzuf&uuml;gen -&amp;gt; Name: "FurtherApproval", Aktionstyp: "Genehmigung hinzuf&uuml;gen", Ereignis: "Schaltfl&auml;che anbieten", 
+            Schaltertext: "weitere Genehmigung erforderlich", Phase: "Genehmigung", Geltungsbereich: "fachlicher Auftrag", Tasktyp: "Zugriff", Zielstatus: "Requested" -&amp;gt; Speichern</li>
+        <li>Einstellungen -&amp;gt; Statusdefinitionen -&amp;gt; "In approval" bearbeiten -&amp;gt; Aktion hinzuf&uuml;gen -&amp;gt; "FurtherApproval" ausw&auml;hlen -&amp;gt; Speichern</li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8716', 'English', '<H4>6) Action Add Approval as button</H4>
+    The approver should get the possibility to create a further approval (e.g. to assign it to someone else).
+    To achieve this, a button with the text "Further approval needed" is offered, which appears when working on the task with the state "In approval":
+    <ul>
+        <li>Settings -&amp;gt; State Actions -&amp;gt; Add Action -&amp;gt; Name: "FurtherApproval", Action Type: "Add approval", Event: "Offer Button", 
+            Button Text: "Further approval needed", Phase: "Approval", Scope: "Request Task", Task Type: "Access", To State: "Requested" -&amp;gt; Save</li>
+        <li>Settings -&amp;gt; State Definitions -&amp;gt; Edit "In approval" -&amp;gt; Add Action -&amp;gt; Select "FurtherApproval" -&amp;gt; Save</li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8717', 'German',  '<H4>7) Aktivieren Planungsphase</H4>
+    F&uuml;r Zugriffsauftr&auml;ge soll die Planungsphase wie vorinstalliert aktiviert werden 
+    (Implementierungsauftr&auml;ge werden dann nicht mehr automatisch erzeugt, sondern m&uuml;ssen vom Planer erstellt werden):
+    <ul>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Master
+            <ul>
+                <li>Planung: Phase ausw&auml;hlen (die &Uuml;bergangsmatrix wird eingeblendet)</li>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Planned" ausw&auml;hlen</li>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: "Planned" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "In Implementation" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Implementierung: Spezielle Stati: Niedrigster Eingangsstatus: "Planned" ausw&auml;hlen</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Zugriff
+            <ul>
+                <li>Planung: Phase ausw&auml;hlen (die &Uuml;bergangsmatrix wird eingeblendet)</li>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Planned" ausw&auml;hlen</li>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: "Planned" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "In Implementation" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Implementierung: Spezielle Stati: Niedrigster Eingangsstatus: "Planned" ausw&auml;hlen</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8717', 'English', '<H4>7) Activate Planning phase</H4>
+    For access tasks the Planning phase will be activated as preinstalled 
+    (Implementation tasks will not be created automatically but have to be defined by the planner):
+    <ul>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Master
+            <ul>
+                <li>Planning: select phase (the transition matrix is displayed)</li>
+                <li>Implementation: Allowed transitions: Add State -&amp;gt; Select "Planned"</li>
+                <li>Implementation: Allowed transitions: Edit "Planned" -&amp;gt; Add State -&amp;gt; Select "In Implementation" -&amp;gt; Ok</li>
+                <li>Implementation: Special States: Lowest input state: Select "Planned"</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Access
+            <ul>
+                <li>Planning: select phase (the transition matrix is displayed)</li>
+                <li>Implementation: Allowed transitions: Add State -&amp;gt; Select "Planned"</li>
+                <li>Implementation: Allowed transitions: Edit "Planned" -&amp;gt; Add State -&amp;gt; Select "In Implementation" -&amp;gt; Ok</li>
+                <li>Implementation: Special States: Lowest input state: Select "Planned"</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+    </ul>
+');

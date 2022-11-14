@@ -115,10 +115,11 @@ namespace FWO.Ui.Display
             if (reportType==ReportType.Rules || reportType==ReportType.ResolvedRules || reportType==ReportType.NatRules)
             {
                 result.Append($"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{location}#{nwobjLink}\" target=\"_top\" style=\"{style}\">{userNetworkObject.Object.Name}</a>");
-                result.Append(" (");
+                if (userNetworkObject.Object.Type.Name != "group")
+                    result.Append(" (");
             }
             result.Append(DisplayIpRange(userNetworkObject.Object.IP, userNetworkObject.Object.IpEnd));
-            if (reportType==ReportType.Rules || reportType==ReportType.ResolvedRules || reportType==ReportType.NatRules)
+            if (userNetworkObject.Object.Type.Name != "group" && (reportType==ReportType.Rules || reportType==ReportType.ResolvedRules || reportType==ReportType.NatRules))
                 result.Append(")");
             result.AppendLine("<br>");
             return result;

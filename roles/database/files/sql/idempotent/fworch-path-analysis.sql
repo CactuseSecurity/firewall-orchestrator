@@ -1,15 +1,12 @@
 
+DROP FUNCTION devices_in_path(cidr,cidr);
 
-CREATE OR REPLACE FUNCTION public.routing_interface(CIDR, integer, integer)
+CREATE OR REPLACE FUNCTION public.routing_interface(c_network_object CIDR, i_dev_id integer, i_ip_version integer)
     RETURNS integer
     LANGUAGE 'plpgsql'
     COST 100
     STABLE 
 AS $BODY$
-DECLARE
-	c_network_object ALIAS FOR $1;
-	i_dev_id ALIAS FOR $2;
-	i_ip_version ALIAS FOR $3;
 BEGIN
 	RETURN(
 	SELECT interface_id FROM gw_route 
@@ -21,24 +18,25 @@ BEGIN
 END;
 $BODY$;
 
-CREATE OR REPLACE FUNCTION public.devices_in_path(CIDR, CIDR)
-    RETURNS SETOF integer 
+CREATE OR REPLACE FUNCTION public.devices_in_path(c_source CIDR, c_destination CIDR)
+    RETURNS SETOF device 
     LANGUAGE 'plpgsql'
     COST 100
     STABLE 
     ROWS 1000
 AS $BODY$
 DECLARE
-	c_source ALIAS FOR $1;
-	c_destination ALIAS FOR $2;
+	dev device;
 	i_dev_id integer;
 BEGIN
-	FOR i_dev_id IN SELECT dev_id FROM device
-	LOOP
-		IF routing_interface(c_source, i_dev_id, 4) != routing_interface(c_destination, i_dev_id, 4) THEN
-			RETURN NEXT i_dev_id;
-		END IF;
-	END LOOP;
+	IF family(c_source::inet) = family(c_destination::inet) THEN
+		FOR dev IN SELECT * FROM device
+		LOOP
+			IF routing_interface(c_source, dev.dev_id, family(c_source::inet)) != routing_interface(c_destination, dev.dev_id, family(c_destination::inet)) THEN
+				RETURN NEXT dev;
+			END IF;
+		END LOOP;
+	END IF;
 	RETURN;
 END;
 $BODY$;

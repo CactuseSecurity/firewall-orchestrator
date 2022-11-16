@@ -5,24 +5,4 @@
     path_to_script: "{{ database_install_dir }}/sql/idempotent/{{ item }}"
   become: yes
   become_user: postgres
-  loop:
-    - fworch-basic-procs.sql
-    - fworch-import.sql
-    - fworch-import-main.sql
-    - fworch-obj-import.sql
-    - fworch-obj-refs.sql
-    - fworch-svc-import.sql
-    - fworch-svc-refs.sql
-    - fworch-usr-import.sql
-    - fworch-usr-refs.sql
-    - fworch-rule-import.sql
-    - fworch-rule-refs.sql
-    - fworch-rule-resolved.sql
-    - fworch-zone-import.sql
-    - fworch-report.sql
-    - fworch-qa.sql
-    - fworch-report-basics.sql
-    - fworch-views.sql
-    - fworch-api-funcs.sql
-    - fworch-grants.sql
-    - fworch-texts.sql
+  loop: "{{ database_idempotent_files }}"

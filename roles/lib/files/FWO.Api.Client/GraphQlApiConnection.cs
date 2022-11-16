@@ -127,7 +127,7 @@ namespace FWO.Api.Client
                         JProperty prop = (JProperty)(data.First ?? throw new Exception($"Could not retrieve unique result attribute from Json.\nJson: {response.Data}"));
                         JToken result = prop.Value;
                         QueryResponseType returnValue = result.ToObject<QueryResponseType>() ??
-                        throw new Exception($"Could not convert result from Json to {typeof(QueryResponseType)}.\nJson: {response.Data}");
+                            throw new Exception($"Could not convert result from Json to {typeof(QueryResponseType)}.\nJson: {response.Data}");
                         return returnValue;
                     }
                 }

@@ -250,6 +250,5 @@ adding report template format fk and permissions
 ### 6.0.1 - 10.11.2022
 - bugfix release with small issues (userconfig re-login, ldif upgrade bug, debian testing support)
 
-### 6.1.0 - xx.11.2022 DEVELOP
-- network analysis prototype
-
+### 6.1.0 - 16.11.2022 DEVELOP
+- interactive network analysis prototype in UI

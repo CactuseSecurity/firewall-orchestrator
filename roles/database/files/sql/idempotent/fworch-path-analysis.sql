@@ -1,5 +1,5 @@
 
-DROP FUNCTION devices_in_path(cidr,cidr);
+DROP FUNCTION IF EXISTS devices_in_path(cidr,cidr);
 
 CREATE OR REPLACE FUNCTION public.routing_interface(c_network_object CIDR, i_dev_id integer, i_ip_version integer)
     RETURNS integer

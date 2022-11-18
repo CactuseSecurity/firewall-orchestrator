@@ -302,19 +302,22 @@ def read_fw_json_config_file(filename=None, config={}, error_string='', error_co
     # when we read from a normalized config file, it contains non-matching dev_ids in gw_ tables
     def replace_device_id(config, mgm_details):
         logger = getFwoLogger()
-        if len(mgm_details['devices'])>1:
-            logger.warning('importing from config file with more than one device - just picking the first device at random')
-        if len(mgm_details['devices'])>=1:
-            # just picking the first device
-            dev_id = mgm_details['devices'][0]['id']
-            i=0
-            while i<len(config['routing']):
-                config['routing'][i]['routing_device'] = dev_id
-                i += 1
-            i=0
-            while i<len(config['interfaces']):
-                config['interfaces'][i]['routing_device'] = dev_id
-                i += 1    
+        if 'routing' in config or 'interfaces' in config:
+            if len(mgm_details['devices'])>1:
+                logger.warning('importing from config file with more than one device - just picking the first device at random')
+            if len(mgm_details['devices'])>=1:
+                # just picking the first device
+                dev_id = mgm_details['devices'][0]['id']
+                if 'routing' in config:
+                    i=0
+                    while i<len(config['routing']):
+                        config['routing'][i]['routing_device'] = dev_id
+                        i += 1
+                if 'interfaces' in config:
+                    i=0
+                    while i<len(config['interfaces']):
+                        config['interfaces'][i]['routing_device'] = dev_id
+                        i += 1    
 
 
     try:

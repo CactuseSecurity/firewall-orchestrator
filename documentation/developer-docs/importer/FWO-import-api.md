@@ -17,7 +17,9 @@
     "service_objects": [...],
     "user_objects": [...],
     "zone_objects": [...],
-    "rules": [...]
+    "rules": [...],
+    "routing": [],
+    "interfaces": []
 }
 ```
 
@@ -238,7 +240,31 @@ This is a complete example of a config which may be imported:
       "control_id": 1074,
       "zone_comment": "just a test"
     }
-  ]}
+  ],
+  "routing": [
+    {
+      "destination": "10.0.3.38/32",
+      "distance": 0,
+      "interface": "port5.1524",
+      "ip_version": 4,
+      "metric": 0,
+      "routing_device": 10,
+      "source": null,
+      "static": true,
+      "target_gateway": "0.0.0.0"
+    }
+  ],
+  "interfaces": [
+    {
+      "ip": "10.0.14.66",
+      "ip_version": 4,
+      "name": "port5.1524",
+      "netmask_bits": 32,
+      "routing_device": 10,
+      "state_up": true
+    }
+  ]
+}
 ```
 
 The following shows an example of how to import nat rules that are combined access/nat rules, here only translating destination (not showing irrelevant fields for brevity's sake):

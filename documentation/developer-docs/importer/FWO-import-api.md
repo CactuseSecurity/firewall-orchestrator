@@ -146,7 +146,7 @@ here we describe a single rule:
 - rule_track can be any of log, none, alert, userdefined, mail, account, userdefined 1, userdefined 2, userdefined 3, snmptrap, log count, count, log alert, log alert count, log alert count alarm, log count alarm, count alarm, all, all start, utm, utm start, network log
 - rule_action can be any of accept, drop, deny, access, client encrypt, client auth, reject, encrypt, user auth, session auth, permit, permit webauth, redirect, map, permit auth, tunnel l2tp, tunnel vpn-group, tunnel vpn, actionlocalredirect, inner layer
 
-## Putting it all together
+## Putting it all together 1
 
 This is a complete example of a config which may be imported:
 
@@ -413,3 +413,131 @@ The following gives an overview of the nat rule presentation as read via FWO API
   - network_services.svc_source_port_end - range could be entered as string "112-123"
   - users.last_change_admin
   - rules.rule_last_change_admin
+
+## 11/2022 target config
+
+```json
+{
+    "control_id": 1074,
+    "mgm_id": 221,
+    "devices": [
+        {
+            "name": "abc",
+            "id": 123,
+            "rulebase_name": "FirstLayer shared with inline layer",
+            "rules": [
+                {
+                    "rulebase_name": "FirstLayer shared with inline layer",
+                    "control_id": 1074,
+                    "rule_num": 0,
+                    "rule_uid": "828b0f42-4b18-4352-8bdf-c9c864d692eb",
+                    "rule_name": null,
+                    "rule_comment": "test comment",
+                    "rule_src": "test-ext-vpn-gw|test-interop-device|BeeW10|wsus",
+                    "rule_dst": "sting-gw",
+                    "rule_svc": "IPSEC",
+                    "rule_time": "Any",
+                    "rule_from_zone": null,
+                    "rule_to_zone": null,
+                    "rule_track": "Log",
+                    "rule_action": "Drop",
+                    "rule_implied": false,
+                    "rule_src_neg": false,
+                    "rule_dst_neg": false,
+                    "rule_svc_neg": false,
+                    "rule_disabled": true,
+                    "rule_src_refs": "a580c5a3-379c-479b-b49d-487faba2442e|98bc04fc-b88b-4283-83ad-7b6899bc1876|2ad18398-e004-4324-af79-634be66941d6|2661ec9f-293f-4c82-8150-4bb6c883ca79",
+                    "rule_dst_refs": "cbdd1e35-b6e9-4ead-b13f-fd6389e34987",
+                    "rule_svc_refs": "97aeb475-9aea-11d5-bd16-0090272ccb30",
+                    "rule_installon": "Policy Targets",
+                    "parent_rule_uid": null,
+                    "rule_ruleid": null,
+                    "rule_type": "access",
+                    "rule_last_change_admin": null
+                }
+            ],
+            "routing": [
+                {
+                    "destination": "10.0.3.38/32",
+                    "distance": 0,
+                    "interface": "port5.1524",
+                    "ip_version": 4,
+                    "metric": 0,
+                    "routing_device": 10,
+                    "source": null,
+                    "static": true,
+                    "target_gateway": "0.0.0.0"
+                }
+            ],
+            "interfaces": [
+                {
+                    "ip": "10.0.14.66",
+                    "ip_version": 4,
+                    "name": "port5.1524",
+                    "netmask_bits": 32,
+                    "routing_device": 10,
+                    "state_up": true
+                }
+            ]
+        }
+    ],
+    "user_objects": [
+        {
+            "user_typ": "simple",
+            "user_uid": "aae47c39-f416-4b32-801d-af53adfa1939",
+            "user_name": "test-user1",
+            "control_id": 1074,
+            "user_color": "black",
+            "user_comment": ""
+        },
+        {
+            "user_typ": "group",
+            "user_uid": "227d1a80-cc1e-4cd4-9576-4d46f271402f",
+            "user_name": "test-group",
+            "control_id": 1074,
+            "user_color": "black",
+            "user_comment": ""
+        }
+    ],
+    "network_objects": [
+        {
+            "obj_ip": "22.55.200.192/26",
+            "obj_typ": "network",
+            "obj_uid": "5368caf0-d192-457b-9c86-5d5f9e5dc199",
+            "obj_name": "Net_22.55.200.192-2",
+            "obj_color": "black",
+            "control_id": 1074,
+            "obj_ip_end": "22.55.200.192/26",
+            "obj_comment": null,
+            "obj_member_refs": null,
+            "obj_member_names": null
+        }
+    ],
+    "service_objects": [
+        {
+            "rpc_nr": null,
+            "svc_typ": "simple",
+            "svc_uid": "97aeb44f-9aea-11d5-bd16-0090272ccb30",
+            "ip_proto": "6",
+            "svc_name": "AOL",
+            "svc_port": "5190",
+            "svc_color": "red",
+            "control_id": 1074,
+            "svc_comment": "AOL Instant Messenger. Also used by: ICQ & Apple iChat",
+            "svc_timeout": "3600",
+            "svc_port_end": "5190",
+            "svc_member_refs": null,
+            "svc_member_names": null
+        }
+    ],
+    "zone_objects": [
+        {
+            "zone_name": "test-zone",
+            "svc_typ": "simple",
+            "zone_uid": "98aeb44f-9aea-11d5-bd16-0090272ccb30",
+            "control_id": 1074,
+            "zone_comment": "just a test"
+        }
+    ]
+}
+```

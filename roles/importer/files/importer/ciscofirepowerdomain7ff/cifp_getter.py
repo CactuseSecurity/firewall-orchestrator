@@ -1,13 +1,12 @@
 # library for API get functions
 import base64
-import re
 from typing import Dict
 from fwo_log import getFwoLogger
 import requests.packages
 import requests
 import json
-import common
 import fwo_globals
+from fwo_exception import FwLoginFailed
 
 auth_token = ""
 
@@ -25,6 +24,9 @@ def api_call(url, params = {}, headers = {}, json_payload = {}, auth_token = '',
     elif method == "get":
         response = requests.get(url, params=params, data=json.dumps(json_payload), headers=request_headers,
                          verify=fwo_globals.verify_certs)
+    else:
+        raise Exception("unknown HTTP method found in cifp_getter")
+    
     if response is None:
         if 'pass' in json.dumps(json_payload):
             exception_text = "error while sending api_call containing credential information to url '" + \
@@ -55,10 +57,10 @@ def login(user, password, api_host, api_port):
     try:
         headers, _ = api_call(base_url + "fmc_platform/v1/auth/generatetoken", method="post", headers={"Authorization" : "Basic " + str(base64.b64encode((user + ":" + password).encode('utf-8')), 'utf-8')})
     except Exception as e:
-        raise common.FwLoginFailed(
+        raise FwLoginFailed(
             "Cisco Firepower login ERROR: host=" + str(api_host) + ":" + str(api_port) + " Message: " + str(e)) from None
     if headers.get("X-auth-access-token") == None:   # leaving out payload as it contains pwd
-        raise common.FwLoginFailed(
+        raise FwLoginFailed(
             "Cisco Firepower login ERROR: host=" + str(api_host) + ":" + str(api_port)) from None
     if fwo_globals.debug_level > 2:
         logger = getFwoLogger()

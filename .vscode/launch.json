@@ -50,16 +50,16 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m8",
+                "-m10",
                 "-d9",
                 "-f",
                 "-s",
-                "-nhttps://fwodemodata.cactus.de/demo07_dummyGw1.json"
+                //"-nhttps://fwodemodata.cactus.de/demo07_dummyGw1.json"
                 //"-xhttp://10.6.5.10:3128",
                 //"-ihttps://fwodemodata.cactus.de/demo04_cpr8x.json",
                 //"-ihttps://fwodemodata.cactus.de/demo01_fortiMgrLab.json"
                 //"-ihttps://fwodemodata.cactus.de/demo05_fortiMgr2.json"
-                //"-ihttps://fwodemodata.cactus.de/big/fortiMgr_78111944ad43fe045687d8d6dc92256e.json",
+                "-ihttps://fwodemodata.cactus.de/big/fortiMgr_78111944ad43fe045687d8d6dc92256e.json",
                 // "-c"
                 //  41 - lab fortimanager
                 //"-i/home/tim/Downloads/mgm_id_9_config_native.json.anon"

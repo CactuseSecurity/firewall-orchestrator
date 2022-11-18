@@ -9,16 +9,11 @@ import requests.packages
 import requests
 import json
 import datetime
-import common
 from fwo_log import getFwoLogger
 import fwo_globals
 from fwo_const import fwo_api_http_import_timeout
-from fwo_exception import FwoApiTServiceUnavailable, FwoApiTimeout
+from fwo_exception import FwoApiTServiceUnavailable, FwoApiTimeout, FwoApiLoginFailed
 from fwo_base import writeAlertToLogFile
-
-
-details_level = "full"    # 'standard'
-use_object_dictionary = 'false'
 
 
 def showApiCallInfo(url, query, headers, type='debug'):
@@ -85,7 +80,7 @@ def login(user, password, user_management_api_base_url, method='api/Authenticati
     try:
         response = session.post(user_management_api_base_url + method, data=json.dumps(payload))
     except requests.exceptions.RequestException:
-        raise common.FwoApiLoginFailed ("fwo_api: error during login to url: " + str(user_management_api_base_url) + " with user " + user) from None
+        raise FwoApiLoginFailed ("fwo_api: error during login to url: " + str(user_management_api_base_url) + " with user " + user) from None
 
     if response.text is not None and response.status_code==200:
         return response.text
@@ -93,7 +88,7 @@ def login(user, password, user_management_api_base_url, method='api/Authenticati
         error_txt = "fwo_api: ERROR: did not receive a JWT during login" + \
                         ", api_url: " + str(user_management_api_base_url) + \
                         ", ssl_verification: " + str(fwo_globals.verify_certs)
-        raise common.FwoApiLoginFailed(error_txt)
+        raise FwoApiLoginFailed(error_txt)
 
 
 def set_api_url(base_url, testmode, api_supported, hostname):
@@ -212,8 +207,7 @@ def count_changes_per_import(fwo_api_base_url, jwt, import_id):
             changelog_rule_aggregate(where: {control_id: {_eq: $importId}}) { aggregate { count } }
         }"""
     try:
-        count_result = call(fwo_api_base_url, jwt, change_count_query, query_variables={
-                            'importId': import_id}, role='importer')
+        count_result = call(fwo_api_base_url, jwt, change_count_query, query_variables={'importId': import_id}, role='importer')
         changes_in_import = int(count_result['data']['changelog_object_aggregate']['aggregate']['count']) + \
             int(count_result['data']['changelog_service_aggregate']['aggregate']['count']) + \
             int(count_result['data']['changelog_user_aggregate']['aggregate']['count']) + \
@@ -434,7 +428,7 @@ def create_data_issue(fwo_api_base_url, jwt, import_id=None, obj_name=None, mgm_
 
         # write data issue to alert.log file as well
         # if severity>0:
-        #     common.writeAlertToLogFile(query_variables)
+        #     writeAlertToLogFile(query_variables)
         
         try:
             import_result = call(fwo_api_base_url, jwt, create_data_issue_mutation, query_variables=query_variables, role=role)

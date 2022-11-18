@@ -3,8 +3,7 @@ import sys, time, datetime
 import json, requests, requests.packages
 from socket import gethostname
 import importlib.util
-base_dir = '/usr/local/fworch'
-importer_base_dir = base_dir + '/importer'
+from fwo_const import importer_base_dir
 from pathlib import Path
 sys.path.append(importer_base_dir) # adding absolute path here once
 import fwo_api
@@ -109,7 +108,7 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0,
                     read_fw_json_config_file(filename=in_file, error_string=error_string, error_count=error_count, \
                     current_import_id=current_import_id, start_time=start_time, mgm_details=mgm_details, change_count=change_count, jwt=jwt)
            
-            elif normalized_in_file is not None:    # read normalized config from file
+            if normalized_in_file is not None:    # read normalized config from file
                 config2import, error_count, change_count = \
                     read_fw_json_config_file(filename=normalized_in_file, error_string=error_string, error_count=error_count, \
                     current_import_id=current_import_id, start_time=start_time, mgm_details=mgm_details, change_count=change_count, jwt=jwt)
@@ -347,6 +346,3 @@ def read_fw_json_config_file(filename=None, config={}, error_string='', error_co
     replace_device_id(config, mgm_details)
 
     return config, error_count, change_count
-
-
-

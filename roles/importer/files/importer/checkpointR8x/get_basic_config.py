@@ -1,13 +1,12 @@
 #!/usr/bin/python3
 
-import argparse, requests, requests.packages
 import time, sys
-from common import importer_base_dir, set_ssl_verification
+import argparse
+from fwo_const import importer_base_dir
 sys.path.append(importer_base_dir)
-import getter, cpcommon, fwo_log
+from fwo_log import getFwoLogger
+from cpcommon import use_object_dictionary, details_level, get_basic_config
 
-
-# requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
 parser = argparse.ArgumentParser(description='Read configuration from Check Point R8x management via API calls')
 parser.add_argument('-a', '--apihost', metavar='api_host', required=True, help='Check Point R8x management server')
@@ -32,10 +31,8 @@ if len(sys.argv)==1:
 with open(args.password, "r") as password_file:
     api_password = password_file.read().rstrip()
 
-details_level = "full"    # 'standard'
-use_object_dictionary = 'false'
 debug_level = int(args.debug)
-logger = fwo_log.getFwoLogger()
+logger = getFwoLogger()
 starttime = int(time.time())
 full_config_json = {}
 
@@ -56,7 +53,7 @@ mgm_details = {
     ]
 }
 
-cpcommon.get_basic_config (full_config_json, mgm_details, config_filename=args.out,
+get_basic_config (full_config_json, mgm_details, config_filename=args.out,
     force=args.force, limit=args.limit, details_level=details_level, test_version=args.testing, debug_level=debug_level, ssl_verification=set_ssl_verification(args.ssl, debug_level=debug_level))
 
 duration = int(time.time()) - starttime

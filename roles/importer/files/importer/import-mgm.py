@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 import sys, traceback
-import fwo_api, fwo_log
+from fwo_log import getFwoLogger
 import argparse
-import requests
+import requests, requests.packages
 from common import importer_base_dir, import_management
 import fwo_globals, fwo_config
 sys.path.append(importer_base_dir)
@@ -42,7 +42,7 @@ if __name__ == "__main__":
         debug_level_in=args.debug)
     if args.suppress_certificate_warnings:
         requests.packages.urllib3.disable_warnings()
-    logger = fwo_log.getFwoLogger()
+    logger = getFwoLogger()
 
     try:
         error_count = import_management(

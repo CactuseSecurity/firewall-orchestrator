@@ -1,5 +1,4 @@
 from fwo_log import getFwoLogger
-import common
 import json
 from cpcommon import nw_obj_table_names, get_ip_of_obj
 from fwo_const import list_delimiter

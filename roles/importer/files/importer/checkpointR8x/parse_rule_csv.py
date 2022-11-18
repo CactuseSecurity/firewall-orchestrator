@@ -1,8 +1,9 @@
 from fwo_log import getFwoLogger
 import json
-import common, cpcommon, parse_rule, fwo_const
+import cpcommon, parse_rule, fwo_const
 from fwo_const import list_delimiter, csv_delimiter, line_delimiter
 from fwo_base import csv_add_field
+from fwo_exception import ImportRecursionLimitReached
 
 
 def create_section_header(section_name, layer_name, import_id, rule_uid, rule_num, section_header_uids, parent_uid):
@@ -177,7 +178,7 @@ def csv_dump_rules(rulebase, layer_name, import_id, rule_num, section_header_uid
     result = ''
     
     if recursion_level>fwo_const.max_recursion_level:
-        raise common.ImportRecursionLimitReached("csv_dump_rules") from None
+        raise ImportRecursionLimitReached("csv_dump_rules") from None
 
     if 'layerchunks' in rulebase:
         for chunk in rulebase['layerchunks']:

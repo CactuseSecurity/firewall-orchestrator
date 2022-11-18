@@ -9,9 +9,13 @@ import sys
 import time
 import json
 import requests, warnings
-import fwo_api, common  # from current working dir
+import fwo_api# common  # from current working dir
+from common import import_management
 from fwo_log import getFwoLogger
 import fwo_globals, fwo_config
+from fwo_const import base_dir, importer_base_dir
+from fwo_exception import FwoApiLoginFailed, FwoApiFailedLockImport, FwLoginFailed
+
 
 # https://stackoverflow.com/questions/18499497/how-to-process-sigterm-signal-gracefully
 class GracefulKiller:
@@ -52,10 +56,10 @@ if __name__ == '__main__':
     logger = getFwoLogger()
 
     logger.info("importer-main-loop starting ...")
-    sys.path.append(common.importer_base_dir)
+    sys.path.append(importer_base_dir)
     importer_user_name = 'importer'  # todo: move to config file?
-    fwo_config_filename = common.base_dir + '/etc/fworch.json'
-    importer_pwd_file = common.base_dir + '/etc/secrets/importer_pwd'
+    fwo_config_filename = base_dir + '/etc/fworch.json'
+    importer_pwd_file = base_dir + '/etc/secrets/importer_pwd'
 
     # setting defaults (only as fallback if config defaults cannot be fetched via API):
     api_fetch_limit = 150
@@ -84,7 +88,7 @@ if __name__ == '__main__':
 
         try:
             jwt = fwo_api.login(importer_user_name, importer_pwd, user_management_api_base_url)
-        except common.FwoApiLoginFailed as e:
+        except FwoApiLoginFailed as e:
             logger.error(e.message)
             skipping = True
         except:
@@ -125,7 +129,7 @@ if __name__ == '__main__':
                         # getting a new JWT in case the old one is not valid anymore after a long previous import
                         try:
                             jwt = fwo_api.login(importer_user_name, importer_pwd, user_management_api_base_url)
-                        except common.FwoApiLoginFailed as e:
+                        except FwoApiLoginFailed as e:
                             logger.error(e.message)
                             skipping = True
                         except:
@@ -140,9 +144,9 @@ if __name__ == '__main__':
                             if not skipping and mgm_details["deviceType"]["id"] in (9, 11, 17):  # only handle CPR8x and fortiManager
                                 logger.debug("import-main-loop: starting import of mgm_id=" + id)
                                 try:
-                                    import_result = common.import_management(mgm_id=id, debug_level_in=debug_level, 
+                                    import_result = import_management(mgm_id=id, debug_level_in=debug_level, 
                                         clearManagementData=args.clear, force=args.force, limit=str(api_fetch_limit))
-                                except (common.FwoApiFailedLockImport, common.FwLoginFailed):
+                                except (FwoApiFailedLockImport, FwLoginFailed):
                                     pass # minor errors for a single mgm, go to next one
                                 except: # all other exceptions are logged here
                                     logger.error("import-main-loop - unspecific error while importing mgm_id=" + str(id) + ", " +  str(traceback.format_exc()))

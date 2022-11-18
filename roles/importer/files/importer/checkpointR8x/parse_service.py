@@ -1,5 +1,4 @@
 import re
-import common
 import cpcommon
 from fwo_const import list_delimiter
 

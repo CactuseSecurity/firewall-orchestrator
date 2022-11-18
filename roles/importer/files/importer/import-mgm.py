@@ -28,6 +28,8 @@ if __name__ == "__main__":
                         help='The maximal number of returned results per HTTPS Connection; default=150')
     parser.add_argument('-i', '--in_file', metavar='config_file_input',
                         help='if set, the config will not be fetched from firewall but read from native json config file specified here; may also be an url.')
+    parser.add_argument('-n', '--normalized_in_file', metavar='config_file_normalized_input',
+                        help='if set, the config will not be fetched from firewall but read from normalized json config file specified here; may also be an url.')
 
     args = parser.parse_args()
     if len(sys.argv) == 1:
@@ -44,7 +46,7 @@ if __name__ == "__main__":
 
     try:
         error_count = import_management(
-            mgm_id=args.mgm_id, in_file=args.in_file, debug_level_in=args.debug, ssl_verification=args.verify_certificates,
+            mgm_id=args.mgm_id, in_file=args.in_file, normalized_in_file=args.normalized_in_file, debug_level_in=args.debug, ssl_verification=args.verify_certificates,
             force=args.force, limit=args.limit, clearManagementData=args.clear, suppress_cert_warnings_in=args.suppress_certificate_warnings)
     except SystemExit:
         print ("import-mgm - error while importing mgm_id=" + str(args.mgm_id))

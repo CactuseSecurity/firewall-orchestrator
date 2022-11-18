@@ -1,7 +1,5 @@
-from copy import deepcopy
-from textwrap import indent
 import traceback
-import sys, os, time, datetime
+import sys, time, datetime
 import json, requests, requests.packages
 from socket import gethostname
 import importlib.util
@@ -10,79 +8,14 @@ importer_base_dir = base_dir + '/importer'
 from pathlib import Path
 sys.path.append(importer_base_dir) # adding absolute path here once
 import fwo_api
-from fwo_log import getFwoLogger, getFwoAlertLogger
+from fwo_log import getFwoLogger
 from fwo_config import readConfig
-from fwo_const import fw_module_name, full_config_size_limit, csv_delimiter, list_delimiter, line_delimiter, apostrophe, section_header_uids, nat_postfix, fwo_api_http_import_timeout
-from fwo_const import fwo_config_filename, importer_pwd_file, importer_user_name, import_tmp_path # , fwo_api_base_url
-from urllib.parse import urlparse
+from fwo_const import fw_module_name, full_config_size_limit
+from fwo_const import fwo_config_filename, importer_pwd_file, importer_user_name, import_tmp_path
 import fwo_globals
 import jsonpickle
-from fwo_data_networking import Interface, InterfaceSerializable, RouteSerializable
-
-# how many objects (network, services, rules, ...) should be sent to the FWO API in one go?
-# should be between 500 and 2.000 in production (results in a max obj number of max. 5 x this value - nwobj/svc/rules/...)
-# the database has a limit of 255 MB per jsonb
-# https://stackoverflow.com/questions/12632871/size-limit-of-json-data-type-in-postgresql
-# >25.000 rules exceed this limit
-max_objs_per_chunk = 1000 
-
-
-class FwLoginFailed(Exception):
-    """Raised when login to FW management failed"""
-
-    def __init__(self, message="Login to FW management failed"):
-            self.message = message
-            super().__init__(self.message)
-
-class FwoApiLoginFailed(Exception):
-    """Raised when login to FWO API failed"""
-
-    def __init__(self, message="Login to FWO API failed"):
-            self.message = message
-            super().__init__(self.message)
-
-class FwoApiFailedLockImport(Exception):
-    """Raised when unable to lock import (import running?)"""
-
-    def __init__(self, message="Locking import failed - already running?"):
-            self.message = message
-            super().__init__(self.message)
-
-class FwoApiFailure(Exception):
-    """Raised for any other FwoApi call exceptions"""
-
-    def __init__(self, message="There was an unclassified error while executing an FWO API call"):
-            self.message = message
-            super().__init__(self.message)
-
-class FwoApiTimeout(Exception):
-    """Raised for 502 http error with proxy due to timeout"""
-
-    def __init__(self, message="reverse proxy timeout error during FWO API call - try increasing the reverse proxy timeout"):
-            self.message = message
-            super().__init__(self.message)
-
-class FwoApiTServiceUnavailable(Exception):
-    """Raised for 503 http error Serice unavailable"""
-
-    def __init__(self, message="FWO API Hasura container died"):
-            self.message = message
-            super().__init__(self.message)
-
-class ConfigFileNotFound(Exception):
-    """can only happen when specifying config file with -i switch"""
-
-    def __init__(self, message="Could not read config file"):
-            self.message = message
-            super().__init__(self.message)
-
-
-class ImportRecursionLimitReached(Exception):
-    """Raised when recursion of function inimport process reaches max allowed recursion limit"""
-
-    def __init__(self, message="Max recursion level reached - aborting"):
-            self.message = message
-            super().__init__(self.message)
+from fwo_exception import FwoApiLoginFailed, FwoApiFailedLockImport, ConfigFileNotFound, FwLoginFailed, ImportRecursionLimitReached
+from fwo_base import split_config
 
 
 #  import_management: import a single management (if no import for it is running)
@@ -94,7 +27,12 @@ class ImportRecursionLimitReached(Exception):
 #     release mgmt for import via FWORCH API call (also removing import_id y data from import_tables?)
 #     no changes: remove import_control?
 def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0, 
-        in_file=None, limit=150, force=False, clearManagementData=False, suppress_cert_warnings_in=None):
+        limit=150, force=False, clearManagementData=False, suppress_cert_warnings_in=None,
+        in_file=None, normalized_in_file=None):
+
+    check_input_parameters(mgm_id=mgm_id, ssl_verification=ssl_verification, debug_level_in=debug_level_in, 
+        limit=limit, force=force, clearManagementData=clearManagementData, suppress_cert_warnings_in=suppress_cert_warnings_in,
+        in_file=in_file, normalized_in_file=normalized_in_file)
 
     error_count = 0
     change_count = 0
@@ -167,34 +105,19 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0,
             logger.info('this import run will reset the configuration of this management to "empty"')
         else:
             if in_file is not None:    # read native config from file
-                try:
-                    # TODO: turn this api call into a function
-                    if 'http://' in in_file or 'https://' in in_file:   # gettinf file via http(s)
-                        session = requests.Session()
-                        session.headers = { 'Content-Type': 'application/json' }
-                        session.verify=fwo_globals.verify_certs
-                        r = session.get(in_file, )
-                        r.raise_for_status()
-                        full_config_json = json.loads(r.content)
-                    else:   # reading from local file
-                        with open(in_file, 'r') as json_file:
-                            full_config_json = json.load(json_file)
-                except requests.exceptions.RequestException:
-                    error_string = "got HTTP status code" + str(r.status_code) + " while trying to read config file from URL " + in_file
-                    error_count += 1
-                    error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)
-                    raise ConfigFileNotFound(error_string) from None
-                except:
-                    # logger.exception("import_management - error while reading json import from file", traceback.format_exc())
-                    error_string = "Could not read config file " + in_file
-                    error_count += 1
-                    error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)
-                    raise ConfigFileNotFound(error_string) from None
-
-            # note: we need to run get_config in any case (even when importing from a file) as this function 
-            # also contains the conversion from native to config2import (parsing)
-            ### geting config from firewall manager ######################
-            config_changed_since_last_import, error_string, error_count, change_count = get_config_sub(mgm_details, full_config_json, config2import, jwt, current_import_id, start_time,
+                full_config_json, error_count, change_count = \
+                    read_fw_json_config_file(filename=in_file, error_string=error_string, error_count=error_count, \
+                    current_import_id=current_import_id, start_time=start_time, mgm_details=mgm_details, change_count=change_count, jwt=jwt)
+           
+            elif normalized_in_file is not None:    # read normalized config from file
+                config2import, error_count, change_count = \
+                    read_fw_json_config_file(filename=normalized_in_file, error_string=error_string, error_count=error_count, \
+                    current_import_id=current_import_id, start_time=start_time, mgm_details=mgm_details, change_count=change_count, jwt=jwt)
+            else:   # standard case, read config from FW API
+                # note: we need to run get_config_from_api in any case (even when importing from a file) as this function 
+                # also contains the conversion from native to config2import (parsing)
+                ### geting config from firewall manager ######################
+                config_changed_since_last_import, error_string, error_count, change_count = get_config_from_api(mgm_details, full_config_json, config2import, jwt, current_import_id, start_time,
                 in_file=in_file, import_tmp_path=import_tmp_path, error_string=error_string, error_count=error_count, change_count=change_count, 
                 limit=limit, force=force)
 
@@ -254,7 +177,7 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0,
     return error_count
 
 
-def get_config_sub(mgm_details, full_config_json, config2import, jwt, current_import_id, start_time,
+def get_config_from_api(mgm_details, full_config_json, config2import, jwt, current_import_id, start_time,
         in_file=None, import_tmp_path='.', error_string='', error_count=0, change_count=0, limit=150, force=False):
     logger = getFwoLogger()
     fwo_config = readConfig(fwo_config_filename)
@@ -323,6 +246,16 @@ def get_config_sub(mgm_details, full_config_json, config2import, jwt, current_im
     return config_changed_since_last_import, error_string, error_count, change_count
 
 
+def check_input_parameters(mgm_id, ssl_verification=None, debug_level_in=0, 
+        limit=150, force=False, clearManagementData=False, suppress_cert_warnings_in=None,
+        in_file=None, normalized_in_file=None):
+
+    if mgm_id is None:
+        raise BaseException("parameter mgm_id is mandatory")
+    if in_file is not None and normalized_in_file is not None:
+        raise BaseException("you cannot specify both in_file and normalized_in_file")
+
+    
 def complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt):
     logger = getFwoLogger()
     fwo_config = readConfig(fwo_config_filename)
@@ -364,225 +297,53 @@ def complete_import(current_import_id, error_string, start_time, mgm_details, ch
     return error_count
 
 
-def split_list(list_in, max_list_length):
-    if len(list_in)<max_list_length:
-        return [list_in]
-    else:
-        list_of_lists = []
-        i=0
-        while i<len(list_in):
-            last_element_in_chunk = min(len(list_in), i+max_list_length)
-            list_of_lists.append(list_in[i:last_element_in_chunk])
-            i += max_list_length
-    return list_of_lists
+def read_fw_json_config_file(filename=None, config={}, error_string='', error_count=0, current_import_id=None, start_time=0, mgm_details=None, change_count=0, jwt=''):
+
+    # when we read from a normalized config file, it contains non-matching dev_ids in gw_ tables
+    def replace_device_id(config, mgm_details):
+        logger = getFwoLogger()
+        if len(mgm_details['devices'])>1:
+            logger.warning('importing from config file with more than one device - just picking the first device at random')
+        if len(mgm_details['devices'])>=1:
+            # just picking the first device
+            dev_id = mgm_details['devices'][0]['id']
+            i=0
+            while i<len(config['routing']):
+                config['routing'][i]['routing_device'] = dev_id
+                i += 1
+            i=0
+            while i<len(config['interfaces']):
+                config['interfaces'][i]['routing_device'] = dev_id
+                i += 1    
 
 
-# split the config into chunks of max size "max_objs_per_chunk" to avoid 
-# timeout of import while writing data to import table
-# each object table to import is handled here 
-def split_config(config2import, current_import_id, mgm_id):
-    conf_split_dict_of_lists = {}
-    max_number_of_chunks = 0
-
-    object_lists = ["network_objects", "service_objects", "user_objects", "rules", "zone_objects", "interfaces", "routing"]
-
-    for obj_list_name in object_lists:
-        if obj_list_name in config2import:
-
-            if obj_list_name == 'interfaces':
-                if_obj_list = config2import['interfaces']
-                if_obj_list_ser = []
-                for iface in if_obj_list:
-                    if_obj_list_ser.append(InterfaceSerializable(iface))
-                if_dict = json.loads(jsonpickle.encode(if_obj_list_ser, unpicklable=False))
-                config2import['interfaces'] = if_dict
-
-            if obj_list_name == 'routing':
-                route_obj_list = config2import['routing']
-                route_obj_list_ser = []
-                for route in route_obj_list:
-                    route_obj_list_ser.append(RouteSerializable(route))
-                route_dict = json.loads(jsonpickle.encode(route_obj_list_ser, unpicklable=False))
-                config2import['routing'] = route_dict
-                
-            split_list_tmp = split_list(config2import[obj_list_name], max_objs_per_chunk)
-            conf_split_dict_of_lists.update({obj_list_name: split_list_tmp})
-            if len(split_list_tmp)>max_number_of_chunks:
-                max_number_of_chunks = len(split_list_tmp)
-        else:
-            conf_split_dict_of_lists.update({obj_list_name: []})
-    conf_split = []
-    current_chunk = 0
-    while current_chunk<max_number_of_chunks:
-        single_chunk = {}
-        for obj_list_name in object_lists:
-            single_chunk[obj_list_name] = []
-        for obj_list_name in object_lists:
-            if current_chunk<len(conf_split_dict_of_lists[obj_list_name]):
-                single_chunk[obj_list_name] = conf_split_dict_of_lists[obj_list_name][current_chunk]
-
-        conf_split.append(single_chunk)
-        current_chunk += 1
-
-    # now adding meta data around (start_import_flag used as trigger)
-    config_split_with_metadata = []
-    current_chunk_number = 0
-    for conf_chunk in conf_split:
-        config_split_with_metadata.append({
-            "config": conf_chunk,
-            "start_import_flag": False,
-            "importId": int(current_import_id), 
-            "mgmId": int(mgm_id), 
-            "chunk_number": current_chunk_number
-        })
-        current_chunk_number += 1
-    # setting the trigger in the last chunk:
-    config_split_with_metadata[len(config_split_with_metadata)-1]["start_import_flag"] = True
-    if fwo_globals.debug_level>0:
-        config_split_with_metadata[len(config_split_with_metadata)-1]["debug_mode"] = True
-    return config_split_with_metadata
-
-
-def csv_add_field(content, no_csv_delimiter=False):
-    if (content == None or content == '') and not no_csv_delimiter:  # do not add apostrophes for empty fields
-        field_result = csv_delimiter
-    else:
-        # add apostrophes at beginning and end and remove any ocurrence of them within the string
-        if (isinstance(content, str)):
-            escaped_field = content.replace(apostrophe,"")
-            field_result = apostrophe + escaped_field + apostrophe
-        else:   # leave non-string values as is
-            field_result = str(content)
-        if not no_csv_delimiter:
-            field_result += csv_delimiter
-    return field_result
- 
-
-def sanitize(content):
-    if content == None:
-        return None
-    result = str(content)
-    result = result.replace(apostrophe,"")  # remove possibly contained apostrophe
-    result = result.replace(line_delimiter," ")  # replace possibly contained CR with space
-    return result
-
-
-def extend_string_list(list_string, src_dict, key, delimiter, jwt=None, import_id=None):
-    if list_string is None:
-        list_string = ''
-    if list_string == '':
-        if key in src_dict:
-            result = delimiter.join(src_dict[key])
-        else:
-            result = ''
-#            fwo_api.create_data_issue(fwo_api_base_url, jwt, import_id, key)
-    else:
-        if key in src_dict:
-            old_list = list_string.split(delimiter)
-            combined_list = old_list + src_dict[key]
-            result = delimiter.join(combined_list)
-        else:
-            result = list_string
-#            fwo_api.create_data_issue(fwo_api_base_url, jwt, import_id, key)
-    return result
-
-
-def resolve_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type=None, jwt=None, import_id=None, mgm_id=None):
-    # guessing ipv4 and adom (to also search global objects)
-    return resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type='v4_adom', obj_type='network', jwt=jwt, import_id=import_id, mgm_id=mgm_id)
-
-
-def resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type=None, obj_type='network', jwt=None, import_id=None, rule_uid=None, object_type=None, mgm_id=None):
-    logger = getFwoLogger()
-    fwo_config = readConfig(fwo_config_filename)
-
-    ref_list = []
-    objects_not_found = []
-    for el in obj_name_string_list.split(delimiter):
-        found = False
-        if rule_type is not None:
-            if obj_type == 'network':
-                if 'v4' in rule_type and 'global' in rule_type:
-                    object_tables = [obj_dict['nw_obj_global_firewall/address'], obj_dict['nw_obj_global_firewall/addrgrp']]
-                elif 'v6' in rule_type and 'global' in rule_type:
-                    object_tables = [obj_dict['nw_obj_global_firewall/address6'], obj_dict['nw_obj_global_firewall/addrgrp6']]
-                elif 'v4' in rule_type and 'adom' in rule_type:
-                    object_tables = [obj_dict['nw_obj_adom_firewall/address'], obj_dict['nw_obj_adom_firewall/addrgrp'], \
-                        obj_dict['nw_obj_global_firewall/address'], obj_dict['nw_obj_global_firewall/addrgrp'], \
-                        obj_dict['nw_obj_adom_firewall/vip'] ]
-                elif 'v6' in rule_type and 'adom' in rule_type:
-                    object_tables = [obj_dict['nw_obj_adom_firewall/address6'], obj_dict['nw_obj_adom_firewall/addrgrp6'], \
-                        obj_dict['nw_obj_global_firewall/address6'], obj_dict['nw_obj_global_firewall/addrgrp6']]
-                elif 'nat' in rule_type and 'adom' in rule_type:
-                    object_tables = [obj_dict['nw_obj_adom_firewall/address'], obj_dict['nw_obj_adom_firewall/addrgrp'], \
-                        obj_dict['nw_obj_global_firewall/address'], obj_dict['nw_obj_global_firewall/addrgrp']]
-                elif 'nat' in rule_type and 'global' in rule_type:
-                    object_tables = [obj_dict['nw_obj_global_firewall/address'], obj_dict['nw_obj_global_firewall/addrgrp']]
-                break_flag = False # if we find a match we stop the two inner for-loops
-                for tab in object_tables:
-                    if break_flag:
-                        found = True
-                        break
-                    else:
-                        for obj in tab:
-                            if obj[name_key] == el:
-                                ref_list.append(obj[uid_key])
-                                break_flag = True
-                                found = True
-                                break
-            elif obj_type == 'service':
-                print('later')  # todo
-        else:
-            print('decide what to do')
-        if not found:
-            objects_not_found.append(el)
-    for obj in objects_not_found:
-
-        if obj != 'all' and obj != 'Original':
-            if not fwo_api.create_data_issue(fwo_config['fwo_api_base_url'], jwt, import_id=import_id, obj_name=obj, severity=1, rule_uid=rule_uid, mgm_id=mgm_id, object_type=object_type):
-                logger.warning("resolve_raw_objects: encountered error while trying to log an import data issue using create_data_issue")
-
-            desc = "found a broken network object reference '" + obj + "' "
-            if object_type is not None:
-                desc +=  "(type=" + object_type + ") "
-            desc += "in rule with UID '" + str(rule_uid) + "'"
-            fwo_api.setAlert(fwo_config['fwo_api_base_url'], jwt, import_id=import_id, title="object reference error", mgm_id=mgm_id, severity=1, role='importer', \
-                description=desc, source='import', alertCode=16)
-
-    return delimiter.join(ref_list)
-
-
-def jsonToLogFormat(jsonData):
-    if type(jsonData) is dict:
-        jsonString = json.dumps(jsonData)
-    elif isinstance(jsonData, str):
-        jsonString = jsonData
-    else:
-        jsonString = str(jsonData)
+    try:
+        if filename is not None:
+            if 'http://' in filename or 'https://' in filename:   # gettinf file via http(s)
+                session = requests.Session()
+                session.headers = { 'Content-Type': 'application/json' }
+                session.verify=fwo_globals.verify_certs
+                r = session.get(filename, )
+                r.raise_for_status()
+                config = json.loads(r.content)
+            else:   # reading from local file
+                with open(filename, 'r') as json_file:
+                    config = json.load(json_file)
+    except requests.exceptions.RequestException:
+        error_string = 'got HTTP status code{code} while trying to read config file from URL {filename}'.format(code=str(r.status_code), filename=filename)
+        error_count += 1
+        error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)
+        raise ConfigFileNotFound(error_string) from None
+    except:
+        # logger.exception("import_management - error while reading json import from file", traceback.format_exc())
+        error_string = "Could not read config file {filename}".format(filename=filename)
+        error_count += 1
+        error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)
+        raise ConfigFileNotFound(error_string) from None
     
-    if jsonString[0] == '{' and jsonString[-1] == '}':
-        jsonString = jsonString[1:len(jsonString)-1]
-    return jsonString
+    replace_device_id(config, mgm_details)
+
+    return config, error_count, change_count
 
 
-def writeAlertToLogFile(jsonData):
-    logger = getFwoAlertLogger()
-    jsonDataCopy = deepcopy(jsonData)   # make sure the original alert is not changed
-    if type(jsonDataCopy) is dict and 'jsonData' in jsonDataCopy:
-        subDict = json.loads(jsonDataCopy.pop('jsonData'))
-        jsonDataCopy.update(subDict)
-    alertText = "FWORCHAlert - " + jsonToLogFormat(jsonDataCopy)
-    logger.info(alertText)
 
-
-def set_ssl_verification(ssl_verification_mode):
-    logger = getFwoLogger()
-    if ssl_verification_mode == '' or ssl_verification_mode == 'off':
-        ssl_verification = False
-        if fwo_globals.debug_level>5:
-            logger.debug("ssl_verification: False")
-    else:
-        ssl_verification = ssl_verification_mode
-        if fwo_globals.debug_level>5:
-            logger.debug("ssl_verification: [ca]certfile=" + ssl_verification)
-    return ssl_verification

@@ -1,6 +1,7 @@
 import re
 import common
 import cpcommon
+from fwo_const import list_delimiter
 
 
 # collect_svcobjects writes svc info into global users dict
@@ -36,7 +37,7 @@ def collect_svc_objects(object_table, svc_objects):
                 if 'members' in obj:
                     member_refs = ''
                     for member in obj['members']:
-                        member_refs += member + common.list_delimiter
+                        member_refs += member + list_delimiter
                     member_refs = member_refs[:-1]
                 if 'session-timeout' in obj:
                     session_timeout = str(obj['session-timeout'])
@@ -94,12 +95,12 @@ def resolve_svc_uid_to_name(uid, svc_objects):
 def add_member_names_for_svc_group(idx, svc_objects):
     member_names = ''
     group = svc_objects.pop(idx)
-    svc_member_refs = group['svc_member_refs'].split(common.list_delimiter)
+    svc_member_refs = group['svc_member_refs'].split(list_delimiter)
 
     for ref in svc_member_refs:
         member_name = resolve_svc_uid_to_name(ref, svc_objects)
         #print ("found member of group " + group['svc_name'] + ": " + member_name)
-        member_names += member_name + common.list_delimiter
+        member_names += member_name + list_delimiter
     group['svc_member_names'] = member_names[:-1]
     svc_objects.insert(idx, group)
 

@@ -1,13 +1,15 @@
 import copy
 import jsonpickle
-from common import resolve_raw_objects, extend_string_list, list_delimiter, nat_postfix
+from fwo_const import list_delimiter, nat_postfix
+from fwo_base import extend_string_list
 from fmgr_service import create_svc_object
-from fmgr_network import resolve_objects, create_network_object, get_first_ip_of_destination
+from fmgr_network import create_network_object, get_first_ip_of_destination
 import fmgr_zone, fmgr_getter
 from fmgr_gw_networking import get_device_from_package
 from fwo_log import getFwoLogger
 from fwo_data_networking import get_matching_route_obj, get_ip_of_interface_obj
 import ipaddress
+from fmgr_network import resolve_objects, resolve_raw_objects
 
 rule_access_scope_v4 = ['rules_global_header_v4', 'rules_adom_v4', 'rules_global_footer_v4']
 rule_access_scope_v6 = ['rules_global_header_v6', 'rules_adom_v6', 'rules_global_footer_v6']

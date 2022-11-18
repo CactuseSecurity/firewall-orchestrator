@@ -12,6 +12,10 @@ import datetime
 import common
 from fwo_log import getFwoLogger
 import fwo_globals
+from fwo_const import fwo_api_http_import_timeout
+from fwo_exception import FwoApiTServiceUnavailable, FwoApiTimeout
+from fwo_base import writeAlertToLogFile
+
 
 details_level = "full"    # 'standard'
 use_object_dictionary = 'false'
@@ -50,15 +54,15 @@ def call(url, jwt, query, query_variables="", role="reporter", show_progress=Fal
     session.headers = request_headers
 
     try:
-        r = session.post(url, data=json.dumps(full_query), timeout=int(common.fwo_api_http_import_timeout))
+        r = session.post(url, data=json.dumps(full_query), timeout=int(fwo_api_http_import_timeout))
         r.raise_for_status()
     except requests.exceptions.RequestException:
         logger.error(showApiCallInfo(url, full_query, request_headers, type='error') + ":\n" + str(traceback.format_exc()))
 
         if r.status_code == 503:
-            raise common.FwoApiTServiceUnavailable("FWO API HTTP error 503 (FWO API died?)" )
+            raise FwoApiTServiceUnavailable("FWO API HTTP error 503 (FWO API died?)" )
         if r.status_code == 502:
-            raise common.FwoApiTimeout("FWO API HTTP error 502 (might have reached timeout of " + str(int(common.fwo_api_http_import_timeout)/60) + " minutes)" )
+            raise FwoApiTimeout("FWO API HTTP error 502 (might have reached timeout of " + str(int(fwo_api_http_import_timeout)/60) + " minutes)" )
         else:
             raise
     if int(fwo_globals.debug_level) > 4:
@@ -70,14 +74,13 @@ def call(url, jwt, query, query_variables="", role="reporter", show_progress=Fal
 
 def login(user, password, user_management_api_base_url, method='api/AuthenticationToken/Get'):
     payload = {"Username": user, "Password": password}
-    request_headers = {'Content-Type': 'application/json'}
 
     session = requests.Session()
     if fwo_globals.verify_certs is None:    # only for first FWO API call (getting info on cert verification)
         session.verify = False
     else: 
         session.verify = fwo_globals.verify_certs
-    session.headers = request_headers
+    session.headers = {'Content-Type': 'application/json'}
 
     try:
         response = session.post(user_management_api_base_url + method, data=json.dumps(payload))
@@ -526,7 +529,7 @@ def setAlert(fwo_api_base_url, jwt, import_id=None, title=None, mgm_id=None, dev
 
     # write data issue to alert.log file as well
     if severity>0:
-        common.writeAlertToLogFile(query_variables)
+        writeAlertToLogFile(query_variables)
     
     try:
         import_result = call(fwo_api_base_url, jwt, addAlert_mutation, query_variables=query_variables, role=role)

@@ -1,9 +1,11 @@
 from asyncio.log import logger
 import ipaddress
 from fwo_log import getFwoLogger
-from common import list_delimiter, resolve_objects, nat_postfix
+from fwo_const import list_delimiter, nat_postfix
 from fmgr_zone import add_zone_if_missing
-
+from fwo_config import readConfig
+from fwo_const import fwo_config_filename
+from fwo_api import setAlert, create_data_issue
 
 def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt=None, mgm_id=None):
     logger = getFwoLogger()
@@ -190,3 +192,70 @@ def get_first_ip_of_destination(obj_ref, config2import):
             return obj['obj_ip']
     logger.warning('src nat behind interface: found no IP info for destination object ' + obj_ref)
     return None
+
+
+def resolve_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type=None, jwt=None, import_id=None, mgm_id=None):
+    # guessing ipv4 and adom (to also search global objects)
+    return resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type='v4_adom', obj_type='network', jwt=jwt, import_id=import_id, mgm_id=mgm_id)
+
+
+def resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type=None, obj_type='network', jwt=None, import_id=None, rule_uid=None, object_type=None, mgm_id=None):
+    logger = getFwoLogger()
+    fwo_config = readConfig(fwo_config_filename)
+
+    ref_list = []
+    objects_not_found = []
+    for el in obj_name_string_list.split(delimiter):
+        found = False
+        if rule_type is not None:
+            if obj_type == 'network':
+                if 'v4' in rule_type and 'global' in rule_type:
+                    object_tables = [obj_dict['nw_obj_global_firewall/address'], obj_dict['nw_obj_global_firewall/addrgrp']]
+                elif 'v6' in rule_type and 'global' in rule_type:
+                    object_tables = [obj_dict['nw_obj_global_firewall/address6'], obj_dict['nw_obj_global_firewall/addrgrp6']]
+                elif 'v4' in rule_type and 'adom' in rule_type:
+                    object_tables = [obj_dict['nw_obj_adom_firewall/address'], obj_dict['nw_obj_adom_firewall/addrgrp'], \
+                        obj_dict['nw_obj_global_firewall/address'], obj_dict['nw_obj_global_firewall/addrgrp'], \
+                        obj_dict['nw_obj_adom_firewall/vip'] ]
+                elif 'v6' in rule_type and 'adom' in rule_type:
+                    object_tables = [obj_dict['nw_obj_adom_firewall/address6'], obj_dict['nw_obj_adom_firewall/addrgrp6'], \
+                        obj_dict['nw_obj_global_firewall/address6'], obj_dict['nw_obj_global_firewall/addrgrp6']]
+                elif 'nat' in rule_type and 'adom' in rule_type:
+                    object_tables = [obj_dict['nw_obj_adom_firewall/address'], obj_dict['nw_obj_adom_firewall/addrgrp'], \
+                        obj_dict['nw_obj_global_firewall/address'], obj_dict['nw_obj_global_firewall/addrgrp']]
+                elif 'nat' in rule_type and 'global' in rule_type:
+                    object_tables = [obj_dict['nw_obj_global_firewall/address'], obj_dict['nw_obj_global_firewall/addrgrp']]
+                else:
+                    object_tables = []
+                break_flag = False # if we find a match we stop the two inner for-loops
+                for tab in object_tables:
+                    if break_flag:
+                        found = True
+                        break
+                    else:
+                        for obj in tab:
+                            if obj[name_key] == el:
+                                ref_list.append(obj[uid_key])
+                                break_flag = True
+                                found = True
+                                break
+            elif obj_type == 'service':
+                print('later')  # todo
+        else:
+            print('decide what to do')
+        if not found:
+            objects_not_found.append(el)
+    for obj in objects_not_found:
+
+        if obj != 'all' and obj != 'Original':
+            if not create_data_issue(fwo_config['fwo_api_base_url'], jwt, import_id=import_id, obj_name=obj, severity=1, rule_uid=rule_uid, mgm_id=mgm_id, object_type=object_type):
+                logger.warning("resolve_raw_objects: encountered error while trying to log an import data issue using create_data_issue")
+
+            desc = "found a broken network object reference '" + obj + "' "
+            if object_type is not None:
+                desc +=  "(type=" + object_type + ") "
+            desc += "in rule with UID '" + str(rule_uid) + "'"
+            setAlert(fwo_config['fwo_api_base_url'], jwt, import_id=import_id, title="object reference error", mgm_id=mgm_id, severity=1, role='importer', \
+                description=desc, source='import', alertCode=16)
+
+    return delimiter.join(ref_list)

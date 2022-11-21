@@ -771,6 +771,22 @@ INSERT INTO txt VALUES ('ImplementationTask',	'English', 	'Implementation Task')
 INSERT INTO txt VALUES ('Approval',			    'German', 	'Genehmigung');
 INSERT INTO txt VALUES ('Approval',			    'English', 	'Approval');
 
+-- network analysis
+INSERT INTO txt VALUES ('network_analysis', 	'German',	'Netzanalyse');
+INSERT INTO txt VALUES ('network_analysis', 	'English',	'Network Analysis');
+INSERT INTO txt VALUES ('wrong_ip_address',	    'German', 	'Keine g&uuml;ltige IP Adresse');
+INSERT INTO txt VALUES ('wrong_ip_address',		'English', 	'no valid ip address');
+INSERT INTO txt VALUES ('gws_found',		    'German', 	'Gateways im Pfad');
+INSERT INTO txt VALUES ('gws_found',		    'English', 	'Gateways in path');
+INSERT INTO txt VALUES ('no_gws_found',		    'German', 	'Keine Gateways im Pfad gefunden');
+INSERT INTO txt VALUES ('no_gws_found',		    'English', 	'No gateways found');
+INSERT INTO txt VALUES ('search_route',		    'German', 	'Gateways im Pfad suchen');
+INSERT INTO txt VALUES ('search_route',		    'English', 	'Search gateways in path');
+INSERT INTO txt VALUES ('clear_input',		    'German', 	'Eingabe l&ouml;schen');
+INSERT INTO txt VALUES ('clear_input',     	    'English', 	'Delete input');
+INSERT INTO txt VALUES ('search_access',		'German', 	'Zugriff pr&uuml;fen');
+INSERT INTO txt VALUES ('search_access',		'English', 	'Check access');
+
 -- recertification
 INSERT INTO txt VALUES ('recertify',		    'German', 	'Rezertifizieren');
 INSERT INTO txt VALUES ('recertify',		    'English', 	'Recertify');

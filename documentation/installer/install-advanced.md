@@ -231,9 +231,6 @@ After you defined additional distributed servers you have to add them to the hos
     frontends:
       hosts:
         ui-srv:
-    backendserver:
-      hosts:
-        install-srv:
     databaseserver:
       hosts:
         install-srv:

@@ -98,5 +98,4 @@
       - "Your api hasura admin secret is '{{ api_hasura_admin_secret }}'"
   when: |
     admin_password is defined and 
-    api_hasura_admin_secret is defined and 
-    'backendserver' in group_names
+    api_hasura_admin_secret is defined

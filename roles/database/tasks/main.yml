@@ -112,6 +112,13 @@
         regexp: '\s*log_line_prefix'
         backup: yes
 
+    - name: edit postgresql.conf listening IPs
+      lineinfile:
+        path: "{{ postgresql_config_file }}"
+        line: "listen_addresses = {{ fworch_db_host }}"
+        regexp: listen_addresses
+        backup: yes
+
     - name: edit pg_hba.conf
       blockinfile:
         path: "{{ postgresql_hba_file }}"

@@ -18345,6 +18345,12 @@
           "functions": [
             {
               "function": {
+                "name": "devices_in_path",
+                "schema": "public"
+              }
+            },
+            {
+              "function": {
                 "name": "get_visible_devices_per_tenant",
                 "schema": "public"
               }

@@ -115,7 +115,7 @@
     - name: edit postgresql.conf listening IPs
       lineinfile:
         path: "{{ postgresql_config_file }}"
-        line: "listen_addresses = {{ fworch_db_host }}"
+        line: "listen_addresses = localhost, {{ fworch_db_host }}"
         regexp: listen_addresses
         backup: yes
 

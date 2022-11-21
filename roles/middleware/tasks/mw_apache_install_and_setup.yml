@@ -60,23 +60,6 @@
       service:
        name: "{{ webserver_package_name }}"
        state: restarted
-      register: apache_restart
-
-    - debug:
-        var: apache_restart
-
-    - command: "systemctl status {{ webserver_package_name }}"
-      register: apache_restart2
-
-    - debug:
-        var: apache_restart2
-
-    - command: "systemctl start {{ webserver_package_name }}"
-      register: apache_restart3
-
-    - debug:
-        var: apache_restart3
-
 
   become: yes
   environment: "{{ proxy_env }}"

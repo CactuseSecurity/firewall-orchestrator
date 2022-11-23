@@ -75,7 +75,7 @@ def parse_object(obj_orig, import_id):
         obj["obj_typ"] = "host"
         obj["obj_ip"] = obj_orig["value"]
         if obj_orig["value"].find(":") != -1:  # ipv6
-            obj["obj_ip"] + "/64"
+            obj["obj_ip"] + "/128"
         else:                               # ipv4
             obj["obj_ip"] + "/32"
     elif obj_orig["type"] == "Range": # ip range

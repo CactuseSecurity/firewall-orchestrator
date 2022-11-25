@@ -3,6 +3,7 @@
 @using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.DeviceAutoDiscovery
+@using FWO.Middleware.Client
 
 @page "/settings/managements"
 @attribute [Authorize(Roles = "admin, auditor, fw-admin")]
@@ -131,18 +132,39 @@
                 </div>
                 @if (!actManagement.DeviceType.IsDummyRouter())
                 {
-                    <div class="form-group row">
-                        <label for="managementHostname" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("hostname"))*:</label>
-                        <div class="col-sm-8">
-                            <input id="managementHostname" type="text" class="form-control form-control-sm" @bind="actManagement.Hostname" />
+                    @if (actManagement.DeviceType.Name == "Azure")
+                    {
+                        <div class="form-group row">
+                            <label for="managementSubscriptionId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("cloud_sub_id")):</label>
+                            <div class="col-sm-8">
+                                <input id="managementSubscriptionId" type="text" class="form-control form-control-sm" @bind="actManagement.CloudSubscriptionId" />
+                            </div>
                         </div>
-                    </div>
-                    <div class="form-group row">
-                        <label for="managementPort" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
-                        <div class="col-sm-2">
-                            <input id="managementPort" type="text" class="form-control form-control-sm" @bind="actManagement.Port" />
+                        <div class="form-group row">
+                            <label for="managementCloudTenantId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("cloud_tenant_id")):</label>
+                            <div class="col-sm-8">
+                                <input id="managementCloudTenantId" type="text" class="form-control form-control-sm" @bind="actManagement.CloudTenantId" />
+                            </div>
                         </div>
-                    </div>
+                        // not really used just hard-coded for displaying in table:
+                        actManagement.Hostname = "management.azure.com";
+                        actManagement.Port = 443;
+                    }
+                    else
+                    {
+                        <div class="form-group row">
+                            <label for="managementHostname" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("hostname"))*:</label>
+                            <div class="col-sm-8">
+                                <input id="managementHostname" type="text" class="form-control form-control-sm" @bind="actManagement.Hostname" />
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label for="managementPort" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
+                            <div class="col-sm-2">
+                                <input id="managementPort" type="text" class="form-control form-control-sm" @bind="actManagement.Port" />
+                            </div>
+                        </div>
+                    }
                     <div class="form-group row">
                         <label for="managementCredential" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("import_credential"))*:</label>
                         <div class="col-sm-8">
@@ -158,13 +180,13 @@
                 @if (actManagement.DeviceType.CanHaveDomain())
                 {
                     <div class="form-group row">
-                        <label for="managementConfigPath" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("config_path")):</label>
+                        <label for="managementConfigPath" class="col-sm-3 col-form-label col-form-label-sm">@userConfig.GetText("config_path"):</label>
                         <div class="col-sm-8">
                             <input id="managementConfigPath" type="text" class="form-control form-control-sm" @bind="actManagement.ConfigPath" />
                         </div>
                     </div>
                     <div class="form-group row">
-                        <label for="managementDomainUid" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("domain_uid")):</label>
+                        <label for="managementDomainUid" class="col-sm-3 col-form-label col-form-label-sm">@userConfig.GetText("domain_uid"):</label>
                         <div class="col-sm-8">
                             <input id="managementDomainUid" type="text" class="form-control form-control-sm" @bind="actManagement.DomainUid" />
                         </div>
@@ -322,7 +344,14 @@
     {
         try
         {
-            managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+            JwtReader jwt = new JwtReader(userConfig.User.Jwt);
+            jwt.Validate();
+
+            if (jwt.ContainsAllowedRole("admin") || jwt.ContainsAllowedRole("fw-admin"))
+                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+            else
+                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
+
             foreach (var management in managements)
             {
                 if (management.Name.EndsWith("_demo"))
@@ -334,7 +363,10 @@
 
             deviceTypes = await apiConnection.SendQueryAsync<List<DeviceType>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceTypeDetails);
 
-            credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(FWO.Api.Client.Queries.DeviceQueries.getCredentials);
+            if (jwt.ContainsAllowedRole("admin") || jwt.ContainsAllowedRole("fw-admin"))
+                credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(FWO.Api.Client.Queries.DeviceQueries.getCredentials);
+            else
+                credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(FWO.Api.Client.Queries.DeviceQueries.getCredentialsWithoutSecrets);
         }
         catch (System.Exception exception)
         {
@@ -441,6 +473,8 @@
                         hideInUi = actManagement.HideInUi,
                         configPath = actManagement.ConfigPath,
                         domainUid = actManagement.DomainUid,
+                        cloudSubscriptionId = actManagement.CloudSubscriptionId,                        
+                        cloudTenantId = actManagement.CloudTenantId,                        
                         superManager = actManagement.SuperManagerId,
                         importerHostname = actManagement.ImporterHostname,
                         debugLevel = actManagement.DebugLevel,
@@ -471,6 +505,8 @@
                         hideInUi = actManagement.HideInUi,
                         configPath = actManagement.ConfigPath,
                         domainUid = actManagement.DomainUid,
+                        cloudSubscriptionId = actManagement.CloudSubscriptionId,                        
+                        cloudTenantId = actManagement.CloudTenantId,                        
                         superManager = actManagement.SuperManagerId,
                         importerHostname = actManagement.ImporterHostname,
                         debugLevel = actManagement.DebugLevel,

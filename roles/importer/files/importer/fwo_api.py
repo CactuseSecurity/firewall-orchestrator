@@ -145,6 +145,8 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables, debug_level=0):
                     user: username
                     secret
                     sshPublicKey: public_key
+                    cloudClientId: cloud_client_id
+                    cloudClientSecret: cloud_client_secret
                 }
                 deviceType: stm_dev_typ {
                     id: dev_typ_id
@@ -153,6 +155,8 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables, debug_level=0):
                 }
                 configPath: config_path
                 domainUid: domain_uid
+                cloudSubscriptionId: cloud_subscription_id
+                cloudTenantId: cloud_tenant_id
                 importDisabled: do_not_import
                 forceInitialImport: force_initial_import
                 importerHostname: importer_hostname

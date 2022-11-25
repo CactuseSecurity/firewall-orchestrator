@@ -59,6 +59,8 @@ Create table "management" -- contains an entry for each firewall management syst
 	"mgm_name" Varchar NOT NULL,
 	"mgm_comment" Text,
 	"tenant_id" Integer,
+ 	"cloud_tenant_id" VARCHAR,
+	"cloud_subscription_id" VARCHAR,	
 	"mgm_create" Timestamp NOT NULL Default now(),
 	"mgm_update" Timestamp NOT NULL Default now(),
 	"import_credential_id" Integer NOT NULL,
@@ -86,7 +88,9 @@ create table if not exists import_credential
     is_key_pair BOOLEAN default FALSE,
     username varchar NOT NULL,
     secret text NOT NULL,
-	public_key Text
+	public_key Text,
+	cloud_client_id VARCHAR,
+	cloud_client_secret VARCHAR
 );
 
 Create table "object"

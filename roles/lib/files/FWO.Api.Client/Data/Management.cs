@@ -17,14 +17,17 @@ namespace FWO.Api.Data
         [JsonProperty("import_credential"), JsonPropertyName("import_credential")]
         public ImportCredential ImportCredential { get; set; }
 
-        // [JsonProperty("import_credential_id"), JsonPropertyName("import_credential_id")]
-        // public int ImportCredentialId { get; set; }
-
         [JsonProperty("configPath"), JsonPropertyName("configPath")]
         public string ConfigPath { get; set; } = "";
 
         [JsonProperty("domainUid"), JsonPropertyName("domainUid")]
         public string DomainUid { get; set; } = "";
+
+        [JsonProperty("cloudSubscriptionId"), JsonPropertyName("cloudSubscriptionId")]
+        public string CloudSubscriptionId { get; set; } = "";
+
+        [JsonProperty("cloudTenantId"), JsonPropertyName("cloudTenantId")]
+        public string CloudTenantId { get; set; } = "";
 
         [JsonProperty("superManager"), JsonPropertyName("superManager")]
         public int? SuperManagerId { get; set; }
@@ -118,6 +121,8 @@ namespace FWO.Api.Data
                 ImportCredential = new ImportCredential();
             ConfigPath = management.ConfigPath;
             DomainUid = management.DomainUid;
+            CloudSubscriptionId = management.CloudSubscriptionId;
+            CloudTenantId = management.CloudTenantId;
             ImporterHostname = management.ImporterHostname;
             Port = management.Port;
             ImportDisabled = management.ImportDisabled;
@@ -174,6 +179,8 @@ namespace FWO.Api.Data
             DomainUid = Sanitizer.SanitizeOpt(DomainUid, ref shortened);
             ImporterHostname = Sanitizer.SanitizeMand(ImporterHostname, ref shortened);
             Comment = Sanitizer.SanitizeCommentOpt(Comment, ref shortened);
+            CloudSubscriptionId = Sanitizer.SanitizeOpt(CloudSubscriptionId, ref shortened);
+            CloudTenantId = Sanitizer.SanitizeOpt(CloudTenantId, ref shortened);
             return shortened;
         }
     }

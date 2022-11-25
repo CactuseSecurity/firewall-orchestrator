@@ -47,7 +47,14 @@ def add_domain_rule_header_rule_in_json(rulebase, section_name, layer_name, impo
                                     import_id, rule_uid, rule_num, section_header_uids, parent_uid)
 
 
-def parse_single_rule_to_json(src_rule, rulebase, layer_name, import_id, rule_num, parent_uid, debug_level=0):
+def resolve_uid_to_name(nw, config2import):
+    for nw_obj in config2import['network_objects']:
+        if nw_obj['obj_uid']==nw:
+            return nw_obj['obj_name']
+    return nw
+
+
+def parse_single_rule_to_json(src_rule, rulebase, layer_name, import_id, rule_num, parent_uid, config2import, debug_level=0):
     logger = getFwoLogger()
     # reference to domain rule layer, filling up basic fields
     if 'type' in src_rule and src_rule['type'] != 'place-holder':
@@ -68,9 +75,8 @@ def parse_single_rule_to_json(src_rule, rulebase, layer_name, import_id, rule_nu
                                     src['networks'] + list_delimiter
                         else:  # more than one source
                             for nw in src['networks']:
-                                rule_src_name += src[
-                                    # TODO: this is not correct --> need to reverse resolve name from given UID
-                                    "name"] + '@' + nw + list_delimiter
+                                nw_resolved = resolve_uid_to_name(nw, config2import)
+                                rule_src_name += src["name"] + '@' + nw_resolved + list_delimiter
                     else:  # standard network objects as source
                         rule_src_name += src["name"] + list_delimiter
                 else:
@@ -237,7 +243,7 @@ def parse_single_rule_to_json(src_rule, rulebase, layer_name, import_id, rule_nu
             rulebase.append(rule)
 
 
-def parse_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, debug_level=0, recursion_level=1):
+def parse_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, config2import, debug_level=0, recursion_level=1):
 
     if (recursion_level > fwo_const.max_recursion_level):
         raise ImportRecursionLimitReached(
@@ -249,7 +255,7 @@ def parse_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, ru
             if 'rulebase' in chunk:
                 for rules_chunk in chunk['rulebase']:
                     rule_num = parse_rulebase_json(rules_chunk, target_rulebase, layer_name, import_id, rule_num,
-                                                   section_header_uids, parent_uid, debug_level=debug_level, recursion_level=recursion_level+1)
+                                                   section_header_uids, parent_uid, config2import, debug_level=debug_level, recursion_level=recursion_level+1)
             else:
                 logger.warning("found no rulebase in chunk:\n" +
                                json.dumps(chunk, indent=2))
@@ -277,7 +283,7 @@ def parse_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, ru
                         target_rulebase, section_name, layer_name, import_id, rule['uid'], rule_num, section_header_uids, parent_uid)
                 else:  # parse standard sections
                     parse_single_rule_to_json(
-                        rule, target_rulebase, layer_name, import_id, rule_num, parent_uid, debug_level=debug_level)
+                        rule, target_rulebase, layer_name, import_id, rule_num, parent_uid, config2import, debug_level=debug_level)
                     rule_num += 1
 
         if src_rulebase['type'] == 'place-holder':  # add domain rules
@@ -290,12 +296,12 @@ def parse_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, ru
             rule_num += 1
         if 'rule-number' in src_rulebase:   # rulebase is just a single rule
             parse_single_rule_to_json(
-                src_rulebase, target_rulebase, layer_name, import_id, rule_num, parent_uid)
+                src_rulebase, target_rulebase, layer_name, import_id, rule_num, parent_uid, config2import)
             rule_num += 1
     return rule_num
 
 
-def parse_nat_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, debug_level=0, recursion_level=1):
+def parse_nat_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, config2import, debug_level=0, recursion_level=1):
 
     if (recursion_level > fwo_const.max_recursion_level):
         raise ImportRecursionLimitReached(
@@ -307,7 +313,7 @@ def parse_nat_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id
             if 'rulebase' in chunk:
                 for rules_chunk in chunk['rulebase']:
                     rule_num = parse_nat_rulebase_json(rules_chunk, target_rulebase, layer_name, import_id, rule_num,
-                                                       section_header_uids, parent_uid, debug_level=debug_level, recursion_level=recursion_level+1)
+                                                       section_header_uids, parent_uid, config2import, debug_level=debug_level, recursion_level=recursion_level+1)
             else:
                 logger.warning(
                     "parse_rule: found no rulebase in chunk:\n" + json.dumps(chunk, indent=2))
@@ -326,18 +332,18 @@ def parse_nat_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id
             for rule in src_rulebase['rulebase']:
                 (rule_match, rule_xlate) = parse_nat_rule_transform(rule, rule_num)
                 parse_single_rule_to_json(
-                    rule_match, target_rulebase, layer_name, import_id, rule_num, parent_uid)
+                    rule_match, target_rulebase, layer_name, import_id, rule_num, parent_uid, config2import)
                 parse_single_rule_to_json(
-                    rule_xlate, target_rulebase, layer_name, import_id, rule_num, parent_uid)
+                    rule_xlate, target_rulebase, layer_name, import_id, rule_num, parent_uid, config2import)
                 rule_num += 1
 
         if 'rule-number' in src_rulebase:   # rulebase is just a single rule
             (rule_match, rule_xlate) = parse_nat_rule_transform(
                 src_rulebase, rule_num)
             parse_single_rule_to_json(
-                rule_match, target_rulebase, layer_name, import_id, rule_num, parent_uid)
+                rule_match, target_rulebase, layer_name, import_id, rule_num, parent_uid, config2import)
             parse_single_rule_to_json(
-                rule_xlate, target_rulebase, layer_name, import_id, rule_num, parent_uid)
+                rule_xlate, target_rulebase, layer_name, import_id, rule_num, parent_uid, config2import)
             rule_num += 1
     return rule_num
 

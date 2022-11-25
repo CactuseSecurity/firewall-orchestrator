@@ -94,7 +94,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
             # parse access rules
             rule_num = parse_rule.parse_rulebase_json(
                 full_config['rulebases'][rb_id], target_rulebase, full_config['rulebases'][rb_id]['layername'], 
-                current_import_id, rule_num, section_header_uids, parent_uid)
+                current_import_id, rule_num, section_header_uids, parent_uid, config2import)
             # now parse the nat rulebase
 
             # parse nat rules
@@ -105,7 +105,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
                 else:
                     rule_num = parse_rule.parse_nat_rulebase_json(
                         full_config['nat_rulebases'][rb_id], target_rulebase, full_config['rulebases'][rb_id]['layername'], 
-                        current_import_id, rule_num, section_header_uids, parent_uid)
+                        current_import_id, rule_num, section_header_uids, parent_uid, config2import)
         config2import.update({'rules': target_rulebase})
 
         # copy users from full_config to config2import

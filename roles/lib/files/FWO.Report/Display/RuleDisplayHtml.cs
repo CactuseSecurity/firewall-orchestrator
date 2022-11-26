@@ -13,6 +13,8 @@ namespace FWO.Ui.Display
 
         public string DisplaySourceOrDestination(Rule rule, string style = "", string location = "report", ReportType reportType = ReportType.Rules, string side = "source")
         {
+            if (location=="certification")
+                reportType=ReportType.Rules;
             result = new StringBuilder();
             result.AppendLine("<p>");
             if (side=="source")
@@ -127,6 +129,8 @@ namespace FWO.Ui.Display
 
         public string DisplayService(Rule rule, string style = "", string location = "report", ReportType reportType = ReportType.Rules)
         {
+            if (location=="certification")
+                reportType=ReportType.Rules;
             result = new StringBuilder();
             result.AppendLine("<p>");
             if (rule.ServiceNegated)

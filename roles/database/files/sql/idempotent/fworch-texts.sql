@@ -807,46 +807,6 @@ INSERT INTO txt VALUES ('clear_input',     	    'English', 	'Delete input');
 INSERT INTO txt VALUES ('search_access',		'German', 	'Zugriff pr&uuml;fen');
 INSERT INTO txt VALUES ('search_access',		'English', 	'Check access');
 
--- enum values
-INSERT INTO txt VALUES ('master', 			    'German', 	'Master');
-INSERT INTO txt VALUES ('master', 			    'English', 	'Master');
-INSERT INTO txt VALUES ('access', 			    'German', 	'Zugriff');
-INSERT INTO txt VALUES ('access', 			    'English', 	'Access');
-INSERT INTO txt VALUES ('generic',              'German', 	'Generisch');
-INSERT INTO txt VALUES ('generic',              'English', 	'Generic');
-INSERT INTO txt VALUES ('group_create',         'German',   'Gruppe anlegen');
-INSERT INTO txt VALUES ('group_create',         'English',  'Create Group');
-INSERT INTO txt VALUES ('group_modify',         'German',   'Gruppe &auml;ndern');
-INSERT INTO txt VALUES ('group_modify',         'English',  'Modify Group');
-INSERT INTO txt VALUES ('group_delete',         'German',   'Gruppe l&ouml;schen');
-INSERT INTO txt VALUES ('group_delete',         'English',  'Delete Group');
-INSERT INTO txt VALUES ('None',			        'German', 	'Keine(r/s)');
-INSERT INTO txt VALUES ('None',			        'English', 	'None');
-INSERT INTO txt VALUES ('OnSet',			    'German', 	'Beim Erreichen');
-INSERT INTO txt VALUES ('OnSet',			    'English', 	'On set');
-INSERT INTO txt VALUES ('OnLeave',			    'German', 	'Beim Verlassen');
-INSERT INTO txt VALUES ('OnLeave',			    'English', 	'On leave');
-INSERT INTO txt VALUES ('OfferButton',			'German', 	'Schaltfl&auml;che anbieten');
-INSERT INTO txt VALUES ('OfferButton',			'English', 	'Offer button');
-INSERT INTO txt VALUES ('DoNothing',			'German', 	'Keine Aktion');
-INSERT INTO txt VALUES ('DoNothing',			'English', 	'Do Nothing');
-INSERT INTO txt VALUES ('AutoPromote',			'German', 	'Autom. Weiterleitung');
-INSERT INTO txt VALUES ('AutoPromote',			'English', 	'Auto-forward');
-INSERT INTO txt VALUES ('AddApproval',			'German', 	'Genehmigung hinzuf&uuml;gen');
-INSERT INTO txt VALUES ('AddApproval',			'English', 	'Add approval');
-INSERT INTO txt VALUES ('SetAlert',			    'German', 	'Alarm ausl&ouml;sen');
-INSERT INTO txt VALUES ('SetAlert',			    'English', 	'Set alert');
-INSERT INTO txt VALUES ('ExternalCall',			'German', 	'Externer Aufruf');
-INSERT INTO txt VALUES ('ExternalCall',			'English', 	'External call');
-INSERT INTO txt VALUES ('Ticket',			    'German', 	'Ticket');
-INSERT INTO txt VALUES ('Ticket',			    'English', 	'Ticket');
-INSERT INTO txt VALUES ('RequestTask',			'German', 	'fachlicher Auftrag');
-INSERT INTO txt VALUES ('RequestTask',			'English', 	'Request Task');
-INSERT INTO txt VALUES ('ImplementationTask',	'German', 	'Implementierungs-Auftrag');
-INSERT INTO txt VALUES ('ImplementationTask',	'English', 	'Implementation Task');
-INSERT INTO txt VALUES ('Approval',			    'German', 	'Genehmigung');
-INSERT INTO txt VALUES ('Approval',			    'English', 	'Approval');
-
 -- recertification
 INSERT INTO txt VALUES ('recertify',		    'German', 	'Rezertifizieren');
 INSERT INTO txt VALUES ('recertify',		    'English', 	'Recertify');

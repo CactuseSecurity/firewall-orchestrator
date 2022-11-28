@@ -134,7 +134,7 @@ namespace FWO.Report
 
         public override async Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)
         {
-             Query.QueryVariables["limit"] = rulesPerFetch;
+            Query.QueryVariables["limit"] = rulesPerFetch;
             Query.QueryVariables["offset"] = 0;
             bool gotNewObjects = true;
 
@@ -168,7 +168,7 @@ namespace FWO.Report
                 }
                 await callback(Managements);
             }
-       }
+        }
 
         public override string SetDescription()
         {

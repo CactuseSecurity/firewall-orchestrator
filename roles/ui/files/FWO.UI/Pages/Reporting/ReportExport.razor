@@ -2,7 +2,8 @@
 @using FWO.Report
 @using FWO.Config.Api
 @using WkHtmlToPdfDotNet
-@using System.Linq;
+@using System.Linq
+@using FWO.Report.Filter
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -58,9 +59,16 @@
                             </label>
                         </div>
                         <div class="form-check">
-                            <input disabled class="form-check-input" type="checkbox" id="reportExportCsv" @bind="ExportCsv">
+                            @if (ReportToExport.ReportType!=ReportType.ResolvedRules && ReportToExport.ReportType!=ReportType.ResolvedRulesTech)
+                            {
+                                <input disabled class="form-check-input" type="checkbox" id="reportExportCsv" @bind="ExportCsv">
+                            }
+                            else 
+                            {
+                                <input class="form-check-input" type="checkbox" id="reportExportCsv" @bind="ExportCsv">
+                            }
                             <label class="form-check-label" for="reportExportCsv">
-                                CSV @(userConfig.GetText("coming_soon"))
+                                CSV
                             </label>
                         </div>
                         <div class="form-check">

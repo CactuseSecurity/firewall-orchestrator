@@ -9,6 +9,7 @@ namespace FWO.Api.Data
         AutoPromote = 1,
         AddApproval = 2,
         SetAlert = 5,
+        TrafficPathAnalysis = 6,
         ExternalCall = 10
     }
 

@@ -1,0 +1,97 @@
+﻿
+@using NetTools
+@using System.Net
+@using FWO.Api.Client.Queries
+
+@using FWO.Api.Data
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+@page "/network_analysis"
+
+<h3>@(userConfig.GetText("network_analysis"))</h3>
+
+<Body>
+    <form>
+        <div class="form-group row">
+            <label for="routingSource" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("source")):</label>
+            <input id="routingSource" type="text" class="col-sm-9" @bind="routingSourceString">
+        </div>
+        <div class="form-group row">
+            <label for="routingDestination" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("destination")):</label>
+            <input id="routingDestination" type="text" class="col-sm-9" @bind="routingDestinationString">
+        </div>
+        <div class="form-group row">
+            <label for="service" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("service")):</label>
+            <input readonly id="service" type="text" class="col-sm-9" @bind="serviceString">
+        </div>
+        <div class="form-group row">
+            <label for="gwsFound" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("gws_found")):</label>
+            @if (gwsInPath == "")
+            {
+                <textarea readonly id="gwsFound" class="col-sm-9">@(userConfig.GetText("no_gws_found"))</textarea>
+            }
+            else
+            {
+                <textarea readonly id="gwsFound" class="col-sm-9" @bind="gwsInPath" />
+            }
+        </div>
+    </form>
+</Body>
+<Footer>
+    <button type="button" class="btn btn-primary" @onclick="@(async () => { gwsInPath = await analyzePath(routingSourceString,routingDestinationString); })">@(userConfig.GetText("search_route"))</button>
+    <button type="button" disabled class="btn btn-primary" @onclick="@(async () => { })">@(userConfig.GetText("search_access"))</button>
+    <button type="button" class="btn btn-secondary" @onclick="@(() => { routingSourceString = ""; routingDestinationString = ""; serviceString = ""; })">@(userConfig.GetText("clear_input"))</button>
+</Footer>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    private string routingSourceString = "";
+    private string routingDestinationString = "";
+    private string serviceString = "";
+
+    private string gwsInPath = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        // try
+        // {
+        //    archivedReports = (await apiConnection.SendQueryAsync<ReportFile[]>(ReportQueries.getGeneratedReports)).ToList();
+        // }
+        // catch (Exception exception)
+        // {
+        //    DisplayMessageInUi!(exception, userConfig.GetText("archive_fetch"), "", true);
+        // }
+    }
+
+    protected async Task<string> analyzePath(string source, string destination)
+    {
+        if (checkIpAdresses(source, destination))
+        {
+            return await (new PathAnalysis(apiConnection)).getDeviceNamesForSinglePath(source, destination);
+        }
+        return "";
+    }
+
+    private bool checkIpAdresses(string source, string destination)
+    {
+        try
+        {
+            IPAddressRange.Parse(source);
+            IPAddressRange.Parse(destination);
+        }
+        catch(Exception e)
+        {
+            DisplayMessageInUi!(e, userConfig.GetText("wrong_ip_address"), "", true);
+            return false;
+        }
+        return true;
+    }
+}

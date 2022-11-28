@@ -219,7 +219,7 @@ adding report template format fk and permissions
 
 ### 5.7.1 - 13.10.2022
 - new workflow module for requesting changes
-- new Cisco FireFlow import module 
+- new Cisco FirePower import module 
 - support for new operating system debian testing
 - bugfix enrichable objects in CP NAT rules
 - bugfix filter line brackets
@@ -242,5 +242,14 @@ adding report template format fk and permissions
 ### 5.8.2 - 30.10.2022
 - new report type resolved tech info (no names)
 - fix for log file rotation issues (log lock)
-- ip-based tenant filtering start
 - fix change report warning for empty reports
+
+### 6.0 - 02.11.2022
+- clean-up work and new major version
+
+### 6.0.1 - 10.11.2022
+- bugfix release with small issues (userconfig re-login, ldif upgrade bug, debian testing support)
+
+### 6.1.0 - 16.11.2022 DEVELOP
+- interactive network analysis prototype in UI
+- integrate path analysis to workflow

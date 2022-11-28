@@ -190,17 +190,57 @@ namespace FWO.Report
 
         public override string ExportToCsv()
         {
-            StringBuilder csvBuilder = new StringBuilder();
 
-            foreach (Management management in Managements.Where(mgt => !mgt.Ignore))
+            if (ReportType == ReportType.ResolvedRules || ReportType == ReportType.ResolvedRulesTech)
             {
-                //foreach (var item in collection)
-                //{
+                StringBuilder report = new StringBuilder();
+                RuleDisplayCsv ruleDisplay = new RuleDisplayCsv(userConfig);
 
-                //}
+                report.AppendLine(ruleDisplay.DisplayReportHeader(this));
+
+                foreach (Management management in Managements.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+                        Array.Exists(mgt.Devices, device => device.Rules != null && device.Rules.Length > 0)))
+                {
+                    foreach (Device gateway in management.Devices)
+                    {
+                        if (gateway.Rules != null && gateway.Rules.Length > 0)
+                        {
+                            foreach (Rule rule in gateway.Rules)
+                            {
+                                if (string.IsNullOrEmpty(rule.SectionHeader))
+                                {
+                                    report.Append($"\"{management.Name}\",");
+                                    report.Append($"\"{gateway.Name}\",");
+                                    report.Append(ruleDisplay.DisplayNumber(rule, gateway.Rules));
+                                    report.Append(ruleDisplay.DisplayName(rule));
+                                    report.Append(ruleDisplay.DisplaySourceZone(rule));
+                                    report.Append(ruleDisplay.DisplaySource(rule, location: "", reportType: this.ReportType));
+                                    report.Append(ruleDisplay.DisplayDestinationZone(rule));
+                                    report.Append(ruleDisplay.DisplayDestination(rule, location: "", reportType: this.ReportType));
+                                    report.Append(ruleDisplay.DisplayService(rule, location: "", reportType: this.ReportType));
+                                    report.Append(ruleDisplay.DisplayAction(rule));
+                                    report.Append(ruleDisplay.DisplayTrack(rule));
+                                    report.Append(ruleDisplay.DisplayEnabled(rule, export: true));
+                                    report.Append(ruleDisplay.DisplayUid(rule));
+                                    report.Append(ruleDisplay.DisplayComment(rule));
+                                }
+                                else
+                                {
+                                    // report.AppendLine("\"section header\": \"" + rule.SectionHeader + "\"");
+                                }
+                                report.AppendLine("");  // EO rule
+                            } // rules
+                        }
+                    } // gateways
+                } // managements
+                string reportStr = report.ToString();
+                return reportStr;
             }
-
-            throw new NotImplementedException();
+            else
+            {
+                throw new NotImplementedException();
+                return null;
+            }
         }
 
         public override string ExportToJson()

@@ -148,7 +148,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>F&uuml;r FortiManager und CheckPoint (Stand-Alone & MDS Manager) Auto Discovery</li>
     <li>Monitoring und Alerting Modul</li>
     <li>Neues Workflow module zum Beantragen von &Auml;nderungen</li>
-    <li>Cisco FireFlow Import-Module</li>
+    <li>Cisco FirePower Import-Module</li>
     <li>Unterst&uuml;tzung f&uuml;r Debian Testing Betriebssystem</li>
     <li>Beginn Routing/Interface Pfad Analyse (zun&auml;chst nur Fortinet)</li>
     <li>Neue Report-Typen: Regeln (aufgel&ouml;st), Regeln technisch (alle Gruppe werden in Bestandteile aufgel&ouml;st; Report-Export als "Single Table")</li>
@@ -163,7 +163,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>Device Auto Discovery functionality</li>
     <li>Introduction of Monitoring and Alerting module</li>
     <li>Introduction of workflow module for requesting changes</li>
-    <li>New Cisco FireFlow import module </li>
+    <li>New Cisco FirePower import module </li>
     <li>Support for new operating system Debian testing</li>
     <li>Start routing/interface (currently implemented for fortinet only) import and path analysis</li>
     <li>New report types: resolved rules, technical rules (report without group objects, exporting into pure rule tables without additional object tables)</li>
@@ -531,7 +531,7 @@ INSERT INTO txt VALUES ('fetch_report',		    'English', 	'Fetch downloads of gen
 INSERT INTO txt VALUES ('delete_report',		'German', 	'Erstellten Report l&ouml;schen');
 INSERT INTO txt VALUES ('delete_report',		'English', 	'Delete generated report');
 
--- requests
+-- workflow
 INSERT INTO txt VALUES ('request',              'German', 	'Antrag');
 INSERT INTO txt VALUES ('request',              'English', 	'Request');
 INSERT INTO txt VALUES ('ticket',               'German', 	'Ticket');
@@ -562,14 +562,6 @@ INSERT INTO txt VALUES ('obj_group', 			'German', 	'Objektgruppe');
 INSERT INTO txt VALUES ('obj_group', 			'English', 	'Object group');
 INSERT INTO txt VALUES ('rule_modify', 			'German', 	'Regel &auml;ndern');
 INSERT INTO txt VALUES ('rule_modify', 		    'English', 	'Modify Rule');
-INSERT INTO txt VALUES ('never', 			    'German', 	'Niemals');
-INSERT INTO txt VALUES ('never', 			    'English', 	'Never');
-INSERT INTO txt VALUES ('onlyForOneDevice', 	'German', 	'Nur eines wenn Ger&auml;t vorhanden');
-INSERT INTO txt VALUES ('onlyForOneDevice', 	'English', 	'Only one if device available');
-INSERT INTO txt VALUES ('forEachDevice', 		'German', 	'F&uuml;r jedes Ger&auml;t');
-INSERT INTO txt VALUES ('forEachDevice', 		'English', 	'For each device');
-INSERT INTO txt VALUES ('enterInReqTask',       'German', 	'Ger&auml;t im Antrag eingeben');
-INSERT INTO txt VALUES ('enterInReqTask',       'English', 	'Enter device in request');
 INSERT INTO txt VALUES ('add_new_request',      'German', 	'Neuen Antrag hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_new_request',      'English', 	'Add new request');
 INSERT INTO txt VALUES ('fetch_requests',       'German', 	'Antr&auml;ge holen');
@@ -612,8 +604,18 @@ INSERT INTO txt VALUES ('plan',                 'German', 	'Planen');
 INSERT INTO txt VALUES ('plan',                 'English', 	'Plan');
 INSERT INTO txt VALUES ('planner',              'German', 	'Planer');
 INSERT INTO txt VALUES ('planner',              'English', 	'Planner');
-INSERT INTO txt VALUES ('create_implementation','German', 	'Implementierung hinzuf&uuml;gen');
-INSERT INTO txt VALUES ('create_implementation','English', 	'Create implementation task');
+INSERT INTO txt VALUES ('create_implementation','German', 	'Einzelne Implementierung hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('create_implementation','English', 	'Create single implementation task');
+INSERT INTO txt VALUES ('auto_create_impltasks','German', 	'Implementierungen autom. erzeugen');
+INSERT INTO txt VALUES ('auto_create_impltasks','English', 	'Autocreate implementation tasks');
+INSERT INTO txt VALUES ('cleanup_impltasks',    'German', 	'Alle Implementierungen aufr&auml;umen');
+INSERT INTO txt VALUES ('cleanup_impltasks',    'English', 	'Clean up all implementation tasks');
+INSERT INTO txt VALUES ('all_impltasks',        'German', 	'Alle Implementierungen');
+INSERT INTO txt VALUES ('all_impltasks',        'English', 	'All implementation tasks');
+INSERT INTO txt VALUES ('check_impltasks',      'German', 	'Implementierungen pr&uuml;fen');
+INSERT INTO txt VALUES ('check_impltasks',      'English', 	'Check implementation tasks');
+INSERT INTO txt VALUES ('impltask_created',     'German', 	'Implementierung angelegt');
+INSERT INTO txt VALUES ('impltask_created',     'English', 	'Implementation task created');
 INSERT INTO txt VALUES ('implementation_tasks', 'German', 	'Implementierungsaufgaben');
 INSERT INTO txt VALUES ('implementation_tasks', 'English', 	'Implementation tasks');
 INSERT INTO txt VALUES ('request_elements',     'German', 	'Auftragselemente');
@@ -730,6 +732,80 @@ INSERT INTO txt VALUES ('comments',				'German', 	'Kommentare');
 INSERT INTO txt VALUES ('comments',				'English', 	'Comments');
 INSERT INTO txt VALUES ('button_text',			'German', 	'Schaltertext');
 INSERT INTO txt VALUES ('button_text',			'English', 	'Button Text');
+INSERT INTO txt VALUES ('path_analysis',		'German', 	'Pfadanalyse');
+INSERT INTO txt VALUES ('path_analysis',		'English', 	'Path analysis');
+
+-- enum values
+INSERT INTO txt VALUES ('master', 			    'German', 	'Master');
+INSERT INTO txt VALUES ('master', 			    'English', 	'Master');
+INSERT INTO txt VALUES ('access', 			    'German', 	'Zugriff');
+INSERT INTO txt VALUES ('access', 			    'English', 	'Access');
+INSERT INTO txt VALUES ('generic',              'German', 	'Generisch');
+INSERT INTO txt VALUES ('generic',              'English', 	'Generic');
+INSERT INTO txt VALUES ('group_create',         'German',   'Gruppe anlegen');
+INSERT INTO txt VALUES ('group_create',         'English',  'Create Group');
+INSERT INTO txt VALUES ('group_modify',         'German',   'Gruppe &auml;ndern');
+INSERT INTO txt VALUES ('group_modify',         'English',  'Modify Group');
+INSERT INTO txt VALUES ('group_delete',         'German',   'Gruppe l&ouml;schen');
+INSERT INTO txt VALUES ('group_delete',         'English',  'Delete Group');
+INSERT INTO txt VALUES ('None',			        'German', 	'Keine(r/s)');
+INSERT INTO txt VALUES ('None',			        'English', 	'None');
+INSERT INTO txt VALUES ('OnSet',			    'German', 	'Beim Erreichen');
+INSERT INTO txt VALUES ('OnSet',			    'English', 	'On set');
+INSERT INTO txt VALUES ('OnLeave',			    'German', 	'Beim Verlassen');
+INSERT INTO txt VALUES ('OnLeave',			    'English', 	'On leave');
+INSERT INTO txt VALUES ('OfferButton',			'German', 	'Schaltfl&auml;che anbieten');
+INSERT INTO txt VALUES ('OfferButton',			'English', 	'Offer button');
+INSERT INTO txt VALUES ('DoNothing',			'German', 	'Keine Aktion');
+INSERT INTO txt VALUES ('DoNothing',			'English', 	'Do Nothing');
+INSERT INTO txt VALUES ('AutoPromote',			'German', 	'Autom. Weiterleitung');
+INSERT INTO txt VALUES ('AutoPromote',			'English', 	'Auto-forward');
+INSERT INTO txt VALUES ('AddApproval',			'German', 	'Genehmigung hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('AddApproval',			'English', 	'Add approval');
+INSERT INTO txt VALUES ('SetAlert',			    'German', 	'Alarm ausl&ouml;sen');
+INSERT INTO txt VALUES ('SetAlert',			    'English', 	'Set alert');
+INSERT INTO txt VALUES ('TrafficPathAnalysis',  'German', 	'Pfadanalyse');
+INSERT INTO txt VALUES ('TrafficPathAnalysis',  'English', 	'Path Analysis');
+INSERT INTO txt VALUES ('ExternalCall',			'German', 	'Externer Aufruf');
+INSERT INTO txt VALUES ('ExternalCall',			'English', 	'External call');
+INSERT INTO txt VALUES ('Ticket',			    'German', 	'Ticket');
+INSERT INTO txt VALUES ('Ticket',			    'English', 	'Ticket');
+INSERT INTO txt VALUES ('RequestTask',			'German', 	'fachlicher Auftrag');
+INSERT INTO txt VALUES ('RequestTask',			'English', 	'Request Task');
+INSERT INTO txt VALUES ('ImplementationTask',	'German', 	'Implementierungs-Auftrag');
+INSERT INTO txt VALUES ('ImplementationTask',	'English', 	'Implementation Task');
+INSERT INTO txt VALUES ('Approval',			    'German', 	'Genehmigung');
+INSERT INTO txt VALUES ('Approval',			    'English', 	'Approval');
+INSERT INTO txt VALUES ('never', 			    'German', 	'Niemals');
+INSERT INTO txt VALUES ('never', 			    'English', 	'Never');
+INSERT INTO txt VALUES ('onlyForOneDevice', 	'German', 	'Nur eines wenn Ger&auml;t vorhanden');
+INSERT INTO txt VALUES ('onlyForOneDevice', 	'English', 	'Only one if device available');
+INSERT INTO txt VALUES ('forEachDevice', 		'German', 	'F&uuml;r jedes Ger&auml;t');
+INSERT INTO txt VALUES ('forEachDevice', 		'English', 	'For each device');
+INSERT INTO txt VALUES ('enterInReqTask',       'German', 	'Ger&auml;t im Antrag eingeben');
+INSERT INTO txt VALUES ('enterInReqTask',       'English', 	'Enter device in request');
+INSERT INTO txt VALUES ('afterPathAnalysis',    'German', 	'Nach Pfadanalyse');
+INSERT INTO txt VALUES ('afterPathAnalysis',    'English', 	'After path analysis');
+INSERT INTO txt VALUES ('WriteToDeviceList',    'German', 	'In Ger&auml;teliste eintragen');
+INSERT INTO txt VALUES ('WriteToDeviceList',    'English', 	'Write to device list');
+INSERT INTO txt VALUES ('DisplayFoundDevices',  'German', 	'Gefundene Ger&auml;te darstellen');
+INSERT INTO txt VALUES ('DisplayFoundDevices',  'English', 	'Display found devices');
+
+-- network analysis
+INSERT INTO txt VALUES ('network_analysis', 	'German',	'Netzanalyse');
+INSERT INTO txt VALUES ('network_analysis', 	'English',	'Network Analysis');
+INSERT INTO txt VALUES ('wrong_ip_address',	    'German', 	'Keine g&uuml;ltige IP Adresse');
+INSERT INTO txt VALUES ('wrong_ip_address',		'English', 	'no valid ip address');
+INSERT INTO txt VALUES ('gws_found',		    'German', 	'Gateways im Pfad');
+INSERT INTO txt VALUES ('gws_found',		    'English', 	'Gateways in path');
+INSERT INTO txt VALUES ('no_gws_found',		    'German', 	'Keine Gateways im Pfad gefunden');
+INSERT INTO txt VALUES ('no_gws_found',		    'English', 	'No gateways found');
+INSERT INTO txt VALUES ('search_route',		    'German', 	'Gateways im Pfad suchen');
+INSERT INTO txt VALUES ('search_route',		    'English', 	'Search gateways in path');
+INSERT INTO txt VALUES ('clear_input',		    'German', 	'Eingabe l&ouml;schen');
+INSERT INTO txt VALUES ('clear_input',     	    'English', 	'Delete input');
+INSERT INTO txt VALUES ('search_access',		'German', 	'Zugriff pr&uuml;fen');
+INSERT INTO txt VALUES ('search_access',		'English', 	'Check access');
 
 -- enum values
 INSERT INTO txt VALUES ('master', 			    'German', 	'Master');
@@ -1096,6 +1172,8 @@ INSERT INTO txt VALUES ('reqPriorities',        'German', 	'Priorit&auml;ten');
 INSERT INTO txt VALUES ('reqPriorities',        'English', 	'Priorities');
 INSERT INTO txt VALUES ('reqAutoCreateImplTasks','German', 	'Autom. Erzeugen von Implementierungs-Auftr&auml;gen');
 INSERT INTO txt VALUES ('reqAutoCreateImplTasks','English', 'Auto-create implementation tasks');
+INSERT INTO txt VALUES ('reqActivatePathAnalysis','German', 'Pfadanalyse aktivieren');
+INSERT INTO txt VALUES ('reqActivatePathAnalysis','English','Activate Path Analysis');
 INSERT INTO txt VALUES ('numeric_prio', 		'German', 	'Numerische Priorit&auml;t');
 INSERT INTO txt VALUES ('numeric_prio', 		'English', 	'Numeric Priority');
 INSERT INTO txt VALUES ('ticket_deadline',      'German', 	'Ticket-Deadline (in Tagen)');
@@ -1264,6 +1342,8 @@ INSERT INTO txt VALUES ('set_default',          'German',   'als Vorgabewert set
 INSERT INTO txt VALUES ('set_default',          'English',  'Set as Default');
 INSERT INTO txt VALUES ('reset_to_default',     'German',   'auf Vorgabewerte zur&uuml;cksetzen');
 INSERT INTO txt VALUES ('reset_to_default',     'English',  'Reset to Default');
+INSERT INTO txt VALUES ('option',		        'German', 	'Option');
+INSERT INTO txt VALUES ('option',		        'English', 	'Option');
 
 
 -- monitoring
@@ -1380,6 +1460,8 @@ INSERT INTO txt VALUES ('found_no_changes',     'English',	'no changes found');
 
 
 -- help pages
+INSERT INTO txt VALUES ('report_types',         'German', 	'Report-Typen');
+INSERT INTO txt VALUES ('report_types',         'English', 	'Report types');
 INSERT INTO txt VALUES ('filter_syntax',        'German', 	'Filtersyntax');
 INSERT INTO txt VALUES ('filter_syntax',        'English', 	'Filter Syntax');
 INSERT INTO txt VALUES ('report_data_output',   'German', 	'Reportdatenausgabe');
@@ -1980,6 +2062,27 @@ INSERT INTO txt VALUES ('H1101', 'English', '<li> All filtering is case insensit
     <li> Time filtering currently only works for points in time before the last import that found a config change. </li>
     <li> Rules are always deep-searched, meaning all groups in source, destination and service fields are resolved.
         There is currently no option to only search at the rule top-level.</li>
+');
+INSERT INTO txt VALUES ('H1102', 'German',  'Folgende Report-Typen stehen zur Auswahl:
+<ul>
+    <li>Regeln - Anzeige von Zugriffsregeln; Default-Report-Zeitpunkt: jetzt</li>
+    <li>Regeln (aufgel&ouml;st) - Anzeige von Zugriffsregeln, wobei s&auml;mtliche Gruppen in Quelle, Ziel und Dienst aufgel&ouml;st werden. 
+     Dies erm&ouml;glicht einen Export in einer einzigen Tabelle ohne Hilfstabellen, in denen die Objekt-Definitionen stehen. Default-Report-Zeitpunkt: jetzt</li>
+    <li>Regeln (technisch) - wie der aufgel&ouml;ste Regel-Report, nur dass Objektnamen nicht angezeigt werden. Default-Report-Zeitpunkt: jetzt</li>
+    <li>NAT-Regeln - Anzeige der NAT-Regeln und nicht der Zugriffsregeln. Default-Report-Zeitpunkt: jetzt</li>
+    <li>&Auml;nderungen - Anzeige von &Auml;nderungen in einem bestimmten Zeitraum. Default-Report-Zeitraum: dieses Jahr</li>
+    <li>Statistik - Anzeige von Statistikdaten &uuml;ber Anzahl von Objekten und Regeln. Default-Report-Zeitpunkt: jetzt</li>
+</ul>
+');
+INSERT INTO txt VALUES ('H1102', 'English',  'Choose from the following report types:
+<ul>
+    <li>Rules - display access rules; default report time: now</li>
+    <li>Rules (resolved) - display access rules but not showing any group structure but only resolved group content. Default report time: now</li>
+    <li>Rules (technical) - display access rules, resolving groups and not showing object names. Default report time: now<</li>
+    <li>NAT Rules - display NAT rules instead of access rules. Default report time: now</li>
+    <li>Changes - display all changes in a defined time interval. Default report interval: this year</li>
+    <li>Statistics - display statistical data on the number of objects and rules. Default report time: now</li>
+</ul>
 ');
 INSERT INTO txt VALUES ('H1111', 'German',  '<li>gateway (gw, firewall, fw, device, dev): Zus&auml;tzlich zu der in der <a href="/help/reporting/leftside">Linken Randleiste</a> zu t&auml;tigenden Auswahl spezifischer Devices
     kann hier noch die Auswahl weiter nach Namen eingeschr&auml;nkt werden. </li>
@@ -2659,7 +2762,7 @@ INSERT INTO txt VALUES ('H5331', 'German',  'Alle definierten Rollen werden mit 
 INSERT INTO txt VALUES ('H5331', 'English', 'All defined roles in the system are displayed with a short explanation.<br>
     The admin can assign or remove users or user groups to/from the roles.
 ');
-INSERT INTO txt VALUES ('H5332', 'German',  'Die verf&uuml;gbaren Rollen k&ouml;nnen in mehrere Kategorien eingeteil werden:');
+INSERT INTO txt VALUES ('H5332', 'German',  'Die verf&uuml;gbaren Rollen k&ouml;nnen in mehrere Kategorien eingeteilt werden:');
 INSERT INTO txt VALUES ('H5332', 'English', 'The provided roles can be divided into several categories:');
 INSERT INTO txt VALUES ('H5341', 'German',  'Aktionen: Der Admin hat die M&ouml;glichkeit, Nutzer den Rollen zuzuordnen oder sie von ihnen zu entfernen,
     ausser f&uuml;r "anonymous" oder "middleware-server", welche nur intern genutzt werden kann.
@@ -2844,6 +2947,12 @@ INSERT INTO txt VALUES ('H5524', 'German',  'Alarm ausl&ouml;sen: Hier wird die 
 INSERT INTO txt VALUES ('H5524', 'English', 'Set alert: Here the message for the alert is filled.');
 INSERT INTO txt VALUES ('H5525', 'German',  'Externer Aufruf: Hier werden in zuk&uuml;nftigen Entwicklungen die f&uuml;r externe Aufrufe anzugebenden Parameter erfasst.');
 INSERT INTO txt VALUES ('H5525', 'English', 'External call: Here in later releases the parameters for external calls will be recorded.');
+INSERT INTO txt VALUES ('H5526', 'German',  'Pfadanalyse: Hier kann zwischen den Optionen "In Ger&auml;teliste eintragen" und "Gefundene Ger&auml;te darstellen" gew&auml;hlt werden.
+    Bei Ersterer wird die Liste der betroffenen Ger&auml;te des Auftrags durch die in der Pfadanalyse gefundenen ersetzt, bei Letzterer wird das Ergebnis der Pfadanalyse lediglich in einem separaten Fenster eingeblendet.
+');
+INSERT INTO txt VALUES ('H5526', 'English', 'Path analysis: Here the options "Write to device list" or "Display found devices" can be selected.
+    In the first case the list of devices in the request task is replaced by the devices found in the path analysis, in the second the result of the path analysis is only displayed in a separate window.
+');
 INSERT INTO txt VALUES ('H5531', 'German',  'Es k&ouml;nne beliebig viele neue Stati angelegt bzw. vorhandene Stati umbenannt, ggf. auch gel&ouml;scht werden. Die Namen und Nummern der Stati sind weitgehend frei w&auml;hlbar. 
     Zu beachten ist dabei, dass die Nummern zu den in den <a href="/help/settings/statematrix">Status-Matrizen</a> definierten Bereichen (Eingang, Bearbeitung, Ausgang) der jeweiligen Phasen passen.
     Da intern ausschliesslich die Nummern verarbeitet werden, sind auch doppelt vergebene Status-Namen (technisch) m&ouml;glich.
@@ -2876,13 +2985,13 @@ INSERT INTO txt VALUES ('H5542', 'English', 'Phases: The workflow phases provide
 ');
 INSERT INTO txt VALUES ('H5543', 'German',  'Status&uuml;berg&auml;nge: F&uuml;r jeden in einer Phase vorkommenden Status muss hier festgelegt werden, in welche Stati von dort beim Speichern gewechselt werden kann. 
     Diese werden dann bei den jeweiligen Aktionen in einer Liste angeboten. Ist nur der &Uuml;bergang zu genau einem Status m&ouml;glich, so wird dieser &Uuml;bergang automatisch ohne R&uuml;ckfrage ausgef&uuml;hrt.
-    (z.B. ist in der Standardkonfiguration nur der &Uuml;bergang "Requested" -> "In Approval" eingetragen, so dass beim bet&auml;tigen von "Genehmigung beginnen" automatisch letzterer Status gesetzt wird.)
+    (z.B. ist in der Standardkonfiguration nur der &Uuml;bergang "Requested" -&amp;gt; "In Approval" eingetragen, so dass beim bet&auml;tigen von "Genehmigung beginnen" automatisch letzterer Status gesetzt wird.)
     Soll eine Aktion, die ein Speichern bewirkt, auch ohne Statuswechsel stattfinden k&ouml;nnen, so ist der Ausgangszustand auch in der Liste der Zielzust&auml;nde aufzunehmen.
     Es ist darauf zu achten, dass alle vorkommenden Zielstati der &Uuml;bergangsmatrizen auch in den Ausgangsstati zu finden sind.
 ');
 INSERT INTO txt VALUES ('H5543', 'English', 'State transitions: For each state appearing in a phase it has to be defined, to which states transitions are possible on saving.
     These states are displayed in a list in the particular actions. If there is only the transition to exactly one state possible, this transition is performed automatically without further dialogue.
-    (E.g. in the default configuration the transition "Requested" -> "In Approval" is listed, so that on pushing the button "Start approval" the latter state is set automatically.)
+    (E.g. in the default configuration the transition "Requested" -&amp;gt; "In Approval" is listed, so that on pushing the button "Start approval" the latter state is set automatically.)
     If an action leading to a storage should also have the possibility to be performed without state change, the source state has to be added also to the target state list.
     Make sure that all used target states in all transition matrices also appear in the source states.
 ');
@@ -2930,6 +3039,8 @@ INSERT INTO txt VALUES ('H5566', 'German',  'Autom. Erzeugen von Implementierung
 INSERT INTO txt VALUES ('H5566', 'English', 'Auto-create implementation tasks: If the planning phase is not activated, one or more implementation tasks have to be created automatically from the request task.
     Therefore the following options can be selected:
 ');
+INSERT INTO txt VALUES ('H5567', 'German',  'Pfadanalyse aktivieren: Dem Planer werden Werkzeuge zur automatischen Pfadanalyse (Pr&uuml;fung, Erzeugen von Implementierungsauftr&auml;gen, Bereinigung) zur Verf&uuml;gung gestellt.');
+INSERT INTO txt VALUES ('H5567', 'English', 'Activate Path Analysis: The planner gets access to tools for automatic path analysis (check, creation of implementation tasks, cleanup).');
 INSERT INTO txt VALUES ('H5571', 'German',  'Niemals: Es wird kein Implementierungs-Auftrag erzeugt (nur sinnvoll, falls Implementierung und folgende Phasen nicht ben&ouml;tigt werden).');
 INSERT INTO txt VALUES ('H5571', 'English', 'Never: No implementation task is created (only reasonable, if implementation and following phases are not needed).');
 INSERT INTO txt VALUES ('H5572', 'German',  'Nur eines wenn Ger&auml;t vorhanden: Bei mindestens einem vorhandenen Ger&auml;t wird das erste der Liste eingetragen
@@ -2946,6 +3057,8 @@ INSERT INTO txt VALUES ('H5574', 'German',  'Ger&auml;t im Antrag eingeben: Stan
 INSERT INTO txt VALUES ('H5574', 'English', 'Enter device in request: Default value: A mandatory field to select devices is already displayed during request task creation,
     if needed in the task type (in this case some technical know-how is presumed from the requester).
 ');
+INSERT INTO txt VALUES ('H5575', 'German',  'Nach Pfadanalyse: F&uuml;r jedes bei der automatischen Pfadanalyse gefundene Ger&auml;t wird ein eigener Implementierungs-Auftrag angelegt.');
+INSERT INTO txt VALUES ('H5575', 'English', 'After path analysis: For each device found in the automatic path analysis an own implementation task is created.');
 INSERT INTO txt VALUES ('H5581', 'German',  'In diesem Abschnitt k&ouml;nnen die vorhandenen Eigent&uuml;mer eingesehen und administriert (falls in den <a href="/help/settings/workflowcustomizing">Einstellungen</a> aktiviert) werden. 
     Es ist geplant, die Eigent&uuml;merschaft mit der Zust&auml;ndigkeit bei der Antragsstellung zu verkn&uuml;pfen.
 ');
@@ -3423,8 +3536,12 @@ INSERT INTO txt VALUES ('H8313', 'English', 'Approvals (Role: approver), presele
 INSERT INTO txt VALUES ('H8314', 'German',  'Planungen (Rolle: planner, fw-admin), optional: 
     Im Workflow kann vorgesehen werden, dass die Implementierungs-Auftr&auml;ge aus den fachlichen Auftr&auml;gen manuell von einem Planer erzeugt werden.
     Ist diese Phase aktiviert, greift die automatische Erzeugung der Implementierungs-Auftr&auml;ge nicht (<a href="/help/settings/workflowcustomizing">Einstellungen</a>).
-    Stattdessen kann der Planer beliebige Implementierungs-Auftr&auml;ge erzeugen, editieren und l&ouml;schen. 
+    Stattdessen kann der Planer beliebige Implementierungs-Auftr&auml;ge erzeugen, editieren und l&ouml;schen.
     Dabei werden die Felder aus den analogen Feldern des fachlichen Auftrags zwar weitgehend vorbelegt, k&ouml;nnen aber beliebig den Erfordernissen entsprechend abge&auml;ndert werden.
+    F&uuml;r die Bearbeitung von Zugriffsauftr&auml;gen stehen ihm zus&auml;tzliche Funktionen zur Pfadanalyse zur Verf&uuml;gung (soweit in den <a href="/help/settings/workflowcustomizing">Einstellungen</a> aktiviert):
+    Zum &Uuml;berpr&uuml;fen, f&uuml;r welche der bei der Pfadanalyse gefundenen Ger&auml;te bereits Implementierungs-Auftr&auml;ge angelegt sind,
+    zum automatischen Anlegen von Implementierungs-Auftr&auml;gen f&uuml;r alle der bei der Pfadanalyse gefundenen Ger&auml;te (soweit noch nicht vorhanden),
+    sowie zum L&ouml;schen aller vorhandenen Implementierungs-Auftr&auml;ge.
     Die fachlichen Auftr&auml;ge k&ouml;nnen in dieser Phase auch anderen Nutzern oder Gruppen zugewiesen werden. 
     Bei Bet&auml;tigen der entsprechenden Schaltfl&auml;che erscheint eine Auswahlliste aller Nutzer und internen Gruppen, welche den notwendigen Rollen f&uuml;r diese Planungsphase besitzen.
     Wurde einem selbst auf diese Weise der Auftrag zugewiesen, wird auch eine Option zum direkten Zur&uuml;ckzuweisen angeboten.
@@ -3434,6 +3551,10 @@ INSERT INTO txt VALUES ('H8314', 'English', 'Plannings (Role: planner, fw-admin)
     In case this phase is active, the automatic creation of implementation tasks is deactivated (<a href="/help/settings/workflowcustomizing">Customizing</a>).
     Instead, the planner can create, edit or delete arbitrarily implementation tasks.
     When creating, the fields are largely prefilled by the corresponding fields in the request task, but can be changed according to the needs.
+    For the handling of access requests further path analysis functions are offered (if activated in <a href="/help/settings/workflowcustomizing">Customizing</a>):
+    To check, for which of the found devices of the path analysis there are already implementation tasks existing,
+    to create automatically implemntation tasks for all devices found in path analysis (if not already existing),
+    as well as to delete all existing implementation tasks. 
     The request tasks can also be assigned to other users or groups in this phase.
     After pushing the respective button a selection list appears with all users and groups, which own the necessary roles for the planning phase.
     If the task had been assigned to oneself this way, an option for direct assigning back is shown.
@@ -3508,6 +3629,8 @@ INSERT INTO txt VALUES ('H8514', 'German',  'Externer Aufruf: Aufrufe externer K
 INSERT INTO txt VALUES ('H8514', 'English', 'External call: Calls to external components provide a wide range of extension or integration possibilities, which strongly depend on the system environment.
     Here connecting factors for extensions future releases are planned.
 ');
+INSERT INTO txt VALUES ('H8515', 'German',  'Pfadanalyse: Die in der automatischen Pfadanalyse gefundenen Ger&auml;te werden als Liste der Ger&auml;te eines Zugriffs-Auftrags &uuml;bernommen oder in einem eigenen Fenster dargestellt.');
+INSERT INTO txt VALUES ('H8515', 'English', 'Path Analysis: The devices found in the automatic path analysis are transferred to the list of devices of a request task or displayed in an own window.');
 INSERT INTO txt VALUES ('H8601', 'German',  'Zum Aufsetzen eines Workflows empfiehlt es sich, in folgenden Schritten vorzugehen:
     <ul>
         <li><a href="/help/settings/workflowcustomizing">Einstellungen</a>: Auswahl der zu verwendenden Tasktypen</li>
@@ -3536,5 +3659,350 @@ INSERT INTO txt VALUES ('H8601', 'English', 'For the setup of a workflow it is s
         <li><a href="/help/settings/roles">Roles</a>: Assign roles to users/groups</li>
     </ul>
 ');
-INSERT INTO txt VALUES ('H8701', 'German',  '');
-INSERT INTO txt VALUES ('H8701', 'English', '');
+INSERT INTO txt VALUES ('H8701', 'German',  'Die folgenden Beispiele sollen ein Schlaglicht auf die verschiedenen Konfigurationsm&ouml;glichkeiten des Workflowmoduls werfen.
+    Sie k&ouml;nnen gleichzeitig oder voneinander unabh&auml;ngig ausprobiert werden (mit Ausnahme von Beispiel 5, welches auf den in Beispiel 4 definierten Stati aufsetzt). 
+    Es wurden hier englische Namen f&uuml;r Stati oder Aktionen gew&auml;hlt (wie sie ja auch vorinstalliert sind),
+    eine beliebige Umbenennung (z. B. &Uuml;bersetzung ins Deutsche) ist nat&uuml;rlich jederzeit und einfach m&ouml;glich.
+');
+INSERT INTO txt VALUES ('H8701', 'English', 'Following examples are intended to give an idea about the different configuration options of the workflow module.
+    They can be used all together or independently (with exeption of example 5, which uses the states defined in example 4).
+    Names of states or actions are given arbitrarily and can be changed (e.g. translated) easily at any time.
+');
+INSERT INTO txt VALUES ('H8711', 'German',  '<H4>1) Einf&uuml;gen eines neuen Status in die Genehmigungsphase</H4>
+    Dient zum Markieren von "geparkten" offenen Genehmigungen (nur zu erreichen von "In Approval" und zur&uuml;ck)
+    <ul>
+        <li>Einstellungen -&amp;gt; Statusdefinitionen -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; Eingabe Id: 61 
+            (Nummer im Bereich zwischen niedrigstem Bearbeitungs- und niedrigstem Ausgangsstatus der Genehmigungsphase), Name: "Approval on Hold" -&amp;gt; Speichern</li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Master
+            <ul>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Approval on Hold" ausw&auml;hlen</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: "Approval on Hold" bearbeiten -&amp;gt; Status hinzuf&uuml;gen 
+                    -&amp;gt; "Approval on Hold" ausw&auml;hlen -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "In Approval" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: "In Approval" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Approval on Hold" ausw&auml;hlen -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Zugriff
+            <ul>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Approval on Hold" ausw&auml;hlen</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: "Approval on Hold" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Approval on Hold" ausw&auml;hlen 
+                    -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "In Approval" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: "In Approval" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Approval on Hold" ausw&auml;hlen -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8711', 'English', '<H4>1) Insert new state to approval phase</H4>
+    Serves for marking of "parked" open approvals (only reachable from "In Approval" and back)
+    <ul>
+        <li>Settings -&amp;gt; State Definitions -&amp;gt; Add State -&amp;gt; Insert Id: 61 
+            (Id has to be in the range between lowest started state and lowest exit state of approval phase), Name: "Approval on Hold" -&amp;gt; Save</li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Master
+            <ul>
+                <li>Approval: Allowed transitions: Add State -&amp;gt; Select "Approval on Hold"</li>
+                <li>Approval: Allowed transitions: Edit "Approval on Hold" -&amp;gt; Add State -&amp;gt; Select "Approval on Hold" -&amp;gt; Add State -&amp;gt; Select "In Approval" -&amp;gt; Ok</li>
+                <li>Approval: Allowed transitions: Edit "In Approval" -&amp;gt; Add State -&amp;gt; Select "Approval on Hold" -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Access
+            <ul>
+                <li>Approval: Allowed transitions: Add State -&amp;gt; Select "Approval on Hold"</li>
+                <li>Approval: Allowed transitions: Edit "Approval on Hold" -&amp;gt; Add State -&amp;gt; Select "Approval on Hold" -&amp;gt; Add State -&amp;gt; Select "In Approval" -&amp;gt; Ok</li>
+                <li>Approval: Allowed transitions: Edit "In Approval" -&amp;gt; Add State -&amp;gt; Select "Approval on Hold" -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8712', 'German',  '<H4>2) R&uuml;cksprung in vorherige Phase</H4>
+    Soll beispielsweise dem Genehmiger erlaubt werden, den Antrag an den Antragsteller zur&uuml;ckzuschicken, 
+    kann einfach in der Status-Matrix ein &Uuml;bergang zu einem Status im Eingangsbeerich der Antragsphase eingetragen werden.
+    Dann wird dieser Status beim Genehmigen automatisch als m&ouml;glicher Zielstatus angezeigt.
+    Zur leichteren Erkennung f&uuml;r den Antragsteller wird in diesem Beispiel in der anzuspringenden Phase ein weiterer Status definiert und in der Status-Matrix mit den erw&uuml;nschten Status&uuml;berg&auml;ngen versehen:
+    <ul>
+        <li>Einstellungen -&amp;gt; Statusdefinitionen -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; Eingabe Id: 1, Name: "Back To Requester" -&amp;gt; Speichern 
+            (Nummer im Bereich zwischen niedrigstem Eingangs- und niedrigstem Bearbeitungsstatus der Request-Phase)</li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Master
+            <ul>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Back To Requester" ausw&auml;hlen</li>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: "Back To Requester" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Back To Requester" ausw&auml;hlen 
+                    -&amp;gt; Status hinzuf&uuml;gene -&amp;gt; "Requested" ausw&auml;hlen -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Discarded" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Back To Requester" ausw&auml;hlen</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Zugriff 
+            <ul>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Back To Requester" ausw&auml;hlen</li>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: "Back To Requester" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Back To Requester" ausw&auml;hlen 
+                    -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Requested" ausw&auml;hlen -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Discarded" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: "In Approval" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Back To Requester" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Back To Requester" ausw&auml;hlen</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: "Back To Requester" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "In Approval" ausw&auml;hlen -&amp;gt; Status hinzuf&uuml;gen 
+                    -&amp;gt; "Approved" ausw&auml;hlen -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Rejected" ausw&auml;hlen -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Back To Requester" ausw&auml;hlen -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8712', 'English', '<H4>2) Jump back to previous phase</H4>
+    If an approver should be able to send back a ticket to the requester, a new transition to a state in the input range of the request phase can be inserted easily into the state matrix.
+    This state is then offered automatically as target state for the approver.
+    For easier identification for the requester, in this example a new state is defined and equipped with the necessary transitions in the state matrix:
+    <ul>
+        <li>Settings -&amp;gt; State Definitions -&amp;gt; Add State -&amp;gt; Insert Id: 1, Name: "Back To Requester" -&amp;gt; Save 
+            (Id in the range between lowest imput and lowest started state of Request phase)</li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Master
+            <ul>
+                <li>Request: Allowed transitions: Add State -&amp;gt; Select "Back To Requester"</li>
+                <li>Request: Allowed transitions: Edit "Back To Requester" -&amp;gt; Add State -&amp;gt; Select "Back To Requester" 
+                    -&amp;gt; Add State -&amp;gt; Select "Requested" -&amp;gt; Add State -&amp;gt; Select "Discarded" -&amp;gt; Ok</li>
+                <li>Approval: Allowed transitions: Add State -&amp;gt; Select "Back To Requester"</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Access 
+            <ul>
+                <li>Request: Allowed transitions: Add State -&amp;gt; Select "Back To Requester"</li>
+                <li>Request: Allowed transitions: Edit "Back To Requester" -&amp;gt; Add State -&amp;gt; Select "Back To Requester" 
+                    -&amp;gt; Add State -&amp;gt; Select "Requested" -&amp;gt; Add State -&amp;gt; Select "Discarded" -&amp;gt; Ok</li>
+                <li>Approval: Allowed transitions: Edit "In Approval" -&amp;gt; Add State -&amp;gt; Select "Back To Requester" -&amp;gt; Ok</li>
+                <li>Approval: Allowed transitions: Add State -&amp;gt; Select "Back To Requester"</li>
+                <li>Approval: Allowed transitions: Edit "Back To Requester" -&amp;gt; Add State -&amp;gt; Select "In Approval" -&amp;gt; Add State -&amp;gt; Select "Approved" 
+                    -&amp;gt; Add State -&amp;gt; Select "Rejected" -&amp;gt; Add State -&amp;gt; Select "Back To Requester" -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8713', 'German',  '<H4>3) Auslassen von Phasen f&uuml;r bestimmten Tasktyp</H4>
+    In diesem Beispiel soll die Genehmigungsphase f&uuml;r Generische Aufgaben &uuml;bersprungen werden:
+    <ul>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Generisch
+            <ul>
+                <li>Genehmigung: Phase deselektieren (die &Uuml;bergangsmatrix wird ausgeblendet)
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: "Requested" bearbeiten -&amp;gt; Abgeleiteter Status: "To Implement" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "To Implement" ausw&auml;hlen</li>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: "To Implement" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "In Implementation" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: "Approved" l&ouml;schen (wird nicht mehr ben&ouml;tigt)</li>
+                <li>Implementierung: Spezielle Stati: Niedrigster Eingangsstatus: "To Implement" ausw&auml;hlen</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8713', 'English', '<H4>3) Skip phase for specific Task Type</H4>
+    In this example the approval phase for generic task is skipped: 
+    <ul>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Generic
+            <ul>
+                <li>Approval: unselect phase (the transition matrix disappears)
+                <li>Request: Allowed transitions: Edit "Requested" -&amp;gt; Derived State: Select "To Implement" -&amp;gt; Ok</li>
+                <li>Implementation: Allowed transitions: Add State -&amp;gt; Select "To Implement"</li>
+                <li>Implementation: Allowed transitions: Edit "To Implement" -&amp;gt; Add State -&amp;gt; Select "In Implementation" -&amp;gt; Ok</li>
+                <li>Implementation: Allowed transitions: Remove "Approved" (not necessary any more)</li>
+                <li>Implementation: Special States: Lowest input state: Select "To Implement"</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8714', 'German',  '<H4>4) Aktion Autom. Weiterleitung</H4>
+    Als weitere Option ist es auch m&ouml;glich, eine Aktion vom Typ Autom. Weiterleitung zu nutzen.
+    In diesem Beispiel wird beim Reject durch den Implementer (nur zu erreichen nach vorherigem Status "Implementation Trouble") das Ticket automatisch wieder dem Requester zur Best&auml;tigung vorgelegt
+    (der Einfachheit halber werden die vorhandenen Stati soweit m&ouml;glich weiterverwendet, eine Definition weiterer Stati wie "Acknowledge Reject" und "Try again" w&uuml;rde sich aber anbieten):
+    <ul>
+        <li>Einstellungen -&amp;gt; Statusdefinitionen -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; Eingabe Id: 2, Name "Rejected By Implementer" -&amp;gt; Speichern</li>
+        <li>Einstellungen -&amp;gt; Statusaktionen -&amp;gt; Aktion hinzuf&uuml;gen -&amp;gt; Name: "Acknowledge Reject", Aktionstyp: "Autom. Weiterleitung", Ereignis: "Beim Erreichen", Phase: "Implementierung", 
+            Geltungsbereich: "Implementierungs-Auftrag", Tasktyp: "All", Zielstatus: "Rejected By Implementer" -&amp;gt; Speichern</li>
+        <li>Einstellungen -&amp;gt; Statusdefinitionen -&amp;gt; "Rejected" bearbeiten -&amp;gt; Aktion hinzuf&uuml;gen -&amp;gt; "Acknowledge Reject" ausw&auml;hlen -&amp;gt; Speichern</li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Master
+            <ul>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Rejected By Implementer" ausw&auml;hlen</li>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: "Rejected By Implementer" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Discarded" ausw&auml;hlen 
+                    -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Requested" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Rejected By Implementer" ausw&auml;hlen</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Generisch
+            <ul>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Rejected By Implementer" ausw&auml;hlen</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Zugriff
+            <ul>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Rejected By Implementer" ausw&auml;hlen</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8714', 'English', '<H4>4) Action Auto-forward</H4>
+    As further option it is possible to use an action of type Auto-forward.
+    In this example in case of a reject by the implementer (only reachable from the preceeding state Implementation Trouble") the ticket is assigned back to the requester for confirmation
+    (for simplicity the existing states are reused if possible, a definition of further states as "Acknowledge Reject" and "Try again" would be appropriate):
+    <ul>
+        <li>Settings -&amp;gt; State Definitions -&amp;gt; Add State -&amp;gt; Insert Id: 2, Name "Rejected By Implementer" -&amp;gt; Save</li>
+        <li>Settings -&amp;gt; State Actions -&amp;gt; Add Action -&amp;gt; Name: "Acknowledge Reject", Action Type: "Auto-forward", Event: "On Set", Phase: "Implementation", 
+            Scope: "Implementation Task", Task Type: "All", To State: "Rejected By Implementer" -&amp;gt; Save</li>
+        <li>Settings -&amp;gt; State Definitions -&amp;gt; Edit "Rejected" -&amp;gt; Add Action -&amp;gt; Select "Acknowledge Reject" -&amp;gt; Save</li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Master
+            <ul>
+                <li>Request: Allowed transitions: Add State -&amp;gt; Select "Rejected By Implementer"</li>
+                <li>Request: Allowed transitions: Edit "Rejected By Implementer" -&amp;gt; Add State -&amp;gt; Select "Discarded" -&amp;gt; Add State -&amp;gt; Select "Requested" -&amp;gt; Ok</li>
+                <li>Implementation: Allowed transitions: Add State -&amp;gt; Select "Rejected By Implementer"</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Generic
+            <ul>
+                <li>Implementation: Allowed transitions: Add State -&amp;gt; Select "Rejected By Implementer"</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Access
+            <ul>
+                <li>Implementation: Allowed transitions: Add State -&amp;gt; Select "Rejected By Implementer"</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8715', 'German',  '<H4>5) Automatische Aktion Genehmigung hinzuf&uuml;gen</H4>
+    Nun soll f&uuml;r den erneuten Versuch nach "Rejected By Implementer" (Beispiel 4) statt die alte zu &uuml;berschreiben eine neue Genemigung erzeugt werden.
+    Daf&uuml;r wird der noch unbenutzte Status "To approve" nach "Requested again" umbenannt (nat&uuml;rlich k&ouml;nnte stattdessen auch ein neuer Status definiert werden):
+    <ul>
+        <li>Einstellungen -&amp;gt; Statusdefinitionen -&amp;gt; Status "50: To Approve" bearbeiten -&amp;gt; Name &auml;ndern in "Requested again" -&amp;gt; Speichern</li>
+        <li>Einstellungen -&amp;gt; Statusaktionen -&amp;gt; Aktion hinzuf&uuml;gen -&amp;gt; Name: "Reapprove", Aktionstyp: "Genehmigung hinzuf&uuml;gen", Ereignis: "Beim Erreichen", 
+            Phase: "Antrag", Geltungsbereich: "fachlicher Auftrag", Tasktyp: "Zugriff", Zielstatus: "Requested again" -&amp;gt; Speichern</li>
+        <li>Einstellungen -&amp;gt; Statusdefinitionen -&amp;gt; "Requested again" bearbeiten -&amp;gt; Aktion hinzuf&uuml;gen -&amp;gt; "Reapprove" ausw&auml;hlen -&amp;gt; Speichern</li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Master
+            <ul>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Requested again" ausw&auml;hlen</li>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: "Rejected By Implementer" bearbeiten -&amp;gt; "Requested" l&ouml;schen -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Requested again" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Requested again" ausw&auml;hlen</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: "Requested again" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "In Approval" ausw&auml;hlen -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Zugriff
+            <ul>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Requested again" ausw&auml;hlen</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Requested again" ausw&auml;hlen</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: "Requested again" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "In Approval" ausw&auml;hlen -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlene: Generisch
+            <ul>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Requested again" ausw&auml;hlen</li>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: "Requested again" bearbeiten -&amp;gt; Abgeleiteter Status: "To Implement" ausw&auml;hlen -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8715', 'English', '<H4>5) Automatic action Add Approval</H4>
+    Now, when resending the request after reaching the state "Rejected By Implementer" (example 4), instead of overwriting the old approval a new approval should be created.
+    Therefore the currently unused state "To approve" is renamed to "Requested again" (of course instead a new state could be defined):
+    <ul>
+        <li>Settings -&amp;gt; State Definitions -&amp;gt; Edit State "50: To Approve" -&amp;gt; Change Name to "Requested again" -&amp;gt; Save</li>
+        <li>Settings -&amp;gt; State Actions -&amp;gt; Add Action -&amp;gt; Name: "Reapprove", Action Type: "Add approval", Event: "On Set", 
+            Phase: "Request", Scope: "Request Task", Task Type: "Access", To State: "Requested again" -&amp;gt; Save</li>
+        <li>Settings -&amp;gt; State Definitions -&amp;gt; Edit "Requested again" -&amp;gt; Add Action -&amp;gt; Select "Reapprove" -&amp;gt; Save</li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Master
+            <ul>
+                <li>Request: Allowed transitions: Add State -&amp;gt; Select "Requested again"</li>
+                <li>Request: Allowed transitions: Edit "Rejected By Implementer" -&amp;gt; Remove "Requested" -&amp;gt; Add State -&amp;gt; Select "Requested again" -&amp;gt; Ok</li>
+                <li>Approval: Allowed transitions: Add State -&amp;gt; Select "Requested again"</li>
+                <li>Approval: Allowed transitions: Edit "Requested again" -&amp;gt; Add State -&amp;gt; Select "In Approval" -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Access
+            <ul>
+                <li>Request: Allowed transitions: Add State -&amp;gt; Select "Requested again"</li>
+                <li>Approval: Allowed transitions: Add State -&amp;gt; Select "Requested again"</li>
+                <li>Approval: Allowed transitions: Edit "Requested again" -&amp;gt; Add State -&amp;gt; Select "In Approval" -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Generic
+            <ul>
+                <li>Request: Allowed transitions: Add State -&amp;gt; Select "Requested again"</li>
+                <li>Request: Allowed transitions: Edit "Requested again" -&amp;gt; Derived State: Select "To Implement" -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8716', 'German',  '<H4>6) Aktion Genehmigung hinzuf&uuml;gen als Schaltfl&auml;che</H4>
+    Der Genehmiger soll die M&ouml;glichkeit bekommen, bei Bedarf ein weiteres Approval zu erzeugen (um es z.B. jemand anderem zuzuweisen).
+    Daf&uuml;r soll eine Schaltfl&auml;che mit dem Text "weitere Genehmigung erforderlich" angeboten werden, die beim Bearbeiten des Auftrags im Status "In approval" erscheint:
+    <ul>
+        <li>Einstellungen -&amp;gt; Statusaktionen -&amp;gt; Aktion hinzuf&uuml;gen -&amp;gt; Name: "FurtherApproval", Aktionstyp: "Genehmigung hinzuf&uuml;gen", Ereignis: "Schaltfl&auml;che anbieten", 
+            Schaltertext: "weitere Genehmigung erforderlich", Phase: "Genehmigung", Geltungsbereich: "fachlicher Auftrag", Tasktyp: "Zugriff", Zielstatus: "Requested" -&amp;gt; Speichern</li>
+        <li>Einstellungen -&amp;gt; Statusdefinitionen -&amp;gt; "In approval" bearbeiten -&amp;gt; Aktion hinzuf&uuml;gen -&amp;gt; "FurtherApproval" ausw&auml;hlen -&amp;gt; Speichern</li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8716', 'English', '<H4>6) Action Add Approval as button</H4>
+    The approver should get the possibility to create a further approval (e.g. to assign it to someone else).
+    To achieve this, a button with the text "Further approval needed" is offered, which appears when working on the task with the state "In approval":
+    <ul>
+        <li>Settings -&amp;gt; State Actions -&amp;gt; Add Action -&amp;gt; Name: "FurtherApproval", Action Type: "Add approval", Event: "Offer Button", 
+            Button Text: "Further approval needed", Phase: "Approval", Scope: "Request Task", Task Type: "Access", To State: "Requested" -&amp;gt; Save</li>
+        <li>Settings -&amp;gt; State Definitions -&amp;gt; Edit "In approval" -&amp;gt; Add Action -&amp;gt; Select "FurtherApproval" -&amp;gt; Save</li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8717', 'German',  '<H4>7) Aktivieren Planungsphase</H4>
+    F&uuml;r Zugriffsauftr&auml;ge soll die Planungsphase wie vorinstalliert aktiviert werden 
+    (Implementierungsauftr&auml;ge werden dann nicht mehr automatisch erzeugt, sondern m&uuml;ssen vom Planer erstellt werden):
+    <ul>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Master
+            <ul>
+                <li>Planung: Phase ausw&auml;hlen (die &Uuml;bergangsmatrix wird eingeblendet)</li>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Planned" ausw&auml;hlen</li>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: "Planned" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "In Implementation" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Implementierung: Spezielle Stati: Niedrigster Eingangsstatus: "Planned" ausw&auml;hlen</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Zugriff
+            <ul>
+                <li>Planung: Phase ausw&auml;hlen (die &Uuml;bergangsmatrix wird eingeblendet)</li>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Planned" ausw&auml;hlen</li>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: "Planned" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "In Implementation" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Implementierung: Spezielle Stati: Niedrigster Eingangsstatus: "Planned" ausw&auml;hlen</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8717', 'English', '<H4>7) Activate Planning phase</H4>
+    For access tasks the Planning phase will be activated as preinstalled 
+    (Implementation tasks will not be created automatically but have to be defined by the planner):
+    <ul>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Master
+            <ul>
+                <li>Planning: select phase (the transition matrix is displayed)</li>
+                <li>Implementation: Allowed transitions: Add State -&amp;gt; Select "Planned"</li>
+                <li>Implementation: Allowed transitions: Edit "Planned" -&amp;gt; Add State -&amp;gt; Select "In Implementation" -&amp;gt; Ok</li>
+                <li>Implementation: Special States: Lowest input state: Select "Planned"</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Access
+            <ul>
+                <li>Planning: select phase (the transition matrix is displayed)</li>
+                <li>Implementation: Allowed transitions: Add State -&amp;gt; Select "Planned"</li>
+                <li>Implementation: Allowed transitions: Edit "Planned" -&amp;gt; Add State -&amp;gt; Select "In Implementation" -&amp;gt; Ok</li>
+                <li>Implementation: Special States: Lowest input state: Select "Planned"</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+    </ul>
+');

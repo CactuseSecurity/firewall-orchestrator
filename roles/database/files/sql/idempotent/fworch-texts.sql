@@ -531,7 +531,7 @@ INSERT INTO txt VALUES ('fetch_report',		    'English', 	'Fetch downloads of gen
 INSERT INTO txt VALUES ('delete_report',		'German', 	'Erstellten Report l&ouml;schen');
 INSERT INTO txt VALUES ('delete_report',		'English', 	'Delete generated report');
 
--- requests
+-- workflow
 INSERT INTO txt VALUES ('request',              'German', 	'Antrag');
 INSERT INTO txt VALUES ('request',              'English', 	'Request');
 INSERT INTO txt VALUES ('ticket',               'German', 	'Ticket');
@@ -562,14 +562,6 @@ INSERT INTO txt VALUES ('obj_group', 			'German', 	'Objektgruppe');
 INSERT INTO txt VALUES ('obj_group', 			'English', 	'Object group');
 INSERT INTO txt VALUES ('rule_modify', 			'German', 	'Regel &auml;ndern');
 INSERT INTO txt VALUES ('rule_modify', 		    'English', 	'Modify Rule');
-INSERT INTO txt VALUES ('never', 			    'German', 	'Niemals');
-INSERT INTO txt VALUES ('never', 			    'English', 	'Never');
-INSERT INTO txt VALUES ('onlyForOneDevice', 	'German', 	'Nur eines wenn Ger&auml;t vorhanden');
-INSERT INTO txt VALUES ('onlyForOneDevice', 	'English', 	'Only one if device available');
-INSERT INTO txt VALUES ('forEachDevice', 		'German', 	'F&uuml;r jedes Ger&auml;t');
-INSERT INTO txt VALUES ('forEachDevice', 		'English', 	'For each device');
-INSERT INTO txt VALUES ('enterInReqTask',       'German', 	'Ger&auml;t im Antrag eingeben');
-INSERT INTO txt VALUES ('enterInReqTask',       'English', 	'Enter device in request');
 INSERT INTO txt VALUES ('add_new_request',      'German', 	'Neuen Antrag hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_new_request',      'English', 	'Add new request');
 INSERT INTO txt VALUES ('fetch_requests',       'German', 	'Antr&auml;ge holen');
@@ -612,8 +604,18 @@ INSERT INTO txt VALUES ('plan',                 'German', 	'Planen');
 INSERT INTO txt VALUES ('plan',                 'English', 	'Plan');
 INSERT INTO txt VALUES ('planner',              'German', 	'Planer');
 INSERT INTO txt VALUES ('planner',              'English', 	'Planner');
-INSERT INTO txt VALUES ('create_implementation','German', 	'Implementierung hinzuf&uuml;gen');
-INSERT INTO txt VALUES ('create_implementation','English', 	'Create implementation task');
+INSERT INTO txt VALUES ('create_implementation','German', 	'Einzelne Implementierung hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('create_implementation','English', 	'Create single implementation task');
+INSERT INTO txt VALUES ('auto_create_impltasks','German', 	'Implementierungen autom. erzeugen');
+INSERT INTO txt VALUES ('auto_create_impltasks','English', 	'Autocreate implementation tasks');
+INSERT INTO txt VALUES ('cleanup_impltasks',    'German', 	'Alle Implementierungen aufr&auml;umen');
+INSERT INTO txt VALUES ('cleanup_impltasks',    'English', 	'Clean up all implementation tasks');
+INSERT INTO txt VALUES ('all_impltasks',        'German', 	'Alle Implementierungen');
+INSERT INTO txt VALUES ('all_impltasks',        'English', 	'All implementation tasks');
+INSERT INTO txt VALUES ('check_impltasks',      'German', 	'Implementierungen pr&uuml;fen');
+INSERT INTO txt VALUES ('check_impltasks',      'English', 	'Check implementation tasks');
+INSERT INTO txt VALUES ('impltask_created',     'German', 	'Implementierung angelegt');
+INSERT INTO txt VALUES ('impltask_created',     'English', 	'Implementation task created');
 INSERT INTO txt VALUES ('implementation_tasks', 'German', 	'Implementierungsaufgaben');
 INSERT INTO txt VALUES ('implementation_tasks', 'English', 	'Implementation tasks');
 INSERT INTO txt VALUES ('request_elements',     'German', 	'Auftragselemente');
@@ -730,6 +732,8 @@ INSERT INTO txt VALUES ('comments',				'German', 	'Kommentare');
 INSERT INTO txt VALUES ('comments',				'English', 	'Comments');
 INSERT INTO txt VALUES ('button_text',			'German', 	'Schaltertext');
 INSERT INTO txt VALUES ('button_text',			'English', 	'Button Text');
+INSERT INTO txt VALUES ('path_analysis',		'German', 	'Pfadanalyse');
+INSERT INTO txt VALUES ('path_analysis',		'English', 	'Path analysis');
 
 -- enum values
 INSERT INTO txt VALUES ('master', 			    'German', 	'Master');
@@ -760,6 +764,8 @@ INSERT INTO txt VALUES ('AddApproval',			'German', 	'Genehmigung hinzuf&uuml;gen
 INSERT INTO txt VALUES ('AddApproval',			'English', 	'Add approval');
 INSERT INTO txt VALUES ('SetAlert',			    'German', 	'Alarm ausl&ouml;sen');
 INSERT INTO txt VALUES ('SetAlert',			    'English', 	'Set alert');
+INSERT INTO txt VALUES ('TrafficPathAnalysis',  'German', 	'Pfadanalyse');
+INSERT INTO txt VALUES ('TrafficPathAnalysis',  'English', 	'Path Analysis');
 INSERT INTO txt VALUES ('ExternalCall',			'German', 	'Externer Aufruf');
 INSERT INTO txt VALUES ('ExternalCall',			'English', 	'External call');
 INSERT INTO txt VALUES ('Ticket',			    'German', 	'Ticket');
@@ -770,6 +776,20 @@ INSERT INTO txt VALUES ('ImplementationTask',	'German', 	'Implementierungs-Auftr
 INSERT INTO txt VALUES ('ImplementationTask',	'English', 	'Implementation Task');
 INSERT INTO txt VALUES ('Approval',			    'German', 	'Genehmigung');
 INSERT INTO txt VALUES ('Approval',			    'English', 	'Approval');
+INSERT INTO txt VALUES ('never', 			    'German', 	'Niemals');
+INSERT INTO txt VALUES ('never', 			    'English', 	'Never');
+INSERT INTO txt VALUES ('onlyForOneDevice', 	'German', 	'Nur eines wenn Ger&auml;t vorhanden');
+INSERT INTO txt VALUES ('onlyForOneDevice', 	'English', 	'Only one if device available');
+INSERT INTO txt VALUES ('forEachDevice', 		'German', 	'F&uuml;r jedes Ger&auml;t');
+INSERT INTO txt VALUES ('forEachDevice', 		'English', 	'For each device');
+INSERT INTO txt VALUES ('enterInReqTask',       'German', 	'Ger&auml;t im Antrag eingeben');
+INSERT INTO txt VALUES ('enterInReqTask',       'English', 	'Enter device in request');
+INSERT INTO txt VALUES ('afterPathAnalysis',    'German', 	'Nach Pfadanalyse');
+INSERT INTO txt VALUES ('afterPathAnalysis',    'English', 	'After path analysis');
+INSERT INTO txt VALUES ('WriteToDeviceList',    'German', 	'In Ger&auml;teliste eintragen');
+INSERT INTO txt VALUES ('WriteToDeviceList',    'English', 	'Write to device list');
+INSERT INTO txt VALUES ('DisplayFoundDevices',  'German', 	'Gefundene Ger&auml;te darstellen');
+INSERT INTO txt VALUES ('DisplayFoundDevices',  'English', 	'Display found devices');
 
 -- network analysis
 INSERT INTO txt VALUES ('network_analysis', 	'German',	'Netzanalyse');
@@ -1112,6 +1132,8 @@ INSERT INTO txt VALUES ('reqPriorities',        'German', 	'Priorit&auml;ten');
 INSERT INTO txt VALUES ('reqPriorities',        'English', 	'Priorities');
 INSERT INTO txt VALUES ('reqAutoCreateImplTasks','German', 	'Autom. Erzeugen von Implementierungs-Auftr&auml;gen');
 INSERT INTO txt VALUES ('reqAutoCreateImplTasks','English', 'Auto-create implementation tasks');
+INSERT INTO txt VALUES ('reqActivatePathAnalysis','German', 'Pfadanalyse aktivieren');
+INSERT INTO txt VALUES ('reqActivatePathAnalysis','English','Activate Path Analysis');
 INSERT INTO txt VALUES ('numeric_prio', 		'German', 	'Numerische Priorit&auml;t');
 INSERT INTO txt VALUES ('numeric_prio', 		'English', 	'Numeric Priority');
 INSERT INTO txt VALUES ('ticket_deadline',      'German', 	'Ticket-Deadline (in Tagen)');
@@ -1280,6 +1302,8 @@ INSERT INTO txt VALUES ('set_default',          'German',   'als Vorgabewert set
 INSERT INTO txt VALUES ('set_default',          'English',  'Set as Default');
 INSERT INTO txt VALUES ('reset_to_default',     'German',   'auf Vorgabewerte zur&uuml;cksetzen');
 INSERT INTO txt VALUES ('reset_to_default',     'English',  'Reset to Default');
+INSERT INTO txt VALUES ('option',		        'German', 	'Option');
+INSERT INTO txt VALUES ('option',		        'English', 	'Option');
 
 
 -- monitoring
@@ -2883,6 +2907,12 @@ INSERT INTO txt VALUES ('H5524', 'German',  'Alarm ausl&ouml;sen: Hier wird die 
 INSERT INTO txt VALUES ('H5524', 'English', 'Set alert: Here the message for the alert is filled.');
 INSERT INTO txt VALUES ('H5525', 'German',  'Externer Aufruf: Hier werden in zuk&uuml;nftigen Entwicklungen die f&uuml;r externe Aufrufe anzugebenden Parameter erfasst.');
 INSERT INTO txt VALUES ('H5525', 'English', 'External call: Here in later releases the parameters for external calls will be recorded.');
+INSERT INTO txt VALUES ('H5526', 'German',  'Pfadanalyse: Hier kann zwischen den Optionen "In Ger&auml;teliste eintragen" und "Gefundene Ger&auml;te darstellen" gew&auml;hlt werden.
+    Bei Ersterer wird die Liste der betroffenen Ger&auml;te des Auftrags durch die in der Pfadanalyse gefundenen ersetzt, bei Letzterer wird das Ergebnis der Pfadanalyse lediglich in einem separaten Fenster eingeblendet.
+');
+INSERT INTO txt VALUES ('H5526', 'English', 'Path analysis: Here the options "Write to device list" or "Display found devices" can be selected.
+    In the first case the list of devices in the request task is replaced by the devices found in the path analysis, in the second the result of the path analysis is only displayed in a separate window.
+');
 INSERT INTO txt VALUES ('H5531', 'German',  'Es k&ouml;nne beliebig viele neue Stati angelegt bzw. vorhandene Stati umbenannt, ggf. auch gel&ouml;scht werden. Die Namen und Nummern der Stati sind weitgehend frei w&auml;hlbar. 
     Zu beachten ist dabei, dass die Nummern zu den in den <a href="/help/settings/statematrix">Status-Matrizen</a> definierten Bereichen (Eingang, Bearbeitung, Ausgang) der jeweiligen Phasen passen.
     Da intern ausschliesslich die Nummern verarbeitet werden, sind auch doppelt vergebene Status-Namen (technisch) m&ouml;glich.
@@ -2969,6 +2999,8 @@ INSERT INTO txt VALUES ('H5566', 'German',  'Autom. Erzeugen von Implementierung
 INSERT INTO txt VALUES ('H5566', 'English', 'Auto-create implementation tasks: If the planning phase is not activated, one or more implementation tasks have to be created automatically from the request task.
     Therefore the following options can be selected:
 ');
+INSERT INTO txt VALUES ('H5567', 'German',  'Pfadanalyse aktivieren: Dem Planer werden Werkzeuge zur automatischen Pfadanalyse (Pr&uuml;fung, Erzeugen von Implementierungsauftr&auml;gen, Bereinigung) zur Verf&uuml;gung gestellt.');
+INSERT INTO txt VALUES ('H5567', 'English', 'Activate Path Analysis: The planner gets access to tools for automatic path analysis (check, creation of implementation tasks, cleanup).');
 INSERT INTO txt VALUES ('H5571', 'German',  'Niemals: Es wird kein Implementierungs-Auftrag erzeugt (nur sinnvoll, falls Implementierung und folgende Phasen nicht ben&ouml;tigt werden).');
 INSERT INTO txt VALUES ('H5571', 'English', 'Never: No implementation task is created (only reasonable, if implementation and following phases are not needed).');
 INSERT INTO txt VALUES ('H5572', 'German',  'Nur eines wenn Ger&auml;t vorhanden: Bei mindestens einem vorhandenen Ger&auml;t wird das erste der Liste eingetragen
@@ -2985,6 +3017,8 @@ INSERT INTO txt VALUES ('H5574', 'German',  'Ger&auml;t im Antrag eingeben: Stan
 INSERT INTO txt VALUES ('H5574', 'English', 'Enter device in request: Default value: A mandatory field to select devices is already displayed during request task creation,
     if needed in the task type (in this case some technical know-how is presumed from the requester).
 ');
+INSERT INTO txt VALUES ('H5575', 'German',  'Nach Pfadanalyse: F&uuml;r jedes bei der automatischen Pfadanalyse gefundene Ger&auml;t wird ein eigener Implementierungs-Auftrag angelegt.');
+INSERT INTO txt VALUES ('H5575', 'English', 'After path analysis: For each device found in the automatic path analysis an own implementation task is created.');
 INSERT INTO txt VALUES ('H5581', 'German',  'In diesem Abschnitt k&ouml;nnen die vorhandenen Eigent&uuml;mer eingesehen und administriert (falls in den <a href="/help/settings/workflowcustomizing">Einstellungen</a> aktiviert) werden. 
     Es ist geplant, die Eigent&uuml;merschaft mit der Zust&auml;ndigkeit bei der Antragsstellung zu verkn&uuml;pfen.
 ');
@@ -3462,8 +3496,12 @@ INSERT INTO txt VALUES ('H8313', 'English', 'Approvals (Role: approver), presele
 INSERT INTO txt VALUES ('H8314', 'German',  'Planungen (Rolle: planner, fw-admin), optional: 
     Im Workflow kann vorgesehen werden, dass die Implementierungs-Auftr&auml;ge aus den fachlichen Auftr&auml;gen manuell von einem Planer erzeugt werden.
     Ist diese Phase aktiviert, greift die automatische Erzeugung der Implementierungs-Auftr&auml;ge nicht (<a href="/help/settings/workflowcustomizing">Einstellungen</a>).
-    Stattdessen kann der Planer beliebige Implementierungs-Auftr&auml;ge erzeugen, editieren und l&ouml;schen. 
+    Stattdessen kann der Planer beliebige Implementierungs-Auftr&auml;ge erzeugen, editieren und l&ouml;schen.
     Dabei werden die Felder aus den analogen Feldern des fachlichen Auftrags zwar weitgehend vorbelegt, k&ouml;nnen aber beliebig den Erfordernissen entsprechend abge&auml;ndert werden.
+    F&uuml;r die Bearbeitung von Zugriffsauftr&auml;gen stehen ihm zus&auml;tzliche Funktionen zur Pfadanalyse zur Verf&uuml;gung (soweit in den <a href="/help/settings/workflowcustomizing">Einstellungen</a> aktiviert):
+    Zum &Uuml;berpr&uuml;fen, f&uuml;r welche der bei der Pfadanalyse gefundenen Ger&auml;te bereits Implementierungs-Auftr&auml;ge angelegt sind,
+    zum automatischen Anlegen von Implementierungs-Auftr&auml;gen f&uuml;r alle der bei der Pfadanalyse gefundenen Ger&auml;te (soweit noch nicht vorhanden),
+    sowie zum L&ouml;schen aller vorhandenen Implementierungs-Auftr&auml;ge.
     Die fachlichen Auftr&auml;ge k&ouml;nnen in dieser Phase auch anderen Nutzern oder Gruppen zugewiesen werden. 
     Bei Bet&auml;tigen der entsprechenden Schaltfl&auml;che erscheint eine Auswahlliste aller Nutzer und internen Gruppen, welche den notwendigen Rollen f&uuml;r diese Planungsphase besitzen.
     Wurde einem selbst auf diese Weise der Auftrag zugewiesen, wird auch eine Option zum direkten Zur&uuml;ckzuweisen angeboten.
@@ -3473,6 +3511,10 @@ INSERT INTO txt VALUES ('H8314', 'English', 'Plannings (Role: planner, fw-admin)
     In case this phase is active, the automatic creation of implementation tasks is deactivated (<a href="/help/settings/workflowcustomizing">Customizing</a>).
     Instead, the planner can create, edit or delete arbitrarily implementation tasks.
     When creating, the fields are largely prefilled by the corresponding fields in the request task, but can be changed according to the needs.
+    For the handling of access requests further path analysis functions are offered (if activated in <a href="/help/settings/workflowcustomizing">Customizing</a>):
+    To check, for which of the found devices of the path analysis there are already implementation tasks existing,
+    to create automatically implemntation tasks for all devices found in path analysis (if not already existing),
+    as well as to delete all existing implementation tasks. 
     The request tasks can also be assigned to other users or groups in this phase.
     After pushing the respective button a selection list appears with all users and groups, which own the necessary roles for the planning phase.
     If the task had been assigned to oneself this way, an option for direct assigning back is shown.
@@ -3547,6 +3589,8 @@ INSERT INTO txt VALUES ('H8514', 'German',  'Externer Aufruf: Aufrufe externer K
 INSERT INTO txt VALUES ('H8514', 'English', 'External call: Calls to external components provide a wide range of extension or integration possibilities, which strongly depend on the system environment.
     Here connecting factors for extensions future releases are planned.
 ');
+INSERT INTO txt VALUES ('H8515', 'German',  'Pfadanalyse: Die in der automatischen Pfadanalyse gefundenen Ger&auml;te werden als Liste der Ger&auml;te eines Zugriffs-Auftrags &uuml;bernommen oder in einem eigenen Fenster dargestellt.');
+INSERT INTO txt VALUES ('H8515', 'English', 'Path Analysis: The devices found in the automatic path analysis are transferred to the list of devices of a request task or displayed in an own window.');
 INSERT INTO txt VALUES ('H8601', 'German',  'Zum Aufsetzen eines Workflows empfiehlt es sich, in folgenden Schritten vorzugehen:
     <ul>
         <li><a href="/help/settings/workflowcustomizing">Einstellungen</a>: Auswahl der zu verwendenden Tasktypen</li>

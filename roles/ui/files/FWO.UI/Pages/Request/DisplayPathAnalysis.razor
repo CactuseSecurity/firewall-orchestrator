@@ -1,0 +1,75 @@
+@using FWO.Api.Client
+@using FWO.Config.Api
+
+@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+
+<PopUp Title="@(userConfig.GetText("path_analysis") + ": " + ReqTask.Title)" Show="@Display" Large="true" OnClose="async () => await Close()">
+    <Body>
+        @if (Display)
+        {
+            @if(deviceList.Count == 0)
+            {
+                @(userConfig.GetText("no_gws_found"))
+            }
+            else
+            {
+                <div class="m-2">
+                    <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="Device" Items="deviceList" PageSize="0" ColumnReorder="true">
+                        <Column TableItem="Device" Title="@(userConfig.GetText("device"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+                    </Table>
+                </div>
+            }
+        }
+    </Body>
+    <Footer>
+        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("ok"))</button>
+    </Footer>
+</PopUp>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public Func<Task> ResetParent { get; set; }
+
+    [Parameter]
+    public RequestReqTask ReqTask { get; set; } = new RequestReqTask();
+
+
+    private List<Device> deviceList = new List<Device>();
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+        try
+        {
+            if (Display)
+            {
+                deviceList = await (new PathAnalysis(apiConnection)).getAllDevices(ReqTask.Elements);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("init_environment"), "", true);
+        }
+    }
+
+    private async Task Close()
+    {
+        Display = false;
+        await ResetParent();
+    }
+}

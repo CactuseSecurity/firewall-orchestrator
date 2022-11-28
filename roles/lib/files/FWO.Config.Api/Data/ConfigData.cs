@@ -114,6 +114,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("reqAutoCreateImplTasks"), JsonPropertyName("reqAutoCreateImplTasks")]
         public AutoCreateImplTaskOptions ReqAutoCreateImplTasks { get; set; } = AutoCreateImplTaskOptions.never;
 
+        [JsonProperty("reqActivatePathAnalysis"), JsonPropertyName("reqActivatePathAnalysis")]
+        public bool ReqActivatePathAnalysis { get; set; } = true;
+
 
         public ConfigData(bool editable = false)
         {

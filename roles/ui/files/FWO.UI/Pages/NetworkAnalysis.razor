@@ -73,42 +73,25 @@
 
     protected async Task<string> analyzePath(string source, string destination)
     {
-        IPAddressRange routingSource = new IPAddressRange();
-        IPAddressRange routingDestination = new IPAddressRange();
-        List<Device> DevList = new List<Device>();
-        bool Valid = false;
+        if (checkIpAdresses(source, destination))
+        {
+            return await (new PathAnalysis(apiConnection)).getDeviceNamesForSinglePath(source, destination);
+        }
+        return "";
+    }
 
+    private bool checkIpAdresses(string source, string destination)
+    {
         try
         {
-            routingSource = IPAddressRange.Parse(source);
-            routingDestination = IPAddressRange.Parse(destination);
-            Valid = true;
-            // we only want cidr
-            try
-            {
-                var Variables = new { src = routingSource.Begin.ToString(), dst = routingDestination.Begin.ToString() };
-                DevList = await apiConnection.SendQueryAsync<List<Device>>(NetworkAnalysisQueries.pathAnalysis, Variables);
-            }
-            catch (Exception exeption)
-            {
-                Log.WriteError("Path Analysis", $"error while analysing path", exeption);
-            }       
+            IPAddressRange.Parse(source);
+            IPAddressRange.Parse(destination);
         }
         catch(Exception e)
         {
-            Valid = false;
             DisplayMessageInUi!(e, userConfig.GetText("wrong_ip_address"), "", true);
+            return false;
         }
-
-        string result = "";
-        foreach (Device dev in DevList)
-        {
-            result += $"{dev.Name} (id={dev.Id}), ";
-        }
-        if (result.Length>=2)
-            return result.Remove(result.Length - 2, 1);
-        else
-            return "";
+        return true;
     }
-
 }

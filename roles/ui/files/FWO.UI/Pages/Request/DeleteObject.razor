@@ -7,7 +7,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("delete"))" Show="@Display" OnClose="() => Display = false">
+<PopUp Title="@(userConfig.GetText("delete"))" Show="@Display" OnClose="async () => await Close()">
     <Body>
         @if (Display)
         {
@@ -24,7 +24,7 @@
                     <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
                 </NotAuthorized> 
             </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            <button class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -50,11 +50,6 @@
     [Parameter]
     public string ObjectName { get; set; } = "";
 
-
-    private void Cancel()
-    {
-        Display = false;
-    }
 
     private async Task Close()
     {

@@ -8,7 +8,8 @@ namespace FWO.Api.Data
         never, 
         onlyForOneDevice, 
         forEachDevice, 
-        enterInReqTask
+        enterInReqTask,
+        afterPathAnalysis
     }
 
 
@@ -55,9 +56,18 @@ namespace FWO.Api.Data
             return deviceList;
         }
 
-        public void SetDeviceList (int[] devArray)
+        public void SetDeviceList(int[] devArray)
         {
             deviceList = devArray.ToList();
+        }
+
+        public void SetDeviceList(List<Device> devList)
+        {
+            deviceList = new List<int>();
+            foreach(var dev in devList)
+            {
+                deviceList.Add(dev.Id);
+            }
         }
 
         public override bool Sanitize()

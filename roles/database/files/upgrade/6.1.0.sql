@@ -118,3 +118,5 @@ CREATE OR REPLACE VIEW view_rule_with_owner AS
 -- AND (NOT rule_src like '%Any' AND NOT rule_dst like  '%Any' AND NOT rule_src='all' AND NOT rule_dst='all')
 -- AND rule.dev_id=2
 -- order by mgm_id, dev_id, rule_id;
+insert into config (config_key, config_value, config_user) VALUES ('reqActivatePathAnalysis', 'True', 0) ON CONFLICT DO NOTHING;
+

@@ -99,28 +99,37 @@ namespace FWO.Ui.Services
                     }
                     break;
                 case nameof(StateActionTypes.AddApproval):
-                    switch(scope)
-                    {
-                        case RequestObjectScopes.Ticket:
-                            break;
-                        case RequestObjectScopes.RequestTask:
-                            requestHandler.SetReqTaskEnv((RequestReqTask)statefulObject);
-                            break;
-                        case RequestObjectScopes.ImplementationTask:
-                            requestHandler.SetImplTaskEnv((RequestImplTask)statefulObject);
-                            break;
-                        case RequestObjectScopes.Approval:
-                            break;
-                        default:
-                            break;
-                    }
+                    setScope(statefulObject, scope);
                     await requestHandler.AddApproval(action.ExternalParams);
                     break;
                 case nameof(StateActionTypes.SetAlert):
                     await setAlert(action.ExternalParams);
                     break;
+                case nameof(StateActionTypes.TrafficPathAnalysis):
+                    setScope(statefulObject, scope);
+                    await requestHandler.HandlePathAnalysisAction(action.ExternalParams);
+                    break;
                 case nameof(StateActionTypes.ExternalCall):
                     await callExternal(action);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        private void setScope(RequestStatefulObject statefulObject, RequestObjectScopes scope)
+        {
+            switch(scope)
+            {
+                case RequestObjectScopes.Ticket:
+                    break;
+                case RequestObjectScopes.RequestTask:
+                    requestHandler.SetReqTaskEnv((RequestReqTask)statefulObject);
+                    break;
+                case RequestObjectScopes.ImplementationTask:
+                    requestHandler.SetImplTaskEnv((RequestImplTask)statefulObject);
+                    break;
+                case RequestObjectScopes.Approval:
                     break;
                 default:
                     break;

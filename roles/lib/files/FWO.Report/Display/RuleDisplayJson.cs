@@ -67,6 +67,7 @@ namespace FWO.Ui.Display
             switch (reportType)
             {
                 case ReportType.Rules:
+                case ReportType.Recertification:
                     if (side == "source")
                     {
                         foreach (NetworkLocation networkLocation in rule.Froms)
@@ -161,6 +162,7 @@ namespace FWO.Ui.Display
             switch (reportType)
             {
                 case ReportType.Rules:
+                case ReportType.Recertification:
                     foreach (ServiceWrapper service in rule.Services)
                         result.Append(ServiceToJson(service.Content, rule.MgmtId, location, style));
                     break;

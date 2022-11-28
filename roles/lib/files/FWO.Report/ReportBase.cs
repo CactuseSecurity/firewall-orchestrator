@@ -170,6 +170,7 @@ namespace FWO.Report
                 ReportType.ResolvedRulesTech => new ReportRules(query, userConfig, reportType),
                 ReportType.Changes => new ReportChanges(query, userConfig, reportType),
                 ReportType.NatRules => new ReportNatRules(query, userConfig, reportType),
+                ReportType.Recertification => new ReportRules(query, userConfig, reportType),
                 _ => throw new NotSupportedException("Report Type is not supported."),
             };
         }

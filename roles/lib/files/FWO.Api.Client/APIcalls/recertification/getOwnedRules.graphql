@@ -1,0 +1,107 @@
+
+query rulesCertReport(
+  $ownerId: [Int!]
+  $dev: [Int!]
+  $limit: Int
+  $offset: Int
+  $mgmId: [Int!]
+  $relevantImportId: bigint
+  $refdate1: timestamp!
+) {
+  management(
+    where: {
+      mgm_id: { _in: $mgmId }
+      hide_in_gui: { _eq: false }
+      stm_dev_typ: {
+        dev_typ_is_multi_mgmt: { _eq: false }
+        is_pure_routing_device: { _eq: false }
+      }
+    }
+    order_by: { mgm_name: asc }
+  ) {
+    id: mgm_id
+    name: mgm_name
+    devices(
+      where: { hide_in_gui: { _eq: false } }
+      order_by: { dev_name: asc }
+    ) {
+      id: dev_id
+      name: dev_name
+      view_rule_with_owner(
+        limit: $limit
+        offset: $offset
+        where: {
+          _and: [
+            { rule_src: { _nlike: "%Any" } }
+            { rule_dst: { _nlike: "%Any" } }
+            { rule_src: { _neq: "all" } }
+            { rule_dst: { _neq: "all" } }
+            { _or: [{ dev_id: { _eq: 2 } }] }
+            {
+              _and: [
+                {
+                  _or: [
+                    { rule_last_certified: { _lte: $refdate1 } }
+                    { _and: [{ rule_last_certified: { _is_null: true } }] }
+                  ]
+                }
+              ]
+            }
+          ]
+          dev_id: { _in: $dev }
+          owner_id: { _in: $ownerId }
+        }
+        order_by: { rule_num_numeric: asc }
+      ) {
+        mgm_id: mgm_id
+        ...ruleCertOverview
+      }
+    }
+  }
+}
+
+# query ownedRules($ownerId: [Int!], $dev: [Int!]) {
+#   view_rule_with_owner(where:
+#     {
+#       dev_id: {_in: $dev}
+#       owner_id:{_in:$ownerId}
+#       _and: [{rule_src:{_nlike:"%Any"}}, {rule_dst:{_nlike:"%Any"}}, {rule_src:{_neq:"all"}}, {rule_dst:{_neq:"all"}}]
+#       # example filtering out "any rules" --> should be optional later
+#     }) {
+#     owner_id
+#     owner_name
+#     matching_ip
+#     rule_last_certified
+#     rule_last_certifier
+#     dev_id
+#     rule_id
+#     rule_uid
+#     rule_src
+#     rule_dst
+#     rule_svc
+#     rule_to_rel {
+#       object {
+#         obj_name
+#         obj_ip
+#         obj_ip_end      }
+#     }
+#     rule_from_rel {
+#       object {
+#         obj_name
+#         obj_ip
+#         obj_ip_end
+#       }
+#     }
+#     rule_svc_rel {
+#       service {
+#         svc_name
+#         svc_port
+#         svc_port_end
+#         stm_ip_proto {
+#           ip_proto_name
+#           ip_proto_id
+#         }
+#       }
+#     }
+#   }
+# }

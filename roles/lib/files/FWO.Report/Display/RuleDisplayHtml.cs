@@ -32,6 +32,7 @@ namespace FWO.Ui.Display
             {
                 case ReportType.Rules:
                 case ReportType.NatRules:
+                case ReportType.Recertification:
                     if (side == "source")
                     {
                         foreach (NetworkLocation networkLocation in rule.Froms)
@@ -140,6 +141,7 @@ namespace FWO.Ui.Display
             {
                 case ReportType.Rules:
                 case ReportType.NatRules:
+                case ReportType.Recertification:
                     foreach (ServiceWrapper service in rule.Services)
                         result.Append(ServiceToHtml(service.Content, rule.MgmtId, location, style, reportType=reportType));
                     break;

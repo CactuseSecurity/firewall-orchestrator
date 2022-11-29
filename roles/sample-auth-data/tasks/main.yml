@@ -8,6 +8,10 @@
   import_tasks: modify_ldap_tree.yml
   when: installation_mode is not match('upgrade') or sample_role_purpose is match('test')
 
+- name: include owner sample data
+  import_tasks: sample_owner_data.yml
+  when: installation_mode is not match('upgrade') or sample_role_purpose is match('test')
+
 - name: restart middleware server in case any changes to ldap_connections were made
   systemd:
     name: "{{ middleware_service_name }}"

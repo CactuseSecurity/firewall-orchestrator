@@ -15,4 +15,4 @@ api_rollback_is_running: false
 # debug > info > warn > error
 api_HASURA_GRAPHQL_ENABLED_LOG_TYPES: "startup, http-log, websocket-log"
 # api_HASURA_GRAPHQL_ENABLED_LOG_TYPES: "startup, http-log, websocket-log, query-log"
-api_HASURA_GRAPHQL_INFER_FUNCTION_PERMISSIONS: true
+api_HASURA_GRAPHQL_INFER_FUNCTION_PERMISSIONS: "true"

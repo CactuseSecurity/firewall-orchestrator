@@ -17,6 +17,7 @@ Alter Table "zone" add Constraint "Alter_Key10" UNIQUE ("mgm_id","zone_name");
 -- TODO: Alter Table "tenant" add Constraint "tenant_name_unique" UNIQUE("tenant_name")
 
 
+ALTER TABLE owner ADD CONSTRAINT owner_name_unique_in_tenant UNIQUE ("name","tenant_id");
 --- owner_network ---
 ALTER TABLE owner_network ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
 --- request elements ---

@@ -151,6 +151,7 @@ namespace FWO.Ui.Display
             switch (reportType)
             {
                 case ReportType.Rules:
+                case ReportType.Recertification:
                     break;
                 case ReportType.ResolvedRules:
                 case ReportType.ResolvedRulesTech:

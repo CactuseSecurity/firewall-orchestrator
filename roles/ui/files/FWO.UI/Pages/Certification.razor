@@ -223,8 +223,18 @@
                 Log.WriteDebug("Generate Report", $"Cancelled: {e.Message}");
             }
 
-            PrepareMetadata();
+            rulesFound = false;
+            foreach (Management management in managements)
+                foreach (Device device in management.Devices)
+                    if (device.ContainsRules())
+                    {
+                        rulesFound = true;
+                        if (device.Rules != null)
+                            foreach (Rule rule in device.Rules)
+                                rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
+                    }
             processing = false;
+            
             await InvokeAsync(StateHasChanged);
             if(!rulesFound)
             {
@@ -249,54 +259,6 @@
     private void SyncFilterToDisplay()
     {
         filterInput = Regex.Replace(filterInput, "recertdisplay=" + @"-?\d+", $"recertdisplay={(userConfig.RecertificationPeriod-userConfig.RecertificationDisplayPeriod).ToString()}");
-    }
-
-    private void PrepareMetadata()
-    {
-        rulesFound = false;
-        foreach (Management management in managements)
-        {
-            foreach (Device device in management.Devices)
-            {
-                if(device.Rules != null)
-                {
-                    foreach (Rule rule in device.Rules)
-                    {
-                        rulesFound = true;
-                        if (rule.Metadata.LastCertifierDn != null && rule.Metadata.LastCertifierDn != "")
-                        {
-                            rule.Metadata.LastCertifierName = (new FWO.Api.Data.DistName(rule.Metadata.LastCertifierDn)).UserName;
-                        }
-                        else
-                        {
-                            rule.Metadata.LastCertifierName = userConfig.GetText("unknown");
-                        }
-
-                        if (rule.Metadata.LastCertified != null)
-                        {
-                            rule.Metadata.NextRecert = ((DateTime)rule.Metadata.LastCertified).AddDays(userConfig.RecertificationPeriod);
-                        }
-                        else if (rule.Metadata.Created != null)
-                        {
-                            rule.Metadata.NextRecert = ((DateTime)rule.Metadata.Created).AddDays(userConfig.RecertificationPeriod);
-                        }
-                        else
-                        {
-                            rule.Metadata.NextRecert = DateTime.Now;
-                        }
-
-                        if(rule.Metadata.NextRecert <= DateTime.Now)
-                        {
-                            rule.Metadata.Style = "background-overdue";
-                        }
-                        else if(rule.Metadata.NextRecert <= DateTime.Now.AddDays(userConfig.RecertificationNoticePeriod))
-                        {
-                            rule.Metadata.Style = "background-upcoming";
-                        }
-                    }
-                }
-            }
-        }
     }
 
     const byte all = 10, report = 20, rule = 30, all_nobj = 11, all_nsrv = 12, all_user = 13, report_nobj = 21, report_nsrv = 22, report_user = 23;

@@ -24,6 +24,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string getNatRuleDetails;
         public static readonly string getNatRuleDetailsForReport;
 
+        public static readonly string ruleRecertFragments;
+
         static RuleQueries()
         {
             try
@@ -63,11 +65,13 @@ namespace FWO.Api.Client.Queries
                     File.ReadAllText(QueryPath + "report/getRuleIdsOfImport.graphql");
 
                 updateRuleMetadataRecert =
-                    File.ReadAllText(QueryPath + "rule/updateRuleMetadataRecert.graphql");
+                    File.ReadAllText(QueryPath + "recertification/updateRuleMetadataRecert.graphql");
 
                 updateRuleMetadataDecert =
-                    File.ReadAllText(QueryPath + "rule/updateRuleMetadataDecert.graphql");
+                    File.ReadAllText(QueryPath + "recertification/updateRuleMetadataDecert.graphql");
 
+                ruleRecertFragments = ruleOverviewFragments + 
+                    File.ReadAllText(QueryPath + "recertification/fragments/view_rule_with_owner.graphql");
 
                 natRuleOverviewFragments = ruleOverviewFragments +
                     File.ReadAllText(QueryPath + "rule/fragments/natRuleOverview.graphql");

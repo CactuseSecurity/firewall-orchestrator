@@ -1,7 +1,7 @@
 from fwo_log import getFwoLogger
-import common
 import json
 from cpcommon import nw_obj_table_names, get_ip_of_obj
+from fwo_const import list_delimiter
 
 
 def parse_network_objects_to_json(full_config, config2import, import_id, mgm_id=0, debug_level=0):
@@ -36,7 +36,7 @@ def collect_nw_objects(object_table, nw_objects, debug_level=0, mgm_id=0):
                     member_refs = ''
                     member_names = ''
                     for member in obj['members']:
-                        member_refs += member + common.list_delimiter
+                        member_refs += member + list_delimiter
                     member_refs = member_refs[:-1]
                     if obj['members'] == '':
                         obj['members'] = None
@@ -91,9 +91,9 @@ def add_member_names_for_nw_group(idx, nw_objects):
         group['obj_member_refs'] = None
     else:
         member_names = ''
-        obj_member_refs = group['obj_member_refs'].split(common.list_delimiter)
+        obj_member_refs = group['obj_member_refs'].split(list_delimiter)
         for ref in obj_member_refs:
             member_name = resolve_nw_uid_to_name(ref, nw_objects)
-            member_names += member_name + common.list_delimiter
+            member_names += member_name + list_delimiter
         group['obj_member_names'] = member_names[:-1]
     nw_objects.insert(idx, group)

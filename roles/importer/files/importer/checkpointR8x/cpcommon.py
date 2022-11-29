@@ -11,6 +11,10 @@ import ipaddress
 import fwo_globals
 
 
+details_level = "full"    # 'standard'
+use_object_dictionary = 'false'
+
+
 def validate_ip_address(address):
     try:
         # ipaddress.ip_address(address)
@@ -69,7 +73,7 @@ def get_ip_of_obj(obj, mgm_id=None):
 ##################### 2nd-level functions ###################################
 
 def get_basic_config (config_json, mgm_details, force=False, config_filename=None,
-    limit=150, details_level='full', test_version='off', debug_level=0, ssl_verification=True, sid=None):
+    limit=150, details_level=details_level, test_version='off', debug_level=0, ssl_verification=True, sid=None):
     logger = getFwoLogger()
 
     api_host = mgm_details['hostname']
@@ -81,7 +85,6 @@ def get_basic_config (config_json, mgm_details, force=False, config_filename=Non
     api_port = str(mgm_details['port'])
     api_password = mgm_details['import_credential']['secret']
     base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
-    use_object_dictionary = 'false'
 
     # top level dict start, sid contains the domain information, so only sending domain during login
     if sid is None:  # if sid was not passed, login and get it
@@ -174,7 +177,7 @@ def get_basic_config (config_json, mgm_details, force=False, config_filename=Non
 
 
 ################# enrich #######################
-def enrich_config (config, mgm_details, limit=150, details_level='full', noapi=False, sid=None):
+def enrich_config (config, mgm_details, limit=150, details_level=details_level, noapi=False, sid=None):
 
     logger = getFwoLogger()
     base_url = 'https://' + mgm_details['hostname'] + ':' + str(mgm_details['port']) + '/web_api/'

@@ -1,0 +1,62 @@
+
+fragment ruleCertOverview on view_rule_with_owner {
+  rule_id
+  rule_uid
+  owner_id
+  owner_name
+  matches
+  rule_action
+  section_header: rule_head_text
+  rule_comment
+  rule_track
+  rule_disabled
+  src_zone: zone_from_rel {
+    zone_name
+    zone_id
+  }
+  rule_metadatum: rule_metadata_rel {
+    rule_metadata_id
+    rule_created
+    rule_first_hit
+    rule_last_hit
+    rule_last_modified
+    rule_last_certified
+    rule_last_certifier_dn
+    rule_to_be_removed
+    rule_decert_date
+    rule_recertification_comment
+  }
+  rule_src_neg
+  rule_dst_neg
+  rule_svc_neg
+  rule_num_numeric
+  rule_name
+  access_rule
+  nat_rule
+  xlate_rule
+  rule_froms: rule_from_rel {
+    usr {
+      ...userOverview
+    }
+    object {
+      ...networkObjectOverview
+    }
+  }
+  dst_zone: zone_to_rel {
+    zone_name
+    zone_id
+  }
+  rule_tos: rule_to_rel {
+    usr {
+      ...userOverview
+    }
+    object {
+      ...networkObjectOverview
+    }
+  }
+  rule_services: rule_svc_rel {
+    service {
+      ...networkServiceOverview
+    }
+  }
+}

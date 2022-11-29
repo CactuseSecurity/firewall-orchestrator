@@ -26,12 +26,20 @@ class Interface:
 
 class InterfaceSerializable(Interface):
     def __init__(self, ifaceIn):
-        self.routing_device = ifaceIn.routing_device
-        self.name = ifaceIn.name
-        self.ip = str(ifaceIn.ip)
-        self.netmask_bits = ifaceIn.netmask_bits
-        self.state_up = ifaceIn.state_up
-        self.ip_version = ifaceIn.ip_version
+        if type(ifaceIn) is dict:
+            self.name = ifaceIn['name']
+            self.routing_device = ifaceIn['routing_device']
+            self.ip = str(ifaceIn['ip'])
+            self.netmask_bits = ifaceIn['netmask_bits']
+            self.state_up = ifaceIn['state_up']
+            self.ip_version = ifaceIn['ip_version']
+        elif isinstance(ifaceIn, Interface):
+            self.name = ifaceIn.name
+            self.routing_device = ifaceIn.routing_device
+            self.ip = str(ifaceIn.ip)
+            self.netmask_bits = ifaceIn.netmask_bits
+            self.state_up = ifaceIn.state_up
+            self.ip_version = ifaceIn.ip_version
 
 
 class Route:
@@ -81,18 +89,32 @@ class Route:
 
 class RouteSerializable(Route):
     def __init__(self, routeIn):
-        self.routing_device = routeIn.routing_device
-        self.interface = routeIn.interface
-        self.target_gateway = str(routeIn.target_gateway)
-        self.destination = str(routeIn.destination)
-        if routeIn.source is None:
-            self.source = None
-        else:
-            self.source = str(routeIn.source)
-        self.static = routeIn.static
-        self.metric = routeIn.metric
-        self.distance = routeIn.distance
-        self.ip_version = routeIn.ip_version
+        if type(routeIn) is dict:
+            self.routing_device = routeIn['routing_device']
+            self.interface = routeIn['interface']
+            self.target_gateway = str(routeIn['target_gateway'])
+            self.destination = str(routeIn['destination'])
+            if routeIn['source'] is None:
+                self.source = None
+            else:
+                self.source = str(routeIn['source'])
+            self.static = routeIn['static']
+            self.metric = routeIn['metric']
+            self.distance = routeIn['distance']
+            self.ip_version = routeIn['ip_version']
+        elif isinstance(routeIn, Route):
+            self.routing_device = routeIn.routing_device
+            self.interface = routeIn.interface
+            self.target_gateway = str(routeIn.target_gateway)
+            self.destination = str(routeIn.destination)
+            if routeIn.source is None:
+                self.source = None
+            else:
+                self.source = str(routeIn.source)
+            self.static = routeIn.static
+            self.metric = routeIn.metric
+            self.distance = routeIn.distance
+            self.ip_version = routeIn.ip_version
 
 
 def getRouteDestination(obj):

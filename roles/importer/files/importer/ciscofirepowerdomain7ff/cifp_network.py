@@ -2,7 +2,7 @@ from asyncio.log import logger
 import random
 
 from fwo_log import getFwoLogger
-from common import list_delimiter
+from fwo_const import list_delimiter
 from netaddr import IPAddress
 
 def normalize_nwobjects(full_config, config2import, import_id, jwt=None, mgm_id=None):
@@ -44,6 +44,7 @@ def parse_obj_group(orig_grp, import_id, nw_objects, id = None):
     return list_delimiter.join(refs), list_delimiter.join(names)
 
 def extract_base_object_infos(obj_orig, import_id):
+    logger = getFwoLogger()
     obj = {}
     if "id" in obj_orig:
         obj["obj_uid"] = obj_orig['id']
@@ -74,7 +75,7 @@ def parse_object(obj_orig, import_id):
         obj["obj_typ"] = "host"
         obj["obj_ip"] = obj_orig["value"]
         if obj_orig["value"].find(":") != -1:  # ipv6
-            obj["obj_ip"] + "/64"
+            obj["obj_ip"] + "/128"
         else:                               # ipv4
             obj["obj_ip"] + "/32"
     elif obj_orig["type"] == "Range": # ip range

@@ -13,6 +13,8 @@ namespace FWO.Ui.Display
 
         public string DisplaySourceOrDestination(Rule rule, string style = "", string location = "report", ReportType reportType = ReportType.Rules, string side = "source")
         {
+            if (location=="certification")
+                reportType=ReportType.Rules;
             result = new StringBuilder();
             result.AppendLine("<p>");
             if (side=="source")
@@ -30,6 +32,7 @@ namespace FWO.Ui.Display
             {
                 case ReportType.Rules:
                 case ReportType.NatRules:
+                case ReportType.Recertification:
                     if (side == "source")
                     {
                         foreach (NetworkLocation networkLocation in rule.Froms)
@@ -127,6 +130,8 @@ namespace FWO.Ui.Display
 
         public string DisplayService(Rule rule, string style = "", string location = "report", ReportType reportType = ReportType.Rules)
         {
+            if (location=="certification")
+                reportType=ReportType.Rules;
             result = new StringBuilder();
             result.AppendLine("<p>");
             if (rule.ServiceNegated)
@@ -136,6 +141,7 @@ namespace FWO.Ui.Display
             {
                 case ReportType.Rules:
                 case ReportType.NatRules:
+                case ReportType.Recertification:
                     foreach (ServiceWrapper service in rule.Services)
                         result.Append(ServiceToHtml(service.Content, rule.MgmtId, location, style, reportType=reportType));
                     break;

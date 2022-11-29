@@ -97,6 +97,7 @@
       HASURA_GRAPHQL_CONSOLE_ASSETS_DIR: "/srv/console-assets"
       HASURA_GRAPHQL_V1_BOOLEAN_NULL_COLLAPSE: "true"
       HASURA_GRAPHQL_CORS_DOMAIN:       "*"
+      HASURA_GRAPHQL_INFER_FUNCTION_PERMISSIONS: "{{ api_HASURA_GRAPHQL_INFER_FUNCTION_PERMISSIONS }}"
       HASURA_GRAPHQL_JWT_SECRET:        '
                                         {
                                           "type": "{{ api_hasura_jwt_alg|quote }}",

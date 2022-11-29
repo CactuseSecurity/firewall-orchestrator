@@ -1,3 +1,5 @@
+-- path analysis config setting
+insert into config (config_key, config_value, config_user) VALUES ('reqActivatePathAnalysis', 'True', 0) ON CONFLICT DO NOTHING;
 
 -- adding azure devices
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt,dev_typ_is_mgmt,is_pure_routing_device)
@@ -12,32 +14,38 @@ ALTER TABLE import_credential ADD COLUMN IF NOT EXISTS cloud_client_id VARCHAR;
 ALTER TABLE import_credential ADD COLUMN IF NOT EXISTS cloud_client_secret VARCHAR;
 
 --------------------------------------------------------------
--- sample data - adding owner data
+-- owner demo data 
+--------------------------------------------------------------
 
+-- adding unique constraint for owner.name
+ALTER TABLE owner DROP CONSTRAINT IF EXISTS owner_name_unique_in_tenant;
+ALTER TABLE owner ADD CONSTRAINT owner_name_unique_in_tenant UNIQUE ("name","tenant_id");
+
+-- adding owner data
 INSERT INTO owner (name, dn, group_dn, is_default, tenant_id, recert_interval, next_recert_date, app_id_external) 
-		VALUES    ('owner F', 'ad-single-owner-f', 'ad-group-owner-f', false, 1, 30, '2022-12-01T00:00:00', 123)
+		VALUES    ('ownerF_demo', 'ad-single-owner-f', 'ad-group-owner-f', false, 1, 30, '2022-12-01T00:00:00', '123')
 		ON CONFLICT DO NOTHING; 
 INSERT INTO owner (name, dn, group_dn, is_default, tenant_id, recert_interval, next_recert_date, app_id_external) 
-		VALUES    ('owner D', 'ad-single-owner-d', 'ad-group-owner-d', false, 1, 30, '2022-12-01T00:00:00', 234)
+		VALUES    ('ownerD_demo', 'ad-single-owner-d', 'ad-group-owner-d', false, 1, 30, '2022-12-01T00:00:00', '234')
 		ON CONFLICT DO NOTHING; 
 INSERT INTO owner (name, dn, group_dn, is_default, tenant_id, recert_interval, next_recert_date, app_id_external) 
-		VALUES    ('default owner', 'ad-single-owner-default', 'ad-group-owner-default', true, 1, 30, '2022-12-01T00:00:00', 111)
+		VALUES    ('defaultOwner_demo', 'ad-single-owner-default', 'ad-group-owner-default', true, 1, 30, '2022-12-01T00:00:00', '111')
 		ON CONFLICT DO NOTHING; 
 
 INSERT INTO owner_network (owner_id, ip) 
-		VALUES    ((SELECT id FROM owner WHERE name='owner F'), '10.222.0.0/27')
+		VALUES    ((SELECT id FROM owner WHERE name='ownerF_demo' AND tenant_id=1), '10.222.0.0/27')
 		ON CONFLICT DO NOTHING; 
 
 INSERT INTO owner_network (owner_id, ip) 
-		VALUES    ((SELECT id FROM owner WHERE name='owner D'), '10.222.0.32/27')
+		VALUES    ((SELECT id FROM owner WHERE name='ownerD_demo' AND tenant_id=1), '10.222.0.32/27')
 		ON CONFLICT DO NOTHING; 
 
 INSERT INTO owner_network (owner_id, ip) 
-		VALUES    ((SELECT id FROM owner WHERE name='owner F'), '10.0.0.0/27')
+		VALUES    ((SELECT id FROM owner WHERE name='ownerF_demo' AND tenant_id=1), '10.0.0.0/27')
 		ON CONFLICT DO NOTHING; 
 
 INSERT INTO owner_network (owner_id, ip) 
-		VALUES    ((SELECT id FROM owner WHERE name='owner D'), '10.0.0.32/27')
+		VALUES    ((SELECT id FROM owner WHERE name='ownerD_demo' AND tenant_id=1), '10.0.0.32/27')
 		ON CONFLICT DO NOTHING; 
 
 -- drop view v_rule_with_src_owner cascade;
@@ -118,5 +126,3 @@ CREATE OR REPLACE VIEW view_rule_with_owner AS
 -- AND (NOT rule_src like '%Any' AND NOT rule_dst like  '%Any' AND NOT rule_src='all' AND NOT rule_dst='all')
 -- AND rule.dev_id=2
 -- order by mgm_id, dev_id, rule_id;
-insert into config (config_key, config_value, config_user) VALUES ('reqActivatePathAnalysis', 'True', 0) ON CONFLICT DO NOTHING;
-

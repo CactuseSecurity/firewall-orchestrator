@@ -36,29 +36,32 @@
                             {
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("next_recert"))" Field="@(rule => rule.Metadata.NextRecert)" Sortable="true" Filterable="false" />
                                 <Column TableItem="Rule" Title="@(userConfig.GetText("last_recertifier"))" Field="@(rule => rule.Metadata.LastCertifierName)" Sortable="true" Filterable="true" />
-                                <Column TableItem="Rule" Title="@(userConfig.GetText("action"))" Field="@(rule => rule.OrderNumber)">
-                                    <Template>
-                                        <div class="form-check" @onclick:stopPropagation="true">
-                                            <input class="form-check-input" type="radio" name="certification@(context.Id)" id="recertifyRadio@(context.Id)" @onchange="() => {context.Metadata.Recert=true; context.Metadata.ToBeRemoved=false;}">
-                                            <label class="form-check-label" for="recertifyRadio@(context.Id)">
-                                                @(userConfig.GetText("recertify"))
-                                            </label>
-                                        </div>
-                                        <div class="form-check" @onclick:stopPropagation="true">
-                                            <input class="form-check-input" type="radio" name="certification@(context.Id)" id="decertifyRadio@(context.Id)" @onchange="() => {context.Metadata.Recert=false; context.Metadata.ToBeRemoved=true;}">
-                                            <label class="form-check-label" for="decertifyRadio@(context.Id)">
-                                                @(userConfig.GetText("decertify"))
-                                            </label>
-                                        </div>
-                                        <div class="form-check" @onclick:stopPropagation="true">
-                                            <input class="form-check-input" type="radio" name="certification@(context.Id)" id="noneRadio@(context.Id)" checked @onchange="() => {context.Metadata.Recert=false; context.Metadata.ToBeRemoved=false;}">
-                                            <label class="form-check-label" for="noneRadio@(context.Id)">
-                                                @(userConfig.GetText("later"))
-                                            </label>
-                                        </div>
-                                    </Template>
-                                </Column>
-                                <Column TableItem="Rule" Title="@(userConfig.GetText("comment"))" Field="@(rule => rule.Metadata.Comment)" Sortable="true" Filterable="false" />
+                                @if(Recertification) 
+                                {
+                                    <Column TableItem="Rule" Title="@(userConfig.GetText("action"))" Field="@(rule => rule.OrderNumber)">
+                                        <Template>
+                                            <div class="form-check" @onclick:stopPropagation="true">
+                                                <input class="form-check-input" type="radio" name="certification@(context.Id)" id="recertifyRadio@(context.Id)" @onchange="() => {context.Metadata.Recert=true; context.Metadata.ToBeRemoved=false;}">
+                                                <label class="form-check-label" for="recertifyRadio@(context.Id)">
+                                                    @(userConfig.GetText("recertify"))
+                                                </label>
+                                            </div>
+                                            <div class="form-check" @onclick:stopPropagation="true">
+                                                <input class="form-check-input" type="radio" name="certification@(context.Id)" id="decertifyRadio@(context.Id)" @onchange="() => {context.Metadata.Recert=false; context.Metadata.ToBeRemoved=true;}">
+                                                <label class="form-check-label" for="decertifyRadio@(context.Id)">
+                                                    @(userConfig.GetText("decertify"))
+                                                </label>
+                                            </div>
+                                            <div class="form-check" @onclick:stopPropagation="true">
+                                                <input class="form-check-input" type="radio" name="certification@(context.Id)" id="noneRadio@(context.Id)" checked @onchange="() => {context.Metadata.Recert=false; context.Metadata.ToBeRemoved=false;}">
+                                                <label class="form-check-label" for="noneRadio@(context.Id)">
+                                                    @(userConfig.GetText("later"))
+                                                </label>
+                                            </div>
+                                        </Template>
+                                    </Column>
+                                }
+                                <Column TableItem="Rule" Title="@(userConfig.GetText("recert_comment"))" Field="@(rule => rule.Metadata.Comment)" Sortable="true" Filterable="false" />
                             }
 
                             @if (EmptyColumns[1] == false)

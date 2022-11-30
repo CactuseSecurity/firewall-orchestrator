@@ -3,7 +3,7 @@
 TopDir	/usr/local/fworch		# Installationsverzeichnis
 	
 ###################### database connection ##############################
-fworch database hostname              127.0.0.1
+fworch database hostname              {{ fworch_db_host }}
 fworch database type                  DBX_PGSQL
 fworch database name                  fworchdb
 fworch database port                  5432

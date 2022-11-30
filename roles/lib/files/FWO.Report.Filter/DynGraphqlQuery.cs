@@ -332,25 +332,6 @@ namespace FWO.Report.Filter
                         }}
                     }}");
                     break;
-
-                                    //         {{ dev_id: {{ _in: $dev }} }}
-                                    //         {{ owner_id: {{ _in: $ownerId }} }}
-
-                                    //         #{{
-                                    //         #    _or: [
-                                    //         #        {{ rule_last_certified: {{ _lte: $refdate1 }} }}
-                                    //         #        {{ rule_last_certified: {{ _is_null: true }} }}
-                                    //         #    ]
-                                    //         #}}
-
-                                    // where: {{
-                                    //     _and: [
-                                    //         {{ rule_src: {{ _nlike: ""%Any"" }} }}
-                                    //         {{ rule_dst: {{ _nlike: ""%Any"" }} }}
-                                    //         {{ rule_src: {{ _neq: ""all"" }} }}
-                                    //         {{ rule_dst: {{ _neq: ""all"" }} }}
-                                    //     ]
-                                    // }}
                                                     
                 case ReportType.Changes:
                     query.FullQuery = Queries.compact($@"

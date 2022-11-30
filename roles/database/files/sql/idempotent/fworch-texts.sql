@@ -840,6 +840,8 @@ INSERT INTO txt VALUES ('decert_date',          'German',   'Dezertifizierungsda
 INSERT INTO txt VALUES ('decert_date',          'English',  'Decertification date');
 INSERT INTO txt VALUES ('recert_comment',       'German',   'Zertifzierungskommentar');
 INSERT INTO txt VALUES ('recert_comment',       'English',  'Certification comment');
+INSERT INTO txt VALUES ('ip_matches',           'German',   'IP-Adress-&Uuml;bereinstimmung');
+INSERT INTO txt VALUES ('ip_matches',           'English',  'IP address match');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');

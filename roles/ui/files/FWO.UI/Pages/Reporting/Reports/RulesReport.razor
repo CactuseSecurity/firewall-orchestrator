@@ -35,7 +35,7 @@
                             @if(Recertification || SelectedReportType==ReportType.Recertification)
                             {
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("next_recert"))" Field="@(rule => rule.Metadata.NextRecert)" Sortable="true" Filterable="false" />
-                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("owner_name"))" Field="@(rule => rule.OwnerName)" Sortable="true" Filterable="false" />
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("owner"))" Field="@(rule => rule.OwnerName)" Sortable="true" Filterable="false" />
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("ip_matches"))" Field="@(rule => rule.IpMatch)" Sortable="true" Filterable="false" />
                                 <Column TableItem="Rule" Title="@(userConfig.GetText("last_recertifier"))" Field="@(rule => rule.Metadata.LastCertifierName)" Sortable="true" Filterable="true" />
                                 @if(Recertification) 

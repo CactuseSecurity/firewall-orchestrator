@@ -33,7 +33,7 @@
 
 - name: scan sampleserver ssh keys
   known_hosts:
-    name: 127.0.0.1
+    name: "{{ sample_hostname }}"
     key: "{{ lookup('pipe', 'ssh-keyscan -H '+sample_hostname) }}"
   become: yes
   become_user: "{{ fworch_user }}"

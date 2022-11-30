@@ -1,5 +1,6 @@
 import random
-from common import list_delimiter
+from fwo_const import list_delimiter
+
 
 def normalize_svcobjects(full_config, config2import, import_id):
     svc_objects = []

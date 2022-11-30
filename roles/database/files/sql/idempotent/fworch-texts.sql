@@ -840,6 +840,8 @@ INSERT INTO txt VALUES ('decert_date',          'German',   'Dezertifizierungsda
 INSERT INTO txt VALUES ('decert_date',          'English',  'Decertification date');
 INSERT INTO txt VALUES ('recert_comment',       'German',   'Zertifzierungskommentar');
 INSERT INTO txt VALUES ('recert_comment',       'English',  'Certification comment');
+INSERT INTO txt VALUES ('ip_matches',           'German',   'IP-Adress-&Uuml;bereinstimmung');
+INSERT INTO txt VALUES ('ip_matches',           'English',  'IP address match');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');
@@ -894,6 +896,16 @@ INSERT INTO txt VALUES ('port',                 'German', 	'Port');
 INSERT INTO txt VALUES ('port',                 'English', 	'Port');
 INSERT INTO txt VALUES ('config_path',          'German', 	'Domain');
 INSERT INTO txt VALUES ('config_path',          'English', 	'Domain');
+INSERT INTO txt VALUES ('cloud_client_id',      'German', 	'Cloud Client ID');
+INSERT INTO txt VALUES ('cloud_client_id',      'English', 	'Cloud Client ID');
+INSERT INTO txt VALUES ('cloud_client_secret',  'German', 	'Cloud Client Secret');
+INSERT INTO txt VALUES ('cloud_client_secret',  'English', 	'Cloud Client Secret');
+INSERT INTO txt VALUES ('cloud_sub_id',         'German', 	'Cloud Subscription ID');
+INSERT INTO txt VALUES ('cloud_sub_id',         'English', 	'Cloud Subscription ID');
+INSERT INTO txt VALUES ('cloud_tenant_id',      'German', 	'Cloud Tenant ID');
+INSERT INTO txt VALUES ('cloud_tenant_id',      'English', 	'Cloud Tenant ID');
+INSERT INTO txt VALUES ('unused',               'German', 	'ungenutzt');
+INSERT INTO txt VALUES ('unused',               'English', 	'unused');
 INSERT INTO txt VALUES ('domain_uid',           'German', 	'Domain UID');
 INSERT INTO txt VALUES ('domain_uid',           'English', 	'Domain UID');
 INSERT INTO txt VALUES ('super_manager',        'German', 	'Multi Domain Manager');

@@ -1,5 +1,5 @@
 import re
-import common
+from fwo_const import list_delimiter
 
 def normalize_svcobjects(full_config, config2import, import_id, scope):
     svc_objects = []
@@ -9,7 +9,7 @@ def normalize_svcobjects(full_config, config2import, import_id, scope):
             if 'member' in obj_orig:
                 type = 'group'
                 for member in obj_orig['member']:
-                    member_names += member + common.list_delimiter
+                    member_names += member + list_delimiter
                 member_names = member_names[:-1]
             else:
                 type = 'simple'
@@ -44,21 +44,21 @@ def normalize_svcobjects(full_config, config2import, import_id, scope):
                         tcpname = name
                         if split:
                             tcpname += "_tcp"
-                            range_names += tcpname + common.list_delimiter
+                            range_names += tcpname + list_delimiter
                         addObject(svc_objects, type, tcpname, color, 6, obj_orig['tcp-portrange'], None, session_timeout, import_id)
                         added_svc_obj += 1
                     if "udp-portrange" in obj_orig and len(obj_orig['udp-portrange']) > 0:
                         udpname = name
                         if split:
                             udpname += "_udp"
-                            range_names += udpname + common.list_delimiter
+                            range_names += udpname + list_delimiter
                         addObject(svc_objects, type, udpname, color, 17, obj_orig['udp-portrange'], None, session_timeout, import_id)
                         added_svc_obj += 1
                     if "sctp-portrange" in obj_orig and len(obj_orig['sctp-portrange']) > 0:
                         sctpname = name
                         if split:
                             sctpname += "_sctp"
-                            range_names += sctpname + common.list_delimiter
+                            range_names += sctpname + list_delimiter
                         addObject(svc_objects, type, sctpname, color, 132, obj_orig['sctp-portrange'], None, session_timeout, import_id)
                         added_svc_obj += 1
                     if split:
@@ -164,7 +164,7 @@ def addObject(svc_objects, type, name, color, proto, port_ranges, member_names, 
             full_name = name
             if split:
                 full_name += '_' + str(port)
-                range_names += full_name + common.list_delimiter
+                range_names += full_name + list_delimiter
             svc_objects.extend([{'svc_typ': type,
                                 'svc_name': full_name, 
                                 'svc_color': color,

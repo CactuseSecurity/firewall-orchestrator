@@ -2,13 +2,13 @@
 import sys
 from common import importer_base_dir
 sys.path.append(importer_base_dir)
-import common 
 import parse_network, parse_service, parse_user # parse_rule, 
 import parse_network_csv, parse_rule_csv, parse_service_csv, parse_user_csv
 import argparse
 import json
 import sys
 import fwo_log
+from cpcommon import use_object_dictionary, details_level
 
 
 parser = argparse.ArgumentParser(description='parse json configuration file from Check Point R8x management')
@@ -40,7 +40,6 @@ if len(sys.argv)==1:
     sys.exit(1)
 
 config_filename = args.config_file
-use_object_dictionary = 'false'
 
 with open(args.config_file, "r") as json_data:
     config = json.load(json_data)

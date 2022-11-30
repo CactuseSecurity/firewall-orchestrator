@@ -41,6 +41,21 @@ namespace FWO.Middleware.Client
 			return jwt.Claims.FirstOrDefault(claim => claim.Type == "role" && claim.Value == roleName) != null;
 		}
 
+		/// <summary>
+		/// Checks if JWT in HTTP header contains role in x-hasura-allowed-roles.
+		/// </summary>
+        /// <param name="roleName">Role name to check.</param>
+		/// <returns>True if JWT contains specified role in x-hasura-allowed-roles, otherwise false.</returns>
+		public bool ContainsAllowedRole(string roleName)
+        {
+			Log.WriteDebug($"{roleName} Role Jwt", "Checking Jwt for allowed role.");
+
+			if (jwt == null)
+				throw new ArgumentNullException(nameof(jwt), "Jwt was not validated yet.");
+
+			return jwt.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-allowed-roles" && claim.Value == roleName) != null;
+		}
+
         public bool Validate()
         {
             try

@@ -29,7 +29,14 @@
         <div class="input-group">
             <input type="text" class="form-control form-control-sm" disabled value="@displayedTimeSelection" />
             <div class="input-group-append">
+            @if (selectedReportType==ReportType.Recertification)
+            {
+                <button class="btn btn-sm btn-outline-info" disabled @onclick="SelectTime">@(userConfig.GetText("change"))</button>
+            }
+            else
+            {
                 <button class="btn btn-sm btn-outline-info" @onclick="SelectTime">@(userConfig.GetText("change"))</button>
+            }
             </div>
         </div>
     </div>
@@ -90,21 +97,33 @@
 
             @if (currentReport != null)
             {
-                @switch (currentReport)
+                @switch (currentReport.ReportType)
                 {
-                    case ReportNatRules natRulesReport:
-                        <RulesReport NatRules="true" Managements="managementsReport" SelectedReportType="selectedReportType" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"></RulesReport>
-                        break;
-
-                    case ReportRules rulesReport:
+                    case ReportType.Recertification:
+                        // bool rulesFound = managementsReport.PrepareMetadata();
+                        bool rulesFound = true;
+                        if (!rulesFound)
+                        {
+                            DisplayMessageInUi!(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
+                        }
                         <RulesReport Managements="managementsReport" SelectedReportType="selectedReportType" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"></RulesReport>
                         break;
 
-                    case ReportChanges changesReport:
+                    case ReportType.NatRules:
+                        <RulesReport NatRules="true" Managements="managementsReport" SelectedReportType="selectedReportType" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"></RulesReport>
+                        break;
+
+                    case ReportType.Rules:
+                    case ReportType.ResolvedRules:
+                    case ReportType.ResolvedRulesTech:
+                        <RulesReport Managements="managementsReport" SelectedReportType="selectedReportType" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"></RulesReport>
+                        break;
+
+                    case ReportType.Changes:
                         <ChangesReport Managements="managementsReport" RulesPerPage="rulesPerPage" @bind-SelectedRuleChanges="selectedItemsChangeReportTable"></ChangesReport>
                         break;
 
-                    case ReportStatistics statisticsReport:
+                    case ReportType.Statistics:
                         @if (globalStats != null)
                         {
                             <h5>@(userConfig.GetText("glob_no_obj"))</h5>
@@ -718,7 +737,12 @@
                                 setRelevantManagements(relevantManagements);
                                 return InvokeAsync(StateHasChanged);
                             }, token);
+                        if (currentReport.ReportType == ReportType.Recertification)
+                        {
+                            PrepareMetadata(managementsReport);
+                        }
                         break;
+
 
                     case ReportStatistics statisticsReport:
                         globalStats = new Management();
@@ -774,6 +798,21 @@
         }
         watch.Stop();
         reportGenerationDuration = watch.ElapsedMilliseconds/1000.0;
+    }
+
+    protected bool PrepareMetadata(Management[] Managements)
+    {
+        bool rulesFound = false;
+        foreach (Management management in Managements)
+            foreach (Device device in management.Devices)
+                if (device.ContainsRules())
+                {
+                    rulesFound = true;
+                    if (device.Rules != null)
+                        foreach (Rule rule in device.Rules)
+                            rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
+                }
+        return rulesFound;
     }
 
     private void CancelGeneration()

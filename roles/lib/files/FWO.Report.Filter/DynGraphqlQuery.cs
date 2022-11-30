@@ -73,6 +73,7 @@ namespace FWO.Report.Filter
                     case ReportType.ResolvedRulesTech:
                     case ReportType.Statistics:
                     case ReportType.NatRules:
+                    case ReportType.Recertification:
                         query.ruleWhereStatement +=
                             $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
                             $"importControlByRuleLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
@@ -289,7 +290,49 @@ namespace FWO.Report.Filter
                             }} 
                     }}");
                     break;
-                    
+
+                case ReportType.Recertification:
+                    // remove Query Parameter relevant import id
+                    var itemToRemove = query.QueryParameters.Single(r => r == " $relevantImportId: bigint");
+                    query.QueryParameters.Remove(itemToRemove);
+
+                    paramString = string.Join(" ", query.QueryParameters.ToArray());
+
+                    query.FullQuery = Queries.compact($@"{RuleQueries.ruleRecertFragments}
+                                        
+                    query rulesCertReport({paramString}) {{
+                        management(
+                            where: {{
+                                mgm_id: {{ _in: $mgmId }}
+                                hide_in_gui: {{ _eq: false }}
+                                stm_dev_typ: {{
+                                    dev_typ_is_multi_mgmt: {{ _eq: false }}
+                                    is_pure_routing_device: {{ _eq: false }}
+                                }}
+                            }}
+                            order_by: {{ mgm_name: asc }}
+                        ) {{
+                            id: mgm_id
+                            name: mgm_name
+                            devices(
+                                where: {{ hide_in_gui: {{ _eq: false }} }}
+                                order_by: {{ dev_name: asc }}
+                            ) {{
+                                id: dev_id
+                                name: dev_name
+                                rules: rules_with_owner(
+                                    limit: $limit
+                                    offset: $offset
+                                    order_by: {{ rule_num_numeric: asc }}
+                                ) {{
+                                    mgm_id: mgm_id
+                                    ...ruleCertOverview
+                                }}
+                            }}
+                        }}
+                    }}");
+                    break;
+                                                    
                 case ReportType.Changes:
                     query.FullQuery = Queries.compact($@"
                     {(detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}

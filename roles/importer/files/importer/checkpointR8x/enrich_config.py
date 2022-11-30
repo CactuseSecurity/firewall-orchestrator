@@ -5,7 +5,8 @@ import sys, os
 from common import importer_base_dir, set_ssl_verification
 sys.path.append(importer_base_dir)
 sys.path.append(importer_base_dir + "/checkpointR8x")
-import cpcommon, fwo_log, getter
+from fwo_log import getFwoLogger
+from cpcommon import use_object_dictionary, details_level, enrich_config
 
 
 parser = argparse.ArgumentParser(description='Read configuration from Check Point R8x management via API calls')
@@ -30,10 +31,8 @@ if len(sys.argv)==1:
 with open(args.password, "r") as password_file:
     api_password = password_file.read().rstrip()
 
-details_level = "full"    # 'standard'
-use_object_dictionary = 'false'
 debug_level = int(args.debug)
-logger = fwo_log.getFwoLogger()
+logger = getFwoLogger()
 config = {}
 starttime = int(time.time())
 
@@ -53,9 +52,7 @@ mgm_details = {
     ]
 }
 
-result = cpcommon.enrich_config (config, mgm_details, noapi=False,
-    limit=args.limit, details_level=details_level,
-    debug_level=debug_level, ssl_verification=set_ssl_verification(args.ssl, debug_level=debug_level))
+result = enrich_config (config, mgm_details, noapi=False, limit=args.limit, details_level=details_level)
 
 duration = int(time.time()) - starttime
 logger.debug ( "checkpointR8x/enrich_config - duration: " + str(duration) + "s" )

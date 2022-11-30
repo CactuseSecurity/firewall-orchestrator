@@ -11,6 +11,7 @@ namespace FWO.Api.Client.Queries
     {
         public static readonly string getDevicesByManagements;
         public static readonly string getManagementsDetails;
+        public static readonly string getManagementDetailsWithoutSecrets;
         public static readonly string getDeviceTypeDetails;
         public static readonly string newManagement;
         public static readonly string updateManagement;
@@ -24,6 +25,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getImportStatus;
         public static readonly string deleteImport;
         public static readonly string getCredentials;
+        public static readonly string getCredentialsWithoutSecrets;
         public static readonly string newCredential;
         public static readonly string updateCredential;
         public static readonly string deleteCredential;
@@ -36,7 +38,12 @@ namespace FWO.Api.Client.Queries
                 getDevicesByManagements = File.ReadAllText(QueryPath + "device/getDevicesByManagement.graphql");
                 getManagementsDetails = File.ReadAllText(QueryPath + "device/getManagementsDetails.graphql") + " " 
                                         + File.ReadAllText(QueryPath + "device/fragments/managementDetails.graphql") + " "
-                                        + File.ReadAllText(QueryPath + "device/fragments/deviceTypeDetails.graphql");
+                                        + File.ReadAllText(QueryPath + "device/fragments/deviceTypeDetails.graphql") + " "
+                                        + File.ReadAllText(QueryPath + "device/fragments/importCredentials.graphql");
+                getManagementDetailsWithoutSecrets = File.ReadAllText(QueryPath + "device/getManagementDetailsWithoutSecrets.graphql") + " " 
+                                        + File.ReadAllText(QueryPath + "device/fragments/managementDetailsWithoutSecrets.graphql") + " "
+                                        + File.ReadAllText(QueryPath + "device/fragments/deviceTypeDetails.graphql") + " "
+                                        + File.ReadAllText(QueryPath + "device/fragments/importCredentialsWithoutSecrets.graphql");
                 getDeviceTypeDetails = File.ReadAllText(QueryPath + "device/getDeviceTypeDetails.graphql") + " "
                                         + File.ReadAllText(QueryPath + "device/fragments/deviceTypeDetails.graphql");
                 newManagement = File.ReadAllText(QueryPath + "device/newManagement.graphql");
@@ -54,7 +61,10 @@ namespace FWO.Api.Client.Queries
                 getImportStatus = File.ReadAllText(QueryPath + "device/getImportStatus.graphql");
                 deleteImport = File.ReadAllText(QueryPath + "device/deleteImport.graphql");
                 
-                getCredentials = File.ReadAllText(QueryPath + "device/getCredentials.graphql");
+                getCredentials = File.ReadAllText(QueryPath + "device/getCredentials.graphql") + " " 
+                                    + File.ReadAllText(QueryPath + "device/fragments/importCredentials.graphql");
+                getCredentialsWithoutSecrets = File.ReadAllText(QueryPath + "device/getCredentialsWithoutSecrets.graphql") + " " 
+                                    + File.ReadAllText(QueryPath + "device/fragments/importCredentialsWithoutSecrets.graphql");
                 newCredential = File.ReadAllText(QueryPath + "device/newCredential.graphql");
                 updateCredential = File.ReadAllText(QueryPath + "device/updateCredential.graphql");
                 deleteCredential = File.ReadAllText(QueryPath + "device/deleteCredential.graphql");

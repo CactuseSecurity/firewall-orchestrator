@@ -10,9 +10,6 @@ from fwo_log import getFwoLogger
 import fwo_globals
 
 
-details_level = "full"    # 'standard'
-use_object_dictionary = 'false'
-
 # all obj table names to look at:
 api_obj_types = [
     'hosts', 'networks', 'groups', 'address-ranges', 'multicast-address-ranges', 'groups-with-exclusion', 'gateways-and-servers',

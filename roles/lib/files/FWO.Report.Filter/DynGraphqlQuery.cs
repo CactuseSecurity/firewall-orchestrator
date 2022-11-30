@@ -73,7 +73,6 @@ namespace FWO.Report.Filter
                     case ReportType.ResolvedRulesTech:
                     case ReportType.Statistics:
                     case ReportType.NatRules:
-                    case ReportType.Recertification:
                         query.ruleWhereStatement +=
                             $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
                             $"importControlByRuleLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
@@ -104,6 +103,12 @@ namespace FWO.Report.Filter
                         ]
                         change_type_id: {{ _eq: 3 }}
                         security_relevant: {{ _eq: true }}";
+                        break;
+                    case ReportType.Recertification:
+                        query.nwObjWhereStatement += "{}";
+                        query.svcObjWhereStatement += "{}";
+                        query.userObjWhereStatement += "{}";
+                        query.ReportTimeString = DateTime.Now.ToString(fullTimeFormat);
                         break;
                     default:
                         Log.WriteError("Filter", $"Unexpected report type found: {reportType}");
@@ -195,13 +200,16 @@ namespace FWO.Report.Filter
         private static void SetFixedFilters(ref DynGraphqlQuery query, DeviceFilter? deviceFilter, TimeFilter? timeFilter, ReportType? reportType)
         {
              // leave out all header texts
-            if (reportType != null && reportType == ReportType.Statistics)
+            if (reportType != null && reportType == ReportType.Statistics && reportType != ReportType.Recertification)
             {
                 query.ruleWhereStatement += "{rule_head_text: {_is_null: true}}, ";
             }
 
-            SetDeviceFilter(ref query, deviceFilter);
-            SetTimeFilter(ref query, timeFilter, reportType);
+            // if (reportType!=ReportType.Recertification)
+            // {
+                SetDeviceFilter(ref query, deviceFilter);
+                SetTimeFilter(ref query, timeFilter, reportType);
+            // }
         }
 
         public static DynGraphqlQuery GenerateQuery(string rawInput, AstNode? ast, DeviceFilter? deviceFilter, TimeFilter? timeFilter, ReportType? reportType, bool detailed)
@@ -224,9 +232,6 @@ namespace FWO.Report.Filter
             
             switch (reportType)
             {
-                // todo: move $mdmId filter from management into query.xxxWhereStatement
-                // management(where: {{mgm_id: {{_in: $mgmId }} }} order_by: {{ mgm_name: asc }}) 
-                        // management(order_by: {{ mgm_name: asc }}) 
                 case ReportType.Statistics:
                     query.FullQuery = Queries.compact($@"
                     query statisticsReport ({paramString}) 
@@ -295,6 +300,7 @@ namespace FWO.Report.Filter
                     // remove Query Parameter relevant import id
                     var itemToRemove = query.QueryParameters.Single(r => r == " $relevantImportId: bigint");
                     query.QueryParameters.Remove(itemToRemove);
+                    //query.ruleWhereStatement = "{}";
 
                     paramString = string.Join(" ", query.QueryParameters.ToArray());
 
@@ -321,6 +327,7 @@ namespace FWO.Report.Filter
                                 id: dev_id
                                 name: dev_name
                                 rules: rules_with_owner(
+                                    where: {{ {query.ruleWhereStatement} }} 
                                     limit: $limit
                                     offset: $offset
                                     order_by: {{ rule_num_numeric: asc }}
@@ -406,11 +413,23 @@ namespace FWO.Report.Filter
                     break;
             }
 
+            string pattern = "";
+
+            // remove comment lines (#) before joining lines!
+            // Regex.Replace("10, 20, 30", @"(\d+)$",match => (int.Parse(match.Value)+1).ToString())
+            // Regex.Replace(query.FullQuery, pattern, m => variablesDictionary[m.Value]);
+            // Regex pattern = new Regex(@"#(.*?)\n");
+
+            // TODO: get this working
+            // pattern = @"""[^""\\]*(?:\\[\W\w][^""\\]*)*""|(\#.*)";
+            // string pattern = @"(.*?)(#.*?)\n(.*?)";
+            // query.FullQuery = Regex.Replace(query.FullQuery, pattern, "");
+
             // remove line breaks and duplicate whitespaces
-            Regex pattern = new Regex("\\n");
-            query.FullQuery = pattern.Replace(query.FullQuery, "");
-            pattern = new Regex("\\s+");
-            query.FullQuery = pattern.Replace(query.FullQuery, " ");
+            pattern = @"\n";
+            query.FullQuery = Regex.Replace(query.FullQuery, pattern, "");
+            pattern = @"\s+";
+            query.FullQuery = Regex.Replace(query.FullQuery, pattern, " ");
             return query;
         }
     }

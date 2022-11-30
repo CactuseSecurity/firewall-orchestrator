@@ -68,6 +68,12 @@
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-3">@(userConfig.GetText("reqActivatePathAnalysis")):</label>
+        <div class="col-sm-2">
+            <input type="checkbox" @bind="configData!.ReqActivatePathAnalysis">
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAutoCreateImplTasks")):</label>
         <div class="col-sm-2">
             <select class="form-control form-control-sm" @bind="configData!.ReqAutoCreateImplTasks">

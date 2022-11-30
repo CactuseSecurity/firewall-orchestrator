@@ -8,7 +8,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("task") + ": " + ReqHandler.ActReqTask.Title)" Show="@ReqHandler.DisplayReqTaskMode" XLarge="true" OnClose="async () => Close()">
+<PopUp Title="@(userConfig.GetText("task") + ": " + ReqHandler.ActReqTask.Title)" Show="@ReqHandler.DisplayReqTaskMode" XLarge="true" OnClose="async () => await Close()">
     <Body>
         @if (ReqHandler.DisplayReqTaskMode)
         {
@@ -253,7 +253,7 @@
                     </div>
                 }
 
-                @if(ReqHandler.PlanReqTaskMode || ReqHandler.ApproveReqTaskMode)
+                @if(ReqHandler.EditReqTaskMode || ReqHandler.PlanReqTaskMode || ReqHandler.ApproveReqTaskMode)
                 {
                     <div class="col-sm-12">
                         <div class="form-group row justify-content-center">
@@ -319,6 +319,7 @@
 <PromoteObject @bind-Promote="ReqHandler.DisplayPromoteMode" ResetParent="Close" ObjectName="@ReqHandler.ActReqTask.Title" Save="ConfPromoteReqTask" StatefulObject="ReqHandler.ActReqTask" StateMatrix="ReqHandler.ActStateMatrix" States="States"/>
 <PromoteObject @bind-Promote="ReqHandler.DisplayApproveMode" ResetParent="Close" ObjectName="@userConfig.GetText("approval")" WithComment="true" Save="ConfApproveTask" StatefulObject="ReqHandler.ActApproval" StateMatrix="ReqHandler.ActStateMatrix" States="States"/>
 <CommentObject @bind-Display="ReqHandler.DisplayCommentMode" ResetParent="InitComments" ObjectName="@ReqHandler.ActReqTask.Title" Save="ConfAddComment"/>
+<DisplayPathAnalysis @bind-Display="ReqHandler.DisplayPathAnalysisMode" ResetParent="ResetPathAnalysis" ReqTask="ReqHandler.ActReqTask"/>
 
 @code
 {
@@ -411,6 +412,11 @@
         offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActReqTask, RequestObjectScopes.RequestTask, ReqHandler.Phase);
         devicesToAdd = ReqHandler.ActReqTask.getDeviceList().ToArray();
         StateHasChanged();
+    }
+
+    private async Task ResetPathAnalysis()
+    {
+        ReqHandler.DisplayPathAnalysisMode = false;
     }
 
     private string DisplayDevices()

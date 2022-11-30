@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class RequestOwnerBase
+    public class FwoOwnerBase
     {
         [JsonProperty("name"), JsonPropertyName("name")]
         public string Name { get; set; } = "";
@@ -30,10 +30,10 @@ namespace FWO.Api.Data
         public string ExtAppId { get; set; } = "";
 
 
-        public RequestOwnerBase()
+        public FwoOwnerBase()
         { }
 
-        public RequestOwnerBase(RequestOwnerBase owner)
+        public FwoOwnerBase(FwoOwnerBase owner)
         {
             Name = owner.Name;
             Dn = owner.Dn;

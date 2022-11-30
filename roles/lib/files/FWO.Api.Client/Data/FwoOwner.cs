@@ -3,25 +3,25 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public class RequestOwner : RequestOwnerBase
+    public class FwoOwner : FwoOwnerBase
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
 
 
-        public RequestOwner()
+        public FwoOwner()
         { }
 
-        public RequestOwner(RequestOwner owner) : base(owner)
+        public FwoOwner(FwoOwner owner) : base(owner)
         {
             Id = owner.Id;
         }
     }
 
-    public class RequestOwnerDataHelper
+    public class FwoOwnerDataHelper
     {
         [JsonProperty("owner"), JsonPropertyName("owner")]
-        public RequestOwner Owner { get; set; } = new RequestOwner();
+        public FwoOwner Owner { get; set; } = new FwoOwner();
     }
 
 }

@@ -78,5 +78,13 @@ namespace FWO.Api.Data
 
         public bool Certified { get; set; }
         public string DeviceName { get; set; } = "";
+
+        [JsonProperty("owner_name"), JsonPropertyName("owner_name")]
+        public string OwnerName {get; set;} = "";
+
+        [JsonProperty("matches"), JsonPropertyName("matches")]
+        public string IpMatch {get; set;} = "";
+
     }
+
 }

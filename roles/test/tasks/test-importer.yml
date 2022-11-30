@@ -1,10 +1,4 @@
 ---
-- debug:
-    var: test_fortigate_name
-
-- pause:
-    minutes: 30
-
 - name: make test fortinet import
   command: "./fworch-importer-single.pl mgm_name={{ test_fortigate_name }}"
   args:

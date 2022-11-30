@@ -84,24 +84,7 @@ namespace FWO.Api.Data
 
         [JsonProperty("matches"), JsonPropertyName("matches")]
         public string IpMatch {get; set;} = "";
-        // public IpMatchHelper IpMatch {get; set;} = new IpMatchHelper();
 
     }
-
-    // public class IpMatchHelper
-    // {
-    //     [JsonProperty("matches"), JsonPropertyName("matches")]
-    //     public List<string> IpMatches { get; set; } = new List<string>();
-
-    //     public override string ToString()
-    //     {
-    //         string result = "";
-    //         foreach (string match in IpMatches)
-    //         {
-    //             result += match;
-    //         }
-    //         return result;
-    //     }
-    // }
 
 }

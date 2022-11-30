@@ -30,8 +30,8 @@
       - name: apt update
         apt: update_cache=true
 
-      when: ansible_facts['distribution']|lower != 'ubuntu' or 
-        (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version'] is version('22', '<'))
+      # when: ansible_facts['distribution']|lower != 'ubuntu' or 
+      #   (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version'] is version('22', '<'))
 
     # - name: update /etc/apt/preferences for ubuntu >=22 (https://github.com/dotnet/sdk/issues/27129)
     #   blockinfile:
@@ -43,14 +43,14 @@
     #       Pin-Priority: 1001
     #   when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_major_version'] is version('22', '>=')
 
-    - name: make sure to use the ubuntu version of dotnet sdk on ubuntu >=22
-      file:
-        path: /etc/apt/sources.list.d/{{ item }}
-        state: absent
-      loop:
-        - "{{ dotnet_deb_name }}"
-        - microsoft-prod.list
-      when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_major_version'] is version('22', '>=')
+    # - name: make sure to use the ubuntu version of dotnet sdk on ubuntu >=22
+    #   file:
+    #     path: /etc/apt/sources.list.d/{{ item }}
+    #     state: absent
+    #   loop:
+    #     - "{{ dotnet_deb_name }}"
+    #     - microsoft-prod.list
+    #   when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_major_version'] is version('22', '>=')
 
     - name: Install apt-transport-https
       package: name=apt-transport-https state=present

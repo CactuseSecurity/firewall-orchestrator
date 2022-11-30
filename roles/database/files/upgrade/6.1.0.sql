@@ -86,16 +86,28 @@ CREATE OR REPLACE VIEW v_rule_with_dst_owner AS
 
 --drop view view_rule_with_owner;
 
+-- CREATE OR REPLACE VIEW view_rule_with_owner AS 
+-- 	SELECT DISTINCT r.rule_num_numeric, r.track_id, r.action_id, r.rule_from_zone, r.rule_to_zone, r.dev_id, r.mgm_id, r.rule_uid, uno.rule_id, uno.owner_id, uno.owner_name, uno.rule_last_certified, uno.rule_last_certifier, 
+-- 	rule_action, rule_name, rule_comment, rule_track, rule_src_neg, rule_dst_neg, rule_svc_neg,
+-- 	rule_head_text, rule_disabled, access_rule, xlate_rule, nat_rule,
+-- 	array_agg(DISTINCT match_in || ':' || matching_ip::VARCHAR order by match_in || ':' || matching_ip::VARCHAR desc) as matches
+-- 	FROM ( SELECT DISTINCT * FROM v_rule_with_src_owner UNION SELECT DISTINCT * FROM v_rule_with_dst_owner ) AS uno
+-- 	LEFT JOIN rule AS r USING (rule_id)
+-- 	GROUP BY rule_id, owner_id, owner_name, rule_last_certified, rule_last_certifier, r.rule_from_zone, r.rule_to_zone, 
+-- 		r.dev_id, r.mgm_id, r.rule_uid, rule_num_numeric, track_id, action_id, 	rule_action, rule_name, rule_comment, rule_track, rule_src_neg, rule_dst_neg, rule_svc_neg,
+-- 		rule_head_text, rule_disabled, access_rule, xlate_rule, nat_rule;
+
 CREATE OR REPLACE VIEW view_rule_with_owner AS 
 	SELECT DISTINCT r.rule_num_numeric, r.track_id, r.action_id, r.rule_from_zone, r.rule_to_zone, r.dev_id, r.mgm_id, r.rule_uid, uno.rule_id, uno.owner_id, uno.owner_name, uno.rule_last_certified, uno.rule_last_certifier, 
 	rule_action, rule_name, rule_comment, rule_track, rule_src_neg, rule_dst_neg, rule_svc_neg,
 	rule_head_text, rule_disabled, access_rule, xlate_rule, nat_rule,
-	array_agg(DISTINCT match_in || ':' || matching_ip::VARCHAR order by match_in || ':' || matching_ip::VARCHAR desc) as matches
+	string_agg(DISTINCT match_in || ':' || matching_ip::VARCHAR, '; ' order by match_in || ':' || matching_ip::VARCHAR desc) as matches
 	FROM ( SELECT DISTINCT * FROM v_rule_with_src_owner UNION SELECT DISTINCT * FROM v_rule_with_dst_owner ) AS uno
 	LEFT JOIN rule AS r USING (rule_id)
 	GROUP BY rule_id, owner_id, owner_name, rule_last_certified, rule_last_certifier, r.rule_from_zone, r.rule_to_zone, 
 		r.dev_id, r.mgm_id, r.rule_uid, rule_num_numeric, track_id, action_id, 	rule_action, rule_name, rule_comment, rule_track, rule_src_neg, rule_dst_neg, rule_svc_neg,
 		rule_head_text, rule_disabled, access_rule, xlate_rule, nat_rule;
+
 
 -- all rules for a specific owner without "any rules":
 -- select * from view_rule_with_owner
@@ -117,12 +129,11 @@ CREATE OR REPLACE VIEW view_rule_with_owner AS
 -- AND (NOT rule_src like '%Any' AND NOT rule_dst like  '%Any' AND NOT rule_src='all' AND NOT rule_dst='all')
 -- order by rule_id;
 
--- select rules for an owner without "any rules":
--- select rule_id, rule.rule_uid, matches, owner_id, owner_name, rule_metadata.rule_last_certified, rule_metadata.rule_last_certifier, mgm_id, rule.dev_id, rule_src, rule_dst, rule_svc, rule_action
--- from view_rule_with_owner
+-- select rule_id, rule.rule_uid, matches, owner_id, owner_name, rule_metadata.rule_last_certified, rule_metadata.rule_last_certifier, rule.dev_id, rule_src, rule_dst, rule_svc
+-- from view_rule_with_owner2
 -- left join rule using (rule_id)
 -- left join rule_metadata ON (rule.rule_uid=rule_metadata.rule_uid AND rule.dev_id=rule_metadata.dev_id)
--- where owner_name ='owner F'
+-- where owner_name ='ownerF_demo'
 -- AND (NOT rule_src like '%Any' AND NOT rule_dst like  '%Any' AND NOT rule_src='all' AND NOT rule_dst='all')
 -- AND rule.dev_id=2
--- order by mgm_id, dev_id, rule_id;
+-- order by dev_id, rule_id;

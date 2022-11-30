@@ -21,7 +21,7 @@ namespace FWO.Api.Data
         public List<RequestApproval> Approvals { get; set; } = new List<RequestApproval>();
 
         [JsonProperty("owners"), JsonPropertyName("owners")]
-        public List<RequestOwnerDataHelper> Owners { get; set; } = new List<RequestOwnerDataHelper>();
+        public List<FwoOwnerDataHelper> Owners { get; set; } = new List<FwoOwnerDataHelper>();
 
         [JsonProperty("comments"), JsonPropertyName("comments")]
         public List<RequestCommentDataHelper> Comments { get; set; } = new List<RequestCommentDataHelper>();

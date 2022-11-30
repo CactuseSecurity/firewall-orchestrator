@@ -170,7 +170,7 @@
                 }
                 else
                 {
-                    <small> @(userConfig.GetText("report_duration")) @(reportGenerationDuration/60.0).ToString("0.00") @(userConfig.GetText("minutes")).</small>
+                    <small> @(userConfig.GetText("report_duration")) @((reportGenerationDuration/60.0).ToString("0.00")) @(userConfig.GetText("minutes")).</small>
                 }
             }
         }

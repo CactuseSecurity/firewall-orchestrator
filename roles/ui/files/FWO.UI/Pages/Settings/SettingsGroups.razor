@@ -46,6 +46,11 @@
             </Template>
         </Column>
         <Column TableItem="UserGroup" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+        <Column TableItem="UserGroup" Title="@(userConfig.GetText("owner_group"))" Field="@(x => x.OwnerGroup)" Sortable="true" Filterable="true">
+            <Template>
+                @(GlobalConfig.ShowBool(context.OwnerGroup))
+            </Template>
+        </Column>
         <Column TableItem="UserGroup" Title="@(userConfig.GetText("users"))" Field="@(x => x.Users)" Sortable="false" Filterable="false">
             <Template>
                 @(context.UserList())
@@ -63,6 +68,19 @@
                     <label for="groupName" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
                     <div class="col-sm-8">
                         <input id="groupName" type="text" class="form-control form-control-sm" @bind="newGroupName" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="ownerGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("owner_group")):</label>
+                    <div class="col-sm-8">
+                        @if (AddGroupMode)
+                        {
+                            <input id="ownerGroup" type="checkbox" @bind="ownerGroup">
+                        }
+                        else
+                        {
+                            <input id="ownerGroup" type="checkbox" @bind="ownerGroup" disabled>
+                        }
                     </div>
                 </div>
                 <div class="form-group row">
@@ -248,6 +266,7 @@
 
     private UserGroup actGroup = new UserGroup();
     private string newGroupName = "";
+    private bool ownerGroup = false;
 
     private bool AddGroupMode = false;
     private bool EditGroupMode = false;
@@ -266,28 +285,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // get groups from internal LDAP
         try
         { 
-            RestResponse<List<GroupGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetInternalGroups();
-            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
-            }
-            else
-            {
-                foreach (var ldapUserGroup in middlewareServerResponse.Data)
-                {
-                    UserGroup group = new UserGroup() { Dn = ldapUserGroup.GroupDn, Name = (new DistName(ldapUserGroup.GroupDn)).Group };
-                    foreach (var userDn in ldapUserGroup.Members)
-                    {
-                        UiUser newUser = new UiUser() { Dn = userDn, Name = (new DistName(userDn)).UserName };
-                        group.Users.Add(newUser);
-                    }
-                    groups.Add(group);
-                }
-            }
-        
+            groups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi!);
             CollectSampleGroups();
 
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
@@ -359,6 +359,7 @@
     {
         actGroup = group;
         newGroupName = actGroup.Name;
+        ownerGroup = actGroup.OwnerGroup;
         EditGroupMode = true;
     }
 
@@ -384,7 +385,7 @@
                     }
 
                     // insert new group to ldap
-                    GroupAddDeleteParameters addGroupParameters = new GroupAddDeleteParameters { GroupName = newGroupName };
+                    GroupAddDeleteParameters addGroupParameters = new GroupAddDeleteParameters { GroupName = newGroupName, OwnerGroup = ownerGroup };
                     RestResponse<string> middlewareServerResponse = await middlewareClient.AddGroup(addGroupParameters);
                     
                     if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null || middlewareServerResponse.Data == "")
@@ -395,6 +396,7 @@
                     {
                         actGroup.Dn = middlewareServerResponse.Data;
                         actGroup.Name = newGroupName;
+                        actGroup.OwnerGroup = ownerGroup;
                         groups.Add(actGroup);
                         await AddGroupToRolesInLdap(actGroup);
                         AddGroupMode = false;

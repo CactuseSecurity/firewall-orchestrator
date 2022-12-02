@@ -468,7 +468,12 @@ namespace FWO.Middleware.Server
                                 members.Add(currentDn);
                             }
                         }
-                        allGroups.Add(new GroupGetReturnParameters(){GroupDn = entry.Dn, Members = members});
+                        allGroups.Add(new GroupGetReturnParameters()
+                        {
+                            GroupDn = entry.Dn, 
+                            Members = members, 
+                            OwnerGroup = (entry.GetAttributeSet().ContainsKey("businessCategory") ? (entry.GetAttribute("businessCategory").StringValue == "ownerGroup") : false)
+                        });
                     }
                 }
             }
@@ -630,7 +635,7 @@ namespace FWO.Middleware.Server
             return userDeleted;
         }
 
-        public string AddGroup(string groupName)
+        public string AddGroup(string groupName, bool ownerGroup)
         {
             Log.WriteInfo("Add Group", $"Trying to add Group: \"{groupName}\"");
             bool groupAdded = false;
@@ -647,6 +652,10 @@ namespace FWO.Middleware.Server
                     LdapAttributeSet attributeSet = new LdapAttributeSet();
                     attributeSet.Add( new LdapAttribute("objectclass", "groupofuniquenames"));
                     attributeSet.Add( new LdapAttribute("uniqueMember", ""));
+                    if (ownerGroup)
+                    {
+                        attributeSet.Add( new LdapAttribute("businessCategory", "ownerGroup"));
+                    }
 
                     LdapEntry newEntry = new LdapEntry( groupDn, attributeSet );
 

@@ -532,24 +532,7 @@
     {
         try
         {
-            RestResponse<List<GroupGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetInternalGroups();
-            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
-            }
-            else
-            {
-                foreach (var ldapUserGroup in middlewareServerResponse.Data)
-                {
-                    UserGroup group = new UserGroup() { Dn = ldapUserGroup.GroupDn, Name = (new DistName(ldapUserGroup.GroupDn)).Group };
-                    foreach (var userDn in ldapUserGroup.Members)
-                    {
-                        UiUser newUser = new UiUser() { Dn = userDn, Name = (new DistName(userDn)).UserName };
-                        group.Users.Add(newUser);
-                    }
-                    groups.Add(group);
-                }
-            }
+            groups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi!);
         }
         catch (System.Exception exception)
         {

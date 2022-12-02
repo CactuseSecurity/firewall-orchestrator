@@ -4,6 +4,7 @@
     {
         public string Name = "";
         public string Dn = "";
+        public bool OwnerGroup = false;
         public List<UiUser> Users { get; set; } = new List<UiUser>();
         public List<string> Roles { get; set; } = new List<string>();
 
@@ -14,6 +15,7 @@
         {
             Name = group.Name;
             Dn = group.Dn;
+            OwnerGroup = group.OwnerGroup;
             Users = new List<UiUser>(group.Users);
             Roles = new List<string>(group.Roles);
         }

@@ -90,7 +90,13 @@
                     <div class="form-group row">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("group"))*:</label>
                         <div class="col-sm-9">
-                            <input type="text" class="form-control form-control-sm" @bind="actOwner.GroupDn" />
+                            <select id="userGroup" class="form-control-sm col-sm" @bind="actOwner.GroupDn">
+                                <option value="">@(userConfig.GetText("none"))</option>
+                                @foreach (UserGroup group in ownerGroups)
+                                {
+                                    <option value="@group.Name">@(group.Name)</option>
+                                }
+                            </select>
                         </div>
                     </div>
                     <div class="form-group row">
@@ -149,6 +155,7 @@
     private List<FwoOwner> owners = new List<FwoOwner>();
     private FwoOwner actOwner = new FwoOwner();
 
+    private List<UserGroup> ownerGroups = new List<UserGroup>();
     private List<Tenant> tenants = new List<Tenant>();
 
     private bool EditOwnerMode = false;
@@ -161,6 +168,9 @@
         try
         {
             owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+
+            ownerGroups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi!, true);
+
             RestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
             {

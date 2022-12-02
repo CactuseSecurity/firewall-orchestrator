@@ -227,6 +227,9 @@ namespace FWO.Report.Filter
             query.ruleWhereStatement += "}] ";
 
             string paramString = string.Join(" ", query.QueryParameters.ToArray());
+
+            if (filter.ReportParams.ReportType == (int) ReportType.ResolvedRules || filter.ReportParams.ReportType == (int) ReportType.ResolvedRulesTech)
+                filter.Detailed = true;
             
             switch ((ReportType) filter.ReportParams.ReportType)
             {

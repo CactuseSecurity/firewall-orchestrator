@@ -1,12 +1,12 @@
 # zentrales Config-File
 
-TopDir	/usr/local/fworch		# Installationsverzeichnis
+TopDir	{{ fworch_home }}		# Installationsverzeichnis
 	
 ###################### database connection ##############################
-fworch database hostname              127.0.0.1
+fworch database hostname              {{ fworch_db_host }}
 fworch database type                  DBX_PGSQL
-fworch database name                  fworchdb
-fworch database port                  5432
+fworch database name                  {{ fworch_db_name }}
+fworch database port                  {{ fworch_db_port }}
 
 ###################### logging options ##################################
 set loglevel		7

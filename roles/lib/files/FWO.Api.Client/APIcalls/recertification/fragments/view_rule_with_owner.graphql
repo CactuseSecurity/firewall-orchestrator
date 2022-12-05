@@ -1,4 +1,3 @@
-
 fragment ruleCertOverview on view_rule_with_owner {
   rule_id
   rule_uid
@@ -6,15 +5,16 @@ fragment ruleCertOverview on view_rule_with_owner {
   owner_name
   matches
   rule_action
+  device { dev_id }
   section_header: rule_head_text
   rule_comment
   rule_track
   rule_disabled
-  src_zone: zone_from_rel {
+  src_zone {
     zone_name
     zone_id
   }
-  rule_metadatum: rule_metadata_rel {
+  rule_metadatum {
     rule_metadata_id
     rule_created
     rule_first_hit
@@ -34,7 +34,7 @@ fragment ruleCertOverview on view_rule_with_owner {
   access_rule
   nat_rule
   xlate_rule
-  rule_froms: rule_from_rel {
+  rule_froms {
     usr {
       ...userOverview
     }
@@ -42,11 +42,11 @@ fragment ruleCertOverview on view_rule_with_owner {
       ...networkObjectOverview
     }
   }
-  dst_zone: zone_to_rel {
+  dst_zone {
     zone_name
     zone_id
   }
-  rule_tos: rule_to_rel {
+  rule_tos {
     usr {
       ...userOverview
     }
@@ -54,7 +54,7 @@ fragment ruleCertOverview on view_rule_with_owner {
       ...networkObjectOverview
     }
   }
-  rule_services: rule_svc_rel {
+  rule_services {
     service {
       ...networkServiceOverview
     }

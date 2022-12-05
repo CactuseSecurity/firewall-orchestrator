@@ -26,16 +26,20 @@ namespace FWO.Api.Data
         [JsonProperty("report_parameters"), JsonPropertyName("report_parameters")]
         public ReportParams ReportParams { get; set; } = new ReportParams();
 
+        public bool Detailed = false;
+
    
         public ReportTemplate()
         {}
 
-        public ReportTemplate(string filter, DeviceFilter deviceFilter, int? reportType, TimeFilter timeFilter)
+        public ReportTemplate(string filter = "", DeviceFilter deviceFilter = null, int? reportType = 0, TimeFilter timeFilter = null, RecertFilter recertFilter = null)
         {
             Filter = filter;
             ReportParams.DeviceFilter = deviceFilter;
             ReportParams.ReportType = reportType;
             ReportParams.TimeFilter = timeFilter;
+            ReportParams.RecertFilter = recertFilter;
+            Detailed = false;
         }
 
         public bool Sanitize()
@@ -57,5 +61,8 @@ namespace FWO.Api.Data
 
         [JsonProperty("time_filter"), JsonPropertyName("time_filter")]
         public TimeFilter TimeFilter { get; set; } = new TimeFilter();
+
+        [JsonProperty("recert_filter"), JsonPropertyName("recert_filter")]
+        public RecertFilter RecertFilter { get; set; } = new RecertFilter();
     }
 }

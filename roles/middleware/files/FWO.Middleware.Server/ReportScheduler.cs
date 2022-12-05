@@ -148,11 +148,7 @@ namespace FWO.Middleware.Server
                         report.Template.ReportParams.DeviceFilter.applyFullDeviceSelection(true);
                     }
 
-                    ReportBase reportRules = ReportBase.ConstructReport(report.Template.Filter, 
-                        report.Template.ReportParams.DeviceFilter,
-                        report.Template.ReportParams.TimeFilter, 
-                        (report.Template.ReportParams.ReportType != null ? (ReportType)report.Template.ReportParams.ReportType : ReportType.Rules),
-                        userConfig);
+                    ReportBase reportRules = ReportBase.ConstructReport(report.Template, userConfig);
                     Management[] managementsReport = Array.Empty<Management>();
                     await reportRules.Generate(int.MaxValue, apiConnectionUserContext, 
                         managementsReportIntermediate =>

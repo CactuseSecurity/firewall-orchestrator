@@ -838,10 +838,20 @@ INSERT INTO txt VALUES ('marked_to_be_removed', 'German',   'Als zu l&ouml;schen
 INSERT INTO txt VALUES ('marked_to_be_removed', 'English',  'Marked to be removed');
 INSERT INTO txt VALUES ('decert_date',          'German',   'Dezertifizierungsdatum');
 INSERT INTO txt VALUES ('decert_date',          'English',  'Decertification date');
-INSERT INTO txt VALUES ('recert_comment',       'German',   'Zertifzierungskommentar');
+INSERT INTO txt VALUES ('recert_comment',       'German',   'Zertifizierungskommentar');
 INSERT INTO txt VALUES ('recert_comment',       'English',  'Certification comment');
 INSERT INTO txt VALUES ('ip_matches',           'German',   'IP-Adress-&Uuml;bereinstimmung');
 INSERT INTO txt VALUES ('ip_matches',           'English',  'IP address match');
+INSERT INTO txt VALUES ('overdue_recert',       'German',   'nur&nbsp;&uuml;berf&auml;llige&nbsp;Regeln');
+INSERT INTO txt VALUES ('overdue_recert',       'English',  'only&nbsp;overdue&nbsp;rules');
+INSERT INTO txt VALUES ('recert_parameter',     'German',   'Rezertifizierungsparameter');
+INSERT INTO txt VALUES ('recert_parameter',     'English',  'Recertification Parameters');
+INSERT INTO txt VALUES ('without_owner',        'German',   'nur Regeln ohne Eigent&uuml;mer');
+INSERT INTO txt VALUES ('without_owner',        'English',  'only ownerless rules');
+INSERT INTO txt VALUES ('show_any_match',       'German',   'Any-Regeln anzeigen');
+INSERT INTO txt VALUES ('show_any_match',       'English',  'show any rules');
+INSERT INTO txt VALUES ('single_line_per_rule', 'German',   'eine Zeile pro Regel');
+INSERT INTO txt VALUES ('single_line_per_rule', 'English',  'one line per rule');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');

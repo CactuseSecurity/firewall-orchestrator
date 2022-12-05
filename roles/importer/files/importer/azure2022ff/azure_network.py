@@ -1,8 +1,8 @@
 from asyncio.log import logger
 from fwo_log import getFwoLogger
 from fwo_const import list_delimiter
-from netaddr import IPAddress
-import random
+import ipaddress
+
 
 def normalize_nwobjects(full_config, config2import, import_id, jwt=None, mgm_id=None):
     nw_objects = []
@@ -51,7 +51,15 @@ def parse_obj_list(ip_list, import_id, config, id):
         ip_obj = {}
         ip_obj['obj_name'] = ip
         ip_obj['obj_uid'] = ip_obj['obj_name'] + "_" + id
-        ip_obj['obj_ip'] = ip
+        try:
+            ipaddress.ip_network(ip)
+            # valid ip
+            ip_obj['obj_ip'] = ip
+        except:
+            # no valid ip - asuming azureTag
+            ip_obj['obj_ip'] = '0.0.0.0/0'
+            ip = '0.0.0.0/0'
+            ip_obj['obj_name'] = "#"+ip_obj['obj_name']
         ip_obj['obj_type'] = 'simple'
         ip_obj['obj_typ'] = 'host'
         if "/" in ip:
@@ -59,7 +67,7 @@ def parse_obj_list(ip_list, import_id, config, id):
 
         if "-" in ip: # ip range
             ip_obj['obj_typ'] = 'ip_range'
-            ip_range = ip_obj.split("-")
+            ip_range = ip.split("-")
             ip_obj['obj_ip'] = ip_range[0]
             ip_obj['obj_ip_end'] = ip_range[1]
         
@@ -84,9 +92,9 @@ def parse_object(obj_orig, import_id, config2import, nw_objects):
         obj["obj_typ"] = "host"
         obj["obj_ip"] = obj_orig["ip"]
         if obj_orig["ip"].find(":") != -1:  # ipv6
-            obj["obj_ip"] + "/128"
+            obj["obj_ip"] += "/128"
         else:                               # ipv4
-            obj["obj_ip"] + "/32"
+            obj["obj_ip"] += "/32"
     elif obj_orig["type"] == "ip_range": # ip range
         obj['obj_typ'] = 'ip_range'
         ip_range = obj_orig['ip'].split("-")

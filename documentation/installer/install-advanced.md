@@ -202,6 +202,60 @@ ansible-playbook -e "ui_server_alias='fwodemo.cactus.de fwo2.cactus.de'" site.ym
 
 ## Distributed setup with multiple servers
 
+You have to edit inventory/hosts.yml according to your needs
+
+install-srv is the local machine the installation is started from. By default FWO is installed on this server
+
+If you want to use distributed machines add them like ui-srv and test-srv in the following example
+
+```console
+all:
+  hosts:
+    install-srv:
+      ansible_connection: local
+      ansible_host: localhost
+    ui-srv:
+      ansible_connection: ssh
+      ansible_host: 192.168.121.2
+    test-srv:
+      ansible_connection: ssh
+      ansible_host: test.example.com
+```
+
+The names you define (like ui-srv and test-srv) are abitrary and only relevant in the hosts.yml file.
+
+After you defined additional distributed servers you have to add them to the host groups in hosts.yml
+
+```console
+  children:
+    frontends:
+      hosts:
+        ui-srv:
+    databaseserver:
+      hosts:
+        install-srv:
+    apiserver:
+      hosts:
+        install-srv:
+    importers:
+      hosts:
+        install-srv:
+    middlewareserver:
+      hosts:
+        install-srv:
+    sampleserver:
+      hosts:
+        test-srv:
+    testservers:
+      hosts:
+        test-srv:
+    logserver:
+      hosts:
+        install-srv:
+```
+
+## old
+
 if you want to distribute functionality to different hosts:
 
 modify firewall-orchestrator/inventory/hosts to your needs

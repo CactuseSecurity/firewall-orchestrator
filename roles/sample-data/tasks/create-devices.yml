@@ -1,5 +1,4 @@
 # this playbook sets up some sample devices with configs to play around with
-# to be executed on the backend server (aka localhost) only which will work as demo data ssh server
 
 - name: read ssh_priv_key into var
   slurp:
@@ -10,10 +9,7 @@
 - name: decode key
   set_fact:
     sample_ssh_priv_key: "{{ sample_ssh_priv_key_dict['content'] | b64decode }}"
-
-#  this assumes that we only use sample data for single machine installations and that the ansible_hostname is the real hostname
-- set_fact: importer_hostname="{{ ansible_hostname }}" 
-
+ 
 - block:
 
     - name: insert demo import credentials
@@ -35,7 +31,7 @@
           IF NOT EXISTS (SELECT * FROM management WHERE mgm_name='{{ sample_fortigate_name }}') THEN 
           insert into management 
           (dev_typ_id,mgm_name,import_credential_id,ssh_hostname,do_not_import,config_path,importer_hostname)
-          VALUES (4,'{{ sample_fortigate_name }}',0,'{{ import_sample_server }}',false,'sample-configs/fortinet_demo/','{{ importer_hostname }}');
+          VALUES (4,'{{ sample_fortigate_name }}',0,'{{ importer_hostname }}',false,'sample-configs/fortinet_demo/','{{ importer_hostname }}');
           END IF; END $do$ 
 
     - name: insert test fortinet gateway
@@ -55,7 +51,7 @@
           DO $do$ BEGIN 
           IF NOT EXISTS (SELECT * FROM management WHERE mgm_name='checkpoint_demo') THEN 
           insert into management (dev_typ_id,mgm_name,import_credential_id,ssh_hostname,do_not_import,config_path,importer_hostname) 
-          VALUES (7,'checkpoint_demo',0,'{{ import_sample_server }}',false, 'sample-configs/checkpoint_demo/','{{ importer_hostname }}'); 
+          VALUES (7,'checkpoint_demo',0,'{{ importer_hostname }}',false, 'sample-configs/checkpoint_demo/','{{ importer_hostname }}'); 
           END IF; END $do$ 
       when: sample_role_purpose is not match('test')
 
@@ -89,7 +85,7 @@
           DO $do$ BEGIN 
           IF NOT EXISTS (SELECT * FROM management WHERE mgm_name='{{ sample_checkpoint_name }}') THEN 
           insert into management (dev_typ_id,mgm_name,import_credential_id,ssh_hostname,do_not_import,importer_hostname) 
-          VALUES (9,'{{ sample_checkpoint_name }}',-1,'{{ import_sample_server }}',false,'{{ importer_hostname }}'); 
+          VALUES (9,'{{ sample_checkpoint_name }}',-1,'{{ importer_hostname }}',false,'{{ importer_hostname }}'); 
           END IF; END $do$ 
       when: sample_role_purpose is match('test')
 

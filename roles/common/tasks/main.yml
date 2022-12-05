@@ -176,8 +176,8 @@
         (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version']|int is version('20', '>'))
 
     - name: copy iso.conf to target
-      copy:
-        src: iso.conf
+      template:
+        src: iso.conf.j2
         dest: "{{ fworch_home }}/etc/iso.conf"
         owner: "{{ fworch_user }}"
         group: "{{ fworch_group }}"

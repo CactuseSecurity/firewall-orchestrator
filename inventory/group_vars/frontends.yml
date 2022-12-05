@@ -16,7 +16,6 @@ ui_server_name: fworch-test-server
 # further aliases:
 ui_server_alias: fwodemo.cactus.de
 
-ui_hostname: "localhost"
 ui_php_dir: "{{ fworch_home }}/web/htdocs"
 ui_php_web_port: 8443
 ui_service_name: "{{ product_name }}-ui"

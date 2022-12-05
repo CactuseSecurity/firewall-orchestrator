@@ -45,7 +45,7 @@ That's it. Firewall-orchestrator is ready for usage. You will find the randomly 
 ```
 ...
 TASK [display secrets for this installation] ***********************************
-ok: [fworch-srv] => {
+ok: [install-srv] => {
     "msg": [
         "Your initial UI admin password is 'xxx'",
         "Your api hasura admin secret is 'yyy'"
@@ -53,7 +53,7 @@ ok: [fworch-srv] => {
 }
 
 PLAY RECAP *********************************************************************
-fworch-srv                 : ok=302  changed=171  unreachable=0    failed=0    skipped=127  rescued=0    ignored=0
+install-srv                 : ok=302  changed=171  unreachable=0    failed=0    skipped=127  rescued=0    ignored=0
 ```
 Simply navigate to <https://localhost/> and login with user 'admin' and the UI admin password.
 

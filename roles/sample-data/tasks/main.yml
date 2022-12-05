@@ -24,13 +24,19 @@
   include_tasks: create-devices.yml
   when: installation_mode=='new' or sample_role_purpose is match('test')
 
-#todo: above we are adding localhost keys to known_hosts, here again but hashed. Both necessary?
 - name: scan localhost ssh keys
   known_hosts:
     name: 127.0.0.1
     key: "{{ lookup('pipe', 'ssh-keyscan -H 127.0.0.1') }}"
   become: yes
-  become_user: "{{ fworch_user }}" 
+  become_user: "{{ fworch_user }}"
+
+- name: scan sampleserver ssh keys
+  known_hosts:
+    name: "{{ sample_hostname }}"
+    key: "{{ lookup('pipe', 'ssh-keyscan -H '+sample_hostname) }}"
+  become: yes
+  become_user: "{{ fworch_user }}"
 
 - name: establish cron job to simulate changes to configs (only demo and new installation)
   include_tasks: setup-config-changes.yml

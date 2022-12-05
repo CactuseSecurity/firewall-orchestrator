@@ -1,8 +1,8 @@
 from asyncio.log import logger
 from fwo_log import getFwoLogger
 from fwo_const import list_delimiter
-from netaddr import IPAddress
-import random
+import ipaddress
+
 
 def normalize_nwobjects(full_config, config2import, import_id, jwt=None, mgm_id=None):
     nw_objects = []
@@ -52,14 +52,14 @@ def parse_obj_list(ip_list, import_id, config, id):
         ip_obj['obj_name'] = ip
         ip_obj['obj_uid'] = ip_obj['obj_name'] + "_" + id
         try:
-            ip_check = IPAddress(ip)
+            ipaddress.ip_network(ip)
             # valid ip
             ip_obj['obj_ip'] = ip
         except:
-            # no valid ip
+            # no valid ip - asuming azureTag
             ip_obj['obj_ip'] = '0.0.0.0/0'
             ip = '0.0.0.0/0'
-
+            ip_obj['obj_name'] = "#"+ip_obj['obj_name']
         ip_obj['obj_type'] = 'simple'
         ip_obj['obj_typ'] = 'host'
         if "/" in ip:

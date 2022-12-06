@@ -49,8 +49,8 @@ namespace FWO.Api.Data
         {
             bool shortened = false;
             Name = Sanitizer.SanitizeMand(Name, ref shortened);
-            Dn = Sanitizer.SanitizeLdapNameMand(Dn, ref shortened);
-            GroupDn = Sanitizer.SanitizeLdapNameMand(GroupDn, ref shortened);
+            Dn = Sanitizer.SanitizeLdapPathMand(Dn, ref shortened);
+            GroupDn = Sanitizer.SanitizeLdapPathMand(GroupDn, ref shortened);
             ExtAppId = Sanitizer.SanitizeMand(ExtAppId, ref shortened);
             return shortened;
         }

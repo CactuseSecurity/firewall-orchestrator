@@ -1004,7 +1004,7 @@ INSERT INTO txt VALUES ('assign_user_to_group',	'German',	'Nutzer zu Gruppe zuor
 INSERT INTO txt VALUES ('assign_user_to_group',	'English',	'Assign user to group');
 INSERT INTO txt VALUES ('remove_user_from_group','German',	'Nutzer von Gruppe entfernen');
 INSERT INTO txt VALUES ('remove_user_from_group','English',	'Remove user from group');
-INSERT INTO txt VALUES ('assign_user_group_to_role','German','Nutzer/Gruppe zu Rolle zuordnenen');
+INSERT INTO txt VALUES ('assign_user_group_to_role','German','Nutzer/Gruppe zu Rolle zuordnen');
 INSERT INTO txt VALUES ('assign_user_group_to_role','English','Assign user/group to role');
 INSERT INTO txt VALUES ('remove_user_group_from_role','German','Nutzer/Gruppe von Rolle entfernen');
 INSERT INTO txt VALUES ('remove_user_group_from_role','English','Remove user/group from role');
@@ -1866,6 +1866,8 @@ INSERT INTO txt VALUES ('E5285', 'German',  'Mandant konnte nicht ge&auml;ndert 
 INSERT INTO txt VALUES ('E5285', 'English', 'Tenant could not be updated');
 INSERT INTO txt VALUES ('E5291', 'German',  'Eigent&uuml;mer konnte nicht gespeichert werden');
 INSERT INTO txt VALUES ('E5291', 'English', 'Owner could not be saved');
+INSERT INTO txt VALUES ('E5292', 'German',  'Dn oder Gruppe muss gef&uuml;llt sein');
+INSERT INTO txt VALUES ('E5292', 'English', 'Dn or group has to be filled');
 
 INSERT INTO txt VALUES ('E5301', 'German',  'Konfiguration f&uuml;r Standardsprache konnte nicht gelesen werden: Wert auf Englisch gesetzt');
 INSERT INTO txt VALUES ('E5301', 'English', 'Error reading Config for default language: taking default English');

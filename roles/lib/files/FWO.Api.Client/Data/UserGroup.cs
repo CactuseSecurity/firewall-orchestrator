@@ -30,6 +30,11 @@
             return string.Join(", ", userNames);
         }
 
+        public string RoleList()
+        {
+            return string.Join(", ", Roles);
+        }
+
         public bool Sanitize()
         {
             bool shortened = false;

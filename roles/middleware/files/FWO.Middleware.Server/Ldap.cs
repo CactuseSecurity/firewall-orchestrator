@@ -472,7 +472,7 @@ namespace FWO.Middleware.Server
                         {
                             GroupDn = entry.Dn, 
                             Members = members, 
-                            OwnerGroup = (entry.GetAttributeSet().ContainsKey("businessCategory") ? (entry.GetAttribute("businessCategory").StringValue == "ownerGroup") : false)
+                            OwnerGroup = (entry.GetAttributeSet().ContainsKey("businessCategory") ? (entry.GetAttribute("businessCategory").StringValue == "ownergroup") : false)
                         });
                     }
                 }
@@ -654,7 +654,7 @@ namespace FWO.Middleware.Server
                     attributeSet.Add( new LdapAttribute("uniqueMember", ""));
                     if (ownerGroup)
                     {
-                        attributeSet.Add( new LdapAttribute("businessCategory", "ownerGroup"));
+                        attributeSet.Add( new LdapAttribute("businessCategory", "ownergroup"));
                     }
 
                     LdapEntry newEntry = new LdapEntry( groupDn, attributeSet );

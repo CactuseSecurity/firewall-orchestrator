@@ -14235,7 +14235,7 @@
               },
               "object_relationships": [
                 {
-                  "name": "dev_rel",
+                  "name": "device",
                   "using": {
                     "manual_configuration": {
                       "column_mapping": {
@@ -14250,7 +14250,22 @@
                   }
                 },
                 {
-                  "name": "rule_metadata_rel",
+                  "name": "dst_zone",
+                  "using": {
+                    "manual_configuration": {
+                      "column_mapping": {
+                        "rule_to_zone": "zone_id"
+                      },
+                      "insertion_order": null,
+                      "remote_table": {
+                        "name": "zone",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "rule_metadatum",
                   "using": {
                     "manual_configuration": {
                       "column_mapping": {
@@ -14266,7 +14281,7 @@
                   }
                 },
                 {
-                  "name": "zone_from_rel",
+                  "name": "src_zone",
                   "using": {
                     "manual_configuration": {
                       "column_mapping": {
@@ -14279,26 +14294,11 @@
                       }
                     }
                   }
-                },
-                {
-                  "name": "zone_to_rel",
-                  "using": {
-                    "manual_configuration": {
-                      "column_mapping": {
-                        "rule_to_zone": "zone_id"
-                      },
-                      "insertion_order": null,
-                      "remote_table": {
-                        "name": "zone",
-                        "schema": "public"
-                      }
-                    }
-                  }
                 }
               ],
               "array_relationships": [
                 {
-                  "name": "rule_from_rel",
+                  "name": "rule_froms",
                   "using": {
                     "manual_configuration": {
                       "column_mapping": {
@@ -14313,7 +14313,7 @@
                   }
                 },
                 {
-                  "name": "rule_svc_rel",
+                  "name": "rule_services",
                   "using": {
                     "manual_configuration": {
                       "column_mapping": {
@@ -14328,7 +14328,7 @@
                   }
                 },
                 {
-                  "name": "rule_to_rel",
+                  "name": "rule_tos",
                   "using": {
                     "manual_configuration": {
                       "column_mapping": {

@@ -59,7 +59,7 @@
     - name: restart apache
       service:
        name: "{{ webserver_package_name }}"
-       state: restarted     
+       state: restarted
 
   become: yes
   environment: "{{ proxy_env }}"

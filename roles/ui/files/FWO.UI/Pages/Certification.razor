@@ -204,7 +204,9 @@
             }
 
             SyncFilterToDisplay();
-            currentReport = ReportBase.ConstructReport(filterInput, deviceFilter, new TimeFilter(), ReportType.Rules, userConfig);
+            RecertFilter recertFilter = new RecertFilter(); // (recertOverdueOnly, recertWithoutOwner, recertShowAnyMatch, recertSingleLinePerRule);
+            ReportTemplate reportParams = new ReportTemplate("", deviceFilter, (int) ReportType.Recertification, null, recertFilter);
+            currentReport = ReportBase.ConstructReport(reportParams, userConfig);
 
             DateTime startTime = DateTime.Now;
             managements = new Management[0]; // reset management data when switching between reports

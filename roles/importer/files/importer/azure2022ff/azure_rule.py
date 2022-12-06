@@ -34,6 +34,11 @@ def make_hashable(o):
 
 def normalize_access_rules(full_config, config2import, import_id, mgm_details={}):
     rules = []
+
+    nw_obj_names = []
+    for o in config2import['network_objects']:
+        nw_obj_names.append(o["obj_name"])
+
     for device in full_config["devices"]:     
         rule_number = 0
         for policy_name in full_config['devices'].keys():
@@ -68,6 +73,15 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
                             if "sourceAddresses" in rule_orig:
                                 rule['rule_src_refs'], rule["rule_src"] = parse_obj_list(rule_orig["sourceAddresses"], import_id, config2import['network_objects'], rule["rule_uid"])
                             if "destinationAddresses" in rule_orig:
+                                undefObjects = []
+
+                                for obj in rule_orig['destinationAddresses']:
+                                    if "obj_name" in obj:
+                                        if obj["obj_name"] not in nw_obj_names:
+                                            undefObjects.append(obj["obj_name"])
+                                    elif obj not in nw_obj_names: # just a string with obj name
+                                        undefObjects.append(obj)
+                                # rule['rule_src_refs'], rule["rule_src"] = parse_obj_list(undefObjects, import_id, config2import['network_objects'], rule["rule_uid"])
                                 rule['rule_dst_refs'], rule["rule_dst"] = parse_obj_list(rule_orig["destinationAddresses"], import_id, config2import['network_objects'], rule["rule_uid"])
                             if "destinationPorts" in rule_orig:
                                 rule['rule_svc_refs'], rule['rule_svc'] = parse_svc_list(rule_orig["destinationPorts"], rule_orig["ipProtocols"], import_id, config2import['service_objects'], rule["rule_uid"])

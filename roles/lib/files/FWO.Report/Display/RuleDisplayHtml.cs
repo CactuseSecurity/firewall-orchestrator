@@ -173,12 +173,12 @@ namespace FWO.Ui.Display
             else
                 symbol = "oi oi-wrench";
             link = location == "" ? $"svc{service.Id}" : $"goto-report-m{mgmtId}-svc{service.Id}";
-            if (reportType==ReportType.Rules || reportType==ReportType.ResolvedRules || reportType==ReportType.NatRules)
+            if (reportType==ReportType.Rules || reportType==ReportType.ResolvedRules || reportType==ReportType.NatRules || reportType==ReportType.Recertification)
                 result.Append($"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{location}#{link}\" target=\"_top\" style=\"{style}\">{service.Name}</a>");
 
             if (service.DestinationPort != null)
             {
-                if (reportType==ReportType.Rules || reportType==ReportType.ResolvedRules || reportType==ReportType.NatRules)
+                if (reportType==ReportType.Rules || reportType==ReportType.ResolvedRules || reportType==ReportType.NatRules || reportType==ReportType.Recertification)
                     result.Append(" (");
                 result.Append(service.DestinationPort == service.DestinationPortEnd ? $"{service.DestinationPort}/{service.Protocol?.Name}"
                     : $" {service.DestinationPort}-{service.DestinationPortEnd}/{service.Protocol?.Name}");

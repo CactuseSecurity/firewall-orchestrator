@@ -25,7 +25,7 @@ def parse_obj_group(orig_grp, import_id, nw_objects, id = None):
             id = orig_grp["id"] if "id" in orig_grp else random.random()
         for orig_literal in orig_grp["literals"]:
             literal = parse_object(orig_literal, import_id)
-            literal["obj_uid"] += "_" + id
+            literal["obj_uid"] += "_" + str(id)
             nw_objects.append(literal)
             names.append(orig_literal["value"])
             refs.append(literal["obj_uid"])
@@ -58,7 +58,7 @@ def extract_base_object_infos(obj_orig, import_id):
         obj["obj_comment"] = obj_orig["description"] 
     if 'color' in obj_orig:
         # TODO Do colors exist?
-        logger.log("colors exist :)")
+        logger.debug("colors exist :)")
     obj['control_id'] = import_id
     return obj
 
@@ -75,9 +75,9 @@ def parse_object(obj_orig, import_id):
         obj["obj_typ"] = "host"
         obj["obj_ip"] = obj_orig["value"]
         if obj_orig["value"].find(":") != -1:  # ipv6
-            obj["obj_ip"] + "/128"
+            obj["obj_ip"] += "/128"
         else:                               # ipv4
-            obj["obj_ip"] + "/32"
+            obj["obj_ip"] += "/32"
     elif obj_orig["type"] == "Range": # ip range
         obj['obj_typ'] = 'ip_range'
         ip_range = obj_orig['value'].split("-")

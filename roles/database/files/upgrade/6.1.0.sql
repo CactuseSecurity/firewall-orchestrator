@@ -48,9 +48,9 @@ INSERT INTO owner_network (owner_id, ip)
 		VALUES    ((SELECT id FROM owner WHERE name='ownerD_demo' AND tenant_id=1), '10.0.0.32/27')
 		ON CONFLICT DO NOTHING; 
 
-CREATE OR REPLACE VIEW v_active_access_rules AS 
-	SELECT * FROM rule r
-	WHERE r.active AND r.access_rule AND NOT r.rule_disabled AND r.rule_head_text IS NULL;
+-- CREATE OR REPLACE VIEW v_active_access_rules AS 
+-- 	SELECT * FROM rule r
+-- 	WHERE r.active AND r.access_rule AND NOT r.rule_disabled AND r.rule_head_text IS NULL;
 
 CREATE OR REPLACE VIEW v_active_access_allow_rules AS 
 	SELECT * FROM rule r

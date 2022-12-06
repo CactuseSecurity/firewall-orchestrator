@@ -106,7 +106,7 @@
     lineinfile:
       path: /etc/default/slapd
       regexp: '^SLAPD_SERVICES='
-      line: SLAPD_SERVICES="ldap://127.0.0.1/ ldaps:///"
+      line: SLAPD_SERVICES="ldap://{{ openldap_server }}/ ldaps:///"
 
   - name: Initialize ldap config
     command: slapadd -F {{ openldap_server_app_path }}/slapd.d -n 0 -l {{ openldap_server_app_path }}/slapd.d/config.ldif

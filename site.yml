@@ -16,8 +16,6 @@
   tags:
     - frontend
     - importer
-    - api
-
 
 - hosts: all
   tasks:

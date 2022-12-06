@@ -115,7 +115,8 @@
     - name: edit postgresql.conf listening IPs
       lineinfile:
         path: "{{ postgresql_config_file }}"
-        line: "listen_addresses = '{{ fworch_db_host }},127.0.0.1'"
+        line: "listen_addresses = '0.0.0.0'"
+        #line: "listen_addresses = '{{ api_network_listening_ip_address }},127.0.0.1'"
         regexp: listen_addresses
         backup: yes
 
@@ -125,26 +126,16 @@
         backup: yes
         insertbefore: '# IPv4 local connections:'
         block: |
-          host    all         dbadmin             127.0.0.0/8            md5
-          # host  all         dbadmin             0.0.0.0/0              md5
-          # host  all         dbadmin             {{ ansible_host }}/32  md5
-          host    all         {{ fworch_user }}   127.0.0.0/8            trust
-          host    all         +dbbackupusers      127.0.0.0/8            trust
-          
-          # with only local import modules:
-          host    all         +configimporters    127.0.0.0/8            trust
-          host    all         confexporter        127.0.0.0/8            trust
-          
-          # with local web frontend:
-          host    all         +secuadmins         127.0.0.0/8            md5
-          host    all         +reporters          127.0.0.0/8            md5
-          
-          # with remote web frontend:
-          # host  all         +secuadmins         <webserver-ip>/32      md5
-          # host  all         +reporters          <webserver-ip>/32      md5
-          # with remote importer modules:
-          # host  all         +configimporters    <importer-ip>/32       trust
-      
+          host  all         dbadmin             127.0.0.0/8                   md5
+          host  all         dbadmin             {{ api_network_listening_ip_address }}/32            md5
+          host  all         dbadmin             0.0.0.0/0            md5
+          host  all         {{ fworch_user }}   127.0.0.0/8                   trust
+          host  all         +dbbackupusers      127.0.0.0/8                   trust
+          host  all         confexporter        127.0.0.0/8                   trust
+          host  all         +configimporters    127.0.0.0/8                   trust
+          host  all         +configimporters    {{ api_network_listening_ip_address }}/32   trust
+          host  all         +configimporters    {{ importer_server_ip }}/32   trust 
+  
     - name: reload postgres service
       service:
         name: "{{ postgresql_package }}"

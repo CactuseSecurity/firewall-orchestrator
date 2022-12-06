@@ -11,12 +11,12 @@
     </Proxy>
 
 	# terminate https incoming calls and proxy to http
-	ProxyPass /api http://{{ api_ip_address }}:{{ api_port }}/
+	ProxyPass /api http://{{ api_local_listening_ip_address }}:{{ api_port }}/
 	# websocket protocol is needed for subscriptions
 	RewriteEngine on
 	RewriteCond %{HTTP:Upgrade} websocket [NC]
 	RewriteCond %{HTTP:Connection} upgrade [NC]
-	RewriteRule ^/?(.*) "ws://{{ api_ip_address }}:{{ api_port }}/v1/graphql" [P,L]
+	RewriteRule ^/?(.*) "ws://{{ api_local_listening_ip_address }}:{{ api_port }}/v1/graphql" [P,L]
 
 	ErrorLog /var/log/{{ webserver_package_name }}/error.log
 	TransferLog /var/log/{{ webserver_package_name }}/access.log

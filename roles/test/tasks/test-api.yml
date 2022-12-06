@@ -1,30 +1,8 @@
 # this playbook contains api tests
 
-# - block:
-#   - name: test api health
-#     uri:
-#       url: https://{{ api_ip_address }}:{{ api_web_port }}/api/healthz
-#       method: GET
-#       headers:
-#         Content-Type: application/json
-#       body:
-#         query: ""
-#       body_format: json
-#       validate_certs: false
-#       return_content: yes
-#     register: api_health
-#     changed_when: false
-#     failed_when: false
-
-#   - name: api health test output
-#     debug:
-#       msg: "ERROR unexpected health test result (not equal 'OK'): {{ api_health.content }}"
-#     when: api_health.content is not match('OK')
-#  when: api_hasura_version<="v2.2"
-
 - name: test api version
   uri:
-    url: https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/version
+    url: https://{{ api_network_listening_ip_address }}:{{ api_web_port }}/api/v1/version
     method: GET
     headers:
       Content-Type: application/json
@@ -44,7 +22,7 @@
 
 - name: test anonymous api access
   uri:
-    url: https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql
+    url: https://{{ api_network_listening_ip_address }}:{{ api_web_port }}/api/v1/graphql
     method: POST
     headers:
       Content-Type: application/json
@@ -81,7 +59,7 @@
 
 - name: test anonymous api access with JWT
   uri:
-    url: https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql
+    url: https://{{ api_network_listening_ip_address }}:{{ api_web_port }}/api/v1/graphql
     method: POST
     headers:
       Content-Type: application/json
@@ -114,7 +92,7 @@
 
 - name: test hasura-admin api access
   uri:
-    url: https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql
+    url: https://{{ api_network_listening_ip_address }}:{{ api_web_port }}/api/v1/graphql
     method: POST
     headers:
       Content-Type: application/json

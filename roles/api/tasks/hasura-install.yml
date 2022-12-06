@@ -77,7 +77,7 @@
   when: not api_cli_check.stat.exists 
 
 - name: initialize hasura cli directory
-  command: "{{ api_hasura_cli_bin }} init {{ product_name }} --skip-update-check --endpoint http://{{ api_ip_address }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
+  command: "{{ api_hasura_cli_bin }} init {{ product_name }} --skip-update-check --endpoint http://{{ api_local_listening_ip_address }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
   args: 
     chdir: "{{ api_home }}"
   become: yes
@@ -200,7 +200,7 @@
 - name:  wait for hasura port to become available
   wait_for:
     port: "{{ api_port }}"
-    host: "{{ api_ip_address }}"
+    host: "{{ api_local_listening_ip_address }}"
     connect_timeout: 1
     delay: 10
     timeout: 25
@@ -212,7 +212,7 @@
 
 - name: import API metadata via metadata API directly from local file
   uri: 
-    url: "http://{{ api_ip_address }}:{{ api_port }}/v1/metadata"
+    url: "http://{{ api_local_listening_ip_address }}:{{ api_port }}/v1/metadata"
     method: POST
     return_content: yes
     body_format: json    

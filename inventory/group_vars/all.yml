@@ -7,25 +7,31 @@ ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 product_name: fworch
 
 ### host information
-ui_server: "{{ groups['frontends'].0 }}" #todo: this could be more then one
+#ui_server: "{{ groups['frontends'].0 }}" #todo: this could be more then one
 #middleware_server: "{{ groups['middlewareserver'].0 }}"
-log_server: "{{ groups['logserver'].0 }}"
-databaseserver_server: "{{ groups['databaseserver'].0 }}"
+#log_server: "{{ groups['logserver'].0 }}"
 
-importer_server: "{{ groups['importers'].0 }}" #todo: this could be more then one
-importer_hostname: "{{ hostvars[importer_server]['ansible_facts']['fqdn'] }}"
+#importer_server: "{{ groups['importers'].0 }}" #todo: this could be more then one
+#importer_hostname: "{{ hostvars[importer_server]['ansible_facts']['fqdn'] }}"
+importer_hostname: "{{ groups['importers'].0 }}"
 importer_server_ip: "{{ hostvars[groups['importers'].0].ip_address }}"
 # hostvars[hostvars[groups['importers'].0]]['ansible_env'].SSH_CONNECTION.split(' ')[2]
 
 # api_server: "{{ groups['apiserver'].0 }}"
-sample_server: "{{ groups['sampleserver'].0 }}"
+#sample_server: "{{ groups['sampleserver'].0 }}"
 
-ui_hostname: "{{ hostvars[ui_server]['ansible_facts']['fqdn'] }}"
+#ui_hostname: "{{ hostvars[ui_server]['ansible_facts']['fqdn'] }}"
+ui_hostname: "{{ groups['frontends'].0 }}"
 #middleware_hostname: "{{ hostvars[middleware_server]['ansible_facts']['fqdn'] }}"
-syslog_host: "{{ hostvars[log_server]['ansible_facts']['fqdn'] }}"
-fworch_db_host: "{{ hostvars[databaseserver_server]['ansible_facts']['fqdn'] }}"
+#syslog_host: "{{ hostvars[log_server]['ansible_facts']['fqdn'] }}"
+syslog_host: "{{ groups['logserver'].0 }}"
+
+#fworch_db_host: "{{ hostvars[databaseserver_name]['ansible_facts']['fqdn'] }}"
+#fworch_db_host: "{{ hostvars[databaseserver_name]['ansible_facts']['ip_address'] }}"
+fworch_db_host: "{{ groups['databaseserver'].0 }}"
 api_hostname: "{{  groups['apiserver'].0 }}"
-sample_hostname: "{{ hostvars[sample_server]['ansible_facts']['fqdn'] }}"
+#sample_hostname: "{{ hostvars[sample_server]['ansible_facts']['fqdn'] }}"
+sample_hostname: "{{ groups['sampleserver'].0 }}"
 
 # installation_mode options:
 #   new (default) - assumes that no fworch is installed on the target devices - fails if it finds an installation

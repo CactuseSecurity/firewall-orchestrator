@@ -31,9 +31,11 @@
 - name: set fact pg_version
   set_fact:
       pg_version: "{{ pg_version_result.stdout }}"
+  ignore_errors: true
 
 - set_fact:
     postgresql_dev_package: "{{ postgresql_dev_package_prefix }}-{{ pg_version }}"
+  ignore_errors: true
 
 - block:
     - name: remove database pre pg_version 13
@@ -50,6 +52,7 @@
       command: psql -c 'drop database if exists fworchdb with ( force )'
       become_user: postgres
       register: drop_db
+      ignore_errors: true
   when: pg_version|int >= 13
 
 - name: check if db still exists
@@ -185,6 +188,7 @@
         - /var/lib/ldap/example.com
         - /var/lib/pgsql/data
         - "{{ api_hasura_cli_bin }}"
+      ignore_errors: true
 
     - name: remove OS users and delete home directories
       user:

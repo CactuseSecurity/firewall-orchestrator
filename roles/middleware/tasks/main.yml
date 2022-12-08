@@ -110,7 +110,7 @@
 - name: set importer user password randomly
   set_fact:
     importer_password: "{{ randomly_generated_pwd }}"
-  when: (testkeys is not defined or not testkeys|bool) and installation_mode == 'new'
+  when: not testkeys|bool and installation_mode == 'new'
 
 - name: write importer_password to secrets directory
   copy:
@@ -121,6 +121,15 @@
     group: "{{ fworch_group }}"
   become: yes
   when: installation_mode == 'new'
+
+# the local copy of the import pwd will be used by the importer role to copy it to the importer host(s)
+- name: fetch importer pwd to installer machine for distribution to importer machines
+  fetch:
+    src: "{{ importer_password_file }}"
+    dest: "{{ importer_password_file_on_installer }}"
+    flat: yes
+    mode: '0600'
+  become: yes
 
 - name: Set importer password in ldap
   ldap_passwd:

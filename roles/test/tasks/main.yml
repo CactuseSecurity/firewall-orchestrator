@@ -73,6 +73,9 @@
   import_tasks: test-importer.yml
   when: "'sampleserver' in group_names"
 
+- name: testing all exposed web services
+  import_tasks: test-web.yml
+
 - name: finalize handler for deleting test data
   set_fact:
     test_importer_handler_guard: stop

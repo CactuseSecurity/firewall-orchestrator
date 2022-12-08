@@ -90,3 +90,5 @@ CREATE OR REPLACE VIEW view_rule_with_owner AS
 	GROUP BY rule_id, owner_id, owner_name, rule_last_certified, rule_last_certifier, r.rule_from_zone, r.rule_to_zone, 
 		r.dev_id, r.mgm_id, r.rule_uid, rule_num_numeric, track_id, action_id, 	rule_action, rule_name, rule_comment, rule_track, rule_src_neg, rule_dst_neg, rule_svc_neg,
 		rule_head_text, rule_disabled, access_rule, xlate_rule, nat_rule;
+
+ALTER TABLE owner_network ADD CONSTRAINT owner_network_unique_in_tenant UNIQUE ("owner_id","ip");

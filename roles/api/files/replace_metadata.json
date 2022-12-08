@@ -6569,6 +6569,68 @@
                   }
                 },
                 {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "is_default",
+                      "app_id_external",
+                      "dn",
+                      "group_dn",
+                      "name",
+                      "id",
+                      "recert_interval",
+                      "tenant_id",
+                      "next_recert_date"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "is_default",
+                      "app_id_external",
+                      "dn",
+                      "group_dn",
+                      "name",
+                      "id",
+                      "recert_interval",
+                      "tenant_id",
+                      "next_recert_date"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "is_default",
+                      "app_id_external",
+                      "dn",
+                      "group_dn",
+                      "name",
+                      "id",
+                      "recert_interval",
+                      "tenant_id",
+                      "next_recert_date"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
                   "role": "requester",
                   "permission": {
                     "columns": [
@@ -14415,10 +14477,102 @@
                       "matches"
                     ],
                     "filter": {
-                      "dev_id": {
-                        "_in": "x-hasura-visible-devices"
-                      }
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "dev_id": {
+                            "_in": "x-hasura-visible-devices"
+                          }
+                        }
+                      ]
                     },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "rule_id",
+                      "xlate_rule",
+                      "access_rule",
+                      "nat_rule",
+                      "rule_disabled",
+                      "rule_dst_neg",
+                      "rule_src_neg",
+                      "rule_svc_neg",
+                      "owner_name",
+                      "rule_name",
+                      "action_id",
+                      "dev_id",
+                      "mgm_id",
+                      "owner_id",
+                      "rule_from_zone",
+                      "rule_last_certifier",
+                      "rule_to_zone",
+                      "track_id",
+                      "rule_num_numeric",
+                      "matches",
+                      "rule_action",
+                      "rule_comment",
+                      "rule_head_text",
+                      "rule_track",
+                      "rule_uid",
+                      "rule_last_certified"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "dev_id": {
+                            "_in": "x-hasura-visible-devices"
+                          }
+                        }
+                      ]
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "rule_id",
+                      "xlate_rule",
+                      "access_rule",
+                      "nat_rule",
+                      "rule_disabled",
+                      "rule_dst_neg",
+                      "rule_src_neg",
+                      "rule_svc_neg",
+                      "owner_name",
+                      "rule_name",
+                      "action_id",
+                      "dev_id",
+                      "mgm_id",
+                      "owner_id",
+                      "rule_from_zone",
+                      "rule_last_certifier",
+                      "rule_to_zone",
+                      "track_id",
+                      "rule_num_numeric",
+                      "matches",
+                      "rule_action",
+                      "rule_comment",
+                      "rule_head_text",
+                      "rule_track",
+                      "rule_uid",
+                      "rule_last_certified"
+                    ],
+                    "filter": {},
                     "allow_aggregations": true
                   }
                 }

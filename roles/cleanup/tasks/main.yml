@@ -75,6 +75,13 @@
   when: demo_data_present.query_result == []
   become: yes
 
+- name: remove temp importer_password from install host
+  file:
+    path: "{{ importer_password_file_on_installer }}"
+    state: absent
+  become: yes
+  delegate_to: localhost
+
 - name: start importer service
   systemd:
     name: "{{ item }}"

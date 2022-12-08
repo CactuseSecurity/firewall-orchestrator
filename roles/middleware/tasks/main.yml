@@ -110,7 +110,7 @@
 - name: set importer user password randomly
   set_fact:
     importer_password: "{{ randomly_generated_pwd }}"
-  when: (testkeys is not defined or not testkeys|bool) and installation_mode == 'new'
+  when: not testkeys|bool and installation_mode == 'new'
 
 - name: write importer_password to secrets directory
   copy:

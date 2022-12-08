@@ -126,15 +126,16 @@
         backup: yes
         insertbefore: '# IPv4 local connections:'
         block: |
-          host  all         dbadmin             127.0.0.0/8                   md5
-          host  all         dbadmin             {{ api_network_listening_ip_address }}/32            md5
+          #host  all         dbadmin             127.0.0.0/8                   md5
+          #host  all         dbadmin             api_network_listening_ip_address/32            md5
           host  all         dbadmin             0.0.0.0/0            md5
           host  all         {{ fworch_user }}   127.0.0.0/8                   trust
           host  all         +dbbackupusers      127.0.0.0/8                   trust
           host  all         confexporter        127.0.0.0/8                   trust
           host  all         +configimporters    127.0.0.0/8                   trust
-          host  all         +configimporters    {{ api_network_listening_ip_address }}/32   trust
-          host  all         +configimporters    {{ importer_server_ip }}/32   trust 
+          #host  all         +configimporters    api_network_listening_ip_address/32   trust
+          # TODO: we need a solution here to add the IP of a remote importer instead of the name:
+          #host  all         +configimporters    importer_server_ip/32   trust 
   
     - name: reload postgres service
       service:

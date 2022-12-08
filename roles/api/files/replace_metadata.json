@@ -6569,6 +6569,68 @@
                   }
                 },
                 {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "is_default",
+                      "app_id_external",
+                      "dn",
+                      "group_dn",
+                      "name",
+                      "id",
+                      "recert_interval",
+                      "tenant_id",
+                      "next_recert_date"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "is_default",
+                      "app_id_external",
+                      "dn",
+                      "group_dn",
+                      "name",
+                      "id",
+                      "recert_interval",
+                      "tenant_id",
+                      "next_recert_date"
+                    ],
+                    "filter": {
+                      "tenant_id": {
+                        "_eq": "x-hasura-tenant-id"
+                      }
+                    },
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "is_default",
+                      "app_id_external",
+                      "dn",
+                      "group_dn",
+                      "name",
+                      "id",
+                      "recert_interval",
+                      "tenant_id",
+                      "next_recert_date"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
                   "role": "requester",
                   "permission": {
                     "columns": [

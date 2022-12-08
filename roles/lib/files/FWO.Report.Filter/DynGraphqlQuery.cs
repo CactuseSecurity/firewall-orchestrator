@@ -316,6 +316,18 @@ namespace FWO.Report.Filter
                         //     {{ rule_dst: {{ _neq: ""all"" }} }}
                         // ]";
                     }
+                    
+                    if (filter.ReportParams.RecertFilter.RecertOwner.Name!="")
+                    {
+                        if (filter.ReportParams.RecertFilter.RecertOwner.Name=="defaultOwner_demo") 
+                        {
+                            recertFilterString += $"owner_id: {{_is_null: true }}";
+                        }
+                        else
+                        {
+                            recertFilterString += $"owner_id: {{_eq:{filter.ReportParams.RecertFilter.RecertOwner.Id} }}";
+                        }
+                    }
 
                     query.FullQuery = Queries.compact($@"{RuleQueries.ruleRecertFragments}
                                         

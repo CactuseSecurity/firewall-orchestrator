@@ -122,6 +122,15 @@
   become: yes
   when: installation_mode == 'new'
 
+# the local copy of the import pwd will be used by the importer role to copy it to the importer host(s)
+- name: fetch importer pwd to installer machine for distribution to importer machines
+  fetch:
+    src: "{{ importer_password_file }}"
+    dest: "{{ importer_password_file_on_installer }}"
+    flat: yes
+    mode: '0600'
+  become: yes
+
 - name: Set importer password in ldap
   ldap_passwd:
     dn: uid=importer,ou=tenant0,ou=operator,ou=user,{{ openldap_path }}

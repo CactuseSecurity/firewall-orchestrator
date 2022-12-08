@@ -96,6 +96,9 @@
       owner: "root"
     become: yes
 
+  - name: include fetch importer pwd script
+    import_tasks: fetch-importer-pwd.yml
+
   - name: include upgrade script
     import_tasks: run-upgrades.yml
     when: "installation_mode == 'upgrade'"

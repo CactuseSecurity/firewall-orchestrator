@@ -14,6 +14,8 @@ fworch_db_host: "{{ groups['databaseserver'].0 }}"
 api_hostname: "{{  groups['apiserver'].0 }}"
 sample_hostname: "{{ groups['sampleserver'].0 }}"
 
+# fworch_db_host_ip: "{{ hostvars[fworch_db_host]['ansible_host'] }}"
+
 # installation_mode options:
 #   new (default) - assumes that no fworch is installed on the target devices - fails if it finds an installation
 #   uninstall     - runs uninstall-fworch.yml
@@ -96,7 +98,7 @@ middleware_internal_port: 8880
 ###############################################################
 ui_admin_password_file: "{{ fworch_secrets_dir }}/ui_admin_pwd"
 ui_admin_testonly_password: "fworch.1"
-
+importer_password_file_on_installer: etc/importer.pwd
 
 ### dotnet
 dotnet_deb_name: "packages-microsoft-prod.deb"

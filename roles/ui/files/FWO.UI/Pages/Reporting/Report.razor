@@ -2,6 +2,7 @@
 @using FWO.Report
 @using FWO.Report.Filter
 @using FWO.Report.Filter.Exceptions
+@using FWO.Api.Data
 @using System
 @using System.Threading
 @using FWO.Ui.Data
@@ -26,20 +27,16 @@
     </div>
         @if (selectedReportType==ReportType.Recertification)
         {
-            @*  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="@device.Id"
-                            @bind="device.Selected"
-                            @oninput="@(async () => {
-                                device.Selected = !device.Selected;
-                            })" />
-                    <label class="form-check-label" for="@device.Id">
-                        @device.Name
-                    </label>
-                </div>
-            *@
-
             <div class="p-3">
                 <h6 class="text-left">@(userConfig.GetText("recert_parameter"))</h6>
+                    <h7 class="text-left">@(userConfig.GetText("owner"))</h7>
+                    <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)"
+                        Value="selectedOwner" ValueChanged="OwnerChanged" Elements="ownerList">
+                        <ElementTemplate Context="owner">
+                            @owner.Name
+                        </ElementTemplate>
+                    </Dropdown>
+                <br>
                 <div class="form-check mb-1">
                     <div class="input-group">
                         <div class="form-check">
@@ -422,6 +419,8 @@
     private Management? globalStats = null;
 
     public ReportType selectedReportType = ReportType.Rules;
+    public FwoOwner selectedOwner = new FwoOwner();
+    public List<FwoOwner> ownerList = new List<FwoOwner>();
 
     private DeviceFilter deviceFilter = new DeviceFilter();
     private bool selectAll = true;
@@ -475,6 +474,9 @@
                 displayedTimeSelection = userConfig.GetText("now");
 
                 deviceFilter.Managements = await Connection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
+                ownerList = await Connection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+                ownerList.Sort(delegate(FwoOwner x, FwoOwner y) { return x.Name.CompareTo(y.Name); });
+
                 await InvokeAsync(StateHasChanged);
                 if (deviceFilter.NumberMgmtDev() > userConfig.MinCollapseAllDevices)
                 {
@@ -504,6 +506,13 @@
         StateHasChanged();
         if (reportGenerationDuration != null)
             reportGenerationDuration = 0;
+    }
+
+
+    private void OwnerChanged(FwoOwner owner)
+    {
+        selectedOwner = owner;
+        // StateHasChanged();
     }
 
     private void InitTimes(TimeFilter timeFilter)
@@ -761,7 +770,7 @@
             // collapse report templates
             reportTemplateControl.Collapse();
 
-            RecertFilter recertFilter = new RecertFilter(recertOverdueOnly, recertWithoutOwner, recertShowAnyMatch, recertSingleLinePerRule);
+            RecertFilter recertFilter = new RecertFilter(recertOverdueOnly, recertWithoutOwner, recertShowAnyMatch, recertSingleLinePerRule, selectedOwner);
             ReportTemplate reportParams = new ReportTemplate(filterInput, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter);
             currentReport = ReportBase.ConstructReport(reportParams, userConfig);
 
@@ -883,7 +892,7 @@
 
         try
         {
-            RecertFilter recertFilter = new RecertFilter(recertOverdueOnly, recertWithoutOwner, recertShowAnyMatch, recertSingleLinePerRule);
+            RecertFilter recertFilter = new RecertFilter(recertOverdueOnly, recertWithoutOwner, recertShowAnyMatch, recertSingleLinePerRule, selectedOwner);
             ReportTemplate reportParams = new ReportTemplate(input, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter);
 
             DynGraphqlQuery query = Compiler.Compile(reportParams);

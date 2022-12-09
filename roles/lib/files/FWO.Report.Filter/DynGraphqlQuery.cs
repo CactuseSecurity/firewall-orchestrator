@@ -212,6 +212,13 @@ namespace FWO.Report.Filter
 
         public static DynGraphqlQuery GenerateQuery(ReportTemplate filter, AstNode? ast)
         {
+
+            // if (filter.ReportParams.ReportType == (int) ReportType.Recertification && 
+            //     !filter.ReportParams.RecertFilter.RecertShowAnyMatch)
+            // {
+            //     filter.Filter += $" (not src==0.0.0.0 and not dst==0.0.0.0) ";
+            // }
+
             DynGraphqlQuery query = new DynGraphqlQuery(filter.Filter);
 
             query.ruleWhereStatement += "_and: [";
@@ -305,18 +312,12 @@ namespace FWO.Report.Filter
 
                     paramString = string.Join(" ", query.QueryParameters.ToArray());
                     string recertFilterString = "";
-                    if (!filter.ReportParams.RecertFilter.RecertShowAnyMatch)
+
+                    if (filter.ReportParams.RecertFilter.RecertWithoutOwner)
                     {
-                        recertFilterString = "";
-                        // recertFilterString = @" obj_ip: {{ _ne: '0.0.0.0/0' }} ";
-                        // recertFilterString = @" _and: [
-                        //     {{ rule_src: {{ _nlike: ""%Any"" }} }}
-                        //     {{ rule_dst: {{ _nlike: ""%Any"" }} }}
-                        //     {{ rule_src: {{ _neq: ""all"" }} }}
-                        //     {{ rule_dst: {{ _neq: ""all"" }} }}
-                        // ]";
+                        recertFilterString += $"owner_id: {{_is_null: true }}";
                     }
-                    
+
                     if (filter.ReportParams.RecertFilter.RecertOwner.Name!="")
                     {
                         if (filter.ReportParams.RecertFilter.RecertOwner.Name=="defaultOwner_demo") 

@@ -46,15 +46,33 @@
                             <label class="col-form-label col-form-label-sm" for="recertOverdue">@(userConfig.GetText("overdue_recert"))</label>
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="without_owner" disabled
+                            <input class="form-check-input" type="checkbox" id="without_owner"
                                 @bind="recertWithoutOwner"
                                 @oninput="@(async () => { recertWithoutOwner = !recertWithoutOwner; })" />
                             <label class="col-form-label col-form-label-sm" for="recertWithoutOwner">@(userConfig.GetText("without_owner"))</label>
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="any_match" disabled
+                            <input class="form-check-input" type="checkbox" id="any_match"
                                 @bind="recertShowAnyMatch"
-                                @oninput="@(async () => { recertShowAnyMatch = !recertShowAnyMatch; })" />
+                                @oninput="@(async () => { 
+                                        recertShowAnyMatch = !recertShowAnyMatch;
+                                        if (!recertShowAnyMatch) 
+                                        {
+                                            if (filterInput.Length>0)
+                                            {
+                                                filterInput += " and (not src==0.0.0.0 and not dst==0.0.0.0)";
+                                            }
+                                            else
+                                            {
+                                                filterInput = "(not src==0.0.0.0 and not dst==0.0.0.0)";
+                                            }
+                                        }
+                                        else 
+                                        {
+                                            filterInput =  filterInput.Replace("and (not src==0.0.0.0 and not dst==0.0.0.0)", string.Empty);
+                                            filterInput =  filterInput.Replace("(not src==0.0.0.0 and not dst==0.0.0.0)", string.Empty);
+                                        }
+                                    })" />
                             <label class="col-form-label col-form-label-sm" for="recertShowAnyMatch">@(userConfig.GetText("show_any_match"))</label>
                         </div>
                         <div class="form-check">

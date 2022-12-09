@@ -91,4 +91,5 @@ CREATE OR REPLACE VIEW view_rule_with_owner AS
 		r.dev_id, r.mgm_id, r.rule_uid, rule_num_numeric, track_id, action_id, 	rule_action, rule_name, rule_comment, rule_track, rule_src_neg, rule_dst_neg, rule_svc_neg,
 		rule_head_text, rule_disabled, access_rule, xlate_rule, nat_rule;
 
+alter table owner_network drop constraint owner_network_unique_in_tenant;
 ALTER TABLE owner_network ADD CONSTRAINT owner_network_unique_in_tenant UNIQUE ("owner_id","ip");

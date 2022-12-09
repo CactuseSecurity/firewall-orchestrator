@@ -32,21 +32,47 @@ INSERT INTO owner (name, dn, group_dn, is_default, tenant_id, recert_interval, n
 		VALUES    ('defaultOwner_demo', 'ad-single-owner-default', 'ad-group-owner-default', true, 1, 30, '2022-12-01T00:00:00', '111')
 		ON CONFLICT DO NOTHING; 
 
-INSERT INTO owner_network (owner_id, ip) 
-		VALUES    ((SELECT id FROM owner WHERE name='ownerF_demo' AND tenant_id=1), '10.222.0.0/27')
-		ON CONFLICT DO NOTHING; 
+---------------------------------------------------------------
 
-INSERT INTO owner_network (owner_id, ip) 
-		VALUES    ((SELECT id FROM owner WHERE name='ownerD_demo' AND tenant_id=1), '10.222.0.32/27')
-		ON CONFLICT DO NOTHING; 
+DO $$
+BEGIN
+IF NOT EXISTS((SELECT id FROM owner WHERE name='ownerF_demo' AND tenant_id=1 AND ip='10.222.0.0/27'))
+THEN
+	INSERT INTO owner_network (owner_id, ip) 
+			VALUES    ((SELECT id FROM owner WHERE name='ownerF_demo' AND tenant_id=1), '10.222.0.0/27')
+			ON CONFLICT DO NOTHING; 
+END IF;
+END $$;
 
-INSERT INTO owner_network (owner_id, ip) 
-		VALUES    ((SELECT id FROM owner WHERE name='ownerF_demo' AND tenant_id=1), '10.0.0.0/27')
-		ON CONFLICT DO NOTHING; 
+DO $$
+BEGIN
+IF NOT EXISTS((SELECT id FROM owner WHERE name='ownerD_demo' AND tenant_id=1 AND ip='10.222.0.32/27'))
+THEN
+	INSERT INTO owner_network (owner_id, ip) 
+			VALUES    ((SELECT id FROM owner WHERE name='ownerD_demo' AND tenant_id=1), '10.222.0.32/27')
+			ON CONFLICT DO NOTHING; 
+END IF;
+END $$;
 
-INSERT INTO owner_network (owner_id, ip) 
-		VALUES    ((SELECT id FROM owner WHERE name='ownerD_demo' AND tenant_id=1), '10.0.0.32/27')
-		ON CONFLICT DO NOTHING; 
+DO $$
+BEGIN
+IF NOT EXISTS((SELECT id FROM owner WHERE name='ownerF_demo' AND tenant_id=1 AND ip='10.0.0.0/27'))
+THEN
+	INSERT INTO owner_network (owner_id, ip) 
+			VALUES    ((SELECT id FROM owner WHERE name='ownerF_demo' AND tenant_id=1), '10.0.0.0/27')
+			ON CONFLICT DO NOTHING; 
+END IF;
+END $$;
+
+DO $$
+BEGIN
+IF NOT EXISTS((SELECT id FROM owner WHERE name='ownerD_demo' AND tenant_id=1 AND ip='10.0.0.32/27'))
+THEN
+	INSERT INTO owner_network (owner_id, ip) 
+			VALUES    ((SELECT id FROM owner WHERE name='ownerD_demo' AND tenant_id=1), '10.0.0.32/27')
+			ON CONFLICT DO NOTHING; 
+END IF;
+END $$;
 
 -- CREATE OR REPLACE VIEW v_active_access_rules AS 
 -- 	SELECT * FROM rule r
@@ -91,5 +117,4 @@ CREATE OR REPLACE VIEW view_rule_with_owner AS
 		r.dev_id, r.mgm_id, r.rule_uid, rule_num_numeric, track_id, action_id, 	rule_action, rule_name, rule_comment, rule_track, rule_src_neg, rule_dst_neg, rule_svc_neg,
 		rule_head_text, rule_disabled, access_rule, xlate_rule, nat_rule;
 
-alter table owner_network drop constraint owner_network_unique_in_tenant;
-ALTER TABLE owner_network ADD CONSTRAINT owner_network_unique_in_tenant UNIQUE ("owner_id","ip");
+ALTER TABLE owner_network drop constraint IF EXISTS owner_network_unique_in_tenant;

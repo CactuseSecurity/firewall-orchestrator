@@ -36,7 +36,8 @@ INSERT INTO owner (name, dn, group_dn, is_default, tenant_id, recert_interval, n
 
 DO $$
 BEGIN
-IF NOT EXISTS((SELECT id FROM owner WHERE name='ownerF_demo' AND tenant_id=1 AND ip='10.222.0.0/27'))
+IF NOT EXISTS((SELECT * FROM owner_network LEFT JOIN owner ON (owner.id=owner_network.owner_id) 
+	WHERE owner.name='ownerF_demo' AND owner.tenant_id=1 AND owner_network.ip='10.222.0.0/27'))
 THEN
 	INSERT INTO owner_network (owner_id, ip) 
 			VALUES    ((SELECT id FROM owner WHERE name='ownerF_demo' AND tenant_id=1), '10.222.0.0/27')
@@ -46,7 +47,8 @@ END $$;
 
 DO $$
 BEGIN
-IF NOT EXISTS((SELECT id FROM owner WHERE name='ownerD_demo' AND tenant_id=1 AND ip='10.222.0.32/27'))
+IF NOT EXISTS((SELECT * FROM owner_network LEFT JOIN owner ON (owner.id=owner_network.owner_id) 
+	WHERE owner.name='ownerD_demo' AND owner.tenant_id=1 AND owner_network.ip='10.222.0.32/27'))
 THEN
 	INSERT INTO owner_network (owner_id, ip) 
 			VALUES    ((SELECT id FROM owner WHERE name='ownerD_demo' AND tenant_id=1), '10.222.0.32/27')
@@ -56,7 +58,8 @@ END $$;
 
 DO $$
 BEGIN
-IF NOT EXISTS((SELECT id FROM owner WHERE name='ownerF_demo' AND tenant_id=1 AND ip='10.0.0.0/27'))
+IF NOT EXISTS((SELECT * FROM owner_network LEFT JOIN owner ON (owner.id=owner_network.owner_id) 
+	WHERE owner.name='ownerF_demo' AND owner.tenant_id=1 AND owner_network.ip='10.0.0.0/27'))
 THEN
 	INSERT INTO owner_network (owner_id, ip) 
 			VALUES    ((SELECT id FROM owner WHERE name='ownerF_demo' AND tenant_id=1), '10.0.0.0/27')
@@ -66,7 +69,8 @@ END $$;
 
 DO $$
 BEGIN
-IF NOT EXISTS((SELECT id FROM owner WHERE name='ownerD_demo' AND tenant_id=1 AND ip='10.0.0.32/27'))
+IF NOT EXISTS((SELECT * FROM owner_network LEFT JOIN owner ON (owner.id=owner_network.owner_id) 
+	WHERE owner.name='ownerD_demo' AND owner.tenant_id=1 AND owner_network.ip='10.0.0.32/27'))
 THEN
 	INSERT INTO owner_network (owner_id, ip) 
 			VALUES    ((SELECT id FROM owner WHERE name='ownerD_demo' AND tenant_id=1), '10.0.0.32/27')

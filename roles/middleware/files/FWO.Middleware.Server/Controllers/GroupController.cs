@@ -68,7 +68,7 @@ namespace FWO.Middleware.Controllers
                 {
                     workers.Add(Task.Run(() =>
                     {
-                        string actDn = currentLdap.AddGroup(parameters.GroupName);
+                        string actDn = currentLdap.AddGroup(parameters.GroupName, parameters.OwnerGroup);
                         if(actDn != "")
                         {
                             groupDn = actDn;

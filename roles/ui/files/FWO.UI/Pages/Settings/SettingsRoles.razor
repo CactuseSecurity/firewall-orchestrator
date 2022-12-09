@@ -216,6 +216,7 @@
 {
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+
     private List<Role> roles = new List<Role>();
     private List<UiUser> uiUsers = new List<UiUser>();
     private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
@@ -255,24 +256,7 @@
             connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(FWO.Api.Client.Queries.AuthQueries.getLdapConnections);
 
             // get groups from internal LDAP
-            RestResponse<List<GroupGetReturnParameters>> middlewareServerGroupsResponse = await middlewareClient.GetInternalGroups();
-            if (middlewareServerGroupsResponse.StatusCode != HttpStatusCode.OK || middlewareServerGroupsResponse.Data == null)
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
-            }
-            else
-            {
-                foreach (var ldapUserGroup in middlewareServerGroupsResponse.Data)
-                {
-                    UserGroup group = new UserGroup() { Dn = ldapUserGroup.GroupDn, Name = (new DistName(ldapUserGroup.GroupDn)).Group };
-                    foreach (var userDn in ldapUserGroup.Members)
-                    {
-                        UiUser newUser = new UiUser() { Dn = userDn, Name = (new DistName(userDn)).UserName };
-                        group.Users.Add(newUser);
-                    }
-                    internalGroupList.Add(group.Dn);
-                }
-            }
+            internalGroupList = await GroupAccess.GetGroupDnsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi!);
         }
         catch (System.Exception exception)
         {

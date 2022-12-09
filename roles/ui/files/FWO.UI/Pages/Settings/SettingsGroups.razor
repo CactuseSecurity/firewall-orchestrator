@@ -46,6 +46,11 @@
             </Template>
         </Column>
         <Column TableItem="UserGroup" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+        <Column TableItem="UserGroup" Title="@(userConfig.GetText("owner_group"))" Field="@(x => x.OwnerGroup)" Sortable="true" Filterable="true">
+            <Template>
+                @(GlobalConfig.ShowBool(context.OwnerGroup))
+            </Template>
+        </Column>
         <Column TableItem="UserGroup" Title="@(userConfig.GetText("users"))" Field="@(x => x.Users)" Sortable="false" Filterable="false">
             <Template>
                 @(context.UserList())
@@ -60,29 +65,46 @@
         {
             <form onsubmit="return false">
                 <div class="form-group row">
-                    <label for="groupName" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
-                    <div class="col-sm-8">
-                        <input id="groupName" type="text" class="form-control form-control-sm" @bind="newGroupName" />
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                    <div class="col-sm-10">
+                        <input type="text" class="form-control form-control-sm" @bind="newGroupName" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="groupRole" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("roles")):</label>
-                    @if (AddGroupMode)
-                    {
-                        <div class="col-sm-8">
-                            <select id="groupRole" class="form-control-sm col-sm" @bind="selectedRoleName">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("owner_group")):</label>
+                    <div class="col-sm-8">
+                        @if (AddGroupMode)
+                        {
+                            <input type="checkbox" @bind="actGroup.OwnerGroup">
+                        }
+                        else
+                        {
+                            @(GlobalConfig.ShowBool(actGroup.OwnerGroup))
+                        }
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("roles")):</label>
+                    <div class="col-sm-10">
+                        @if (actGroup.OwnerGroup)
+                        {
+                            <label class="m-2">recertifier</label>
+                        }                  
+                        else if (AddGroupMode)
+                        {
+                            <select class="form-control-sm col-sm" @bind="selectedRoleName">
                                 <option value="null">@(userConfig.GetText("none"))</option>
                                 @foreach (Role role in availableRoles)
                                 {
                                     <option value="@role.Name">@(role.Name)</option>
                                 }
-                            </select>
-                        </div>
-                    }
-                    else
-                    {
-                        <label class="m-2">@actGroup.Roles.FirstOrDefault()</label>
-                    }
+                            </select>                    
+                        }
+                        else
+                        {
+                            <label class="m-2">@actGroup.RoleList()</label>
+                        }
+                    </div>
                 </div>
            </form>
         }
@@ -133,9 +155,9 @@
         {
             <form>
                 <form class="form-inline">
-                    <label for="groupUser" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("active_user")):</label>
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("active_user")):</label>
                     <div class="col-sm-8">
-                        <select id="groupUser" class="form-control form-control-sm" @bind="selectedUiUser">
+                        <select class="form-control form-control-sm" @bind="selectedUiUser">
                             @foreach (UiUser user in uiUsers)
                             {
                                 <option value="@user.Dn">@(user.Dn)</option>
@@ -167,9 +189,9 @@
         {
             <form>
                 <div class="form-group row">
-                    <label for="groupUserdel" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("user")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("user")):</label>
                     <div class="col-sm-8">
-                        <select id="groupUserdel" class="form-control form-control-sm" @bind="selectedUserToDelete">
+                        <select class="form-control form-control-sm" @bind="selectedUserToDelete">
                             @foreach (UiUser user in actGroup.Users)
                             {
                                 <option value="@user.Dn">@(user.Dn)</option>
@@ -266,28 +288,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // get groups from internal LDAP
         try
         { 
-            RestResponse<List<GroupGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetInternalGroups();
-            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
-            }
-            else
-            {
-                foreach (var ldapUserGroup in middlewareServerResponse.Data)
-                {
-                    UserGroup group = new UserGroup() { Dn = ldapUserGroup.GroupDn, Name = (new DistName(ldapUserGroup.GroupDn)).Group };
-                    foreach (var userDn in ldapUserGroup.Members)
-                    {
-                        UiUser newUser = new UiUser() { Dn = userDn, Name = (new DistName(userDn)).UserName };
-                        group.Users.Add(newUser);
-                    }
-                    groups.Add(group);
-                }
-            }
-        
+            groups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi!);
             CollectSampleGroups();
 
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
@@ -378,13 +381,17 @@
                 if (AddGroupMode)
                 {
                     actGroup.Roles = new List<string>();
-                    if(selectedRoleName != null)
+                    if(actGroup.OwnerGroup)
+                    {
+                        actGroup.Roles.Add("recertifier");
+                    }
+                    else if(selectedRoleName != null)
                     {
                         actGroup.Roles.Add(selectedRoleName);
                     }
 
                     // insert new group to ldap
-                    GroupAddDeleteParameters addGroupParameters = new GroupAddDeleteParameters { GroupName = newGroupName };
+                    GroupAddDeleteParameters addGroupParameters = new GroupAddDeleteParameters { GroupName = newGroupName, OwnerGroup = actGroup.OwnerGroup };
                     RestResponse<string> middlewareServerResponse = await middlewareClient.AddGroup(addGroupParameters);
                     
                     if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null || middlewareServerResponse.Data == "")

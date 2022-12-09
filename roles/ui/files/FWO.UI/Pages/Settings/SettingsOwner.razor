@@ -57,7 +57,11 @@
                 </Template>
             </Column>
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("recert_interval"))" Field="@(x => x.RecertInterval)" Sortable="true" Filterable="true" />
-            <Column TableItem="FwoOwner" Title="@(userConfig.GetText("next_recert"))" Field="@(x => x.NextRecertDate)" Sortable="true" Filterable="true" />
+            <Column TableItem="FwoOwner" Title="@(userConfig.GetText("next_recert"))" Field="@(x => x.NextRecertDate)" Sortable="true" Filterable="true" >
+                <Template>
+                    @(context.NextRecertDate != null ? DateOnly.FromDateTime((DateTime)context.NextRecertDate) : "")
+                </Template>
+            </Column>
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("ext_app_id"))" Field="@(x => x.ExtAppId)" Sortable="true" Filterable="true" />
         </Table>
     </div>
@@ -83,18 +87,57 @@
                     </div>
                     <div class="form-group row">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("dn"))*:</label>
-                        <div class="col-sm-9">
+                        <div class="col-sm-7">
                             <input type="text" class="form-control form-control-sm" @bind="actOwner.Dn" />
+                        </div>
+                        <div class="col-sm-2">
+                            <button class="btn btn-sm btn-success form-control form-control-sm" @onclick="() => SearchUser()">@(userConfig.GetText("search"))</button>
                         </div>
                     </div>
                     <div class="form-group row">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("group"))*:</label>
                         <div class="col-sm-9">
-                            <input type="text" class="form-control form-control-sm" @bind="actOwner.GroupDn" />
+                            <select class=" form-control form-control-sm" @bind="actOwner.GroupDn">
+                                <option value="">@(userConfig.GetText("none"))</option>
+                                @foreach (UserGroup group in ownerGroups)
+                                {
+                                    <option value="@group.Name">@(group.Name)</option>
+                                }
+                            </select>
                         </div>
                     </div>
                     <div class="form-group row">
-                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_app_id"))*:</label>
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant")):</label>
+                        <div class="col-sm-9">
+                            <select class="form-control form-control-sm" @bind="actTenantId">
+                                <option value="-1">@(userConfig.GetText("none"))</option>
+                                @foreach (Tenant tenant in tenants)
+                                {
+                                    <option value="@tenant.Id">@(tenant.Name)</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-sm-6">
+                            <div class="form-group row">
+                                <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("recert_interval")):</label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control form-control-sm" @bind="actOwner.RecertInterval" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group row">
+                                <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("next_recert")):</label>
+                                <div class="col-sm-6">
+                                    <input type="date" class="form-control form-control-sm" @bind="actOwner.NextRecertDate" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_app_id")):</label>
                         <div class="col-sm-9">
                             <input type="text" class="form-control form-control-sm" @bind="actOwner.ExtAppId" />
                         </div>
@@ -113,6 +156,94 @@
                     </NotAuthorized> 
                 </AuthorizeView>
                 <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            </div>
+        </Footer>
+    </PopUp>
+
+    <PopUp Title="@(userConfig.GetText("assign_user") + ": " + actOwner.Name)" Show="@SearchUserMode" Large="true" OnClose="() => SearchUserMode = false">
+        <Body>
+            @if (SearchUserMode)
+            {
+                <form>
+                    <form class="form-group row">
+                        <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("from_ldap")):</label>
+                        <div class="col-sm-3">
+                            <select class="form-control-sm col-sm" @bind="selectedLdapId">
+                                @foreach (UiLdapConnection ldap in connectedLdaps)
+                                {
+                                    <option value="@ldap.Id">@(ldap.Name)</option>
+                                }
+                            </select>
+                        </div>
+                        <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("search_pattern")):</label>
+                        <div class="col-sm-3">
+                            <input class="form-control-sm col-sm" type="text" @bind="searchPattern" />
+                        </div>
+                        <div class="col-sm-2">
+                            <button class="btn btn-sm btn-success" @onclick="async() => await SearchUserInLdap(selectedLdapId)" @onclick:preventDefault>@(userConfig.GetText("search"))</button>
+                        </div>
+                    </form>
+                    <form class="form-group row">
+                        <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("active_user")):</label>
+                        <div class="col-sm-8">
+                            <select class="form-control-sm col-sm" @bind="selectedUiUser">
+                                @foreach (UiUser user in uiUsers)
+                                {
+                                    <option value="@user.Dn">@(user.Dn)</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-sm-2">
+                            <AuthorizeView Roles="admin">
+                                <Authorized>
+                                    <button class="btn btn-sm btn-success" @onclick="() => AddUser(selectedUiUser)" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                                </Authorized>
+                                <NotAuthorized>
+                                    <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
+                                </NotAuthorized> 
+                            </AuthorizeView>
+                        </div>
+                    </form>
+                </form>
+            }
+        </Body>
+        <Footer>
+            <div class="btn-group">
+                <button class="btn btn-sm btn-secondary" @onclick="CancelSearch">@(userConfig.GetText("cancel"))</button>
+            </div>
+        </Footer>
+    </PopUp>
+
+    <PopUp Title="@(userConfig.GetText("select_from_ldap") + ": " + selectedLdap.Host())" Show="@SearchUserInLdapMode" Large="true" OnClose="() => CancelLdapSearch()">
+        <Body>
+            @if (SearchUserInLdapMode)
+            {
+                <form>
+                    <div class="form-group row">
+                        <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("user")):</label>
+                        <div class="col-sm-8">
+                            <select class="form-control form-control-sm" @bind="selectedLdapUser">
+                                @foreach (UiUser user in ldapUsers)
+                                {
+                                    <option value="@user.Dn">@(user.Dn)</option>
+                                }
+                            </select>
+                        </div>
+                        <AuthorizeView Roles="admin">
+                            <Authorized>
+                                <button class="btn btn-sm btn-success" @onclick="() => AddUser(selectedLdapUser)" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                            </Authorized>
+                            <NotAuthorized>
+                                <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
+                            </NotAuthorized> 
+                        </AuthorizeView>
+                    </div>
+                </form>
+            }
+        </Body>
+        <Footer>
+            <div class="btn-group">
+                <button class="btn btn-sm btn-secondary" @onclick="CancelLdapSearch">@(userConfig.GetText("cancel"))</button>
             </div>
         </Footer>
     </PopUp>
@@ -148,12 +279,25 @@
 
     private List<FwoOwner> owners = new List<FwoOwner>();
     private FwoOwner actOwner = new FwoOwner();
+    private int actTenantId = -1;
 
+    private List<UserGroup> ownerGroups = new List<UserGroup>();
     private List<Tenant> tenants = new List<Tenant>();
+
+    private List<UiUser> uiUsers = new List<UiUser>();
+    private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
+    private UiLdapConnection selectedLdap = new UiLdapConnection();
+    private List<UiUser> ldapUsers = new List<UiUser>();
+    private string selectedUiUser = "";
+    private string selectedLdapUser = "";
+    private int selectedLdapId;
+    private string searchPattern = "";
 
     private bool EditOwnerMode = false;
     private bool AddOwnerMode = false;
     private bool DeleteOwnerMode = false;
+    private bool SearchUserMode = false;
+    private bool SearchUserInLdapMode = false;
     private bool InitComplete = false;
 
     protected override async Task OnInitializedAsync()
@@ -161,6 +305,11 @@
         try
         {
             owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+            ownerGroups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi!, true);
+            uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
+            uiUsers = uiUsers.FindAll(x => x.DbId != 0);
+            connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(FWO.Api.Client.Queries.AuthQueries.getLdapConnections);
+
             RestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
             {
@@ -182,7 +331,6 @@
         InitComplete = true;
     }
 
-
     private void AddOwner()
     {
         AddOwnerMode = true;
@@ -192,6 +340,7 @@
     private void EditOwner(FwoOwner owner)
     {
         actOwner = owner;
+        actTenantId = (actOwner.TenantId != null ? (int)actOwner.TenantId : -1);
         EditOwnerMode = true;
     }
 
@@ -199,54 +348,66 @@
     {
         try
         {
-            if(AddOwnerMode)
+            actOwner.TenantId = (actTenantId >= 0 ? actTenantId : null);
+            if (actOwner.Sanitize())
             {
-                var Variables = new
+                DisplayMessageInUi!(null, userConfig.GetText("edit_owner"), userConfig.GetText("U0001"), true);
+            }
+            if (CheckValues())
+            {    
+                if(AddOwnerMode)
                 {
-                    name = actOwner.Name,
-                    dn = actOwner.Dn,
-                    groupDn = actOwner.GroupDn,
-                    tenantId = actOwner.TenantId,
-                    recertInterval = actOwner.RecertInterval,
-                    nextRecertDate = actOwner.NextRecertDate,
-                    appIdExternal = actOwner.ExtAppId
-                };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.OwnerQueries.newOwner, Variables)).ReturnIds;
-                if (returnIds == null)
-                {
-                    DisplayMessageInUi!(null, userConfig.GetText("add_owner"), userConfig.GetText("E5291"), true);
+                    var Variables = new
+                    {
+                        name = actOwner.Name,
+                        dn = actOwner.Dn,
+                        groupDn = actOwner.GroupDn,
+                        tenantId = actOwner.TenantId,
+                        recertInterval = actOwner.RecertInterval,
+                        nextRecertDate = actOwner.NextRecertDate,
+                        appIdExternal = actOwner.ExtAppId
+                    };
+                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.OwnerQueries.newOwner, Variables)).ReturnIds;
+                    if (returnIds == null)
+                    {
+                        DisplayMessageInUi!(null, userConfig.GetText("add_owner"), userConfig.GetText("E5291"), true);
+                    }
+                    else
+                    {
+                        actOwner.Id = returnIds[0].NewId;
+                        owners.Add(actOwner);
+                    }
                 }
                 else
                 {
-                    actOwner.Id = returnIds[0].NewId;
-                    owners.Add(actOwner);
+                    var Variables = new
+                    {
+                        id = actOwner.Id,
+                        name = actOwner.Name,
+                        dn = actOwner.Dn,
+                        groupDn = actOwner.GroupDn,
+                        tenantId = actOwner.TenantId,
+                        recertInterval = actOwner.RecertInterval,
+                        nextRecertDate = actOwner.NextRecertDate,
+                        appIdExternal = actOwner.ExtAppId
+                    };
+                    int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.OwnerQueries.updateOwner, Variables)).UpdatedId;
+                    if(udId != actOwner.Id)
+                    {
+                        DisplayMessageInUi!(null, userConfig.GetText("edit_owner"), userConfig.GetText("E5291"), true);
+                    }
+                    else
+                    {
+                        owners[owners.FindIndex(x => x.Id == actOwner.Id)] = actOwner;
+                    }
                 }
+                if(selectedLdap.Id > 0)
+                {
+                    await addTenantIfNew(actOwner.Dn);
+                }
+                EditOwnerMode = false;
+                AddOwnerMode = false;
             }
-            else
-            {
-                var Variables = new
-                {
-                    id = actOwner.Id,
-                    name = actOwner.Name,
-                    dn = actOwner.Dn,
-                    groupDn = actOwner.GroupDn,
-                    tenantId = actOwner.TenantId,
-                    recertInterval = actOwner.RecertInterval,
-                    nextRecertDate = actOwner.NextRecertDate,
-                    appIdExternal = actOwner.ExtAppId
-                };
-                int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.OwnerQueries.updateOwner, Variables)).UpdatedId;
-                if(udId != actOwner.Id)
-                {
-                    DisplayMessageInUi!(null, userConfig.GetText("edit_owner"), userConfig.GetText("E5291"), true);
-                }
-                else
-                {
-                    owners[owners.FindIndex(x => x.Id == actOwner.Id)] = actOwner;
-                }
-            }
-            EditOwnerMode = false;
-            AddOwnerMode = false;
         }
         catch (Exception exception)
         {
@@ -298,5 +459,125 @@
         {
             DisplayMessageInUi!(exception, userConfig.GetText("edit_owner"), "", true);
         }
+    }
+
+    private bool CheckValues()
+    {
+        if (actOwner.Name == null || actOwner.Name == "")
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("edit_owner"), userConfig.GetText("E5102"), true);
+            return false;
+        }
+        if (AddOwnerMode && owners.Exists(x => x.Name == actOwner.Name))
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("add_owner"), userConfig.GetText("E5235"), true);
+            return false;
+        }
+        if (actOwner.Dn == "" && actOwner.GroupDn == "")
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("edit_owner"), userConfig.GetText("E5292"), true);
+            return false;
+        }
+        return true;
+    }
+
+    private void SearchUser()
+    {
+        selectedUiUser = (uiUsers.Count == 0 ? "" : uiUsers.First().Dn);
+        selectedLdapId = (connectedLdaps.Count == 0 ? 0 : connectedLdaps.First().Id);
+        SearchUserMode = true;
+    }
+
+    private async Task SearchUserInLdap(int ldapId)
+    {
+        UiLdapConnection? actLdap = connectedLdaps.FirstOrDefault(x => x.Id == ldapId);
+        if (actLdap != null)
+        {
+            selectedLdap = actLdap;
+        }
+
+        if(searchPattern.Length < selectedLdap.PatternLength)
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("search_users"), userConfig.GetText("E5252") + selectedLdap.PatternLength, true);
+        }
+        else
+        {
+            // get users from Ldap
+            try
+            {
+                ldapUsers.Clear();
+                LdapUserGetParameters userGetParameters = new LdapUserGetParameters { LdapId = selectedLdap.Id, SearchPattern = searchPattern };
+                RestResponse<List<LdapUserGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetLdapUsers(userGetParameters);
+                if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
+                {
+                    DisplayMessageInUi!(null, userConfig.GetText("fetch_users"), userConfig.GetText("E5208"), true);
+                }
+                else
+                {
+                    foreach (var user in middlewareServerResponse.Data)
+                    {
+                        UiUser newUser = new UiUser() { Dn = user.UserDn, Name = (new DistName(user.UserDn)).UserName };
+                        ldapUsers.Add(newUser);
+                    }
+                }
+            }
+            catch (System.Exception)
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("fetch_users"), "", true);
+            }
+
+            selectedLdapUser = (ldapUsers.Count == 0 ? "" : ldapUsers.First().Dn);
+            SearchUserInLdapMode = true;
+            SearchUserMode = false;
+        }
+    }
+
+    private void AddUser(string userDn)
+    {
+        actOwner.Dn = userDn;
+        SearchUserInLdapMode = false;
+        SearchUserMode = false;
+    }
+
+    private async Task addTenantIfNew(string Dn)
+    {
+        try
+        {
+            if (selectedLdap.TenantLevel == 0 || selectedLdap.IsInternal())
+            {
+                return;
+            }
+            string tenantName = (new DistName(Dn)).getTenant(selectedLdap.TenantLevel);
+            Tenant[] tenants = await apiConnection.SendQueryAsync<Tenant[]>(AuthQueries.getTenantId, new { tenant_name = tenantName }, "getTenantId");
+            if (tenants.Count() == 0)
+            {
+                // tenant unknown: create in db
+                var Variables = new 
+                { 
+                    name = tenantName,
+                    project = "",
+                    comment = "",
+                    viewAllDevices = false,
+                    create = DateTime.Now
+                };
+                await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.AuthQueries.addTenant, Variables);
+            }
+        }
+        catch (Exception exception)
+        {
+            Log.WriteAudit("AddTenant", $"Adding new Tenant locally failed: {exception.Message}");
+        }
+    }
+
+    private void CancelSearch()
+    {
+        SearchUserMode = false;
+    }
+
+    private void CancelLdapSearch()
+    {
+        selectedLdap = new UiLdapConnection();
+        SearchUserInLdapMode = false;
+        SearchUserMode = true;
     }
 }

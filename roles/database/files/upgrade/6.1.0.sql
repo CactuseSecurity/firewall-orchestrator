@@ -84,7 +84,11 @@ END $$;
 
 CREATE OR REPLACE VIEW v_active_access_allow_rules AS 
 	SELECT * FROM rule r
-	WHERE r.active AND r.access_rule AND r.rule_head_text IS NULL AND NOT r.action_id IN (2,3,7); -- do not deal with deny rules
+	WHERE r.active AND 					-- only show current (not historical) rules 
+		r.access_rule AND 				-- only show access rules (no NAT)
+		r.rule_head_text IS NULL AND 	-- do not show header rules
+		NOT r.rule_disabled AND 		-- do not show disabled rules
+		NOT r.action_id IN (2,3,7);		-- do not deal with deny rules
 
 CREATE OR REPLACE VIEW v_rule_with_src_owner AS 
 	SELECT r.rule_id, owner.id as owner_id, owner_network.ip as matching_ip, 'source' AS match_in, owner.name as owner_name, 

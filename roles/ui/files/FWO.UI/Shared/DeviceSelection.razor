@@ -120,9 +120,12 @@
     {
         foreach (ManagementSelect management in DeviceFilter.Managements)
         {
-           await SetElementProperty(management.UiReference!.Value, "indeterminate",
-           management.Devices.Exists(d => d.Selected) && !management.Devices.TrueForAll(d => d.Selected)
-           /* any but not all devices selected */ );
+            if (management.UiReference != null)
+            {
+                await SetElementProperty(management.UiReference!.Value, "indeterminate",
+                management.Devices.Exists(d => d.Selected) && !management.Devices.TrueForAll(d => d.Selected)
+                /* any but not all devices selected */ );
+            }
         }
     }
 

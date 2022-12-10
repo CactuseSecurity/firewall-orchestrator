@@ -36,23 +36,33 @@
                             @owner.Name
                         </ElementTemplate>
                     </Dropdown>
+                    @if (selectedOwner.Name != "")
+                    {
+                        recertWithoutOwner = false;
+                    }
                 <br>
-                <div class="form-check mb-1">
-                    <div class="input-group">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="overdue_recert" disabled
+                            <input class="form-check-input" type="checkbox" id="recertOverdue"
                                 @bind="recertOverdueOnly"
                                 @oninput="@(async () => { recertOverdueOnly = !recertOverdueOnly; })" />
-                            <label class="col-form-label col-form-label-sm" for="recertOverdue">@(userConfig.GetText("overdue_recert"))</label>
+                            <label class="form-check-label" for="recertOverdue">@(userConfig.GetText("overdue_recert"))</label>
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="without_owner"
+                            <input class="form-check-input" type="checkbox" id="recertWithoutOwner"
                                 @bind="recertWithoutOwner"
-                                @oninput="@(async () => { recertWithoutOwner = !recertWithoutOwner; })" />
-                            <label class="col-form-label col-form-label-sm" for="recertWithoutOwner">@(userConfig.GetText("without_owner"))</label>
+                                @oninput="@(async () => { 
+                                    recertWithoutOwner = !recertWithoutOwner;
+                                    if (recertWithoutOwner)
+                                    {
+                                        selectedOwner = new FwoOwner();
+                                        OwnerChanged(selectedOwner);
+                                        StateHasChanged();
+                                    }
+                                })" />
+                            <label class="form-check-label" for="recertWithoutOwner">@(userConfig.GetText("without_owner"))</label>
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="any_match"
+                            <input class="form-check-input" type="checkbox" id="recertShowAnyMatch"
                                 @bind="recertShowAnyMatch"
                                 @oninput="@(async () => { 
                                         recertShowAnyMatch = !recertShowAnyMatch;
@@ -73,17 +83,15 @@
                                             filterInput =  filterInput.Replace("(not src==0.0.0.0 and not dst==0.0.0.0)", string.Empty);
                                         }
                                     })" />
-                            <label class="col-form-label col-form-label-sm" for="recertShowAnyMatch">@(userConfig.GetText("show_any_match"))</label>
+                            <label class="form-check-label" for="recertShowAnyMatch">@(userConfig.GetText("show_any_match"))</label>
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="single_line_per_rule" disabled
+                            <input class="form-check-input" type="checkbox" id="recertSingleLinePerRule" disabled
                                 @bind="recertSingleLinePerRule"
                                 @oninput="@(async () => { recertSingleLinePerRule = !recertSingleLinePerRule; })" />
-                            <label class="col-form-label col-form-label-sm" for="recertSingleLinePerRule">@(userConfig.GetText("single_line_per_rule"))</label>
+                            <label class="form-check-label" for="recertSingleLinePerRule">@(userConfig.GetText("single_line_per_rule"))</label>
                         </div>
-                    </div>
                 </div>
-            </div>
         }
         else
         {
@@ -788,7 +796,7 @@
             // collapse report templates
             reportTemplateControl.Collapse();
 
-            RecertFilter recertFilter = new RecertFilter(recertOverdueOnly, recertWithoutOwner, recertShowAnyMatch, recertSingleLinePerRule, selectedOwner);
+            RecertFilter recertFilter = new RecertFilter(selectedOwner, recertOverdueOnly, recertWithoutOwner, recertShowAnyMatch, recertSingleLinePerRule);
             ReportTemplate reportParams = new ReportTemplate(filterInput, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter);
             currentReport = ReportBase.ConstructReport(reportParams, userConfig);
 
@@ -910,7 +918,7 @@
 
         try
         {
-            RecertFilter recertFilter = new RecertFilter(recertOverdueOnly, recertWithoutOwner, recertShowAnyMatch, recertSingleLinePerRule, selectedOwner);
+            RecertFilter recertFilter = new RecertFilter(selectedOwner, recertOverdueOnly, recertWithoutOwner, recertShowAnyMatch, recertSingleLinePerRule);
             ReportTemplate reportParams = new ReportTemplate(input, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter);
 
             DynGraphqlQuery query = Compiler.Compile(reportParams);

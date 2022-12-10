@@ -15,7 +15,7 @@ namespace FWO.Api.Data
 
         public FwoOwner RecertOwner = null;
 
-        public RecertFilter(bool recertOverdueOnly = false, bool recertWithoutOwner = false, bool recertShowAnyMatch = false, bool recertSingleLinePerRule = false, FwoOwner owner = null)
+        public RecertFilter(FwoOwner owner = null, bool recertOverdueOnly = false, bool recertWithoutOwner = false, bool recertShowAnyMatch = false, bool recertSingleLinePerRule = false)
         {
             RecertOverdueOnly = recertOverdueOnly;
             RecertWithoutOwner = recertWithoutOwner;

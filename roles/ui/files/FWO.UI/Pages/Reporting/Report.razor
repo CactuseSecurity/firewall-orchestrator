@@ -42,7 +42,7 @@
                     }
                 <br>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="recertOverdue"
+                            <input class="form-check-input" type="checkbox" id="recertOverdue" disabled
                                 @bind="recertOverdueOnly"
                                 @oninput="@(async () => { recertOverdueOnly = !recertOverdueOnly; })" />
                             <label class="form-check-label" for="recertOverdue">@(userConfig.GetText("overdue_recert"))</label>

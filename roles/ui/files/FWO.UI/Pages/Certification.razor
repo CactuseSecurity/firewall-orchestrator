@@ -204,7 +204,7 @@
             }
 
             SyncFilterToDisplay();
-            RecertFilter recertFilter = new RecertFilter(); // (recertOverdueOnly, recertWithoutOwner, recertShowAnyMatch, recertSingleLinePerRule);
+            RecertFilter recertFilter = new RecertFilter(new FwoOwner());
             ReportTemplate reportParams = new ReportTemplate("", deviceFilter, (int) ReportType.Recertification, null, recertFilter);
             currentReport = ReportBase.ConstructReport(reportParams, userConfig);
 

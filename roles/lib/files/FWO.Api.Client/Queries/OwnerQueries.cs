@@ -13,6 +13,9 @@ namespace FWO.Api.Client.Queries
         public static readonly string setDefaultOwner;
         public static readonly string getOwnerIdsFromGroups;
         public static readonly string getOwnerIdsForUser;
+        public static readonly string getNetworkOwnerships;
+        public static readonly string newNetworkOwnership;
+        public static readonly string deleteNetworkOwnerships;
 
 
         static OwnerQueries()
@@ -28,6 +31,9 @@ namespace FWO.Api.Client.Queries
                 setDefaultOwner = File.ReadAllText(QueryPath + "owner/setDefaultOwner.graphql");
                 getOwnerIdsFromGroups = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/getOwnerIdsFromGroups.graphql");
                 getOwnerIdsForUser = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/getOwnerIdsForUser.graphql");
+                getNetworkOwnerships = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/getNetworkOwnerships.graphql");
+                newNetworkOwnership = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/newNetworkOwnership.graphql");
+                deleteNetworkOwnerships = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/deleteNetworkOwnerships.graphql");
             }
             catch (Exception exception)
             {

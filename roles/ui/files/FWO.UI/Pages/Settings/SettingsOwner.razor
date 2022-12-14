@@ -30,7 +30,7 @@
                 <Column TableItem="FwoOwner" Title="@(userConfig.GetText("owners"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                     <Template>
                         <div class="btn-group">
-                            <button class="btn btn-sm btn-warning" @onclick="() => EditOwner(context)">@(userConfig.GetText("edit"))</button>
+                            <button class="btn btn-sm btn-warning" @onclick="async () => await EditOwner(context)">@(userConfig.GetText("edit"))</button>
                             <button class="btn btn-sm btn-danger" @onclick="() => RequestDeleteOwner(context)">@(userConfig.GetText("delete"))</button>
                             @if(!context.IsDefault)
                             {
@@ -140,6 +140,25 @@
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_app_id")):</label>
                         <div class="col-sm-9">
                             <input type="text" class="form-control form-control-sm" @bind="actOwner.ExtAppId" />
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ip_addresses")):</label>
+                        <div class="col-sm-9">
+                            @foreach(var ipAdd in actIpAddresses)
+                            {
+                                <div class="col-sm-12">
+                                    <div class="form-group row">
+                                        <input type="text" class="col-sm-11 form-control form-control-sm" @bind="ipAdd.Cidr.CidrString" />
+                                        <button type="button" class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteIp(ipAdd)">x</button>
+                                    </div>
+                                </div>
+                            }
+                            <div class="col-sm-12">
+                                <div class="form-group row">
+                                    <input @onsubmit:preventDefault @onsubmit:stopPropagation type="text" class="col-sm-12 form-control form-control-sm" placeholder="@(userConfig.GetText("insert_ip"))" @bind="newIpString"/>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -300,6 +319,30 @@
     private bool SearchUserInLdapMode = false;
     private bool InitComplete = false;
 
+    private List<NwObjectElement> actIpAddresses = new List<NwObjectElement>();
+    private bool ipChanged = false;
+
+    private string newIpInt = "";
+    private string newIpString
+    {
+        get => newIpInt;
+        set
+        {
+            if(value != null && value != "")
+            {
+                NwObjectElement obj = new NwObjectElement(value, 0);
+                if (obj.Cidr.Valid)
+                {
+                    actIpAddresses.Add(obj);
+                    newIpInt = "";
+                }
+            }
+            ipChanged = true;
+            StateHasChanged();
+        }
+    }
+
+
     protected override async Task OnInitializedAsync()
     {
         try
@@ -331,17 +374,40 @@
         InitComplete = true;
     }
 
-    private void AddOwner()
+    private void DeleteIp(NwObjectElement obj)
     {
-        AddOwnerMode = true;
-        EditOwner(new FwoOwner());
+        actIpAddresses.Remove(obj);
+        ipChanged = true;
+        StateHasChanged();
     }
 
-    private void EditOwner(FwoOwner owner)
+    private async Task AddOwner()
     {
-        actOwner = owner;
-        actTenantId = (actOwner.TenantId != null ? (int)actOwner.TenantId : -1);
-        EditOwnerMode = true;
+        AddOwnerMode = true;
+        await EditOwner(new FwoOwner());
+    }
+
+    private async Task EditOwner(FwoOwner owner)
+    {
+        try
+        {
+            actOwner = owner;
+            actTenantId = (actOwner.TenantId != null ? (int)actOwner.TenantId : -1);
+            if(AddOwnerMode)
+            {
+                actIpAddresses.Clear();
+            }
+            else
+            {
+                actIpAddresses = await apiConnection.SendQueryAsync<List<NwObjectElement>>(FWO.Api.Client.Queries.OwnerQueries.getNetworkOwnerships, new { ownerId = actOwner.Id });
+            }
+            ipChanged = false;
+            EditOwnerMode = true;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
+        }
     }
 
     private async Task SaveOwner()
@@ -357,49 +423,11 @@
             {    
                 if(AddOwnerMode)
                 {
-                    var Variables = new
-                    {
-                        name = actOwner.Name,
-                        dn = actOwner.Dn,
-                        groupDn = actOwner.GroupDn,
-                        tenantId = actOwner.TenantId,
-                        recertInterval = actOwner.RecertInterval,
-                        nextRecertDate = actOwner.NextRecertDate,
-                        appIdExternal = actOwner.ExtAppId
-                    };
-                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.OwnerQueries.newOwner, Variables)).ReturnIds;
-                    if (returnIds == null)
-                    {
-                        DisplayMessageInUi!(null, userConfig.GetText("add_owner"), userConfig.GetText("E5291"), true);
-                    }
-                    else
-                    {
-                        actOwner.Id = returnIds[0].NewId;
-                        owners.Add(actOwner);
-                    }
+                    await AddOwnerInDb();
                 }
                 else
                 {
-                    var Variables = new
-                    {
-                        id = actOwner.Id,
-                        name = actOwner.Name,
-                        dn = actOwner.Dn,
-                        groupDn = actOwner.GroupDn,
-                        tenantId = actOwner.TenantId,
-                        recertInterval = actOwner.RecertInterval,
-                        nextRecertDate = actOwner.NextRecertDate,
-                        appIdExternal = actOwner.ExtAppId
-                    };
-                    int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.OwnerQueries.updateOwner, Variables)).UpdatedId;
-                    if(udId != actOwner.Id)
-                    {
-                        DisplayMessageInUi!(null, userConfig.GetText("edit_owner"), userConfig.GetText("E5291"), true);
-                    }
-                    else
-                    {
-                        owners[owners.FindIndex(x => x.Id == actOwner.Id)] = actOwner;
-                    }
+                    await UpdateOwnerInDb();
                 }
                 if(selectedLdap.Id > 0)
                 {
@@ -412,6 +440,75 @@
         catch (Exception exception)
         {
             DisplayMessageInUi!(exception, userConfig.GetText("edit_owner"), "", true);
+        }
+    }
+
+    private async Task AddOwnerInDb()
+    {
+        var Variables = new
+        {
+            name = actOwner.Name,
+            dn = actOwner.Dn,
+            groupDn = actOwner.GroupDn,
+            tenantId = actOwner.TenantId,
+            recertInterval = actOwner.RecertInterval,
+            nextRecertDate = actOwner.NextRecertDate,
+            appIdExternal = actOwner.ExtAppId
+        };
+        ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.OwnerQueries.newOwner, Variables)).ReturnIds;
+        if (returnIds == null)
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("add_owner"), userConfig.GetText("E5291"), true);
+        }
+        else
+        {
+            actOwner.Id = returnIds[0].NewId;
+            await addNetworkOwners();
+            owners.Add(actOwner);
+        }
+    }
+
+    private async Task UpdateOwnerInDb()
+    {
+        var Variables = new
+        {
+            id = actOwner.Id,
+            name = actOwner.Name,
+            dn = actOwner.Dn,
+            groupDn = actOwner.GroupDn,
+            tenantId = actOwner.TenantId,
+            recertInterval = actOwner.RecertInterval,
+            nextRecertDate = actOwner.NextRecertDate,
+            appIdExternal = actOwner.ExtAppId
+        };
+        int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.OwnerQueries.updateOwner, Variables)).UpdatedId;
+        if(udId != actOwner.Id)
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("edit_owner"), userConfig.GetText("E5291"), true);
+        }
+        else
+        {
+            if(ipChanged)
+            {
+                await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.OwnerQueries.deleteNetworkOwnerships, new { ownerId = actOwner.Id });
+                actOwner.NwObjElements.Clear();
+                await addNetworkOwners();
+            }
+            owners[owners.FindIndex(x => x.Id == actOwner.Id)] = actOwner;
+        }
+    }
+
+    private async Task addNetworkOwners()
+    {
+        foreach(var ipAdd in actIpAddresses)
+        {
+            var Variables = new
+            {
+                ownerId = actOwner.Id,
+                ip = (ipAdd.Cidr != null && ipAdd.Cidr.Valid ? ipAdd.Cidr.CidrString : null)
+            };
+            await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.OwnerQueries.newNetworkOwnership, Variables);
+            actOwner.NwObjElements.Add(ipAdd);
         }
     }
 

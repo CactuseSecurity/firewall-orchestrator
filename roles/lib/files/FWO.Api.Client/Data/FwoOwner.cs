@@ -8,6 +8,8 @@ namespace FWO.Api.Data
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
 
+        public List<NwObjectElement> NwObjElements { get; set; } = new List<NwObjectElement>();
+
 
         public FwoOwner()
         { }
@@ -15,6 +17,7 @@ namespace FWO.Api.Data
         public FwoOwner(FwoOwner owner) : base(owner)
         {
             Id = owner.Id;
+            NwObjElements = owner.NwObjElements;
         }
     }
 

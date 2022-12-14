@@ -8,20 +8,10 @@ namespace FWO.Api.Data
 
     public class RecertFilter
     {
-        public bool RecertOverdueOnly = false;
-        public bool RecertWithoutOwner = false;
-        public bool RecertShowAnyMatch = false;
-        public bool RecertSingleLinePerRule = false;
-
-        public FwoOwner RecertOwner = null;
-
-        public RecertFilter(FwoOwner owner = null, bool recertOverdueOnly = false, bool recertWithoutOwner = false, bool recertShowAnyMatch = false, bool recertSingleLinePerRule = false)
-        {
-            RecertOverdueOnly = recertOverdueOnly;
-            RecertWithoutOwner = recertWithoutOwner;
-            RecertShowAnyMatch = recertShowAnyMatch;
-            RecertSingleLinePerRule = recertSingleLinePerRule;
-            RecertOwner = owner;
-        }
+        public List<int> RecertOwnerList {get; set;} = new List<int>();
+        public bool RecertOverdueOnly {get; set;} = false;
+        public bool RecertWithoutOwner {get; set;} = false;
+        public bool RecertShowAnyMatch {get; set;} = false;
+        public bool RecertSingleLinePerRule {get; set;} = false;
     }
 }

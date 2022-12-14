@@ -307,7 +307,7 @@ namespace FWO.Middleware.Server
             return GetMemberships(dnList, GroupSearchPath);
         }
 
-        public List<string> GetMemberships(List<string> dnList, string? searchPath)
+        private List<string> GetMemberships(List<string> dnList, string? searchPath)
         {
             List<string> userMemberships = new List<string>();
 
@@ -472,7 +472,7 @@ namespace FWO.Middleware.Server
                         {
                             GroupDn = entry.Dn, 
                             Members = members, 
-                            OwnerGroup = (entry.GetAttributeSet().ContainsKey("businessCategory") ? (entry.GetAttribute("businessCategory").StringValue == "ownergroup") : false)
+                            OwnerGroup = (entry.GetAttributeSet().ContainsKey("businessCategory") ? (entry.GetAttribute("businessCategory").StringValue.ToLower() == "ownergroup") : false)
                         });
                     }
                 }
@@ -777,7 +777,7 @@ namespace FWO.Middleware.Server
             return allRemoved;
         }
 
-        public bool ModifyUserInEntry(string userDn, string entry, int LdapModification)
+        private bool ModifyUserInEntry(string userDn, string entry, int LdapModification)
         {
             bool userModified = false;
             try         

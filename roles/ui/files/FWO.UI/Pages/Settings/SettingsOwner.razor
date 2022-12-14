@@ -101,7 +101,7 @@
                                 <option value="">@(userConfig.GetText("none"))</option>
                                 @foreach (UserGroup group in ownerGroups)
                                 {
-                                    <option value="@group.Name">@(group.Name)</option>
+                                    <option value="@group.Dn">@(group.Name)</option>
                                 }
                             </select>
                         </div>

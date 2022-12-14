@@ -796,7 +796,14 @@
             // collapse report templates
             reportTemplateControl.Collapse();
 
-            RecertFilter recertFilter = new RecertFilter(selectedOwner, recertOverdueOnly, recertWithoutOwner, recertShowAnyMatch, recertSingleLinePerRule);
+            RecertFilter recertFilter = new RecertFilter()
+            {
+                RecertOwnerList = new List<int>() { selectedOwner.Id },
+                RecertOverdueOnly = recertOverdueOnly,
+                RecertWithoutOwner = recertWithoutOwner,
+                RecertShowAnyMatch = recertShowAnyMatch,
+                RecertSingleLinePerRule = recertSingleLinePerRule
+            };
             ReportTemplate reportParams = new ReportTemplate(filterInput, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter);
             currentReport = ReportBase.ConstructReport(reportParams, userConfig);
 
@@ -918,7 +925,14 @@
 
         try
         {
-            RecertFilter recertFilter = new RecertFilter(selectedOwner, recertOverdueOnly, recertWithoutOwner, recertShowAnyMatch, recertSingleLinePerRule);
+            RecertFilter recertFilter = new RecertFilter()
+            {
+                RecertOwnerList = new List<int>() { selectedOwner.Id },
+                RecertOverdueOnly = recertOverdueOnly, 
+                RecertWithoutOwner = recertWithoutOwner, 
+                RecertShowAnyMatch = recertShowAnyMatch, 
+                RecertSingleLinePerRule = recertSingleLinePerRule
+            };
             ReportTemplate reportParams = new ReportTemplate(input, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter);
 
             DynGraphqlQuery query = Compiler.Compile(reportParams);

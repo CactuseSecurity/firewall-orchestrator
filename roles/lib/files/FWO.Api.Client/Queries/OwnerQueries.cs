@@ -11,6 +11,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string updateOwner;
         public static readonly string deleteOwner;
         public static readonly string setDefaultOwner;
+        public static readonly string getOwnerIdsFromGroups;
+        public static readonly string getOwnerIdsForUser;
 
 
         static OwnerQueries()
@@ -24,6 +26,8 @@ namespace FWO.Api.Client.Queries
                 updateOwner = File.ReadAllText(QueryPath + "owner/updateOwner.graphql");
                 deleteOwner = File.ReadAllText(QueryPath + "owner/deleteOwner.graphql");
                 setDefaultOwner = File.ReadAllText(QueryPath + "owner/setDefaultOwner.graphql");
+                getOwnerIdsFromGroups = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/getOwnerIdsFromGroups.graphql");
+                getOwnerIdsForUser = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/getOwnerIdsForUser.graphql");
             }
             catch (Exception exception)
             {

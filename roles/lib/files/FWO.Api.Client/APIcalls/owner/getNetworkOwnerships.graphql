@@ -1,0 +1,7 @@
+
+query getNetworkOwnerships ($ownerId: Int!) {
+  owner_network (where: {owner_id: {_eq: $ownerId}} order_by: { id: asc }){
+    id
+    ip
+  }
+}

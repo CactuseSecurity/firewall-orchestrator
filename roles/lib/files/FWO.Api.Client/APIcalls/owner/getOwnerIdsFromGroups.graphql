@@ -1,0 +1,6 @@
+
+query getOwnerIdsFromGroups ($groupDns: [String]!) {
+  owner (where: {group_dn: {_in: $groupDns}} order_by: { id: asc }){
+    id
+  }
+}

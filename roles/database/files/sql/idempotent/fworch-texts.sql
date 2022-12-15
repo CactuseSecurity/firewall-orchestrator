@@ -2452,15 +2452,15 @@ INSERT INTO txt VALUES ('H5114', 'German',  'Hostname*: Adresse des Hosts (entwe
 ');
 INSERT INTO txt VALUES ('H5114', 'English', 'Hostname*: Address of the host (either IP address or resolvable name). 
     For Check Point R8x MDS installations use the address of the MDS server for all domains.<br>
-    For Fortinet, Barradua, Juniper you need to specify the IP of resolvable name of the firewall gateway.
+    For Fortinet, Barradua, Juniper you need to specify the IP or resolvable name of the firewall gateway.
 ');
 INSERT INTO txt VALUES ('H5115', 'German',  'Port*: Port-Nummer des Hosts.<br>
-    Wenn das Ziel Check Point R8x ist, wird die Verbindung via API aufgebaut. Die Standard-Port-Nummer ist 443. Denken Sie daran, den API-Zugang auf Ihrem Check Point Managment zu aktivieren.<br>
-    Wenn das Ziel nicht Check Point R8x ist, braucht Firewall Orchestrator einen ssh-basierten Zugang. Die Standard-Port-Nummer ist 22.
+    Wenn das Ziel Check Point R8x, FortiManager, Azure oder Cisco FirePower ist, wird die Verbindung via API aufgebaut. Die Standard-Port-Nummer ist 443. Denken Sie daran, den API-Zugang auf Ihrem Firewall Managment zu aktivieren.<br>
+    Wenn das Ziel eine andere Plattform ist, braucht Firewall Orchestrator einen ssh-basierten Zugang. Die Standard-Port-Nummer ist in diesem Fall 22.
 ');
 INSERT INTO txt VALUES ('H5115', 'English', 'Port*: Port number of the host.<br>
-    If the target is Check Point R8x the connection is established via API. The default port number is 443. Remember to enable API access on your Check Point managment.<br>
-    If the target is not Check Point R8x Firewall Orchestrator needs ssh-based access. The default port number is 22.
+    If the target is Check Point R8x, FortiManager, Azure or Cisco FirePower the connection is established via API. The default port number is 443. Remember to enable API access on your firewall managment.<br>
+    If the target any other platform Firewall Orchestrator needs ssh-based access. The default port number here is 22.
 ');
 INSERT INTO txt VALUES ('H5116', 'German',  'Login-Daten*: Zugangsdaten f&uuml;r den Import-Nutzer des Managements.<br>
     Hier kann ein Satz Zugangsdaten ausgew&auml;hlt werden, der zum Login auf dem Management dient.
@@ -2492,17 +2492,25 @@ INSERT INTO txt VALUES ('H5130', 'German',  'Hier werden die Zugangsdaten f&uuml
 Diese k&ouml;nnen auch f&uuml;r den Zugriff auf mehrere Firewall-Managements verwendet werden.
 Ein L&ouml;schen is erst m&ouml;glich, wenn die Zugangsdaten nirgends verwendet werden. 
 ');
-INSERT INTO txt VALUES ('H5130', 'English', 'Import credentials*: Manage credentials for importing firewall configuration data.
+INSERT INTO txt VALUES ('H5130', 'English', 'Manage credentials for importing firewall configuration data.
 Credentials can be used for logging in to one or multiple firewall managements.
 Credentials can only be deleted when they are not used for importing any management.
+');
+INSERT INTO txt VALUES ('H5131', 'German',  'Name*: Ein beliebiger Name, der diese Zugangsdaten eindeutig beschreibt.
+');
+INSERT INTO txt VALUES ('H5131', 'English', 'Name*: An arbitrary name you can assign to your credetials.
 ');
 INSERT INTO txt VALUES ('H5132', 'German',  'Import Nutzer*: Der Nutzer, der zum Anmelden am Firewall Management benutzt wird.
     Er muss vorher auf dem Firewallsystem angelegt sein und vollen Lesezugriff auf das System besitzen.<br>
     Auf Check Point R8x wird empfohlen, das vordefinierte "Read Only All"-Profil (sowohl globales als auch Domainmanagement) zu verwenden.
 ');
-INSERT INTO txt VALUES ('H5132', 'English', 'Import User*: The user used to login to the firewall management. 
+INSERT INTO txt VALUES ('H5132', 'English', 'Username*: The user used to login to the firewall management. 
     This user needs to be created on the firewall system in advance and needs full read access to the system.<br>
     On Check Point R8x we recommend using the predefined "Read Only All" profile (both global and domain management) for the user.
+');
+INSERT INTO txt VALUES ('H5135', 'German',  'Schl&uuml;sselpaar*: Handelt es sich bei diesen Login-Daten um ein SSH Public-Key Paar oder um Standard ein Standard-Passwort.
+');
+INSERT INTO txt VALUES ('H5135', 'English', 'Key Pair*: Do these credentials consist of a private/public SSH key pair or do they contain a standard password.
 ');
 INSERT INTO txt VALUES ('H5133', 'German',  'Privater Schl&uuml;ssel* / Passwort*: F&uuml;r den ssh-Zugang hier den privaten ssh-Schl&uuml;ssel hinterlegen (Schl&uuml;ssel muss unverschl&uuml;sselt und ohne Passphrase sein)<br>
     F&uuml;r den API-Zugang ist dies das Passwort des API-Nutzers.
@@ -2512,9 +2520,13 @@ INSERT INTO txt VALUES ('H5133', 'English', 'Login Secret* / Password*: For ssh 
 ');
 INSERT INTO txt VALUES ('H5134', 'German',  '&Ouml;ffentlicher Schl&uuml;ssel: Dieses Feld muss nur f&uuml;r Netscreen-Firewalls gef&uuml;llt werden - dieses System ben&ouml;tigt auch den &ouml;ffentlichen Schl&uuml;ssel zum Anmelden.');
 INSERT INTO txt VALUES ('H5134', 'English', 'Public Key: This field only needs to be filled for netscreen firewalls - this system also needs the public key for successful login.');
-INSERT INTO txt VALUES ('H5135', 'German',  'Schl&uuml;sselpaar*: Handelt es sich bei diesen Login-Daten um ein SSH Public-Key Paar oder um Standard ein Standard-Passwort.
+INSERT INTO txt VALUES ('H5136', 'German',  'Cloud Client ID: Nur für Cloud Instanzen (Azure) ben&ouml;tigt - f&uuml;r alle anderen Plattformen kann dieses Feld leer gelassen werden.
 ');
-INSERT INTO txt VALUES ('H5135', 'English', 'Key Pair*: Do these credentials consist of a private/public SSH key pair or do they contain a standard password.
+INSERT INTO txt VALUES ('H5136', 'English', 'Cloud Client ID: If you have a cloud installation (e.g. Azure) - enter your Azure client ID here. For all other installations, leave this field empty.
+');
+INSERT INTO txt VALUES ('H5137', 'German',  'Cloud Client Secret: Nur für Cloud Instanzen (Azure) ben&ouml;tigt - f&uuml;r alle anderen Plattformen kann dieses Feld leer gelassen werden.
+');
+INSERT INTO txt VALUES ('H5137', 'English', 'Cloud Client Secret: If you have a cloud installation (e.g. Azure) - enter your Azure client secret here. For all other installations, leave this field empty.
 ');
 
 INSERT INTO txt VALUES ('H5141', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Gateways einrichten und verwalten.<br>

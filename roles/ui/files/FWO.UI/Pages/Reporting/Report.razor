@@ -5,6 +5,7 @@
 @using FWO.Api.Data
 @using System
 @using System.Threading
+@using System.Text.RegularExpressions
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.Reporting.Reports
 @using System.Diagnostics
@@ -29,22 +30,24 @@
         {
             <div class="p-3">
                 <h6 class="text-left">@(userConfig.GetText("recert_parameter"))</h6>
+                    <h7 class="text-left">@(userConfig.GetText("due_within")):</h7>
+                        <input  type="text" class="form-control form-control-sm" @bind="userConfig.RecertificationDisplayPeriod" />
                     <h7 class="text-left">@(userConfig.GetText("owner"))</h7>
-                    <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)"
-                        Value="selectedOwner" ValueChanged="OwnerChanged" Elements="ownerList">
-                        <ElementTemplate Context="owner">
-                            @owner.Name
-                        </ElementTemplate>
-                    </Dropdown>
-                    @if (selectedOwner.Name != "")
-                    {
-                        recertWithoutOwner = false;
-                    }
-                <br>
+                        <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)"
+                            Value="selectedOwner" ValueChanged="OwnerChanged" Elements="ownerList">
+                            <ElementTemplate Context="owner">
+                                @owner.Name
+                            </ElementTemplate>
+                        </Dropdown>
+                        @if (selectedOwner.Name != "")
+                        {
+                            recertWithoutOwner = false;
+                        }
+                        <br>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="recertOverdue" disabled
+                            <input class="form-check-input" type="checkbox" id="recertOverdue"
                                 @bind="recertOverdueOnly"
-                                @oninput="@(async () => { recertOverdueOnly = !recertOverdueOnly; })" />
+                                @oninput="@(async () => { recertOverdueOnly = !recertOverdueOnly; userConfig.RecertificationDisplayPeriod = 0; SyncFilterToDisplay(); })" />
                             <label class="form-check-label" for="recertOverdue">@(userConfig.GetText("overdue_recert"))</label>
                         </div>
                         <div class="form-check">
@@ -91,7 +94,7 @@
                                 @oninput="@(async () => { recertSingleLinePerRule = !recertSingleLinePerRule; })" />
                             <label class="form-check-label" for="recertSingleLinePerRule">@(userConfig.GetText("single_line_per_rule"))</label>
                         </div>
-                </div>
+            </div>
         }
         else
         {
@@ -484,7 +487,8 @@
     private string filterFeedbackStart = "";
     private string filterFeedbackError = "";
     private string filterFeedbackEnd = "";
-    private string filterInput = "";
+    private string filterInput = "remove=false and recertdisplay=0";
+ //   private string filterInput = "";
 
     private CollapseState collapseSidebarAll = new CollapseState();
     private CollapseState collapseSidebarReport = new CollapseState();
@@ -599,6 +603,11 @@
         }
         DisplayTime();
         ShowSelectTimeDialog = false;
+    }
+
+    private void SyncFilterToDisplay()
+    {
+        filterInput = Regex.Replace(filterInput, "recertdisplay=" + @"-?\d+", $"recertdisplay={(userConfig.RecertificationPeriod-userConfig.RecertificationDisplayPeriod).ToString()}");
     }
 
     public bool checkTimeRange()
@@ -795,8 +804,8 @@
 
             // collapse report templates
             reportTemplateControl.Collapse();
-
-            RecertFilter recertFilter = new RecertFilter(selectedOwner, recertOverdueOnly, recertWithoutOwner, recertShowAnyMatch, recertSingleLinePerRule);
+            SyncFilterToDisplay();
+            RecertFilter recertFilter = new RecertFilter(selectedOwner, recertOverdueOnly, recertWithoutOwner, recertShowAnyMatch, recertSingleLinePerRule, userConfig.RecertificationDisplayPeriod);
             ReportTemplate reportParams = new ReportTemplate(filterInput, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter);
             currentReport = ReportBase.ConstructReport(reportParams, userConfig);
 
@@ -808,26 +817,28 @@
 
             try
             {
-                switch (currentReport)
+                switch (currentReport.ReportType)
                 {
-                    case ReportNatRules natRulesReport:
-                    case ReportRules rulesReport:
-                    case ReportChanges changesReport:
+                    case ReportType.NatRules:
+                    case ReportType.Rules:
+                    case ReportType.Changes:
+                    case ReportType.ResolvedRules:
+                    case ReportType.ResolvedRulesTech:
+                    case ReportType.Recertification:
                         await currentReport.Generate(userConfig.ElementsPerFetch, Connection,
-                            managementsReportIntermediate =>
-                            {
-                                managementsReport = managementsReportIntermediate;
-                                setRelevantManagements(relevantManagements);
-                                return InvokeAsync(StateHasChanged);
-                            }, token);
+                        managementsReportIntermediate =>
+                        {
+                            managementsReport = managementsReportIntermediate;
+                            setRelevantManagements(relevantManagements);
+                            return InvokeAsync(StateHasChanged);
+                        }, token);
                         if (currentReport.ReportType == ReportType.Recertification)
                         {
                             PrepareMetadata(managementsReport);
                         }
                         break;
 
-
-                    case ReportStatistics statisticsReport:
+                    case ReportType.Statistics:
                         globalStats = new Management();
                         await currentReport.Generate(0, Connection,
                             managementsReportIntermediate =>

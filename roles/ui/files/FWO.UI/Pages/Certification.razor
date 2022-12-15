@@ -431,6 +431,8 @@
             // collect selected recerts + decerts
             List<long> RecertIds = new List<long>();
             List<long> DecertIds = new List<long>();
+            List<KeyValuePair<long,int>> Recerts = new List<KeyValuePair<long,int>>();
+            List<KeyValuePair<long,int>> Decerts = new List<KeyValuePair<long,int>>();
 
             foreach (Management management in managements)
             {
@@ -443,10 +445,12 @@
                             if(rule.Metadata.Recert)
                             {
                                 RecertIds.Add(rule.Metadata.Id);
+                                Recerts.Add(new KeyValuePair<long,int>(rule.Metadata.Id, rule.OwnerId));
                             }
                             else if(rule.Metadata.ToBeRemoved)
                             {
                                 DecertIds.Add(rule.Metadata.Id);
+                                Decerts.Add(new KeyValuePair<long,int>(rule.Metadata.Id, rule.OwnerId));
                             }
                         }
                     }
@@ -464,6 +468,19 @@
                     comment = actComment
                 };
                 await apiConnection.SendQueryAsync<object>(RuleQueries.updateRuleMetadataRecert, apiVariables);
+                
+                foreach(var pair in Recerts)
+                {
+                    var variables = new
+                    {
+                        ruleMetadataId = pair.Key,
+                        ownerId = pair.Value,
+                        recertified = true,
+                        recertDate = DateTime.Now,
+                        comment = actComment
+                    };
+                    await apiConnection.SendQueryAsync<object>(RuleQueries.newRecertification, variables);
+                }
             }
 
             // execute decertifications
@@ -476,6 +493,19 @@
                     comment = actComment
                 };
                 await apiConnection.SendQueryAsync<object>(RuleQueries.updateRuleMetadataDecert, apiVariables);
+
+                foreach(var pair in Decerts)
+                {
+                    var variables = new
+                    {
+                        ruleMetadataId = pair.Key,
+                        ownerId = pair.Value,
+                        recertified = false,
+                        recertDate = DateTime.Now,
+                        comment = actComment
+                    };
+                    await apiConnection.SendQueryAsync<object>(RuleQueries.newRecertification, variables);
+                }
             }
 
             string txt = userConfig.GetText("recerts_executed") + RecertIds.Count.ToString() + ", " +

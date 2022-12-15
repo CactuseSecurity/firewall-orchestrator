@@ -1,0 +1,19 @@
+mutation newRecertification(
+  $ruleMetadataId: bigint!
+  $ownerId: Int!
+  $recertified: Boolean
+  $recertDate: timestamp
+  $comment: String
+  ) {
+  insert_recertification(objects: {
+    rule_metadata_id: $ruleMetadataId
+    owner_id: $ownerId
+    recertified: $recertified
+    recert_date: $recertDate
+    comment: $comment
+  }) {
+    returning {
+      newId: id
+    }
+  }
+}

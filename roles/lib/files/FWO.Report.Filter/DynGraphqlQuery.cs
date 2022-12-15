@@ -317,17 +317,9 @@ namespace FWO.Report.Filter
                     {
                         recertFilterString += $"owner_id: {{_is_null: true }}";
                     }
-
-                    if (filter.ReportParams.RecertFilter.RecertOwner.Name!="")
+                    else
                     {
-                        if (filter.ReportParams.RecertFilter.RecertOwner.Name=="defaultOwner_demo") 
-                        {
-                            recertFilterString += $"owner_id: {{_is_null: true }}";
-                        }
-                        else
-                        {
-                            recertFilterString += $"owner_id: {{_eq:{filter.ReportParams.RecertFilter.RecertOwner.Id} }}";
-                        }
+                        recertFilterString += $@"owner_id: {{_in: [{string.Join(",", filter.ReportParams.RecertFilter.RecertOwnerList)}] }}";
                     }
 
                     query.FullQuery = Queries.compact($@"{RuleQueries.ruleRecertFragments}

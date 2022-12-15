@@ -6,11 +6,13 @@
 @using FWO.Report.Filter
 @using FWO.Ui.Pages.Reporting.Reports
 @using FWO.Api.Data
+@using FWO.Middleware.Client
 
 @page "/certification"
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject MiddlewareClient middlewareClient
 
 @* ==== LEFT SIDEBAR ==== *@
 <Sidebar @ref="deviceSelectionSidebar" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth">
@@ -143,8 +145,10 @@
     private CancellationTokenSource tokenSource = new CancellationTokenSource();
 
     private Management[] managements = new Management[0];
-    //    private Management[] managementsObjects = new Management[0];
-
+    
+    private List<FwoOwner> userOwnerships = new List<FwoOwner>();
+    private List<FwoOwner> groupOwnerships = new List<FwoOwner>();
+    private List<int> combinedOwnershipIds = new List<int>();
     private DeviceFilter deviceFilter = new DeviceFilter();
     private List<Rule> selectedRules = new List<Rule>();
     private bool collapseDevices = false;
@@ -153,10 +157,8 @@
     private ReportBase? currentReport;
 
     private Sidebar? deviceSelectionSidebar;
-    // private bool fullDeviceActionIsSelect = true;
     private bool AddCommentMode = false;
     private string actComment = "";
-    private bool anythingFound = false;
 
     protected override void OnInitialized()
     {
@@ -166,6 +168,7 @@
             {
                 rulesFound = false;
 
+                await InitOwnerships();
                 deviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
                 await InvokeAsync(StateHasChanged);
                 if (deviceFilter.NumberMgmtDev() > userConfig.MinCollapseAllDevices)
@@ -173,9 +176,6 @@
                     collapseDevices = true;
                     await InvokeAsync(StateHasChanged);
                 }
-                // PaginationVariables paginationVariables = new PaginationVariables() { Limit = 0, Offset = 0 };
-                // managementsObjects = await apiConnection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
-                // await InvokeAsync(StateHasChanged);
             }
             catch (Exception exception)
             {
@@ -184,10 +184,38 @@
         });
     }
 
+    private async Task InitOwnerships()
+    {
+        userOwnerships = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnerIdsForUser, new {userDn = userConfig.User.Dn});
+
+        List<UserGroup> ownerGroups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi!, true);
+        List<string> ownerGrpDns = new List<string>();
+        foreach(var grp in ownerGroups)
+        {
+            if(grp.Users.FirstOrDefault(x => x.Dn == userConfig.User.Dn) != null)
+            {
+                ownerGrpDns.Add(grp.Dn);
+            }
+        }
+        if(ownerGrpDns.Count > 0)
+        {
+            groupOwnerships = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnerIdsFromGroups, new {groupDns = ownerGrpDns});
+        }
+
+        foreach(var owner in userOwnerships)
+        {
+            combinedOwnershipIds.Add(owner.Id);
+        }
+        foreach(var owner in groupOwnerships)
+        {
+            combinedOwnershipIds.Add(owner.Id);
+        }
+        
+    }
+
     private async Task GenerateRecertificationReport()
     {
         processing = true;
-        // clear selected rules
         selectedRules.Clear();
 
         Management[] managementsOrig = managements;
@@ -204,7 +232,7 @@
             }
 
             SyncFilterToDisplay();
-            RecertFilter recertFilter = new RecertFilter(new FwoOwner());
+            RecertFilter recertFilter = new RecertFilter() { RecertOwnerList = combinedOwnershipIds }; // (recertOverdueOnly, recertWithoutOwner, recertShowAnyMatch, recertSingleLinePerRule);
             ReportTemplate reportParams = new ReportTemplate("", deviceFilter, (int) ReportType.Recertification, null, recertFilter);
             currentReport = ReportBase.ConstructReport(reportParams, userConfig);
 

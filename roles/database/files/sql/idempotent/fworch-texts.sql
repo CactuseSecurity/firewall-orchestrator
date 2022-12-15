@@ -340,6 +340,8 @@ INSERT INTO txt VALUES ('comment',				'German', 	'Kommentar');
 INSERT INTO txt VALUES ('comment',				'English', 	'Comment');
 INSERT INTO txt VALUES ('ip_address',		    'German', 	'IP-Adresse');
 INSERT INTO txt VALUES ('ip_address',		    'English', 	'IP Address');
+INSERT INTO txt VALUES ('ip_addresses',		    'German', 	'IP-Adressen');
+INSERT INTO txt VALUES ('ip_addresses',		    'English', 	'IP Addresses');
 INSERT INTO txt VALUES ('members',		        'German', 	'Mitglieder');
 INSERT INTO txt VALUES ('members',		        'English', 	'Members');
 INSERT INTO txt VALUES ('templates',			'German', 	'Vorlagen');

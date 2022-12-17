@@ -6785,9 +6785,12 @@
                     "columns": [
                       "id",
                       "rule_metadata_id",
+                      "rule_id",
+                      "ip_match",
                       "recertified",
                       "comment",
                       "owner_id",
+                      "user_dn",
                       "recert_date"
                     ]
                   }
@@ -6800,9 +6803,12 @@
                     "columns": [
                       "id",
                       "rule_metadata_id",
+                      "rule_id",
+                      "ip_match",
                       "recertified",
                       "comment",
                       "owner_id",
+                      "user_dn",
                       "recert_date"
                     ],
                     "filter": {}
@@ -6814,7 +6820,10 @@
                     "columns": [
                       "id",
                       "rule_metadata_id",
+                      "rule_id",
+                      "ip_match",
                       "owner_id",
+                      "user_dn",
                       "recertified",
                       "recert_date",
                       "comment"

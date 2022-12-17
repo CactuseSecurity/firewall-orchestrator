@@ -2,7 +2,10 @@ create table if not exists recertification
 (
 	id BIGSERIAL PRIMARY KEY,
     rule_metadata_id bigint NOT NULL,
+    rule_id bigint NOT NULL,
+    ip_match varchar,
     owner_id int,
+    user_dn varchar,
     recertified boolean default false,
 	recert_date Timestamp,
 	comment varchar

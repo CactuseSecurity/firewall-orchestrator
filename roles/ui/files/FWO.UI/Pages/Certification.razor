@@ -431,6 +431,7 @@
             // collect selected recerts + decerts
             List<long> RecertIds = new List<long>();
             List<long> DecertIds = new List<long>();
+            List<Rule> Certifications = new List<Rule>();
 
             foreach (Management management in managements)
             {
@@ -440,13 +441,17 @@
                     {
                         foreach (Rule rule in device.Rules)
                         {
-                            if(rule.Metadata.Recert)
+                            if(rule.Metadata.Recert) //Todo: remove
                             {
                                 RecertIds.Add(rule.Metadata.Id);
                             }
-                            else if(rule.Metadata.ToBeRemoved)
+                            else if(rule.Metadata.ToBeRemoved) //Todo: remove
                             {
                                 DecertIds.Add(rule.Metadata.Id);
+                            }
+                            if(rule.Metadata.Recert || rule.Metadata.ToBeRemoved)
+                            {
+                                Certifications.Add(rule);
                             }
                         }
                     }
@@ -454,7 +459,7 @@
             }
 
             // execute recertifications
-            if (RecertIds.Count > 0)
+            if (RecertIds.Count > 0) //Todo: remove
             {
                 var apiVariables = new 
                 { 
@@ -467,9 +472,9 @@
             }
 
             // execute decertifications
-            if (DecertIds.Count > 0)
+            if (DecertIds.Count > 0) //Todo: remove
             {
-                var apiVariables = new 
+                var apiVariables = new
                 { 
                     ids = DecertIds.ToArray(),
                     decertDate = DateTime.Now,
@@ -478,8 +483,32 @@
                 await apiConnection.SendQueryAsync<object>(RuleQueries.updateRuleMetadataDecert, apiVariables);
             }
 
-            string txt = userConfig.GetText("recerts_executed") + RecertIds.Count.ToString() + ", " +
-                         userConfig.GetText("decerts_executed") + DecertIds.Count.ToString();
+            int recerts = 0;
+            if (Certifications.Count > 0)
+            {
+                foreach(var cert in Certifications)
+                {
+                    var variables = new
+                    {
+                        ruleMetadataId = cert.Metadata.Id,
+                        ruleId = cert.Id,
+                        ipMatch = cert.IpMatch,
+                        ownerId = cert.OwnerId,
+                        userDn = userConfig.User.Dn,
+                        recertified = cert.Metadata.Recert,
+                        recertDate = DateTime.Now,
+                        comment = actComment
+                    };
+                    await apiConnection.SendQueryAsync<object>(RuleQueries.newRecertification, variables);
+                    if(cert.Metadata.Recert)
+                    {
+                        recerts++;
+                    }
+                }
+            }
+
+            string txt = userConfig.GetText("recerts_executed") + recerts.ToString() + ", " +
+                         userConfig.GetText("decerts_executed") + (Certifications.Count-recerts).ToString();
             DisplayMessageInUi!(null, userConfig.GetText("execute_selected"), txt, false);
 
             // reload updated report

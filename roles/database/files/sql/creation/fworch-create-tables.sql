@@ -1007,6 +1007,60 @@ Create table "config"
 	primary key ("config_key","config_user")
 );
 
+-- owner -------------------------------------------------------
+
+create table if not exists owner
+(
+    id SERIAL PRIMARY KEY,
+    name Varchar NOT NULL,
+    dn Varchar NOT NULL,
+    group_dn Varchar NOT NULL,
+    is_default boolean default false,
+    tenant_id int,
+    recert_interval int,
+	next_recert_date Timestamp,
+    app_id_external varchar not null
+);
+
+create unique index if not exists only_one_default_owner on owner(is_default) 
+where is_default = true;
+
+create table if not exists owner_network
+(
+    id SERIAL PRIMARY KEY,
+    owner_id int,
+    ip cidr NOT NULL,
+    port int,
+    ip_proto_id int
+);
+
+create table if not exists reqtask_owner
+(
+    reqtask_id bigint,
+    owner_id int
+);
+
+create table if not exists rule_owner
+(
+    owner_id int,
+    rule_metadata_id bigint
+);
+
+create table if not exists recertification
+(
+	id BIGSERIAL PRIMARY KEY,
+    rule_metadata_id bigint NOT NULL,
+	rule_id bigint NOT NULL,
+	ip_match varchar,
+    owner_id int,
+	user_dn varchar,
+	recertified boolean default false,
+	recert_date Timestamp,
+	comment varchar
+);
+
+-- workflow -------------------------------------------------------
+
 -- create schema
 create schema if not exists request;
 
@@ -1151,43 +1205,6 @@ create table if not exists request.state_action
 (
     state_id int,
     action_id int
-);
-
-create table if not exists owner
-(
-    id SERIAL PRIMARY KEY,
-    name Varchar NOT NULL,
-    dn Varchar NOT NULL,
-    group_dn Varchar NOT NULL,
-    is_default boolean default false,
-    tenant_id int,
-    recert_interval int,
-	next_recert_date Timestamp,
-    app_id_external varchar not null
-);
-
-create unique index if not exists only_one_default_owner on owner(is_default) 
-where is_default = true;
-
-create table if not exists owner_network
-(
-    id SERIAL PRIMARY KEY,
-    owner_id int,
-    ip cidr NOT NULL,
-    port int,
-    ip_proto_id int
-);
-
-create table if not exists reqtask_owner
-(
-    reqtask_id bigint,
-    owner_id int
-);
-
-create table if not exists rule_owner
-(
-    owner_id int,
-    rule_metadata_id bigint
 );
 
 create table if not exists request.implelement

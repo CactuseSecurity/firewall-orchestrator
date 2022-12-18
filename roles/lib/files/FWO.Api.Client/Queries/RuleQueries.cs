@@ -16,6 +16,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getRuleIdsOfImport;
         public static readonly string updateRuleMetadataRecert;
         public static readonly string updateRuleMetadataDecert;
+        public static readonly string newRecertification;
 
         public static readonly string natRuleOverviewFragments;
         public static readonly string natRuleDetailsFragments;
@@ -69,6 +70,8 @@ namespace FWO.Api.Client.Queries
 
                 updateRuleMetadataDecert =
                     File.ReadAllText(QueryPath + "recertification/updateRuleMetadataDecert.graphql");
+
+                newRecertification = File.ReadAllText(QueryPath + "recertification/newRecertification.graphql");
 
                 ruleRecertFragments = ruleOverviewFragments + 
                     File.ReadAllText(QueryPath + "recertification/fragments/view_rule_with_owner.graphql");

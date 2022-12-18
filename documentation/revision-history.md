@@ -253,3 +253,7 @@ adding report template format fk and permissions
 ### 6.1.0 - 16.11.2022 DEVELOP
 - interactive network analysis prototype in UI
 - integrate path analysis to workflow
+
+### 6.1.1 - 15.12.2022 DEVELOP
+- recertification on owner base
+- preparation of new task types

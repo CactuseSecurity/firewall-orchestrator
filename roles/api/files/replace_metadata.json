@@ -6774,6 +6774,67 @@
             },
             {
               "table": {
+                "name": "recertification",
+                "schema": "public"
+              },
+              "insert_permissions": [
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "rule_metadata_id",
+                      "rule_id",
+                      "ip_match",
+                      "recertified",
+                      "comment",
+                      "owner_id",
+                      "user_dn",
+                      "recert_date"
+                    ]
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "rule_metadata_id",
+                      "rule_id",
+                      "ip_match",
+                      "recertified",
+                      "comment",
+                      "owner_id",
+                      "user_dn",
+                      "recert_date"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "rule_metadata_id",
+                      "rule_id",
+                      "ip_match",
+                      "owner_id",
+                      "user_dn",
+                      "recertified",
+                      "recert_date",
+                      "comment"
+                    ],
+                    "filter": {}
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
                 "name": "report",
                 "schema": "public"
               },

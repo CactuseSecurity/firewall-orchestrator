@@ -8,8 +8,8 @@ namespace FWO.Api.Data
         master = 0,
         generic = 1,
         access = 2, 
-        //rule_delete,
-        //rule_modify,
+        rule_delete = 3,
+        rule_modify = 4,
         group_create = 5,
         group_modify = 6,
         group_delete = 7

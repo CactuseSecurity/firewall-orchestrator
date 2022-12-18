@@ -160,6 +160,8 @@ namespace FWO.Api.Client
                 TaskType.master => "reqMasterStateMatrix",
                 TaskType.generic => "reqGenStateMatrix",
                 TaskType.access => "reqAccStateMatrix",
+                TaskType.rule_delete => "reqRulDelStateMatrix",
+                TaskType.rule_modify => "reqRulModStateMatrix",
                 TaskType.group_create => "reqGrpCreStateMatrix",
                 TaskType.group_modify => "reqGrpModStateMatrix",
                 TaskType.group_delete => "reqGrpDelStateMatrix",

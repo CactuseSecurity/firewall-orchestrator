@@ -82,6 +82,9 @@ namespace FWO.Api.Data
         [JsonProperty("owner_name"), JsonPropertyName("owner_name")]
         public string OwnerName {get; set;} = "";
 
+        [JsonProperty("owner_id"), JsonPropertyName("owner_id")]
+        public int OwnerId {get; set;}
+
         [JsonProperty("matches"), JsonPropertyName("matches")]
         public string IpMatch {get; set;} = "";
 

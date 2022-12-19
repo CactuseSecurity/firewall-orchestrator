@@ -22,7 +22,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
     else:
         parsing_config_only = True
 
-    if not parsing_config_only: # no native config was passed in, so getting it from Azure
+    if not parsing_config_only: # no native config was passed in, so getting it from Palo Firewall
         apipwd = mgm_details["import_credential"]['secret']
         apiuser = mgm_details["import_credential"]['user']
         apihost = mgm_details["hostname"]
@@ -70,21 +70,13 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
                         obj_path + "?location={location}&vsys={vsys_name}".format(location="vsys", vsys_name=dev_name),
                         obj_type=obj_path)
 
-        # # extract objects from rules
-        # for device in mgm_details["devices"]:
-        #     azure_policy_name = device['name']
-        #     for policy_name in full_config['devices'].keys():
-        #         extract_nw_objects(policy_name, full_config)
-        #         extract_svc_objects(policy_name, full_config)
-        #         extract_user_objects(policy_name, full_config)
-
     ##################
     # now we normalize relevant parts of the raw config and write the results to config2import dict
 
     normalize_nwobjects(full_config, config2import, current_import_id, jwt=jwt, mgm_id=mgm_details['id'])
     normalize_svcobjects(full_config, config2import, current_import_id)
     normalize_application_objects(full_config, config2import, current_import_id)
-    # apiuser.normalize_users(full_config, config2import, current_import_id, user_scope)
+    # normalize_users(full_config, config2import, current_import_id, user_scope)
 
     # adding default any and predefined objects
     any_nw_svc = {"svc_uid": "any_svc_placeholder", "svc_name": "any", "svc_comment": "Placeholder service.", 
@@ -98,31 +90,12 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
     config2import["service_objects"].append(http_svc)
     config2import["service_objects"].append(https_svc)
 
-
     any_nw_object = {"obj_uid": "any_obj_placeholder", "obj_name": "any", "obj_comment": "Placeholder object.",
         "obj_typ": "network", "obj_ip": "0.0.0.0/0", "control_id": current_import_id}
     config2import["network_objects"].append(any_nw_object)
 
     normalize_zones(full_config, config2import, current_import_id)
     normalize_access_rules(full_config, config2import, current_import_id, mgm_details=mgm_details)
-    
-    # azure_rule.normalize_nat_rules(full_config, config2import, current_import_id, jwt=jwt)
-    # azure_network.remove_nat_ip_entries(config2import)
-
-    for s in config2import["service_objects"]:
-        if 'svc_typ' not in s:
-            logger.warning("found service without type: " + str(s))
+    # normalize_nat_rules(full_config, config2import, current_import_id, jwt=jwt)
 
     return 0
-
-
-def extract_nw_objects(rule, config):
-    pass
-
-
-def extract_svc_objects(rule, config):
-    pass
-
-
-def extract_user_objects(rule, config):
-    pass

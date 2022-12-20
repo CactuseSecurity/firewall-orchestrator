@@ -47,7 +47,7 @@
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="recertOverdue"
                                 @bind="recertOverdueOnly"
-                                @oninput="@(async () => { recertOverdueOnly = !recertOverdueOnly; userConfig.RecertificationDisplayPeriod = 0; SyncFilterToDisplay(); })" />
+                                @oninput="@(async () => { recertOverdueOnly = !recertOverdueOnly; SyncFilterToDisplay(); })" />
                             <label class="form-check-label" for="recertOverdue">@(userConfig.GetText("overdue_recert"))</label>
                         </div>
                         <div class="form-check">

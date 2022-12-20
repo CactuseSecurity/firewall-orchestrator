@@ -50,8 +50,8 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m15",
-                "-d9",
+                "-m55",
+                "-d3",
                 "-f",
                 "-s",
                 //"-c"

@@ -33,6 +33,21 @@
         <input  type="text" class="form-control form-control-sm" @bind="userConfig.RecertificationDisplayPeriod" />
     </div>
 
+    <AuthorizeView Roles="admin, auditor">
+        <Authorized>
+            <div class="p-3">
+                <h5 class="text-left">@(userConfig.GetText("owner")):</h5>
+                <select class="form-control form-control-sm" @bind="selectedOwnerId">
+                    <option value="0">-</option>
+                    @foreach (var owner in ownerList)
+                    {
+                        <option value="@owner.Id">@(owner.Name)</option>
+                    }
+                </select>
+            </div>
+        </Authorized>
+    </AuthorizeView>
+
     <DeviceSelection Environment="Cert" @bind-DeviceFilter="deviceFilter" @bind-CollapseAll="collapseDevices" @bind-FilterInput="filterInput" @bind-SelectAll="selectAll" ></DeviceSelection>
 </Sidebar>
 
@@ -41,24 +56,27 @@
 <div style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px");">
     <h3>@(userConfig.GetText("recertification"))</h3>
     <div class="btn-group sticky-marker-60">
-        <AuthorizeView Roles="admin, recertifier">
-            <Authorized>
-                @if(rulesFound)
-                {
-                    <button class="btn btn-sm btn-danger" @onclick="() => RequestExecuteSelected()">@(userConfig.GetText("execute_selected"))</button>
-                }
-                else
-                {
+        @if(!readonlyMode)
+        {
+            <AuthorizeView Roles="admin, recertifier">
+                <Authorized>
+                    @if(rulesFound)
+                    {
+                        <button class="btn btn-sm btn-danger" @onclick="() => RequestExecuteSelected()">@(userConfig.GetText("execute_selected"))</button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("execute_selected"))</button>
+                    }
+                </Authorized>
+                <NotAuthorized>
                     <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("execute_selected"))</button>
-                }
-            </Authorized>
-            <NotAuthorized>
-                <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("execute_selected"))</button>
-            </NotAuthorized>
-        </AuthorizeView>
+                </NotAuthorized>
+            </AuthorizeView>
+        }
     </div>
     <hr />
-    <RulesReport Recertification="true" Managements="managements" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedRules"></RulesReport>
+    <RulesReport Recertification="true" ReadonlyMode="readonlyMode" Managements="managements" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedRules"></RulesReport>
 </div>
 
 <PopUp Title="@(userConfig.GetText("add_comment"))" Show="@AddCommentMode" Large="true" OnClose="() => AddCommentMode = false">
@@ -146,6 +164,9 @@
 
     private Management[] managements = new Management[0];
     
+    private bool readonlyMode = false;
+    private int selectedOwnerId = 0;
+    private List<FwoOwner> ownerList = new List<FwoOwner>();
     private List<FwoOwner> userOwnerships = new List<FwoOwner>();
     private List<FwoOwner> groupOwnerships = new List<FwoOwner>();
     private List<int> combinedOwnershipIds = new List<int>();
@@ -168,7 +189,9 @@
             {
                 rulesFound = false;
 
+                ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
                 await InitOwnerships();
+
                 deviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
                 await InvokeAsync(StateHasChanged);
                 if (deviceFilter.NumberMgmtDev() > userConfig.MinCollapseAllDevices)
@@ -210,12 +233,12 @@
         {
             combinedOwnershipIds.Add(owner.Id);
         }
-        
     }
 
     private async Task GenerateRecertificationReport()
     {
         processing = true;
+        readonlyMode = selectedOwnerId > 0;
         selectedRules.Clear();
 
         Management[] managementsOrig = managements;
@@ -232,7 +255,7 @@
             }
 
             SyncFilterToDisplay();
-            RecertFilter recertFilter = new RecertFilter() { RecertOwnerList = combinedOwnershipIds }; // (recertOverdueOnly, recertWithoutOwner, recertShowAnyMatch, recertSingleLinePerRule);
+            RecertFilter recertFilter = new RecertFilter() { RecertOwnerList = (selectedOwnerId > 0 ? new List<int>(){ selectedOwnerId } : combinedOwnershipIds) };
             ReportTemplate reportParams = new ReportTemplate("", deviceFilter, (int) ReportType.Recertification, null, recertFilter);
             currentReport = ReportBase.ConstructReport(reportParams, userConfig);
 

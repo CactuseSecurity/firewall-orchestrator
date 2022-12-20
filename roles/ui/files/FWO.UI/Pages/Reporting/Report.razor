@@ -501,7 +501,6 @@
 
                 deviceFilter.Managements = await Connection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
                 ownerList = await Connection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
-                ownerList.Sort(delegate(FwoOwner x, FwoOwner y) { return x.Name.CompareTo(y.Name); });
 
                 await InvokeAsync(StateHasChanged);
                 if (deviceFilter.NumberMgmtDev() > userConfig.MinCollapseAllDevices)

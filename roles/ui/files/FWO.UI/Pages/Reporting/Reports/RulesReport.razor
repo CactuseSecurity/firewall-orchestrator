@@ -38,7 +38,7 @@
                                 <Column TableItem="Rule" Title="@(userConfig.GetText("owner"))" Field="@(rule => rule.OwnerName)" Sortable="true" Filterable="false" />
                                 <Column TableItem="Rule" Title="@(userConfig.GetText("ip_matches"))" Field="@(rule => rule.IpMatch)" Sortable="true" Filterable="false" />
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("last_recertifier"))" Field="@(rule => rule.Metadata.LastCertifierName)" Sortable="true" Filterable="true" />
-                                @if(Recertification) 
+                                @if(Recertification && !ReadonlyMode) 
                                 {
                                     <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("action"))" Field="@(rule => rule.OrderNumber)">
                                         <Template>
@@ -187,6 +187,9 @@
 {
     [Parameter]
     public bool Recertification { get; set; }
+
+    [Parameter]
+    public bool ReadonlyMode { get; set; } = false;
 
     [Parameter]
     public ReportType SelectedReportType { get; set; }

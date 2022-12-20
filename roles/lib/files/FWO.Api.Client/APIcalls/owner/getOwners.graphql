@@ -1,6 +1,6 @@
 
 query getOwners {
-  owner_list: owner (order_by: { id: asc }){
+  owner_list: owner (order_by: { name: asc }){
     ...ownerDetails
   }
 }

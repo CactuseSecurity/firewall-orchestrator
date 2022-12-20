@@ -80,7 +80,7 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0,
             package_list.append(dev['package_name'])
 
         # only run if this is the correct import module
-        if mgm_details['importerHostname'] != gethostname():
+        if mgm_details['importerHostname'] != gethostname() and not force:
             logger.info("import_management - this host (" + gethostname() + ") is not responsible for importing management " + str(mgm_id))
             return ""
 

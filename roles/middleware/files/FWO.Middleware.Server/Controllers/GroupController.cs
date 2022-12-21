@@ -20,7 +20,7 @@ namespace FWO.Middleware.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "admin, auditor")]
+        [Authorize(Roles = "admin, auditor, recertifier")]
         public async Task<ActionResult<List<GroupGetReturnParameters>>> Get()
         {
             bool admin = User.IsInRole("admin");

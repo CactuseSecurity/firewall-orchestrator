@@ -274,7 +274,7 @@
     private List<UiUser> uiUsers = new List<UiUser>();
 
     private Tenant actTenant = new Tenant();
-    private Device? selectedDevice;
+    private Device selectedDevice = new Device();
 
     private bool isTenant0 = false;
     private bool AddTenantMode = false;
@@ -494,7 +494,7 @@
             }
             else
             {
-                selectedDevice = remainingDevices.FirstOrDefault();
+                selectedDevice = remainingDevices.FirstOrDefault() ?? new Device();
                 AddDeviceMode = true;
             }
         }
@@ -515,7 +515,7 @@
             }
             else
             {
-                selectedDevice = actTenant.TenantDevices.FirstOrDefault()?.VisibleDevice;
+                selectedDevice = actTenant.TenantDevices.FirstOrDefault()?.VisibleDevice ?? new Device();
                 DeleteDeviceMode = true;
             }
         }

@@ -230,7 +230,7 @@
     </div>
     @if (currentReport != null)
         {
-            if (reportGenerationDuration != null && reportGenerationDuration != 0)
+            if (reportGenerationDuration != 0)
             {
                 if (reportGenerationDuration<600)
                 {
@@ -533,8 +533,7 @@
         selectedReportType = newReportType;
         DisplayTime();
         StateHasChanged();
-        if (reportGenerationDuration != null)
-            reportGenerationDuration = 0;
+        reportGenerationDuration = 0;
     }
 
 
@@ -892,7 +891,7 @@
         {
             processing = false;
             managementsReport = managementsReportOrig;
-            await reportTemplateControl.Uncollapse();
+            reportTemplateControl.Uncollapse();
             await InvokeAsync(StateHasChanged);
             DisplayMessageInUi!(exception, userConfig.GetText("generate_report"), "", true);
         }

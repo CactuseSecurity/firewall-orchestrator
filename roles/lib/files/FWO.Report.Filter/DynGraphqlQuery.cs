@@ -207,7 +207,7 @@ namespace FWO.Report.Filter
                 query.ruleWhereStatement += "{rule_head_text: {_is_null: true}}, ";
             }
             SetDeviceFilter(ref query, reportParams.ReportParams.DeviceFilter);
-            SetTimeFilter(ref query, reportParams.ReportParams.TimeFilter, (ReportType) reportParams.ReportParams.ReportType);
+            SetTimeFilter(ref query, reportParams.ReportParams.TimeFilter, (ReportType)(reportParams.ReportParams.ReportType ?? throw new Exception("No report type set")));
         }
 
         public static DynGraphqlQuery GenerateQuery(ReportTemplate filter, AstNode? ast)
@@ -229,7 +229,7 @@ namespace FWO.Report.Filter
 
             // now we convert the ast into a graphql query:
             if (ast != null)
-                ast.Extract(ref query, (ReportType) filter.ReportParams.ReportType);
+                ast.Extract(ref query, (ReportType)(filter.ReportParams.ReportType ?? throw new Exception("No report type set")));
 
             query.ruleWhereStatement += "}] ";
 
@@ -238,7 +238,7 @@ namespace FWO.Report.Filter
             if (filter.ReportParams.ReportType == (int) ReportType.ResolvedRules || filter.ReportParams.ReportType == (int) ReportType.ResolvedRulesTech)
                 filter.Detailed = true;
             
-            switch ((ReportType) filter.ReportParams.ReportType)
+            switch ((ReportType)(filter.ReportParams.ReportType ?? throw new Exception("No report type set")))
             {
                 case ReportType.Statistics:
                     query.FullQuery = Queries.compact($@"

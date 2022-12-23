@@ -59,7 +59,7 @@
                             </label>
                         </div>
                         <div class="form-check">
-                            @if (ReportToExport.ReportType!=ReportType.ResolvedRules && ReportToExport.ReportType!=ReportType.ResolvedRulesTech)
+                            @if (ReportToExport?.ReportType!=ReportType.ResolvedRules && ReportToExport?.ReportType!=ReportType.ResolvedRulesTech)
                             {
                                 <input disabled class="form-check-input" type="checkbox" id="reportExportCsv" @bind="ExportCsv">
                             }
@@ -127,7 +127,6 @@ Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportD
 
     private bool Exporting = false;
 
-    private bool PaperKindChanged = false;
     private int PaperSizeWidth = 0;
     private int PaperSizeHeight = 0;
 
@@ -157,7 +156,7 @@ Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportD
                         {
                             reportExportFile.Pdf = Convert.ToBase64String(ReportToExport.ToPdf(SelectedPaperKind, PaperSizeWidth, PaperSizeHeight));                    
                         }
-                        catch (KeyNotFoundException e)
+                        catch (KeyNotFoundException)
                         {
                             throw new Exception("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
                         }

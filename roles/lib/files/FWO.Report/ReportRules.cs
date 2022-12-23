@@ -184,7 +184,7 @@ namespace FWO.Report
                 foreach (Device device in management.Devices.Where(dev => dev.Rules != null && dev.Rules.Length > 0))
                 {
                     deviceCounter++;
-                    ruleCounter += device.Rules.Length;
+                    ruleCounter += device.Rules!.Length;
                 }
             }
             return $"{managementCounter} {userConfig.GetText("managements")}, {deviceCounter} {userConfig.GetText("gateways")}, {ruleCounter} {userConfig.GetText("rules")}";
@@ -192,7 +192,6 @@ namespace FWO.Report
 
         public override string ExportToCsv()
         {
-
             if (ReportType == ReportType.ResolvedRules || ReportType == ReportType.ResolvedRulesTech)
             {
                 StringBuilder report = new StringBuilder();
@@ -241,7 +240,6 @@ namespace FWO.Report
             else
             {
                 throw new NotImplementedException();
-                return null;
             }
         }
 
@@ -309,22 +307,18 @@ namespace FWO.Report
 
                 // Debug:
                 string repStr = report.ToString();
-                dynamic json = JsonConvert.DeserializeObject(report.ToString());
+                dynamic? json = JsonConvert.DeserializeObject(report.ToString());
                 JsonSerializerSettings settings = new JsonSerializerSettings();
                 settings.Formatting = Formatting.Indented;
                 return Newtonsoft.Json.JsonConvert.SerializeObject(json, settings);
             }
-            else if (ReportType == ReportType.Rules)
-            {
-                return System.Text.Json.JsonSerializer.Serialize(Managements.Where(mgt => !mgt.Ignore), new JsonSerializerOptions { WriteIndented = true });
-            }
-            else if (ReportType == ReportType.NatRules)
+            else if (ReportType == ReportType.Rules || ReportType == ReportType.Recertification || ReportType == ReportType.NatRules)
             {
                 return System.Text.Json.JsonSerializer.Serialize(Managements.Where(mgt => !mgt.Ignore), new JsonSerializerOptions { WriteIndented = true });
             }
             else
             {
-                return null;
+                return "";
             }
         }
 

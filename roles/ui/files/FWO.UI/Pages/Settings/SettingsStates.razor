@@ -319,7 +319,7 @@ else
         try
         {
             await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.addStateAction, new { stateId = actState.Id, actionId = actionIdToAdd });
-            actState.Actions.Add(new RequestStateActionDataHelper(){ Action = actions.FirstOrDefault(x => x.Id == actionIdToAdd) });
+            actState.Actions.Add(new RequestStateActionDataHelper(){ Action = actions.FirstOrDefault(x => x.Id == actionIdToAdd) ?? throw new Exception("unknown action id") });
             SelectActionMode = false;
         }
         catch (Exception exception)

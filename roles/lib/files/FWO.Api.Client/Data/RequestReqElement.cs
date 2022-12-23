@@ -14,10 +14,10 @@ namespace FWO.Api.Data
         [JsonProperty("request_action"), JsonPropertyName("request_action")]
         public string RequestAction { get; set; } = FWO.Api.Data.RequestAction.create.ToString();
 
-        public Cidr Cidr { get; set; }
+        public Cidr Cidr { get; set; } = new Cidr();
 
         public RequestReqElement()
-        { }
+        {}
 
         public RequestReqElement(RequestReqElement element) : base (element)
         {

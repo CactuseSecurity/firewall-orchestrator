@@ -256,7 +256,7 @@
 
             SyncFilterToDisplay();
             RecertFilter recertFilter = new RecertFilter() { RecertOwnerList = (selectedOwnerId > 0 ? new List<int>(){ selectedOwnerId } : combinedOwnershipIds) };
-            ReportTemplate reportParams = new ReportTemplate("", deviceFilter, (int) ReportType.Recertification, null, recertFilter);
+            ReportTemplate reportParams = new ReportTemplate("", deviceFilter, (int) ReportType.Recertification, new TimeFilter(), recertFilter);
             currentReport = ReportBase.ConstructReport(reportParams, userConfig);
 
             DateTime startTime = DateTime.Now;

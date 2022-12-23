@@ -22,7 +22,7 @@
             <select class="form-control form-control-sm" @bind="actTaskType">
                 @foreach (TaskType type in Enum.GetValues(typeof(TaskType)))
                 {
-                    <option value="@type">@(userConfig.GetText(Enum.GetName(typeof(TaskType), type)))</option>
+                    <option value="@type">@(userConfig.GetText(Enum.GetName(typeof(TaskType), type) ?? "unknown"))</option>
                 }
             </select>
         </div>

@@ -15,19 +15,19 @@ namespace FWO.Api.Data
         public string Hostname { get; set; } = "";
 
         [JsonProperty("import_credential"), JsonPropertyName("import_credential")]
-        public ImportCredential ImportCredential { get; set; }
+        public ImportCredential ImportCredential { get; set; } = new ImportCredential();
 
         [JsonProperty("configPath"), JsonPropertyName("configPath")]
         public string ConfigPath { get; set; } = "";
 
         [JsonProperty("domainUid"), JsonPropertyName("domainUid")]
-        public string DomainUid { get; set; } = "";
+        public string? DomainUid { get; set; } = "";
 
         [JsonProperty("cloudSubscriptionId"), JsonPropertyName("cloudSubscriptionId")]
-        public string CloudSubscriptionId { get; set; } = "";
+        public string? CloudSubscriptionId { get; set; } = "";
 
         [JsonProperty("cloudTenantId"), JsonPropertyName("cloudTenantId")]
-        public string CloudTenantId { get; set; } = "";
+        public string? CloudTenantId { get; set; } = "";
 
         [JsonProperty("superManager"), JsonPropertyName("superManager")]
         public int? SuperManagerId { get; set; }
@@ -106,9 +106,7 @@ namespace FWO.Api.Data
         public ObjectStatistics RuleStatistics { get; set; } = new ObjectStatistics();
 
         public Management()
-        {
-            // ImportCredential= new ImportCredential();
-        }
+        {}
 
         public Management(Management management)
         {

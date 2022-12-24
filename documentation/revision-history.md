@@ -249,3 +249,6 @@ adding report template format fk and permissions
 
 ### 6.0.1 - 10.11.2022
 - bugfix release with small issues (userconfig re-login, ldif upgrade bug, debian testing support)
+
+### 6.0.2 - 24.12.2022
+- bugfix release with hasura API upgrade due to security bug in hasura

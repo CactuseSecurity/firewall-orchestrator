@@ -63,6 +63,7 @@ namespace FWO.Api.Client
             this.jwt = jwt;
             graphQlClient.HttpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt); // Change jwt in auth header
             graphQlClient.Options.ConfigureWebSocketConnectionInitPayload = httpClientOptions => new { headers = new { authorization = $"Bearer {jwt}" } };
+            InvokeOnAuthHeaderChanged(this, jwt);
         }
 
         public override void SetRole(string role)
@@ -145,14 +146,8 @@ namespace FWO.Api.Client
             try
             {
                 GraphQLRequest request = new GraphQLRequest(subscription, variables, operationName);
-
-                Log.WriteDebug("API", $"Creating API subscription {operationName}.");
-                IObservable<GraphQLResponse<dynamic>> subscriptionStream = graphQlClient.CreateSubscriptionStream<dynamic>(request, exceptionHandler);
-                Log.WriteDebug("API", "API subscription created.");
-
-                return new ApiSubscription<SubscriptionResponseType>(subscriptionStream, subscriptionUpdateHandler);
+                return new ApiSubscription<SubscriptionResponseType>(this, graphQlClient, request, exceptionHandler, subscriptionUpdateHandler);
             }
-
             catch (Exception exception)
             {
                 Log.WriteError("API Connection", "Error while creating subscription to GraphQL API.", exception);

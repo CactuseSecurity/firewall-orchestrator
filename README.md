@@ -5,7 +5,7 @@
 [![Open Source Love svg1](https://github.com/ellerbrock/open-source-badges/blob/master/badges/open-source-v1/open-source.svg)](https://github.com/ellerbrock/open-source-badges/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
 
-- Import firewall configurations (rules) of various brands (Check Point, Fortinet, Cisco, Palo  Alto, Juniper, Barracuda, Netscreen)
+- Import firewall configurations (rules) of various brands (Check Point, Fortinet, Cisco, Azure, Palo  Alto, Juniper, Barracuda, Netscreen)
 - Request changes on your firewall configuration using the new workflow module in v6.0
 - Display reports on firewall configuration and changes
 - Regularly re-certify firewall rules to clean up your rulebase

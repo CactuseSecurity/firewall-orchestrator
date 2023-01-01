@@ -6684,6 +6684,22 @@
                     "foreign_key_constraint_on": "ip_proto_id"
                   }
                 }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "ip",
+                      "id",
+                      "ip_proto_id",
+                      "owner_id",
+                      "port"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                }
               ]
             },
             {
@@ -18684,6 +18700,6 @@
           }
         }
       ]
-    }
+    }  
   }
 }

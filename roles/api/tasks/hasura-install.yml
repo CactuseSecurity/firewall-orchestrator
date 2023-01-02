@@ -222,4 +222,8 @@
       x-hasura-role: "admin"
     body: "{{ lookup('file','replace_metadata.json') | from_json }}"
   when: not api_rollback_is_running | bool
-# do not install latest metadata in case of rollback
+  # do not install latest metadata in case of rollback
+  environment:
+    http_proxy: ""
+    https_proxy: ""
+  # do not use http proxy for metadata import 

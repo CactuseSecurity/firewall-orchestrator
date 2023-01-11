@@ -1971,6 +1971,10 @@ INSERT INTO txt VALUES ('E8011', 'English', 'Action could not be created');
 INSERT INTO txt VALUES ('E8012', 'German',  'Kommentar konnte nicht angelegt werden');
 INSERT INTO txt VALUES ('E8012', 'English', 'Comment could not be created');
 
+INSERT INTO txt VALUES ('E8101', 'German',  'Email-Versand kann nicht getestet werden, da der aktell angemeldete Nutzer keine Email-Adresse hinerlegt hat.');
+INSERT INTO txt VALUES ('E8101', 'English', 'Sending of emails cannot be tested because the logged-in user does not have an email address.');
+
+
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');

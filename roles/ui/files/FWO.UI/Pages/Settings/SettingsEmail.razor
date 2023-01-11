@@ -149,8 +149,16 @@
         try
         {
             Mailer mailer = new Mailer(actEmailConnection);
-            mailer.SendMail("Test mail from firewall orchestrator", "... this is the body", "tmp@cactus.de");
-            DisplayMessageInUi!(null, userConfig.GetText("test_email_connection"), userConfig.GetText("U5402"), false);
+            if (userConfig.User.Email == null || userConfig.User.Email  == "")
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("test_email_connection"), userConfig.GetText("E8101"), true);
+            }
+            else 
+            {
+                string testMailReceiverAddress = userConfig.User.Email;
+                mailer.SendMail("Test mail from Firewall Orchestrator", "... this is the body - just testing ...", testMailReceiverAddress);
+                DisplayMessageInUi!(null, userConfig.GetText("test_email_connection"), userConfig.GetText("U5402"), false);
+            }
         }
         catch (System.Exception exception)
         {

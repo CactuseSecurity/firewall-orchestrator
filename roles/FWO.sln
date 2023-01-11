@@ -17,6 +17,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.Middleware", "lib\files
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.Logging", "lib\files\FWO.Logging\FWO.Logging.csproj", "{0F0A43A7-66DD-4A7A-BC2E-3FB587838810}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.Mail", "lib\files\FWO.Mail\FWO.Mail.csproj", "{0F0A43A7-66DD-4A7A-BC2E-3FB587838810}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.Api.Client", "lib\files\FWO.Api.Client\FWO.Api.Client.csproj", "{C43BBC19-0147-44A4-AAF5-1CBC136A7A28}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.Config.Api", "lib\files\FWO.Config.Api\FWO.Config.Api.csproj", "{9225BD37-C13E-4A97-AACD-17E784FA52BB}"

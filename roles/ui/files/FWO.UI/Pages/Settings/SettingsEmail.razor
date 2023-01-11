@@ -1,0 +1,161 @@
+﻿@using FWO.Api.Client
+@using FWO.Config.Api
+@using FWO.Middleware.Client
+@using FWO.Config.Api.Data
+@using System
+@using FWO.Mail
+
+@page "/settings/email"
+@attribute [Authorize(Roles = "admin, auditor")]
+
+@inject ApiConnection apiConnection
+@inject MiddlewareClient middlewareClient
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+
+<h3>@(userConfig.GetText("email_settings"))</h3>
+@(userConfig.GetText("U5319"))
+<hr />
+
+<form>
+    <div class="form-group row">
+        <label for="emailAddress" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("address"))*:</label>
+        <div class="col-sm-8">
+            <input id="emailAddress" type="text" class="form-control form-control-sm" @bind="actEmailConnection.ServerAddress" />
+        </div>
+    </div>
+    <div class="form-group row">
+        <label for="emailPort" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
+        <div class="col-sm-2">
+            <input id="emailPort" type="number" class="form-control form-control-sm" @bind="actEmailConnection.Port" />
+        </div>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" id="emailTls" type="checkbox" @bind="actEmailConnection.Tls">
+            <label class="form-check-label" for="emailTls"><small>Tls</small></label>
+        </div>
+    </div>
+    <div class="form-group row">
+        <label for="emailAuthUser" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("email_auth_user")):</label>
+        <div class="col-sm-8">
+            <input id="emailAuthUser" type="text" class="form-control form-control-sm" @bind="actEmailConnection.User" />
+        </div>
+    </div>
+    <div class="form-group row">
+        <label for="emailAuthUserPwd" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("email_auth_pwd")):</label>
+        <div class="col-sm-8">
+            <input id="emailAuthUserPwd" type="password" class="form-control form-control-sm" @bind="actEmailConnection.Password" />
+        </div>
+    </div>
+    <div class="form-group row">
+        <label for="emailSenderAddress" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("email_sender")):</label>
+        <div class="col-sm-8">
+            <input id="emailSenderAddress" type="email" class="form-control form-control-sm" @bind="actEmailConnection.SenderEmailAddress" />
+        </div>
+    </div>
+</form>
+
+<div class="btn-group">
+<AuthorizeView Roles="admin">
+    <Authorized>
+        <button class="btn btn-sm btn-dark" @onclick="TestConnection">@(userConfig.GetText("test_connection"))</button>
+        <button class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
+    </Authorized>
+    <NotAuthorized>
+        <button class="btn btn-sm btn-dark" disabled>@(userConfig.GetText("test_connection"))</button>
+        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+    </NotAuthorized> 
+</AuthorizeView>
+</div>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+
+    private ConfigData? editableConfig;
+    private EmailConnection actEmailConnection = new EmailConnection();
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        try
+        {
+            editableConfig = await globalConfig.GetEditableConfig();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+        }
+        if (editableConfig.EmailServerAddress != "")
+        {
+            actEmailConnection = new EmailConnection(
+                editableConfig.EmailServerAddress, 
+                editableConfig.EmailPort, 
+                editableConfig.EmailTls, 
+                editableConfig.EmailUser,
+                editableConfig.EmailPassword,
+                editableConfig.EmailSenderAddress
+            );
+        }
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            if (CheckValues())
+            {
+                editableConfig.EmailServerAddress = actEmailConnection.ServerAddress;
+                editableConfig.EmailPort = actEmailConnection.Port;
+                editableConfig.EmailTls = actEmailConnection.Tls;
+                editableConfig.EmailUser = actEmailConnection.User;
+                editableConfig.EmailPassword = actEmailConnection.Password;
+                editableConfig.EmailSenderAddress = actEmailConnection.SenderEmailAddress;
+
+                await globalConfig.WriteToDatabase(editableConfig, apiConnection);
+                DisplayMessageInUi!(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("change_default"), "", true);
+        }
+    }
+
+    private bool CheckValues()
+    {
+        if (actEmailConnection.ServerAddress == null || actEmailConnection.ServerAddress == "")
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("save_email_conn"), userConfig.GetText("E5102"), true);
+            return false;
+        }
+        if (actEmailConnection.Port < 1 || actEmailConnection.Port > 65535)
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("save_email_conn"), userConfig.GetText("E5103"), true);
+            return false;
+        }
+        if (!actEmailConnection.SenderEmailAddress.Contains('@'))
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("save_email_conn"), userConfig.GetText("E5108"), true);
+            return false;
+        }
+        return true;
+    }
+
+
+    private async Task TestConnection()
+    {
+        try
+        {
+            Mailer mailer = new Mailer(actEmailConnection);
+            mailer.SendMail("Test mail from firewall orchestrator", "... this is the body", "tmp@cactus.de");
+            DisplayMessageInUi!(null, userConfig.GetText("test_email_connection"), userConfig.GetText("U5402"), false);
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("test_email_connection"), "", true);
+        }
+    }
+
+}

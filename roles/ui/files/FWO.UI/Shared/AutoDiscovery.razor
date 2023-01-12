@@ -286,7 +286,7 @@
                 switch(code)
                 {
                     case ActionCode.AddManagement:
-                        Management newMgmt = JsonSerializer.Deserialize<Management>((action.JsonData ?? throw new Exception($"Missing Management Data!")).ToString()) ?? throw new Exception($"Management Data not converted!");
+                        Management newMgmt = JsonSerializer.Deserialize<Management>((action.JsonData ?? throw new Exception($"Missing Management Data!")).ToString() ?? throw new Exception($"Could not convert Management Data to string!")) ?? throw new Exception($"Management Data not converted!");
                         if(checkManagementCreateToBeDone(newMgmt))
                         {
                             newMgmt.ActionId = action.Number;
@@ -332,7 +332,7 @@
                         }
                         break;
                     case ActionCode.AddGatewayToNewManagement:
-                        Device newGateway = JsonSerializer.Deserialize<Device>((action.JsonData ?? throw new Exception($"Missing Gateway Data!")).ToString()) ?? throw new Exception($"Gateway Data not converted!");
+                        Device newGateway = JsonSerializer.Deserialize<Device>((action.JsonData ?? throw new Exception($"Missing Gateway Data!")).ToString() ?? throw new Exception($"Could not convert Gateway Data to string!")) ?? throw new Exception($"Gateway Data not converted!");
                         newGateway.Delete = false;
                         newGateway.Relevant = true;
                         newGateway.ActionId = action.Number;
@@ -363,7 +363,7 @@
                         }
                         break;
                     case ActionCode.AddGatewayToExistingManagement:
-                        Device newGatewayToEx = JsonSerializer.Deserialize<Device>((action.JsonData ?? throw new Exception($"Missing Gateway Data!")).ToString()) ?? throw new Exception($"Gateway Data not converted!");
+                        Device newGatewayToEx = JsonSerializer.Deserialize<Device>((action.JsonData ?? throw new Exception($"Missing Gateway Data!")).ToString() ?? throw new Exception($"Could not convert Gateway Data to string!")) ?? throw new Exception($"Gateway Data not converted!");
                         if (checkGatewayCreateToBeDone(newGatewayToEx))
                         {
                             appendToRightManagement(newGatewayToEx, action);
@@ -766,7 +766,11 @@
                 if(disable)
                 {
                     removeDevFromExMgmt(device, true);
-                    existingDevices.FirstOrDefault(x => x.Id == device.Id).ImportDisabled = true;
+                    Device? dev = existingDevices.FirstOrDefault(x => x.Id == device.Id);
+                    if(dev != null)
+                    {
+                        dev.ImportDisabled = true;
+                    }
                 }
                 await AcknowledgeAction(device.ActionId);
             }

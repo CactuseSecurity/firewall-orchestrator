@@ -25,6 +25,9 @@ namespace FWO.Middleware.Controllers
         private readonly List<Ldap> ldaps;
         private readonly ApiConnection apiConnection;
 
+		/// <summary>
+		/// Constructor needing jwt writer, ldap list and connection
+		/// </summary>
         public AuthenticationTokenController(JwtWriter jwtWriter, List<Ldap> ldaps, ApiConnection apiConnection)
         {
             this.jwtWriter = jwtWriter;
@@ -145,6 +148,7 @@ namespace FWO.Middleware.Controllers
         /// </summary>
         /// <param name="user">User to validate. Must contain username / dn and password if <paramref name="validatePassword"/> == true.</param>
         /// <param name="validatePassword">Check password if true.</param>
+        /// <param name="lifetime">Set the lifetime of the jwt (optional)</param>
         /// <returns>Jwt, User infos (dn, email, groups, roles, tenant), if credentials are valid.</returns>
         public async Task<string> AuthorizeUserAsync(UiUser? user, bool validatePassword, TimeSpan? lifetime = null)
         {

@@ -194,7 +194,7 @@
         try
         {
             actMgmtId = alert.ManagementId ?? throw new Exception($"Missing ManagementId!");
-            LastIncompleteImport = JsonSerializer.Deserialize<ImportControl[]?>((alert.JsonData ?? throw new Exception($"Missing Import Data!")).ToString());
+            LastIncompleteImport = JsonSerializer.Deserialize<ImportControl[]?>((alert.JsonData ?? throw new Exception($"Missing Import Data!")).ToString() ?? throw new Exception($"Could not convert Import Data to string!"));
             RollbackMode = true;
         }
         catch (Exception exception)
@@ -207,7 +207,7 @@
     {
         try
         {
-            actStatus = JsonSerializer.Deserialize<ImportStatus>((alert.JsonData ?? throw new Exception($"Missing Import Data!")).ToString()) ?? throw new Exception($"Import Data not converted!");
+            actStatus = JsonSerializer.Deserialize<ImportStatus>((alert.JsonData ?? throw new Exception($"Missing Import Data!")).ToString() ?? throw new Exception($"Could not convert Import Data to string!")) ?? throw new Exception($"Import Data not converted!");
             DetailsMode = true;
         }
         catch (Exception exception)

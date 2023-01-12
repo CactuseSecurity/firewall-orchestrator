@@ -194,7 +194,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [CascadingParameter]
     AnchorNavToRSB? anchorNavToRSB { get; set; }
@@ -406,7 +406,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("object_fetch"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
         }
     }
 }

@@ -57,7 +57,7 @@ Show="ShowDownloadReportFileDialog" ShowJson="true" OnClose="() => ShowDownloadR
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
@@ -78,7 +78,7 @@ Show="ShowDownloadReportFileDialog" ShowJson="true" OnClose="() => ShowDownloadR
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("archive_fetch"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("archive_fetch"), "", true);
         }
     }
 
@@ -96,7 +96,7 @@ Show="ShowDownloadReportFileDialog" ShowJson="true" OnClose="() => ShowDownloadR
         catch (Exception exception)
         {
             Log.WriteError("Fetch downloads of generated report", "Unclassified error.", exception);
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_report"), "", false);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_report"), "", false);
         }
     }
 
@@ -118,7 +118,7 @@ Show="ShowDownloadReportFileDialog" ShowJson="true" OnClose="() => ShowDownloadR
         catch (Exception exception)
         {
             Log.WriteError("Delete generated report", "Unclassified error.", exception);
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_report"), "", false);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_report"), "", false);
         }
     }
 }

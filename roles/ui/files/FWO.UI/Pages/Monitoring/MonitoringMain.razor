@@ -117,7 +117,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private List<Alert> alertEntrys = new List<Alert>();
     private List<ActionItem> actActions = new List<ActionItem>();
@@ -140,7 +140,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, "", "", true);
+            DisplayMessageInUi(exception, "", "", true);
         }
         await Refresh();
     }
@@ -153,7 +153,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_log_entrys"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_log_entrys"), "", true);
         }
     }
 
@@ -172,7 +172,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("acknowledge_alert"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("acknowledge_alert"), "", true);
         }
     }
 
@@ -185,7 +185,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("handle_alert"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("handle_alert"), "", true);
         }
     }
 
@@ -199,7 +199,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("handle_alert"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("handle_alert"), "", true);
         }
     }
 
@@ -212,7 +212,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("handle_alert"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("handle_alert"), "", true);
         }
     }
 
@@ -326,12 +326,12 @@
             }
             text += " " + userConfig.GetText("deleted");
             workInProgress = false;
-            DisplayMessageInUi!(null, userConfig.GetText("remove_sample_data"), text, false);
+            DisplayMessageInUi(null, userConfig.GetText("remove_sample_data"), text, false);
         }
         catch (Exception exception)
         {
             workInProgress = false;
-            DisplayMessageInUi!(exception, userConfig.GetText("remove_sample_data"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("remove_sample_data"), "", true);
         }
     }
     
@@ -348,7 +348,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_management"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_management"), "", true);
         }
         return false;
     }
@@ -366,7 +366,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_credential"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_credential"), "", true);
         }
         return false;
     }
@@ -383,7 +383,7 @@
             RestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteUser(parameters);
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("delete_user"), userConfig.GetText("E5216"), true);
+                DisplayMessageInUi(null, userConfig.GetText("delete_user"), userConfig.GetText("E5216"), true);
             }
             else
             {
@@ -392,7 +392,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_user"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_user"), "", true);
         }
         return false;
     }
@@ -405,7 +405,7 @@
             RestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteTenant(deleteTenantParameters);
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("delete_tenant"), userConfig.GetText("E5282"), true);
+                DisplayMessageInUi(null, userConfig.GetText("delete_tenant"), userConfig.GetText("E5282"), true);
             }
             else
             {
@@ -414,7 +414,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_tenant"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_tenant"), "", true);
         }
         return false;
     }
@@ -427,7 +427,7 @@
             RestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteGroup(groupDeleteParameters);
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("delete_group"), userConfig.GetText("E5239"), true);
+                DisplayMessageInUi(null, userConfig.GetText("delete_group"), userConfig.GetText("E5239"), true);
             }
             else
             {
@@ -436,7 +436,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_group"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_group"), "", true);
         }
         return false;
     }

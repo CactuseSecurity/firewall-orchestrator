@@ -235,7 +235,7 @@ else
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private List<RequestState> states = new List<RequestState>();
     private List<int> actToStateIds = new List<int>();
@@ -272,7 +272,7 @@ else
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
     }
 
@@ -284,7 +284,7 @@ else
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
     }
 
@@ -395,11 +395,11 @@ else
                 User = 0 
             };
             await apiConnection.SendQueryAsync<object>(ConfigQueries.upsertConfigItem, item);
-            DisplayMessageInUi!(null, userConfig.GetText("save_settings"), userConfig.GetText("U5301"), false);             
+            DisplayMessageInUi(null, userConfig.GetText("save_settings"), userConfig.GetText("U5301"), false);             
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_settings"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("save_settings"), "", true);
         }
     }
         
@@ -424,7 +424,7 @@ else
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("reset_to_default"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("reset_to_default"), "", true);
         }
     }
 }

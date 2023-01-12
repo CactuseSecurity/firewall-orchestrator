@@ -163,7 +163,7 @@
     ReportTemplate[] reportTemplates = new ReportTemplate[0];
 
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
@@ -180,7 +180,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("schedule_fetch"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("schedule_fetch"), "", true);
         }
     }
 
@@ -199,7 +199,7 @@
             scheduledReportInEdit.StartTime = actDate.Date.Add(actTime.TimeOfDay);
             if (scheduledReportInEdit.Sanitize())
             {
-                DisplayMessageInUi!(null, userConfig.GetText("save_scheduled_report"), userConfig.GetText("U0001"), true);
+                DisplayMessageInUi(null, userConfig.GetText("save_scheduled_report"), userConfig.GetText("U0001"), true);
             }
             if (checkInput())
             {
@@ -239,7 +239,7 @@
         catch (Exception exception)
         {
             Log.WriteError("Save scheduled report", "Unclassified error.", exception);
-            DisplayMessageInUi!(exception, userConfig.GetText("save_scheduled_report"), "", false);
+            DisplayMessageInUi(exception, userConfig.GetText("save_scheduled_report"), "", false);
         }
     }
 
@@ -250,7 +250,7 @@
             scheduledReportInEdit.StartTime = actDate.Date.Add(actTime.TimeOfDay);
             if (scheduledReportInEdit.Sanitize())
             {
-                DisplayMessageInUi!(null, userConfig.GetText("edit_scheduled_report"), userConfig.GetText("U0001"), true);
+                DisplayMessageInUi(null, userConfig.GetText("edit_scheduled_report"), userConfig.GetText("U0001"), true);
             }
             if (checkInput())
             {
@@ -278,7 +278,7 @@
         catch (Exception exception)
         {
             Log.WriteError("Edit scheduled report", "Unclassified error.", exception);
-            DisplayMessageInUi!(exception, userConfig.GetText("edit_scheduled_report"), "", false);
+            DisplayMessageInUi(exception, userConfig.GetText("edit_scheduled_report"), "", false);
         }
     }
 
@@ -301,7 +301,7 @@
         catch (Exception exception)
         {
             Log.WriteError("Delete scheduled report", "Unclassified error.", exception);
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_scheduled_report"), "", false);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_scheduled_report"), "", false);
         }
     }
 
@@ -309,7 +309,7 @@
         {
             if(scheduledReportInEdit.Template == null || scheduledReportInEdit.Template.Id == 0)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("edit_scheduled_report"), userConfig.GetText("E2001"), true);
+                DisplayMessageInUi(null, userConfig.GetText("edit_scheduled_report"), userConfig.GetText("E2001"), true);
                 return false;
             }
             return true;

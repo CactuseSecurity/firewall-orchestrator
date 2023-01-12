@@ -68,7 +68,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
     
     [Parameter]
     public WorkflowPhases Phase { get; set; } = WorkflowPhases.request;
@@ -96,17 +96,17 @@
         StateHasChanged();
     }
 
-    private async Task ShowTicketDetails(RequestTicket ticket)
+    private void ShowTicketDetails(RequestTicket ticket)
     {
         ReqHandler.SelectTicket(ticket, ObjAction.display);
     }
 
-    private async Task AddTicket()
+    private void AddTicket()
     {
         ReqHandler.SelectTicket(new RequestTicket(){ Requester = userConfig.User }, ObjAction.add);
     }
 
-    private async Task EditTicket(RequestTicket ticket)
+    private void EditTicket(RequestTicket ticket)
     {
         ReqHandler.SelectTicket(ticket, ObjAction.edit);
     }

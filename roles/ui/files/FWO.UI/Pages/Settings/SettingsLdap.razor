@@ -234,7 +234,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
 
@@ -257,7 +257,7 @@
             RestResponse<List<LdapGetUpdateParameters>> ldapMiddlewareServerResponse = await middlewareClient.GetLdaps();
             if (ldapMiddlewareServerResponse.StatusCode != HttpStatusCode.OK || ldapMiddlewareServerResponse.Data == null)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("fetch_ldap_conn"), userConfig.GetText("E5204"), true);
+                DisplayMessageInUi(null, userConfig.GetText("fetch_ldap_conn"), userConfig.GetText("E5204"), true);
             }
             else
             {
@@ -272,7 +272,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
     }
 
@@ -289,11 +289,11 @@
         // Checks if delete possible. Todo: further checks?
         if (connectedLdaps.Count == 1)
         {
-            DisplayMessageInUi!(null, userConfig.GetText("delete_ldap_conn"), userConfig.GetText("E5261"), true);
+            DisplayMessageInUi(null, userConfig.GetText("delete_ldap_conn"), userConfig.GetText("E5261"), true);
         }
         else if (actLdapConnection.HasRoleHandling())
         {
-            DisplayMessageInUi!(null, userConfig.GetText("delete_ldap_conn"), userConfig.GetText("E5262"), true);
+            DisplayMessageInUi(null, userConfig.GetText("delete_ldap_conn"), userConfig.GetText("E5262"), true);
         }
         else
         {
@@ -310,7 +310,7 @@
             RestResponse<int> ldapMiddlewareServerResponse = await middlewareClient.DeleteLdap(ldapDeleteParameters);
             if (ldapMiddlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("delete_ldap_conn"), userConfig.GetText("E5203"), true);
+                DisplayMessageInUi(null, userConfig.GetText("delete_ldap_conn"), userConfig.GetText("E5203"), true);
             }
             else
             {
@@ -324,7 +324,7 @@
         catch (Exception exception)
         {
             // Log.WriteDebug("Delete Ldap Connection", $"Exception occurred: {exception}");
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_ldap_conn"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_ldap_conn"), "", true);
         }
     }
 
@@ -363,30 +363,30 @@
                 switch (middlewareServerResponse.Data)
                 {
                     case 0: 
-                        DisplayMessageInUi!(null, userConfig.GetText("test_connection"), userConfig.GetText("E5266"), false);
+                        DisplayMessageInUi(null, userConfig.GetText("test_connection"), userConfig.GetText("E5266"), false);
                         break;
                     case 1: 
-                        DisplayMessageInUi!(null, userConfig.GetText("test_connection"), userConfig.GetText("E5268"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("test_connection"), userConfig.GetText("E5268"), true);
                         break;
                     case 2: 
-                        DisplayMessageInUi!(null, userConfig.GetText("test_connection"), userConfig.GetText("E5269"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("test_connection"), userConfig.GetText("E5269"), true);
                         break;
                     case 3: 
-                        DisplayMessageInUi!(null, userConfig.GetText("test_connection"), userConfig.GetText("E5270"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("test_connection"), userConfig.GetText("E5270"), true);
                         break;
                     default: 
-                        DisplayMessageInUi!(null, userConfig.GetText("test_connection"), userConfig.GetText("E5267"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("test_connection"), userConfig.GetText("E5267"), true);
                         break;
                 }
             }
             else
             {
-                DisplayMessageInUi!(null, userConfig.GetText("test_connection"), userConfig.GetText("E5267"), true);
+                DisplayMessageInUi(null, userConfig.GetText("test_connection"), userConfig.GetText("E5267"), true);
             }
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("test_connection"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("test_connection"), "", true);
         }
     }
 
@@ -396,7 +396,7 @@
         {
             if (actLdapConnection.Sanitize())
             {
-                DisplayMessageInUi!(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("U0001"), true);
+                DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("U0001"), true);
             }
             if (CheckValues())
             {    
@@ -405,7 +405,7 @@
                     RestResponse<int> ldapMiddlewareServerResponse = await middlewareClient.AddLdap(actLdapConnection.ToApiParams());
                     if (ldapMiddlewareServerResponse.StatusCode != HttpStatusCode.OK)
                     {
-                        DisplayMessageInUi!(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5201"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5201"), true);
                     }
                     else
                     {
@@ -420,7 +420,7 @@
                     RestResponse<int> ldapMiddlewareServerResponse = await middlewareClient.UpdateLdap(actLdapConnection.ToApiParams());
                     if (ldapMiddlewareServerResponse.StatusCode != HttpStatusCode.OK)
                     {
-                        DisplayMessageInUi!(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5202"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5202"), true);
                     }
                     else
                     {
@@ -434,7 +434,7 @@
         catch (Exception exception)
         {
             // Log.WriteDebug("Save Ldap Connection", $"Exception occurred: {exception}");
-            DisplayMessageInUi!(exception, userConfig.GetText("save_ldap_conn"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("save_ldap_conn"), "", true);
         }
     }
 
@@ -445,32 +445,32 @@
             actLdapConnection.SearchUserPwd == null || actLdapConnection.SearchUserPwd == "" ||
             actLdapConnection.UserSearchPath == null || actLdapConnection.UserSearchPath == "")
         {
-            DisplayMessageInUi!(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5102"), true);
+            DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5102"), true);
             return false;
         }
         if (actLdapConnection.Port < 1 || actLdapConnection.Port > 65535)
         {
-            DisplayMessageInUi!(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5103"), true);
+            DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5103"), true);
             return false;
         }
         if (actLdapConnection.PatternLength < 0)
         {
-            DisplayMessageInUi!(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5263"), true);
+            DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5263"), true);
             return false;
         }
         if (connectedLdaps.FirstOrDefault(x => x.Address == actLdapConnection.Address && x.Port == actLdapConnection.Port && x.Id != actLdapConnection.Id) != null)
         {
-            DisplayMessageInUi!(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5264"), true);
+            DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5264"), true);
             return false;
         }
         if (actLdapConnection.HasRoleHandling() && !actLdapConnection.IsInternal())
         {
-            DisplayMessageInUi!(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5265"), true);
+            DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5265"), true);
             return false;
         }
         if (!AddMode && wasActive && !actLdapConnection.Active && connectedLdaps.Where(x => x.Active).Count() == 1)
         {
-            DisplayMessageInUi!(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5260"), true);
+            DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5260"), true);
             return false;
         }
         return true;

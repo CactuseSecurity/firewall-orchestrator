@@ -199,7 +199,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
     public List<ActionItem> Actions { get; set; } = new List<ActionItem>();
@@ -235,7 +235,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("autodiscovery"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("autodiscovery"), "", true);
         }
     }
 
@@ -305,7 +305,7 @@
                         else
                         {
                             // already reactivated
-                            DisplayMessageInUi!(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+                            DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
                         }
                         break;
                     case ActionCode.DeleteManagement:
@@ -328,7 +328,7 @@
                         else
                         {
                             // already deleted
-                            DisplayMessageInUi!(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+                            DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
                         }
                         break;
                     case ActionCode.AddGatewayToNewManagement:
@@ -378,7 +378,7 @@
                         else
                         {
                             // already reactivated
-                            DisplayMessageInUi!(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+                            DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
                         }
                         break;
                     case ActionCode.DeleteGateway:
@@ -414,7 +414,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("analyze_actions"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("analyze_actions"), "", true);
         }
     }
 
@@ -463,7 +463,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("analyze_actions"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("analyze_actions"), "", true);
         }
         return mgmtId;
     }
@@ -474,7 +474,7 @@
             && exMgmt.SuperManagerId == management.SuperManagerId) != null)
         {
             // already created
-            DisplayMessageInUi!(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+            DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
             return false;
         }
         return true;
@@ -487,7 +487,7 @@
             && existingDevice.LocalRulebase == device.LocalRulebase) != null)
         {
             // already created
-            DisplayMessageInUi!(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+            DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
             return false;
         }
         return true;
@@ -508,7 +508,7 @@
         else
         {
             // already deleted
-            DisplayMessageInUi!(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+            DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
         }
     }
 
@@ -523,7 +523,7 @@
             {
                 if (!exMgmt.ImportDisabled)
                 {
-                    DisplayMessageInUi!(null, "AutoDiscovery", userConfig.GetText("E5106"), true);
+                    DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E5106"), true);
                     return;
                 }
                 await ChangeManagementState(exMgmt, false);
@@ -570,7 +570,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_management"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("save_management"), "", true);
         }
     }
 
@@ -610,7 +610,7 @@
             {
                 if(!exDev.ImportDisabled)
                 {
-                    DisplayMessageInUi!(null, "AutoDiscovery", userConfig.GetText("E5107"), true);
+                    DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E5107"), true);
                     return;
                 }
                 else
@@ -637,7 +637,7 @@
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.DeviceQueries.newDevice, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
-                    DisplayMessageInUi!(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5112"), true);
+                    DisplayMessageInUi(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5112"), true);
                 }
                 else
                 {
@@ -660,7 +660,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_gateway"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("save_gateway"), "", true);
         }
     }
 
@@ -684,7 +684,7 @@
         {
             if (disappearedManagement.Devices != null && disappearedManagement.Devices.Length > 0)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("delete_management"), userConfig.GetText("E5101"), true);
+                DisplayMessageInUi(null, userConfig.GetText("delete_management"), userConfig.GetText("E5101"), true);
             }
             else
             {
@@ -705,7 +705,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_management"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_management"), "", true);
         }
     }
 
@@ -730,7 +730,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("change_management_state"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("change_management_state"), "", true);
         }
     }
 
@@ -751,7 +751,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_gateway"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_gateway"), "", true);
         }
     }
 
@@ -773,7 +773,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("change_management_state"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("change_management_state"), "", true);
         }
     }
 
@@ -843,7 +843,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("acknowledge_action"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("acknowledge_action"), "", true);
         }
     }
 
@@ -864,7 +864,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("acknowledge_alert"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("acknowledge_alert"), "", true);
         }
     }
 
@@ -877,7 +877,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("add_device_to_tenant0"), "", false);
+            DisplayMessageInUi(exception, userConfig.GetText("add_device_to_tenant0"), "", false);
         }
     }
 
@@ -918,7 +918,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("do_all_changes"), "", false);
+            DisplayMessageInUi(exception, userConfig.GetText("do_all_changes"), "", false);
         }
     }
 }

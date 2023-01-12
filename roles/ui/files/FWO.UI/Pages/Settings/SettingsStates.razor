@@ -151,7 +151,7 @@ else
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private List<RequestState> states = new List<RequestState>();
     private List<int> usedStateIds = new List<int>();
@@ -177,7 +177,7 @@ else
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
     }
 
@@ -273,7 +273,7 @@ else
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("edit_state"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("edit_state"), "", true);
         }
     }
 
@@ -300,7 +300,7 @@ else
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_state"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_state"), "", true);
         }
     }
 
@@ -324,7 +324,7 @@ else
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("edit_state"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("edit_state"), "", true);
         }
     }
 
@@ -337,7 +337,7 @@ else
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("edit_state"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("edit_state"), "", true);
         }
     }
 }

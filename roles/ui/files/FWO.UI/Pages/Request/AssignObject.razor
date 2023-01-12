@@ -71,7 +71,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
     
     [Parameter]
     public bool Display { get; set; } = false;
@@ -80,13 +80,13 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
     [Parameter]
-    public Func<Task> ResetParent { get; set; }
+    public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
     public RequestStatefulObject StatefulObject { get; set; } = new RequestStatefulObject();
 
     [Parameter]
-    public Func<RequestStatefulObject, Task>? Assign { get; set; }
+    public Func<RequestStatefulObject, Task> Assign { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
     public Func<Task>? AssignBack { get; set; }
@@ -96,7 +96,6 @@
 
     [Parameter]
     public List<string> RoleList { get; set; } = new List<string>();
-
 
     private List<UiUser> userAndGroupList = new List<UiUser>();
     private string? origAssignedGroup;
@@ -120,7 +119,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_requests"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_requests"), "", true);
         }
     }
 

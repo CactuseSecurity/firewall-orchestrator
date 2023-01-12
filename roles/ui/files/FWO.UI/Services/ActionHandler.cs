@@ -9,8 +9,9 @@ namespace FWO.Ui.Services
     public class ActionHandler
     {
         private List<RequestState> states = new List<RequestState>();
-        private ApiConnection apiConnection;
-        private RequestHandler requestHandler;
+        private readonly ApiConnection apiConnection;
+        private RequestHandler requestHandler = new RequestHandler();
+
 
         public ActionHandler(ApiConnection apiConnection, RequestHandler requestHandler)
         {
@@ -23,7 +24,6 @@ namespace FWO.Ui.Services
             states = new List<RequestState>();
             states = await apiConnection.SendQueryAsync<List<RequestState>>(FWO.Api.Client.Queries.RequestQueries.getStates);
         }
-
 
         private List<RequestStateAction> getRelevantActions(RequestStatefulObject statefulObject, RequestObjectScopes scope, bool toState=true)
         {

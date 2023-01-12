@@ -40,7 +40,11 @@
                 }
             </Template>
         </Column>
-        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("requester"))" Field="@(x => x.Requester.Name)" Sortable="true" Filterable="true" />
+        <Column TableItem="RequestTicket" Title="@(userConfig.GetText("requester"))" Field="@(x => x.Requester)" Sortable="true" Filterable="true" >
+            <Template>
+                @(context.Requester?.Name)
+            </Template>
+        </Column>
         <Column TableItem="RequestTicket" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
             <Template>
                 @(States.Name[context.StateId])
@@ -73,16 +77,16 @@
     public RequestStateDict States { get; set; } = new RequestStateDict();
 
     [Parameter]
-    public RequestHandler ReqHandler { get; set; }
+    public RequestHandler ReqHandler { get; set; } = new RequestHandler();
 
     [Parameter]
-    public Func<Task> ResetParent { get; set; }
+    public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
-    public Func<RequestReqTask, Task>? StartPhase { get; set; }
+    public Func<RequestReqTask, Task> StartPhase { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
-    public Func<RequestImplTask, Task>? StartImplPhase { get; set; }
+    public Func<RequestImplTask, Task> StartImplPhase { get; set; } = DefaultInit.DoNothing;
 
 
     private async Task Reset()

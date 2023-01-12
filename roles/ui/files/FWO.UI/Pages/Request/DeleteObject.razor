@@ -42,10 +42,10 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
     [Parameter]
-    public Func<Task> Delete { get; set; }
+    public Func<Task> Delete { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
-    public Func<Task> ResetParent { get; set; }
+    public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
     public string ObjectName { get; set; } = "";

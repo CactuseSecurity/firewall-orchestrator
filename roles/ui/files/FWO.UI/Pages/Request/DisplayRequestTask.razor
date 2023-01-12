@@ -232,7 +232,7 @@
                     <DisplayAccessElements @bind-Sources="actSources" @bind-Destinations="actDestinations" @bind-Services="actServices" 
                         TaskId="ReqHandler.ActReqTask.Id" EditMode="ReqHandler.EditReqTaskMode"></DisplayAccessElements>
                 }
-                else if(ReqHandler.ActReqTask.TaskType == TaskType.group_create.ToString())
+                else if(ReqHandler.ActReqTask.TaskType == TaskType.rule_delete.ToString())
                 {
 
                 }
@@ -324,7 +324,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
     public WorkflowPhases Phase { get; set; } = WorkflowPhases.request;
@@ -333,16 +333,16 @@
     public RequestStateDict States { get; set; } = new RequestStateDict();
 
     [Parameter]
-    public RequestHandler ReqHandler { get; set; }
+    public RequestHandler ReqHandler { get; set; } = new RequestHandler();
 
     [Parameter]
-    public Func<Task> ResetParent { get; set; }
+    public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
-    public Func<RequestReqTask, Task>? StartPhase { get; set; }
+    public Func<RequestReqTask, Task> StartPhase { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
-    public Func<RequestImplTask, Task>? StartImplPhase { get; set; }
+    public Func<RequestImplTask, Task> StartImplPhase { get; set; } = DefaultInit.DoNothing;
 
 
     private List<TaskType> availableTaskTypes { get; set; } = new List<TaskType>();
@@ -369,7 +369,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
     }
 
@@ -386,7 +386,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("init_environment"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("init_environment"), "", true);
         }
     }
 
@@ -424,7 +424,11 @@
         List<string> devNames = new();
         foreach(var devId in ReqHandler.ActReqTask.getDeviceList())
         {
-            devNames.Add(ReqHandler.Devices[ReqHandler.Devices.FindIndex(x => x.Id == devId)].Name);
+            int? idx = ReqHandler.Devices.FindIndex(x => x.Id == devId);
+            if (idx != null)
+            {
+                devNames.Add(ReqHandler.Devices[(int)idx].Name ?? "");
+            }
         }
         return string.Join(", ", devNames);
     }
@@ -504,7 +508,7 @@
         {
             if (ReqHandler.ActReqTask.Sanitize())
             {
-                DisplayMessageInUi!(null, userConfig.GetText("save_task"), userConfig.GetText("U0001"), true);
+                DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("U0001"), true);
             }
             UpdateElements();
             if (CheckTaskValues())
@@ -525,7 +529,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_task"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("save_task"), "", true);
         }
     }
 
@@ -533,7 +537,7 @@
     {
         if (ReqHandler.ActReqTask.Title == null || ReqHandler.ActReqTask.Title == "")
         {
-            DisplayMessageInUi!(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
+            DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
             return false;
         }
         if (ReqHandler.ActReqTask.TaskType == TaskType.access.ToString())
@@ -541,7 +545,7 @@
             if (actSources.Count == 0 || actDestinations.Count == 0 || actServices.Count == 0 ||
                 (!ReqHandler.ActStateMatrix.PhaseActive[WorkflowPhases.planning] && userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask && devicesToAdd.Length == 0))
             {
-                DisplayMessageInUi!(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
+                DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
                 return false;
             }
             foreach (var reqElem in ReqHandler.ActReqTask.Elements)
@@ -550,7 +554,7 @@
                 {
                     if (reqElem.Field == AccessField.service.ToString() && reqElem.Port < 1 || reqElem.Port > 65535)
                     {
-                        DisplayMessageInUi!(null, userConfig.GetText("save_element"), userConfig.GetText("E5103"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("save_element"), userConfig.GetText("E5103"), true);
                         return false;
                     }
                 }

@@ -146,7 +146,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private TabSet? rsbTabset;
     private AnchorNavToRSB? anchorNavToRSB;
@@ -202,7 +202,7 @@
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, userConfig.GetText("object_fetch"), "", true);
+                DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
             }
         });
     }
@@ -211,7 +211,7 @@
     {
         userOwnerships = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnerIdsForUser, new {userDn = userConfig.User.Dn});
 
-        List<UserGroup> ownerGroups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi!, true);
+        List<UserGroup> ownerGroups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi, true);
         List<string> ownerGrpDns = new List<string>();
         foreach(var grp in ownerGroups)
         {
@@ -249,7 +249,7 @@
 
             if (!deviceFilter.isAnyDeviceFilterSet())  // display pop-up with warning
             {
-                DisplayMessageInUi!(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
+                DisplayMessageInUi(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
                 processing = false;
                 return;
             }
@@ -291,7 +291,7 @@
             await InvokeAsync(StateHasChanged);
             if(!rulesFound)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
+                DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
             }
         }
         catch (Exception exception)
@@ -299,14 +299,14 @@
             processing = false;
             managements = managementsOrig;
             StateHasChanged();
-            DisplayMessageInUi!(exception, userConfig.GetText("generate_report"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("generate_report"), "", true);
         }
     }
 
     private void CancelGeneration()
     {
         tokenSource.Cancel();
-        DisplayMessageInUi!(null, userConfig.GetText("report_data_fetch"), userConfig.GetText("E1003"), true);
+        DisplayMessageInUi(null, userConfig.GetText("report_data_fetch"), userConfig.GetText("E1003"), true);
     }
 
     private void SyncFilterToDisplay()
@@ -379,7 +379,7 @@
                         gotAllObjects = await currentReport.GetObjectsForManagementInReport(queryVars, (byte)(contentType - report), userConfig.AutoFillRightSidebar ? int.MaxValue : userConfig.MaxInitialFetchesRightSidebar, apiConnection, callback);
 
                     if (!gotAllObjects)
-                        DisplayMessageInUi!(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);
 
                     return;
 
@@ -416,11 +416,11 @@
             Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount - 1} cycle(s) ({userConfig.ElementsPerFetch} at a time)");
 
             if (fetchCount > userConfig.MaxInitialFetchesRightSidebar && !userConfig.AutoFillRightSidebar)
-                DisplayMessageInUi!(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);
+                DisplayMessageInUi(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("object_fetch"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
             // TODO: Error Interface for all Components, that enables displaying a message in the ui
         }
     }
@@ -441,11 +441,11 @@
         actComment = Sanitizer.SanitizeMand(actComment, ref shortened);
         if(shortened)
         {
-            DisplayMessageInUi!(null, userConfig.GetText("execute_selected"), userConfig.GetText("U0001"), true);
+            DisplayMessageInUi(null, userConfig.GetText("execute_selected"), userConfig.GetText("U0001"), true);
         }
         if(userConfig.CommentRequired && actComment == "")
         {
-            DisplayMessageInUi!(null, userConfig.GetText("execute_selected"), userConfig.GetText("E4001"), true);
+            DisplayMessageInUi(null, userConfig.GetText("execute_selected"), userConfig.GetText("E4001"), true);
             return;
         }
         AddCommentMode = false;
@@ -532,14 +532,14 @@
 
             string txt = userConfig.GetText("recerts_executed") + recerts.ToString() + ", " +
                          userConfig.GetText("decerts_executed") + (Certifications.Count-recerts).ToString();
-            DisplayMessageInUi!(null, userConfig.GetText("execute_selected"), txt, false);
+            DisplayMessageInUi(null, userConfig.GetText("execute_selected"), txt, false);
 
             // reload updated report
             await GenerateRecertificationReport();
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("execute_selected"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("execute_selected"), "", true);
         }
     }
 }

@@ -228,7 +228,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
     public List<NwObjectElement> Sources { get; set; } = new List<NwObjectElement>();
@@ -394,7 +394,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
     }
 

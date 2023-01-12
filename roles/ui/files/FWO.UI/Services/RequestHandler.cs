@@ -68,14 +68,17 @@ namespace FWO.Ui.Services
         public bool DisplayPathAnalysisMode = false;
         
 
-        private Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+        private Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
         private UserConfig userConfig;
-        private ApiConnection apiConnection;
+        private readonly ApiConnection apiConnection;
         private StateMatrixDict stateMatrixDict = new StateMatrixDict();
         private RequestDbAccess dbAcc;
 
         private ObjAction contOption = ObjAction.display;
 
+
+        public RequestHandler()
+        {}
 
         public RequestHandler(Action<Exception?, string, string, bool> displayMessageInUi, UserConfig userConfig, 
             ApiConnection apiConnection, WorkflowPhases phase)
@@ -85,6 +88,7 @@ namespace FWO.Ui.Services
             this.apiConnection = apiConnection;
             this.Phase = phase;
         }
+
 
         public async Task Init(int viewOpt = 0)
         {
@@ -232,7 +236,7 @@ namespace FWO.Ui.Services
                 ActTicket.StateId = ticket.StateId;
                 if (ActTicket.Sanitize())
                 {
-                    DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("U0001"), true);
+                    DisplayMessageInUi(null, userConfig.GetText("save_request"), userConfig.GetText("U0001"), true);
                 }
                 if (CheckTicketValues())
                 {
@@ -290,7 +294,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, userConfig.GetText("save_request"), "", true);
+                DisplayMessageInUi(exception, userConfig.GetText("save_request"), "", true);
             }
         }
 
@@ -304,7 +308,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, userConfig.GetText("promote_ticket"), "", true);
+                DisplayMessageInUi(exception, userConfig.GetText("promote_ticket"), "", true);
             }
         }
 
@@ -515,7 +519,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, userConfig.GetText("promote_task"), "", true);
+                DisplayMessageInUi(exception, userConfig.GetText("promote_task"), "", true);
             }
         } 
 
@@ -543,7 +547,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, userConfig.GetText("path_analysis"), "", true);
+                DisplayMessageInUi(exception, userConfig.GetText("path_analysis"), "", true);
             }
         }
 
@@ -615,7 +619,7 @@ namespace FWO.Ui.Services
             {
                 // todo: checks if new approval allowed (only one open per group?, ...)
                 approval.Id = await dbAcc.AddApprovalToDb(approval);
-                DisplayMessageInUi!(null, userConfig.GetText("add_approval"), userConfig.GetText("U8002"), false);
+                DisplayMessageInUi(null, userConfig.GetText("add_approval"), userConfig.GetText("U8002"), false);
             }
             ActReqTask.Approvals.Add(approval);
         }
@@ -632,12 +636,12 @@ namespace FWO.Ui.Services
                 }
                 if(approval.OptComment() != null && approval.OptComment() != "")
                 {
-                    await ConfAddCommentToApproval(approval.OptComment());
+                    await ConfAddCommentToApproval(approval.OptComment()!);
                 }
                 
                 if (ActApproval.Sanitize())
                 {
-                    DisplayMessageInUi!(null, userConfig.GetText("save_approval"), userConfig.GetText("U0001"), true);
+                    DisplayMessageInUi(null, userConfig.GetText("save_approval"), userConfig.GetText("U0001"), true);
                 }
                 await UpdateActApproval();
                 await UpdateActReqTaskStateFromApprovals();
@@ -648,7 +652,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, userConfig.GetText("save_approval"), "", true);
+                DisplayMessageInUi(exception, userConfig.GetText("save_approval"), "", true);
             }
         }
 
@@ -850,7 +854,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, userConfig.GetText("save_task"), "", true);
+                DisplayMessageInUi(exception, userConfig.GetText("save_task"), "", true);
             }
         }
 
@@ -1088,7 +1092,7 @@ namespace FWO.Ui.Services
         {
             if (ActTicket.Title == null || ActTicket.Title == "")
             {
-                DisplayMessageInUi!(null, userConfig.GetText("save_request"), userConfig.GetText("E5102"), true);
+                DisplayMessageInUi(null, userConfig.GetText("save_request"), userConfig.GetText("E5102"), true);
                 return false;
             }
             return true;
@@ -1098,7 +1102,7 @@ namespace FWO.Ui.Services
         {
             // if (statefulObject.AssignedGroup == null || statefulObject.AssignedGroup == "")
             // {
-            //     DisplayMessageInUi!(null, userConfig.GetText("assign_group"), userConfig.GetText("E8010"), true);
+            //     DisplayMessageInUi(null, userConfig.GetText("assign_group"), userConfig.GetText("E8010"), true);
             //     return false;
             // }
             return true;

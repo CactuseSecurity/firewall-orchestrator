@@ -9,7 +9,7 @@
 @inject UserConfig userConfig
 
 <button class="btn btn-sm btn-dark" @onclick='() => { if (ReportToExport != null) { ShowExportDialog = true; reportExportFile = new ReportFile { Name = "Report", OwnerId = userConfig.User.DbId }; } else { 
-                                                      DisplayMessageInUi!(null, userConfig.GetText("export_report"), userConfig.GetText("E1002"), true); } }'>@userConfig.GetText("export_report")</button>
+                                                      DisplayMessageInUi(null, userConfig.GetText("export_report"), userConfig.GetText("E1002"), true); } }'>@userConfig.GetText("export_report")</button>
 
 <PopUp Title="@(userConfig.GetText("export_report"))" Show="@ShowExportDialog" OnClose="() => ShowExportDialog = false">
     <Body>
@@ -109,7 +109,7 @@ Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportD
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
     public ReportBase? ReportToExport { get; set; }
@@ -134,7 +134,7 @@ Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportD
     {
         if (reportExportFile.Sanitize())
         {
-            DisplayMessageInUi!(null, userConfig.GetText("export_report"), userConfig.GetText("U0001"), true);
+            DisplayMessageInUi(null, userConfig.GetText("export_report"), userConfig.GetText("U0001"), true);
         }
         if (ReportToExport != null)
         {
@@ -194,13 +194,13 @@ Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportD
                 }
                 catch (Exception exception)
                 {
-                    DisplayMessageInUi!(exception, userConfig.GetText("export_report"), "", true);
+                    DisplayMessageInUi(exception, userConfig.GetText("export_report"), "", true);
                 }
             });
         }
         else
         {
-            DisplayMessageInUi!(null, userConfig.GetText("export_report"), userConfig.GetText("E1002"), true);
+            DisplayMessageInUi(null, userConfig.GetText("export_report"), userConfig.GetText("E1002"), true);
         }
     }
 }

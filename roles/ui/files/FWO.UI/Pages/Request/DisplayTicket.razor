@@ -169,7 +169,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
     
     [Parameter]
     public WorkflowPhases Phase { get; set; } = WorkflowPhases.approval;
@@ -178,16 +178,16 @@
     public RequestStateDict States { get; set; } = new RequestStateDict();
 
     [Parameter]
-    public RequestHandler ReqHandler { get; set; }
+    public RequestHandler ReqHandler { get; set; } = new RequestHandler();
     
     [Parameter]
-    public Func<Task> ResetParent { get; set; }
+    public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
-    public Func<RequestReqTask, Task>? StartPhase { get; set; }
+    public Func<RequestReqTask, Task> StartPhase { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
-    public Func<RequestImplTask, Task>? StartImplPhase { get; set; }
+    public Func<RequestImplTask, Task> StartImplPhase { get; set; } = DefaultInit.DoNothing;
 
 
     private List<int> possibleStates = new List<int>();
@@ -217,7 +217,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("init_environment"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("init_environment"), "", true);
         }
     }
 

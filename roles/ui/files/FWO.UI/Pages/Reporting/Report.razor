@@ -172,7 +172,7 @@
                         bool rulesFound = true;
                         if (!rulesFound)
                         {
-                            DisplayMessageInUi!(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
+                            DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
                         }
                         <RulesReport Managements="managementsReport" SelectedReportType="selectedReportType" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"></RulesReport>
                         break;
@@ -434,7 +434,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     public double reportGenerationDuration;
     private bool processing = false;
@@ -519,7 +519,7 @@
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, userConfig.GetText("object_fetch"), "", true);
+                DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
             }
         });
     }
@@ -612,7 +612,7 @@
     {
         if(actTimeFilter.TimeRangeType == TimeRangeType.Fixeddates && actTimeFilter.StartTime > actTimeFilter.EndTime)
         {
-            DisplayMessageInUi!(null, userConfig.GetText("check_times"), userConfig.GetText("E1011"), true);
+            DisplayMessageInUi(null, userConfig.GetText("check_times"), userConfig.GetText("E1011"), true);
             return false;
         }
         return true;
@@ -732,7 +732,7 @@
                         gotAllObjects = await currentReport.GetObjectsForManagementInReport(queryVars, (byte)(contentType - report), userConfig.AutoFillRightSidebar ? int.MaxValue : userConfig.MaxInitialFetchesRightSidebar, Connection, callback);
 
                     if (!gotAllObjects)
-                        DisplayMessageInUi!(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);
 
                     return;
 
@@ -769,11 +769,11 @@
             Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount - 1} cycle(s) ({userConfig.ElementsPerFetch} at a time)");
 
             if (fetchCount > userConfig.MaxInitialFetchesRightSidebar && !userConfig.AutoFillRightSidebar)
-                DisplayMessageInUi!(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);
+                DisplayMessageInUi(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("object_fetch"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
             // TODO: Error Interface for all Components, that enables displaying a message in the ui
         }
     }
@@ -795,7 +795,7 @@
         {
             if (!deviceFilter.isAnyDeviceFilterSet())  // display warning
             {
-                DisplayMessageInUi!(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
+                DisplayMessageInUi(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
                 return;
             }
             processing = true;
@@ -875,11 +875,11 @@
             {
                 if(currentReport is ReportRules || currentReport is ReportNatRules)
                 {
-                    DisplayMessageInUi!(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
+                    DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
                 }
                 else if(currentReport is ReportChanges)
                 {
-                    DisplayMessageInUi!(null, userConfig.GetText("generate_report"), userConfig.GetText("E4003"), true);
+                    DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4003"), true);
                 }
             }
 
@@ -893,7 +893,7 @@
             managementsReport = managementsReportOrig;
             reportTemplateControl.Uncollapse();
             await InvokeAsync(StateHasChanged);
-            DisplayMessageInUi!(exception, userConfig.GetText("generate_report"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("generate_report"), "", true);
         }
         watch.Stop();
         reportGenerationDuration = watch.ElapsedMilliseconds/1000.0;
@@ -917,7 +917,7 @@
     private void CancelGeneration()
     {
         tokenSource.Cancel();
-        DisplayMessageInUi!(null, userConfig.GetText("report_data_fetch"), userConfig.GetText("E1003"), true);
+        DisplayMessageInUi(null, userConfig.GetText("report_data_fetch"), userConfig.GetText("E1003"), true);
     }
 
     private void setRelevantManagements(List<int> relevantManagements)
@@ -962,7 +962,7 @@
         catch (Exception unexpectedError)
         {
 #if DEBUG
-            DisplayMessageInUi!(unexpectedError, userConfig.GetText("filter"), "", false);
+            DisplayMessageInUi(unexpectedError, userConfig.GetText("filter"), "", false);
 #endif
         }
     }
@@ -992,20 +992,17 @@
     private List<ReportType> CustomSortReportType(List<ReportType> ListIn)
     {
         List<ReportType> ListOut = new List<ReportType>();
-        List<ReportType> orderedReportTypeList = new List<ReportType>
-            (
-                new ReportType[] 
-                    {
-                        ReportType.Rules, ReportType.ResolvedRules, ReportType.ResolvedRulesTech, ReportType.NatRules, ReportType.Changes, ReportType.Statistics
-                    }
-            ); 
+        List<ReportType> orderedReportTypeList = new List<ReportType>()
+        {
+            ReportType.Rules, ReportType.ResolvedRules, ReportType.ResolvedRulesTech, ReportType.NatRules, ReportType.Changes, ReportType.Statistics
+        };
         foreach (ReportType reportType in orderedReportTypeList)
         {
-            ReportType foundType = ListIn.Find(x => x == reportType);
+            ReportType? foundType = ListIn.Find(x => x == reportType);
             if (foundType != null)
             {
-                ListOut.Add(foundType);
-                ListIn.Remove(foundType);
+                ListOut.Add(reportType);
+                ListIn.Remove(reportType);
             }
         }
         // finally add remaining report types

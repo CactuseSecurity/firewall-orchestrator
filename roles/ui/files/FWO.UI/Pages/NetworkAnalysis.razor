@@ -48,7 +48,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
@@ -67,7 +67,7 @@
         // }
         // catch (Exception exception)
         // {
-        //    DisplayMessageInUi!(exception, userConfig.GetText("archive_fetch"), "", true);
+        //    DisplayMessageInUi(exception, userConfig.GetText("archive_fetch"), "", true);
         // }
     }
 
@@ -89,7 +89,7 @@
         }
         catch(Exception e)
         {
-            DisplayMessageInUi!(e, userConfig.GetText("wrong_ip_address"), "", true);
+            DisplayMessageInUi(e, userConfig.GetText("wrong_ip_address"), "", true);
             return false;
         }
         return true;

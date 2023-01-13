@@ -12,6 +12,9 @@ using FWO.Config.File;
 
 namespace FWO.Middleware.Server
 {
+    /// <summary>
+    /// Report scheduler class
+    /// </summary>
     public class ReportScheduler
     {
         private readonly object scheduledReportsLock = new object();
@@ -26,6 +29,9 @@ namespace FWO.Middleware.Server
         private readonly object ldapLock = new object();
         private List<Ldap> connectedLdaps;
 
+		/// <summary>
+		/// Constructor needing connection, jwtWriter and subscription to connected ldaps
+		/// </summary>
         public ReportScheduler(ApiConnection apiConnection, JwtWriter jwtWriter, ApiSubscription<List<Ldap>> connectedLdapsSubscription)
         {
             this.jwtWriter = jwtWriter;            

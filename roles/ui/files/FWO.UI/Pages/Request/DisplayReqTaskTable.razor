@@ -68,7 +68,11 @@
                     @(States.Name[context.StateId])
                 </Template>
             </Column>
-            <Column TableItem="RequestReqTask" Title="@(userConfig.GetText("current_handler"))" Field="@(x => x.CurrentHandler.Name)" Sortable="true" Filterable="true" />
+            <Column TableItem="RequestReqTask" Title="@(userConfig.GetText("current_handler"))" Field="@(x => x.CurrentHandler)" Sortable="true" Filterable="true">
+                <Template>
+                    @(context.CurrentHandler?.Name)
+                </Template>
+            </Column>
             @if(Phase == WorkflowPhases.approval)
             {
                 <Column TableItem="RequestReqTask" Title="@(userConfig.GetText("approval_deadline"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
@@ -100,7 +104,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
     
     [Parameter]
     public WorkflowPhases Phase { get; set; } = WorkflowPhases.request;
@@ -109,18 +113,19 @@
     public RequestStateDict States { get; set; } = new RequestStateDict();
 
     [Parameter]
-    public RequestHandler ReqHandler { get; set; }
+    public RequestHandler ReqHandler { get; set; } = new RequestHandler();
 
     [Parameter]
-    public Func<Task> ResetParent { get; set; }
+    public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
-    public Func<RequestReqTask, Task>? StartPhase { get; set; }
+    public Func<RequestReqTask, Task> StartPhase { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
-    public Func<RequestImplTask, Task>? StartImplPhase { get; set; }
+    public Func<RequestImplTask, Task> StartImplPhase { get; set; } = DefaultInit.DoNothing;
 
     static List<string> validRoles = new List<string>(){"planner", "fw-admin"};
+
 
     private async Task Reset()
     {

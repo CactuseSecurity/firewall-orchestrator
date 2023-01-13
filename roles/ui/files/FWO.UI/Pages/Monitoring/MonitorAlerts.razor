@@ -35,7 +35,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private List<Alert> alertEntrys = new List<Alert>();
     private List<UiUser> uiUsers = new List<UiUser>();
@@ -51,7 +51,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_alerts"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_alerts"), "", true);
         }
     }
 }

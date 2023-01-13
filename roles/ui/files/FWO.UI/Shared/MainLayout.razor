@@ -55,7 +55,7 @@
 
 @code
 {
-    Action<Exception?, string, string, bool>? DisplayMessageInUiFunction;
+    Action<Exception?, string, string, bool> DisplayMessageInUiFunction = DefaultInit.DoNothing;
 
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }

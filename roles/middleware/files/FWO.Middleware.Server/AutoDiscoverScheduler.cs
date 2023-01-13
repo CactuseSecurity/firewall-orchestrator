@@ -9,6 +9,9 @@ using FWO.DeviceAutoDiscovery;
 
 namespace FWO.Middleware.Server
 {
+	/// <summary>
+	/// Class handling the scheduler for the autodiscovery
+	/// </summary>
     public class AutoDiscoverScheduler
     {
         private readonly ApiConnection apiConnection;
@@ -19,6 +22,9 @@ namespace FWO.Middleware.Server
         private System.Timers.Timer ScheduleTimer = new();
         private System.Timers.Timer AutoDiscoverTimer = new();
 
+		/// <summary>
+		/// Async Constructor needing the connection
+		/// </summary>
         public static async Task<AutoDiscoverScheduler> CreateAsync(ApiConnection apiConnection)
         {
             GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
@@ -40,7 +46,7 @@ namespace FWO.Middleware.Server
             startScheduleTimer();
         }
 
-        public void startScheduleTimer()
+        private void startScheduleTimer()
         {
             if (globalConfig.AutoDiscoverSleepTime > 0)
             {
@@ -132,7 +138,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        public async Task<long?> setAlert(ActionItem action)
+        private async Task<long?> setAlert(ActionItem action)
         {
             long? alertId = null;
             try
@@ -181,7 +187,7 @@ namespace FWO.Middleware.Server
             return alertId;
         }
 
-        public async Task AcknowledgeAlert(long alertId)
+        private async Task AcknowledgeAlert(long alertId)
         {
             try
             {
@@ -199,7 +205,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        public async Task AddAutoDiscoverLogEntry(int severity, string cause, string description, int? mgmtId = null)
+        private async Task AddAutoDiscoverLogEntry(int severity, string cause, string description, int? mgmtId = null)
         {
             try
             {

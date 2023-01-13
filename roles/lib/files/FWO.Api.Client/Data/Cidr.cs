@@ -4,7 +4,7 @@ namespace FWO.Api.Data
 {
     public class Cidr
     {
-        private IPAddressRange IpRange { get; set; }
+        private IPAddressRange IpRange { get; set; } = new IPAddressRange();
 
         public bool Valid { get; set; } = false;
 
@@ -13,6 +13,9 @@ namespace FWO.Api.Data
             get => this.getCidrString();
             set => this.setCidrFromString(value);
         }
+
+        public Cidr()
+        {}
 
         public Cidr(string value)
         {

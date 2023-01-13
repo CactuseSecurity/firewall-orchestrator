@@ -71,7 +71,7 @@ namespace FWO.Ui.Display
                     userNwObjectList.Sort();
 
                     foreach (NetworkLocation networkLocation in userNwObjectList)
-                        result.Append(NetworkLocationToHtml(networkLocation, rule.MgmtId, location, style, reportType=reportType));
+                        result.Append(NetworkLocationToHtml(networkLocation, rule.MgmtId, location, style, reportType));
                     break;
             }
             result.AppendLine("</p>");
@@ -143,7 +143,7 @@ namespace FWO.Ui.Display
                 case ReportType.NatRules:
                 case ReportType.Recertification:
                     foreach (ServiceWrapper service in rule.Services)
-                        result.Append(ServiceToHtml(service.Content, rule.MgmtId, location, style, reportType=reportType));
+                        result.Append(ServiceToHtml(service.Content, rule.MgmtId, location, style, reportType));
                     break;
                 case ReportType.ResolvedRules:
                 case ReportType.ResolvedRulesTech:
@@ -157,7 +157,7 @@ namespace FWO.Ui.Display
                     serviceList.Sort(delegate (NetworkService x, NetworkService y) { return x.Name.CompareTo(y.Name); });
 
                     foreach (NetworkService service in serviceList)
-                        result.Append(ServiceToHtml(service, rule.MgmtId, location, style, reportType=reportType));
+                        result.Append(ServiceToHtml(service, rule.MgmtId, location, style, reportType));
                     break;
             }
             result.AppendLine("</p>");

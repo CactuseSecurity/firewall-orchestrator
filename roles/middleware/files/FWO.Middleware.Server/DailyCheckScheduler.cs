@@ -10,6 +10,9 @@ using FWO.Middleware.RequestParameters;
 
 namespace FWO.Middleware.Server
 {
+	/// <summary>
+	/// Class handling the scheduler for the daily checks
+	/// </summary>
     public class DailyCheckScheduler
     {
         private readonly ApiConnection apiConnection;
@@ -21,6 +24,9 @@ namespace FWO.Middleware.Server
 
         private List<Alert> openAlerts = new List<Alert>();
 
+		/// <summary>
+		/// Async Constructor needing the connection
+		/// </summary>
         public static async Task<DailyCheckScheduler> CreateAsync(ApiConnection apiConnection)
         {
             GlobalConfig config = await GlobalConfig.ConstructAsync(apiConnection, true);
@@ -43,7 +49,7 @@ namespace FWO.Middleware.Server
             startDailyCheckScheduleTimer();
         }
 
-        public void startDailyCheckScheduleTimer()
+        private void startDailyCheckScheduleTimer()
         {
             DateTime? startTime = null;
             try
@@ -200,7 +206,7 @@ namespace FWO.Middleware.Server
             await AddDailyCheckLogEntry((importIssues != 0 ? 1 : 0), globalConfig.GetText("daily_importer_check"), (importIssues != 0 ? importIssues + globalConfig.GetText("import_issues_found") : globalConfig.GetText("no_import_issues_found")));
         }
 
-        public async Task setAlert(string source, AlertCode alertCode, string title, string description, int? mgmtId = null, object? JsonData = null, int? devId = null)
+        private async Task setAlert(string source, AlertCode alertCode, string title, string description, int? mgmtId = null, object? JsonData = null, int? devId = null)
         {
             try
             {
@@ -252,7 +258,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        public async Task AcknowledgeAlert(long alertId)
+        private async Task AcknowledgeAlert(long alertId)
         {
             try
             {
@@ -270,7 +276,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        public async Task AddDailyCheckLogEntry(int severity, string cause, string description)
+        private async Task AddDailyCheckLogEntry(int severity, string cause, string description)
         {
             try
             {

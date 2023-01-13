@@ -201,7 +201,7 @@ else
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private ConfigData? configData;
 
@@ -213,7 +213,7 @@ else
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
         }
     }
 
@@ -224,7 +224,7 @@ else
             if (configData != null)
             {
                 await globalConfig.WriteToDatabase(configData, apiConnection);
-                DisplayMessageInUi!(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
+                DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
             }
             else
             {
@@ -233,7 +233,7 @@ else
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("change_default"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
         }
     }
 }

@@ -200,7 +200,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
     private List<Device> devices = new List<Device>();
     private List<DeviceType> deviceTypes = new List<DeviceType>();
     private List<Management> managements = new List<Management>();
@@ -222,7 +222,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_gateways"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_gateways"), "", true);
         }
     }
 
@@ -256,7 +256,7 @@
         catch (Exception exception)
         {
             workInProgress = false;
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_gateway"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_gateway"), "", true);
         } 
     }
 
@@ -285,7 +285,7 @@
         {
             if (actDevice.Sanitize())
             {
-                DisplayMessageInUi!(null, userConfig.GetText("save_gateway"), userConfig.GetText("U0001"), true);
+                DisplayMessageInUi(null, userConfig.GetText("save_gateway"), userConfig.GetText("U0001"), true);
             }
             if (CheckValues())
             {    
@@ -307,7 +307,7 @@
                     ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.DeviceQueries.newDevice, Variables)).ReturnIds;
                     if (returnIds == null)
                     {
-                        DisplayMessageInUi!(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5112"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5112"), true);
                     }
                     else
                     {
@@ -342,7 +342,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_gateway"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("save_gateway"), "", true);
         }
     }
 
@@ -350,13 +350,13 @@
     {
         if (string.IsNullOrEmpty(actDevice.Name) || (actDevice.DeviceType.Manufacturer != "Cisco" && actDevice.DeviceType.Manufacturer != "DummyRouter" && string.IsNullOrEmpty(actDevice.LocalRulebase)))
         {
-            DisplayMessageInUi!(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5102"), true);
+            DisplayMessageInUi(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5102"), true);
             return false;
         }
         if (!actDevice.ImportDisabled && !string.IsNullOrEmpty(actDevice.LocalRulebase) && devices.FirstOrDefault(dev => dev.DeviceType.Id == actDevice.DeviceType.Id && dev.Management.Id == actDevice.Management.Id 
             && dev.LocalRulebase == actDevice.LocalRulebase && dev.Id != actDevice.Id && !dev.ImportDisabled) != null)
         {
-            DisplayMessageInUi!(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5111"), true);
+            DisplayMessageInUi(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5111"), true);
             return false;
         }
         return true;
@@ -371,7 +371,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("add_device_to_tenant0"), "", false);
+            DisplayMessageInUi(exception, userConfig.GetText("add_device_to_tenant0"), "", false);
         }
     }
 

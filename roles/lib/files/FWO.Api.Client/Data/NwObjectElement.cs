@@ -15,7 +15,7 @@ namespace FWO.Api.Data
             get { return Cidr.CidrString; }
             set { Cidr = new Cidr(value); }
         }
-        public Cidr Cidr { get; set; }
+        public Cidr Cidr { get; set; } = new Cidr();
 
         public long TaskId { get; set; }
 

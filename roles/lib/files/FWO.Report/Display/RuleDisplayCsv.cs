@@ -102,7 +102,7 @@ namespace FWO.Ui.Display
                 StringBuilder cell = new StringBuilder();
                 foreach (NetworkLocation networkLocation in userNwObjectList)
                 {
-                    cell.Append(NetworkLocationToCsv(networkLocation, rule.MgmtId, location, style, reportType = reportType).ToString());
+                    cell.Append(NetworkLocationToCsv(networkLocation, rule.MgmtId, location, style, reportType).ToString());
                 }
                 cell.Remove(cell.ToString().Length - 2, 2);  // get rid of final line break
                 result.Append($"\"{cell}\",");
@@ -166,7 +166,7 @@ namespace FWO.Ui.Display
 
                     StringBuilder cell = new StringBuilder();
                     foreach (NetworkService service in serviceList)
-                        cell.Append(ServiceToCsv(service, rule.MgmtId, location, style, reportType = reportType).ToString());
+                        cell.Append(ServiceToCsv(service, rule.MgmtId, location, style, reportType).ToString());
 
                     cell.Remove(cell.ToString().Length - 2, 2);  // get rid of final line break
                     result.Append($"\"{cell}\",");

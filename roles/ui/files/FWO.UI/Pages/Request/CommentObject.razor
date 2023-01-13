@@ -38,7 +38,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
     
     [Parameter]
     public bool Display { get; set; } = false;
@@ -47,13 +47,13 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
     [Parameter]
-    public Func<Task> ResetParent { get; set; }
+    public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
     public string ObjectName { get; set; } = "";
 
     [Parameter]
-    public Func<string, Task>? Save { get; set; }
+    public Func<string, Task> Save { get; set; } = DefaultInit.DoNothing;
 
     private string commentText = "";
 

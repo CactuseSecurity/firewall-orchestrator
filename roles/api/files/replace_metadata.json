@@ -14487,7 +14487,6 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "matches",
                       "rule_id",
                       "xlate_rule",
                       "access_rule",
@@ -14502,11 +14501,13 @@
                       "dev_id",
                       "mgm_id",
                       "owner_id",
+                      "recert_interval",
                       "rule_from_zone",
                       "rule_last_certifier",
                       "rule_to_zone",
                       "track_id",
                       "rule_num_numeric",
+                      "matches",
                       "rule_action",
                       "rule_comment",
                       "rule_head_text",
@@ -14526,32 +14527,33 @@
                   "role": "recertifier",
                   "permission": {
                     "columns": [
-                      "rule_num_numeric",
-                      "track_id",
+                      "rule_id",
+                      "xlate_rule",
+                      "access_rule",
+                      "nat_rule",
+                      "rule_disabled",
+                      "rule_dst_neg",
+                      "rule_src_neg",
+                      "rule_svc_neg",
+                      "owner_name",
+                      "rule_name",
                       "action_id",
-                      "rule_from_zone",
-                      "rule_to_zone",
                       "dev_id",
                       "mgm_id",
-                      "rule_uid",
-                      "rule_id",
                       "owner_id",
-                      "owner_name",
-                      "rule_last_certified",
+                      "recert_interval",
+                      "rule_from_zone",
                       "rule_last_certifier",
+                      "rule_to_zone",
+                      "track_id",
+                      "rule_num_numeric",
+                      "matches",
                       "rule_action",
-                      "rule_name",
                       "rule_comment",
-                      "rule_track",
-                      "rule_src_neg",
-                      "rule_dst_neg",
-                      "rule_svc_neg",
                       "rule_head_text",
-                      "rule_disabled",
-                      "access_rule",
-                      "xlate_rule",
-                      "nat_rule",
-                      "matches"
+                      "rule_track",
+                      "rule_uid",
+                      "rule_last_certified"
                     ],
                     "filter": {
                       "_and": [
@@ -14588,6 +14590,7 @@
                       "dev_id",
                       "mgm_id",
                       "owner_id",
+                      "recert_interval",
                       "rule_from_zone",
                       "rule_last_certifier",
                       "rule_to_zone",
@@ -14636,6 +14639,7 @@
                       "dev_id",
                       "mgm_id",
                       "owner_id",
+                      "recert_interval",
                       "rule_from_zone",
                       "rule_last_certifier",
                       "rule_to_zone",
@@ -18700,6 +18704,6 @@
           }
         }
       ]
-    }  
+    }
   }
 }

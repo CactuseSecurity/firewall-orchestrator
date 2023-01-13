@@ -85,7 +85,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
         }
         if (editableConfig.EmailServerAddress != "")
         {
@@ -114,12 +114,12 @@
                 editableConfig.EmailSenderAddress = actEmailConnection.SenderEmailAddress;
 
                 await globalConfig.WriteToDatabase(editableConfig, apiConnection);
-                DisplayMessageInUi!(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
+                DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
             }
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("change_default"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
         }
     }
 
@@ -127,17 +127,17 @@
     {
         if (actEmailConnection.ServerAddress == null || actEmailConnection.ServerAddress == "")
         {
-            DisplayMessageInUi!(null, userConfig.GetText("save_email_conn"), userConfig.GetText("E5102"), true);
+            DisplayMessageInUi(null, userConfig.GetText("save_email_conn"), userConfig.GetText("E5102"), true);
             return false;
         }
         if (actEmailConnection.Port < 1 || actEmailConnection.Port > 65535)
         {
-            DisplayMessageInUi!(null, userConfig.GetText("save_email_conn"), userConfig.GetText("E5103"), true);
+            DisplayMessageInUi(null, userConfig.GetText("save_email_conn"), userConfig.GetText("E5103"), true);
             return false;
         }
         if (!actEmailConnection.SenderEmailAddress.Contains('@'))
         {
-            DisplayMessageInUi!(null, userConfig.GetText("save_email_conn"), userConfig.GetText("E5108"), true);
+            DisplayMessageInUi(null, userConfig.GetText("save_email_conn"), userConfig.GetText("E5108"), true);
             return false;
         }
         return true;
@@ -151,18 +151,18 @@
             Mailer mailer = new Mailer(actEmailConnection);
             if (userConfig.User.Email == null || userConfig.User.Email  == "")
             {
-                DisplayMessageInUi!(null, userConfig.GetText("test_email_connection"), userConfig.GetText("E8101"), true);
+                DisplayMessageInUi(null, userConfig.GetText("test_email_connection"), userConfig.GetText("E8101"), true);
             }
             else 
             {
                 string testMailReceiverAddress = userConfig.User.Email;
                 mailer.SendMail("Test mail from Firewall Orchestrator", "... this is the body - just testing ...", testMailReceiverAddress);
-                DisplayMessageInUi!(null, userConfig.GetText("test_email_connection"), userConfig.GetText("U5402"), false);
+                DisplayMessageInUi(null, userConfig.GetText("test_email_connection"), userConfig.GetText("U5402"), false);
             }
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("test_email_connection"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("test_email_connection"), "", true);
         }
     }
 

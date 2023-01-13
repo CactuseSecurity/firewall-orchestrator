@@ -24,6 +24,7 @@ namespace FWO.Mail
             smtp.Host = EmailConn.ServerAddress;
             smtp.EnableSsl = EmailConn.Tls;
             smtp.Port = EmailConn.Port;
+            smtp.Timeout = 5000;
 
             if (EmailConn.User != "")
             {

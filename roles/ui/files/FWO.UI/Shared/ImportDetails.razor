@@ -42,7 +42,7 @@
                     <div class="col-sm-3">@(ImportStatus.FirstImport != null && ImportStatus.FirstImport.Length > 0 ? ImportStatus.FirstImport[0].StopTime : "")</div>
                     <div class="col-sm-2">@(userConfig.GetText("duration")):</div>
                     <div class="col-sm-1">@(ImportStatus.FirstImport != null && ImportStatus.FirstImport.Length > 0 && ImportStatus.FirstImport[0].StartTime != null
-                        && ImportStatus.FirstImport[0].StopTime != null ? ((TimeSpan)(ImportStatus.FirstImport[0].StopTime - ImportStatus.FirstImport[0].StartTime)).TotalSeconds.ToString("f2") : "")</div>
+                        && ImportStatus.FirstImport[0].StopTime != null ? ((TimeSpan)(ImportStatus.FirstImport[0].StopTime! - ImportStatus.FirstImport[0].StartTime!)).TotalSeconds.ToString("f2") : "")</div>
                 </div>
                 <div class="row">
                     <div class="col-sm-1"/>
@@ -66,7 +66,7 @@
                     <div class="col-sm-3">@(ImportStatus.LastSuccessfulImport != null && ImportStatus.LastSuccessfulImport.Length > 0 ? ImportStatus.LastSuccessfulImport[0].StopTime : "")</div>
                     <div class="col-sm-2">@(userConfig.GetText("duration")):</div>
                     <div class="col-sm-1">@(ImportStatus.LastSuccessfulImport != null && ImportStatus.LastSuccessfulImport.Length > 0 && ImportStatus.LastSuccessfulImport[0].StartTime != null 
-                        && ImportStatus.LastSuccessfulImport[0].StopTime != null ? ((TimeSpan)(ImportStatus.LastSuccessfulImport[0].StopTime - ImportStatus.LastSuccessfulImport[0].StartTime)).TotalSeconds.ToString("f2") : "")</div>
+                        && ImportStatus.LastSuccessfulImport[0].StopTime != null ? ((TimeSpan)(ImportStatus.LastSuccessfulImport[0].StopTime! - ImportStatus.LastSuccessfulImport[0].StartTime!)).TotalSeconds.ToString("f2") : "")</div>
                 </div>
                 <div class="row">
                     <div class="col-sm-1"/>
@@ -88,7 +88,7 @@
                     <div class="col-sm-3">@(ImportStatus.LastImport != null && ImportStatus.LastImport.Length > 0 ? ImportStatus.LastImport[0].StopTime : "")</div>
                     <div class="col-sm-2">@(userConfig.GetText("duration")):</div>
                     <div class="col-sm-1">@(ImportStatus.LastImport != null && ImportStatus.LastImport.Length > 0 && ImportStatus.LastImport[0].StartTime != null
-                        && ImportStatus.LastImport[0].StopTime != null ? ((TimeSpan)(ImportStatus.LastImport[0].StopTime - ImportStatus.LastImport[0].StartTime)).TotalSeconds.ToString("f2") : "")</div>
+                        && ImportStatus.LastImport[0].StopTime != null ? ((TimeSpan)(ImportStatus.LastImport[0].StopTime! - ImportStatus.LastImport[0].StartTime!)).TotalSeconds.ToString("f2") : "")</div>
                 </div>
                 <div class="row">
                     <div class="col-sm-1"/>
@@ -110,7 +110,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
     public ImportStatus ImportStatus { get; set; } = new ImportStatus();

@@ -87,7 +87,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private int sidebarWidth = 250;
     private StateMatrix stateMatrix = new StateMatrix();
@@ -102,7 +102,7 @@
         }
         catch(Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("init_environment"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("init_environment"), "", true);
         }
         InitComplete = true;
     }

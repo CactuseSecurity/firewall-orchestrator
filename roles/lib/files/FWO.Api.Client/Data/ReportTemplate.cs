@@ -32,7 +32,7 @@ namespace FWO.Api.Data
         public ReportTemplate()
         {}
 
-        public ReportTemplate(string filter = "", DeviceFilter deviceFilter = null, int? reportType = 0, TimeFilter timeFilter = null, RecertFilter recertFilter = null)
+        public ReportTemplate(string filter, DeviceFilter deviceFilter, int? reportType, TimeFilter timeFilter, RecertFilter recertFilter)
         {
             Filter = filter;
             ReportParams.DeviceFilter = deviceFilter;

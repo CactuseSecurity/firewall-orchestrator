@@ -306,7 +306,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private List<ActionItem> actActions = new List<ActionItem>();
     private List<Management> managements = new List<Management>();
@@ -370,7 +370,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_managements"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_managements"), "", true);
         }
     }
 
@@ -386,7 +386,7 @@
         // Checks if delete possible. Todo: further checks?
         if (actManagement.Devices != null && actManagement.Devices.Length > 0)
         {
-            DisplayMessageInUi!(null, userConfig.GetText("delete_management"), userConfig.GetText("E5101"), true);
+            DisplayMessageInUi(null, userConfig.GetText("delete_management"), userConfig.GetText("E5101"), true);
         }
         else
         {
@@ -412,7 +412,7 @@
         catch (Exception exception)
         {
             workInProgress = false;
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_management"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_management"), "", true);
         }
     }
 
@@ -454,7 +454,7 @@
         {
             if (actManagement.Sanitize())
             {
-                DisplayMessageInUi!(null, userConfig.GetText("save_management"), userConfig.GetText("U0001"), true);
+                DisplayMessageInUi(null, userConfig.GetText("save_management"), userConfig.GetText("U0001"), true);
             }
             if (CheckValues(actManagement, userConfig.GetText("save_management")))
             {
@@ -533,7 +533,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_management"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("save_management"), "", true);
         }
     }
 
@@ -545,24 +545,24 @@
                 (mgm.DeviceType.Manufacturer != "DummyRouter" && (mgm.Hostname == null || mgm.Hostname == ""))
             )
         {
-            DisplayMessageInUi!(null, checkCause, userConfig.GetText("E5102"), true);
+            DisplayMessageInUi(null, checkCause, userConfig.GetText("E5102"), true);
             return false;
         }
         if (mgm.DeviceType.Manufacturer != "DummyRouter" && (mgm.Port < 1 || mgm.Port > 65535))
         {
-            DisplayMessageInUi!(null, checkCause, userConfig.GetText("E5103"), true);
+            DisplayMessageInUi(null, checkCause, userConfig.GetText("E5103"), true);
             return false;
         }
         else if (mgm.DebugLevel != null && (mgm.DebugLevel < 0 || mgm.DebugLevel > 9))
         {
-            DisplayMessageInUi!(null, checkCause, userConfig.GetText("E5104"), true);
+            DisplayMessageInUi(null, checkCause, userConfig.GetText("E5104"), true);
             return false;
         }
         if (!mgm.ImportDisabled && managements.FirstOrDefault(existingManagement => existingManagement.Hostname == mgm.Hostname && existingManagement.Port == mgm.Port 
             && existingManagement.ConfigPath == mgm.ConfigPath && (existingManagement.SuperManagerId == null || existingManagement.SuperManagerId == mgm.SuperManagerId)
             && existingManagement.Id != mgm.Id && !existingManagement.ImportDisabled) != null)
         {
-            DisplayMessageInUi!(null, checkCause, userConfig.GetText("E5105"), true);
+            DisplayMessageInUi(null, checkCause, userConfig.GetText("E5105"), true);
             return false;
         }
         return true;
@@ -595,7 +595,7 @@
         catch (Exception exception)
         {
             workInProgress = false;
-            DisplayMessageInUi!(exception, userConfig.GetText("autodiscovery"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("autodiscovery"), "", true);
             await AddAutoDiscoverLogEntry(1, userConfig.GetText("manual_autodiscovery"), userConfig.GetText("ran_into_exception") + exception.Message, superManagement.Id);
         }
     }

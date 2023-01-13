@@ -9,6 +9,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FWO.Middleware.Controllers
 {
+    /// <summary>
+	/// Controller class for user api
+	/// </summary>
+
     //[Authorize]
     [ApiController]
     [Route("api/[controller]")]
@@ -17,6 +21,9 @@ namespace FWO.Middleware.Controllers
         private readonly List<Ldap> ldaps;
         private readonly ApiConnection apiConnection;
 
+		/// <summary>
+		/// Constructor needing ldap list and connection
+		/// </summary>
         public UserController(List<Ldap> ldaps, ApiConnection apiConnection)
         {
             this.ldaps = ldaps;
@@ -24,6 +31,10 @@ namespace FWO.Middleware.Controllers
         }
 
         // GET: api/<UserController>
+        /// <summary>
+        /// Get all locally known users.
+        /// </summary>
+        /// <returns>List of all locally known users</returns>
         [HttpGet]
         [Authorize(Roles = "admin, auditor")]
         public async Task<List<UserGetReturnParameters>> Get()
@@ -41,6 +52,15 @@ namespace FWO.Middleware.Controllers
         }
 
         // GET api/<ValuesController>/5
+        /// <summary>
+        /// Search user in specified Ldap
+        /// </summary>
+        /// <remarks>
+        /// LdapId (required) &#xA;
+        /// SearchPattern (optional) &#xA;
+        /// </remarks>
+        /// <param name="parameters">LdapUserGetParameters</param>
+        /// <returns>List of users</returns>
         [HttpPost("Get")]
         [Authorize(Roles = "admin, auditor")]
         public async Task<List<LdapUserGetReturnParameters>> Get([FromBody] LdapUserGetParameters parameters)
@@ -64,6 +84,19 @@ namespace FWO.Middleware.Controllers
         }
 
         // POST api/<ValuesController>
+        /// <summary>
+        /// Add user to specified Ldap
+        /// </summary>
+        /// <remarks>
+        /// LdapId (required) &#xA;
+        /// UserDn (required) &#xA;
+        /// Password (required) &#xA;
+        /// Email (optional) &#xA;
+        /// TenantId (required) &#xA;
+        /// PwChangeRequired (required) &#xA;
+        /// </remarks>
+        /// <param name="parameters">UserAddParameters</param>
+        /// <returns>Id of new user, 0 if no user could be created</returns>
         [HttpPost]
         [Authorize(Roles = "admin")]
         public async Task<int> Add([FromBody] UserAddParameters parameters)
@@ -118,6 +151,16 @@ namespace FWO.Middleware.Controllers
         }
 
         // PUT api/<ValuesController>/5
+        /// <summary>
+        /// Update user (email) in specified Ldap
+        /// </summary>
+        /// <remarks>
+        /// LdapId (required) &#xA;
+        /// UserId (required) &#xA;
+        /// Email (optional) &#xA;
+        /// </remarks>
+        /// <param name="parameters">UserEditParameters</param>
+        /// <returns>true, if user could be updated</returns>
         [HttpPut]
         [Authorize(Roles = "admin")]
         public async Task<bool> Change([FromBody] UserEditParameters parameters)
@@ -163,6 +206,17 @@ namespace FWO.Middleware.Controllers
         }
 
         // GET: api/<ValuesController>
+        /// <summary>
+        /// Change user password in specified Ldap
+        /// </summary>
+        /// <remarks>
+        /// LdapId (required) &#xA;
+        /// UserId (required) &#xA;
+        /// OldPassword (required) &#xA;
+        /// NewPassword (required) &#xA;
+        /// </remarks>
+        /// <param name="parameters">UserChangePasswordParameters</param>
+        /// <returns>error message, empty if Ok</returns>
         [HttpPatch("EditPassword")]
         public async Task<ActionResult<string>> ChangePassword([FromBody] UserChangePasswordParameters parameters)
         {
@@ -197,6 +251,16 @@ namespace FWO.Middleware.Controllers
         }
 
         // GET: api/<ValuesController>
+        /// <summary>
+        /// Reset user password in specified Ldap
+        /// </summary>
+        /// <remarks>
+        /// LdapId (required) &#xA;
+        /// UserId (required) &#xA;
+        /// NewPassword (required) &#xA;
+        /// </remarks>
+        /// <param name="parameters">UserResetPasswordParameters</param>
+        /// <returns>error message or Ok</returns>
         [HttpPatch("ResetPassword")]
         [Authorize(Roles = "admin")]
         public async Task<ActionResult<string>> ResetPassword([FromBody] UserResetPasswordParameters parameters)
@@ -228,6 +292,14 @@ namespace FWO.Middleware.Controllers
         }
 
         // DELETE api/<ValuesController>/5
+        /// <summary>
+        /// Remove user from all entries (groups, roles)
+        /// </summary>
+        /// <remarks>
+        /// UserId (required) &#xA;
+        /// </remarks>
+        /// <param name="parameters">UserDeleteAllEntriesParameters</param>
+        /// <returns>true if user removed from all entries</returns>
         [HttpDelete("AllGroupsAndRoles")]
         [Authorize(Roles = "admin")]
         public async Task<bool> DeleteAllGroupsAndRoles([FromBody] UserDeleteAllEntriesParameters parameters)
@@ -259,6 +331,15 @@ namespace FWO.Middleware.Controllers
         }
 
         // DELETE api/<ValuesController>/5
+        /// <summary>
+        /// Delete user from specified Ldap
+        /// </summary>
+        /// <remarks>
+        /// LdapId (required) &#xA;
+        /// UserId (required) &#xA;
+        /// </remarks>
+        /// <param name="parameters">UserDeleteParameters</param>
+        /// <returns>true if user deleted</returns>
         [HttpDelete]
         [Authorize(Roles = "admin")]
         public async Task<bool> Delete([FromBody] UserDeleteParameters parameters)

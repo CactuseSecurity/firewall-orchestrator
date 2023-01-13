@@ -7,16 +7,26 @@ using FWO.Api.Data;
 
 namespace FWO.Middleware.Server
 {
+	/// <summary>
+	/// Class for jwt creation
+	/// </summary>
     public class JwtWriter
     {
         private readonly RsaSecurityKey jwtPrivateKey;
 
+		/// <summary>
+		/// Constructor needing the private key
+		/// </summary>
         public JwtWriter(RsaSecurityKey jwtPrivateKey)
         {
             this.jwtPrivateKey = jwtPrivateKey;
             JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
         }
 
+		/// <summary>
+		/// create jwt for given user
+		/// </summary>
+		/// <returns>generated token</returns>
         public async Task<string> CreateJWT(UiUser? user = null, TimeSpan? lifetime = null)
         {
             if (user != null)

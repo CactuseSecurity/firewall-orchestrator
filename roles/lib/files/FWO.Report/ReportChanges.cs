@@ -60,7 +60,7 @@ namespace FWO.Report
                 foreach (Device device in management.Devices.Where(dev => dev.RuleChanges != null && dev.RuleChanges.Length > 0))
                 {
                     deviceCounter++;
-                    ruleChangeCounter += device.RuleChanges.Length;
+                    ruleChangeCounter += device.RuleChanges!.Length;
                 }
             }
             return $"{managementCounter} {userConfig.GetText("managements")}, {deviceCounter} {userConfig.GetText("gateways")}, {ruleChangeCounter} {userConfig.GetText("changes")}";

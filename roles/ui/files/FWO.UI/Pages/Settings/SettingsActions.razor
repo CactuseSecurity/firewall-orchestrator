@@ -282,7 +282,7 @@ else
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private List<RequestStateAction> actions = new List<RequestStateAction>();
     private List<RequestState> states = new List<RequestState>();
@@ -317,7 +317,7 @@ else
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
     }
 
@@ -395,7 +395,7 @@ else
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newAction, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
-                    DisplayMessageInUi!(null, userConfig.GetText("save_action"), userConfig.GetText("E8011"), true);
+                    DisplayMessageInUi(null, userConfig.GetText("save_action"), userConfig.GetText("E8011"), true);
                 }
                 else
                 {
@@ -422,7 +422,7 @@ else
                 int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateAction, Variables)).UpdatedId;
                 if(udId != actAction.Id)
                 {
-                    DisplayMessageInUi!(null, userConfig.GetText("save_action"), userConfig.GetText("E8011"), true);
+                    DisplayMessageInUi(null, userConfig.GetText("save_action"), userConfig.GetText("E8011"), true);
                 }
                 else
                 {
@@ -433,7 +433,7 @@ else
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_action"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("save_action"), "", true);
         }
     }
 
@@ -460,7 +460,7 @@ else
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_action"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_action"), "", true);
         }
     }
 }

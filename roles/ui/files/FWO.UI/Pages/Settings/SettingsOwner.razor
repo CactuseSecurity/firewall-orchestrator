@@ -294,7 +294,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private List<FwoOwner> owners = new List<FwoOwner>();
     private FwoOwner actOwner = new FwoOwner();
@@ -348,7 +348,7 @@
         try
         {
             owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
-            ownerGroups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi!, true);
+            ownerGroups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi, true);
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
             uiUsers = uiUsers.FindAll(x => x.DbId != 0);
             connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(FWO.Api.Client.Queries.AuthQueries.getLdapConnections);
@@ -356,7 +356,7 @@
             RestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("get_tenant_data"), userConfig.GetText("E5284"), true);
+                DisplayMessageInUi(null, userConfig.GetText("get_tenant_data"), userConfig.GetText("E5284"), true);
             }
             else
             {
@@ -369,7 +369,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
         InitComplete = true;
     }
@@ -406,7 +406,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
     }
 
@@ -417,7 +417,7 @@
             actOwner.TenantId = (actTenantId >= 0 ? actTenantId : null);
             if (actOwner.Sanitize())
             {
-                DisplayMessageInUi!(null, userConfig.GetText("edit_owner"), userConfig.GetText("U0001"), true);
+                DisplayMessageInUi(null, userConfig.GetText("edit_owner"), userConfig.GetText("U0001"), true);
             }
             if (CheckValues())
             {    
@@ -439,7 +439,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("edit_owner"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("edit_owner"), "", true);
         }
     }
 
@@ -458,7 +458,7 @@
         ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.OwnerQueries.newOwner, Variables)).ReturnIds;
         if (returnIds == null)
         {
-            DisplayMessageInUi!(null, userConfig.GetText("add_owner"), userConfig.GetText("E5291"), true);
+            DisplayMessageInUi(null, userConfig.GetText("add_owner"), userConfig.GetText("E5291"), true);
         }
         else
         {
@@ -484,7 +484,7 @@
         int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.OwnerQueries.updateOwner, Variables)).UpdatedId;
         if(udId != actOwner.Id)
         {
-            DisplayMessageInUi!(null, userConfig.GetText("edit_owner"), userConfig.GetText("E5291"), true);
+            DisplayMessageInUi(null, userConfig.GetText("edit_owner"), userConfig.GetText("E5291"), true);
         }
         else
         {
@@ -535,7 +535,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_owner"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_owner"), "", true);
         }
     }
 
@@ -554,7 +554,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("edit_owner"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("edit_owner"), "", true);
         }
     }
 
@@ -562,17 +562,17 @@
     {
         if (actOwner.Name == null || actOwner.Name == "")
         {
-            DisplayMessageInUi!(null, userConfig.GetText("edit_owner"), userConfig.GetText("E5102"), true);
+            DisplayMessageInUi(null, userConfig.GetText("edit_owner"), userConfig.GetText("E5102"), true);
             return false;
         }
         if (AddOwnerMode && owners.Exists(x => x.Name == actOwner.Name))
         {
-            DisplayMessageInUi!(null, userConfig.GetText("add_owner"), userConfig.GetText("E5235"), true);
+            DisplayMessageInUi(null, userConfig.GetText("add_owner"), userConfig.GetText("E5235"), true);
             return false;
         }
         if (actOwner.Dn == "" && actOwner.GroupDn == "")
         {
-            DisplayMessageInUi!(null, userConfig.GetText("edit_owner"), userConfig.GetText("E5292"), true);
+            DisplayMessageInUi(null, userConfig.GetText("edit_owner"), userConfig.GetText("E5292"), true);
             return false;
         }
         return true;
@@ -595,7 +595,7 @@
 
         if(searchPattern.Length < selectedLdap.PatternLength)
         {
-            DisplayMessageInUi!(null, userConfig.GetText("search_users"), userConfig.GetText("E5252") + selectedLdap.PatternLength, true);
+            DisplayMessageInUi(null, userConfig.GetText("search_users"), userConfig.GetText("E5252") + selectedLdap.PatternLength, true);
         }
         else
         {
@@ -607,7 +607,7 @@
                 RestResponse<List<LdapUserGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetLdapUsers(userGetParameters);
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
                 {
-                    DisplayMessageInUi!(null, userConfig.GetText("fetch_users"), userConfig.GetText("E5208"), true);
+                    DisplayMessageInUi(null, userConfig.GetText("fetch_users"), userConfig.GetText("E5208"), true);
                 }
                 else
                 {
@@ -620,7 +620,7 @@
             }
             catch (System.Exception)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("fetch_users"), "", true);
+                DisplayMessageInUi(null, userConfig.GetText("fetch_users"), "", true);
             }
 
             selectedLdapUser = (ldapUsers.Count == 0 ? "" : ldapUsers.First().Dn);

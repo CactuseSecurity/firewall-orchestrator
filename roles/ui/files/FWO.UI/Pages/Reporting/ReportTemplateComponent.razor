@@ -108,7 +108,7 @@
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
     [CascadingParameter]
-    private Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    private Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
     public Action<ReportTemplate>? OnTemplateLoad { get; set; }
@@ -141,7 +141,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("template_fetch"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("template_fetch"), "", true);
         }
     }
 
@@ -150,14 +150,14 @@
         collapseControl.ForceCollapse();
     }
 
-    public async Task Uncollapse()
+    public void Uncollapse()
     {
-        await collapseControl.ToggleCollapse();
+        collapseControl.ToggleCollapse();
     }
 
     public void NewTemplate(string filterInput, DeviceFilter deviceFilter, ReportType reportType, TimeFilter timeFilter)
     {
-        reportTemplateInEdit = new ReportTemplate (filterInput, deviceFilter, (int?)reportType, timeFilter);
+        reportTemplateInEdit = new ReportTemplate (filterInput, deviceFilter, (int?)reportType, timeFilter, new RecertFilter());
         reportTypeInEdit = reportType;
         ShowSaveTemplateDialog = true;
     }
@@ -231,7 +231,7 @@
         {
             if (reportTemplateInEdit.Sanitize())
             {
-                DisplayMessageInUi!(null, userConfig.GetText("save_template"), userConfig.GetText("U0001"), true);
+                DisplayMessageInUi(null, userConfig.GetText("save_template"), userConfig.GetText("U0001"), true);
             }
             reportTemplateInEdit.CreationDate = DateTime.Now;
             reportTemplateInEdit.Owner = userConfig.User.DbId;
@@ -255,12 +255,12 @@
             }
             else
             {
-                DisplayMessageInUi!(null, userConfig.GetText("save_template"), userConfig.GetText("E1004"), true);
+                DisplayMessageInUi(null, userConfig.GetText("save_template"), userConfig.GetText("E1004"), true);
             }
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_template"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("save_template"), "", true);
         }
     }
 
@@ -286,7 +286,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("edit_template"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("edit_template"), "", true);
         }
     }
 
@@ -311,12 +311,12 @@
             }
             else
             {
-                DisplayMessageInUi!(null, userConfig.GetText("delete_template"), userConfig.GetText("E1005"), true);
+                DisplayMessageInUi(null, userConfig.GetText("delete_template"), userConfig.GetText("E1005"), true);
             }
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_template"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_template"), "", true);
         }
     }
 }

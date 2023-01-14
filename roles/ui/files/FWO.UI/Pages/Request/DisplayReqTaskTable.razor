@@ -139,17 +139,17 @@
         ReqHandler.SelectReqTask(reqTask, ObjAction.display);
     }
 
-    private async Task AddReqTask()
+    private void AddReqTask()
     {
         ReqHandler.SelectReqTask(new RequestReqTask(){ RuleAction = 1, Tracking = 1 }, ObjAction.add);
     }
 
-    private async Task EditReqTask(RequestReqTask reqTask)
+    private void EditReqTask(RequestReqTask reqTask)
     {
         ReqHandler.SelectReqTask(reqTask, ObjAction.edit);
     }
 
-    private async Task DeleteReqTask(RequestReqTask reqTask)
+    private void DeleteReqTask(RequestReqTask reqTask)
     {
         ReqHandler.SelectReqTaskPopUp(reqTask, ObjAction.displayDelete);
     }
@@ -159,7 +159,7 @@
         ReqHandler.SelectReqTaskPopUp(reqTask, ObjAction.displayApprovals);
     }
 
-    private async Task AssignTask(RequestReqTask reqTask)
+    private void AssignTask(RequestReqTask reqTask)
     {
         ReqHandler.SelectReqTaskPopUp(reqTask, ObjAction.displayAssign);
     }

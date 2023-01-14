@@ -60,13 +60,16 @@ namespace FWO.DeviceAutoDiscovery
                     RestResponse<FmApiTopLevelHelperDev> deviceResponse = await restClientFM.GetDevices(@sessionId);
                     if (deviceResponse.StatusCode == HttpStatusCode.OK && deviceResponse.IsSuccessful)
                     {
-                        List<FortiGate> fortigateList = deviceResponse.Data.Result[0].DeviceList;
-                        foreach (FortiGate fg in fortigateList)
+                        if(deviceResponse.Data != null && deviceResponse.Data.Result.Count > 0)
                         {
-                            Log.WriteDebug("Autodiscovery", $"found device {fg.Name} belonging to management VDOM {fg.MgtVdom}");
-                            foreach (Vdom vdom in fg.VdomList)
+                            List<FortiGate> fortigateList = deviceResponse.Data.Result[0].DeviceList;
+                            foreach (FortiGate fg in fortigateList)
                             {
-                                Log.WriteDebug("Autodiscovery", $"found vdom {vdom.Name} belonging to device {fg.Name}");
+                                Log.WriteDebug("Autodiscovery", $"found device {fg.Name} belonging to management VDOM {fg.MgtVdom}");
+                                foreach (Vdom vdom in fg.VdomList)
+                                {
+                                    Log.WriteDebug("Autodiscovery", $"found vdom {vdom.Name} belonging to device {fg.Name}");
+                                }
                             }
                         }
                         foreach (Adom adom in customAdoms)
@@ -92,36 +95,39 @@ namespace FWO.DeviceAutoDiscovery
                             RestResponse<FmApiTopLevelHelperAssign> assignResponse = await restClientFM.GetPackageAssignmentsPerAdom(@sessionId, adom.Name);
                             if (assignResponse.StatusCode == HttpStatusCode.OK && assignResponse.IsSuccessful)
                             {
-                                List<Assignment> assignmentList = assignResponse.Data.Result[0].AssignmentList;
-                                foreach (Assignment assign in assignmentList)
+                                if(assignResponse.Data != null && assignResponse.Data.Result.Count > 0)
                                 {
-                                    Device devFound = new Device();
-                                    // assign.PackageName = assign.PackageName.Replace("/", "\\/");    // replace / in package name with \/
-                                    Log.WriteDebug("Autodiscovery", $"found assignment1 in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.DeviceName}, vdom: {assign.VdomName} ");
-                                    if (assign.DeviceName != null)
+                                    List<Assignment> assignmentList = assignResponse.Data.Result[0].AssignmentList;
+                                    foreach (Assignment assign in assignmentList)
                                     {
-                                        Log.WriteDebug("Autodiscovery", $"found assignment2 (device<>null) in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.DeviceName}, vdom: {assign.VdomName} ");
-                                        if (assign.DeviceName != "")
+                                        Device devFound = new Device();
+                                        // assign.PackageName = assign.PackageName.Replace("/", "\\/");    // replace / in package name with \/
+                                        Log.WriteDebug("Autodiscovery", $"found assignment1 in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.DeviceName}, vdom: {assign.VdomName} ");
+                                        if (assign.DeviceName != null)
                                         {
-                                            Log.WriteDebug("Autodiscovery", $"found assignment3 (non-device-empty-string) in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.DeviceName}, vdom: {assign.VdomName} ");
-                                            string devName = assign.DeviceName;
-                                            if (assign.VdomName != null && assign.VdomName != "")
-                                                devName += "_" + assign.VdomName;
-                                            devFound = new Device
+                                            Log.WriteDebug("Autodiscovery", $"found assignment2 (device<>null) in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.DeviceName}, vdom: {assign.VdomName} ");
+                                            if (assign.DeviceName != "")
                                             {
-                                                Name = devName,
-                                                LocalRulebase = assign.PackageName,
-                                                Package = assign.PackageName,
-                                                DeviceType = new DeviceType { Id = 10 } // fortiGate
-                                            };
-                                            // handle global vs. local based on VdomName?
-                                            Log.WriteDebug("Autodiscovery", $"assignment devFound Name = {devFound.Name}");
-                                            Log.WriteDebug("Autodiscovery", $"assignment currentManagement before Append contains {currentManagement.Devices.Length} devices");
-                                            currentManagement.Devices = currentManagement.Devices.Append(devFound).ToArray();
-                                            Log.WriteDebug("Autodiscovery", $"assignment currentManagement after Append contains {currentManagement.Devices.Length} devices");
+                                                Log.WriteDebug("Autodiscovery", $"found assignment3 (non-device-empty-string) in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.DeviceName}, vdom: {assign.VdomName} ");
+                                                string devName = assign.DeviceName;
+                                                if (assign.VdomName != null && assign.VdomName != "")
+                                                    devName += "_" + assign.VdomName;
+                                                devFound = new Device
+                                                {
+                                                    Name = devName,
+                                                    LocalRulebase = assign.PackageName,
+                                                    Package = assign.PackageName,
+                                                    DeviceType = new DeviceType { Id = 10 } // fortiGate
+                                                };
+                                                // handle global vs. local based on VdomName?
+                                                Log.WriteDebug("Autodiscovery", $"assignment devFound Name = {devFound.Name}");
+                                                Log.WriteDebug("Autodiscovery", $"assignment currentManagement before Append contains {currentManagement.Devices.Length} devices");
+                                                currentManagement.Devices = currentManagement.Devices.Append(devFound).ToArray();
+                                                Log.WriteDebug("Autodiscovery", $"assignment currentManagement after Append contains {currentManagement.Devices.Length} devices");
+                                            }
                                         }
+                                        adom.Assignments.Add(assign);
                                     }
-                                    adom.Assignments.Add(assign);
                                 }
                             }
                             discoveredDevices.Add(currentManagement); // add discovered adom including devices
@@ -138,8 +144,8 @@ namespace FWO.DeviceAutoDiscovery
                 }
                 else
                 {
-                    string errorTxt = $"error while logging in to FortiManager: {sessionResponse.ErrorMessage} ";
-                    if (sessionResponse.Data.SessionId == "")
+                    string errorTxt = $"error while logging in to FortiManager: {sessionResponse?.ErrorMessage} ";
+                    if (sessionResponse?.Data?.SessionId == "")
                         errorTxt += "could not authenticate to FortiManager - got empty session ID";
                     Log.WriteWarning("AutoDiscovery", errorTxt);
                     throw new Exception(errorTxt);

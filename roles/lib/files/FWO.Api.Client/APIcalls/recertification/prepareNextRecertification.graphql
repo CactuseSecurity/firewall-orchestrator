@@ -1,22 +1,16 @@
-mutation newRecertification(
+mutation prepareNextRecertification(
   $ruleMetadataId: bigint!
   $ruleId: bigint!
   $ipMatch: String
   $ownerId: Int!
-  $userDn: String
-  $recertified: Boolean
-  $recertDate: timestamp
-  $comment: String
+  $nextRecertDate: timestamp
   ) {
   insert_recertification(objects: {
     rule_metadata_id: $ruleMetadataId
     rule_id: $ruleId
     ip_match: $ipMatch
     owner_id: $ownerId
-    user_dn: $userDn
-    recertified: $recertified
-    recert_date: $recertDate
-    comment: $comment
+    next_recert_date: $nextRecertDate
   }) {
     returning {
       newId: id

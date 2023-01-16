@@ -439,7 +439,7 @@
         await Reset();
     }
 
-    private async Task InitPromoteReqTask()
+    private void InitPromoteReqTask()
     {
         ReqHandler.SetReqTaskPopUpOpt(ObjAction.displayPromote);
     }
@@ -460,7 +460,7 @@
         await ReqHandler.ApproveTask(approval);
     }
 
-    private async Task InitAddComment()
+    private void InitAddComment()
     {
         ReqHandler.SetReqTaskPopUpOpt(ObjAction.displayComment);
     }

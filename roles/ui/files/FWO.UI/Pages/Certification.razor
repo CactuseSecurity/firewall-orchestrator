@@ -152,6 +152,7 @@
     private AnchorNavToRSB? anchorNavToRSB;
 
     private const int rulesPerPage = 0;
+    private const int defaultRecertInterval = 360;
 
     private int sidebarLeftWidth = GlobalConfig.kSidebarLeftWidth;
     private int sidebarRightWidth = GlobalConfig.kSidebarRightWidth;
@@ -170,6 +171,7 @@
     private List<FwoOwner> userOwnerships = new List<FwoOwner>();
     private List<FwoOwner> groupOwnerships = new List<FwoOwner>();
     private List<int> combinedOwnershipIds = new List<int>();
+    private Dictionary<int, int> recertInterval = new Dictionary<int, int>(){{0,defaultRecertInterval}};
     private DeviceFilter deviceFilter = new DeviceFilter();
     private List<Rule> selectedRules = new List<Rule>();
     private bool collapseDevices = false;
@@ -228,10 +230,12 @@
         foreach(var owner in userOwnerships)
         {
             combinedOwnershipIds.Add(owner.Id);
+            recertInterval.Add(owner.Id, owner.RecertInterval ?? defaultRecertInterval);
         }
         foreach(var owner in groupOwnerships)
         {
             combinedOwnershipIds.Add(owner.Id);
+            recertInterval.Add(owner.Id, owner.RecertInterval ?? defaultRecertInterval);
         }
     }
 
@@ -464,6 +468,7 @@
                     {
                         foreach (Rule rule in device.Rules)
                         {
+                            // await InitRecert(rule); // just for test
                             if(rule.Metadata.Recert) //Todo: remove
                             {
                                 RecertIds.Add(rule.Metadata.Id);
@@ -481,48 +486,14 @@
                 }
             }
 
-            // execute recertifications
-            if (RecertIds.Count > 0) //Todo: remove
-            {
-                var apiVariables = new 
-                { 
-                    ids = RecertIds.ToArray(), 
-                    certDate = DateTime.Now, 
-                    userDn = userConfig.User.Dn,
-                    comment = actComment
-                };
-                await apiConnection.SendQueryAsync<object>(RuleQueries.updateRuleMetadataRecert, apiVariables);
-            }
-
-            // execute decertifications
-            if (DecertIds.Count > 0) //Todo: remove
-            {
-                var apiVariables = new
-                { 
-                    ids = DecertIds.ToArray(),
-                    decertDate = DateTime.Now,
-                    comment = actComment
-                };
-                await apiConnection.SendQueryAsync<object>(RuleQueries.updateRuleMetadataDecert, apiVariables);
-            }
+            await OldWay(RecertIds, DecertIds);
 
             int recerts = 0;
             if (Certifications.Count > 0)
             {
                 foreach(var cert in Certifications)
                 {
-                    var variables = new
-                    {
-                        ruleMetadataId = cert.Metadata.Id,
-                        ruleId = cert.Id,
-                        ipMatch = cert.IpMatch,
-                        ownerId = cert.OwnerId,
-                        userDn = userConfig.User.Dn,
-                        recertified = cert.Metadata.Recert,
-                        recertDate = DateTime.Now,
-                        comment = actComment
-                    };
-                    await apiConnection.SendQueryAsync<object>(RuleQueries.newRecertification, variables);
+                    await Recertify(cert);
                     if(cert.Metadata.Recert)
                     {
                         recerts++;
@@ -540,6 +511,64 @@
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("execute_selected"), "", true);
+        }
+    }
+
+    private async Task Recertify(Rule rule)
+    {
+        var variables = new
+        {
+            ruleId = rule.Id,
+            ownerId = rule.OwnerId,
+            userDn = userConfig.User.Dn,
+            recertified = rule.Metadata.Recert,
+            recertDate = DateTime.Now,
+            comment = actComment
+        };
+        if((await apiConnection.SendQueryAsync<ReturnId>(RuleQueries.recertify, variables)).AffectedRows > 0 && rule.Metadata.Recert)
+        {
+            await InitRecert(rule);
+        }
+    }
+
+    private async Task InitRecert(Rule rule)
+    {
+        var prepvariables = new
+        {
+            ruleMetadataId = rule.Metadata.Id,
+            ruleId = rule.Id,
+            ipMatch = rule.IpMatch,
+            ownerId = rule.OwnerId,
+            nextRecertDate = DateTime.Now.AddDays(recertInterval[rule.OwnerId ?? 0])
+        };
+        await apiConnection.SendQueryAsync<object>(RuleQueries.prepareNextRecertification, prepvariables);
+    }
+
+    private async Task OldWay(List<long> RecertIds, List<long> DecertIds)
+    {
+        // execute recertifications
+        if (RecertIds.Count > 0) //Todo: remove
+        {
+            var apiVariables = new 
+            { 
+                ids = RecertIds.ToArray(), 
+                certDate = DateTime.Now, 
+                userDn = userConfig.User.Dn,
+                comment = actComment
+            };
+            await apiConnection.SendQueryAsync<object>(RuleQueries.updateRuleMetadataRecert, apiVariables);
+        }
+
+        // execute decertifications
+        if (DecertIds.Count > 0) //Todo: remove
+        {
+            var apiVariables = new
+            { 
+                ids = DecertIds.ToArray(),
+                decertDate = DateTime.Now,
+                comment = actComment
+            };
+            await apiConnection.SendQueryAsync<object>(RuleQueries.updateRuleMetadataDecert, apiVariables);
         }
     }
 }

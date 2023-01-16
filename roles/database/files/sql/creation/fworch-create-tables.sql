@@ -1056,6 +1056,7 @@ create table if not exists recertification
 	user_dn varchar,
 	recertified boolean default false,
 	recert_date Timestamp,
+	next_recert_date Timestamp,
 	comment varchar
 );
 

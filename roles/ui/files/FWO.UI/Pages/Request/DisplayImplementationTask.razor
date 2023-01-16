@@ -322,7 +322,7 @@
         await ReqHandler.ActionHandler.performAction(action, ReqHandler.ActImplTask, RequestObjectScopes.ImplementationTask);
     }
 
-    private async Task InitAddComment()
+    private void InitAddComment()
     {
         ReqHandler.SetImplTaskPopUpOpt(ObjAction.displayComment);
     }
@@ -408,7 +408,7 @@
         return true;
     }
 
-    private async Task InitPromoteImplTask()
+    private void InitPromoteImplTask()
     {
         ReqHandler.SetImplTaskPopUpOpt(ObjAction.displayPromote);
     }

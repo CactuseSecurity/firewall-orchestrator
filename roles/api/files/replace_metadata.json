@@ -6795,19 +6795,36 @@
               },
               "insert_permissions": [
                 {
+                  "role": "importer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "comment",
+                      "id",
+                      "ip_match",
+                      "next_recert_date",
+                      "owner_id",
+                      "rule_id",
+                      "rule_metadata_id",
+                      "user_dn"
+                    ]
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "check": {},
                     "columns": [
-                      "id",
-                      "rule_metadata_id",
-                      "rule_id",
-                      "ip_match",
-                      "recertified",
                       "comment",
+                      "id",
+                      "ip_match",
+                      "next_recert_date",
                       "owner_id",
-                      "user_dn",
-                      "recert_date"
+                      "recert_date",
+                      "recertified",
+                      "rule_id",
+                      "rule_metadata_id",
+                      "user_dn"
                     ]
                   }
                 }
@@ -6817,15 +6834,16 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "id",
-                      "rule_metadata_id",
-                      "rule_id",
-                      "ip_match",
-                      "recertified",
                       "comment",
+                      "id",
+                      "ip_match",
+                      "next_recert_date",
                       "owner_id",
-                      "user_dn",
-                      "recert_date"
+                      "recert_date",
+                      "recertified",
+                      "rule_id",
+                      "rule_metadata_id",
+                      "user_dn"
                     ],
                     "filter": {}
                   }
@@ -6834,15 +6852,16 @@
                   "role": "recertifier",
                   "permission": {
                     "columns": [
+                      "comment",
                       "id",
-                      "rule_metadata_id",
-                      "rule_id",
                       "ip_match",
+                      "next_recert_date",
                       "owner_id",
-                      "user_dn",
-                      "recertified",
                       "recert_date",
-                      "comment"
+                      "recertified",
+                      "rule_id",
+                      "rule_metadata_id",
+                      "user_dn"
                     ],
                     "filter": {}
                   }

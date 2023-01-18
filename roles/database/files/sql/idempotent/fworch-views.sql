@@ -622,7 +622,7 @@ CREATE OR REPLACE VIEW view_recert_overdue_rules AS
 -- GRANTS on exportable Views
 ---------------------------------------------------------------------------------------------
 
-GRANT SELECT ON TABLE view_rule_with_owner TO GROUP secuadmins, reporters;
+GRANT SELECT ON TABLE view_rule_with_owner TO GROUP secuadmins, reporters, configimporters;
 
 -- views for secuadmins
 GRANT SELECT ON TABLE view_change_counter TO GROUP secuadmins;

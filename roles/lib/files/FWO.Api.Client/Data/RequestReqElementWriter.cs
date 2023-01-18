@@ -15,10 +15,7 @@ namespace FWO.Api.Data
         public RequestReqElementWriter(RequestReqElement element) : base(element)
         { 
             RequestAction = element.RequestAction;
-            if(element.Cidr != null)
-            {
-                CidrString = element.Cidr.CidrString;
-            }
+            IpString = (element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null);
         }
     }
 }

@@ -13,7 +13,7 @@ namespace FWO.Api.Data
     public class RequestElementBase
     {
         [JsonProperty("ip"), JsonPropertyName("ip")]
-        public string? CidrString { get; set; }
+        public string? IpString { get; set; }
 
         [JsonProperty("port"), JsonPropertyName("port")]
         public int Port { get; set; } = 1;
@@ -42,7 +42,7 @@ namespace FWO.Api.Data
 
         public RequestElementBase(RequestElementBase element)
         {
-            CidrString = element.CidrString;
+            IpString = element.IpString;
             Port = element.Port;
             ProtoId = element.ProtoId;
             NetworkId = element.NetworkId;
@@ -55,7 +55,7 @@ namespace FWO.Api.Data
         public virtual bool Sanitize()
         {
             bool shortened = false;
-            CidrString = Sanitizer.SanitizeOpt(CidrString, ref shortened);
+            IpString = Sanitizer.SanitizeOpt(IpString, ref shortened);
             Field = Sanitizer.SanitizeMand(Field, ref shortened);
             return shortened;
         }

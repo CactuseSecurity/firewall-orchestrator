@@ -4,8 +4,8 @@
     {
         public long ElemId { get; set; }
         public long TaskId { get; set; }
-        public int Port { get; set; } = 1;
-        public int? ProtoId { get; set; } = 6;
+        public int Port { get; set; }
+        public int ProtoId { get; set; }
         public long? ServiceId { get; set; }
 
 

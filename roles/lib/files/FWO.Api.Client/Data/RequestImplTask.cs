@@ -121,8 +121,8 @@ namespace FWO.Api.Data
                     {
                         ElemId = implElem.Id,
                         TaskId = implElem.ImplTaskId,
-                        Port = implElem.Port,
-                        ProtoId = implElem.ProtoId,
+                        Port = implElem.Port ?? 0,
+                        ProtoId = implElem.ProtoId ?? 0,
                         ServiceId = implElem.ServiceId
                     });
                 }

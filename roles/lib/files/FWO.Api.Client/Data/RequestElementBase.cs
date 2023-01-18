@@ -16,10 +16,10 @@ namespace FWO.Api.Data
         public string? IpString { get; set; }
 
         [JsonProperty("port"), JsonPropertyName("port")]
-        public int Port { get; set; } = 1;
+        public int? Port { get; set; }
 
         [JsonProperty("ip_proto_id"), JsonPropertyName("ip_proto_id")]
-        public int? ProtoId { get; set; } = 6;
+        public int? ProtoId { get; set; }
 
         [JsonProperty("network_object_id"), JsonPropertyName("network_object_id")]
         public long? NetworkId { get; set; }

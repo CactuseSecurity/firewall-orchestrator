@@ -3,7 +3,7 @@
 -- select * from recert_refresh_one_owner_one_mgm(2,1,NULL::TIMESTAMP);
 -- select * from recert_refresh_per_management(1);
 
--- function used during import of a single management
+-- function used during import of a single management config
 CREATE OR REPLACE FUNCTION recert_refresh_per_management (i_mgm_id INTEGER) RETURNS VOID AS $$
 DECLARE
 	r_owner   RECORD;
@@ -49,7 +49,8 @@ $$ LANGUAGE plpgsql;
 
 -- this function deletes existing (future) open recert entries and inserts the new ones into the recertificaiton table
 -- the new recert date will only replace an existing one, if it is closer (smaller)
-CREATE OR REPLACE FUNCTION recert_refresh_one_owner_one_mgm (i_owner_id INTEGER, i_mgm_id INTEGER, t_requested_next_recert_date TIMESTAMP) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION recert_refresh_one_owner_one_mgm 
+	(i_owner_id INTEGER, i_mgm_id INTEGER, t_requested_next_recert_date TIMESTAMP) RETURNS VOID AS $$
 DECLARE
 	r_rule   RECORD;
 	i_recert_entry_id BIGINT;
@@ -85,13 +86,9 @@ BEGIN
 				b_no_current_next_recert_date := TRUE;
 			END IF;
 
-			--RAISE INFO '1 - t_current_next_recert_date=%', t_next_recert_date;
-
 			SELECT INTO t_rule_last_recertified MAX(recert_date)
 				FROM recertification
 				WHERE rule_id=r_rule.rule_id AND NOT recert_date IS NULL;
-
-			-- RAISE INFO '2 - t_rule_last_recertified=%', t_rule_last_recertified;
 
 			IF NOT FOUND OR t_rule_last_recertified IS NULL THEN	-- no prior recertification, use initial rule import date 
 				b_never_recertified := TRUE;
@@ -101,23 +98,16 @@ BEGIN
 					WHERE rule_id=r_rule.rule_id;
 			END IF;
 
-			--RAISE INFO '3 - next_recert_date=%', t_next_recert_date;
-
 			IF t_requested_next_recert_date IS NULL THEN
 				-- if the currenct next recert date is before the intended fixed input date, ignore it 
 				IF b_never_recertified THEN
 					t_next_recert_date := t_rule_created + make_interval (days => i_recert_inverval);
-					--RAISE INFO '3.1 - next_recert_date=%', t_next_recert_date;
 				ELSE 
 					t_next_recert_date := t_rule_last_recertified + make_interval (days => i_recert_inverval);
-					--RAISE INFO '3.2 - next_recert_date=%', t_next_recert_date;
 				END IF;
 			ELSE
 				t_next_recert_date := t_requested_next_recert_date;
-				--RAISE INFO '3.3 - next_recert_date=%', t_next_recert_date;
 			END IF;
-
-			--RAISE INFO '4 - next_recert_date=%', t_next_recert_date;
 
 			-- do not set next recert date later than actually calculated date
 			IF NOT b_no_current_next_recert_date THEN
@@ -126,13 +116,11 @@ BEGIN
 				END IF;
 			END IF;
 
-			--RAISE INFO '5 - next_recert_date=%', t_next_recert_date;
-
 			-- delete old recert entry:
 			DELETE FROM recertification WHERE owner_id=i_owner_id AND rule_id=r_rule.rule_id AND recert_date IS NULL;
 
 			-- add new recert entry:
-			IF b_super_owner THEN
+			IF b_super_owner THEN	-- special case for super owner (convert NULL to ID)
 				INSERT INTO recertification (rule_metadata_id, next_recert_date, rule_id, ip_match, owner_id)
 					SELECT rule_metadata_id, 
 						t_next_recert_date AS next_recert_date,
@@ -163,67 +151,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- -- this function deletes existing (future) open recert entries and inserts the new ones into the recertificaiton table
--- CREATE OR REPLACE FUNCTION recert_refresh_one_owner_one_mgm (i_owner_id INTEGER, i_mgm_id INTEGER) RETURNS VOID AS $$
--- DECLARE
--- 	r_rule   RECORD;
--- 	i_recert_entry_id BIGINT;
--- 	t_rule_created TIMESTAMP;
--- 	b_super_owner BOOLEAN;
--- BEGIN
--- 	b_super_owner := FALSE;
--- 	SELECT INTO i_recert_entry_id id FROM owner WHERE id=i_owner_id AND is_default;
--- 	IF FOUND THEN 
--- 		b_super_owner := TRUE;
--- 	END IF;
 
--- 	FOR r_rule IN
--- 	SELECT rule_uid, rule_id FROM rule WHERE mgm_id = i_mgm_id AND active
--- 	LOOP
--- 		-- clean up all future open recert entries:	
--- 		DELETE FROM recertification WHERE owner_id=i_owner_id AND rule_id=r_rule.rule_id AND recert_date IS NULL;
-
--- 		-- TODO: also take last recert date into account
--- 		-- if fixed date is given for next recert, this should not be deleted
--- 		-- date should be the create date in metadata (UID) not reset by change of rule 
-
--- 		IF recert_owner_responsible_for_rule (i_owner_id, r_rule.rule_id) THEN
--- 			SELECT INTO t_rule_created import_control.start_time FROM rule
--- 				LEFT JOIN import_control ON (rule.rule_create=import_control.control_id) 
--- 				WHERE rule_id=r_rule.rule_id; 
-
--- 			IF b_super_owner THEN
-			
--- 				INSERT INTO recertification (rule_metadata_id, next_recert_date, rule_id, ip_match, owner_id)
--- 					SELECT rule_metadata_id, 
--- 						(t_rule_created + make_interval (days => owner.recert_interval)) AS next_recert_date,
--- 						rule_id, 
--- 						matches as ip_match, 
--- 						i_owner_id AS owner_id
--- 					FROM view_rule_with_owner 
--- 					LEFT JOIN rule USING (rule_id)
--- 					LEFT JOIN rule_metadata ON (rule.rule_uid=rule_metadata.rule_uid AND rule.dev_id=rule_metadata.dev_id)
--- 					LEFT JOIN owner ON (view_rule_with_owner.owner_id=owner.id)
--- 					WHERE view_rule_with_owner.rule_id=r_rule.rule_id AND view_rule_with_owner.owner_id IS NULL;
--- 			ELSE
--- 				INSERT INTO recertification (rule_metadata_id, next_recert_date, rule_id, ip_match, owner_id)
--- 					SELECT rule_metadata_id, 
--- 						(t_rule_created + make_interval (days => owner.recert_interval)) AS next_recert_date,
--- 						rule_id, 
--- 						matches as ip_match, 
--- 						owner_id
--- 					FROM view_rule_with_owner 
--- 					LEFT JOIN rule USING (rule_id)
--- 					LEFT JOIN rule_metadata ON (rule.rule_uid=rule_metadata.rule_uid AND rule.dev_id=rule_metadata.dev_id)
--- 					LEFT JOIN owner ON (view_rule_with_owner.owner_id=owner.id)
--- 					WHERE view_rule_with_owner.rule_id=r_rule.rule_id AND view_rule_with_owner.owner_id=i_owner_id;
--- 			END IF;
--- 		END IF;
--- 	END LOOP;
--- END;
--- $$ LANGUAGE plpgsql;
-
--- this function deletes existing (future) open recert entries and inserts the new ones into the recertificaiton table
+-- this function returns a table of future recert entries 
+-- but does not them into the recertificaiton table
 CREATE OR REPLACE FUNCTION recert_get_one_owner_one_mgm
 	(i_owner_id INTEGER, i_mgm_id INTEGER)
 	RETURNS SETOF recertification AS
@@ -283,6 +213,8 @@ END;
 $$ LANGUAGE plpgsql STABLE;
 
 
+-- fundamental function to check owner <--> rule mapping using the existing view
+-- "view_rule_with_owner"
 CREATE OR REPLACE FUNCTION recert_owner_responsible_for_rule (i_owner_id INTEGER, i_rule_id BIGINT) RETURNS BOOLEAN AS $$
 DECLARE
 	i_id BIGINT;
@@ -292,7 +224,7 @@ BEGIN
 	IF FOUND THEN -- this is the super owner
 		SELECT INTO i_id rule_id FROM view_rule_with_owner WHERE owner_id IS NULL AND rule_id=i_rule_id;
 		IF FOUND THEN
-			RAISE INFO '%', 'rule found for super owner ' || i_rule_id;
+			RAISE DEBUG '%', 'rule found for super owner ' || i_rule_id;
 			RETURN TRUE;
 		ELSE
 			RETURN FALSE;

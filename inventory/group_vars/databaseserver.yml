@@ -43,3 +43,4 @@ database_idempotent_files:
   - fworch-grants.sql
   - fworch-texts.sql
   - fworch-path-analysis.sql
+  - fworch-rule-recert.sql

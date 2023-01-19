@@ -1022,9 +1022,6 @@ create table if not exists owner
     app_id_external varchar not null
 );
 
-create unique index if not exists only_one_default_owner on owner(is_default) 
-where is_default = true;
-
 create table if not exists owner_network
 (
     id SERIAL PRIMARY KEY,

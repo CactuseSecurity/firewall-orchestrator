@@ -880,12 +880,22 @@ INSERT INTO txt VALUES ('groups',		        'German', 	'Interne Gruppen');
 INSERT INTO txt VALUES ('groups',		        'English', 	'Internal Groups');
 INSERT INTO txt VALUES ('roles',		        'German', 	'Rollen');
 INSERT INTO txt VALUES ('roles',		        'English', 	'Roles');
-INSERT INTO txt VALUES ('defaults',		        'German', 	'Voreinstellungen');
-INSERT INTO txt VALUES ('defaults',		        'English', 	'Defaults');
+INSERT INTO txt VALUES ('defaults',		        'German', 	'Weitere Einstellungen');
+INSERT INTO txt VALUES ('defaults',		        'English', 	'Further settings');
 INSERT INTO txt VALUES ('standards',		    'German', 	'Standardeinstellungen');
 INSERT INTO txt VALUES ('standards',		    'English', 	'Defaults');
 INSERT INTO txt VALUES ('password_policy',      'German', 	'Passworteinstellungen');
 INSERT INTO txt VALUES ('password_policy',      'English', 	'Password Policy');
+INSERT INTO txt VALUES ('email_settings',       'German', 	'Email-Einstellungen');
+INSERT INTO txt VALUES ('email_settings',       'English', 	'Email settings');
+INSERT INTO txt VALUES ('edit_email',           'German', 	'Email-Einstellungen editieren');
+INSERT INTO txt VALUES ('edit_email',           'English', 	'Edit email settings');
+INSERT INTO txt VALUES ('email_sender',         'German', 	'Email-Absendeadresse');
+INSERT INTO txt VALUES ('email_sender',         'English', 	'Email sender address');
+INSERT INTO txt VALUES ('email_auth_user',      'German', 	'Email-Nutzer');
+INSERT INTO txt VALUES ('email_auth_user',      'English', 	'Email auth user');
+INSERT INTO txt VALUES ('email_auth_pwd',       'German', 	'Email-Nutzer Passwort');
+INSERT INTO txt VALUES ('email_auth_pwd',       'English', 	'Email user password');
 INSERT INTO txt VALUES ('state_definitions',	'German', 	'Statusdefinitionen');
 INSERT INTO txt VALUES ('state_definitions',	'English', 	'State Definitions');
 INSERT INTO txt VALUES ('state_matrix',	        'German', 	'Statusmatrix');
@@ -1070,6 +1080,8 @@ INSERT INTO txt VALUES ('edit_ldap',            'German', 	'LDAP-Verbindung bear
 INSERT INTO txt VALUES ('edit_ldap',            'English', 	'Edit LDAP connection');
 INSERT INTO txt VALUES ('test_connection',      'German', 	'Verbindung testen');
 INSERT INTO txt VALUES ('test_connection',      'English', 	'Test connection');
+INSERT INTO txt VALUES ('test_email_connection','German', 	'Email-Verbindung testen');
+INSERT INTO txt VALUES ('test_email_connection','English', 	'Test email connection');
 INSERT INTO txt VALUES ('address',              'German', 	'Adresse');
 INSERT INTO txt VALUES ('address',              'English', 	'Address');
 INSERT INTO txt VALUES ('tenant_level',         'German', 	'Mandantenebene');
@@ -1660,9 +1672,13 @@ INSERT INTO txt VALUES ('U5317', 'German',  'Verwaltung der Aktionsdefinitionen 
 INSERT INTO txt VALUES ('U5317', 'English', 'Set the action definitions of the workflows. Be careful when changing workflow already in use!');
 INSERT INTO txt VALUES ('U5318', 'German',  'Sind sie sicher, dass sie die Einstellungen zur&uuml;cksetzen wollen? &Auml;nderungen an den Workflows gehen verloren.');
 INSERT INTO txt VALUES ('U5318', 'English', 'Are you sure you want to reset the settings? Changes on workflows get lost.');
+INSERT INTO txt VALUES ('U5319', 'German',  'Server f&uuml;r ausgehende Emails zur Benachrichtigung verwalten.');
+INSERT INTO txt VALUES ('U5319', 'English', 'Manage email server for outgoing user notifications.');
 
 INSERT INTO txt VALUES ('U5401', 'German',  'Passwort ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5401', 'English', 'Password changed.');
+INSERT INTO txt VALUES ('U5402', 'German',  'Test-Email gesendet.');
+INSERT INTO txt VALUES ('U5402', 'English', 'Test email sent.');
 INSERT INTO txt VALUES ('U5411', 'German',  '&Auml;nderung des pers&ouml;nlichen Anmeldepassworts');
 INSERT INTO txt VALUES ('U5411', 'English', 'Change your personal login password');
 INSERT INTO txt VALUES ('U5412', 'German',  'Einstellung der bevorzugten Sprache');
@@ -1671,6 +1687,7 @@ INSERT INTO txt VALUES ('U5413', 'German',  'Anpassung der pers&ouml;nlichen Rep
 INSERT INTO txt VALUES ('U5413', 'English', 'Adapt your personal reporting settings');
 INSERT INTO txt VALUES ('U5414', 'German',  'Anpassung der pers&ouml;nlichen Rezertifizierungseinstellungen');
 INSERT INTO txt VALUES ('U5414', 'English', 'Adapt your personal recertification settings');
+
 
 INSERT INTO txt VALUES ('U5501', 'German',  'Sind sie sicher, dass sie folgenden Status l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5501', 'English', 'Are you sure you want to delete state: ');
@@ -1757,6 +1774,8 @@ INSERT INTO txt VALUES ('E5106', 'German',  'Management wurde bereits angelegt: 
 INSERT INTO txt VALUES ('E5106', 'English', 'Management has already been created: ');
 INSERT INTO txt VALUES ('E5107', 'German',  'Gateway wurde bereits angelegt: ');
 INSERT INTO txt VALUES ('E5107', 'English', 'Gateway has already been created: ');
+INSERT INTO txt VALUES ('E5108', 'German',  'Email-Adresse muss "@"-Zeichen enthalten.');
+INSERT INTO txt VALUES ('E5108', 'English', 'Email address must contain "@"-sign.');
 INSERT INTO txt VALUES ('E5111', 'German',  'Es gibt bereits ein Gateway mit derselben Konfiguration und Import aktiviert');
 INSERT INTO txt VALUES ('E5111', 'English', 'There is already a gateway in the same configuration with import enabled');
 INSERT INTO txt VALUES ('E5112', 'German',  'Gateway konnte nicht angelegt werden');
@@ -1951,6 +1970,10 @@ INSERT INTO txt VALUES ('E8011', 'German',  'Aktion konnte nicht angelegt werden
 INSERT INTO txt VALUES ('E8011', 'English', 'Action could not be created');
 INSERT INTO txt VALUES ('E8012', 'German',  'Kommentar konnte nicht angelegt werden');
 INSERT INTO txt VALUES ('E8012', 'English', 'Comment could not be created');
+
+INSERT INTO txt VALUES ('E8101', 'German',  'Email-Versand kann nicht getestet werden, da der aktell angemeldete Nutzer keine Email-Adresse hinerlegt hat.');
+INSERT INTO txt VALUES ('E8101', 'English', 'Sending of emails cannot be tested because the logged-in user does not have an email address.');
+
 
 
 -- errors from Api
@@ -2160,8 +2183,8 @@ INSERT INTO txt VALUES ('H1215', 'German',  'Aktuelle NAT Regeln: Aktuell aktive
 INSERT INTO txt VALUES ('H1215', 'English', 'Current NAT Rules: Currently active NAT rules of all selected devices.');
 INSERT INTO txt VALUES ('H1301', 'German',  'Direkt nach der Erzeugung oder vom <a href="/help/archive">Archiv</a> aus k&ouml;nnen Reports in verschiedenen Ausgabeformaten exportiert werden:');
 INSERT INTO txt VALUES ('H1301', 'English', 'Directly after creation or from the <a href="/help/archive">archive</a> reports can be exported to different output formats:');
-INSERT INTO txt VALUES ('H1302', 'German',  '<li>pdf</li><li>html</li><li>csv (noch nicht unterst&uuml;tzt)</li><li>json</li>');
-INSERT INTO txt VALUES ('H1302', 'English', '<li>pdf</li><li>html</li><li>csv (currently not supported)</li><li>json</li>');
+INSERT INTO txt VALUES ('H1302', 'German',  '<li>pdf</li><li>html</li><li>csv (aktuell nur f&uuml;r aufgel&ouml;sten Regel-Report-Typ unterst&uuml;tzt)</li><li>json</li>');
+INSERT INTO txt VALUES ('H1302', 'English', '<li>pdf</li><li>html</li><li>csv (currently only supported for resolved rules report type)</li><li>json</li>');
 INSERT INTO txt VALUES ('H1303', 'German',  'Nach bet&auml;tigen des "Report exportieren"-Auswahlfeldes kann eines oder mehrere dieser Formate ausgew&auml;hlt werden.
     Auch kann der Report mit einem Namen versehen und <a href="/help/archive">archiviert</a> werden.
     Ein weiteres Ausgabefenster erlaubt dann das separate Abholen der ausgew&auml;hlten Ausgabedateien.

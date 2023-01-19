@@ -63,7 +63,16 @@ DECLARE
 	i_recert_inverval INTEGER;
 	b_never_recertified BOOLEAN := FALSE;
 	b_no_current_next_recert_date BOOLEAN := FALSE;
+	i_previous_import BIGINT;
+	i_current_import_id BIGINT;
 BEGIN
+	-- get id of previous import:
+	SELECT INTO i_current_import_id control_id FROM import_control WHERE mgm_id=i_mgm_id AND stop_time IS NULL;
+	SELECT INTO i_previous_import * FROM get_previous_import_id_for_mgmt(i_mgm_id,i_current_import_id);
+	IF NOT FOUND THEN
+		i_previous_import := -1;	-- prevent match for previous import
+	END IF;
+
 	b_super_owner := FALSE;
 	SELECT INTO i_recert_entry_id id FROM owner WHERE id=i_owner_id AND is_default;
 	IF FOUND THEN 
@@ -73,7 +82,7 @@ BEGIN
 	SELECT INTO i_recert_inverval recert_interval FROM owner WHERE id=i_owner_id;
 
 	FOR r_rule IN
-	SELECT rule_uid, rule_id FROM rule WHERE mgm_id = i_mgm_id AND active
+	SELECT rule_uid, rule_id FROM rule WHERE mgm_id=i_mgm_id AND (active OR NOT active AND rule_last_seen=i_previous_import)
 	LOOP
 
 		IF recert_owner_responsible_for_rule (i_owner_id, r_rule.rule_id) THEN

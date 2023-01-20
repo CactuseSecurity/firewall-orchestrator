@@ -319,6 +319,14 @@ def read_fw_json_config_file(filename=None, config={}, error_string='', error_co
                         i += 1    
 
 
+    # when we read from a normalized config file, it contains non-matching import ids, so updating them
+    def replace_import_id(config, current_import_id):
+        for tab in ['network_objects', 'service_objects', 'user_objects', 'zone_objects', 'rules']:
+            for item in config[tab]:
+                if 'control_id' in item:
+                    item['control_id'] = current_import_id
+
+
     try:
         if filename is not None:
             if 'http://' in filename or 'https://' in filename:   # gettinf file via http(s)
@@ -344,5 +352,6 @@ def read_fw_json_config_file(filename=None, config={}, error_string='', error_co
         raise ConfigFileNotFound(error_string) from None
     
     replace_device_id(config, mgm_details)
+    replace_import_id(config, current_import_id)
 
     return config, error_count, change_count

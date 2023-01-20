@@ -261,5 +261,5 @@ adding report template format fk and permissions
 ### 6.1.2 - 20.12.2022 DEVELOP
 - start of Palo Alto import module
 
-### 6.1.3 - 14.01.2023 DEVELOP
+### 6.1.3 - xx.01.2023 DEVELOP
 - enhance recertification

@@ -320,11 +320,16 @@ def read_fw_json_config_file(filename=None, config={}, error_string='', error_co
 
 
     # when we read from a normalized config file, it contains non-matching import ids, so updating them
+    # for native configs this function should do nothing
     def replace_import_id(config, current_import_id):
+        logger = getFwoLogger()
         for tab in ['network_objects', 'service_objects', 'user_objects', 'zone_objects', 'rules']:
-            for item in config[tab]:
-                if 'control_id' in item:
-                    item['control_id'] = current_import_id
+            if tab in config:
+                for item in config[tab]:
+                    if 'control_id' in item:
+                        item['control_id'] = current_import_id
+            else: # assuming native config is read
+                pass
 
 
     try:

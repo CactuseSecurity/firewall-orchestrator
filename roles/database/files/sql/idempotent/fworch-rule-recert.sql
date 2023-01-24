@@ -16,7 +16,7 @@ BEGIN
 		END LOOP;
 
 	EXCEPTION WHEN OTHERS THEN
-		RAISE EXCEPTION 'Exception caught in import_rule_refhandler_main while handling owner %', r_owner.name;
+		RAISE EXCEPTION 'Exception caught in recert_refresh_per_management while handling owner %', r_owner.name;
 	END;
 	RETURN;
 END;
@@ -26,21 +26,17 @@ $$ LANGUAGE plpgsql;
 -- function used during import of owner data
 CREATE OR REPLACE FUNCTION recert_refresh_per_owner(i_owner_id INTEGER) RETURNS VOID AS $$
 DECLARE
-	r_rule   RECORD;
 	r_mgm    RECORD;
-	r_recert RECORD;
-	i_recert_entry_id BIGINT;
-	i_owner_id INTEGER;
 BEGIN
 	BEGIN
 		FOR r_mgm IN
 			SELECT mgm_id, mgm_name FROM management
 		LOOP
-			PERFORM recert_refresh_one_owner_one_mgm (i_owner_id, r_mgm.mgm_id);
+			PERFORM recert_refresh_one_owner_one_mgm (i_owner_id, r_mgm.mgm_id, NULL::TIMESTAMP);
 		END LOOP;
 
 	EXCEPTION WHEN OTHERS THEN
-		RAISE EXCEPTION 'Exception caught in recertification_per_owner while handling rule %', r_mgm.mgm_name;
+		RAISE EXCEPTION 'Exception caught in recert_refresh_per_owner while handling management %', r_mgm.mgm_name;
 	END;
 	RETURN;
 END;

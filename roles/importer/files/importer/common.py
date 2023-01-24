@@ -112,6 +112,7 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0,
                 config2import, error_count, change_count = \
                     read_fw_json_config_file(filename=normalized_in_file, error_string=error_string, error_count=error_count, \
                     current_import_id=current_import_id, start_time=start_time, mgm_details=mgm_details, change_count=change_count, jwt=jwt)
+                replace_import_id(config2import, current_import_id)
             else:   # standard case, read config from FW API
                 # note: we need to run get_config_from_api in any case (even when importing from a file) as this function 
                 # also contains the conversion from native to config2import (parsing)
@@ -318,7 +319,6 @@ def read_fw_json_config_file(filename=None, config={}, error_string='', error_co
                         config['interfaces'][i]['routing_device'] = dev_id
                         i += 1    
 
-
     try:
         if filename is not None:
             if 'http://' in filename or 'https://' in filename:   # gettinf file via http(s)
@@ -346,3 +346,16 @@ def read_fw_json_config_file(filename=None, config={}, error_string='', error_co
     replace_device_id(config, mgm_details)
 
     return config, error_count, change_count
+
+
+    # when we read from a normalized config file, it contains non-matching import ids, so updating them
+    # for native configs this function should do nothing
+def replace_import_id(config, current_import_id):
+    logger = getFwoLogger()
+    for tab in ['network_objects', 'service_objects', 'user_objects', 'zone_objects', 'rules']:
+        if tab in config:
+            for item in config[tab]:
+                if 'control_id' in item:
+                    item['control_id'] = current_import_id
+        else: # assuming native config is read
+            pass

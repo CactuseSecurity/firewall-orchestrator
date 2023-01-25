@@ -91,7 +91,7 @@ namespace FWO.Config.Api.Data
         public int EmailPort { get; set; } = 25;
 
         [JsonProperty("emailTls"), JsonPropertyName("emailTls")]
-        public bool EmailTls { get; set; } = false;
+        public string EmailTls { get; set; } = "";
 
         [JsonProperty("emailUser"), JsonPropertyName("emailUser")]
         public string EmailUser { get; set; } = "";

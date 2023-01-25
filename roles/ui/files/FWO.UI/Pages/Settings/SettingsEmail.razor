@@ -4,6 +4,7 @@
 @using FWO.Config.Api.Data
 @using System
 @using FWO.Mail
+@using System.ComponentModel.DataAnnotations
 
 @page "/settings/email"
 @attribute [Authorize(Roles = "admin, auditor")]
@@ -17,7 +18,9 @@
 @(userConfig.GetText("U5319"))
 <hr />
 
-<form>
+<EditForm Model="@emailForm" OnValidSubmit="@Save">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
     <div class="form-group row">
         <label for="emailAddress" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("address"))*:</label>
         <div class="col-sm-8">
@@ -29,10 +32,18 @@
         <div class="col-sm-2">
             <input id="emailPort" type="number" class="form-control form-control-sm" @bind="actEmailConnection.Port" />
         </div>
-        <div class="form-check form-check-inline">
-            <input class="form-check-input" id="emailTls" type="checkbox" @bind="actEmailConnection.Tls">
-            <label class="form-check-label" for="emailTls"><small>Tls</small></label>
-        </div>
+    </div>
+
+    <div class="form-group row">
+        <label for="emailEncryption" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("email_enc_method"))*:</label>
+        <p>
+        <InputRadioGroup @bind-Value="actEmailConnection.Encryption">
+            @foreach (var option in encOptions)
+            {
+                <InputRadio class="radioSpace" Value="option" />  @option <br />
+            }
+        </InputRadioGroup>
+        </p>
     </div>
     <div class="form-group row">
         <label for="emailAuthUser" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("email_auth_user")):</label>
@@ -52,7 +63,9 @@
             <input id="emailSenderAddress" type="email" class="form-control form-control-sm" @bind="actEmailConnection.SenderEmailAddress" />
         </div>
     </div>
-</form>
+</EditForm>
+
+
 
 <div class="btn-group">
 <AuthorizeView Roles="admin">
@@ -66,15 +79,16 @@
     </NotAuthorized> 
 </AuthorizeView>
 </div>
-
-
 @code
 {
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
+
+    private EmailForm emailForm = new EmailForm() {  };
     private ConfigData? editableConfig;
     private EmailConnection actEmailConnection = new EmailConnection();
+    List<string> encOptions = new List<string> { "plain", "starttls", "tls" };
 
     protected override async Task OnInitializedAsync()
     {
@@ -108,7 +122,7 @@
             {
                 editableConfig.EmailServerAddress = actEmailConnection.ServerAddress;
                 editableConfig.EmailPort = actEmailConnection.Port;
-                editableConfig.EmailTls = actEmailConnection.Tls;
+                editableConfig.EmailTls = actEmailConnection.Encryption;
                 editableConfig.EmailUser = actEmailConnection.User;
                 editableConfig.EmailPassword = actEmailConnection.Password;
                 editableConfig.EmailSenderAddress = actEmailConnection.SenderEmailAddress;
@@ -148,16 +162,25 @@
     {
         try
         {
-            Mailer mailer = new Mailer(actEmailConnection);
+
+
+            MailKitMailer mailer = new MailKitMailer(actEmailConnection);
             if (userConfig.User.Email == null || userConfig.User.Email  == "")
             {
                 DisplayMessageInUi(null, userConfig.GetText("test_email_connection"), userConfig.GetText("E8101"), true);
             }
             else 
             {
-                string testMailReceiverAddress = userConfig.User.Email;
-                mailer.SendMail("Test mail from Firewall Orchestrator", "... this is the body - just testing ...", testMailReceiverAddress);
-                DisplayMessageInUi(null, userConfig.GetText("test_email_connection"), userConfig.GetText("U5402"), false);
+                MailData mailData = new MailData(new List<string> { userConfig.User.Email }, "Test mail from Firewall Orchestrator", "... this is the body - just testing ...");
+
+                if (await mailer.SendAsync(mailData, actEmailConnection, new CancellationToken()))
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("test_email_connection"), userConfig.GetText("U5402"), false);
+                } 
+                else
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("test_email_connection"), "could not send message", true);
+                }
             }
         }
         catch (System.Exception exception)

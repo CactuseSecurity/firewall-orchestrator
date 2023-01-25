@@ -896,6 +896,8 @@ INSERT INTO txt VALUES ('email_auth_user',      'German', 	'Email-Nutzer');
 INSERT INTO txt VALUES ('email_auth_user',      'English', 	'Email auth user');
 INSERT INTO txt VALUES ('email_auth_pwd',       'German', 	'Email-Nutzer Passwort');
 INSERT INTO txt VALUES ('email_auth_pwd',       'English', 	'Email user password');
+INSERT INTO txt VALUES ('email_enc_method',     'German', 	'Email-Verschlüsselung');
+INSERT INTO txt VALUES ('email_enc_method',     'English', 	'Email encryption');
 INSERT INTO txt VALUES ('state_definitions',	'German', 	'Statusdefinitionen');
 INSERT INTO txt VALUES ('state_definitions',	'English', 	'State Definitions');
 INSERT INTO txt VALUES ('state_matrix',	        'German', 	'Statusmatrix');

@@ -118,17 +118,14 @@ namespace FWO.Mail
 
                 switch (emailConn.Encryption)
                 {
-                    case "plain":
+                    case EmailEncryptionMethod.None:
                         await smtp.ConnectAsync(emailConn.ServerAddress, emailConn.Port, SecureSocketOptions.None, ct);
                         break;
-                    case "starttls":
+                    case EmailEncryptionMethod.StartTls:
                         await smtp.ConnectAsync(emailConn.ServerAddress, emailConn.Port, SecureSocketOptions.StartTls, ct);
                         break;
-                    case "tls":
+                    case EmailEncryptionMethod.Tls:
                         await smtp.ConnectAsync(emailConn.ServerAddress, emailConn.Port, SecureSocketOptions.SslOnConnect, ct);
-                        break;
-                    default:
-                        // should not occur
                         break;
                 }
                 if (emailConn.User != "")

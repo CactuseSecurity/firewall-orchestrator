@@ -2,6 +2,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using FWO.Api.Data;
+using FWO.Mail;
 
 namespace FWO.Config.Api.Data
 {
@@ -91,7 +92,7 @@ namespace FWO.Config.Api.Data
         public int EmailPort { get; set; } = 25;
 
         [JsonProperty("emailTls"), JsonPropertyName("emailTls")]
-        public string EmailTls { get; set; } = "";
+        public EmailEncryptionMethod EmailTls { get; set; } = EmailEncryptionMethod.None;
 
         [JsonProperty("emailUser"), JsonPropertyName("emailUser")]
         public string EmailUser { get; set; } = "";

@@ -4,7 +4,6 @@
 @using FWO.Config.Api.Data
 @using System
 @using FWO.Mail
-@using System.ComponentModel.DataAnnotations
 
 @page "/settings/email"
 @attribute [Authorize(Roles = "admin, auditor")]
@@ -90,7 +89,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-
         try
         {
             editableConfig = await globalConfig.GetEditableConfig();
@@ -175,13 +173,10 @@
         return true;
     }
 
-
     private async Task TestConnection()
     {
         try
         {
-
-
             MailKitMailer mailer = new MailKitMailer(actEmailConnection);
             if (userConfig.User.Email == null || userConfig.User.Email  == "")
             {

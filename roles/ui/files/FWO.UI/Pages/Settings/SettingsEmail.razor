@@ -38,7 +38,7 @@
         <label for="emailEncryption" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("email_enc_method"))*:</label>
         <p>
         <InputRadioGroup @bind-Value="actEmailConnection.Encryption">
-            @foreach (var option in encOptions)
+            @foreach (var option in Enum.GetValues(typeof(EmailEncryptionMethod)))
             {
                 <InputRadio class="radioSpace" Value="option" />  @option <br />
             }
@@ -82,13 +82,11 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
-
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private EmailForm emailForm = new EmailForm() {  };
     private ConfigData? editableConfig;
     private EmailConnection actEmailConnection = new EmailConnection();
-    List<string> encOptions = new List<string> { "plain", "starttls", "tls" };
 
     protected override async Task OnInitializedAsync()
     {
@@ -96,21 +94,21 @@
         try
         {
             editableConfig = await globalConfig.GetEditableConfig();
+            if (editableConfig.EmailServerAddress != "")
+            {
+                actEmailConnection = new EmailConnection(
+                    editableConfig.EmailServerAddress, 
+                    editableConfig.EmailPort, 
+                    editableConfig.EmailTls, 
+                    editableConfig.EmailUser,
+                    editableConfig.EmailPassword,
+                    editableConfig.EmailSenderAddress
+                );
+            }
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
-        }
-        if (editableConfig.EmailServerAddress != "")
-        {
-            actEmailConnection = new EmailConnection(
-                editableConfig.EmailServerAddress, 
-                editableConfig.EmailPort, 
-                editableConfig.EmailTls, 
-                editableConfig.EmailUser,
-                editableConfig.EmailPassword,
-                editableConfig.EmailSenderAddress
-            );
         }
     }
 
@@ -118,15 +116,35 @@
     {
         try
         {
-            if (CheckValues())
+            if (actEmailConnection != null && CheckValues() && editableConfig != null)
             {
                 editableConfig.EmailServerAddress = actEmailConnection.ServerAddress;
                 editableConfig.EmailPort = actEmailConnection.Port;
                 editableConfig.EmailTls = actEmailConnection.Encryption;
-                editableConfig.EmailUser = actEmailConnection.User;
-                editableConfig.EmailPassword = actEmailConnection.Password;
-                editableConfig.EmailSenderAddress = actEmailConnection.SenderEmailAddress;
-
+                if (actEmailConnection.User != null)
+                {
+                    editableConfig.EmailUser = actEmailConnection.User;
+                }
+                else
+                {
+                    editableConfig.EmailUser = "";
+                }
+                if (actEmailConnection.Password != null)
+                {
+                    editableConfig.EmailPassword = actEmailConnection.Password;
+                }
+                else
+                {
+                    editableConfig.EmailPassword = "";
+                }
+                if (actEmailConnection.SenderEmailAddress != null)
+                {
+                    editableConfig.EmailSenderAddress = actEmailConnection.SenderEmailAddress;
+                }
+                else
+                {
+                    editableConfig.EmailSenderAddress = "";
+                }
                 await globalConfig.WriteToDatabase(editableConfig, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
             }
@@ -149,7 +167,7 @@
             DisplayMessageInUi(null, userConfig.GetText("save_email_conn"), userConfig.GetText("E5103"), true);
             return false;
         }
-        if (!actEmailConnection.SenderEmailAddress.Contains('@'))
+        if (actEmailConnection.SenderEmailAddress != null && !actEmailConnection.SenderEmailAddress.Contains('@'))
         {
             DisplayMessageInUi(null, userConfig.GetText("save_email_conn"), userConfig.GetText("E5108"), true);
             return false;

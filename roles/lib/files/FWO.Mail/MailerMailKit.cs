@@ -67,8 +67,11 @@ namespace FWO.Mail
             {
                 // Initialize a new instance of the MimeKit.MimeMessage class
                 var mail = new MimeMessage();
-
-                string senderString = emailConn.SenderEmailAddress;
+                string senderString = "";
+                if (emailConn.SenderEmailAddress != null)
+                {
+                    senderString = emailConn.SenderEmailAddress;
+                }
 
                 #region Sender / Receiver
                 // Sender

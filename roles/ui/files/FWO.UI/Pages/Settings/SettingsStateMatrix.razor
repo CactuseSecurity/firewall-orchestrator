@@ -20,7 +20,7 @@
         <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("type")):</label>
         <div class="col-sm-2">
             <select class="form-control form-control-sm" @bind="actTaskType">
-                @foreach (TaskType type in Enum.GetValues(typeof(TaskType)))
+                @foreach (TaskType type in availableTaskTypes)
                 {
                     <option value="@type">@(userConfig.GetText(Enum.GetName(typeof(TaskType), type) ?? "unknown"))</option>
                 }
@@ -253,12 +253,14 @@ else
     private bool ResetMatrixMode = false;
     private bool EditTargetStatesMode = false;
     private TaskType actTaskType = TaskType.master;
+    private List<TaskType> availableTaskTypes { get; set; } = new List<TaskType>();
     private bool InitComplete = false;
 
     protected override async Task OnInitializedAsync()
     {
         await RefreshStates();
         await InitMatrix();
+        availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<TaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
         InitComplete = true;
     }
 

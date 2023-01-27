@@ -3,11 +3,12 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
-    public enum AccessField
+    public enum ElemFieldType
     {
         source, 
         destination, 
-        service
+        service,
+        rule
     }
 
     public class RequestElementBase
@@ -36,6 +37,9 @@ namespace FWO.Api.Data
         [JsonProperty("original_nat_id"), JsonPropertyName("original_nat_id")]
         public long? OriginalNatId { get; set; }
 
+        [JsonProperty("rule_uid"), JsonPropertyName("rule_uid")]
+        public string? RuleUid { get; set; }
+
 
         public RequestElementBase()
         { }
@@ -50,6 +54,7 @@ namespace FWO.Api.Data
             Field = element.Field;
             UserId = element.UserId;
             OriginalNatId = element.OriginalNatId;
+            RuleUid = element.RuleUid;
         }
 
         public virtual bool Sanitize()
@@ -57,6 +62,7 @@ namespace FWO.Api.Data
             bool shortened = false;
             IpString = Sanitizer.SanitizeOpt(IpString, ref shortened);
             Field = Sanitizer.SanitizeMand(Field, ref shortened);
+            RuleUid = Sanitizer.SanitizeOpt(RuleUid, ref shortened);
             return shortened;
         }
     }

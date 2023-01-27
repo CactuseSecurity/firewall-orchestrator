@@ -1,12 +1,10 @@
 ﻿namespace FWO.Api.Data
 {
-    public class NwServiceElement
+    public class NwRuleElement
     {
         public long ElemId { get; set; }
         public long TaskId { get; set; }
-        public int Port { get; set; }
-        public int ProtoId { get; set; }
-        public long? ServiceId { get; set; }
+        public string RuleUid { get; set; } = "";
 
 
         public RequestReqElement ToReqElement()
@@ -15,10 +13,8 @@
             {
                 Id = ElemId,
                 TaskId = TaskId,
-                Field = ElemFieldType.service.ToString(),
-                Port = Port,
-                ProtoId = ProtoId,
-                ServiceId = ServiceId
+                Field = ElemFieldType.rule.ToString(),
+                RuleUid = RuleUid
             };
             return element;
         }
@@ -29,10 +25,8 @@
             {
                 Id = ElemId,
                 ImplTaskId = TaskId,
-                Field = ElemFieldType.service.ToString(),
-                Port = Port,
-                ProtoId = ProtoId,
-                ServiceId = ServiceId
+                Field = ElemFieldType.rule.ToString(),
+                RuleUid = RuleUid
             };
             return element;
         }

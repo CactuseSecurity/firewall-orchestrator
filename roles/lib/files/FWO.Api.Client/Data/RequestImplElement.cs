@@ -39,6 +39,7 @@ namespace FWO.Api.Data
             Field = element.Field;
             UserId = element.UserId;
             OriginalNatId = element.OriginalNatId;
+            RuleUid = element.RuleUid;
         }
     }
 }

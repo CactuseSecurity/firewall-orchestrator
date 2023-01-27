@@ -1,0 +1,94 @@
+@using FWO.Api.Client
+@using FWO.Config.Api
+
+@attribute [Authorize(Roles = "admin, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+
+<hr />
+
+@foreach(var rule in Rules)
+{
+    <div class="col-sm-12">
+        <div class="form-group row">
+            <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("rule_uid"))*:</label>
+            <input type="text" class="col-sm-10 form-control form-control-sm" readonly="@(!EditMode)" @bind="rule.RuleUid" />
+            @if (EditMode)
+            {
+                <button type="button" class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteRule(rule)">x</button>
+            }
+        </div>
+    </div>
+    @* @if(actSources.Count > 0 || actDestinations.Count > 0 || actServices.Count > 0)
+    {
+        <DisplayAccessElements @bind-Sources="rule.Sources" @bind-Destinations="rule.Destinations" @bind-Services="rule.Services" 
+            TaskId="TaskId" EditMode="false"></DisplayAccessElements>
+    } *@
+}
+@if (EditMode)
+{
+    <div class="bg-secondary">
+        <hr />
+        <div class="form-group row col-sm-12">
+            <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("rule_uid"))*:</label>
+            <input @onsubmit:preventDefault @onsubmit:stopPropagation type="text" class="col-sm-11 form-control form-control-sm" @bind="newRuleUid"/>
+        </div>
+    </div>
+}
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public List<NwRuleElement> Rules { get; set; } = new List<NwRuleElement>();
+
+    [Parameter]
+    public EventCallback<List<NwRuleElement>> RulesChanged { get; set; }
+
+    [Parameter]
+    public long TaskId { get; set; } = 0;
+
+    [Parameter]
+    public bool EditMode { get; set; } = false;
+
+
+    private string newRuleIntern = "";
+    private string newRuleUid
+    {
+        get => newRuleIntern;
+        set
+        {
+            if(value != null && value != "")
+            {
+                Rules.Add(new NwRuleElement(){ RuleUid = value, TaskId = TaskId });
+                newRuleIntern = "";
+            }
+            StateHasChanged();
+        }
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // get source/dest/svc per rule??
+            // get rule list to select
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private void DeleteRule(NwRuleElement obj)
+    {
+        Rules.Remove(obj);
+        StateHasChanged();
+    }
+}

@@ -67,7 +67,7 @@ namespace FWO.Api.Data
             return highestNumber;
         }
 
-        public List<NwObjectElement> getNwObjectElements(AccessField field)
+        public List<NwObjectElement> getNwObjectElements(ElemFieldType field)
         {
             List<NwObjectElement> elements = new List<NwObjectElement>();
             foreach(var reqElem in Elements)
@@ -89,17 +89,35 @@ namespace FWO.Api.Data
         public List<NwServiceElement> getServiceElements()
         {
             List<NwServiceElement> elements = new List<NwServiceElement>();
-            foreach(var implElem in Elements)
+            foreach(var reqElem in Elements)
             {
-                if (implElem.Field == AccessField.service.ToString())
+                if (reqElem.Field == ElemFieldType.service.ToString())
                 {
                     elements.Add( new NwServiceElement()
                     {
-                        ElemId = implElem.Id,
-                        TaskId = implElem.TaskId,
-                        Port = implElem.Port ?? 0,
-                        ProtoId = implElem.ProtoId ?? 0,
-                        ServiceId = implElem.ServiceId
+                        ElemId = reqElem.Id,
+                        TaskId = reqElem.TaskId,
+                        Port = reqElem.Port ?? 0,
+                        ProtoId = reqElem.ProtoId ?? 0,
+                        ServiceId = reqElem.ServiceId
+                    });
+                }
+            }
+            return elements;
+        }
+
+        public List<NwRuleElement> getRuleElements()
+        {
+            List<NwRuleElement> elements = new List<NwRuleElement>();
+            foreach(var reqElem in Elements)
+            {
+                if (reqElem.Field == ElemFieldType.rule.ToString())
+                {
+                    elements.Add( new NwRuleElement()
+                    {
+                        ElemId = reqElem.Id,
+                        TaskId = reqElem.TaskId,
+                        RuleUid = reqElem.RuleUid ?? ""
                     });
                 }
             }
@@ -116,6 +134,18 @@ namespace FWO.Api.Data
                             + comment.Comment.CommentText + "\n";
             }
             return allComments;
+        }
+
+        public int getRuleDeviceId()
+        {
+            foreach(var reqElem in Elements)
+            {
+                if (reqElem.Field == ElemFieldType.rule.ToString() && reqElem.DeviceId != null)
+                {
+                    return (int)reqElem.DeviceId;
+                }
+            }
+            return 0;
         }
     }
 }

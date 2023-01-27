@@ -262,11 +262,13 @@ namespace FWO.Ui.Services
                     ip = (element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null),
                     port = element.Port,
                     proto = element.ProtoId,
-                    network_obj_id = element.NetworkId,
-                    service_id = element.ServiceId,
+                    networkObjId = element.NetworkId,
+                    serviceId = element.ServiceId,
                     field = element.Field,
-                    user_id = element.UserId,
-                    original_nat_id = element.OriginalNatId
+                    userId = element.UserId,
+                    originalNatId = element.OriginalNatId,
+                    deviceId = element.DeviceId,
+                    ruleUid = element.RuleUid
                 };
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newRequestElement, Variables)).ReturnIds;
                 if (returnIds == null)
@@ -297,11 +299,13 @@ namespace FWO.Ui.Services
                     ip = (element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null),
                     port = element.Port,
                     proto = element.ProtoId,
-                    network_obj_id = element.NetworkId,
-                    service_id = element.ServiceId,
+                    networkObjId = element.NetworkId,
+                    serviceId = element.ServiceId,
                     field = element.Field,
-                    user_id = element.UserId,
-                    original_nat_id = element.OriginalNatId
+                    userId = element.UserId,
+                    originalNatId = element.OriginalNatId,
+                    deviceId = element.DeviceId,
+                    ruleUid = element.RuleUid
                 };
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequestElement, Variables)).UpdatedId;
                 if(udId != element.Id)
@@ -534,11 +538,12 @@ namespace FWO.Ui.Services
                     ip = (element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null),
                     port = element.Port,
                     proto = element.ProtoId,
-                    network_obj_id = element.NetworkId,
-                    service_id = element.ServiceId,
+                    networkObjId = element.NetworkId,
+                    serviceId = element.ServiceId,
                     field = element.Field,
-                    user_id = element.UserId,
-                    original_nat_id = element.OriginalNatId
+                    userId = element.UserId,
+                    originalNatId = element.OriginalNatId,
+                    ruleUid = element.RuleUid
                 };
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newImplementationElement, Variables)).ReturnIds;
                 if (returnIds == null)
@@ -569,11 +574,12 @@ namespace FWO.Ui.Services
                     ip = (element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null),
                     port = element.Port,
                     proto = element.ProtoId,
-                    network_obj_id = element.NetworkId,
-                    service_id = element.ServiceId,
+                    networkObjId = element.NetworkId,
+                    serviceId = element.ServiceId,
                     field = element.Field,
-                    user_id = element.UserId,
-                    original_nat_id = element.OriginalNatId
+                    userId = element.UserId,
+                    originalNatId = element.OriginalNatId,
+                    ruleUid = element.RuleUid
                 };
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateImplementationElement, Variables)).UpdatedId;
                 if(udId != element.Id)

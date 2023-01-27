@@ -30,7 +30,7 @@ namespace FWO.Api.Data
             TaskId = taskId;
         }
 
-        public RequestReqElement ToReqElement(AccessField field)
+        public RequestReqElement ToReqElement(ElemFieldType field)
         {
             RequestReqElement element = new RequestReqElement()
             {
@@ -43,7 +43,7 @@ namespace FWO.Api.Data
             return element;
         }
 
-        public RequestImplElement ToImplElement(AccessField field)
+        public RequestImplElement ToImplElement(ElemFieldType field)
         {
             RequestImplElement element = new RequestImplElement()
             {

@@ -8,6 +8,8 @@ namespace FWO.Api.Data
         [JsonProperty("request_action"), JsonPropertyName("request_action")]
         public string RequestAction { get; set; } = FWO.Api.Data.RequestAction.create.ToString();
 
+        [JsonProperty("device_id"), JsonPropertyName("device_id")]
+        public int? DeviceId { get; set; }
 
         public RequestReqElementWriter()
         {}
@@ -15,6 +17,7 @@ namespace FWO.Api.Data
         public RequestReqElementWriter(RequestReqElement element) : base(element)
         { 
             RequestAction = element.RequestAction;
+            DeviceId = element.DeviceId;
             IpString = (element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null);
         }
     }

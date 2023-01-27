@@ -23,7 +23,7 @@
     return_content: yes
   register: sample_jwt
   changed_when: false
-  environment: "{{ proxy_env }}"
+#  environment: "{{ proxy_env }}"
 
 - debug: var=sample_jwt
 

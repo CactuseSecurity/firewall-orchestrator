@@ -66,18 +66,28 @@ def parse_object(obj_orig, import_id):
     obj = extract_base_object_infos(obj_orig, import_id)
     if obj_orig["type"] == "Network":  # network
         obj["obj_typ"] = "network"
-        cidr = obj_orig["value"].split("/")
-        if str.isdigit(cidr[1]):
-            obj['obj_ip'] = cidr[0] + "/" + cidr[1]
-        else: # not real cidr (netmask after /)
-            obj['obj_ip'] = cidr[0] + "/" + str(IPAddress(cidr[1]).netmask_bits())    
+        if "value" in obj_orig:
+            cidr = obj_orig["value"].split("/")
+            if str.isdigit(cidr[1]):
+                obj['obj_ip'] = cidr[0] + "/" + cidr[1]
+            else: # not real cidr (netmask after /)
+                obj['obj_ip'] = cidr[0] + "/" + str(IPAddress(cidr[1]).netmask_bits())
+        else:
+            logger.warn("missing value field in object - skipping: " + str(obj_orig))  
+            obj['obj_ip'] = "0.0.0.0"        
     elif obj_orig["type"] == "Host": # host
         obj["obj_typ"] = "host"
-        obj["obj_ip"] = obj_orig["value"]
-        if obj_orig["value"].find(":") != -1:  # ipv6
-            obj["obj_ip"] += "/128"
-        else:                               # ipv4
-            obj["obj_ip"] += "/32"
+        if "value" in obj_orig:
+            obj["obj_ip"] = obj_orig["value"]
+            if obj_orig["value"].find(":") != -1: # ipv6
+                if obj_orig["value"].find("/") == -1: 
+                    obj["obj_ip"] += "/128"
+            else:                               # ipv4
+                if obj_orig["value"].find("/") == -1: 
+                    obj["obj_ip"] += "/32"
+        else:
+            logger.warn("missing value field in object - skipping: " + str(obj_orig))  
+            obj['obj_ip'] = "0.0.0.0/0"        
     elif obj_orig["type"] == "Range": # ip range
         obj['obj_typ'] = 'ip_range'
         ip_range = obj_orig['value'].split("-")

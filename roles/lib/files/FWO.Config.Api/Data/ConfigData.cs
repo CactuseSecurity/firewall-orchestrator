@@ -2,6 +2,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using FWO.Api.Data;
+using FWO.Mail;
 
 namespace FWO.Config.Api.Data
 {
@@ -83,6 +84,24 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("pwSpecialCharactersRequired"), JsonPropertyName("pwSpecialCharactersRequired")]
         public bool PwSpecialCharactersRequired { get; set; } = false;
+
+        [JsonProperty("emailServerAddress"), JsonPropertyName("emailServerAddress")]
+        public string EmailServerAddress { get; set; } = "";
+
+        [JsonProperty("emailPort"), JsonPropertyName("emailPort")]
+        public int EmailPort { get; set; } = 25;
+
+        [JsonProperty("emailTls"), JsonPropertyName("emailTls")]
+        public EmailEncryptionMethod EmailTls { get; set; } = EmailEncryptionMethod.None;
+
+        [JsonProperty("emailUser"), JsonPropertyName("emailUser")]
+        public string EmailUser { get; set; } = "";
+
+        [JsonProperty("emailPassword"), JsonPropertyName("emailPassword")]
+        public string EmailPassword { get; set; } = "";
+
+        [JsonProperty("emailSenderAddress"), JsonPropertyName("emailSenderAddress")]
+        public string EmailSenderAddress { get; set; } = "";
 
         [JsonProperty("minCollapseAllDevices"), JsonPropertyName("minCollapseAllDevices"), UserConfigData]
         public int MinCollapseAllDevices { get; set; } = 15;

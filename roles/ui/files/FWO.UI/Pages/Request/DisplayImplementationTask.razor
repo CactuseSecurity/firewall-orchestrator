@@ -71,26 +71,6 @@
                                 </div>
                             </div>
                         </div>
-                        @* <div class="col-sm-3">
-                            <div class="form-group row">
-                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("action"))*:</label>
-                                <div class="col-sm-8">
-                                    @if (ReqHandler.EditImplTaskMode)
-                                    {
-                                        <select class="form-control form-control-sm" @bind="ReqHandler.ActImplTask.ImplAction">
-                                            @foreach (string action in Enum.GetNames(typeof(RequestAction)))
-                                            {
-                                                <option value="@action">@(userConfig.GetText(action))</option>
-                                            }
-                                        </select>
-                                    }
-                                    else
-                                    {
-                                        <label class="col-sm-12 h-100 border bg-secondary">@(userConfig.GetText(ReqHandler.ActImplTask.ImplAction))</label>
-                                    }
-                                </div>
-                            </div>
-                        </div> *@
                     }
                 </div>
                 @if(ReqHandler.ActImplTask.TaskType == TaskType.generic.ToString())

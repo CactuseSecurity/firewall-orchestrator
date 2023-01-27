@@ -263,3 +263,6 @@ adding report template format fk and permissions
 
 ### 6.1.3 - xx.01.2023 DEVELOP
 - enhance recertification
+
+### 6.1.4 - 27.01.2023 DEVELOP
+- prepare delete rule requests

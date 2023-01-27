@@ -14,6 +14,9 @@ namespace FWO.Api.Data
         [JsonProperty("request_action"), JsonPropertyName("request_action")]
         public string RequestAction { get; set; } = FWO.Api.Data.RequestAction.create.ToString();
 
+        [JsonProperty("device_id"), JsonPropertyName("device_id")]
+        public int? DeviceId { get; set; }
+
         public Cidr Cidr { get; set; } = new Cidr();
 
         public RequestReqElement()
@@ -24,6 +27,7 @@ namespace FWO.Api.Data
             Id = element.Id;
             TaskId = element.TaskId;
             RequestAction = element.RequestAction;
+            DeviceId = element.DeviceId;
             Cidr = new Cidr(element.Cidr != null ? element.Cidr.CidrString : "");
         }
     }

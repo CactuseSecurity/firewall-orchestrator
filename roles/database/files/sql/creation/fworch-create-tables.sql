@@ -1062,7 +1062,7 @@ create table if not exists recertification
 -- create schema
 create schema if not exists request;
 
-CREATE TYPE rule_field_enum AS ENUM ('source', 'destination', 'service');
+CREATE TYPE rule_field_enum AS ENUM ('source', 'destination', 'service', 'rule');
 CREATE TYPE action_enum AS ENUM ('create', 'delete', 'modify');
 
 -- create tables
@@ -1105,7 +1105,9 @@ create table if not exists request.reqelement
     service_id bigint,
     field rule_field_enum NOT NULL,
     user_id bigint,
-    original_nat_id int
+    original_nat_id bigint,
+	device_id int,
+	rule_uid varchar
 );
 
 create table if not exists request.approval 
@@ -1217,7 +1219,8 @@ create table if not exists request.implelement
     service_id bigint,
     field rule_field_enum NOT NULL,
     user_id bigint,
-    original_nat_id int
+    original_nat_id bigint,
+	rule_uid varchar
 );
 
 create table if not exists request.impltask

@@ -50,10 +50,7 @@ namespace FWO.Api.Data
             {
                 foreach(RequestReqElement elem in reqtask.Elements)
                 {
-                    if (elem.Cidr != null && elem.Cidr.Valid)
-                    {
-                        elem.CidrString = elem.Cidr.CidrString;
-                    }
+                    elem.IpString = (elem.Cidr != null && elem.Cidr.Valid ? elem.Cidr.CidrString : null) ;
                 }
             }
         }
@@ -64,18 +61,18 @@ namespace FWO.Api.Data
             {
                 foreach(RequestReqElement elem in reqtask.Elements)
                 {
-                    if (elem.CidrString != null)
+                    if (elem.IpString != null)
                     {
-                        elem.Cidr = new Cidr(elem.CidrString);
+                        elem.Cidr = new Cidr(elem.IpString);
                     }
                 }
                 foreach(RequestImplTask implTask in reqtask.ImplementationTasks)
                 {
                     foreach(RequestImplElement elem in implTask.ImplElements)
                     {
-                        if (elem.CidrString != null)
+                        if (elem.IpString != null)
                         {
-                            elem.Cidr = new Cidr(elem.CidrString);
+                            elem.Cidr = new Cidr(elem.IpString);
                         }
                     }
                 }

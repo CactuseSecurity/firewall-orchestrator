@@ -69,6 +69,10 @@ namespace FWO.Api.Data
             TicketId = reqtask.TicketId;
             if (reqtask.Elements != null && reqtask.Elements.Count > 0)
             {
+                if(reqtask.TaskType == FWO.Api.Data.TaskType.rule_delete.ToString())
+                {
+                    DeviceId = reqtask.Elements[0].DeviceId;
+                }
                 ImplElements = new List<RequestImplElement>();
                 foreach(RequestReqElement element in reqtask.Elements)
                 {
@@ -91,7 +95,7 @@ namespace FWO.Api.Data
             return shortened;
         }
 
-        public List<NwObjectElement> getNwObjectElements(AccessField field)
+        public List<NwObjectElement> getNwObjectElements(ElemFieldType field)
         {
             List<NwObjectElement> elements = new List<NwObjectElement>();
             foreach(var implElem in ImplElements)
@@ -115,15 +119,33 @@ namespace FWO.Api.Data
             List<NwServiceElement> elements = new List<NwServiceElement>();
             foreach(var implElem in ImplElements)
             {
-                if (implElem.Field == AccessField.service.ToString())
+                if (implElem.Field == ElemFieldType.service.ToString())
                 {
                     elements.Add( new NwServiceElement()
                     {
                         ElemId = implElem.Id,
                         TaskId = implElem.ImplTaskId,
-                        Port = implElem.Port,
-                        ProtoId = implElem.ProtoId,
+                        Port = implElem.Port ?? 0,
+                        ProtoId = implElem.ProtoId ?? 0,
                         ServiceId = implElem.ServiceId
+                    });
+                }
+            }
+            return elements;
+        }
+
+        public List<NwRuleElement> getRuleElements()
+        {
+            List<NwRuleElement> elements = new List<NwRuleElement>();
+            foreach(var implElem in ImplElements)
+            {
+                if (implElem.Field == ElemFieldType.rule.ToString())
+                {
+                    elements.Add( new NwRuleElement()
+                    {
+                        ElemId = implElem.Id,
+                        TaskId = implElem.ImplTaskId,
+                        RuleUid = implElem.RuleUid ?? ""
                     });
                 }
             }

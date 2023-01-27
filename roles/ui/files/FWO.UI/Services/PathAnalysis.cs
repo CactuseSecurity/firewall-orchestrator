@@ -79,11 +79,11 @@ namespace FWO.Ui.Services
 
             foreach(var elem in elements)
             {
-                if (elem.Field == AccessField.source.ToString() && elem.Cidr.CidrString != null)
+                if (elem.Field == ElemFieldType.source.ToString() && elem.Cidr.CidrString != null)
                 {
                     sources.Add(elem.Cidr.CidrString);
                 }
-                else if (elem.Field == AccessField.destination.ToString() && elem.Cidr.CidrString != null)
+                else if (elem.Field == ElemFieldType.destination.ToString() && elem.Cidr.CidrString != null)
                 {
                     destinations.Add(elem.Cidr.CidrString);
                 }

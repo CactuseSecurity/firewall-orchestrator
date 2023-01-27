@@ -141,7 +141,7 @@
                 {
                     <div class="list-group-item border bg-secondary">
                         <label class="col-sm-5">@service.Port</label> / 
-                        <label class="col-sm-5">@((service.ProtoId != null) ? ipProtos.Find(x => x.Id == service.ProtoId)?.Name : "")</label>
+                        <label class="col-sm-5">@ipProtos.Find(x => x.Id == service.ProtoId)?.Name</label>
                     </div>
                 }
             </div>
@@ -350,7 +350,7 @@
         {
             if(value != null && value != 0 && newServiceProtoIdInt != null && newServiceProtoIdInt != 0)
             {
-                Services.Add(new NwServiceElement(){ Port = (int)value, ProtoId = newServiceProtoId, TaskId = TaskId });
+                Services.Add(new NwServiceElement(){ Port = (int)value, ProtoId = (int)newServiceProtoIdInt, TaskId = TaskId });
                 newServicePortInt = null;
                 newServiceProtoIdInt = null;
             }
@@ -370,7 +370,7 @@
         {
             if(value != null && value != 0 && newServicePortInt != null && newServicePortInt != 0)
             {
-                Services.Add(new NwServiceElement(){ Port = (int)newServicePortInt, ProtoId = value, TaskId = TaskId });
+                Services.Add(new NwServiceElement(){ Port = (int)newServicePortInt, ProtoId = (int)value, TaskId = TaskId });
                 newServicePortInt = null;
                 newServiceProtoIdInt = null;
             }

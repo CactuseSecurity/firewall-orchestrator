@@ -29,7 +29,7 @@ namespace FWO.Api.Data
         public long? ServiceId { get; set; }
 
         [JsonProperty("field"), JsonPropertyName("field")]
-        public string Field { get; set; } = "source";
+        public string Field { get; set; } = ElemFieldType.source.ToString();
 
         [JsonProperty("user_id"), JsonPropertyName("user_id")]
         public long? UserId { get; set; }

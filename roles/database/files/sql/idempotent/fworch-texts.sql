@@ -81,7 +81,7 @@ INSERT INTO txt VALUES ('old_password', 		'German',	'Altes Passwort');
 INSERT INTO txt VALUES ('old_password', 		'English',	'Old Password');
 INSERT INTO txt VALUES ('new_password', 		'German',	'Neues Passwort');
 INSERT INTO txt VALUES ('new_password', 		'English',	'New Password');
-INSERT INTO txt VALUES ('jwt_expiry_title',     'German', 	'JWT läuft bald ab');
+INSERT INTO txt VALUES ('jwt_expiry_title',     'German', 	'JWT l&auml;uft bald ab');
 INSERT INTO txt VALUES ('jwt_expiry_title',     'English', 	'JWT about to expire');
 INSERT INTO txt VALUES ('jwt_expiry_text',		'German', 	'Ihr Jwt (Session Token) ist kurz davor abzulaufen. Bitte geben Sie ihr Passwort ein, um einen neuen Jwt zu erzeugen.');
 INSERT INTO txt VALUES ('jwt_expiry_text',		'English', 	'Your jwt (session token) is about to expire. Please enter your password to generate a new jwt.');
@@ -896,7 +896,7 @@ INSERT INTO txt VALUES ('email_auth_user',      'German', 	'Email-Nutzer');
 INSERT INTO txt VALUES ('email_auth_user',      'English', 	'Email auth user');
 INSERT INTO txt VALUES ('email_auth_pwd',       'German', 	'Email-Nutzer Passwort');
 INSERT INTO txt VALUES ('email_auth_pwd',       'English', 	'Email user password');
-INSERT INTO txt VALUES ('email_enc_method',     'German', 	'Email-Verschlüsselung');
+INSERT INTO txt VALUES ('email_enc_method',     'German', 	'Email-Verschl&uuml;sselung');
 INSERT INTO txt VALUES ('email_enc_method',     'English', 	'Email encryption');
 INSERT INTO txt VALUES ('state_definitions',	'German', 	'Statusdefinitionen');
 INSERT INTO txt VALUES ('state_definitions',	'English', 	'State Definitions');
@@ -1972,6 +1972,8 @@ INSERT INTO txt VALUES ('E8011', 'German',  'Aktion konnte nicht angelegt werden
 INSERT INTO txt VALUES ('E8011', 'English', 'Action could not be created');
 INSERT INTO txt VALUES ('E8012', 'German',  'Kommentar konnte nicht angelegt werden');
 INSERT INTO txt VALUES ('E8012', 'English', 'Comment could not be created');
+INSERT INTO txt VALUES ('E8013', 'German',  'Regel-Uid ist auf diesem Ger&auml;t nicht vorhanden: ');
+INSERT INTO txt VALUES ('E8013', 'English', 'Rule Uid does not exist on this device: ');
 
 INSERT INTO txt VALUES ('E8101', 'German',  'Email-Versand kann nicht getestet werden, da der aktell angemeldete Nutzer keine Email-Adresse hinerlegt hat.');
 INSERT INTO txt VALUES ('E8101', 'English', 'Sending of emails cannot be tested because the logged-in user does not have an email address.');
@@ -2551,11 +2553,11 @@ INSERT INTO txt VALUES ('H5133', 'English', 'Login Secret* / Password*: For ssh 
 ');
 INSERT INTO txt VALUES ('H5134', 'German',  '&Ouml;ffentlicher Schl&uuml;ssel: Dieses Feld muss nur f&uuml;r Netscreen-Firewalls gef&uuml;llt werden - dieses System ben&ouml;tigt auch den &ouml;ffentlichen Schl&uuml;ssel zum Anmelden.');
 INSERT INTO txt VALUES ('H5134', 'English', 'Public Key: This field only needs to be filled for netscreen firewalls - this system also needs the public key for successful login.');
-INSERT INTO txt VALUES ('H5136', 'German',  'Cloud Client ID: Nur für Cloud Instanzen (Azure) ben&ouml;tigt - f&uuml;r alle anderen Plattformen kann dieses Feld leer gelassen werden.
+INSERT INTO txt VALUES ('H5136', 'German',  'Cloud Client ID: Nur f&uuml;r Cloud Instanzen (Azure) ben&ouml;tigt - f&uuml;r alle anderen Plattformen kann dieses Feld leer gelassen werden.
 ');
 INSERT INTO txt VALUES ('H5136', 'English', 'Cloud Client ID: If you have a cloud installation (e.g. Azure) - enter your Azure client ID here. For all other installations, leave this field empty.
 ');
-INSERT INTO txt VALUES ('H5137', 'German',  'Cloud Client Secret: Nur für Cloud Instanzen (Azure) ben&ouml;tigt - f&uuml;r alle anderen Plattformen kann dieses Feld leer gelassen werden.
+INSERT INTO txt VALUES ('H5137', 'German',  'Cloud Client Secret: Nur f&uuml;r Cloud Instanzen (Azure) ben&ouml;tigt - f&uuml;r alle anderen Plattformen kann dieses Feld leer gelassen werden.
 ');
 INSERT INTO txt VALUES ('H5137', 'English', 'Cloud Client Secret: If you have a cloud installation (e.g. Azure) - enter your Azure client secret here. For all other installations, leave this field empty.
 ');

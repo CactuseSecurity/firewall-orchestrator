@@ -517,7 +517,7 @@
                 ReqHandler.ActReqTask.RequestAction = RequestAction.delete.ToString();
             }
             UpdateElements();
-            if (CheckTaskValues())
+            if (await CheckTaskValues())
             {
                 ReqHandler.ActReqTask.SetDeviceList(devicesToAdd);
                 if (ReqHandler.AddReqTaskMode)
@@ -539,7 +539,7 @@
         }
     }
 
-    private bool CheckTaskValues()
+    private async Task<bool> CheckTaskValues()
     {
         if (ReqHandler.ActReqTask.Title == null || ReqHandler.ActReqTask.Title == "")
         {
@@ -572,6 +572,14 @@
             {
                 DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
                 return false;
+            }
+            foreach(var elem in ReqHandler.ActReqTask.Elements.Where(x => x.Field == ElemFieldType.rule.ToString()))
+            {
+                if(!(await ReqHandler.CheckRuleUid(actRuleDeviceId, elem.RuleUid)))
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E8013") + elem.RuleUid, true);
+                    return false;
+                }
             }
         }
         return true;

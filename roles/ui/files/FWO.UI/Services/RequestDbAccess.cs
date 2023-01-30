@@ -816,5 +816,24 @@ namespace FWO.Ui.Services
                 DisplayMessageInUi(exception, UserConfig.GetText("save_task"), "", true);
             }
         }
+
+        public async Task<bool> FindRuleUid(int deviceId, string? ruleUid)
+        {
+            bool ruleFound = false;
+            try
+            {
+                var Variables = new
+                {
+                    deviceId = deviceId,
+                    ruleUid = ruleUid
+                };
+                ruleFound = (await ApiConnection.SendQueryAsync<List<Rule>>(FWO.Api.Client.Queries.RuleQueries.getRuleByUid, Variables)).Count > 0;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, UserConfig.GetText("fetch_data"), "", true);
+            }
+            return ruleFound;
+        }
     }
 }

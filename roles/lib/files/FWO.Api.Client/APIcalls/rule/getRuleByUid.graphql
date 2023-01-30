@@ -1,0 +1,15 @@
+query getRuleByUid(
+  $deviceId: Int!
+  $ruleUid: String
+) {
+  rule(
+    where: {
+      dev_id: { _eq: $deviceId }
+      rule_uid: { _eq: $ruleUid }
+      active: { _eq: true }
+      access_rule: { _eq: true }
+    }
+  ) {
+    rule_id: rule_id
+  }
+}

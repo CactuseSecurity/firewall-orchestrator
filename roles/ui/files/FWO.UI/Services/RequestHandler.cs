@@ -470,7 +470,7 @@ namespace FWO.Ui.Services
                 await dbAcc.DeleteReqTaskFromDb(ActReqTask);
             }
 
-            ActTicket.Tasks.Remove(ActReqTask);
+            ActTicket.Tasks.RemoveAll(x => x.Id == ActReqTask.Id);
             // todo: adapt TaskNumbers of following tasks?
             DisplayDeleteMode = false;
         }
@@ -1096,6 +1096,11 @@ namespace FWO.Ui.Services
                 return false;
             }
             return true;
+        }
+
+        public async Task<bool> CheckRuleUid(int deviceId, string? ruleUid)
+        {
+            return await dbAcc.FindRuleUid(deviceId, ruleUid);
         }
 
         private bool CheckAssignValues(RequestStatefulObject statefulObject)

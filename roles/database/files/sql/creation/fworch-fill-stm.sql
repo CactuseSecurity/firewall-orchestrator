@@ -21,6 +21,13 @@ insert into config (config_key, config_value, config_user) VALUES ('recertificat
 insert into config (config_key, config_value, config_user) VALUES ('recertificationDisplayPeriod', '30', 0);
 insert into config (config_key, config_value, config_user) VALUES ('ruleRemovalGracePeriod', '60', 0);
 insert into config (config_key, config_value, config_user) VALUES ('commentRequired', 'False', 0);
+insert into config (config_key, config_value, config_user) VALUES ('recAutocreateDeleteTicket', 'False', 0);
+insert into config (config_key, config_value, config_user) VALUES ('recDeleteRuleTicketTitle', 'Ticket Title', 0);
+insert into config (config_key, config_value, config_user) VALUES ('recDeleteRuleTicketReason', 'Ticket Reason', 0);
+insert into config (config_key, config_value, config_user) VALUES ('recDeleteRuleReqTaskTitle', 'Task Title', 0);
+insert into config (config_key, config_value, config_user) VALUES ('recDeleteRuleReqTaskReason', 'Task Reason', 0);
+insert into config (config_key, config_value, config_user) VALUES ('recDeleteRuleTicketPriority', '3', 0);
+insert into config (config_key, config_value, config_user) VALUES ('recDeleteRuleInitState', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('messageViewTime', '7', 0);
 insert into config (config_key, config_value, config_user) VALUES ('dailyCheckStartAt', '00:00:00', 0);
 insert into config (config_key, config_value, config_user) VALUES ('autoDiscoverStartAt', '00:00:00', 0);

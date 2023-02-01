@@ -16,33 +16,86 @@
 @if (configData != null)
 {
     <form class="form-inline" onsubmit="return false">
-        <label for="recertificationPeriod" class="col-form-label col-sm-4">@(userConfig.GetText("recertificationPeriod")):</label>
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("recertificationPeriod")):</label>
         <div class="col-sm-2">
-            <input id="recertificationPeriod" type="number" class="form-control form-control-sm w-100" @bind="configData!.RecertificationPeriod" />
+            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.RecertificationPeriod" />
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
-        <label for="recertificationNoticePeriod" class="col-form-label col-sm-4">@(userConfig.GetText("recertificationNoticePeriod")):</label>
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("recertificationNoticePeriod")):</label>
         <div class="col-sm-2">
-            <input id="recertificationNoticePeriod" type="number" class="form-control form-control-sm w-100" @bind="configData!.RecertificationNoticePeriod" />
+            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.RecertificationNoticePeriod" />
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
-        <label for="recertificationDisplayPeriod" class="col-form-label col-sm-4">@(userConfig.GetText("recertificationDisplayPeriod"))*:</label>
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("recertificationDisplayPeriod"))*:</label>
         <div class="col-sm-2">
-            <input id="recertificationDisplayPeriod" type="number" class="form-control form-control-sm w-100" @bind="configData!.RecertificationDisplayPeriod" />
+            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.RecertificationDisplayPeriod" />
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
-        <label for="ruleRemovalGracePeriod" class="col-form-label col-sm-4">@(userConfig.GetText("ruleRemovalGracePeriod")):</label>
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("ruleRemovalGracePeriod")):</label>
         <div class="col-sm-2">
-            <input id="ruleRemovalGracePeriod" type="number" class="form-control form-control-sm w-100" @bind="configData!.RuleRemovalGracePeriod" />
+            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.RuleRemovalGracePeriod" />
         </div>
     </form>
     <form class="form-inline">
-        <label for="commentRequired" class="col-form-label col-sm-4">@(userConfig.GetText("commentRequired")):</label>
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("commentRequired")):</label>
         <div class="col-sm-2">
-            <input id="commentRequired" type="checkbox" class="w-100" @bind="configData!.CommentRequired">
+            <input type="checkbox" class="w-100" @bind="configData!.CommentRequired" />
+        </div>
+    </form>
+    <hr />
+    <form class="form-inline">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("recAutocreateDeleteTicket")):</label>
+        <div class="col-sm-2">
+            <input type="checkbox" class="w-100" @bind="configData!.RecAutoCreateDeleteTicket" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleTicketTitle")):</label>
+        <div class="col-sm-7">
+            <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecDeleteRuleTicketTitle" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleTicketReason")):</label>
+        <div class="col-sm-7">
+            <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecDeleteRuleTicketReason" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleReqTaskTitle")):</label>
+        <div class="col-sm-7">
+            <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecDeleteRuleReqTaskTitle" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleReqTaskReason")):</label>
+        <div class="col-sm-7">
+            <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecDeleteRuleReqTaskReason" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleTicketPriority")):</label>
+        <div class="col-sm-7">
+            <select class="form-control form-control-sm" @bind="configData!.RecDeleteRuleTicketPriority">
+                @foreach (var prio in PrioList)
+                {
+                    <option value="@prio.NumPrio">@(prio.Name)</option>
+                }
+            </select>
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleInitState")):</label>
+        <div class="col-sm-7">
+            <select class="form-control form-control-sm" @bind="configData!.RecDeleteRuleInitState">
+                @foreach (var state in states)
+                {
+                    <option value="@state.Id">@(state.Name)</option>
+                }
+            </select>
         </div>
     </form>
     <hr />
@@ -72,12 +125,16 @@ else
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private ConfigData? configData;
+    private List<RequestPriority> PrioList = new List<RequestPriority>();
+    private List<RequestState> states = new List<RequestState>();
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             configData = await globalConfig.GetEditableConfig();
+            PrioList = System.Text.Json.JsonSerializer.Deserialize<List<RequestPriority>>(userConfig.ReqPriorities) ?? throw new Exception("Config data could not be parsed.");
+            states = await apiConnection.SendQueryAsync<List<RequestState>>(FWO.Api.Client.Queries.RequestQueries.getStates);
         }
         catch (Exception exception)
         {

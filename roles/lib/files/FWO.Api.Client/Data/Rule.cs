@@ -77,6 +77,7 @@ namespace FWO.Api.Data
         public NatData NatData {get; set;} = new NatData();
 
         public bool Certified { get; set; }
+        public int DeviceId { get; set; }
         public string DeviceName { get; set; } = "";
 
         [JsonProperty("owner_name"), JsonPropertyName("owner_name")]

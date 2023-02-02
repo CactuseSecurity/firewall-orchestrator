@@ -183,6 +183,13 @@
     private bool AddCommentMode = false;
     private string actComment = "";
 
+    private List<long> RecertIds = new List<long>();
+    private List<long> DecertIds = new List<long>();
+    private List<Rule> Certifications = new List<Rule>();
+    private Dictionary<int, List<string>> deleteList = new Dictionary<int, List<string>>();
+
+    private TicketCreator ticketCreator;
+
     protected override void OnInitialized()
     {
         Task.Run(async () =>
@@ -190,6 +197,7 @@
             try
             {
                 rulesFound = false;
+                ticketCreator = new TicketCreator(apiConnection, userConfig);
 
                 ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
                 await InitOwnerships();
@@ -455,55 +463,15 @@
         AddCommentMode = false;
         try
         {
-            // collect selected recerts + decerts
-            List<long> RecertIds = new List<long>();
-            List<long> DecertIds = new List<long>();
-            List<Rule> Certifications = new List<Rule>();
+            AnalyzeSelected();
+            await OldWay();
+            await DoRecerts();
 
-            foreach (Management management in managements)
+            // create delete tickets
+            foreach(var device in deleteList)
             {
-                foreach (Device device in management.Devices)
-                {
-                    if(device.Rules != null)
-                    {
-                        foreach (Rule rule in device.Rules)
-                        {
-                            // await InitRecert(rule); // just for test
-                            if(rule.Metadata.Recert) //Todo: remove
-                            {
-                                RecertIds.Add(rule.Metadata.Id);
-                            }
-                            else if(rule.Metadata.ToBeRemoved) //Todo: remove
-                            {
-                                DecertIds.Add(rule.Metadata.Id);
-                            }
-                            if(rule.Metadata.Recert || rule.Metadata.ToBeRemoved)
-                            {
-                                Certifications.Add(rule);
-                            }
-                        }
-                    }
-                }
+                await ticketCreator.CreateRuleDeleteTicket(device.Key, device.Value, actComment);
             }
-
-            await OldWay(RecertIds, DecertIds);
-
-            int recerts = 0;
-            if (Certifications.Count > 0)
-            {
-                foreach(var cert in Certifications)
-                {
-                    await Recertify(cert);
-                    if(cert.Metadata.Recert)
-                    {
-                        recerts++;
-                    }
-                }
-            }
-
-            string txt = userConfig.GetText("recerts_executed") + recerts.ToString() + ", " +
-                         userConfig.GetText("decerts_executed") + (Certifications.Count-recerts).ToString();
-            DisplayMessageInUi(null, userConfig.GetText("execute_selected"), txt, false);
 
             // reload updated report
             await GenerateRecertificationReport();
@@ -512,6 +480,71 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("execute_selected"), "", true);
         }
+    }
+
+    private void AnalyzeSelected()
+    {
+        // collect selected recerts + decerts
+        RecertIds = new List<long>();
+        DecertIds = new List<long>();
+        Certifications = new List<Rule>();
+
+        foreach (Management management in managements)
+        {
+            foreach (Device device in management.Devices)
+            {
+                if(device.Rules != null)
+                {
+                    foreach (Rule rule in device.Rules)
+                    {
+                        // await InitRecert(rule); // just for test
+                        if(rule.Metadata.Recert) //Todo: remove
+                        {
+                            RecertIds.Add(rule.Metadata.Id);
+                        }
+                        else if(rule.Metadata.ToBeRemoved) //Todo: remove
+                        {
+                            DecertIds.Add(rule.Metadata.Id);
+                        }
+                        if(rule.Metadata.Recert || rule.Metadata.ToBeRemoved)
+                        {
+                            rule.DeviceId = device.Id;
+                            Certifications.Add(rule);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private async Task DoRecerts()
+    {
+        int recerts = 0;
+        deleteList = new Dictionary<int, List<string>>();
+
+        if (Certifications.Count > 0)
+        {
+            foreach(var cert in Certifications)
+            {
+                await Recertify(cert);
+                if(cert.Metadata.Recert)
+                {
+                    recerts++;
+                }
+                else
+                {
+                    if(!deleteList.ContainsKey(cert.DeviceId))
+                    {
+                        deleteList.Add(cert.DeviceId, new List<string>());
+                    }
+                    deleteList[cert.DeviceId].Add(cert.Uid ?? "");
+                }
+            }
+        }
+
+        string txt = userConfig.GetText("recerts_executed") + recerts.ToString() + ", " +
+                        userConfig.GetText("decerts_executed") + (Certifications.Count-recerts).ToString();
+        DisplayMessageInUi(null, userConfig.GetText("execute_selected"), txt, false);
     }
 
     private async Task Recertify(Rule rule)
@@ -544,7 +577,7 @@
         await apiConnection.SendQueryAsync<object>(RuleQueries.prepareNextRecertification, prepvariables);
     }
 
-    private async Task OldWay(List<long> RecertIds, List<long> DecertIds)
+    private async Task OldWay()
     {
         // execute recertifications
         if (RecertIds.Count > 0) //Todo: remove

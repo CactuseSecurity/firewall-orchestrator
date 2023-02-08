@@ -19,4 +19,7 @@ insert into config (config_key, config_value, config_user) VALUES ('recDeleteRul
 
 drop index if exists only_one_future_recert_per_owner_per_rule;
 create unique index if not exists only_one_future_recert_per_owner_per_rule on recertification(owner_id,rule_metadata_id,recert_date) 
-where recert_date IS NULL;
+    where recert_date IS NULL;
+
+ALTER TABLE owner_network DROP CONSTRAINT IF EXISTS owner_network_ip_unique;
+ALTER TABLE owner_network ADD CONSTRAINT owner_network_ip_unique UNIQUE (owner_id, ip);

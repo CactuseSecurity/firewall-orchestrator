@@ -66,7 +66,7 @@ BEGIN
 	-- get id of previous import:
 	SELECT INTO i_current_import_id control_id FROM import_control WHERE mgm_id=i_mgm_id AND stop_time IS NULL;
 	SELECT INTO i_previous_import * FROM get_previous_import_id_for_mgmt(i_mgm_id,i_current_import_id);
-	IF NOT FOUND THEN
+	IF NOT FOUND OR i_previous_import IS NULL THEN
 		i_previous_import := -1;	-- prevent match for previous import
 	END IF;
 

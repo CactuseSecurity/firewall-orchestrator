@@ -583,10 +583,11 @@ CREATE OR REPLACE VIEW v_rule_with_src_owner AS
 	FROM v_active_access_allow_rules r
 	LEFT JOIN rule_from ON (r.rule_id=rule_from.rule_id)
 	LEFT JOIN objgrp_flat of ON (rule_from.obj_id=of.objgrp_flat_id)
-	LEFT JOIN object o ON (o.obj_typ_id<>2 AND of.objgrp_flat_member_id=o.obj_id)
+	LEFT JOIN object o ON (of.objgrp_flat_member_id=o.obj_id)
 	LEFT JOIN owner_network ON (o.obj_ip>>=owner_network.ip OR o.obj_ip<<=owner_network.ip)
 	LEFT JOIN owner ON (owner_network.owner_id=owner.id)
 	LEFT JOIN rule_metadata ON (r.rule_uid=rule_metadata.rule_uid AND r.dev_id=rule_metadata.dev_id)
+	WHERE NOT o.obj_ip IS NULL
 	GROUP BY r.rule_id, matching_ip, owner.id, owner.name, rule_metadata.rule_last_certified, rule_last_certifier;
 	
 CREATE OR REPLACE VIEW v_rule_with_dst_owner AS 
@@ -595,10 +596,11 @@ CREATE OR REPLACE VIEW v_rule_with_dst_owner AS
 	FROM v_active_access_allow_rules r
 	LEFT JOIN rule_to ON (r.rule_id=rule_to.rule_id)
 	LEFT JOIN objgrp_flat of ON (rule_to.obj_id=of.objgrp_flat_id)
-	LEFT JOIN object o ON (o.obj_typ_id<>2 AND of.objgrp_flat_member_id=o.obj_id)
+	LEFT JOIN object o ON (of.objgrp_flat_member_id=o.obj_id)
 	LEFT JOIN owner_network ON (o.obj_ip>>=owner_network.ip OR o.obj_ip<<=owner_network.ip)
 	LEFT JOIN owner ON (owner_network.owner_id=owner.id)
 	LEFT JOIN rule_metadata ON (r.rule_uid=rule_metadata.rule_uid AND r.dev_id=rule_metadata.dev_id)
+	WHERE NOT o.obj_ip IS NULL
 	GROUP BY r.rule_id, matching_ip, owner.id, owner.name, rule_metadata.rule_last_certified, rule_last_certifier;
 
 --drop view view_rule_with_owner;

@@ -3,6 +3,7 @@
     public enum TokenKind
     {
         Value,
+        Owner,
         Disabled,
         SourceNegated,
         DestinationNegated,

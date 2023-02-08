@@ -60,8 +60,20 @@ namespace FWO.Report.Filter
                 query.ruleWhereStatement += "}]}, ";
             }
         }
+        private static List<int> GetDeviceFilterAsList(DeviceFilter? deviceFilter)
+        {
+            List<int> devIdList = new List<int>();
+            if (deviceFilter != null)
+            {
+                foreach (ManagementSelect mgmt in deviceFilter.Managements)
+                    foreach (DeviceSelect dev in mgmt.Devices)
+                        if (dev.Selected == true)
+                            devIdList.Add(dev.Id);
+            }
+            return devIdList;
+        }
 
-        private static void SetTimeFilter(ref DynGraphqlQuery query, TimeFilter? timeFilter, ReportType? reportType)
+        private static void SetTimeFilter(ref DynGraphqlQuery query, TimeFilter? timeFilter, ReportType? reportType, RecertFilter recertFilter)
         {
             if (timeFilter != null)
             {
@@ -108,7 +120,10 @@ namespace FWO.Report.Filter
                         query.nwObjWhereStatement += "{}";
                         query.svcObjWhereStatement += "{}";
                         query.userObjWhereStatement += "{}";
-                        query.ReportTimeString = DateTime.Now.ToString(fullTimeFormat);
+                        query.ReportTimeString = DateTime.Now.AddDays(recertFilter.RecertificationDisplayPeriod).ToString(fullTimeFormat);
+                        query.QueryParameters.Add("$refdate1: timestamp! ");
+                        query.QueryVariables["refdate1"] = query.ReportTimeString;
+                        query.ruleWhereStatement += $@" rule_metadatum: {{ recertifications: {{ next_recert_date: {{ _lte: $refdate1 }} }} }} ";
                         break;
                     default:
                         Log.WriteError("Filter", $"Unexpected report type found: {reportType}");
@@ -190,35 +205,58 @@ namespace FWO.Report.Filter
                     else
                         stop = timeFilter.EndTime.ToString(fullTimeFormat);
                     break;
-                
+
                 default:
                     throw new NotSupportedException($"Found unexpected TimeRangeType");
             }
             return (start, stop);
         }
 
+
+        private static void SetRecertFilter(ref DynGraphqlQuery query, RecertFilter? recertFilter, DeviceFilter deviceFilter)
+        {
+            // bool first = true;
+
+            List<int> deviceIdFilter = GetDeviceFilterAsList(deviceFilter);
+            if (recertFilter != null)
+            {
+                // query.QueryParameters.Add("$ownerIds: [Int!] ");
+                // query.QueryParameters.Add("$refdate1: Timestamp!");
+
+                // setting owner filter:
+                if (recertFilter.RecertOwnerList.Count>0 && recertFilter.RecertOwnerList[0] != 0)
+                {
+                    // query.QueryVariables["ownerIds"] = recertFilter.RecertOwnerList;
+                    query.QueryParameters.Add("$ownerWhere: owner_bool_exp");
+                    query.QueryVariables["ownerWhere"] = new {id = new {_in = recertFilter.RecertOwnerList}}; 
+                }
+                else
+                { // if no ownerIds are set in the filter, return all recerts
+                    query.QueryParameters.Add("$ownerWhere: owner_bool_exp");
+                    query.QueryVariables["ownerWhere"] = new {id = new {_neq = 0}};
+                }
+            }
+        }
+
         private static void SetFixedFilters(ref DynGraphqlQuery query, ReportTemplate reportParams)
         {
-             // leave out all header texts
-            if (reportParams.ReportParams.ReportType != null && 
-                reportParams.ReportParams.ReportType == (int) ReportType.Statistics && 
-                reportParams.ReportParams.ReportType != (int) ReportType.Recertification)
+            // leave out all header texts
+            if (reportParams.ReportParams.ReportType != null &&
+                reportParams.ReportParams.ReportType == (int)ReportType.Statistics &&
+                reportParams.ReportParams.ReportType != (int)ReportType.Recertification)
             {
                 query.ruleWhereStatement += "{rule_head_text: {_is_null: true}}, ";
             }
             SetDeviceFilter(ref query, reportParams.ReportParams.DeviceFilter);
-            SetTimeFilter(ref query, reportParams.ReportParams.TimeFilter, (ReportType)(reportParams.ReportParams.ReportType ?? throw new Exception("No report type set")));
+            SetTimeFilter(ref query, reportParams.ReportParams.TimeFilter, (ReportType)(reportParams.ReportParams.ReportType ?? throw new Exception("No report type set")), reportParams.ReportParams.RecertFilter);
+            if (reportParams.ReportParams.ReportType!= null && (ReportType)reportParams.ReportParams.ReportType==ReportType.Recertification)
+            {
+                SetRecertFilter(ref query, reportParams.ReportParams.RecertFilter, reportParams.ReportParams.DeviceFilter);
+            }
         }
 
         public static DynGraphqlQuery GenerateQuery(ReportTemplate filter, AstNode? ast)
         {
-
-            // if (filter.ReportParams.ReportType == (int) ReportType.Recertification && 
-            //     !filter.ReportParams.RecertFilter.RecertShowAnyMatch)
-            // {
-            //     filter.Filter += $" (not src==0.0.0.0 and not dst==0.0.0.0) ";
-            // }
-
             DynGraphqlQuery query = new DynGraphqlQuery(filter.Filter);
 
             query.ruleWhereStatement += "_and: [";
@@ -235,9 +273,9 @@ namespace FWO.Report.Filter
 
             string paramString = string.Join(" ", query.QueryParameters.ToArray());
 
-            if (filter.ReportParams.ReportType == (int) ReportType.ResolvedRules || filter.ReportParams.ReportType == (int) ReportType.ResolvedRulesTech)
+            if (filter.ReportParams.ReportType == (int)ReportType.ResolvedRules || filter.ReportParams.ReportType == (int)ReportType.ResolvedRulesTech)
                 filter.Detailed = true;
-            
+
             switch ((ReportType)(filter.ReportParams.ReportType ?? throw new Exception("No report type set")))
             {
                 case ReportType.Statistics:
@@ -267,7 +305,7 @@ namespace FWO.Report.Filter
                             }}
                         }}
                     }}");
-                    break;                
+                    break;
 
                 case ReportType.Rules:
                 case ReportType.ResolvedRules:
@@ -308,23 +346,10 @@ namespace FWO.Report.Filter
                     // remove Query Parameter relevant import id
                     var itemToRemove = query.QueryParameters.Single(r => r == " $relevantImportId: bigint");
                     query.QueryParameters.Remove(itemToRemove);
-                    //query.ruleWhereStatement = "{}";
-
                     paramString = string.Join(" ", query.QueryParameters.ToArray());
-                    string recertFilterString = "";
 
-                    if (filter.ReportParams.RecertFilter.RecertWithoutOwner)
-                    {
-                        recertFilterString += $"owner_id: {{_is_null: true }}";
-                    }
-                    else
-                    {
-                        recertFilterString += $@"owner_id: {{_in: [{string.Join(",", filter.ReportParams.RecertFilter.RecertOwnerList)}] }}";
-                    }
-
-                    query.FullQuery = Queries.compact($@"{RuleQueries.ruleRecertFragments}
-                                        
-                    query rulesCertReport({paramString}) {{
+                    query.FullQuery = Queries.compact($@"{RuleQueries.ruleRecert}
+                        query rulesCertReport({paramString}) {{
                         management(
                             where: {{
                                 mgm_id: {{ _in: $mgmId }}
@@ -344,8 +369,12 @@ namespace FWO.Report.Filter
                             ) {{
                                 id: dev_id
                                 name: dev_name
-                                rules: rules_with_owner(
-                                    where: {{ {query.ruleWhereStatement} {recertFilterString} }} 
+                                rules(
+                                    where: {{ 
+                                        rule_metadatum: {{ recertifications_aggregate: {{ count: {{ filter: {{ _and: [{{owner: $ownerWhere}}, {{next_recert_date: {{_lte: $refdate1}}}}]}}, predicate: {{_gt: 0}}}}}}}}
+                                        active:{{ _eq:true }}
+                                        {query.ruleWhereStatement} 
+                                    }} 
                                     limit: $limit
                                     offset: $offset
                                     order_by: {{ rule_num_numeric: asc }}
@@ -357,7 +386,7 @@ namespace FWO.Report.Filter
                         }}
                     }}");
                     break;
-                                                    
+
                 case ReportType.Changes:
                     query.FullQuery = Queries.compact($@"
                     {(filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}

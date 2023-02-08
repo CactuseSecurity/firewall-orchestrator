@@ -1,16 +1,15 @@
-fragment ruleCertOverview on view_rule_with_owner {
+fragment ruleCertOverview on rule {
   rule_id
   rule_uid
-  owner_id
-  owner_name
-  matches
   rule_action
-  device { dev_id }
+  device {
+    dev_id
+  }
   section_header: rule_head_text
   rule_comment
   rule_track
   rule_disabled
-  src_zone {
+  src_zone: zone {
     zone_name
     zone_id
   }
@@ -25,6 +24,17 @@ fragment ruleCertOverview on view_rule_with_owner {
     rule_to_be_removed
     rule_decert_date
     rule_recertification_comment
+    recertification: recertifications (where: { owner: $ownerWhere }, order_by: { owner: { name: asc }}) {
+      recert_date
+      recertified
+      ip_match
+      next_recert_date
+      owner {
+        id
+        group_dn
+        name
+      }
+    }
   }
   rule_src_neg
   rule_dst_neg
@@ -42,7 +52,7 @@ fragment ruleCertOverview on view_rule_with_owner {
       ...networkObjectOverview
     }
   }
-  dst_zone {
+  dst_zone: zoneByRuleToZone {
     zone_name
     zone_id
   }

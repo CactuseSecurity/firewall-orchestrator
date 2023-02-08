@@ -2,9 +2,6 @@ Alter Table "changelog_object" add Constraint "alt_key_changelog_object" UNIQUE 
 Alter Table "changelog_rule" add Constraint "alt_key_changelog_rule" UNIQUE ("abs_change_id");
 Alter Table "changelog_service" add Constraint "alt_key_changelog_service" UNIQUE ("abs_change_id");
 Alter Table "changelog_user" add Constraint "alt_key_changelog_user" UNIQUE ("abs_change_id");
-ALTER TABLE gw_interface DROP CONSTRAINT IF EXISTS gw_interface_routing_device_foreign_key;
-ALTER TABLE gw_route DROP CONSTRAINT IF EXISTS gw_route_routing_device_foreign_key;
-ALTER TABLE gw_route DROP CONSTRAINT IF EXISTS gw_route_interface_foreign_key;
 Alter Table "import_changelog" add Constraint "Alter_Key14" UNIQUE ("import_changelog_nr","control_id");
 Alter Table "import_control" add Constraint "control_id_stop_time_unique" UNIQUE ("stop_time","control_id");
 Alter Table "object" add Constraint "obj_altkey" UNIQUE ("mgm_id","zone_id","obj_uid","obj_create");
@@ -21,6 +18,5 @@ Alter Table "usr" add Constraint "usr_altkey" UNIQUE ("mgm_id","user_name","user
 Alter Table "zone" add Constraint "Alter_Key10" UNIQUE ("mgm_id","zone_name");
 -- TODO: Alter Table "tenant" add Constraint "tenant_name_unique" UNIQUE("tenant_name")
 
-drop index if exists only_one_future_recert_per_owner_per_rule;
 create unique index if not exists only_one_future_recert_per_owner_per_rule on recertification(owner_id,rule_metadata_id,recert_date) 
 where recert_date IS NULL;

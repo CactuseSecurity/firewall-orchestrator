@@ -22,7 +22,7 @@ namespace FWO.Api.Data
         public FwoOwner? FwoOwner { get; set; } = new FwoOwner();
 
         [JsonProperty("comment"), JsonPropertyName("comment")]
-        public FwoOwner? Comment { get; set; } = new FwoOwner();
+        public string Comment { get; set; } = "";
     }
 
 }

@@ -1,0 +1,164 @@
+﻿@using FWO.Api.Client
+@using FWO.Config.Api
+@using FWO.Config.Api.Data
+
+@page "/settings/recertificationgeneral"
+@attribute [Authorize(Roles = "admin, auditor")]
+
+@inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+
+<h3>@(userConfig.GetText("recert_settings"))</h3>
+@(userConfig.GetText("U5311"))
+<hr />
+
+@if (configData != null)
+{
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("recertificationPeriod")):</label>
+        <div class="col-sm-2">
+            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.RecertificationPeriod" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("recertificationNoticePeriod")):</label>
+        <div class="col-sm-2">
+            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.RecertificationNoticePeriod" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("recertificationDisplayPeriod"))*:</label>
+        <div class="col-sm-2">
+            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.RecertificationDisplayPeriod" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("ruleRemovalGracePeriod")):</label>
+        <div class="col-sm-2">
+            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.RuleRemovalGracePeriod" />
+        </div>
+    </form>
+    <form class="form-inline">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("commentRequired")):</label>
+        <div class="col-sm-2">
+            <input type="checkbox" class="w-100" @bind="configData!.CommentRequired" />
+        </div>
+    </form>
+    <hr />
+    <form class="form-inline">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("recAutocreateDeleteTicket")):</label>
+        <div class="col-sm-2">
+            <input type="checkbox" class="w-100" @bind="configData!.RecAutoCreateDeleteTicket" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleTicketTitle")):</label>
+        <div class="col-sm-7">
+            <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecDeleteRuleTicketTitle" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleTicketReason")):</label>
+        <div class="col-sm-7">
+            <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecDeleteRuleTicketReason" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleReqTaskTitle")):</label>
+        <div class="col-sm-7">
+            <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecDeleteRuleReqTaskTitle" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleReqTaskReason")):</label>
+        <div class="col-sm-7">
+            <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecDeleteRuleReqTaskReason" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleTicketPriority")):</label>
+        <div class="col-sm-7">
+            <select class="form-control form-control-sm" @bind="configData!.RecDeleteRuleTicketPriority">
+                @foreach (var prio in PrioList)
+                {
+                    <option value="@prio.NumPrio">@(prio.Name)</option>
+                }
+            </select>
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleInitState")):</label>
+        <div class="col-sm-7">
+            <select class="form-control form-control-sm" @bind="configData!.RecDeleteRuleInitState">
+                @foreach (var state in states)
+                {
+                    <option value="@state.Id">@(state.Name)</option>
+                }
+            </select>
+        </div>
+    </form>
+    <hr />
+    <AuthorizeView Roles="admin">
+        <Authorized>
+            <button class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+        </Authorized>
+        <NotAuthorized>
+            <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+        </NotAuthorized> 
+    </AuthorizeView>
+    <br><br>
+    <p>@(userConfig.GetText("U5303"))</p>
+}
+else
+{
+    <div class="spinner-border" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+}
+
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private ConfigData? configData;
+    private List<RequestPriority> PrioList = new List<RequestPriority>();
+    private List<RequestState> states = new List<RequestState>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            configData = await globalConfig.GetEditableConfig();
+            PrioList = System.Text.Json.JsonSerializer.Deserialize<List<RequestPriority>>(userConfig.ReqPriorities) ?? throw new Exception("Config data could not be parsed.");
+            states = await apiConnection.SendQueryAsync<List<RequestState>>(FWO.Api.Client.Queries.RequestQueries.getStates);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+        }
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            if (configData != null)
+            {
+                await globalConfig.WriteToDatabase(configData, apiConnection);
+                DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
+            }
+            else
+            {
+                throw new Exception("Data saved before loaded. This should be impossible.");
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
+        }
+    }
+}

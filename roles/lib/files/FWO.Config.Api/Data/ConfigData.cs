@@ -70,6 +70,27 @@ namespace FWO.Config.Api.Data
         [JsonProperty("commentRequired"), JsonPropertyName("commentRequired")]
         public bool CommentRequired { get; set; } = false;
 
+        [JsonProperty("recAutocreateDeleteTicket"), JsonPropertyName("recAutocreateDeleteTicket")]
+        public bool RecAutoCreateDeleteTicket { get; set; } = false;
+
+        [JsonProperty("recDeleteRuleTicketTitle"), JsonPropertyName("recDeleteRuleTicketTitle")]
+        public string RecDeleteRuleTicketTitle { get; set; } = "";
+
+        [JsonProperty("recDeleteRuleTicketReason"), JsonPropertyName("recDeleteRuleTicketReason")]
+        public string RecDeleteRuleTicketReason { get; set; } = "";
+
+        [JsonProperty("recDeleteRuleReqTaskTitle"), JsonPropertyName("recDeleteRuleReqTaskTitle")]
+        public string RecDeleteRuleReqTaskTitle { get; set; } = "";
+
+        [JsonProperty("recDeleteRuleReqTaskReason"), JsonPropertyName("recDeleteRuleReqTaskReason")]
+        public string RecDeleteRuleReqTaskReason { get; set; } = "";
+
+        [JsonProperty("recDeleteRuleTicketPriority"), JsonPropertyName("recDeleteRuleTicketPriority")]
+        public int RecDeleteRuleTicketPriority { get; set; } = 3;
+
+        [JsonProperty("recDeleteRuleInitState"), JsonPropertyName("recDeleteRuleInitState")]
+        public int RecDeleteRuleInitState { get; set; } = 0;
+
         [JsonProperty("pwMinLength"), JsonPropertyName("pwMinLength")]
         public int PwMinLength { get; set; } = 10;
 

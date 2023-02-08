@@ -1,0 +1,25 @@
+﻿@page "/help/settings/recertificationgeneral"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@(userConfig.GetText("recert_settings"))</h3>
+    @(Html.Raw(userConfig.GetText("H5401")))
+    <br><br>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H5417")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5418")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5419")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5420")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5421")))</li>
+    </ul>
+</div>

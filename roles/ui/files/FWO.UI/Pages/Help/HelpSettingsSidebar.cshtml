@@ -36,6 +36,9 @@
                 <a class="nav-link" href="/help/settings/defaults/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="oi oi-cog"></span> @(userConfig.GetText("standards"))
                 </a>
+                <a class="nav-link" href="/help/settings/recertificationgeneral/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-badge"></span> @(userConfig.GetText("recertification"))
+                </a>
                 <a class="nav-link" href="/help/settings/passwordpolicy/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="oi oi-document"></span> @(userConfig.GetText("password_policy"))
                 </a>
@@ -65,7 +68,7 @@
                 <a class="nav-link" href="/help/settings/report/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="oi oi-list"></span> @(userConfig.GetText("reporting"))
                 </a>
-                <a class="nav-link" href="/help/settings/recertification/?lang=@($"{userConfig.GetUserLanguage()}")">
+                <a class="nav-link" href="/help/settings/recertificationpersonal/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="oi oi-badge"></span> @(userConfig.GetText("recertification"))
                 </a>
             </ul>

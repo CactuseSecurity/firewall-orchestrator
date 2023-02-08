@@ -30,20 +30,44 @@
     </div>
     <div class="p-3">
         <h5 class="text-left">@(userConfig.GetText("due_within")):</h5>
-        <input  type="text" class="form-control form-control-sm" @bind="userConfig.RecertificationDisplayPeriod" />
+        <input  type="text" class="form-control form-control-sm" @bind="recertLookAheadDays" />
     </div>
 
     <AuthorizeView Roles="admin, auditor">
         <Authorized>
             <div class="p-3">
-                <h5 class="text-left">@(userConfig.GetText("owner")):</h5>
-                <select class="form-control form-control-sm" @bind="selectedOwnerId">
-                    <option value="0">-</option>
-                    @foreach (var owner in ownerList)
+                <h7 class="text-left">@(userConfig.GetText("owner"))</h7>
+                    <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)"
+                        Value="selectedOwner" ValueChanged="OwnerChanged" Elements="ownerList">
+                        <ElementTemplate Context="owner">
+                            @owner.Name
+                        </ElementTemplate>
+                    </Dropdown>
+                    @if (selectedOwner.Name != "")
                     {
-                        <option value="@owner.Id">@(owner.Name)</option>
+                        recertWithoutOwner = false;
                     }
-                </select>
+                    <br>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="recertOverdue"
+                            @bind="recertOverdueOnly"
+                            @oninput="@(async () => { recertOverdueOnly = !recertOverdueOnly; SyncFilterToDisplay(); })" />
+                        <label class="form-check-label" for="recertOverdue">@(userConfig.GetText("overdue_recert"))</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="recertWithoutOwner"
+                            @bind="recertWithoutOwner"
+                            @oninput="@(async () => { 
+                                recertWithoutOwner = !recertWithoutOwner;
+                                if (recertWithoutOwner)
+                                {
+                                    selectedOwner = new FwoOwner();
+                                    OwnerChanged(selectedOwner);
+                                    StateHasChanged();
+                                }
+                            })" />
+                        <label class="form-check-label" for="recertWithoutOwner">@(userConfig.GetText("without_owner"))</label>
+                    </div>
             </div>
         </Authorized>
     </AuthorizeView>
@@ -76,7 +100,10 @@
         }
     </div>
     <hr />
-    <RulesReport Recertification="true" ReadonlyMode="readonlyMode" Managements="managements" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedRules"></RulesReport>
+    <RulesReport Recertification="true" ReadonlyMode="readonlyMode" Managements="managements" RulesPerPage="rulesPerPage" 
+        ReportParams="reportParams"
+        @bind-SelectedRules="selectedRules">
+    </RulesReport>
 </div>
 
 <PopUp Title="@(userConfig.GetText("add_comment"))" Show="@AddCommentMode" Large="true" OnClose="() => AddCommentMode = false">
@@ -162,10 +189,12 @@
     private bool processing = false;
     private bool rulesFound = false;
     private CancellationTokenSource tokenSource = new CancellationTokenSource();
+    private bool recertWithoutOwner = false;
 
     private Management[] managements = new Management[0];
     
     private bool readonlyMode = false;
+    public FwoOwner selectedOwner = new FwoOwner();
     private int selectedOwnerId = 0;
     private List<FwoOwner> ownerList = new List<FwoOwner>();
     private List<FwoOwner> userOwnerships = new List<FwoOwner>();
@@ -178,10 +207,15 @@
     private CollapseState collapseControlObjects = new CollapseState();
 
     private ReportBase? currentReport;
+    private ReportTemplate reportParams = new ReportTemplate();
 
     private Sidebar? deviceSelectionSidebar;
     private bool AddCommentMode = false;
     private string actComment = "";
+    private bool recertOverdueOnly = false;
+    private bool recertShowAnyMatch = true;
+    private bool recertSingleLinePerRule = false;
+    private int recertLookAheadDays = 0;
 
     protected override void OnInitialized()
     {
@@ -201,6 +235,7 @@
                     collapseDevices = true;
                     await InvokeAsync(StateHasChanged);
                 }
+                recertLookAheadDays = Convert.ToInt32(userConfig.RecertificationDisplayPeriod);
             }
             catch (Exception exception)
             {
@@ -259,8 +294,16 @@
             }
 
             SyncFilterToDisplay();
-            RecertFilter recertFilter = new RecertFilter() { RecertOwnerList = (selectedOwnerId > 0 ? new List<int>(){ selectedOwnerId } : combinedOwnershipIds) };
-            ReportTemplate reportParams = new ReportTemplate("", deviceFilter, (int) ReportType.Recertification, new TimeFilter(), recertFilter);
+            RecertFilter recertFilter = new RecertFilter()
+            {
+                RecertOwnerList = new List<int>() { selectedOwner.Id },
+                RecertOverdueOnly = recertOverdueOnly,
+                RecertWithoutOwner = recertWithoutOwner,
+                RecertShowAnyMatch = recertShowAnyMatch,
+                RecertSingleLinePerRule = recertSingleLinePerRule,
+                RecertificationDisplayPeriod = recertLookAheadDays
+            };
+            reportParams = new ReportTemplate("", deviceFilter, (int) ReportType.Recertification, new TimeFilter(), recertFilter);
             currentReport = ReportBase.ConstructReport(reportParams, userConfig);
 
             DateTime startTime = DateTime.Now;
@@ -469,24 +512,24 @@
                         foreach (Rule rule in device.Rules)
                         {
                             // await InitRecert(rule); // just for test
-                            if(rule.Metadata.Recert) //Todo: remove
+                            @* if(rule.Metadata.Recert) //Todo: remove
                             {
                                 RecertIds.Add(rule.Metadata.Id);
                             }
                             else if(rule.Metadata.ToBeRemoved) //Todo: remove
                             {
                                 DecertIds.Add(rule.Metadata.Id);
-                            }
-                            if(rule.Metadata.Recert || rule.Metadata.ToBeRemoved)
+                            } *@
+                            @* if(rule.Metadata.Recert || rule.Metadata.ToBeRemoved)
                             {
                                 Certifications.Add(rule);
-                            }
+                            } *@
                         }
                     }
                 }
             }
 
-            await OldWay(RecertIds, DecertIds);
+            //await OldWay(RecertIds, DecertIds);
 
             int recerts = 0;
             if (Certifications.Count > 0)
@@ -571,4 +614,9 @@
             await apiConnection.SendQueryAsync<object>(RuleQueries.updateRuleMetadataDecert, apiVariables);
         }
     }
+    private void OwnerChanged(FwoOwner owner)
+    {
+        selectedOwner = owner;
+    }
+
 }

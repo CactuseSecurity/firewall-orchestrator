@@ -23,157 +23,183 @@
                                PageSize="RulesPerPage" ColumnReorder="true" TableRowClass="@(rule => getTableRowClasses(rule))"
                                @ref="reportTable">
 
-                            @if (EmptyColumns[0] == false)
-                            {
-                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("number"))" DefaultSortColumn="true" Field="@(rChange => rChange.OrderNumber)" Sortable="true" Filterable="false" Hideable="true">
-                                    <Template>
-                                        @((MarkupString)ruleDisplay.DisplayNumber(rule, device.Rules))
-                                    </Template>
-                                </Column>
-                            }
-
-                            @if(Recertification || SelectedReportType==ReportType.Recertification)
-                            {
-                                <Column TableItem="Rule" Title="@(userConfig.GetText("next_recert"))" Field="@(rule => rule.Metadata.NextRecert)" Sortable="true" Filterable="false" />
-                                <Column TableItem="Rule" Title="@(userConfig.GetText("owner"))" Field="@(rule => rule.OwnerName)" Sortable="true" Filterable="false" />
-                                <Column TableItem="Rule" Title="@(userConfig.GetText("ip_matches"))" Field="@(rule => rule.IpMatch)" Sortable="true" Filterable="false" />
-                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("last_recertifier"))" Field="@(rule => rule.Metadata.LastCertifierName)" Sortable="true" Filterable="true" />
-                                @if(Recertification && !ReadonlyMode) 
+                            @* @if(!(Recertification || SelectedReportType==ReportType.Recertification) || Rule.Metadata.RuleRecertification.Count()>0)
+                            { *@
+                                @if (EmptyColumns[0] == false)
                                 {
-                                    <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("action"))" Field="@(rule => rule.OrderNumber)">
+                                    <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("number"))" DefaultSortColumn="true" Field="@(rChange => rChange.OrderNumber)" Sortable="true" Filterable="false" Hideable="true">
                                         <Template>
-                                            <div class="form-check" @onclick:stopPropagation="true">
-                                                <input class="form-check-input" type="radio" name="certification@(rule.Id.ToString()+':'+rule.OwnerId.ToString())" id="recertifyRadio@(rule.Id.ToString()+':'+rule.OwnerId.ToString())" @onchange="() => {rule.Metadata.Recert=true; rule.Metadata.ToBeRemoved=false;}">
-                                                <label class="form-check-label" for="recertifyRadio@(rule.Id)">
-                                                    @(userConfig.GetText("recertify"))
-                                                </label>
-                                            </div>
-                                            <div class="form-check" @onclick:stopPropagation="true">
-                                                <input class="form-check-input" type="radio" name="certification@(rule.Id.ToString()+':'+rule.OwnerId.ToString())" id="decertifyRadio@(rule.Id.ToString()+':'+rule.OwnerId.ToString())" @onchange="() => {rule.Metadata.Recert=false; rule.Metadata.ToBeRemoved=true;}">
-                                                <label class="form-check-label" for="decertifyRadio@(rule.Id)">
-                                                    @(userConfig.GetText("decertify"))
-                                                </label>
-                                            </div>
-                                            <div class="form-check" @onclick:stopPropagation="true">
-                                                <input class="form-check-input" type="radio" name="certification@(rule.Id.ToString()+':'+rule.OwnerId.ToString())" id="noneRadio@(rule.Id.ToString()+':'+rule.OwnerId.ToString())" checked @onchange="() => {rule.Metadata.Recert=false; rule.Metadata.ToBeRemoved=false;}">
-                                                <label class="form-check-label" for="noneRadio@(rule.Id)">
-                                                    @(userConfig.GetText("later"))
-                                                </label>
-                                            </div>
+                                            @((MarkupString)ruleDisplay.DisplayNumber(rule, device.Rules))
                                         </Template>
                                     </Column>
                                 }
-                                <Column TableItem="Rule" Title="@(userConfig.GetText("recert_comment"))" Field="@(rule => rule.Metadata.Comment)" Sortable="true" Filterable="false" />
-                            }
 
-                            @if (EmptyColumns[1] == false)
-                            {
-                                <Column TableItem="Rule" Title="@(userConfig.GetText("name"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true" />
-                            }
-                            @if (EmptyColumns[2] == false)
-                            {
-                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source_zone"))" Field="@(rChange => rChange.SourceZone)" Sortable="true" Filterable="false" Hideable="true">
-                                    <Template>
-                                        @((MarkupString)ruleDisplay.DisplaySourceZone(rule))
-                                    </Template>
-                                </Column>
-                            }
-                            @if (EmptyColumns[3] == false)
-                            {
-                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
-                                    <Template>
-                                        @((MarkupString)ruleDisplay.DisplaySource(rule, location: Recertification ? "certification" : "report", reportType: SelectedReportType))
-                                    </Template>
-                                </Column>
-                            }
-                            @if (EmptyColumns[4] == false)
-                            {
-                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination_zone"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
-                                    <Template>
-                                        @((MarkupString)ruleDisplay.DisplayDestinationZone(rule))
-                                    </Template>
-                                </Column>
-                            }
-                            @if (EmptyColumns[5] == false)
-                            {
-                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
-                                    <Template>
-                                        @((MarkupString)ruleDisplay.DisplayDestination(rule, location: Recertification ? "certification" : "report", reportType: SelectedReportType))
-                                    </Template>
-                                </Column>
-                            }
-                            @if (EmptyColumns[6] == false)
-                            {
-                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("services"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
-                                    <Template>
-                                        @((MarkupString)ruleDisplay.DisplayService(rule, location: Recertification ? "certification" : "report", reportType: SelectedReportType))
-                                    </Template>
-                                </Column>
-                            }
-                            @if(NatRules)
-                            {
-                                    <Column Class="table-active" TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_source"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                @if(Recertification || SelectedReportType==ReportType.Recertification)
+                                {
+                                    <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("next_recert"))" Field="@(rule => rule.Metadata.RuleRecertification)" Sortable="true" Filterable="false">
                                         <Template>
-                                                @((MarkupString)ruleDisplay.DisplayTranslatedSource(rule, location: Recertification ? "certification" : "report"))
+                                            @((MarkupString)showNextRecertDateList(rule))
                                         </Template>
                                     </Column>
-                                    <Column Class="table-active" TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_destination"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                    <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("owner"))" Field="@(rule => rule.Metadata.RuleRecertification)" Sortable="true" Filterable="false">
                                         <Template>
-                                            @((MarkupString)ruleDisplay.DisplayTranslatedDestination(rule, location: Recertification ? "certification" : "report"))
+                                            @((MarkupString)showRecertOwnerList(rule))
                                         </Template>
                                     </Column>
-                                    <Column Class="table-active" TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_services"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+    
+                                    <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("ip_matches"))" Field="@(rule => rule.Metadata.RuleRecertification)" Sortable="true" Filterable="false">
                                         <Template>
-                                            @((MarkupString)ruleDisplay.DisplayTranslatedService(rule, location: Recertification ? "certification" : "report"))
+                                            @((MarkupString)showRecertIpMatches(rule))
                                         </Template>
                                     </Column>
-                            }
-                            @if (EmptyColumns[7] == false && !NatRules)
-                            {
-                                <Column TableItem="Rule" Title="@(userConfig.GetText("action"))" Field="@(rChange => rChange.Action)" Sortable="true" Filterable="false" Hideable="true" />
-                            }
-                            @if (EmptyColumns[8] == false && !NatRules)
-                            {
-                                <Column TableItem="Rule" Title="@(userConfig.GetText("track"))" Field="@(rChange => rChange.Track)" Sortable="true" Filterable="false" Hideable="true" />
-                            }
-                            @if (EmptyColumns[9] == false)
-                            {
-                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("enabled"))" Field="@(rChange => rChange.Disabled)" Sortable="true" Filterable="false" Hideable="true">
-                                    <Template>
-                                        @((MarkupString)ruleDisplay.DisplayEnabled(rule))
-                                    </Template>
-                                </Column>
-                            }
-                            @if (EmptyColumns[10] == false)
-                            {
-                                <Column TableItem="Rule" Title="@(userConfig.GetText("uid"))" Field="@(rChange => rChange.Uid)" Sortable="true" Filterable="false" Hideable="true" />
-                            }
-                            @if (EmptyColumns[11] == false)
-                            {
-                                <Column TableItem="Rule" Title="@(userConfig.GetText("comment"))" Field="@(rChange => rChange.Comment)" Sortable="true" Filterable="false" Hideable="true" />
-                            }
+                                    @if(Recertification && RecertificationHistory)
+                                    {
+                                        // TODO: implement 2nd recert report containing latest recerts
+                                        <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("last_recertifier"))" Field="@(rule => rule.Metadata.RuleRecertification)" Sortable="true" Filterable="true">
+                                            <Template>
+                                                @((MarkupString)showLastRecertifier(rule))
+                                            </Template>
+                                        </Column>
+                                    }
+                                    @if(Recertification && !ReadonlyMode) 
+                                    {
+                                        <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("action"))" Field="@(rule => rule.OrderNumber)">
+                                            <Template>
+                                                <div class="form-check" @onclick:stopPropagation="true">
+                                                    <input class="form-check-input" type="radio" name="certification@(rule.Id.ToString()+':'+rule.OwnerId.ToString())" id="recertifyRadio@(rule.Id.ToString()+':'+rule.OwnerId.ToString())" @onchange="() => {rule.Metadata.Recert=true; rule.Metadata.ToBeRemoved=false;}">
+                                                    <label class="form-check-label" for="recertifyRadio@(rule.Id)">
+                                                        @(userConfig.GetText("recertify"))
+                                                    </label>
+                                                </div>
+                                                <div class="form-check" @onclick:stopPropagation="true">
+                                                    <input class="form-check-input" type="radio" name="certification@(rule.Id.ToString()+':'+rule.OwnerId.ToString())" id="decertifyRadio@(rule.Id.ToString()+':'+rule.OwnerId.ToString())" @onchange="() => {rule.Metadata.Recert=false; rule.Metadata.ToBeRemoved=true;}">
+                                                    <label class="form-check-label" for="decertifyRadio@(rule.Id)">
+                                                        @(userConfig.GetText("decertify"))
+                                                    </label>
+                                                </div>
+                                                <div class="form-check" @onclick:stopPropagation="true">
+                                                    <input class="form-check-input" type="radio" name="certification@(rule.Id.ToString()+':'+rule.OwnerId.ToString())" id="noneRadio@(rule.Id.ToString()+':'+rule.OwnerId.ToString())" checked @onchange="() => {rule.Metadata.Recert=false; rule.Metadata.ToBeRemoved=false;}">
+                                                    <label class="form-check-label" for="noneRadio@(rule.Id)">
+                                                        @(userConfig.GetText("later"))
+                                                    </label>
+                                                </div>
+                                            </Template>
+                                        </Column>
+                                    }
+                                }
+                                @if(Recertification && RecertificationHistory)
+                                {
+                                    // TODO: implement 2nd recert report containing latest recerts
+                                    <Column TableItem="Rule" Title="@(userConfig.GetText("recert_comment"))" Field="@(rule => rule.Metadata.Comment)" Sortable="true" Filterable="false" />
+                                }
 
-                            <DetailTemplate TableItem="Rule">
-                                <Detail Title="@(userConfig.GetText("created"))" Data="@context.Metadata?.Created?.ToString()" />
-                                <Detail Title="@(userConfig.GetText("last_modified"))" Data="@context.Metadata?.LastModified?.ToString()" />
-                                <Detail Title="@(userConfig.GetText("first_hit"))" Data="@context.Metadata?.FirstHit?.ToString()" />
-                                <Detail Title="@(userConfig.GetText("last_hit"))" Data="@context.Metadata?.LastHit?.ToString()" />
-                                <Detail Title="@(userConfig.GetText("last_certify_date"))" Data="@context.Metadata?.LastCertified?.ToString()" />
-                                <Detail Title="@(userConfig.GetText("last_recertifier"))" Data="@context.Metadata?.LastCertifierDn?.ToString()" />
-                                @* <Detail Title="@(userConfig.GetText("marked_to_be_removed"))" Data="@((context.Metadata?.ToBeRemoved)?'yes':'no'))" /> 
-                                    // TODO: not able to get this syntactically working, but implicit info is there: ToBeRemoved == NOT DecertificationDate IS NULL *@
-                                <Detail Title="@(userConfig.GetText("decert_date"))" Data="@context.Metadata?.DecertificationDate?.ToString()" />
-                                <Detail Title="@(userConfig.GetText("recert_comment"))" Data="@context.Metadata?.Comment?.ToString()" />
-                            </DetailTemplate>
+                                @if (EmptyColumns[1] == false)
+                                {
+                                    <Column TableItem="Rule" Title="@(userConfig.GetText("name"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true" />
+                                }
+                                @if (EmptyColumns[2] == false)
+                                {
+                                    <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source_zone"))" Field="@(rChange => rChange.SourceZone)" Sortable="true" Filterable="false" Hideable="true">
+                                        <Template>
+                                            @((MarkupString)ruleDisplay.DisplaySourceZone(rule))
+                                        </Template>
+                                    </Column>
+                                }
+                                @if (EmptyColumns[3] == false)
+                                {
+                                    <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                        <Template>
+                                            @((MarkupString)ruleDisplay.DisplaySource(rule, location: Recertification ? "certification" : "report", reportType: SelectedReportType))
+                                        </Template>
+                                    </Column>
+                                }
+                                @if (EmptyColumns[4] == false)
+                                {
+                                    <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination_zone"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                        <Template>
+                                            @((MarkupString)ruleDisplay.DisplayDestinationZone(rule))
+                                        </Template>
+                                    </Column>
+                                }
+                                @if (EmptyColumns[5] == false)
+                                {
+                                    <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                        <Template>
+                                            @((MarkupString)ruleDisplay.DisplayDestination(rule, location: Recertification ? "certification" : "report", reportType: SelectedReportType))
+                                        </Template>
+                                    </Column>
+                                }
+                                @if (EmptyColumns[6] == false)
+                                {
+                                    <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("services"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                        <Template>
+                                            @((MarkupString)ruleDisplay.DisplayService(rule, location: Recertification ? "certification" : "report", reportType: SelectedReportType))
+                                        </Template>
+                                    </Column>
+                                }
+                                @if(NatRules)
+                                {
+                                        <Column Class="table-active" TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_source"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                            <Template>
+                                                    @((MarkupString)ruleDisplay.DisplayTranslatedSource(rule, location: Recertification ? "certification" : "report"))
+                                            </Template>
+                                        </Column>
+                                        <Column Class="table-active" TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_destination"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                            <Template>
+                                                @((MarkupString)ruleDisplay.DisplayTranslatedDestination(rule, location: Recertification ? "certification" : "report"))
+                                            </Template>
+                                        </Column>
+                                        <Column Class="table-active" TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_services"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                            <Template>
+                                                @((MarkupString)ruleDisplay.DisplayTranslatedService(rule, location: Recertification ? "certification" : "report"))
+                                            </Template>
+                                        </Column>
+                                }
+                                @if (EmptyColumns[7] == false && !NatRules)
+                                {
+                                    <Column TableItem="Rule" Title="@(userConfig.GetText("action"))" Field="@(rChange => rChange.Action)" Sortable="true" Filterable="false" Hideable="true" />
+                                }
+                                @if (EmptyColumns[8] == false && !NatRules)
+                                {
+                                    <Column TableItem="Rule" Title="@(userConfig.GetText("track"))" Field="@(rChange => rChange.Track)" Sortable="true" Filterable="false" Hideable="true" />
+                                }
+                                @if (EmptyColumns[9] == false)
+                                {
+                                    <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("enabled"))" Field="@(rChange => rChange.Disabled)" Sortable="true" Filterable="false" Hideable="true">
+                                        <Template>
+                                            @((MarkupString)ruleDisplay.DisplayEnabled(rule))
+                                        </Template>
+                                    </Column>
+                                }
+                                @if (EmptyColumns[10] == false)
+                                {
+                                    <Column TableItem="Rule" Title="@(userConfig.GetText("uid"))" Field="@(rChange => rChange.Uid)" Sortable="true" Filterable="false" Hideable="true" />
+                                }
+                                @if (EmptyColumns[11] == false)
+                                {
+                                    <Column TableItem="Rule" Title="@(userConfig.GetText("comment"))" Field="@(rChange => rChange.Comment)" Sortable="true" Filterable="false" Hideable="true" />
+                                }
 
-                            <CustomRow TableItem="Rule" IsActiveForItem="(rule => !String.IsNullOrEmpty(rule.SectionHeader))">
-                                <tr>
-                                    <td class="bg-light" colspan="@(reportTable?.Columns.Count + 1)">
-                                        <div class="font-weight-bold">@(context.SectionHeader)</div>
-                                    </td>
-                                </tr>         
-                            </CustomRow>
+                                <DetailTemplate TableItem="Rule">
+                                    <Detail Title="@(userConfig.GetText("created"))" Data="@context.Metadata?.Created?.ToString()" />
+                                    <Detail Title="@(userConfig.GetText("last_modified"))" Data="@context.Metadata?.LastModified?.ToString()" />
+                                    <Detail Title="@(userConfig.GetText("first_hit"))" Data="@context.Metadata?.FirstHit?.ToString()" />
+                                    <Detail Title="@(userConfig.GetText("last_hit"))" Data="@context.Metadata?.LastHit?.ToString()" />
+                                    <Detail Title="@(userConfig.GetText("last_certify_date"))" Data="@context.Metadata?.LastCertified?.ToString()" />
+                                    <Detail Title="@(userConfig.GetText("last_recertifier"))" Data="@context.Metadata?.LastCertifierDn?.ToString()" />
+                                    @* <Detail Title="@(userConfig.GetText("marked_to_be_removed"))" Data="@((context.Metadata?.ToBeRemoved)?'yes':'no'))" /> 
+                                        // TODO: not able to get this syntactically working, but implicit info is there: ToBeRemoved == NOT DecertificationDate IS NULL *@
+                                    <Detail Title="@(userConfig.GetText("decert_date"))" Data="@context.Metadata?.DecertificationDate?.ToString()" />
+                                    <Detail Title="@(userConfig.GetText("recert_comment"))" Data="@context.Metadata?.Comment?.ToString()" />
+                                </DetailTemplate>
 
+                                <CustomRow TableItem="Rule" IsActiveForItem="(rule => !String.IsNullOrEmpty(rule.SectionHeader))">
+                                    <tr>
+                                        <td class="bg-light" colspan="@(reportTable?.Columns.Count + 1)">
+                                            <div class="font-weight-bold">@(context.SectionHeader)</div>
+                                        </td>
+                                    </tr>         
+                                </CustomRow>                            
                             <Pager ShowPageNumber="true" ShowTotalCount="true" />
                         </Table>
                     </Collapse>
@@ -187,7 +213,7 @@
 {
     [Parameter]
     public bool Recertification { get; set; }
-
+    
     [Parameter]
     public bool ReadonlyMode { get; set; } = false;
 
@@ -215,6 +241,10 @@
     [Parameter]
     public Management[] Managements { get; set; } = new Management[]{};
 
+    [Parameter]
+    public ReportTemplate ReportParams { get; set; } = new ReportTemplate();
+
+    private bool RecertificationHistory { get; set; } = false;
     private ITable<Rule>? reportTable;
     private const int ColumnsCount = 12;
     private bool[] EmptyColumns = new bool[ColumnsCount];
@@ -239,4 +269,104 @@
         }
         return classes;
     }
+
+    private bool filteredForMultipleOwners ()
+    {
+        return ReportParams.ReportParams.RecertFilter.RecertOwnerList.Count()>1 ||
+            (ReportParams.ReportParams.RecertFilter.RecertOwnerList.Count()==1 && ReportParams.ReportParams.RecertFilter.RecertOwnerList[0]==0);
+    }
+
+    private string getOwnerDisplayString (int ownerCounter, Recertification recert, string format = "html")
+    {
+        string result = "";
+        string countString = (filteredForMultipleOwners())? ownerCounter.ToString() + ".&nbsp;" : "";
+        if (recert != null && recert.FwoOwner != null && recert.FwoOwner.Name != null && format=="html")
+            result += countString + recert.FwoOwner.Name + "<br />";
+        return result;
+    }
+
+    private string getIpMatchDisplayString (int ownerCounter, Recertification recert, string format = "html")
+    {
+        string result = "";
+        if (format=="html" && recert != null)
+        {
+            string matchString = "&#8208;";
+            string countString = (filteredForMultipleOwners())? ownerCounter.ToString() + ".&nbsp;" : "";
+            if (recert.IpMatch != null && recert.IpMatch != "")
+                matchString = recert.IpMatch;
+            result += countString + matchString + "<br />";
+        }
+        return result;
+    }
+
+    private string getNextRecertDateString (int ownerCounter, Recertification recert, string format = "html")
+    {
+        string result = "";
+        if (format=="html" && recert != null)
+        {
+            string countString = (filteredForMultipleOwners())? ownerCounter.ToString() + ".&nbsp;" : "";
+            string dateOnly = "-";
+            if (recert.NextRecertDate != null)
+                dateOnly = DateOnly.FromDateTime((DateTime)recert.NextRecertDate).ToString("yyyy-MM-dd");
+            result += countString + dateOnly + "<br />";
+        }
+        return result;
+    }
+
+    private string showRecertOwnerList(Rule rule, string format = "html")
+    {
+        string result = "";
+        int count=0;
+        string countString = count.ToString();
+        foreach (Recertification r in rule.Metadata.RuleRecertification) 
+        {
+            count += 1;
+            result += getOwnerDisplayString(count, r);
+        }
+        return result;
+    }    
+
+    private string showRecertIpMatches(Rule rule, string format = "html")
+    {
+        string result = "";
+        int count=0;
+        foreach (Recertification r in rule.Metadata.RuleRecertification) 
+        {
+            count += 1;
+            result += getIpMatchDisplayString(count, r);
+        }
+        return result;
+    }    
+
+    private string showLastRecertifier(Rule rule, string format = "html")
+    {
+        string result = "";
+        int count=1;
+        foreach (Recertification r in rule.Metadata.RuleRecertification) 
+        {
+            if (r != null)
+            {
+                if (format=="html")
+                {
+                    // result += count.ToString() + ".&nbsp;" + "" + "<br />";
+                    // TODO: fetch last recertifier
+                }
+            }
+            count += 1;
+        }
+        return result;
+    }    
+
+    private string showNextRecertDateList(Rule rule, string format = "html")
+    {
+        string result = "";
+        int count=0;
+        foreach (Recertification r in rule.Metadata.RuleRecertification) 
+        {
+            count += 1;
+            result += getNextRecertDateString(count, r);
+        }
+        return result;
+    }
+
 }

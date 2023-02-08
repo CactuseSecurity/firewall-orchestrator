@@ -7,5 +7,7 @@ namespace FWO.Api.Data
         public bool RecertWithoutOwner {get; set;} = false;
         public bool RecertShowAnyMatch {get; set;} = false;
         public bool RecertSingleLinePerRule {get; set;} = false;
+        public int RecertificationDisplayPeriod = 0;
+
     }
 }

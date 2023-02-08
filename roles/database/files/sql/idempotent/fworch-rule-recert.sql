@@ -45,7 +45,7 @@ $$ LANGUAGE plpgsql;
 
 -- this function deletes existing (future) open recert entries and inserts the new ones into the recertificaiton table
 -- the new recert date will only replace an existing one, if it is closer (smaller)
-CREATE OR REPLACE FUNCTION recert_refresh_one_owner_one_mgm 
+CREATE OR REPLACE FUNCTION recert_refresh_one_owner_one_mgm
 	(i_owner_id INTEGER, i_mgm_id INTEGER, t_requested_next_recert_date TIMESTAMP) RETURNS VOID AS $$
 DECLARE
 	r_rule   RECORD;
@@ -61,6 +61,7 @@ DECLARE
 	b_no_current_next_recert_date BOOLEAN := FALSE;
 	i_previous_import BIGINT;
 	i_current_import_id BIGINT;
+	i_super_owner_id INT;
 BEGIN
 	-- get id of previous import:
 	SELECT INTO i_current_import_id control_id FROM import_control WHERE mgm_id=i_mgm_id AND stop_time IS NULL;
@@ -70,7 +71,7 @@ BEGIN
 	END IF;
 
 	b_super_owner := FALSE;
-	SELECT INTO i_recert_entry_id id FROM owner WHERE id=i_owner_id AND is_default;
+	SELECT INTO i_super_owner_id id FROM owner WHERE id=i_owner_id AND is_default;
 	IF FOUND THEN 
 		b_super_owner := TRUE;
 	END IF;
@@ -153,12 +154,18 @@ BEGIN
 			DELETE FROM recertification WHERE owner_id=i_owner_id AND rule_id=r_rule.rule_id AND recert_date IS NULL;
 		END IF;
 	END LOOP;
+
+	-- finally, when not super user - recalculate super user recert entries - since these might change with each owner change
+	IF NOT b_super_owner THEN
+		SELECT INTO i_super_owner_id id FROM owner WHERE is_default;
+		PERFORM recert_refresh_one_owner_one_mgm (i_super_owner_id, i_mgm_id, t_requested_next_recert_date);
+	END IF;
 END;
 $$ LANGUAGE plpgsql;
 
 
 -- this function returns a table of future recert entries 
--- but does not them into the recertificaiton table
+-- but does not write them into the recertification table
 CREATE OR REPLACE FUNCTION recert_get_one_owner_one_mgm
 	(i_owner_id INTEGER, i_mgm_id INTEGER)
 	RETURNS SETOF recertification AS

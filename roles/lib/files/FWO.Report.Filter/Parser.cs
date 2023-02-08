@@ -225,7 +225,7 @@ namespace FWO.Report.Filter
             Token Value = CheckToken(TokenKind.Value);
             return Name.Kind switch
             {
-                TokenKind.Value or TokenKind.Service or TokenKind.Action or TokenKind.Management or TokenKind.Gateway or TokenKind.FullText or TokenKind.Protocol
+                TokenKind.Value or TokenKind.Owner or TokenKind.Service or TokenKind.Action or TokenKind.Management or TokenKind.Gateway or TokenKind.FullText or TokenKind.Protocol
                 => new AstNodeFilterString() { Name = Name, Operator = Operator, Value = Value },
 
                 TokenKind.Disabled or TokenKind.SourceNegated or TokenKind.DestinationNegated or TokenKind.ServiceNegated or TokenKind.Remove
@@ -255,7 +255,7 @@ namespace FWO.Report.Filter
         private Token ParseFilterName()
         {
             return CheckToken(
-                TokenKind.Destination, TokenKind.Source, TokenKind.Service, TokenKind.Protocol,
+                TokenKind.Owner, TokenKind.Destination, TokenKind.Source, TokenKind.Service, TokenKind.Protocol,
                 TokenKind.DestinationPort, TokenKind.Action, TokenKind.FullText, TokenKind.Gateway,
                 TokenKind.Management, TokenKind.Remove, TokenKind.RecertDisplay, TokenKind.Disabled);
         }

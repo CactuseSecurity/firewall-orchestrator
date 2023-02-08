@@ -1824,6 +1824,18 @@
                   }
                 },
                 {
+                  "name": "reqelements",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "device_id",
+                      "table": {
+                        "name": "reqelement",
+                        "schema": "request"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "rule_metadata",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -6458,6 +6470,18 @@
                   }
                 },
                 {
+                  "name": "recertifications",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "owner_id",
+                      "table": {
+                        "name": "recertification",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "reqtask_owners",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -6793,6 +6817,20 @@
                 "name": "recertification",
                 "schema": "public"
               },
+              "object_relationships": [
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "owner_id"
+                  }
+                },
+                {
+                  "name": "rule_metadatum",
+                  "using": {
+                    "foreign_key_constraint_on": "rule_metadata_id"
+                  }
+                }
+              ],
               "insert_permissions": [
                 {
                   "role": "importer",
@@ -9412,6 +9450,18 @@
                 }
               ],
               "array_relationships": [
+                {
+                  "name": "recertifications",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "rule_metadata_id",
+                      "table": {
+                        "name": "recertification",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
                 {
                   "name": "rule_owners",
                   "using": {

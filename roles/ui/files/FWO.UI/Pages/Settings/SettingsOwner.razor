@@ -187,7 +187,7 @@
                             {
                                 <div class="col-sm-12">
                                     <div class="form-group row">
-                                        <input type="text" class="col-sm-11 form-control form-control-sm" @bind="ipAdd.Cidr.CidrString" />
+                                        <input type="text" class="col-sm-11 form-control form-control-sm" readonly @bind="ipAdd.Cidr.CidrString" />
                                         <button type="button" class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteIp(ipAdd)">x</button>
                                     </div>
                                 </div>
@@ -537,6 +537,7 @@
         }
         else
         {
+            // TODO: block editing single ip addresses - either delete them or add new ones.
             if(ipChanged)
             {
                 await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.OwnerQueries.deleteNetworkOwnerships, new { ownerId = actOwner.Id });

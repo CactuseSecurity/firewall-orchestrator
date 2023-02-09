@@ -31,7 +31,7 @@
             <div class="p-3">
                 <h6 class="text-left">@(userConfig.GetText("recert_parameter"))</h6>
                     <h7 class="text-left">@(userConfig.GetText("due_within")):</h7>
-                        <input  type="text" class="form-control form-control-sm" @bind="userConfig.RecertificationDisplayPeriod" />
+                        <input type="number" min="1" max="5000" step="1" class="form-control form-control-sm" @bind="recertLookAheadDays" />
                     <h7 class="text-left">@(userConfig.GetText("owner"))</h7>
                         <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)"
                             Value="selectedOwner" ValueChanged="OwnerChanged" Elements="ownerList">
@@ -168,13 +168,15 @@
                 @switch (currentReport.ReportType)
                 {
                     case ReportType.Recertification:
-                        // bool rulesFound = managementsReport.PrepareMetadata();
                         bool rulesFound = true;
                         if (!rulesFound)
                         {
                             DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
                         }
-                        <RulesReport Managements="managementsReport" SelectedReportType="selectedReportType" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"></RulesReport>
+                        <RulesReport Managements="managementsReport" SelectedReportType="selectedReportType" RulesPerPage="rulesPerPage"
+                            ReportParams="reportParams"
+                            @bind-SelectedRules="selectedItemsRuleReportTable"
+                        />
                         break;
 
                     case ReportType.NatRules:
@@ -468,6 +470,7 @@
     private bool recertWithoutOwner = false;
     private bool recertShowAnyMatch = true;
     private bool recertSingleLinePerRule = false;
+    private int recertLookAheadDays = 0;
 
     private ScheduledReport[] scheduledReports = new ScheduledReport[0];
 
@@ -477,6 +480,7 @@
     private int sidebarRightWidth = GlobalConfig.kSidebarRightWidth;
 
     private ReportTemplateComponent reportTemplateControl = new ReportTemplateComponent();
+    private ReportTemplate reportParams = new ReportTemplate();
 
     private ReportBase? currentReport;
 
@@ -488,7 +492,6 @@
     private string filterFeedbackError = "";
     private string filterFeedbackEnd = "";
     private string filterInput = "";
- //   private string filterInput = "";
 
     private CollapseState collapseSidebarAll = new CollapseState();
     private CollapseState collapseSidebarReport = new CollapseState();
@@ -516,6 +519,7 @@
                 PaginationVariables paginationVariables = new PaginationVariables() { Limit = 0, Offset = 0 };
                 managementsAllObjects = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
                 await InvokeAsync(StateHasChanged);
+                recertLookAheadDays = Convert.ToInt32(userConfig.RecertificationDisplayPeriod);
             }
             catch (Exception exception)
             {
@@ -813,9 +817,10 @@
                 RecertOverdueOnly = recertOverdueOnly,
                 RecertWithoutOwner = recertWithoutOwner,
                 RecertShowAnyMatch = recertShowAnyMatch,
-                RecertSingleLinePerRule = recertSingleLinePerRule
+                RecertSingleLinePerRule = recertSingleLinePerRule,
+                RecertificationDisplayPeriod = recertLookAheadDays
             };
-            ReportTemplate reportParams = new ReportTemplate(filterInput, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter);
+            reportParams = new ReportTemplate(filterInput, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter);
             currentReport = ReportBase.ConstructReport(reportParams, userConfig);
 
             // save selected managements before resetting
@@ -946,7 +951,7 @@
                 RecertShowAnyMatch = recertShowAnyMatch, 
                 RecertSingleLinePerRule = recertSingleLinePerRule
             };
-            ReportTemplate reportParams = new ReportTemplate(input, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter);
+            reportParams = new ReportTemplate(input, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter);
 
             DynGraphqlQuery query = Compiler.Compile(reportParams);
 

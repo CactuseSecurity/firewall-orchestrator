@@ -4,6 +4,7 @@
     db: "{{ fworch_db_name }}"
     query: >
       DO $do$ BEGIN
+        ALTER TABLE owner DISABLE TRIGGER owner_change;
         INSERT INTO owner (name, dn, group_dn, is_default, tenant_id, recert_interval, next_recert_date, app_id_external) 
             VALUES    ('ownerF_demo', 'ad-single-owner-f', 'ad-group-owner-f', false, 1, 30, '2022-12-01T00:00:00', '123')
             ON CONFLICT DO NOTHING; 
@@ -13,6 +14,7 @@
         INSERT INTO owner (name, dn, group_dn, is_default, tenant_id, recert_interval, next_recert_date, app_id_external) 
             VALUES    ('defaultOwner_demo', 'ad-single-owner-default', 'ad-group-owner-default', true, 1, 30, '2022-12-01T00:00:00', '111')
             ON CONFLICT DO NOTHING; 
+        ALTER TABLE owner ENABLE TRIGGER owner_change;
 
         INSERT INTO owner_network (owner_id, ip) 
             VALUES    ((SELECT id FROM owner WHERE name='ownerF_demo' AND tenant_id=1), '10.222.0.0/27')

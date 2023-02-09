@@ -27,7 +27,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getNatRuleDetails;
         public static readonly string getNatRuleDetailsForReport;
 
-        public static readonly string ruleRecertFragments;
+        public static readonly string ruleRecert;
 
         static RuleQueries()
         {
@@ -78,8 +78,8 @@ namespace FWO.Api.Client.Queries
                 prepareNextRecertification = File.ReadAllText(QueryPath + "recertification/prepareNextRecertification.graphql");
                 recertify = File.ReadAllText(QueryPath + "recertification/recertify.graphql");
 
-                ruleRecertFragments = ruleOverviewFragments + 
-                    File.ReadAllText(QueryPath + "recertification/fragments/view_rule_with_owner.graphql");
+                ruleRecert = ruleOverviewFragments + 
+                    File.ReadAllText(QueryPath + "recertification/openRecerts.graphql");
 
                 natRuleOverviewFragments = ruleOverviewFragments +
                     File.ReadAllText(QueryPath + "rule/fragments/natRuleOverview.graphql");

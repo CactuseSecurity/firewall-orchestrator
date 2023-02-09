@@ -36,6 +36,9 @@ namespace FWO.Report.Filter.Ast
                 case TokenKind.RecertDisplay:
                     ExtractRecertDisplayFilter(query);
                     break;
+                case TokenKind.Owner:
+                    ExtractOwnerFilter(query);
+                    break;
                 default:
                     break;
             }
@@ -43,27 +46,25 @@ namespace FWO.Report.Filter.Ast
 
         private DynGraphqlQuery ExtractRecertDisplayFilter(DynGraphqlQuery query)
         {
-            string queryVarName = AddVariable<DateTime>(query, "refdate", Operator.Kind, DateTime.Now.AddDays(-semanticValue));
-
-            query.ruleWhereStatement += $@"
-                _or: [
-                        {{ rule_metadatum: {{ rule_last_certified: {{ _lte: ${queryVarName} }} }} }}
-                        {{ _and:[ 
-                                    {{ rule_metadatum: {{ rule_last_certified: {{ _is_null: true }} }} }}
-                                    {{ rule_metadatum: {{ rule_created: {{ _lte: ${queryVarName} }} }} }}
-                                ]
-                        }}
-                    ]";
+            // string queryVarName = AddVariable<DateTime>(query, "refdate", Operator.Kind, DateTime.Now.AddDays(semanticValue));
+            // query.ruleWhereStatement += $@"  rule_metadatum: {{ recertifications: {{ next_recert_date: {{ _lte: ${queryVarName} }} }} }}";
             return query;
         }
 
         private DynGraphqlQuery ExtractDestinationPortFilter(DynGraphqlQuery query)
         {
             string queryVarName = AddVariable<int>(query, "dport", Operator.Kind, semanticValue);
-
             query.ruleWhereStatement += "rule_services: { service: { svcgrp_flats: { serviceBySvcgrpFlatMemberId: { svc_port: {_lte" +
                 ": $" + queryVarName + "}, svc_port_end: {_gte: $" + queryVarName + " } } } } }";
             return query;
         }
+
+        private DynGraphqlQuery ExtractOwnerFilter(DynGraphqlQuery query)
+        {
+            string QueryVarName = AddVariable<string>(query, "owner", Operator.Kind, Value.Text);
+            query.ruleWhereStatement += $"owner: {{  {ExtractOperator()}: ${QueryVarName} }}";
+            return query;
+        }
+        
     }
 }

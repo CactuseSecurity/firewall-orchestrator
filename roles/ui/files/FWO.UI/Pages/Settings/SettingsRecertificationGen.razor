@@ -47,6 +47,72 @@
     </form>
     <hr />
     <form class="form-inline">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("recCheckActive")):</label>
+        <div class="col-sm-2">
+            <input type="checkbox" class="w-100" @bind="configData!.RecCheckActive" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("recert_check_every"))*:</label>
+        <div class="col-sm-8">
+            <div class="form-group row">
+                <div class="col-sm-2">
+                    <input type="number" min="1" class="form-control form-control-sm" @bind="recCheckParams.RecertCheckOffset" />
+                </div>
+                <div class="col-sm-4">
+                    <select class="form-control form-control-sm" @bind="recCheckParams.RecertCheckInterval">
+                        @foreach (Interval interval in Enum.GetValues(typeof(Interval)))
+                        {
+                            if (interval != Interval.Never && interval != Interval.Years)
+                            {
+                                <option value="@interval">@userConfig.GetText(interval.ToString())</option>
+                            }
+                        }
+                    </select>
+                </div>
+                @if(recCheckParams.RecertCheckInterval == Interval.Weeks)
+                {
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("each_on")):</label>
+                    <div class="col-sm-4">
+                        <select class="form-control form-control-sm" @bind="recCheckParams.RecertCheckWeekday">
+                            <option value="-1">@userConfig.GetText("undefined")</option>
+                            @foreach (DayOfWeek day in Enum.GetValues(typeof(DayOfWeek)))
+                            {
+                                <option value="@day">@userConfig.GetText(day.ToString())</option>
+                            }
+                        </select>
+                    </div>
+                }
+                else if(recCheckParams.RecertCheckInterval == Interval.Months)
+                {
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("each_on")):</label>
+                    <div class="col-sm-2">
+                        <input type="number" min="0" max="31" class="form-control form-control-sm" @bind="recCheckParams.RecertCheckDayOfMonth" />
+                    </div>
+                }
+            </div>
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("recCheckEmailSubject")):</label>
+        <div class="col-sm-7">
+            <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecCheckEmailSubject" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("recCheckEmailUpcomingText")):</label>
+        <div class="col-sm-7">
+            <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecCheckEmailUpcomingText" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("recCheckEmailOverdueText")):</label>
+        <div class="col-sm-7">
+            <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecCheckEmailOverdueText" />
+        </div>
+    </form>
+    <hr />
+    <form class="form-inline">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("recAutocreateDeleteTicket")):</label>
         <div class="col-sm-2">
             <input type="checkbox" class="w-100" @bind="configData!.RecAutoCreateDeleteTicket" />
@@ -108,7 +174,7 @@
         </NotAuthorized> 
     </AuthorizeView>
     <br><br>
-    <p>@(userConfig.GetText("U5303"))</p>
+    <p>@(userConfig.GetText("U5304"))</p>
 }
 else
 {
@@ -126,6 +192,7 @@ else
 
     private ConfigData? configData;
     private List<RequestPriority> PrioList = new List<RequestPriority>();
+    private RecertCheckParams recCheckParams = new RecertCheckParams();
     private List<RequestState> states = new List<RequestState>();
 
     protected override async Task OnInitializedAsync()
@@ -134,6 +201,7 @@ else
         {
             configData = await globalConfig.GetEditableConfig();
             PrioList = System.Text.Json.JsonSerializer.Deserialize<List<RequestPriority>>(userConfig.ReqPriorities) ?? throw new Exception("Config data could not be parsed.");
+            recCheckParams = System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(userConfig.RecCheckParams) ?? throw new Exception("Config data could not be parsed.");
             states = await apiConnection.SendQueryAsync<List<RequestState>>(FWO.Api.Client.Queries.RequestQueries.getStates);
         }
         catch (Exception exception)
@@ -148,6 +216,15 @@ else
         {
             if (configData != null)
             {
+                if(recCheckParams.RecertCheckDayOfMonth == 0)
+                {
+                    recCheckParams.RecertCheckDayOfMonth = null;
+                }
+                if(recCheckParams.RecertCheckWeekday == -1)
+                {
+                    recCheckParams.RecertCheckWeekday = null;
+                }
+                configData.RecCheckParams = System.Text.Json.JsonSerializer.Serialize(recCheckParams);
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
             }

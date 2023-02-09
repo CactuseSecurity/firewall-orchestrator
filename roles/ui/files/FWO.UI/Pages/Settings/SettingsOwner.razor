@@ -1,5 +1,6 @@
 ﻿@using FWO.Api.Client
 @using FWO.Config.Api
+@using FWO.Config.Api.Data
 @using System.Net
 @using FWO.Middleware.Client
 @using FWO.Middleware.RequestParameters
@@ -135,6 +136,43 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("recert_check_every")):</label>
+                        <div class="col-sm-2">
+                            <input type="number" min="1" class="form-control form-control-sm" @bind="actRecCheckParams.RecertCheckOffset" />
+                        </div>
+                        <div class="col-sm-2">
+                            <select class="form-control form-control-sm" @bind="actRecCheckParams.RecertCheckInterval">
+                                @foreach (Interval interval in Enum.GetValues(typeof(Interval)))
+                                {
+                                    if (interval != Interval.Never && interval != Interval.Years)
+                                    {
+                                        <option value="@interval">@userConfig.GetText(interval.ToString())</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        @if(actRecCheckParams.RecertCheckInterval == Interval.Weeks)
+                        {
+                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("each_on")):</label>
+                            <div class="col-sm-3">
+                                <select class="form-control form-control-sm" @bind="actRecCheckParams.RecertCheckWeekday">
+                                    <option value="-1">@userConfig.GetText("undefined")</option>
+                                    @foreach (DayOfWeek day in Enum.GetValues(typeof(DayOfWeek)))
+                                    {
+                                        <option value="@day">@userConfig.GetText(day.ToString())</option>
+                                    }
+                                </select>
+                            </div>
+                        }
+                        else if(actRecCheckParams.RecertCheckInterval == Interval.Months)
+                        {
+                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("each_on")):</label>
+                            <div class="col-sm-3">
+                                <input type="number" min="0" max ="31" class="form-control form-control-sm" @bind="actRecCheckParams.RecertCheckDayOfMonth" />
+                            </div>
+                        }
                     </div>
                     <div class="form-group row">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_app_id")):</label>
@@ -318,6 +356,7 @@
     private bool SearchUserMode = false;
     private bool SearchUserInLdapMode = false;
     private bool InitComplete = false;
+    private RecertCheckParams actRecCheckParams = new RecertCheckParams();
 
     private List<NwObjectElement> actIpAddresses = new List<NwObjectElement>();
     private bool ipChanged = false;
@@ -393,6 +432,7 @@
         {
             actOwner = owner;
             actTenantId = (actOwner.TenantId != null ? (int)actOwner.TenantId : -1);
+            actRecCheckParams = (actOwner.RecertCheckParams != null ? System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(actOwner.RecertCheckParams) : new RecertCheckParams());
             if(AddOwnerMode)
             {
                 actIpAddresses.Clear();
@@ -415,12 +455,21 @@
         try
         {
             actOwner.TenantId = (actTenantId >= 0 ? actTenantId : null);
+            if(actRecCheckParams.RecertCheckDayOfMonth == 0)
+            {
+                actRecCheckParams.RecertCheckDayOfMonth = null;
+            }
+            if(actRecCheckParams.RecertCheckWeekday == -1)
+            {
+                actRecCheckParams.RecertCheckWeekday = null;
+            }
+            actOwner.RecertCheckParams = System.Text.Json.JsonSerializer.Serialize(actRecCheckParams);
             if (actOwner.Sanitize())
             {
                 DisplayMessageInUi(null, userConfig.GetText("edit_owner"), userConfig.GetText("U0001"), true);
             }
             if (CheckValues())
-            {    
+            {
                 if(AddOwnerMode)
                 {
                     await AddOwnerInDb();

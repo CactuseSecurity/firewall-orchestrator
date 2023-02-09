@@ -28,6 +28,10 @@ insert into config (config_key, config_value, config_user) VALUES ('recDeleteRul
 insert into config (config_key, config_value, config_user) VALUES ('recDeleteRuleReqTaskReason', 'Task Reason', 0);
 insert into config (config_key, config_value, config_user) VALUES ('recDeleteRuleTicketPriority', '3', 0);
 insert into config (config_key, config_value, config_user) VALUES ('recDeleteRuleInitState', '0', 0);
+insert into config (config_key, config_value, config_user) VALUES ('recCheckActive', 'False', 0);
+insert into config (config_key, config_value, config_user) VALUES ('recCheckEmailSubject', 'Upcoming rule recertifications', 0);
+insert into config (config_key, config_value, config_user) VALUES ('recCheckEmailUpcomingText', 'The following rules are upcoming to be recertified:', 0);
+insert into config (config_key, config_value, config_user) VALUES ('recCheckEmailOverdueText', 'The following rules are overdue to be recertified:', 0);
 insert into config (config_key, config_value, config_user) VALUES ('messageViewTime', '7', 0);
 insert into config (config_key, config_value, config_user) VALUES ('dailyCheckStartAt', '00:00:00', 0);
 insert into config (config_key, config_value, config_user) VALUES ('autoDiscoverStartAt', '00:00:00', 0);

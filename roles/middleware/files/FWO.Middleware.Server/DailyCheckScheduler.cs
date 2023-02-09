@@ -93,6 +93,8 @@ namespace FWO.Middleware.Server
                 openAlerts = await apiConnection.SendQueryAsync<List<Alert>>(MonitorQueries.getOpenAlerts);
                 await CheckDemoData();
                 await CheckImports();
+                RecertCheck recertCheck = new RecertCheck(apiConnection, globalConfig);
+                await recertCheck.CheckRecertifications();
             }
             catch(Exception exc)
             {

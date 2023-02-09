@@ -798,6 +798,20 @@ INSERT INTO txt VALUES ('WriteToDeviceList',    'German', 	'In Ger&auml;teliste 
 INSERT INTO txt VALUES ('WriteToDeviceList',    'English', 	'Write to device list');
 INSERT INTO txt VALUES ('DisplayFoundDevices',  'German', 	'Gefundene Ger&auml;te darstellen');
 INSERT INTO txt VALUES ('DisplayFoundDevices',  'English', 	'Display found devices');
+INSERT INTO txt VALUES ('Sunday',               'German', 	'Sonntag');
+INSERT INTO txt VALUES ('Sunday',               'English', 	'Sunday');
+INSERT INTO txt VALUES ('Monday',               'German', 	'Montag');
+INSERT INTO txt VALUES ('Monday',               'English', 	'Monday');
+INSERT INTO txt VALUES ('Tuesday',              'German', 	'Dienstag');
+INSERT INTO txt VALUES ('Tuesday',              'English', 	'Tuesday');
+INSERT INTO txt VALUES ('Wednesday',            'German', 	'Mittwoch');
+INSERT INTO txt VALUES ('Wednesday',            'English', 	'Wednesday');
+INSERT INTO txt VALUES ('Thursday',             'German', 	'Donnerstag');
+INSERT INTO txt VALUES ('Thursday',             'English', 	'Thursday');
+INSERT INTO txt VALUES ('Friday',               'German', 	'Freitag');
+INSERT INTO txt VALUES ('Friday',               'English', 	'Friday');
+INSERT INTO txt VALUES ('Saturday',             'German', 	'Samstag');
+INSERT INTO txt VALUES ('Saturday',             'English', 	'Saturday');
 
 -- network analysis
 INSERT INTO txt VALUES ('network_analysis', 	'German',	'Netzanalyse');
@@ -1182,6 +1196,18 @@ INSERT INTO txt VALUES ('recDeleteRuleTicketPriority','German','Priorit&auml;t f
 INSERT INTO txt VALUES ('recDeleteRuleTicketPriority','English','Priority for delete rule ticket');
 INSERT INTO txt VALUES ('recDeleteRuleInitState','German',  'Initialer Status f&uuml;r L&ouml;schantrag');
 INSERT INTO txt VALUES ('recDeleteRuleInitState','English', 'Initial state for delete rule ticket');
+INSERT INTO txt VALUES ('recCheckActive',       'German','Rezert Check: Aktiv');
+INSERT INTO txt VALUES ('recCheckActive',       'English','Recert Check: Active');
+INSERT INTO txt VALUES ('recCheckEmailSubject', 'German','Rezert Check: Email Betreff');
+INSERT INTO txt VALUES ('recCheckEmailSubject', 'English','Recert Check: Email subject');
+INSERT INTO txt VALUES ('recCheckEmailUpcomingText','German','Rezert Check: Text anstehend');
+INSERT INTO txt VALUES ('recCheckEmailUpcomingText','English','Recert Check: text upcoming');
+INSERT INTO txt VALUES ('recCheckEmailOverdueText','German','Rezert Check: Text &uuml;berf&auml;llig');
+INSERT INTO txt VALUES ('recCheckEmailOverdueText','English','Recert Check: text overdue');
+INSERT INTO txt VALUES ('recert_check_every',   'German', 	'Rezert Check alle');
+INSERT INTO txt VALUES ('recert_check_every',   'English', 	'Recert Check every');
+INSERT INTO txt VALUES ('undefined',		    'German', 	'nicht definiert');
+INSERT INTO txt VALUES ('undefined',		    'English', 	'undefined');
 INSERT INTO txt VALUES ('reqAvailableTaskTypes','German', 	'Verf&uuml;gbare Auftragstypen');
 INSERT INTO txt VALUES ('reqAvailableTaskTypes','English', 	'Available Task Types');
 INSERT INTO txt VALUES ('reqAllowObjectSearch', 'German', 	'Objektsuche erlauben');
@@ -1364,7 +1390,6 @@ INSERT INTO txt VALUES ('reset_to_default',     'German',   'auf Vorgabewerte zu
 INSERT INTO txt VALUES ('reset_to_default',     'English',  'Reset to Default');
 INSERT INTO txt VALUES ('option',		        'German', 	'Option');
 INSERT INTO txt VALUES ('option',		        'English', 	'Option');
-
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
@@ -1672,6 +1697,8 @@ INSERT INTO txt VALUES ('U5302', 'German',  'Einstellungen ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5302', 'English', 'Policy changed.');
 INSERT INTO txt VALUES ('U5303', 'German',  '* Einstellungen k&ouml;nnen vom Nutzer in den pers&ouml;nlichen Einstellungen &uuml;berschrieben werden.');
 INSERT INTO txt VALUES ('U5303', 'English', '* Settings can be overwritten by user in personal settings.');
+INSERT INTO txt VALUES ('U5304', 'German',  '* Einstellungen k&ouml;nnen vom Nutzer in den pers&ouml;nlichen Einstellungen oder in den Eigent&uuml;mer-Einstellungen &uuml;berschrieben werden.');
+INSERT INTO txt VALUES ('U5304', 'English', '* Settings can be overwritten by user in personal settings or by the owner settings.');
 INSERT INTO txt VALUES ('U5311', 'German',  'Verwaltung der Standard-Voreinstellungen f&uuml;r alle Nutzer und einige technische Parameter');
 INSERT INTO txt VALUES ('U5311', 'English', 'Set default values for all users and some technical parameters');
 INSERT INTO txt VALUES ('U5312', 'German',  'Verwaltung der Passwortregeln');
@@ -1703,7 +1730,6 @@ INSERT INTO txt VALUES ('U5413', 'German',  'Anpassung der pers&ouml;nlichen Rep
 INSERT INTO txt VALUES ('U5413', 'English', 'Adapt your personal reporting settings');
 INSERT INTO txt VALUES ('U5414', 'German',  'Anpassung der pers&ouml;nlichen Rezertifizierungseinstellungen');
 INSERT INTO txt VALUES ('U5414', 'English', 'Adapt your personal recertification settings');
-
 
 INSERT INTO txt VALUES ('U5501', 'German',  'Sind sie sicher, dass sie folgenden Status l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5501', 'English', 'Are you sure you want to delete state: ');

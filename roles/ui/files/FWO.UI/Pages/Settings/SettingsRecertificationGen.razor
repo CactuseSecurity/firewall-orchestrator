@@ -78,7 +78,7 @@
                             <option value="-1">@userConfig.GetText("undefined")</option>
                             @foreach (DayOfWeek day in Enum.GetValues(typeof(DayOfWeek)))
                             {
-                                <option value="@day">@userConfig.GetText(day.ToString())</option>
+                                <option value="@((int)day)">@userConfig.GetText(day.ToString())</option>
                             }
                         </select>
                     </div>

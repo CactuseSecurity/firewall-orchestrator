@@ -6,6 +6,7 @@ mutation newOwner(
   $recertInterval: Int
   $nextRecertDate: timestamp
   $appIdExternal: String!
+  $recertCheckParams: String
   ) {
   insert_owner(objects: {
     name: $name
@@ -15,6 +16,7 @@ mutation newOwner(
     recert_interval: $recertInterval
     next_recert_date: $nextRecertDate
     app_id_external: $appIdExternal
+    recert_check_params: $recertCheckParams
   }) {
     returning {
       newId: id

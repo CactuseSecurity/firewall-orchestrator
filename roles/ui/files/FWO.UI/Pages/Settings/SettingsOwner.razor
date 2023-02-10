@@ -161,7 +161,7 @@
                                     <option value="-1">@userConfig.GetText("undefined")</option>
                                     @foreach (DayOfWeek day in Enum.GetValues(typeof(DayOfWeek)))
                                     {
-                                        <option value="@day">@userConfig.GetText(day.ToString())</option>
+                                        <option value="@((int)day)">@userConfig.GetText(day.ToString())</option>
                                     }
                                 </select>
                             </div>
@@ -502,7 +502,8 @@
             tenantId = actOwner.TenantId,
             recertInterval = actOwner.RecertInterval,
             nextRecertDate = actOwner.NextRecertDate,
-            appIdExternal = actOwner.ExtAppId
+            appIdExternal = actOwner.ExtAppId,
+            recertCheckParams = actOwner.RecertCheckParams
         };
         ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.OwnerQueries.newOwner, Variables)).ReturnIds;
         if (returnIds == null)
@@ -528,7 +529,8 @@
             tenantId = actOwner.TenantId,
             recertInterval = actOwner.RecertInterval,
             nextRecertDate = actOwner.NextRecertDate,
-            appIdExternal = actOwner.ExtAppId
+            appIdExternal = actOwner.ExtAppId,
+            recertCheckParams = actOwner.RecertCheckParams
         };
         int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.OwnerQueries.updateOwner, Variables)).UpdatedId;
         if(udId != actOwner.Id)

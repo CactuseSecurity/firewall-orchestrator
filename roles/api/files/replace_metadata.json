@@ -6576,6 +6576,25 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "name",
+                      "dn",
+                      "group_dn",
+                      "is_default",
+                      "tenant_id",
+                      "recert_interval",
+                      "next_recert_date",
+                      "app_id_external",
+                      "last_recert_check",
+                      "recert_check_params"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "planner",
                   "permission": {
                     "columns": [
@@ -6686,6 +6705,18 @@
                       "next_recert_date"
                     ],
                     "filter": {}
+                  }
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "last_recert_check"
+                    ],
+                    "filter": {},
+                    "check": null
                   }
                 }
               ]
@@ -14366,6 +14397,24 @@
             },
             {
               "table": {
+                "name": "v_active_access_allow_rules",
+                "schema": "public"
+              }
+            },
+            {
+              "table": {
+                "name": "v_rule_with_dst_owner",
+                "schema": "public"
+              }
+            },
+            {
+              "table": {
+                "name": "v_rule_with_src_owner",
+                "schema": "public"
+              }
+            },
+            {
+              "table": {
                 "name": "view_change_counter",
                 "schema": "public"
               }
@@ -14426,6 +14475,12 @@
             },
             {
               "table": {
+                "name": "view_recert_overdue_rules",
+                "schema": "public"
+              }
+            },
+            {
+              "table": {
                 "name": "view_reportable_changes",
                 "schema": "public"
               }
@@ -14433,6 +14488,12 @@
             {
               "table": {
                 "name": "view_rule_changes",
+                "schema": "public"
+              }
+            },
+            {
+              "table": {
+                "name": "view_rule_source_or_destination",
                 "schema": "public"
               }
             },

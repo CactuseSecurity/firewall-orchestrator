@@ -38,7 +38,7 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                if(globalConfig.RecCheckActive) // owner-wise??
+                if(globalConfig.RecCheckActive)
                 {
                     await InitEnv();
                     EmailConnection emailConnection = new EmailConnection(globalConfig.EmailServerAddress, globalConfig.EmailPort,
@@ -70,6 +70,7 @@ namespace FWO.Middleware.Server
 
         private async Task InitEnv()
         {
+            globCheckParams = System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(globalConfig.RecCheckParams);
             List<Ldap> connectedLdaps = apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections).Result;
             foreach (Ldap currentLdap in connectedLdaps)
             {
@@ -79,7 +80,6 @@ namespace FWO.Middleware.Server
                 }
             }
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
-            globCheckParams = System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(globalConfig.RecCheckParams);
             owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
         }
 
@@ -182,7 +182,7 @@ namespace FWO.Middleware.Server
             var Variables = new
             {
                 id = owner.Id,
-                lastRecertCheck = DateTime.Today
+                lastRecertCheck = DateTime.Now
             };
             await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.OwnerQueries.setOwnerLastCheck, Variables);
         }

@@ -1206,6 +1206,8 @@ INSERT INTO txt VALUES ('recCheckEmailOverdueText','German','Rezert Check: Text 
 INSERT INTO txt VALUES ('recCheckEmailOverdueText','English','Recert Check: text overdue');
 INSERT INTO txt VALUES ('recert_check_every',   'German', 	'Rezert Check alle');
 INSERT INTO txt VALUES ('recert_check_every',   'English', 	'Recert Check every');
+INSERT INTO txt VALUES ('each_on',              'German', 	'jeweils am');
+INSERT INTO txt VALUES ('each_on',              'English', 	'each on');
 INSERT INTO txt VALUES ('undefined',		    'German', 	'nicht definiert');
 INSERT INTO txt VALUES ('undefined',		    'English', 	'undefined');
 INSERT INTO txt VALUES ('reqAvailableTaskTypes','German', 	'Verf&uuml;gbare Auftragstypen');

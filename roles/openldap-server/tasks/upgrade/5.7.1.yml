@@ -2,7 +2,7 @@
   copy:
     src: "{{ fworch_secrets_dir }}/ldap_manager_pw.txt"
     dest: "{{ ldap_manager_pwd_file }}"
-    force: yes
-    remote_src: yes
-  become: yes
+    force: true
+    remote_src: true
+  become: true
   ignore_errors: true

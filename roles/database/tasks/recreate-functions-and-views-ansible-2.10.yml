@@ -4,6 +4,6 @@
     db: "{{ fworch_db_name }}"
     path_to_script: "{{ database_install_dir }}/sql/idempotent/{{ item }}"
     as_single_query: "{{ postgresql_query_as_single_query }}"
-  become: yes
+  become: true
   become_user: postgres
   loop: "{{ database_idempotent_files }}"

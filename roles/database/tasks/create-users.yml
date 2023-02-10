@@ -28,5 +28,5 @@
       db: "{{ fworch_db_name }}"
       query: GRANT fworchadmins TO fworch
 
-  become: yes
+  become: true
   become_user: postgres

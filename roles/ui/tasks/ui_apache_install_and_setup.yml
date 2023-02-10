@@ -27,7 +27,7 @@
       copy:
         src: "/etc/apache2/ssl/server.crt"
         dest: "/etc/ssl/certs/"
-        remote_src: yes
+        remote_src: true
       when: installation_mode == "new"
 
     - name: enable apache modules proxy proxy_http ssl
@@ -48,7 +48,7 @@
 
     - name: disable apache2 default web site
       command: "a2dissite 000-default"
-      ignore_errors: yes
+      ignore_errors: true
 
     - name: enable {{ product_name }} web site
       command: "a2ensite {{ product_name }}-ui"
@@ -69,5 +69,5 @@
        name: "{{ webserver_package_name }}"
        state: restarted     
 
-  become: yes
+  become: true
   environment: "{{ proxy_env }}"

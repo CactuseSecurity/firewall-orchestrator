@@ -42,7 +42,7 @@
       loop:
         - FWO.UI
 
-  become: yes
+  become: true
 
 - include_tasks: ui_apache_install_and_setup.yml
 

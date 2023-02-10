@@ -36,7 +36,7 @@
     # - name: update /etc/apt/preferences for ubuntu >=22 (https://github.com/dotnet/sdk/issues/27129)
     #   blockinfile:
     #     path: /etc/apt/preferences
-    #     create: yes
+    #     create: true
     #     block: |
     #       Package: *net*
     #       Pin: origin packages.microsoft.com
@@ -61,5 +61,5 @@
     - name: Install dotnet-sdk-{{ dotnet_version }}
       package: "name=dotnet-sdk-{{ dotnet_version }} state=present"
 
-  become: yes
+  become: true
   environment: "{{ proxy_env }}"

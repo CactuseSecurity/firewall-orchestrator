@@ -50,7 +50,7 @@ CREATE OR REPLACE FUNCTION recert_refresh_one_owner_one_mgm
 DECLARE
 	r_rule   RECORD;
 	i_recert_entry_id BIGINT;
-	b_super_owner BOOLEAN;
+	b_super_owner BOOLEAN := FALSE;
 	t_rule_created TIMESTAMP;
 	t_current_next_recert_date TIMESTAMP;
 	t_next_recert_date_by_interval TIMESTAMP;
@@ -59,6 +59,7 @@ DECLARE
 	i_recert_inverval INTEGER;
 	b_never_recertified BOOLEAN := FALSE;
 	b_no_current_next_recert_date BOOLEAN := FALSE;
+	b_super_owner_exists BOOLEAN := FALSE;
 	i_previous_import BIGINT;
 	i_current_import_id BIGINT;
 	i_super_owner_id INT;
@@ -78,7 +79,11 @@ BEGIN
 			i_previous_import := -1;	-- prevent match for previous import
 		END IF;
 
-		b_super_owner := FALSE;
+		SELECT INTO i_super_owner_id id FROM owner WHERE is_default;
+		IF FOUND THEN 
+			b_super_owner_exists := TRUE;
+		END IF;
+
 		SELECT INTO i_super_owner_id id FROM owner WHERE id=i_owner_id AND is_default;
 		IF FOUND THEN 
 			b_super_owner := TRUE;
@@ -164,11 +169,8 @@ BEGIN
 		END LOOP;
 
 		-- finally, when not super user - recalculate super user recert entries - since these might change with each owner change
-		IF NOT b_super_owner THEN
-			SELECT INTO i_super_owner_id id FROM owner WHERE is_default;
-			IF FOUND THEN
-				PERFORM recert_refresh_one_owner_one_mgm (i_super_owner_id, i_mgm_id, t_requested_next_recert_date);
-			END IF;
+		IF NOT b_super_owner AND b_super_owner_exists THEN
+			PERFORM recert_refresh_one_owner_one_mgm (i_super_owner_id, i_mgm_id, t_requested_next_recert_date);
 		END IF;
 	END IF;
 END;

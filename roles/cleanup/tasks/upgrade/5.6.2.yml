@@ -8,13 +8,13 @@
   ansible.builtin.systemd:
     name: "{{ product_name }}-importer"
     state: stopped
-    enabled: no
-    daemon_reload: yes
-  become: yes
+    enabled: false
+    daemon_reload: true
+  become: true
   when: "'importers' in group_names and old_service_check.stat.exists"
 
 - name: remove old importer service file
   file:
     state: absent
     name: "/lib/systemd/system/{{ product_name }}-importer.service"
-  become: yes
+  become: true

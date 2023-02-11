@@ -8,7 +8,7 @@
         home: "{{ fworchtest_home }}"
         state: present
         group: "{{ fworch_group }}"
-        generate_ssh_key: yes
+        generate_ssh_key: true
         ssh_key_bits: 4096
         ssh_key_file: .ssh/id_rsa     
         comment: "{{ product_name }} test user for webhook github integration"
@@ -51,7 +51,7 @@
     - name: make webhook run at host startup
       systemd:
         name: fworch-webhook-receiver
-        enabled: yes
+        enabled: true
 
     - name: start webhook
       systemd:
@@ -62,8 +62,8 @@
       lineinfile:
         path: "{{ fworchtest_home }}/fworch-webhook.secret"
         line: "{{ webhook_secret }}"
-        create: yes
-        backup: yes
+        create: true
+        backup: true
         mode: 0600
         owner: "{{ fworchtest_user }}"
         group: "{{ fworch_group }}"
@@ -76,10 +76,10 @@
             proxy = {{ http_proxy }}
           [https]
             proxy = {{ http_proxy }}
-        create: yes
-        backup: yes
+        create: true
+        backup: true
         mode: 0644
         owner: "{{ fworchtest_user }}"
         group: "{{ fworch_group }}"
 
-  become: yes
+  become: true

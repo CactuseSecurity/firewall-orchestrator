@@ -16,4 +16,4 @@
   systemd:
     name: "{{ middleware_service_name }}"
     state: restarted
-  become: yes
+  become: true

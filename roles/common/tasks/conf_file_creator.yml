@@ -4,7 +4,7 @@
     fetch:
       src: "{{ fworch_conf_file }}"
       dest: "temp_remote_config_file.json"
-      flat: yes
+      flat: true
     when: already_installed and installation_mode == "upgrade"
 
   - name: read config file of currently installed product
@@ -46,4 +46,4 @@
       dest: "{{ fworch_conf_file }}"
     when: installation_mode == "new"
 
-  become: yes
+  become: true

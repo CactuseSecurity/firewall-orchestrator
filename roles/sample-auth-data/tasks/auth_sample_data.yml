@@ -66,5 +66,5 @@
         END $do$ 
 
 
-  become: yes
+  become: true
   become_user: postgres

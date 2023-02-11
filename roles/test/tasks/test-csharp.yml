@@ -5,16 +5,16 @@
     dest: "{{ test_dir }}/csharp"
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
-  become: yes
+  become: true
 
 - name: csharp tests
   command: dotnet test
   args:
     chdir: "{{ csharp_test_start_dir }}"
-  become: yes
+  become: true
   become_user: "{{ fworch_user }}"
   register: csharp_tests
-  ignore_errors: no
+  ignore_errors: false
   environment: "{{ proxy_env }}"
 
 - name: show test results

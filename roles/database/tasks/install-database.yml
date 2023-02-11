@@ -5,7 +5,7 @@
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
     mode: "0700"
-  become: yes
+  become: true
 
 - name: set dbadmin password from parameter
   set_fact:
@@ -24,7 +24,7 @@
     mode: '0600'
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
-  become: yes
+  become: true
 
 - name: set fworch db password randomly
   set_fact:
@@ -37,7 +37,7 @@
     mode: '0600'
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
-  become: yes
+  become: true
 
 - block:
 
@@ -50,14 +50,14 @@
     postgresql_user: 
       name: "{{ fworch_dbadmin_name }}"
       password: "{{ dbadmin_password }}"
-      encrypted: yes
+      encrypted: true
       role_attr_flags: CREATEDB,SUPERUSER,CREATEROLE,INHERIT,LOGIN
 
   - name: create postgres user "{{ fworch_user }}"
     postgresql_user: 
       name: "{{ fworch_user }}"
       password: "{{ fworch_db_password }}"
-      encrypted: yes
+      encrypted: true
       role_attr_flags: LOGIN
 
   # include add-tablespace.yml here
@@ -132,5 +132,5 @@
         format: csv
     when: installation_mode == "new"
 
-  become: yes
+  become: true
   become_user: postgres

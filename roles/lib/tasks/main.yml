@@ -69,6 +69,6 @@
       set_fact:
         lib_role_has_run: true
 
-  become: yes
+  become: true
   when: not lib_role_has_run|bool
   # make sure lib role is only run once per host to save time

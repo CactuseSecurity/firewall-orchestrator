@@ -2,7 +2,7 @@
   copy:
     dest: "{{ middleware_ldif_dir }}/{{ outer_item }}_{{ item.split(',')[0] }}.ldif"
     content: "dn: {{ item }}"
-    force: yes
+    force: true
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
 
@@ -14,25 +14,25 @@
 - name: test if distinguished name exists
   # error code 32, when searchbase not existing
   command: "ldapsearch -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -b {{ distinguished_name }}"
-  #become: yes
+  #become: true
   register: search_existence
   failed_when: (search_existence.rc != 0) and (search_existence.rc != 32)
 
 - name: add ldap entry if not existing
   command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ middleware_ldif_dir }}/{{ outer_item }}_{{ item.split(',')[0] }}.ldif"
   when: (changetype == 'add') and (search_existence.stdout.split('result:')[1].splitlines()[0] is match('.*No such object'))
-  #become: yes
+  #become: true
 
 - name: delete ldap entry if existing
   # dont delete in case numEntries > 1, otherwise ldap nodes are disconected
   command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ middleware_ldif_dir }}/{{ outer_item }}_{{ item.split(',')[0] }}.ldif"
   when: (changetype == 'delete') and (search_existence.stdout.split('# numEntries:')[1].splitlines()[0] is match('\s1'))
-  #become: yes
+  #become: true
 
 - name: modify ldap entry if existing
   # error code 20, when attribute already exists
   command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ middleware_ldif_dir }}/{{ outer_item }}_{{ item.split(',')[0] }}.ldif"
   register: modify_out
   when: (changetype == 'modify') and (search_existence.stdout.split('# numEntries:')[1].splitlines()[0] is match('\s1'))
-  #become: yes
+  #become: true
   failed_when: (modify_out.rc != 0) and (modify_out.rc != 16) and (modify_out.rc != 20)

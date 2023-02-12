@@ -71,7 +71,6 @@ BEGIN
 			RAISE WARNING 'found undefined mgm_id in recert_refresh_one_owner_one_mgm';
 		END IF;
 	ELSE
-
 		-- get id of previous import:
 		SELECT INTO i_current_import_id control_id FROM import_control WHERE mgm_id=i_mgm_id AND stop_time IS NULL;
 		SELECT INTO i_previous_import * FROM get_previous_import_id_for_mgmt(i_mgm_id,i_current_import_id);

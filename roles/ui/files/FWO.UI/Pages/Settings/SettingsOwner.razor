@@ -31,16 +31,12 @@
                     <Template>
                         <div class="btn-group">
                             <button class="btn btn-sm btn-warning" @onclick="async () => await EditOwner(context)">@(userConfig.GetText("edit"))</button>
-                            <button class="btn btn-sm btn-danger" @onclick="() => RequestDeleteOwner(context)">@(userConfig.GetText("delete"))</button>
                             @if(!context.IsDefault)
                             {
                                 <AuthorizeView Roles="admin" Context="ctx">
                                     <Authorized>
-                                        <button class="btn btn-sm btn-warning" @onclick="() => SetDefault(context)">@(userConfig.GetText("set_default"))</button>
+                                        <button class="btn btn-sm btn-danger" @onclick="() => RequestDeleteOwner(context)">@(userConfig.GetText("delete"))</button>
                                     </Authorized>
-                                    <NotAuthorized>
-                                        <button class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("set_default"))</button>
-                                    </NotAuthorized> 
                                 </AuthorizeView>
                             }
                         </div>

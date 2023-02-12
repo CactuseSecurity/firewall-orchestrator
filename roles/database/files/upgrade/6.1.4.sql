@@ -26,6 +26,6 @@ ALTER TABLE owner_network ADD CONSTRAINT owner_network_ip_unique UNIQUE (owner_i
 
 DELETE FROM owner WHERE name='defaultOwner_demo';
 UPDATE owner SET is_default=false WHERE id>0;   -- idempotence
-INSERT INTO owner (id, name, dn, group_dn, is_default, tenant_id, recert_interval) 
-VALUES    (0, 'super-owner', 'dn-of-super-owner', 'group-dn-for-super-owner', true, 1, 365)
+INSERT INTO owner (id, name, dn, group_dn, is_default, tenant_id, recert_interval, app_id_external) 
+VALUES    (0, 'super-owner', 'dn-of-super-owner', 'group-dn-for-super-owner', true, 1, 365, 'NONE')
 ON CONFLICT DO NOTHING; 

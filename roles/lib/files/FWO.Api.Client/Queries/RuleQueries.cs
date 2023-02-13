@@ -1,6 +1,4 @@
-﻿using System;
-using System.IO;
-using FWO.Logging;
+﻿using FWO.Logging;
 
 namespace FWO.Api.Client.Queries
 {
@@ -15,10 +13,6 @@ namespace FWO.Api.Client.Queries
         public static readonly string getRuleByUid;
         public static readonly string getRuleNetworkObjectDetails;
         public static readonly string getRuleIdsOfImport;
-        public static readonly string updateRuleMetadataRecert;
-        public static readonly string updateRuleMetadataDecert;
-        public static readonly string prepareNextRecertification;
-        public static readonly string recertify;
 
         public static readonly string natRuleOverviewFragments;
         public static readonly string natRuleDetailsFragments;
@@ -27,8 +21,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getNatRuleDetails;
         public static readonly string getNatRuleDetailsForReport;
 
-        public static readonly string ruleRecert;
-
+    
         static RuleQueries()
         {
             try
@@ -68,18 +61,6 @@ namespace FWO.Api.Client.Queries
 
                 getRuleIdsOfImport =
                     File.ReadAllText(QueryPath + "report/getRuleIdsOfImport.graphql");
-
-                updateRuleMetadataRecert =
-                    File.ReadAllText(QueryPath + "recertification/updateRuleMetadataRecert.graphql");
-
-                updateRuleMetadataDecert =
-                    File.ReadAllText(QueryPath + "recertification/updateRuleMetadataDecert.graphql");
-
-                prepareNextRecertification = File.ReadAllText(QueryPath + "recertification/prepareNextRecertification.graphql");
-                recertify = File.ReadAllText(QueryPath + "recertification/recertify.graphql");
-
-                ruleRecert = ruleOverviewFragments + 
-                    File.ReadAllText(QueryPath + "recertification/openRecerts.graphql");
 
                 natRuleOverviewFragments = ruleOverviewFragments +
                     File.ReadAllText(QueryPath + "rule/fragments/natRuleOverview.graphql");

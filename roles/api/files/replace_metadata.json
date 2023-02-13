@@ -6528,15 +6528,16 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "is_default",
                       "app_id_external",
                       "dn",
                       "group_dn",
-                      "name",
                       "id",
+                      "is_default",
+                      "name",
+                      "next_recert_date",
+                      "recert_check_params",
                       "recert_interval",
-                      "tenant_id",
-                      "next_recert_date"
+                      "tenant_id"
                     ],
                     "filter": {}
                   }
@@ -6615,15 +6616,16 @@
                   "role": "recertifier",
                   "permission": {
                     "columns": [
-                      "is_default",
                       "app_id_external",
                       "dn",
                       "group_dn",
-                      "name",
                       "id",
+                      "is_default",
+                      "name",
+                      "next_recert_date",
+                      "recert_check_params",
                       "recert_interval",
-                      "tenant_id",
-                      "next_recert_date"
+                      "tenant_id"
                     ],
                     "filter": {
                       "tenant_id": {
@@ -6637,15 +6639,16 @@
                   "role": "reporter",
                   "permission": {
                     "columns": [
-                      "is_default",
                       "app_id_external",
                       "dn",
                       "group_dn",
-                      "name",
                       "id",
+                      "is_default",
+                      "name",
+                      "next_recert_date",
+                      "recert_check_params",
                       "recert_interval",
-                      "tenant_id",
-                      "next_recert_date"
+                      "tenant_id"
                     ],
                     "filter": {
                       "tenant_id": {
@@ -6659,15 +6662,16 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
-                      "is_default",
                       "app_id_external",
                       "dn",
                       "group_dn",
-                      "name",
                       "id",
+                      "is_default",
+                      "name",
+                      "next_recert_date",
+                      "recert_check_params",
                       "recert_interval",
-                      "tenant_id",
-                      "next_recert_date"
+                      "tenant_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -6914,7 +6918,8 @@
                       "rule_metadata_id",
                       "user_dn"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 },
                 {
@@ -6932,7 +6937,67 @@
                       "rule_metadata_id",
                       "user_dn"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "comment",
+                      "id",
+                      "ip_match",
+                      "next_recert_date",
+                      "owner_id",
+                      "recert_date",
+                      "recertified",
+                      "rule_id",
+                      "rule_metadata_id",
+                      "user_dn"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "rule_id",
+                      "rule_metadata_id",
+                      "recertified",
+                      "comment",
+                      "ip_match",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "rule_id",
+                      "rule_metadata_id",
+                      "recertified",
+                      "comment",
+                      "ip_match",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ],
+                    "filter": {},
+                    "check": null
                   }
                 }
               ]
@@ -9650,7 +9715,8 @@
                       "rule_owner_dn",
                       "rule_recertification_comment"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 },
                 {

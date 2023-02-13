@@ -37,39 +37,51 @@
         <Authorized>
             <div class="p-3">
                 <h7 class="text-left">@(userConfig.GetText("owner"))</h7>
-                    <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)"
-                        Value="selectedOwner" ValueChanged="OwnerChanged" Elements="ownerList">
-                        <ElementTemplate Context="owner">
-                            @owner.Name
-                        </ElementTemplate>
-                    </Dropdown>
-                    @if (selectedOwner.Name != "")
-                    {
-                        recertWithoutOwner = false;
-                    }
-                    <br>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="recertOverdue"
-                            @bind="recertOverdueOnly"
-                            @oninput="@(async () => { recertOverdueOnly = !recertOverdueOnly; SyncFilterToDisplay(); })" />
-                        <label class="form-check-label" for="recertOverdue">@(userConfig.GetText("overdue_recert"))</label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="recertWithoutOwner"
-                            @bind="recertWithoutOwner"
-                            @oninput="@(async () => { 
-                                recertWithoutOwner = !recertWithoutOwner;
-                                if (recertWithoutOwner)
-                                {
-                                    selectedOwner = new FwoOwner();
-                                    OwnerChanged(selectedOwner);
-                                    StateHasChanged();
-                                }
-                            })" />
-                        <label class="form-check-label" for="recertWithoutOwner">@(userConfig.GetText("without_owner"))</label>
-                    </div>
+                <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)"
+                    Value="selectedOwner" ValueChanged="OwnerChanged" Elements="ownerList">
+                    <ElementTemplate Context="owner">
+                        @owner.Name
+                    </ElementTemplate>
+                </Dropdown>
+                @if (selectedOwner.Name != "")
+                {
+                    recertWithoutOwner = false;
+                }
+                <br>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="recertOverdue"
+                        @bind="recertOverdueOnly"
+                        @oninput="@(async () => { recertOverdueOnly = !recertOverdueOnly; SyncFilterToDisplay(); })" />
+                    <label class="form-check-label" for="recertOverdue">@(userConfig.GetText("overdue_recert"))</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="recertWithoutOwner"
+                        @bind="recertWithoutOwner"
+                        @oninput="@(async () => { 
+                            recertWithoutOwner = !recertWithoutOwner;
+                            if (recertWithoutOwner)
+                            {
+                                selectedOwner = new FwoOwner();
+                                OwnerChanged(selectedOwner);
+                                StateHasChanged();
+                            }
+                        })" />
+                    <label class="form-check-label" for="recertWithoutOwner">@(userConfig.GetText("without_owner"))</label>
+                </div>
             </div>
         </Authorized>
+        <NotAuthorized>
+            @if(collectedOwnerships.Count > 1)
+            {
+                <h7 class="text-left">@(userConfig.GetText("owner"))</h7>
+                <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)"
+                    Value="selectedOwner" ValueChanged="OwnerChanged" Elements="collectedOwnerships">
+                    <ElementTemplate Context="owner">
+                        @owner.Name
+                    </ElementTemplate>
+                </Dropdown>
+            }
+        </NotAuthorized>
     </AuthorizeView>
 
     <DeviceSelection Environment="Cert" @bind-DeviceFilter="deviceFilter" @bind-CollapseAll="collapseDevices" @bind-FilterInput="filterInput" @bind-SelectAll="selectAll" ></DeviceSelection>
@@ -195,11 +207,10 @@
     
     private bool readonlyMode = false;
     public FwoOwner selectedOwner = new FwoOwner();
-    private int selectedOwnerId = 0;
     private List<FwoOwner> ownerList = new List<FwoOwner>();
     private List<FwoOwner> userOwnerships = new List<FwoOwner>();
     private List<FwoOwner> groupOwnerships = new List<FwoOwner>();
-    private List<int> combinedOwnershipIds = new List<int>();
+    private List<FwoOwner> collectedOwnerships = new List<FwoOwner>();
     private Dictionary<int, int> recertInterval = new Dictionary<int, int>(){{0,defaultRecertInterval}};
     private DeviceFilter deviceFilter = new DeviceFilter();
     private List<Rule> selectedRules = new List<Rule>();
@@ -217,42 +228,42 @@
     private bool recertSingleLinePerRule = false;
     private int recertLookAheadDays = 0;
 
-    private List<long> RecertIds = new List<long>();
-    private List<long> DecertIds = new List<long>();
     private List<Rule> Certifications = new List<Rule>();
     private Dictionary<int, List<string>> deleteList = new Dictionary<int, List<string>>();
 
     private TicketCreator ticketCreator;
 
-    protected override void OnInitialized()
+    private void OwnerChanged(FwoOwner owner)
     {
-        Task.Run(async () =>
-        {
-            try
-            {
-                rulesFound = false;
-                ticketCreator = new TicketCreator(apiConnection, userConfig);
-
-                ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
-                await InitOwnerships();
-
-                deviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
-                await InvokeAsync(StateHasChanged);
-                if (deviceFilter.NumberMgmtDev() > userConfig.MinCollapseAllDevices)
-                {
-                    collapseDevices = true;
-                    await InvokeAsync(StateHasChanged);
-                }
-                recertLookAheadDays = Convert.ToInt32(userConfig.RecertificationDisplayPeriod);
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
-            }
-        });
+        selectedOwner = owner;
     }
 
-    private async Task InitOwnerships()
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            rulesFound = false;
+            ticketCreator = new TicketCreator(apiConnection, userConfig);
+
+            ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+            await CollectOwnerships();
+
+            deviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
+            await InvokeAsync(StateHasChanged);
+            if (deviceFilter.NumberMgmtDev() > userConfig.MinCollapseAllDevices)
+            {
+                collapseDevices = true;
+                await InvokeAsync(StateHasChanged);
+            }
+            recertLookAheadDays = Convert.ToInt32(userConfig.RecertificationDisplayPeriod);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+        }
+    }
+
+    private async Task CollectOwnerships()
     {
         userOwnerships = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnerIdsForUser, new {userDn = userConfig.User.Dn});
 
@@ -272,20 +283,27 @@
 
         foreach(var owner in userOwnerships)
         {
-            combinedOwnershipIds.Add(owner.Id);
+            collectedOwnerships.Add(owner);
             recertInterval.Add(owner.Id, owner.RecertInterval ?? defaultRecertInterval);
         }
         foreach(var owner in groupOwnerships)
         {
-            combinedOwnershipIds.Add(owner.Id);
-            recertInterval.Add(owner.Id, owner.RecertInterval ?? defaultRecertInterval);
+            if(collectedOwnerships.FirstOrDefault(x => x.Id == owner.Id) == null)
+            {
+                collectedOwnerships.Add(owner);
+                recertInterval.Add(owner.Id, owner.RecertInterval ?? defaultRecertInterval);
+            }
+        }
+        if(collectedOwnerships.Count == 1)
+        {
+            selectedOwner = collectedOwnerships[0];
         }
     }
 
     private async Task GenerateRecertificationReport()
     {
         processing = true;
-        readonlyMode = selectedOwnerId > 0;
+        readonlyMode = recertWithoutOwner;
         selectedRules.Clear();
 
         Management[] managementsOrig = managements;
@@ -507,7 +525,6 @@
         try
         {
             AnalyzeSelected();
-            await OldWay();
             await DoRecerts();
 
             // create delete tickets
@@ -528,8 +545,6 @@
     private void AnalyzeSelected()
     {
         // collect selected recerts + decerts
-        RecertIds = new List<long>();
-        DecertIds = new List<long>();
         Certifications = new List<Rule>();
 
         foreach (Management management in managements)
@@ -541,14 +556,6 @@
                     foreach (Rule rule in device.Rules)
                     {
                         // await InitRecert(rule); // just for test
-                        if(rule.Metadata.Recert) //Todo: remove
-                        {
-                            RecertIds.Add(rule.Metadata.Id);
-                        }
-                        else if(rule.Metadata.ToBeRemoved) //Todo: remove
-                        {
-                            DecertIds.Add(rule.Metadata.Id);
-                        }
                         if(rule.Metadata.Recert || rule.Metadata.ToBeRemoved)
                         {
                             rule.DeviceId = device.Id;
@@ -563,48 +570,65 @@
     private async Task DoRecerts()
     {
         int recerts = 0;
+        int decerts = 0;
         deleteList = new Dictionary<int, List<string>>();
 
         if (Certifications.Count > 0)
         {
-            foreach(var cert in Certifications)
+            foreach(var certRule in Certifications)
             {
-                await Recertify(cert);
-                if(cert.Metadata.Recert)
+                if(await Recertify(certRule))
                 {
-                    recerts++;
-                }
-                else
-                {
-                    if(!deleteList.ContainsKey(cert.DeviceId))
+                    if(certRule.Metadata.Recert)
                     {
-                        deleteList.Add(cert.DeviceId, new List<string>());
+                        recerts++;
                     }
-                    deleteList[cert.DeviceId].Add(cert.Uid ?? "");
+                    else
+                    {
+                        decerts++;
+                        if(await checkAllDecertified(certRule))
+                        {
+                            if(!deleteList.ContainsKey(certRule.DeviceId))
+                            {
+                                deleteList.Add(certRule.DeviceId, new List<string>());
+                            }
+                            deleteList[certRule.DeviceId].Add(certRule.Uid ?? "");
+                        }
+                    }
                 }
             }
         }
-
         string txt = userConfig.GetText("recerts_executed") + recerts.ToString() + ", " +
-                        userConfig.GetText("decerts_executed") + (Certifications.Count-recerts).ToString();
+                        userConfig.GetText("decerts_executed") + decerts.ToString();
         DisplayMessageInUi(null, userConfig.GetText("execute_selected"), txt, false);
     }
 
-    private async Task Recertify(Rule rule)
+    private async Task<bool> checkAllDecertified(Rule rule)
     {
         var variables = new
         {
             ruleId = rule.Id,
-            ownerId = rule.OwnerId,
+        };
+        return ((await apiConnection.SendQueryAsync<List<Recertification>>(RecertQueries.getOpenRecertsForRule, variables)).Count == 0);
+    }
+
+    private async Task<bool> Recertify(Rule rule)
+    {
+        var variables = new
+        {
+            ruleId = rule.Id,
+            ownerId = selectedOwner.Id,
             userDn = userConfig.User.Dn,
             recertified = rule.Metadata.Recert,
             recertDate = DateTime.Now,
             comment = actComment
         };
-        if((await apiConnection.SendQueryAsync<ReturnId>(RuleQueries.recertify, variables)).AffectedRows > 0 && rule.Metadata.Recert)
+        bool recertOk = (await apiConnection.SendQueryAsync<ReturnId>(RecertQueries.recertify, variables)).AffectedRows > 0;
+        if(recertOk && rule.Metadata.Recert)
         {
             await InitRecert(rule);
         }
+        return recertOk;
     }
 
     private async Task InitRecert(Rule rule)
@@ -614,42 +638,9 @@
             ruleMetadataId = rule.Metadata.Id,
             ruleId = rule.Id,
             ipMatch = rule.IpMatch,
-            ownerId = rule.OwnerId,
-            nextRecertDate = DateTime.Now.AddDays(recertInterval[rule.OwnerId ?? 0])
+            ownerId = selectedOwner.Id,
+            nextRecertDate = DateTime.Now.AddDays(recertInterval[selectedOwner.Id])
         };
-        await apiConnection.SendQueryAsync<object>(RuleQueries.prepareNextRecertification, prepvariables);
+        await apiConnection.SendQueryAsync<object>(RecertQueries.prepareNextRecertification, prepvariables);
     }
-
-    private async Task OldWay()
-    {
-        // execute recertifications
-        if (RecertIds.Count > 0) //Todo: remove
-        {
-            var apiVariables = new 
-            { 
-                ids = RecertIds.ToArray(), 
-                certDate = DateTime.Now, 
-                userDn = userConfig.User.Dn,
-                comment = actComment
-            };
-            await apiConnection.SendQueryAsync<object>(RuleQueries.updateRuleMetadataRecert, apiVariables);
-        }
-
-        // execute decertifications
-        if (DecertIds.Count > 0) //Todo: remove
-        {
-            var apiVariables = new
-            { 
-                ids = DecertIds.ToArray(),
-                decertDate = DateTime.Now,
-                comment = actComment
-            };
-            await apiConnection.SendQueryAsync<object>(RuleQueries.updateRuleMetadataDecert, apiVariables);
-        }
-    }
-    private void OwnerChanged(FwoOwner owner)
-    {
-        selectedOwner = owner;
-    }
-
 }

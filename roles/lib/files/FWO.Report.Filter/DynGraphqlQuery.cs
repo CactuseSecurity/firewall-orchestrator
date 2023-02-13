@@ -348,7 +348,7 @@ namespace FWO.Report.Filter
                     query.QueryParameters.Remove(itemToRemove);
                     paramString = string.Join(" ", query.QueryParameters.ToArray());
 
-                    query.FullQuery = Queries.compact($@"{RuleQueries.ruleRecert}
+                    query.FullQuery = Queries.compact($@"{RecertQueries.ruleRecertFragments}
                         query rulesCertReport({paramString}) {{
                         management(
                             where: {{
@@ -371,7 +371,7 @@ namespace FWO.Report.Filter
                                 name: dev_name
                                 rules(
                                     where: {{ 
-                                        rule_metadatum: {{ recertifications_aggregate: {{ count: {{ filter: {{ _and: [{{owner: $ownerWhere}}, {{next_recert_date: {{_lte: $refdate1}}}}]}}, predicate: {{_gt: 0}}}}}}}}
+                                        rule_metadatum: {{ recertifications_aggregate: {{ count: {{ filter: {{ _and: [{{owner: $ownerWhere}}, {{recert_date: {{_is_null: true}}}}, {{next_recert_date: {{_lte: $refdate1}}}}]}}, predicate: {{_gt: 0}}}}}}}}
                                         active:{{ _eq:true }}
                                         {query.ruleWhereStatement} 
                                     }} 

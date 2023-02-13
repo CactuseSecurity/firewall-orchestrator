@@ -1,12 +1,12 @@
 - name: Reload service systemctl
   systemd:
-    daemon_reload: yes
+    daemon_reload: true
   listen: "restart daemons"
-  become: yes
+  become: true
 
 - name: restart webhook service 
   service:
     name: fworch-webhook-receiver
     state: restarted       
   listen: "restart daemons"
-  become: yes
+  become: true

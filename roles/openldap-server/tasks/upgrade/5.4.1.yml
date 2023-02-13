@@ -2,9 +2,9 @@
   template:
     src: upgrade/5.4.1.ldif.j2
     dest: "{{ middleware_ldif_dir }}/5.4.1.ldif"
-    force: yes
-  become: yes
+    force: true
+  become: true
 
 - name: upgrade olcAccess policy
   command: "ldapmodify -H {{ openldap_url }} -D cn=config -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/5.4.1.ldif"
-  become: yes
+  become: true

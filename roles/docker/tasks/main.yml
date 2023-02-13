@@ -16,14 +16,14 @@
     get_url:
       url: https://download.docker.com/linux/ubuntu/gpg
       dest: /etc/apt/trusted.gpg.d/docker.asc
-      force: yes
+      force: true
       mode: "0644"
     environment: "{{ proxy_env }}"
 
   - name: add docker repo
     lineinfile:
       path: "/etc/apt/sources.list.d/docker.list"
-      create: yes
+      create: true
       line: "deb [arch=amd64] https://download.docker.com/linux/debian buster stable"
 
   - name: apt update
@@ -42,7 +42,7 @@
     user:
         name: "{{ item }}"
         groups: docker
-        append: yes
+        append: true
     loop:
       -  "{{ ansible_user }}"
       -  "{{ fworch_user }}"
@@ -55,4 +55,4 @@
     import_tasks: run-upgrades.yml
     when: "installation_mode == 'upgrade'"
 
-  become: yes
+  become: true

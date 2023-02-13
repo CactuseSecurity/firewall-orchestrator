@@ -6,7 +6,7 @@
     name: "{{ item }}"
     state: present
   loop: "{{ test_packages }}"
-  become: yes
+  become: true
   environment: "{{ proxy_env }}"
 
 - name: randomize test names to avoid interference with production data

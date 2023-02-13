@@ -1,7 +1,7 @@
 
 - name: copy database test files to backend target
   copy: src="sql/test" dest="{{ database_install_dir }}/sql" owner="{{ fworch_user }}" group="{{ fworch_user }}"
-  become: yes
+  become: true
 
 - set_fact:
     unit_test_scripts:
@@ -16,7 +16,7 @@
   postgresql_query:
     db: "{{ fworch_db_name }}"
     path_to_script: "{{ database_install_dir }}/sql/test/{{ item }}"
-  become: yes
+  become: true
   become_user: "postgres"
   register: testresults
   loop: "{{ unit_test_scripts }}"

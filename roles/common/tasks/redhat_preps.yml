@@ -18,7 +18,7 @@
   rhsm_repository:
     name: "codeready-builder-for-rhel-{{ redhat_major_version }}-{{ arch }}-rpms"
   environment: "{{ proxy_env }}"
-  become: yes
+  become: true
 
 - name: setting default locale in /etc/profile
   blockinfile:
@@ -27,4 +27,4 @@
       export LANG="en_US.utf8"
       export LANGUAGE="en_US.utf8"
       export LC_ALL="en_US.utf8"
-  become: yes
+  become: true

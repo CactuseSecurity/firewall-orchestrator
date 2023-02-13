@@ -8,7 +8,7 @@
       Content-Type: html/text
     body:
     validate_certs: false
-    return_content: yes
+    return_content: true
   register: web_call_result
   changed_when: false
   failed_when: false

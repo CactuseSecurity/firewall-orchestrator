@@ -4,14 +4,14 @@
   args:
     chdir: "{{ fworch_home }}/importer"
   become_user: "{{ fworch_user }}"
-  become: yes
+  become: true
 
 - name: find management id for checkpoint test
   postgresql_query:
     db: fworchdb
     query: >
       SELECT mgm_id FROM management WHERE mgm_name='{{ test_checkpoint_name }}';
-  become: yes
+  become: true
   become_user: postgres
   register: test_checkpoint_mgm_id
 
@@ -19,6 +19,6 @@
   command: "python3 ./import-mgm.py -s -m{{ test_checkpoint_mgm_id.query_result.0.mgm_id }} -ihttps://fwodemodata.cactus.de/demo04_cpr8x.json"
   args:
     chdir: "{{ fworch_home }}/importer"
-  become: yes
+  become: true
   become_user: "{{ fworch_user }}"
   environment: "{{ proxy_env }}"

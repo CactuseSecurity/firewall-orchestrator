@@ -10,7 +10,7 @@
   file:
     path: "{{ database_install_dir }}/upgrade"
     state: directory
-  become: yes
+  become: true
  
 - set_fact: 
     installed_version: "{{ old_version }}"
@@ -39,7 +39,7 @@
     src: "upgrade/{{ item }}.sql"
     dest: "{{ database_install_dir }}/upgrade/"
   loop: "{{ upgrade_files }}"
-  become: yes
+  become: true
 
 - name: include upgrades as postgresql_query is not available in all ansible versions
   include_tasks: upgrade_database_new.yml

@@ -48,7 +48,7 @@
       - python3-cryptography
       - python3-openssl
 
-  become: yes
+  become: true
 
 - name: create auth secrets (jwt key, ldap)
   include_tasks: create_auth_secrets.yml
@@ -67,7 +67,7 @@
       - libssl-dev
       - python3-setuptools
       - python3-pyldap
-  become: yes
+  become: true
 
 - name: make sure {{ fworch_secrets_dir }} exists
   file:
@@ -76,7 +76,7 @@
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
     mode: "0700"
-  become: yes
+  become: true
 
 - name: set UI admin password for testing
   set_fact:
@@ -95,7 +95,7 @@
     mode: '0600'
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
-  become: yes
+  become: true
   when: installation_mode == 'new'
 
 - name: Set admin password in ldap
@@ -119,7 +119,7 @@
     mode: '0600'
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
-  become: yes
+  become: true
   when: installation_mode == 'new'
 
 # the local copy of the import pwd will be used by the importer role to copy it to the importer host(s)
@@ -127,9 +127,9 @@
   fetch:
     src: "{{ importer_password_file }}"
     dest: "{{ importer_password_file_on_installer }}"
-    flat: yes
+    flat: true
     mode: '0600'
-  become: yes
+  become: true
 
 - name: Set importer password in ldap
   ldap_passwd:
@@ -176,7 +176,7 @@
       THEN insert into tenant (tenant_name, tenant_can_view_all_devices, tenant_is_superadmin)
       values ('tenant0', true, true);
       END IF; END $do$
-  become: yes
+  become: true
   become_user: postgres
   when: installation_mode == "new"
 
@@ -194,7 +194,7 @@
       5, '{{ openldap_readonly_user_dn }}', '{{ ldap_inspector_pw }}',
       '{{ openldap_writer_dn }}', '{{ ldap_writer_pw }}', 2);
       END IF; END $do$
-  become: yes
+  become: true
   become_user: postgres
   when: installation_mode == "new"
 
@@ -207,7 +207,7 @@
           select tenant.tenant_id, device.dev_id FROM tenant, device WHERE tenant_name='tenant0'; 
         END IF; 
       END $do$
-  become: yes
+  become: true
   become_user: postgres
   when: installation_mode=="new"
 

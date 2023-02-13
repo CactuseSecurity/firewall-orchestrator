@@ -149,11 +149,8 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
         Der Quellcode kann auf <a href="https://github.com/CactuseSecurity/firewall-orchestrator" target="_blank">GitHub</a> eingesehen und heruntergeladen werden.</li>
     <li>GraphQL API f&uuml;r Automatisierungen</li>
     <li>Firewall-Regel Rezertifizierungsworkflow - beseitigen Sie ihre Altlasten und erf&uuml;llen Sie aktuelle regulatorische Anforderungen.</li>
-    <li>F&uuml;r FortiManager und CheckPoint (Stand-Alone & MDS Manager) Auto Discovery</li>
-    <li>Monitoring und Alerting Modul</li>
-    <li>Neues Workflow module zum Beantragen von &Auml;nderungen</li>
-    <li>Cisco FirePower Import-Module</li>
-    <li>Unterst&uuml;tzung f&uuml;r Debian Testing Betriebssystem</li>
+    <li>Workflow module zum Beantragen von &Auml;nderungen</li>
+    <li>Neue Importmodule f&uuml;r Cisco FirePower und Microsoft Azure Firewall</li>
     <li>Beginn Routing/Interface Pfad Analyse (zun&auml;chst nur Fortinet)</li>
     <li>Neue Report-Typen: Regeln (aufgel&ouml;st), Regeln technisch (alle Gruppe werden in Bestandteile aufgel&ouml;st; Report-Export als "Single Table")</li>
 </ul>
@@ -165,10 +162,8 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>GraphQL API for automation</li>
     <li>Firewall rule recertification workflow - remove unnecessary rules and meet current regulatory requirements.</li>
     <li>Device Auto Discovery functionality</li>
-    <li>Introduction of Monitoring and Alerting module</li>
-    <li>Introduction of workflow module for requesting changes</li>
-    <li>New Cisco FirePower import module </li>
-    <li>Support for new operating system Debian testing</li>
+    <li>New workflow module for requesting firewall changes</li>
+    <li>New import modules for Cisco FirePower and Microsoft Azure Firewall</li>
     <li>Start routing/interface (currently implemented for fortinet only) import and path analysis</li>
     <li>New report types: resolved rules, technical rules (report without group objects, exporting into pure rule tables without additional object tables)</li>
 </ul>

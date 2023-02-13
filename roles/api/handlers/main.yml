@@ -6,14 +6,14 @@
   delegate_to: "{{ inventory_hostname }}"
   listen: "api handler"
   when: api_handler_guard == "start"
-  become: yes
+  become: true
 
 - name: delete backup
   file:
     state: absent
     path: "{{ fworch_home }}/backup_api"
   listen: "api handler"
-  become: yes
+  become: true
 
 # set variable to indicate that we are in rollback mode
 - set_fact:

@@ -7,5 +7,5 @@
   docker_container:
     name: "{{ api_container_name }}"
     state: absent
-  become: yes
+  become: true
   when: docker_is_installed.stat.exists == True

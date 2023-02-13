@@ -4,5 +4,5 @@
     db: "{{ fworch_db_name }}"
     path_to_script: "{{ database_install_dir }}/upgrade/{{ item }}.sql"
   loop: "{{ upgrade_files | sort }}"
-  become: yes
+  become: true
   become_user: postgres

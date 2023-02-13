@@ -39,4 +39,4 @@
         cron_file: "{{ product_name }}_sample_data_enlarge_rule"
       when: "sample_data_rate != 'high'"
 
-  become: yes
+  become: true

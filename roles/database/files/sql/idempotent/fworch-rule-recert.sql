@@ -50,7 +50,7 @@ CREATE OR REPLACE FUNCTION recert_refresh_one_owner_one_mgm
 DECLARE
 	r_rule   RECORD;
 	i_recert_entry_id BIGINT;
-	b_super_owner BOOLEAN;
+	b_super_owner BOOLEAN := FALSE;
 	t_rule_created TIMESTAMP;
 	t_current_next_recert_date TIMESTAMP;
 	t_next_recert_date_by_interval TIMESTAMP;
@@ -59,106 +59,119 @@ DECLARE
 	i_recert_inverval INTEGER;
 	b_never_recertified BOOLEAN := FALSE;
 	b_no_current_next_recert_date BOOLEAN := FALSE;
+	b_super_owner_exists BOOLEAN := FALSE;
 	i_previous_import BIGINT;
 	i_current_import_id BIGINT;
 	i_super_owner_id INT;
 BEGIN
-	-- get id of previous import:
-	SELECT INTO i_current_import_id control_id FROM import_control WHERE mgm_id=i_mgm_id AND stop_time IS NULL;
-	SELECT INTO i_previous_import * FROM get_previous_import_id_for_mgmt(i_mgm_id,i_current_import_id);
-	IF NOT FOUND OR i_previous_import IS NULL THEN
-		i_previous_import := -1;	-- prevent match for previous import
-	END IF;
-
-	b_super_owner := FALSE;
-	SELECT INTO i_super_owner_id id FROM owner WHERE id=i_owner_id AND is_default;
-	IF FOUND THEN 
-		b_super_owner := TRUE;
-	END IF;
-
-	SELECT INTO i_recert_inverval recert_interval FROM owner WHERE id=i_owner_id;
-
-	FOR r_rule IN
-	SELECT rule_uid, rule_id FROM rule WHERE mgm_id=i_mgm_id AND (active OR NOT active AND rule_last_seen=i_previous_import)
-	LOOP
-
-		IF recert_owner_responsible_for_rule (i_owner_id, r_rule.rule_id) THEN
-
-			-- collects dates
-			SELECT INTO t_current_next_recert_date next_recert_date FROM recertification 
-			WHERE owner_id=i_owner_id AND rule_id=r_rule.rule_id AND recert_date IS NULL;
-
-			IF NOT FOUND THEN
-				b_no_current_next_recert_date := TRUE;
-			END IF;
-
-			SELECT INTO t_rule_last_recertified MAX(recert_date)
-				FROM recertification
-				WHERE rule_id=r_rule.rule_id AND NOT recert_date IS NULL;
-
-			IF NOT FOUND OR t_rule_last_recertified IS NULL THEN	-- no prior recertification, use initial rule import date 
-				b_never_recertified := TRUE;
-				SELECT INTO t_rule_created rule_metadata.rule_created
-					FROM rule
-					LEFT JOIN rule_metadata ON (rule.rule_uid=rule_metadata.rule_uid AND rule.dev_id=rule_metadata.dev_id)
-					WHERE rule_id=r_rule.rule_id;
-			END IF;
-
-			IF t_requested_next_recert_date IS NULL THEN
-				-- if the currenct next recert date is before the intended fixed input date, ignore it 
-				IF b_never_recertified THEN
-					t_next_recert_date := t_rule_created + make_interval (days => i_recert_inverval);
-				ELSE 
-					t_next_recert_date := t_rule_last_recertified + make_interval (days => i_recert_inverval);
-				END IF;
-			ELSE
-				t_next_recert_date := t_requested_next_recert_date;
-			END IF;
-
-			-- do not set next recert date later than actually calculated date
-			IF NOT b_no_current_next_recert_date THEN
-				IF t_next_recert_date>t_current_next_recert_date THEN
-					t_next_recert_date := t_current_next_recert_date;
-				END IF;
-			END IF;
-
-			-- delete old recert entry:
-			DELETE FROM recertification WHERE owner_id=i_owner_id AND rule_id=r_rule.rule_id AND recert_date IS NULL;
-
-			-- add new recert entry:
-			IF b_super_owner THEN	-- special case for super owner (convert NULL to ID)
-				INSERT INTO recertification (rule_metadata_id, next_recert_date, rule_id, ip_match, owner_id)
-					SELECT rule_metadata_id, 
-						t_next_recert_date AS next_recert_date,
-						rule_id, 
-						matches as ip_match, 
-						i_owner_id AS owner_id
-					FROM view_rule_with_owner 
-					LEFT JOIN rule USING (rule_id)
-					LEFT JOIN rule_metadata ON (rule.rule_uid=rule_metadata.rule_uid AND rule.dev_id=rule_metadata.dev_id)
-					WHERE view_rule_with_owner.rule_id=r_rule.rule_id AND view_rule_with_owner.owner_id IS NULL;
-			ELSE
-				INSERT INTO recertification (rule_metadata_id, next_recert_date, rule_id, ip_match, owner_id)
-					SELECT rule_metadata_id, 
-						t_next_recert_date AS next_recert_date,
-						rule_id, 
-						matches as ip_match, 
-						i_owner_id AS owner_id
-					FROM view_rule_with_owner 
-					LEFT JOIN rule USING (rule_id)
-					LEFT JOIN rule_metadata ON (rule.rule_uid=rule_metadata.rule_uid AND rule.dev_id=rule_metadata.dev_id)
-					WHERE view_rule_with_owner.rule_id=r_rule.rule_id AND view_rule_with_owner.owner_id=i_owner_id;
-			END IF;
-		ELSE
-			-- delete old outdated recert entry if owner is not responsible any more 
-			DELETE FROM recertification WHERE owner_id=i_owner_id AND rule_id=r_rule.rule_id AND recert_date IS NULL;
+	IF i_owner_id IS NULL OR i_mgm_id IS NULL THEN
+		IF i_owner_id IS NULL THEN
+			RAISE WARNING 'found undefined owner_id in recert_refresh_one_owner_one_mgm';
+		ELSE -- mgm_id NULL
+			RAISE WARNING 'found undefined mgm_id in recert_refresh_one_owner_one_mgm';
 		END IF;
-	END LOOP;
+	ELSE
 
-	-- finally, when not super user - recalculate super user recert entries - since these might change with each owner change
-	IF NOT b_super_owner THEN
+		-- get id of previous import:
+		SELECT INTO i_current_import_id control_id FROM import_control WHERE mgm_id=i_mgm_id AND stop_time IS NULL;
+		SELECT INTO i_previous_import * FROM get_previous_import_id_for_mgmt(i_mgm_id,i_current_import_id);
+		IF NOT FOUND OR i_previous_import IS NULL THEN
+			i_previous_import := -1;	-- prevent match for previous import
+		END IF;
+
 		SELECT INTO i_super_owner_id id FROM owner WHERE is_default;
-		PERFORM recert_refresh_one_owner_one_mgm (i_super_owner_id, i_mgm_id, t_requested_next_recert_date);
+		IF FOUND THEN 
+			b_super_owner_exists := TRUE;
+		END IF;
+
+		SELECT INTO i_super_owner_id id FROM owner WHERE id=i_owner_id AND is_default;
+		IF FOUND THEN 
+			b_super_owner := TRUE;
+		END IF;
+
+		SELECT INTO i_recert_inverval recert_interval FROM owner WHERE id=i_owner_id;
+
+		FOR r_rule IN
+		SELECT rule_uid, rule_id FROM rule WHERE mgm_id=i_mgm_id AND (active OR NOT active AND rule_last_seen=i_previous_import)
+		LOOP
+
+			IF recert_owner_responsible_for_rule (i_owner_id, r_rule.rule_id) THEN
+
+				-- collects dates
+				SELECT INTO t_current_next_recert_date next_recert_date FROM recertification 
+				WHERE owner_id=i_owner_id AND rule_id=r_rule.rule_id AND recert_date IS NULL;
+
+				IF NOT FOUND THEN
+					b_no_current_next_recert_date := TRUE;
+				END IF;
+
+				SELECT INTO t_rule_last_recertified MAX(recert_date)
+					FROM recertification
+					WHERE rule_id=r_rule.rule_id AND NOT recert_date IS NULL;
+
+				IF NOT FOUND OR t_rule_last_recertified IS NULL THEN	-- no prior recertification, use initial rule import date 
+					b_never_recertified := TRUE;
+					SELECT INTO t_rule_created rule_metadata.rule_created
+						FROM rule
+						LEFT JOIN rule_metadata ON (rule.rule_uid=rule_metadata.rule_uid AND rule.dev_id=rule_metadata.dev_id)
+						WHERE rule_id=r_rule.rule_id;
+				END IF;
+
+				IF t_requested_next_recert_date IS NULL THEN
+					-- if the currenct next recert date is before the intended fixed input date, ignore it 
+					IF b_never_recertified THEN
+						t_next_recert_date := t_rule_created + make_interval (days => i_recert_inverval);
+					ELSE 
+						t_next_recert_date := t_rule_last_recertified + make_interval (days => i_recert_inverval);
+					END IF;
+				ELSE
+					t_next_recert_date := t_requested_next_recert_date;
+				END IF;
+
+				-- do not set next recert date later than actually calculated date
+				IF NOT b_no_current_next_recert_date THEN
+					IF t_next_recert_date>t_current_next_recert_date THEN
+						t_next_recert_date := t_current_next_recert_date;
+					END IF;
+				END IF;
+
+				-- delete old recert entry:
+				DELETE FROM recertification WHERE owner_id=i_owner_id AND rule_id=r_rule.rule_id AND recert_date IS NULL;
+
+				-- add new recert entry:
+				IF b_super_owner THEN	-- special case for super owner (convert NULL to ID)
+					INSERT INTO recertification (rule_metadata_id, next_recert_date, rule_id, ip_match, owner_id)
+						SELECT rule_metadata_id, 
+							t_next_recert_date AS next_recert_date,
+							rule_id, 
+							matches as ip_match, 
+							i_owner_id AS owner_id
+						FROM view_rule_with_owner 
+						LEFT JOIN rule USING (rule_id)
+						LEFT JOIN rule_metadata ON (rule.rule_uid=rule_metadata.rule_uid AND rule.dev_id=rule_metadata.dev_id)
+						WHERE view_rule_with_owner.rule_id=r_rule.rule_id AND view_rule_with_owner.owner_id IS NULL;
+				ELSE
+					INSERT INTO recertification (rule_metadata_id, next_recert_date, rule_id, ip_match, owner_id)
+						SELECT rule_metadata_id, 
+							t_next_recert_date AS next_recert_date,
+							rule_id, 
+							matches as ip_match, 
+							i_owner_id AS owner_id
+						FROM view_rule_with_owner 
+						LEFT JOIN rule USING (rule_id)
+						LEFT JOIN rule_metadata ON (rule.rule_uid=rule_metadata.rule_uid AND rule.dev_id=rule_metadata.dev_id)
+						WHERE view_rule_with_owner.rule_id=r_rule.rule_id AND view_rule_with_owner.owner_id=i_owner_id;
+				END IF;
+			ELSE
+				-- delete old outdated recert entry if owner is not responsible any more 
+				DELETE FROM recertification WHERE owner_id=i_owner_id AND rule_id=r_rule.rule_id AND recert_date IS NULL;
+			END IF;
+		END LOOP;
+
+		-- finally, when not super user - recalculate super user recert entries - since these might change with each owner change
+		IF NOT b_super_owner AND b_super_owner_exists THEN
+			PERFORM recert_refresh_one_owner_one_mgm (i_super_owner_id, i_mgm_id, t_requested_next_recert_date);
+		END IF;
 	END IF;
 END;
 $$ LANGUAGE plpgsql;

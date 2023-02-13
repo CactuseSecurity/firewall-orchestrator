@@ -3,4 +3,4 @@
   file:
     state: absent
     name: "/etc/logrotate.d/{{ product_name }}.conf"
-  become: yes
+  become: true

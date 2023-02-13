@@ -11,13 +11,13 @@
   loop:
     - postgresql-client
     - cron
-  become: yes
+  become: true
 
 - name: add localhost hostkey to known_hosts
   known_hosts:
     name: localhost
     key: "{{ lookup('pipe', 'ssh-keyscan localhost') }}"
-  become: yes
+  become: true
   become_user: "{{ fworch_user }}"
 
 - name: create sample devices in database
@@ -28,7 +28,7 @@
   known_hosts:
     name: "{{ item }}"
     key: "{{ lookup('pipe', 'ssh-keyscan -H ' + item) }}"
-  become: yes
+  become: true
   become_user: "{{ fworch_user }}"
   loop:
     - "127.0.0.1"

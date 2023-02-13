@@ -82,19 +82,19 @@
     template:
       src: "{{ product_name }}-importer-legacy.service.j2"
       dest: "/lib/systemd/system/{{ product_name }}-importer-legacy.service"
-      backup: yes
+      backup: true
       mode: "0644"
       owner: "root"
-    become: yes
+    become: true
 
   - name: copy api-importer systemd service script
     template:
       src: "{{ product_name }}-importer-api.service.j2"
       dest: "/lib/systemd/system/{{ product_name }}-importer-api.service"
-      backup: yes
+      backup: true
       mode: "0644"
       owner: "root"
-    become: yes
+    become: true
 
   - name: include fetch importer pwd script
     import_tasks: fetch-importer-pwd.yml
@@ -110,4 +110,4 @@
     notify: "importer handler"
     when: installation_mode == "upgrade"
 
-  become: yes
+  become: true

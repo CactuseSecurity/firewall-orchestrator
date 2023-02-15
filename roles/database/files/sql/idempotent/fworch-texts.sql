@@ -1491,6 +1491,10 @@ INSERT INTO txt VALUES ('daily_sample_data_check','German', 'T&auml;glicher Chec
 INSERT INTO txt VALUES ('daily_sample_data_check','English','Scheduled Daily Sample Data Check');
 INSERT INTO txt VALUES ('daily_importer_check', 'German',   'T&auml;glicher Check der Importer');
 INSERT INTO txt VALUES ('daily_importer_check', 'English',  'Scheduled Daily Importer Check');
+INSERT INTO txt VALUES ('daily_recert_check',   'German',   'T&auml;glicher Rezertifizierungs-Check');
+INSERT INTO txt VALUES ('daily_recert_check',   'English',  'Scheduled Daily Recertification Check');
+INSERT INTO txt VALUES ('emails_sent',          'German',   ' Emails versendet');
+INSERT INTO txt VALUES ('emails_sent',          'English',  ' emails sent');
 INSERT INTO txt VALUES ('scheduled_autodiscovery','German', 'Termingesteuerte Autodiscovery');
 INSERT INTO txt VALUES ('scheduled_autodiscovery','English','Scheduled Autodiscovery');
 INSERT INTO txt VALUES ('manual_autodiscovery', 'German', 	'Manuelle Autodiscovery');
@@ -1687,6 +1691,8 @@ INSERT INTO txt VALUES ('U5216', 'German',  'Anzeige und Verwaltung aller Eigent
 INSERT INTO txt VALUES ('U5216', 'English', 'Show and administrate all owners');
 INSERT INTO txt VALUES ('U5217', 'German',  'Sind sie sicher, dass sie folgenden Eigent&uuml;mer l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5217', 'English', 'Are you sure you want to delete owner: ');
+INSERT INTO txt VALUES ('U5218', 'German',  'L&ouml;scht alle Beispiel-Eigent&uuml;mer (auf "_demo" endend)');
+INSERT INTO txt VALUES ('U5218', 'English', 'Deletes all sample owners (ending with "_demo")');
 
 INSERT INTO txt VALUES ('U5301', 'German',  'Einstellungen ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5301', 'English', 'Settings changed.');
@@ -1737,8 +1743,8 @@ INSERT INTO txt VALUES ('U7001', 'German',  '&Uuml;berblick der Ereignisse im Fi
 INSERT INTO txt VALUES ('U7001', 'English', 'Alerts and events inside Firewall Orchestrator');
 INSERT INTO txt VALUES ('U7002', 'German',  'Daten sind dann verloren. Erw&auml;gen Sie eine Deaktivierung.');
 INSERT INTO txt VALUES ('U7002', 'English', 'Data will be lost. Consider deactivation.');
-INSERT INTO txt VALUES ('U7003', 'German',  'L&ouml;scht alle Beispieldaten (auf "_demo" endend): Managements, Login-Daten, Gateways, Nutzer, Mandanten, Gruppen');
-INSERT INTO txt VALUES ('U7003', 'English', 'Deletes all sample data (ending with "_demo"): managements, credentials, gateways, users, tenants, groups');
+INSERT INTO txt VALUES ('U7003', 'German',  'L&ouml;scht alle Beispieldaten (auf "_demo" endend): Managements, Login-Daten, Gateways, Nutzer, Mandanten, Gruppen, Eigent&uuml;mer');
+INSERT INTO txt VALUES ('U7003', 'English', 'Deletes all sample data (ending with "_demo"): managements, credentials, gateways, users, tenants, groups, owners');
 INSERT INTO txt VALUES ('U7101', 'German',  'Archiv der Alarme mit Best&auml;tigungen');
 INSERT INTO txt VALUES ('U7101', 'English', 'View the past alerts with acknowledgements');
 INSERT INTO txt VALUES ('U7201', 'German',  'Archiv der Importer-Nachrichten');

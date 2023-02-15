@@ -191,7 +191,6 @@
     private AnchorNavToRSB? anchorNavToRSB;
 
     private const int rulesPerPage = 0;
-    private const int defaultRecertInterval = 360;
 
     private int sidebarLeftWidth = GlobalConfig.kSidebarLeftWidth;
     private int sidebarRightWidth = GlobalConfig.kSidebarRightWidth;
@@ -211,7 +210,7 @@
     private List<FwoOwner> userOwnerships = new List<FwoOwner>();
     private List<FwoOwner> groupOwnerships = new List<FwoOwner>();
     private List<FwoOwner> collectedOwnerships = new List<FwoOwner>();
-    private Dictionary<int, int> recertInterval = new Dictionary<int, int>(){{0,defaultRecertInterval}};
+    private Dictionary<int, int> recertInterval = new Dictionary<int, int>();
     private DeviceFilter deviceFilter = new DeviceFilter();
     private List<Rule> selectedRules = new List<Rule>();
     private bool collapseDevices = false;
@@ -266,6 +265,7 @@
     private async Task CollectOwnerships()
     {
         userOwnerships = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnerIdsForUser, new {userDn = userConfig.User.Dn});
+        recertInterval.Add(0, userConfig.RecertificationPeriod);
 
         List<UserGroup> ownerGroups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi, true);
         List<string> ownerGrpDns = new List<string>();
@@ -284,14 +284,14 @@
         foreach(var owner in userOwnerships)
         {
             collectedOwnerships.Add(owner);
-            recertInterval.Add(owner.Id, owner.RecertInterval ?? defaultRecertInterval);
+            recertInterval.Add(owner.Id, owner.RecertInterval ?? userConfig.RecertificationPeriod);
         }
         foreach(var owner in groupOwnerships)
         {
             if(collectedOwnerships.FirstOrDefault(x => x.Id == owner.Id) == null)
             {
                 collectedOwnerships.Add(owner);
-                recertInterval.Add(owner.Id, owner.RecertInterval ?? defaultRecertInterval);
+                recertInterval.Add(owner.Id, owner.RecertInterval ?? userConfig.RecertificationPeriod);
             }
         }
         if(collectedOwnerships.Count == 1)
@@ -530,7 +530,7 @@
             // create delete tickets
             foreach(var device in deleteList)
             {
-                await ticketCreator.CreateRuleDeleteTicket(device.Key, device.Value, actComment);
+                await ticketCreator.CreateRuleDeleteTicket(device.Key, device.Value, actComment, DateTime.Now.AddDays(userConfig.RuleRemovalGracePeriod));
             }
 
             // reload updated report

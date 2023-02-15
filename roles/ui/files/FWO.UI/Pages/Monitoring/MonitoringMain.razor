@@ -80,28 +80,7 @@
 <AutoDiscovery Actions="actActions" @bind-Display="AutoDiscoverMode" Closing="async () => {AutoDiscoverMode = false; await Refresh();}"/>
 <ImportDetails ImportStatus="actStatus" @bind-DetailsMode="DetailsMode" Closing="async () => {DetailsMode = false; await Refresh();}"/>
 <ImportRollback ManagementId="actMgmtId" LastIncompleteImport="LastIncompleteImport" @bind-RollbackMode="RollbackMode" Closing="async () => {RollbackMode = false; await Refresh();}"/>
-
-<PopUp Title="@(userConfig.GetText("remove_sample_data"))" Show="@RemoveSampleDataMode" OnClose="() => RemoveSampleDataMode = false">
-    <Body>
-        @if (RemoveSampleDataMode)
-        {
-            <p>@(userConfig.GetText("U7003"))</p>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <AuthorizeView Roles="admin">
-                <Authorized>
-                    <button class="btn btn-sm btn-danger" @onclick="() => RemoveSampleData()">@(userConfig.GetText("delete"))</button>
-                </Authorized>
-                <NotAuthorized>
-                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                </NotAuthorized> 
-            </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
+<RemoveSampleData Display="RemoveSampleDataMode" PerformAction="RemoveSampleData" CleanupMessage="@userConfig.GetText("U7003")"/>
 
 <PopUp Title="@(userConfig.GetText("in_progress"))" Small="true" Show="@workInProgress">
     <Body>
@@ -297,6 +276,19 @@
                 }
             }
 
+            List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+            int deletedSampleOwners = 0;
+            foreach (var owner in owners)
+            {
+                if (owner.Name.EndsWith("_demo"))
+                {
+                    if (await DeleteOwner(owner))
+                    {
+                        deletedSampleOwners++;
+                    }
+                }
+            }
+
             await Acknowledge(actAlert);
 
             string text = "";
@@ -320,6 +312,11 @@
             {
                 text += $" {deletedSampleGroups} " + userConfig.GetText("groups");
             }
+            if(deletedSampleOwners > 0)
+            {
+                text += $" {deletedSampleOwners} " + userConfig.GetText("owners");
+            }
+
             if(text == "")
             {
                 text += userConfig.GetText("nothing");
@@ -437,6 +434,24 @@
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("delete_group"), "", true);
+        }
+        return false;
+    }
+
+    private async Task<bool> DeleteOwner(FwoOwner owner)
+    {
+        try
+        {
+            var Variables = new { id = owner.Id };
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.OwnerQueries.deleteOwner, Variables)).DeletedId;
+            if (delId == owner.Id)
+            {
+                return true;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("delete_owner"), "", true);
         }
         return false;
     }

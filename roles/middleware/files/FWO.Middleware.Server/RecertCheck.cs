@@ -6,6 +6,8 @@ using FWO.Config.Api.Data;
 using FWO.Logging;
 using FWO.Mail;
 using FWO.Middleware.RequestParameters;
+using FWO.Report;
+using FWO.Report.Filter;
 
 
 namespace FWO.Middleware.Server
@@ -34,31 +36,30 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Recertification check
         /// </summary>
-        public async Task CheckRecertifications()
+        public async Task<int> CheckRecertifications()
         {
+            int emailsSent = 0;
             try
             {
-                if(globalConfig.RecCheckActive)
+                await InitEnv();
+                EmailConnection emailConnection = new EmailConnection(globalConfig.EmailServerAddress, globalConfig.EmailPort,
+                    globalConfig.EmailTls, globalConfig.EmailUser, globalConfig.EmailPassword, globalConfig.EmailSenderAddress);
+                MailKitMailer mailer = new MailKitMailer(emailConnection);
+
+                foreach(var owner in owners)
                 {
-                    await InitEnv();
-                    EmailConnection emailConnection = new EmailConnection(globalConfig.EmailServerAddress, globalConfig.EmailPort,
-                        globalConfig.EmailTls, globalConfig.EmailUser, globalConfig.EmailPassword, globalConfig.EmailSenderAddress);
-                    MailKitMailer mailer = new MailKitMailer(emailConnection);
-
-                    foreach(var owner in owners)
+                    if(isCheckTime(owner))
                     {
-                        if(isCheckTime(owner))
-                        {
-                            // new task?
-                            List<Rule> upcomingRecerts = new List<Rule>();  // todo: get with view_recert_upcoming_rules?
-                            List<Rule> overdueRecerts = new List<Rule>(); // todo: get with view_recert_overdue_rules
+                        // todo: better handling
+                        List<Rule> upcomingRecerts = await generateRecertificationReport(owner, false);
+                        List<Rule> overdueRecerts = await generateRecertificationReport(owner, true);
 
-                            if(upcomingRecerts.Count > 0 || overdueRecerts.Count > 0)
-                            {
-                                await mailer.SendAsync(prepareEmail(owner, upcomingRecerts, overdueRecerts), emailConnection, new CancellationToken());
-                            }
-                            await setOwnerLastCheck(owner);
+                        if(upcomingRecerts.Count > 0 || overdueRecerts.Count > 0)
+                        {
+                            await mailer.SendAsync(prepareEmail(owner, upcomingRecerts, overdueRecerts), emailConnection, new CancellationToken());
+                            emailsSent++;
                         }
+                        await setOwnerLastCheck(owner);
                     }
                 }
             }
@@ -66,6 +67,7 @@ namespace FWO.Middleware.Server
             {
                 Log.WriteError("Recertification Check", $"Checking owners for upcoming recertifications leads to exception.", exception);
             }
+            return emailsSent;
         }
 
         private async Task InitEnv()
@@ -128,6 +130,68 @@ namespace FWO.Middleware.Server
                 return true;
             }
             return false;
+        }
+
+        private async Task<List<Rule>> generateRecertificationReport(FwoOwner owner, bool overdueOnly)
+        {
+            List<Rule> rules = new List<Rule>();
+            try
+            {
+                CancellationTokenSource tokenSource = new CancellationTokenSource();
+                var token = tokenSource.Token;
+                // todo: take proper user
+                UserConfig userConfig = await UserConfig.ConstructAsync(globalConfig, apiConnection, (uiUsers.FirstOrDefault(x => x.Language != null) ?? throw new Exception("no users found.")).DbId);
+
+                DeviceFilter deviceFilter = new DeviceFilter();
+                deviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
+                deviceFilter.applyFullDeviceSelection(true);
+
+                RecertFilter recertFilter = new RecertFilter()
+                {
+                    RecertOwnerList = new List<int>() { owner.Id },
+                    RecertOverdueOnly = overdueOnly,
+                    RecertificationDisplayPeriod = globalConfig.RecertificationNoticePeriod
+                };
+                ReportTemplate reportParams = new ReportTemplate("", deviceFilter, (int) ReportType.Recertification, new TimeFilter(), recertFilter);
+                ReportBase? currentReport = ReportBase.ConstructReport(reportParams, userConfig);
+
+                DateTime startTime = DateTime.Now;
+                Management[] managements = new Management[0];
+
+                try
+                {
+                    await currentReport.Generate(int.MaxValue, apiConnection,
+                    managementsReportIntermediate =>
+                    {
+                        managements = managementsReportIntermediate;
+                        return Task.CompletedTask;
+                    }, token);
+                }
+                catch (OperationCanceledException e)
+                {
+                    Log.WriteDebug("Generate Report", $"Cancelled: {e.Message}");
+                }
+
+                foreach (Management management in managements)
+                {
+                    foreach (Device device in management.Devices)
+                    {
+                        if (device.ContainsRules())
+                        {
+                            foreach (Rule rule in device.Rules)
+                            {
+                                rule.Metadata.UpdateRecertPeriods(owner.RecertInterval ?? globalConfig.RecertificationPeriod, 0);
+                                rules.Add(rule);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Recertification Check", $"Report for owner {owner.Name} leads to exception.", exception);
+            }
+            return rules;
         }
 
         private MailData prepareEmail(FwoOwner owner, List<Rule> upcomingRecerts, List<Rule> overdueRecerts)

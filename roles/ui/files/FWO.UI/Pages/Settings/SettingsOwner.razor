@@ -21,8 +21,14 @@
     <hr />
     @if(userConfig.ReqAllowManualOwnerAdmin)
     {
-        <button class="btn btn-sm btn-success" @onclick="AddOwner">@(userConfig.GetText("add_owner"))</button>
-        <br><br>
+        <div class="form-group row">
+            <button class="btn btn-sm btn-success m-2" @onclick="AddOwner">@(userConfig.GetText("add_owner"))</button>
+            @if (showCleanupButton)
+            {
+                <button class="btn btn-sm btn-danger m-2" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
+            }
+            <br><br>
+        </div>
     }
     <div class="m-2">
         <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="FwoOwner" Items="owners" PageSize="0" ColumnReorder="true">
@@ -326,6 +332,7 @@
             </div>
         </Footer>
     </PopUp>
+    <RemoveSampleData Display="CleanupMode" PerformAction="RemoveSampleData" CleanupMessage="@cleanupMessage"/>
 }
 
 
@@ -335,6 +342,7 @@
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private List<FwoOwner> owners = new List<FwoOwner>();
+    private List<FwoOwner> sampleOwners = new List<FwoOwner>();
     private FwoOwner actOwner = new FwoOwner();
     private int actTenantId = -1;
 
@@ -350,6 +358,9 @@
     private int selectedLdapId;
     private string searchPattern = "";
 
+    private bool showCleanupButton = false;
+    private bool CleanupMode = false;
+    private string cleanupMessage = "";
     private bool EditOwnerMode = false;
     private bool AddOwnerMode = false;
     private bool DeleteOwnerMode = false;
@@ -387,6 +398,15 @@
         try
         {
             owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+            foreach (var owner in owners)
+            {
+                if (owner.Name.EndsWith("_demo"))
+                {
+                    sampleOwners.Add(owner);
+                }
+            }
+            showCleanupButton = (sampleOwners.Count > 0);
+
             ownerGroups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi, true);
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
             uiUsers = uiUsers.FindAll(x => x.DbId != 0);
@@ -569,6 +589,7 @@
         EditOwnerMode = false;
         AddOwnerMode = false;
         DeleteOwnerMode = false;
+        CleanupMode = false;
     }
 
     private void RequestDeleteOwner(FwoOwner owner)
@@ -589,6 +610,23 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("delete_owner"), "", true);
         }
+    }
+
+    private void RequestRemoveSampleData()
+    {
+        cleanupMessage = userConfig.GetText("U5218");
+        CleanupMode = true;
+    }
+
+    private async Task RemoveSampleData()
+    {
+        foreach (var owner in sampleOwners)
+        {
+            actOwner = owner;
+            await DeleteOwner();
+        }
+        CleanupMode = false;
+        showCleanupButton = false;
     }
 
     private async Task SetDefault(FwoOwner newDefaultOwner)

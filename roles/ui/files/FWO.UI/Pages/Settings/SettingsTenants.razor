@@ -226,30 +226,7 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("remove_sample_data"))" Show="@SampleRemoveMode" OnClose="() => SampleRemoveMode = false">
-    <Body>
-        @if (SampleRemoveMode)
-        {
-            <p>@(sampleRemoveMessage)</p>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            @if (SampleRemoveAllowed)
-            {
-                <AuthorizeView Roles="admin">
-                    <Authorized>
-                        <button class="btn btn-sm btn-danger" @onclick="() => RemoveSampleData()">@(userConfig.GetText("delete"))</button>
-                    </Authorized>
-                    <NotAuthorized>
-                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                    </NotAuthorized> 
-                </AuthorizeView>
-            }
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
+<RemoveSampleData Display="SampleRemoveMode" PerformAction="RemoveSampleData" CleanupMessage="@sampleRemoveMessage" SampleRemoveAllowed="sampleRemoveAllowed"/>
 
 <PopUp Title="@(userConfig.GetText("in_progress"))" Small="true" Show="@workInProgress">
     <Body>
@@ -286,7 +263,7 @@
     private bool DeleteDeviceMode = false;
     private bool SampleRemoveMode = false;
     private bool showCleanupButton = false;
-    private bool SampleRemoveAllowed = false;
+    private bool sampleRemoveAllowed = false;
     private string sampleRemoveMessage = "";
     private bool workInProgress = false;
 
@@ -446,12 +423,12 @@
             if (sampleTenants.Exists(tenant => (uiUsers.Exists(user => (user.Tenant != null && user.Tenant.Name == tenant.Name)))))
             {
                 sampleRemoveMessage = userConfig.GetText("E5283");
-                SampleRemoveAllowed = false;
+                sampleRemoveAllowed = false;
             }
             else
             {
                 sampleRemoveMessage = userConfig.GetText("U5209");
-                SampleRemoveAllowed = true;
+                sampleRemoveAllowed = true;
             }
             SampleRemoveMode = true;
         }

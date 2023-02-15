@@ -1,0 +1,55 @@
+﻿@using FWO.Config.Api
+
+@attribute [Authorize(Roles = "admin, auditor")]
+
+@inject UserConfig userConfig
+
+
+<PopUp Title="@(userConfig.GetText("remove_sample_data"))" Show="@Display" OnClose="() => Display = false">
+    <Body>
+        @if (Display)
+        {
+            <p>@(CleanupMessage)</p>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            @if (SampleRemoveAllowed)
+            {
+                <AuthorizeView Roles="admin">
+                    <Authorized>
+                        <button class="btn btn-sm btn-danger" @onclick="() => PerformAction()">@(userConfig.GetText("delete"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+            }
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+
+@code
+{
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public Func<Task> PerformAction { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public string CleanupMessage { get; set; } = "";
+
+    [Parameter]
+    public bool SampleRemoveAllowed { get; set; } = true;
+
+    private void Cancel()
+    {
+        Display = false;
+    }
+}

@@ -18,7 +18,7 @@
             {
                 <AuthorizeView Roles="admin">
                     <Authorized>
-                        <button class="btn btn-sm btn-danger" @onclick="() => PerformAction()">@(userConfig.GetText("delete"))</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => {PerformAction(); Display = false;}">@(userConfig.GetText("delete"))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>

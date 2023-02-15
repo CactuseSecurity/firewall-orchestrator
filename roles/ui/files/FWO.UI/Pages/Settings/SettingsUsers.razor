@@ -996,7 +996,8 @@
                 DisplayMessageInUi(exception, userConfig.GetText("remove_sample_data"), "", false);
             }
         }
-        workInProgress = false; 
+        workInProgress = false;
+        StateHasChanged();
     }
 
     private void Cancel()

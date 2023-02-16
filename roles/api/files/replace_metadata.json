@@ -6516,9 +6516,11 @@
                       "dn",
                       "group_dn",
                       "name",
+                      "recert_check_params",
                       "id",
-                      "tenant_id",
                       "recert_interval",
+                      "tenant_id",
+                      "last_recert_check",
                       "next_recert_date"
                     ],
                     "filter": {}
@@ -6528,16 +6530,17 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
+                      "is_default",
                       "app_id_external",
                       "dn",
                       "group_dn",
-                      "id",
-                      "is_default",
                       "name",
-                      "next_recert_date",
                       "recert_check_params",
+                      "id",
                       "recert_interval",
-                      "tenant_id"
+                      "tenant_id",
+                      "last_recert_check",
+                      "next_recert_date"
                     ],
                     "filter": {}
                   }
@@ -6551,9 +6554,11 @@
                       "dn",
                       "group_dn",
                       "name",
+                      "recert_check_params",
                       "id",
                       "recert_interval",
                       "tenant_id",
+                      "last_recert_check",
                       "next_recert_date"
                     ],
                     "filter": {}
@@ -6568,9 +6573,11 @@
                       "dn",
                       "group_dn",
                       "name",
+                      "recert_check_params",
                       "id",
-                      "tenant_id",
                       "recert_interval",
+                      "tenant_id",
+                      "last_recert_check",
                       "next_recert_date"
                     ],
                     "filter": {}
@@ -6604,9 +6611,11 @@
                       "dn",
                       "group_dn",
                       "name",
+                      "recert_check_params",
                       "id",
-                      "tenant_id",
                       "recert_interval",
+                      "tenant_id",
+                      "last_recert_check",
                       "next_recert_date"
                     ],
                     "filter": {}
@@ -6616,16 +6625,17 @@
                   "role": "recertifier",
                   "permission": {
                     "columns": [
+                      "is_default",
                       "app_id_external",
                       "dn",
                       "group_dn",
-                      "id",
-                      "is_default",
                       "name",
-                      "next_recert_date",
                       "recert_check_params",
+                      "id",
                       "recert_interval",
-                      "tenant_id"
+                      "tenant_id",
+                      "last_recert_check",
+                      "next_recert_date"
                     ],
                     "filter": {
                       "tenant_id": {
@@ -6639,16 +6649,17 @@
                   "role": "reporter",
                   "permission": {
                     "columns": [
+                      "is_default",
                       "app_id_external",
                       "dn",
                       "group_dn",
-                      "id",
-                      "is_default",
                       "name",
-                      "next_recert_date",
                       "recert_check_params",
+                      "id",
                       "recert_interval",
-                      "tenant_id"
+                      "tenant_id",
+                      "last_recert_check",
+                      "next_recert_date"
                     ],
                     "filter": {
                       "tenant_id": {
@@ -6662,16 +6673,17 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
+                      "is_default",
                       "app_id_external",
                       "dn",
                       "group_dn",
-                      "id",
-                      "is_default",
                       "name",
-                      "next_recert_date",
                       "recert_check_params",
+                      "id",
                       "recert_interval",
-                      "tenant_id"
+                      "tenant_id",
+                      "last_recert_check",
+                      "next_recert_date"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -6686,9 +6698,11 @@
                       "dn",
                       "group_dn",
                       "name",
+                      "recert_check_params",
                       "id",
-                      "tenant_id",
                       "recert_interval",
+                      "tenant_id",
+                      "last_recert_check",
                       "next_recert_date"
                     ],
                     "filter": {}
@@ -6703,9 +6717,11 @@
                       "dn",
                       "group_dn",
                       "name",
+                      "recert_check_params",
                       "id",
-                      "tenant_id",
                       "recert_interval",
+                      "tenant_id",
+                      "last_recert_check",
                       "next_recert_date"
                     ],
                     "filter": {}

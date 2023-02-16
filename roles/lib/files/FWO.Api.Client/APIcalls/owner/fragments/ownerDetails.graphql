@@ -9,4 +9,5 @@ fragment ownerDetails on owner {
   next_recert_date
   app_id_external
   recert_check_params
+  last_recert_check
 }

@@ -108,20 +108,30 @@ namespace FWO.Middleware.Server
                     }
                     else
                     {
-                        nextCheck = lastCheck.AddDays((checkParams.RecertCheckOffset-1) * 7 + 1);
+                        nextCheck = lastCheck.AddDays((checkParams.RecertCheckOffset - 1) * 7 + 1);
                         int count = 0;
                         while(nextCheck.DayOfWeek != (DayOfWeek)checkParams.RecertCheckWeekday && count < 6)
                         {
-                            nextCheck.AddDays(1);
+                            nextCheck = nextCheck.AddDays(1);
                             count++;
                         }
                     }
                 break;
                 case Interval.Months:
-                    nextCheck = lastCheck.AddMonths(checkParams.RecertCheckOffset);
-                    if(checkParams.RecertCheckDayOfMonth != null)
+                    if(checkParams.RecertCheckDayOfMonth == null)
                     {
-                        nextCheck.AddDays((int)checkParams.RecertCheckDayOfMonth - nextCheck.Day);
+                        nextCheck = lastCheck.AddMonths(checkParams.RecertCheckOffset);
+                    }
+                    else
+                    {
+                        nextCheck = lastCheck.AddMonths(checkParams.RecertCheckOffset - 1);
+                        nextCheck = nextCheck.AddDays(1);
+                        int count = 0;
+                        while(nextCheck.Day != (int)checkParams.RecertCheckDayOfMonth && count < 30)
+                        {
+                            nextCheck = nextCheck.AddDays(1);
+                            count++;
+                        }
                     }
                 break;
                 default:
@@ -203,7 +213,7 @@ namespace FWO.Middleware.Server
             string body = "";
             if(upcomingRecerts.Count > 0)
             {
-                body += globalConfig.RecCheckEmailUpcomingText + "\r\n";
+                body += globalConfig.RecCheckEmailUpcomingText + "\r\n\r\n";
                 foreach(var rule in upcomingRecerts)
                 {
                     body += prepareLine(rule);
@@ -211,7 +221,7 @@ namespace FWO.Middleware.Server
             }
             if(overdueRecerts.Count > 0)
             {
-                body += globalConfig.RecCheckEmailOverdueText + "\r\n";
+                body += globalConfig.RecCheckEmailOverdueText + "\r\n\r\n";
                 foreach(var rule in overdueRecerts)
                 {
                     body += prepareLine(rule);
@@ -224,7 +234,7 @@ namespace FWO.Middleware.Server
         {
             Recertification? nextRecert = rule.Metadata.RuleRecertification.FirstOrDefault(x => x.RecertDate == null);
             return (nextRecert != null && nextRecert.NextRecertDate != null ? DateOnly.FromDateTime((DateTime)nextRecert.NextRecertDate) : "") + ": " 
-                    + rule.DeviceName + ": " + rule.Name + ":" + rule.Uid + "\r\n";  // link ?
+                    + rule.DeviceName + ": " + rule.Name + ":" + rule.Uid + "\r\n\r\n";  // link ?
         }
 
         private List<string> collectEmailAddresses(FwoOwner owner)

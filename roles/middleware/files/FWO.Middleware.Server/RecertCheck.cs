@@ -1,6 +1,7 @@
 ﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Api.Data;
+using FWO.Config.File;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Logging;
@@ -17,7 +18,7 @@ namespace FWO.Middleware.Server
     /// </summary>
     public class RecertCheck
     {
-        private readonly ApiConnection apiConnection;
+        private readonly ApiConnection apiConnectionMiddlewareServer;
         private GlobalConfig globalConfig;
         private List<GroupGetReturnParameters> groups = new List<GroupGetReturnParameters>();
         private List<UiUser> uiUsers = new List<UiUser>();
@@ -29,7 +30,7 @@ namespace FWO.Middleware.Server
         /// </summary>
         public RecertCheck(ApiConnection apiConnection, GlobalConfig globalConfig)
         {
-            this.apiConnection = apiConnection;
+            this.apiConnectionMiddlewareServer = apiConnection;
             this.globalConfig = globalConfig;
         }
 
@@ -45,14 +46,16 @@ namespace FWO.Middleware.Server
                 EmailConnection emailConnection = new EmailConnection(globalConfig.EmailServerAddress, globalConfig.EmailPort,
                     globalConfig.EmailTls, globalConfig.EmailUser, globalConfig.EmailPassword, globalConfig.EmailSenderAddress);
                 MailKitMailer mailer = new MailKitMailer(emailConnection);
+                JwtWriter jwtWriter = new JwtWriter(ConfigFile.JwtPrivateKey);
+                ApiConnection apiConnectionReporter = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new Exception("Missing api server url on startup."), jwtWriter.CreateJWTReporterViewall());
 
                 foreach(var owner in owners)
                 {
                     if(isCheckTime(owner))
                     {
-                        // todo: better handling
-                        List<Rule> upcomingRecerts = await generateRecertificationReport(owner, false);
-                        List<Rule> overdueRecerts = await generateRecertificationReport(owner, true);
+                        // todo: refine handling
+                        List<Rule> upcomingRecerts = await generateRecertificationReport(apiConnectionReporter, owner, false);
+                        List<Rule> overdueRecerts = new List<Rule>(); // await generateRecertificationReport(apiConnectionReporter, owner, true);
 
                         if(upcomingRecerts.Count > 0 || overdueRecerts.Count > 0)
                         {
@@ -73,7 +76,7 @@ namespace FWO.Middleware.Server
         private async Task InitEnv()
         {
             globCheckParams = System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(globalConfig.RecCheckParams);
-            List<Ldap> connectedLdaps = apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections).Result;
+            List<Ldap> connectedLdaps = apiConnectionMiddlewareServer.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections).Result;
             foreach (Ldap currentLdap in connectedLdaps)
             {
                 if (currentLdap.IsInternal() && currentLdap.HasGroupHandling())
@@ -81,8 +84,8 @@ namespace FWO.Middleware.Server
                     groups.AddRange(currentLdap.GetAllInternalGroups());
                 }
             }
-            uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
-            owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+            uiUsers = await apiConnectionMiddlewareServer.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
+            owners = await apiConnectionMiddlewareServer.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
         }
 
         private bool isCheckTime(FwoOwner owner)
@@ -132,15 +135,14 @@ namespace FWO.Middleware.Server
             return false;
         }
 
-        private async Task<List<Rule>> generateRecertificationReport(FwoOwner owner, bool overdueOnly)
+        private async Task<List<Rule>> generateRecertificationReport(ApiConnection apiConnection, FwoOwner owner, bool overdueOnly)
         {
             List<Rule> rules = new List<Rule>();
             try
             {
                 CancellationTokenSource tokenSource = new CancellationTokenSource();
                 var token = tokenSource.Token;
-                // todo: take proper user
-                UserConfig userConfig = await UserConfig.ConstructAsync(globalConfig, apiConnection, (uiUsers.FirstOrDefault(x => x.Language != null) ?? throw new Exception("no users found.")).DbId);
+                UserConfig userConfig = new UserConfig(globalConfig);
 
                 DeviceFilter deviceFilter = new DeviceFilter();
                 deviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
@@ -181,6 +183,7 @@ namespace FWO.Middleware.Server
                             foreach (Rule rule in device.Rules)
                             {
                                 rule.Metadata.UpdateRecertPeriods(owner.RecertInterval ?? globalConfig.RecertificationPeriod, 0);
+                                rule.DeviceName = device.Name ?? "";
                                 rules.Add(rule);
                             }
                         }
@@ -200,21 +203,28 @@ namespace FWO.Middleware.Server
             string body = "";
             if(upcomingRecerts.Count > 0)
             {
-                body += globalConfig.RecCheckEmailUpcomingText + "/n";
+                body += globalConfig.RecCheckEmailUpcomingText + "\r\n";
                 foreach(var rule in upcomingRecerts)
                 {
-                    body += rule.Name + ": " + rule.DeviceName + ":" + rule.Uid + "/n";  // next recert date // link ?
+                    body += prepareLine(rule);
                 }
             }
             if(overdueRecerts.Count > 0)
             {
-                body += globalConfig.RecCheckEmailOverdueText + "/n";
+                body += globalConfig.RecCheckEmailOverdueText + "\r\n";
                 foreach(var rule in overdueRecerts)
                 {
-                    body += rule.Name + ": " + rule.DeviceName + ":" + rule.Uid + "/n";  // next recert date // link ?
+                    body += prepareLine(rule);
                 }
             }
             return new MailData(collectEmailAddresses(owner), subject, body);
+        }
+
+        private string prepareLine(Rule rule)
+        {
+            Recertification? nextRecert = rule.Metadata.RuleRecertification.FirstOrDefault(x => x.RecertDate == null);
+            return (nextRecert != null && nextRecert.NextRecertDate != null ? DateOnly.FromDateTime((DateTime)nextRecert.NextRecertDate) : "") + ": " 
+                    + rule.DeviceName + ": " + rule.Name + ":" + rule.Uid + "\r\n";  // link ?
         }
 
         private List<string> collectEmailAddresses(FwoOwner owner)
@@ -248,7 +258,7 @@ namespace FWO.Middleware.Server
                 id = owner.Id,
                 lastRecertCheck = DateTime.Now
             };
-            await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.OwnerQueries.setOwnerLastCheck, Variables);
+            await apiConnectionMiddlewareServer.SendQueryAsync<object>(FWO.Api.Client.Queries.OwnerQueries.setOwnerLastCheck, Variables);
         }
     }
 }

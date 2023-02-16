@@ -29,6 +29,7 @@ namespace FWO.Ui.Services
                     Title = userConfig.RecDeleteRuleTicketTitle + " " + reqHandler.Devices.FirstOrDefault(x => x.Id == deviceId)?.Name ?? "",
                     Requester = userConfig.User, // role? recertifier = requester?
                     Reason = userConfig.RecDeleteRuleTicketReason + " " + comment,
+                    Priority = userConfig.RecDeleteRuleTicketPriority,
                     Deadline = deadline
                 };
                 foreach(var ruleUid in ruleUids)

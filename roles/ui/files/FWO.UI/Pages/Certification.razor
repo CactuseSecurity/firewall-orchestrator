@@ -187,6 +187,9 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
     private TabSet? rsbTabset;
     private AnchorNavToRSB? anchorNavToRSB;
 
@@ -303,7 +306,7 @@
     private async Task GenerateRecertificationReport()
     {
         processing = true;
-        readonlyMode = recertWithoutOwner;
+        readonlyMode = !authenticationStateTask!.Result.User.IsInRole("recertifier") || recertWithoutOwner;
         selectedRules.Clear();
 
         Management[] managementsOrig = managements;

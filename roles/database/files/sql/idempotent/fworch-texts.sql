@@ -1375,8 +1375,8 @@ INSERT INTO txt VALUES ('edit_owner',           'German',   'Eigent&uuml;mer bea
 INSERT INTO txt VALUES ('edit_owner',           'English',  'Edit owner');
 INSERT INTO txt VALUES ('delete_owner',         'German',   'Eigent&uuml;mer l&ouml;schen');
 INSERT INTO txt VALUES ('delete_owner',         'English',  'Delete owner');
-INSERT INTO txt VALUES ('recert_interval',      'German',   'Rezertifzierungsintervall (in Tagen)');
-INSERT INTO txt VALUES ('recert_interval',      'English',  'Recertification interval (in days)');
+INSERT INTO txt VALUES ('recert_interval',      'German',   'Rezertintervall (in Tagen)');
+INSERT INTO txt VALUES ('recert_interval',      'English',  'Recert interval (in days)');
 INSERT INTO txt VALUES ('ext_app_id',           'German',   'Externe Anwendungs-Id');
 INSERT INTO txt VALUES ('ext_app_id',           'English',  'External Application Id');
 INSERT INTO txt VALUES ('dn',                   'German',   'Vollst&auml;ndiger Name');

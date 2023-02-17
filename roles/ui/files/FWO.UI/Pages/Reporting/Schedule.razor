@@ -49,9 +49,9 @@
         <div>
             <div class="form-group row">
                 <label for="scheduleId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
-                <div class="col-sm-8">
-                    <label class="col-sm-8">@scheduledReportInEdit.Id</label>
-                </div>
+                <label class="col-sm-8 col-form-label col-form-label-sm">@scheduledReportInEdit.Id</label>
+            </div>
+            <div class="form-group row">
                 <label for="scheduleName" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
                 <div class="col-sm-8">
                     <input id="scheduleName" type="text" class="form-control form-control-sm" @bind="scheduledReportInEdit.Name" />
@@ -125,8 +125,8 @@
             </div>
             <div class="form-group row">
                 <label for="scheduleActive" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("active")):</label>
-                <div class="col-sm-8">
-                    <input id="scheduleActive" type="checkbox" class="form-control form-control-sm" @bind="scheduledReportInEdit.Active" />
+                <div class="col-sm-8" style="padding-top: calc(0.25rem + 1px);">
+                    <input id="scheduleActive" type="checkbox" class="form-control form-control-sm" style="max-height: 22px;" @bind="scheduledReportInEdit.Active" />
                 </div>
             </div>
         </div>

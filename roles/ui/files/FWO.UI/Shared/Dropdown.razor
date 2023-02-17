@@ -1,27 +1,42 @@
 ﻿@using System.Reflection
+@using System.Diagnostics;
 @typeparam ElementType
 
 @inject DomEventService eventService
 @inject IJSRuntime jsRuntime
 
-<div class="btn-group d-block">
-	<div class="input-group input-group-sm">
-		<div class="input-group-prepend">
-			<span class="input-group-text"><span class="oi oi-magnifying-glass"></span></span>
+<div id="@($"dropdown-{Id}")" class="btn-group d-block">
+	<div id="@($"dropdown-input-group-{Id}")" class="input-group input-group-sm">
+		<div id="@($"dropdown-input-prepend-{Id}")" class="input-group-prepend">
+			<span id="@($"dropdown-input-prepend-icon-{Id}")" class="input-group-text"><span class="oi oi-magnifying-glass"></span></span>
 		</div>
-		<input class="custom-select d-block" @onclick="Toggle" @onfocus="ClearFilter" @onblur="ToggleWithDelay" @oninput="Filter" @bind="searchValue" />
+		<input id="@($"dropdown-input-{Id}")" class="custom-select d-block" @onclick="Toggle" @onfocus="ClearFilter" @onblur="ToggleWithDelay" @oninput="Filter" @bind="searchValue" />
 	</div>
-	<ul id="@(Id)" class="dropdown-menu" style="@($"position: fixed; top: {yPositionDropdown}px; left: {xPositionDropdown}px; max-height: calc(100vh - {yPositionDropdown}px - 10px); overflow: auto;" + (Toggled ? "" : " display: inline;"))">
+	<ul id="@($"dropdown-menu-{Id}")" class="dropdown-menu" style="@($"position: fixed; top: {yPositionDropdown}px; left: {xPositionDropdown}px; max-height: calc(100vh - {yPositionDropdown}px - 10px); overflow: auto;" + (Toggled ? "" : " display: inline;"))">
 		@if (!Toggled)
 		{
-			@if (Value != null)
+			int i = 1;
+			if (SelectedElements.Count() > 0)
 			{
-				<li><div class="dropdown-item small">@ElementTemplate(Value)</div></li>
-				<li><hr class="dropdown-divider small"></li>
+				foreach (ElementType element in SelectedElements)
+				{
+					<li id="@($"dropdown-menu-li-selected-{Id + i++}")">
+						<button id="@($"dropdown-menu-selected-{Id + i++}")" type="button" @onclick="()=>{ dropdownClicked = true; if (Nullable) {SelectedElement = default; } else if (Multiselect) { SelectedElements = SelectedElements.Where(e => !Object.Equals(e, element)); }}" class="dropdown-item small">
+							<div id="@($"dropdown-menu-selected-content-{Id + i++}")" class="d-flex align-items-baseline justify-content-between">
+								@ElementTemplate(element)
+								@if ((Nullable || Multiselect))
+								{
+									<i id="@($"dropdown-menu-selected-x-{Id + i++}")" class="ml-2 oi oi-x"></i>
+								}
+							</div>
+						</button>
+					</li>
+				}
+				<li id="@($"dropdown-menu-li-divider-{Id + i++}")"><hr id="@($"dropdown-menu-divider-{Id + i++}")" class="dropdown-divider small"></li>
 			}
-			@foreach (ElementType element in FilteredElements)
+			@foreach (ElementType element in FilteredElements.Where(element => !_selectedElements.Contains(element)))
 			{
-				<li><button type="button" @onclick="() => Value = element" class="dropdown-item small">@ElementTemplate(element)</button></li>
+				<li id="@($"dropdown-menu-li-element-{Id + i++}")"><button id="@($"dropdown-menu-element-{Id + i++}")" type="button" @onclick="() => { dropdownClicked = true; if(Multiselect) {SelectedElements = SelectedElements.Append(element);} else { SelectedElement = element; }}" class="dropdown-item small">@ElementTemplate(element)</button></li>
 			}
 		}
 	</ul>
@@ -29,14 +44,33 @@
 
 @code
 {
-	int xPositionDropdown;
-	int yPositionDropdown;
+	static Random random = new Random();
+
+	private volatile bool dropdownClicked = false;
+
+	private int xPositionDropdown;
+	private int yPositionDropdown;
 
 	[Parameter]
-	public string Id { get; set; } = new Random().Next().ToString();
+	public string Id { get; set; } = random.Next().ToString();
 
 	[Parameter]
 	public Func<ElementType, string> ElementToString { get; set; } = (o => o.ToString() ?? "");
+
+	private bool _nullable = false;
+
+	[Parameter]
+	public bool Nullable 
+	{
+		get { return _nullable;  }
+		set
+		{
+			_nullable = value;
+		}
+	}
+
+	[Parameter]
+	public bool Multiselect { get; set; } = false;
 
 	[Parameter]
 	public RenderFragment<ElementType> ElementTemplate { get; set; } = element => __builder => 
@@ -46,37 +80,62 @@
 
 	public IEnumerable<ElementType> FilteredElements { get; private set; } = Enumerable.Empty<ElementType>();
 
-	private IEnumerable<ElementType> _elements = Enumerable.Empty<ElementType>();
+	[Parameter]
+	public IEnumerable<ElementType> Elements { get; set; } = Enumerable.Empty<ElementType>();
 
 	[Parameter]
-	public IEnumerable<ElementType> Elements
-	{
-		get { return _elements; }
-		set 
-		{ 
-			_elements = value;
-		}
-	}
+	public EventCallback<IEnumerable<ElementType>> SelectedElementsChanged { get; set; }
 
-	private ElementType? _value;
+	private IEnumerable<ElementType> _selectedElements = Enumerable.Empty<ElementType>();
 
 	[Parameter]
-	public ElementType? Value
+	public IEnumerable<ElementType> SelectedElements
 	{
-		get { return _value; }
+		get { return _selectedElements; }
 		set
 		{
-			if (!Object.Equals(value, _value)) // value != _value
+			if (!new HashSet<ElementType>(value).SetEquals(_selectedElements))
 			{
-				_value = value;
-				DisplayValue(_value);
-				ValueChanged.InvokeAsync(value);					
+				_selectedElements = value;
+				DisplayValue(_selectedElements);
+				SelectedElementsChanged.InvokeAsync(value);
 			}
 		}
 	}
 
 	[Parameter]
-	public EventCallback<ElementType> ValueChanged { get; set; }
+	public EventCallback<ElementType> SelectedElementChanged { get; set; }
+
+	private ElementType? _selectedElement;
+
+	[Parameter]
+	public ElementType? SelectedElement
+	{
+		get
+		{
+			Debug.Assert(!Multiselect, "If the Multiselect option is enabled do not use the property SelectedElement but SelectedElements instead.");
+			return _selectedElements.FirstOrDefault();
+		}
+		set
+		{
+			Debug.Assert(!Multiselect, "If the Multiselect option is enabled do not use the property SelectedElement but SelectedElements instead.");
+			if (!Object.Equals(value, _selectedElement)) 
+			{
+				if (value == null)
+				{
+					Debug.Assert(Nullable == true, "The assigned value is null but the Nullable option is not enabled.");
+					SelectedElements = Enumerable.Empty<ElementType>();
+				}
+				else
+				{
+					SelectedElements = new ElementType[] { value };
+				}
+				_selectedElement = value;
+				DisplayValue(_selectedElement);
+				SelectedElementChanged.InvokeAsync(value);						
+			}
+		}
+	}
 
 	public bool Toggled { get; private set; } = true;
 
@@ -91,6 +150,16 @@
 		}
 		eventService.OnGlobalResize += async () => { Toggled = true; await InvokeAsync(StateHasChanged); };
 		eventService.OnGlobalScroll += async (string elementId) => { if (elementId != $"dropdown-{Id}") { Toggled = true; await InvokeAsync(StateHasChanged); } };
+		eventService.OnGlobalClick += OnGlobalClick; //async (string elementId) => { if (await jsRuntime.InvokeAsync<bool>("isChild", elementId, Id)) { Toggled = true; await InvokeAsync(StateHasChanged); } };
+	}
+
+	private async void OnGlobalClick(string elementId)
+	{
+		if (!await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-{Id}"))
+		{
+			Toggled = true;
+			await InvokeAsync(StateHasChanged);
+		}
 	}
 
 	private void Toggle(MouseEventArgs input)
@@ -125,13 +194,43 @@
 		}
 	}
 
+	private void DisplayValue(IEnumerable<ElementType> valuesToDisplay)
+	{
+		searchValue = "";
+
+		if (valuesToDisplay.Count() > 0)
+		{
+			searchValue = ElementToString(valuesToDisplay.First());
+			if (valuesToDisplay.Count() > 1)
+			{
+				searchValue += $", ... (+ {valuesToDisplay.Count() - 1})";
+			}
+		}
+		//string.Join(", ", valuesToDisplay.Take(3));
+		//foreach(ElementType value in valuesToDisplay)
+		//{
+		//	searchValue += value;  // set search / display field to current value
+		//}
+	}
+
 	private void ToggleWithDelay(FocusEventArgs input)
 	{
 		Task.Run(async () =>
 		{
-			await Task.Delay(200); // Close with a slight delay, so that value changes can be processed
-			DisplayValue(Value); // Reset display
-			Toggled = true;
+			// Close with a slight delay, so that value changes can be processed
+			await Task.Delay(200);
+			// If the multiselect option is enabled and the dropdown was clicked do not toggle the menu otherwise do
+			Toggled = !(Multiselect && dropdownClicked);
+			dropdownClicked = false;
+			// Reset display
+			if (Multiselect)
+			{
+				DisplayValue(SelectedElements);
+			}
+			else
+			{
+				DisplayValue(SelectedElement);
+			}
 			await InvokeAsync(StateHasChanged);				
 		});
 	}

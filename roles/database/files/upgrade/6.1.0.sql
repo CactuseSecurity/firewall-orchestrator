@@ -21,62 +21,62 @@ ALTER TABLE import_credential ADD COLUMN IF NOT EXISTS cloud_client_secret VARCH
 ALTER TABLE owner DROP CONSTRAINT IF EXISTS owner_name_unique_in_tenant;
 ALTER TABLE owner ADD CONSTRAINT owner_name_unique_in_tenant UNIQUE ("name","tenant_id");
 
--- adding owner data
-INSERT INTO owner (name, dn, group_dn, is_default, tenant_id, recert_interval, next_recert_date, app_id_external) 
-		VALUES    ('ownerF_demo', 'ad-single-owner-f', 'ad-group-owner-f', false, 1, 30, '2022-12-01T00:00:00', '123')
-		ON CONFLICT DO NOTHING; 
-INSERT INTO owner (name, dn, group_dn, is_default, tenant_id, recert_interval, next_recert_date, app_id_external) 
-		VALUES    ('ownerD_demo', 'ad-single-owner-d', 'ad-group-owner-d', false, 1, 30, '2022-12-01T00:00:00', '234')
-		ON CONFLICT DO NOTHING; 
-INSERT INTO owner (name, dn, group_dn, is_default, tenant_id, recert_interval, next_recert_date, app_id_external) 
-		VALUES    ('defaultOwner_demo', 'ad-single-owner-default', 'ad-group-owner-default', true, 1, 30, '2022-12-01T00:00:00', '111')
-		ON CONFLICT DO NOTHING; 
+-- -- adding owner data
+-- INSERT INTO owner (name, dn, group_dn, is_default, tenant_id, recert_interval, next_recert_date, app_id_external) 
+-- 		VALUES    ('ownerF_demo', 'ad-single-owner-f', 'ad-group-owner-f', false, 1, 30, '2022-12-01T00:00:00', '123')
+-- 		ON CONFLICT DO NOTHING; 
+-- INSERT INTO owner (name, dn, group_dn, is_default, tenant_id, recert_interval, next_recert_date, app_id_external) 
+-- 		VALUES    ('ownerD_demo', 'ad-single-owner-d', 'ad-group-owner-d', false, 1, 30, '2022-12-01T00:00:00', '234')
+-- 		ON CONFLICT DO NOTHING; 
+-- INSERT INTO owner (name, dn, group_dn, is_default, tenant_id, recert_interval, next_recert_date, app_id_external) 
+-- 		VALUES    ('defaultOwner_demo', 'ad-single-owner-default', 'ad-group-owner-default', true, 1, 30, '2022-12-01T00:00:00', '111')
+-- 		ON CONFLICT DO NOTHING; 
 
 ---------------------------------------------------------------
 
-DO $$
-BEGIN
-IF NOT EXISTS((SELECT * FROM owner_network LEFT JOIN owner ON (owner.id=owner_network.owner_id) 
-	WHERE owner.name='ownerF_demo' AND owner.tenant_id=1 AND owner_network.ip='10.222.0.0/27'))
-THEN
-	INSERT INTO owner_network (owner_id, ip) 
-			VALUES    ((SELECT id FROM owner WHERE name='ownerF_demo' AND tenant_id=1), '10.222.0.0/27')
-			ON CONFLICT DO NOTHING; 
-END IF;
-END $$;
+-- DO $$
+-- BEGIN
+-- IF NOT EXISTS((SELECT * FROM owner_network LEFT JOIN owner ON (owner.id=owner_network.owner_id) 
+-- 	WHERE owner.name='ownerF_demo' AND owner.tenant_id=1 AND owner_network.ip='10.222.0.0/27'))
+-- THEN
+-- 	INSERT INTO owner_network (owner_id, ip) 
+-- 			VALUES    ((SELECT id FROM owner WHERE name='ownerF_demo' AND tenant_id=1), '10.222.0.0/27')
+-- 			ON CONFLICT DO NOTHING; 
+-- END IF;
+-- END $$;
 
-DO $$
-BEGIN
-IF NOT EXISTS((SELECT * FROM owner_network LEFT JOIN owner ON (owner.id=owner_network.owner_id) 
-	WHERE owner.name='ownerD_demo' AND owner.tenant_id=1 AND owner_network.ip='10.222.0.32/27'))
-THEN
-	INSERT INTO owner_network (owner_id, ip) 
-			VALUES    ((SELECT id FROM owner WHERE name='ownerD_demo' AND tenant_id=1), '10.222.0.32/27')
-			ON CONFLICT DO NOTHING; 
-END IF;
-END $$;
+-- DO $$
+-- BEGIN
+-- IF NOT EXISTS((SELECT * FROM owner_network LEFT JOIN owner ON (owner.id=owner_network.owner_id) 
+-- 	WHERE owner.name='ownerD_demo' AND owner.tenant_id=1 AND owner_network.ip='10.222.0.32/27'))
+-- THEN
+-- 	INSERT INTO owner_network (owner_id, ip) 
+-- 			VALUES    ((SELECT id FROM owner WHERE name='ownerD_demo' AND tenant_id=1), '10.222.0.32/27')
+-- 			ON CONFLICT DO NOTHING; 
+-- END IF;
+-- END $$;
 
-DO $$
-BEGIN
-IF NOT EXISTS((SELECT * FROM owner_network LEFT JOIN owner ON (owner.id=owner_network.owner_id) 
-	WHERE owner.name='ownerF_demo' AND owner.tenant_id=1 AND owner_network.ip='10.0.0.0/27'))
-THEN
-	INSERT INTO owner_network (owner_id, ip) 
-			VALUES    ((SELECT id FROM owner WHERE name='ownerF_demo' AND tenant_id=1), '10.0.0.0/27')
-			ON CONFLICT DO NOTHING; 
-END IF;
-END $$;
+-- DO $$
+-- BEGIN
+-- IF NOT EXISTS((SELECT * FROM owner_network LEFT JOIN owner ON (owner.id=owner_network.owner_id) 
+-- 	WHERE owner.name='ownerF_demo' AND owner.tenant_id=1 AND owner_network.ip='10.0.0.0/27'))
+-- THEN
+-- 	INSERT INTO owner_network (owner_id, ip) 
+-- 			VALUES    ((SELECT id FROM owner WHERE name='ownerF_demo' AND tenant_id=1), '10.0.0.0/27')
+-- 			ON CONFLICT DO NOTHING; 
+-- END IF;
+-- END $$;
 
-DO $$
-BEGIN
-IF NOT EXISTS((SELECT * FROM owner_network LEFT JOIN owner ON (owner.id=owner_network.owner_id) 
-	WHERE owner.name='ownerD_demo' AND owner.tenant_id=1 AND owner_network.ip='10.0.0.32/27'))
-THEN
-	INSERT INTO owner_network (owner_id, ip) 
-			VALUES    ((SELECT id FROM owner WHERE name='ownerD_demo' AND tenant_id=1), '10.0.0.32/27')
-			ON CONFLICT DO NOTHING; 
-END IF;
-END $$;
+-- DO $$
+-- BEGIN
+-- IF NOT EXISTS((SELECT * FROM owner_network LEFT JOIN owner ON (owner.id=owner_network.owner_id) 
+-- 	WHERE owner.name='ownerD_demo' AND owner.tenant_id=1 AND owner_network.ip='10.0.0.32/27'))
+-- THEN
+-- 	INSERT INTO owner_network (owner_id, ip) 
+-- 			VALUES    ((SELECT id FROM owner WHERE name='ownerD_demo' AND tenant_id=1), '10.0.0.32/27')
+-- 			ON CONFLICT DO NOTHING; 
+-- END IF;
+-- END $$;
 
 -- CREATE OR REPLACE VIEW v_active_access_rules AS 
 -- 	SELECT * FROM rule r

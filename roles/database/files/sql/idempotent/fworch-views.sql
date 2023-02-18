@@ -511,8 +511,6 @@ CREATE MATERIALIZED VIEW nw_object_limits AS
 Create index IF NOT EXISTS idx_nw_object_limits_obj_id on nw_object_limits (obj_id);
 Create index IF NOT EXISTS idx_nw_object_limits_mgm_id on nw_object_limits (mgm_id);
 
-
-
 DROP MATERIALIZED VIEW IF EXISTS view_tenant_rules;
 CREATE MATERIALIZED VIEW IF NOT EXISTS view_tenant_rules AS
     select tenant_rules.* from (

@@ -3,8 +3,9 @@
   postgresql_query:
     db: "{{ fworch_db_name }}"
     path_to_script: "{{ database_install_dir }}/upgrade/{{ item }}.sql"
-  register: res
-  when: not (res.changed|d(false))
+  # register: res
+  # when: not (res.changed|d(false))
   loop: "{{ upgrade_files | sort }}"
+  ignore_errors: false
   become: true
   become_user: postgres

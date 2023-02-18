@@ -147,9 +147,7 @@ CREATE OR REPLACE FUNCTION owner_change_triggered ()
     RETURNS TRIGGER
     AS $BODY$
 BEGIN
-    IF NEW.id IS NULL THEN
-        PERFORM recert_refresh_per_owner(OLD.id);
-    ELSE
+    IF NOT NEW.id IS NULL THEN
         PERFORM recert_refresh_per_owner(NEW.id);
     END IF;
     RETURN NEW;
@@ -173,9 +171,7 @@ CREATE OR REPLACE FUNCTION owner_network_change_triggered ()
     RETURNS TRIGGER
     AS $BODY$
 BEGIN
-    IF NEW.owner_id IS NULL THEN
-        PERFORM recert_refresh_per_owner(OLD.owner_id);
-    ELSE
+    IF NOT NEW.owner_id IS NULL THEN
         PERFORM recert_refresh_per_owner(NEW.owner_id);
     END IF;
     RETURN NEW;

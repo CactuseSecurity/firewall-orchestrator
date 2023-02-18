@@ -63,7 +63,6 @@ DECLARE
 	i_previous_import BIGINT;
 	i_current_import_id BIGINT;
 	i_super_owner_id INT;
-	t_owner_next_recert TIMESTAMP;
 BEGIN
 	IF i_owner_id IS NULL OR i_mgm_id IS NULL THEN
 		IF i_owner_id IS NULL THEN
@@ -92,8 +91,6 @@ BEGIN
 
 		SELECT INTO i_recert_inverval recert_interval FROM owner WHERE id=i_owner_id;
 
-		SELECT INTO t_owner_next_recert next_recert FROM owner WHERE id=i_owner_id;
-
 		FOR r_rule IN
 		SELECT rule_uid, rule_id FROM rule WHERE mgm_id=i_mgm_id AND (active OR NOT active AND rule_last_seen=i_previous_import)
 		LOOP
@@ -121,15 +118,11 @@ BEGIN
 				END IF;
 
 				IF t_requested_next_recert_date IS NULL THEN
-					IF t_owner_next_recert IS NULL THEN
-						-- if the currenct next recert date is before the intended fixed input date, ignore it 
-						IF b_never_recertified THEN
-							t_next_recert_date := t_rule_created + make_interval (days => i_recert_inverval);
-						ELSE 
-							t_next_recert_date := t_rule_last_recertified + make_interval (days => i_recert_inverval);
-						END IF;
-					ELSE 
-						t_next_recert_date := t_owner_next_recert;
+					-- if the currenct next recert date is before the intended fixed input date, ignore it
+					IF b_never_recertified THEN
+						t_next_recert_date := t_rule_created + make_interval (days => i_recert_inverval);
+					ELSE
+						t_next_recert_date := t_rule_last_recertified + make_interval (days => i_recert_inverval);
 					END IF;
 				ELSE
 					t_next_recert_date := t_requested_next_recert_date;

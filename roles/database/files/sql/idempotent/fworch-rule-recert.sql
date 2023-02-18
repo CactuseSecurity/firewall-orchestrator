@@ -14,7 +14,6 @@ BEGIN
 		LOOP
 			PERFORM recert_refresh_one_owner_one_mgm (r_owner.id, i_mgm_id, NULL::TIMESTAMP);
 		END LOOP;
-
 	EXCEPTION WHEN OTHERS THEN
 		RAISE EXCEPTION 'Exception caught in recert_refresh_per_management while handling owner %', r_owner.name;
 	END;

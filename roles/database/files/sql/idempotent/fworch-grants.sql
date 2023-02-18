@@ -73,6 +73,7 @@ Grant insert,update on "rule_nwobj_resolved" to group "configimporters";
 Grant insert,update on "rule_svc_resolved" to group "configimporters";
 Grant insert,update on "rule_user_resolved" to group "configimporters";
 Grant ALL on "recertification" to group "configimporters";
+Grant ALL on "recertification" to group "fworchadmins";
 
 -- secuadmins:
 Grant update on "uiuser" to group "secuadmins";

@@ -33,7 +33,7 @@
                             {
                                 <div>
                                     Paper Kind:
-                                    <Dropdown @bind-Value="SelectedPaperKind" Elements="Enum.GetValues<PaperKind>().Cast<PaperKind>()"></Dropdown>
+                                    <Dropdown @bind-SelectedElement="SelectedPaperKind" Elements="Enum.GetValues<PaperKind>().Cast<PaperKind>()"></Dropdown>
                                     @if (SelectedPaperKind == PaperKind.Custom)
                                     {
                                         <div class="input-group input-group-sm mb-2 mt-2">

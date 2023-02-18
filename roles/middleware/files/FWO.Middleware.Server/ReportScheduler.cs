@@ -140,7 +140,7 @@ namespace FWO.Middleware.Server
                     // get uiuser roles + tenant
                     AuthManager authManager = new AuthManager(jwtWriter, connectedLdaps, apiConnection);
                     //AuthenticationRequestHandler authHandler = new AuthenticationRequestHandler(connectedLdaps, jwtWriter, apiConnection);
-                    string jwt = await authManager.AuthorizeUserAsync(report.Owner, validatePassword: false, lifetime: TimeSpan.MaxValue);
+                    string jwt = await authManager.AuthorizeUserAsync(report.Owner, validatePassword: false, lifetime: TimeSpan.FromDays(365));
                     ApiConnection apiConnectionUserContext = new GraphQlApiConnection(apiServerUri, jwt);
                     GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(jwt);
                     UserConfig userConfig = await UserConfig.ConstructAsync(globalConfig, apiConnection, report.Owner.DbId);

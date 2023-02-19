@@ -64,6 +64,8 @@ if __name__ == '__main__':
     # setting defaults (only as fallback if config defaults cannot be fetched via API):
     api_fetch_limit = 150
     sleep_timer = 90
+    jwt = ""
+    mgm_ids = []
 
     # read fwo config (API URLs)
     try: 
@@ -75,6 +77,7 @@ if __name__ == '__main__':
         logger.error("import-main-loop - error while reading FWO config file")        
         raise
 
+    mgm_details = {}
     killer = GracefulKiller()
     while not killer.kill_now:
         # authenticate to get JWT

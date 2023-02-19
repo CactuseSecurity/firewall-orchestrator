@@ -375,6 +375,16 @@ INSERT INTO txt VALUES ('resolvedrulestech',    'German', 	'Regeln (technisch)')
 INSERT INTO txt VALUES ('resolvedrulestech',    'English', 	'Rules (technical)');
 INSERT INTO txt VALUES ('changes',		        'German', 	'&Auml;nderungen');
 INSERT INTO txt VALUES ('changes',		        'English', 	'Changes');
+INSERT INTO txt VALUES ('resolvedchanges',      'German', 	'&Auml;nderungen (aufgel&ouml;st)');
+INSERT INTO txt VALUES ('resolvedchanges',      'English', 	'Changes (resolved)');
+INSERT INTO txt VALUES ('resolvedchangestech',  'German', 	'&Auml;nderungen (technisch)');
+INSERT INTO txt VALUES ('resolvedchangestech',  'English', 	'Changes (technical)');
+INSERT INTO txt VALUES ('rule_deleted',         'German', 	'Regel gel&ouml;scht');
+INSERT INTO txt VALUES ('rule_deleted',         'English', 	'Rule deleted');
+INSERT INTO txt VALUES ('rule_added',           'German', 	'Regel hinzugef&uuml;gt');
+INSERT INTO txt VALUES ('rule_added',           'English', 	'Rule added');
+INSERT INTO txt VALUES ('rule_modified',        'German', 	'Regel modifiziert');
+INSERT INTO txt VALUES ('rule_modified',        'English', 	'Rule modified');
 INSERT INTO txt VALUES ('statistics',		    'German', 	'Statistik');
 INSERT INTO txt VALUES ('statistics',		    'English', 	'Statistics');
 INSERT INTO txt VALUES ('natrules',		        'German', 	'NAT-Regeln');

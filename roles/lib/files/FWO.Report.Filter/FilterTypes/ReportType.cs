@@ -8,6 +8,8 @@ namespace FWO.Report.Filter
         NatRules = 4,
         ResolvedRules = 5,
         ResolvedRulesTech = 6,
-        Recertification = 7
+        Recertification = 7,
+        ResolvedChanges = 8,
+        ResolvedChangesTech = 9
     }
 }

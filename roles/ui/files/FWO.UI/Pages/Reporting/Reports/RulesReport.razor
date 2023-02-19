@@ -18,13 +18,11 @@
                 {
                     <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
                         <Table SelectedItems="SelectedRules"
-                               RowClickAction="@(async rule => { rule.DeviceName = device.Name ?? ""; if (!SelectedRules.Remove(rule)) SelectedRules.Add(rule); await SelectedRulesChanged.InvokeAsync(SelectedRules); })"
-                               style="font-size:small" TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="Rule" Items="device.Rules" ShowSearchBar="false"
-                               PageSize="RulesPerPage" ColumnReorder="true" TableRowClass="@(rule => getTableRowClasses(rule))"
-                               @ref="reportTable">
+                                RowClickAction="@(async rule => { rule.DeviceName = device.Name ?? ""; if (!SelectedRules.Remove(rule)) SelectedRules.Add(rule); await SelectedRulesChanged.InvokeAsync(SelectedRules); })"
+                                style="font-size:small" TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="Rule" Items="device.Rules" ShowSearchBar="false"
+                                PageSize="RulesPerPage" ColumnReorder="true" TableRowClass="@(rule => getTableRowClasses(rule))"
+                                @ref="reportTable">
 
-                            @* @if(!(Recertification || SelectedReportType==ReportType.Recertification) || Rule.Metadata.RuleRecertification.Count()>0)
-                            { *@
                                 @if (EmptyColumns[0] == false)
                                 {
                                     <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("number"))" DefaultSortColumn="true" Field="@(rChange => rChange.OrderNumber)" Sortable="true" Filterable="false" Hideable="true">
@@ -272,8 +270,8 @@
 
     private bool filteredForMultipleOwners ()
     {
-        return ReportParams.ReportParams.RecertFilter.RecertOwnerList.Count()>1 ||
-            (ReportParams.ReportParams.RecertFilter.RecertOwnerList.Count()==1 && ReportParams.ReportParams.RecertFilter.RecertOwnerList[0]==0);
+        return ReportParams.ReportParams.RecertFilter.RecertOwnerList.Count()>1
+            || ReportParams.ReportParams.RecertFilter.RecertOwnerList.Count()==0;
     }
 
     private string getOwnerDisplayString (int ownerCounter, Recertification recert, string format = "html")

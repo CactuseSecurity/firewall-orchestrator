@@ -124,31 +124,6 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("delete_group"))" Show="@DeleteGroupMode" OnClose="() => DeleteGroupMode = false">
-    <Body>
-        @if (DeleteGroupMode)
-        {
-            <p>@(deleteGroupMessage)</p>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            @if (DeleteGroupAllowed)
-            {
-                <AuthorizeView Roles="admin">
-                    <Authorized>
-                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteGroup()">@(userConfig.GetText("delete"))</button>
-                    </Authorized>
-                    <NotAuthorized>
-                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                    </NotAuthorized> 
-                </AuthorizeView>
-            }
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
-
 <PopUp Title="@(userConfig.GetText("assign_user_to_group") + ": " + actGroup.Name)" Show="@AddUserMode" Large="true" OnClose="() => AddUserMode = false">
     <Body>
         @if (AddUserMode)
@@ -217,7 +192,8 @@
     </Footer>
 </PopUp>
 
-<RemoveSampleData Display="SampleRemoveMode" PerformAction="RemoveSampleData" CleanupMessage="@sampleRemoveMessage" SampleRemoveAllowed="sampleRemoveAllowed"/>
+<ConfirmDelete Display="DeleteGroupMode" PerformAction="DeleteGroup" Title="@userConfig.GetText("delete_group")" DeleteMessage="@deleteGroupMessage" DeleteAllowed="DeleteGroupAllowed"/>
+<ConfirmDelete Display="SampleRemoveMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@sampleRemoveMessage" DeleteAllowed="sampleRemoveAllowed"/>
 
 <PopUp Title="@(userConfig.GetText("in_progress"))" Small="true" Show="@workInProgress">
     <Body>
@@ -404,6 +380,7 @@
                         EditGroupMode = false;
                     }
                 }
+                CollectSampleGroups();
             }
         }
         catch (Exception exception)
@@ -488,6 +465,7 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("delete_group"), "", true);
         }
+        StateHasChanged();
     }
 
     private void AddUserToGroup(UserGroup group)

@@ -206,28 +206,6 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("delete_user"))" Show="@DeleteMode" OnClose="() => DeleteMode = false">
-    <Body>
-        @if (DeleteMode)
-        {
-            <p>@(deleteMessage)</p>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <AuthorizeView Roles="admin">
-                <Authorized>
-                    <button class="btn btn-sm btn-danger" @onclick="() => Delete()">@(userConfig.GetText("delete"))</button>
-                </Authorized>
-                <NotAuthorized>
-                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                </NotAuthorized> 
-            </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
-
 <PopUp Title="@(userConfig.GetText("reset_password"))" Show="@ResetPasswordMode" Large="true" OnClose="() => ResetPasswordMode = false">
     <Body>
         @if (ResetPasswordMode)
@@ -261,7 +239,8 @@
     </Footer>
 </PopUp>
 
-<RemoveSampleData Display="SampleRemoveMode" PerformAction="RemoveSampleData" CleanupMessage="@sampleRemoveMessage" SampleRemoveAllowed="sampleRemoveAllowed"/>
+<ConfirmDelete Display="DeleteMode" PerformAction="Delete" Title="@userConfig.GetText("delete_user")" DeleteMessage="@deleteMessage"/>
+<ConfirmDelete Display="SampleRemoveMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@sampleRemoveMessage" DeleteAllowed="sampleRemoveAllowed"/>
 
 <PopUp Title="@(userConfig.GetText("in_progress"))" Small="true" Show="@workInProgress">
     <Body>
@@ -347,13 +326,9 @@
                         user.Tenant.Name = tenants.FirstOrDefault(x => x.Id == user.Tenant.Id)?.Name ?? throw new ArgumentNullException(nameof(user.Tenant.Id));
                     }
                     uiUsers.Add(user);
-                    if (user.Name.EndsWith("_demo"))
-                    {
-                        sampleUsers.Add(user);
-                    }
                 }
+                AnalyseSampleUsers();
             }
-            showSampleRemoveButton = (sampleUsers.Count > 0);
             return true;
         }
         catch (System.Exception exception)
@@ -361,6 +336,19 @@
             DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
             return false;
         }
+    }
+
+    private void AnalyseSampleUsers()
+    {
+        sampleUsers = new List<UiUser>();
+        foreach (var user in uiUsers)
+        {
+            if (user.Name.EndsWith("_demo"))
+            {
+                sampleUsers.Add(user);
+            }
+        }
+        showSampleRemoveButton = (sampleUsers.Count > 0);
     }
 
     private async Task SynchronizeGroupsAndRoles()
@@ -744,6 +732,7 @@
                     EditMode = false;
                 }
             }
+            AnalyseSampleUsers();
         }
         catch (Exception exception)
         {
@@ -875,6 +864,7 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("delete_user"), "", true);
         }
+        StateHasChanged();
     }
 
     private async Task CleanUpUser(UiUser user)

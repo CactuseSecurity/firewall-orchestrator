@@ -246,29 +246,8 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("delete_management"))" Show="@DeleteMode" OnClose="() => DeleteMode = false">
-    <Body>
-        @if (DeleteMode)
-        {
-            <p>@(deleteMessage)</p>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <AuthorizeView Roles="admin">
-                <Authorized>
-                    <button class="btn btn-sm btn-danger" @onclick="() => Delete(actManagement)">@(userConfig.GetText("delete"))</button>
-                </Authorized>
-                <NotAuthorized>
-                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                </NotAuthorized> 
-            </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
-
-<RemoveSampleData Display="CleanupMode" PerformAction="RemoveSampleData" CleanupMessage="@cleanupMessage"/>
+<ConfirmDelete Display="DeleteMode" PerformAction="Delete" Title="@userConfig.GetText("delete_management")" DeleteMessage="@deleteMessage"/>
+<ConfirmDelete Display="CleanupMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@cleanupMessage"/>
 <AutoDiscovery @ref="autoDiscovery" Actions="actActions" @bind-Display="AutoDiscoverMode" Closing="async () => {AutoDiscoverMode = false; await Refresh();}"/>
 
 <PopUp Title="@(userConfig.GetText("in_progress"))" Small="true" Show="@workInProgress">
@@ -331,14 +310,7 @@
             else
                 managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
 
-            foreach (var management in managements)
-            {
-                if (management.Name.EndsWith("_demo"))
-                {
-                    sampleManagements.Add(management);
-                }
-            }
-            showCleanupButton = (sampleManagements.Count > 0);
+            AnalyseSampleManagements();
 
             deviceTypes = await apiConnection.SendQueryAsync<List<DeviceType>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceTypeDetails);
 
@@ -353,6 +325,18 @@
         }
     }
 
+    private void AnalyseSampleManagements()
+    {
+        sampleManagements = new List<Management>();
+        foreach (var management in managements)
+        {
+            if (management.Name.EndsWith("_demo"))
+            {
+                sampleManagements.Add(management);
+            }
+        }
+        showCleanupButton = (sampleManagements.Count > 0);
+    }
     private void Edit(Management management)
     {
         actManagement = new Management(management);
@@ -374,17 +358,18 @@
         }
     }
 
-    private async Task Delete(Management management)
+    private async Task Delete()
     {
         try
         {
             DeleteMode = false;
             workInProgress = true;
-            var Variables = new { id = management.Id };
+            StateHasChanged();
+            var Variables = new { id = actManagement.Id };
             int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.deleteManagement, Variables)).DeletedId;
-            if (delId == management.Id)
+            if (delId == actManagement.Id)
             {
-                managements.Remove(management);
+                managements.Remove(actManagement);
             }
             workInProgress = false;
         }
@@ -393,6 +378,7 @@
             workInProgress = false;
             DisplayMessageInUi(exception, userConfig.GetText("delete_management"), "", true);
         }
+        StateHasChanged();
     }
 
     private void RequestRemoveSampleData()
@@ -406,7 +392,8 @@
     {
         foreach (var management in sampleManagements)
         {
-            await Delete(management);
+            actManagement = management;
+            await Delete();
         }
         CleanupMode = false;
         showCleanupButton = false;
@@ -503,11 +490,7 @@
 
                 ImportCredential? cred = credentials.FirstOrDefault(x => x.Id == actManagement.ImportCredential.Id) ?? throw new Exception("Unknown credentials");
                 actManagement.ImportCredential = cred;
-
-                // actManagement.ImportCredential.Name = cred.Name;
-                // actManagement.ImportCredential.Secret = cred.Secret;
-                // actManagement.ImportCredential.PublicKey = cred.PublicKey;
-                // actManagement.ImportCredential.IsKeyPair = cred.IsKeyPair;
+                AnalyseSampleManagements();
             }
             StateHasChanged();
         }

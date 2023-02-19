@@ -152,49 +152,9 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("delete_management"))" Show="@DeleteManagementMode" OnClose="() => DeleteManagementMode = false">
-    <Body>
-        @if (DeleteManagementMode)
-        {
-            <p>@(deleteMessage)</p>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <AuthorizeView Roles="admin">
-                <Authorized>
-                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteManagement(actManagement)">@(userConfig.GetText("delete"))</button>
-                </Authorized>
-                <NotAuthorized>
-                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                </NotAuthorized> 
-            </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
+<ConfirmDelete Display="DeleteManagementMode" PerformAction="DeleteManagement" Title="@userConfig.GetText("delete_management")" DeleteMessage="@deleteMessage"/>
+<ConfirmDelete Display="DeleteDeviceMode" PerformAction="DeleteDevice" Title="@userConfig.GetText("delete_gateway")" DeleteMessage="@deleteMessage"/>
 
-<PopUp Title="@(userConfig.GetText("delete_gateway"))" Show="@DeleteDeviceMode" OnClose="() => DeleteDeviceMode = false">
-    <Body>
-        @if (DeleteDeviceMode)
-        {
-            <p>@(deleteMessage)</p>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <AuthorizeView Roles="admin">
-                <Authorized>
-                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteDevice(actDevice)">@(userConfig.GetText("delete"))</button>
-                </Authorized>
-                <NotAuthorized>
-                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                </NotAuthorized> 
-            </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
 
 @code
 {
@@ -678,27 +638,27 @@
         DeleteDeviceMode = true;
     }
 
-    private async Task DeleteManagement(Management disappearedManagement)
+    private async Task DeleteManagement()
     {
         try
         {
-            if (disappearedManagement.Devices != null && disappearedManagement.Devices.Length > 0)
+            if (actManagement.Devices != null && actManagement.Devices.Length > 0)
             {
                 DisplayMessageInUi(null, userConfig.GetText("delete_management"), userConfig.GetText("E5101"), true);
             }
             else
             {
-                var Variables = new { id = disappearedManagement.Id };
+                var Variables = new { id = actManagement.Id };
                 int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.deleteManagement, Variables)).DeletedId;
-                if (delId == disappearedManagement.Id)
+                if (delId == actManagement.Id)
                 {
-                    existingManagements.Remove(disappearedManagement);
-                    managementsToDisplay.Remove(disappearedManagement);
+                    existingManagements.Remove(actManagement);
+                    managementsToDisplay.Remove(actManagement);
                     if(managementsToDisplay.Count == 0)
                     {
                         somethingToDo = false;
                     }
-                    await AcknowledgeAction(disappearedManagement.ActionId);
+                    await AcknowledgeAction(actManagement.ActionId);
                     DeleteManagementMode = false;
                 }
             }
@@ -707,6 +667,7 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("delete_management"), "", true);
         }
+        StateHasChanged();
     }
 
     private async Task ChangeManagementState(Management management, bool disable)
@@ -734,18 +695,18 @@
         }
     }
 
-    private async Task DeleteDevice(Device disappearedDevice)
+    private async Task DeleteDevice()
     {
         try
         {
-            var Variables = new { id = disappearedDevice.Id };
+            var Variables = new { id = actDevice.Id };
             int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.deleteDevice, Variables)).DeletedId;
-            if (delId == disappearedDevice.Id)
+            if (delId == actDevice.Id)
             {
                 // remove device from existing management
-                removeDevFromExMgmt(disappearedDevice, false);
-                existingDevices.Remove(disappearedDevice);
-                await AcknowledgeAction(disappearedDevice.ActionId);
+                removeDevFromExMgmt(actDevice, false);
+                existingDevices.Remove(actDevice);
+                await AcknowledgeAction(actDevice.ActionId);
                 DeleteDeviceMode = false;
             }
         }
@@ -753,6 +714,7 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("delete_gateway"), "", true);
         }
+        StateHasChanged();
     }
 
     private async Task ChangeDeviceState(Device device, bool disable)

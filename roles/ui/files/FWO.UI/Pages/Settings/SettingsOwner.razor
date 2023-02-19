@@ -311,28 +311,8 @@
         </Footer>
     </PopUp>
 
-    <PopUp Title="@(userConfig.GetText("delete_owner"))" Show="@DeleteOwnerMode" OnClose="() => DeleteOwnerMode = false">
-        <Body>
-            @if (DeleteOwnerMode)
-            {
-                <p>@(userConfig.GetText("U5217") + actOwner.Name + "?")</p>
-            }
-        </Body>
-        <Footer>
-            <div class="btn-group">
-                <AuthorizeView Roles="admin">
-                    <Authorized>
-                        <button class="btn btn-sm btn-danger" @onclick="DeleteOwner">@(userConfig.GetText("delete"))</button>
-                    </Authorized>
-                    <NotAuthorized>
-                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                    </NotAuthorized> 
-                </AuthorizeView>
-                <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-            </div>
-        </Footer>
-    </PopUp>
-    <RemoveSampleData Display="CleanupMode" PerformAction="RemoveSampleData" CleanupMessage="@cleanupMessage"/>
+    <ConfirmDelete Display="DeleteOwnerMode" PerformAction="DeleteOwner" Title="@userConfig.GetText("delete_owner")" DeleteMessage="@(userConfig.GetText("U5217") + actOwner.Name + "?")"/>
+    <ConfirmDelete Display="CleanupMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@cleanupMessage"/>
 }
 
 
@@ -398,14 +378,7 @@
         try
         {
             owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
-            foreach (var owner in owners)
-            {
-                if (owner.Name.EndsWith("_demo"))
-                {
-                    sampleOwners.Add(owner);
-                }
-            }
-            showCleanupButton = (sampleOwners.Count > 0);
+            AnalyseSampleOwners();
 
             ownerGroups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi, true);
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
@@ -431,6 +404,19 @@
             DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
         InitComplete = true;
+    }
+
+    private void AnalyseSampleOwners()
+    {
+        sampleOwners = new List<FwoOwner>();
+        foreach (var owner in owners)
+        {
+            if (owner.Name.EndsWith("_demo"))
+            {
+                sampleOwners.Add(owner);
+            }
+        }
+        showCleanupButton = (sampleOwners.Count > 0);
     }
 
     private void DeleteIp(NwObjectElement obj)
@@ -502,6 +488,7 @@
                 {
                     await addTenantIfNew(actOwner.Dn);
                 }
+                AnalyseSampleOwners();
                 EditOwnerMode = false;
                 AddOwnerMode = false;
             }
@@ -610,6 +597,7 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("delete_owner"), "", true);
         }
+        StateHasChanged();
     }
 
     private void RequestRemoveSampleData()

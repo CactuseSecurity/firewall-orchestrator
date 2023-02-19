@@ -5,16 +5,16 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(userConfig.GetText("remove_sample_data"))" Show="@Display" OnClose="() => Display = false">
+<PopUp Title="@(Title)" Show="@Display" OnClose="() => Display = false">
     <Body>
         @if (Display)
         {
-            <p>@(CleanupMessage)</p>
+            <p>@(DeleteMessage)</p>
         }
     </Body>
     <Footer>
         <div class="btn-group">
-            @if (SampleRemoveAllowed)
+            @if (DeleteAllowed)
             {
                 <AuthorizeView Roles="admin">
                     <Authorized>
@@ -43,10 +43,13 @@
     public Func<Task> PerformAction { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
-    public string CleanupMessage { get; set; } = "";
+    public string Title { get; set; } = "";
 
     [Parameter]
-    public bool SampleRemoveAllowed { get; set; } = true;
+    public string DeleteMessage { get; set; } = "";
+
+    [Parameter]
+    public bool DeleteAllowed { get; set; } = true;
 
     private void Cancel()
     {

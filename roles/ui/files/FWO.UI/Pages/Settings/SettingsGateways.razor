@@ -164,27 +164,7 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("delete_gateway"))" Show="@DeleteMode" OnClose="() => DeleteMode = false">
-    <Body>
-        @if (DeleteMode)
-        {
-            <p>@(userConfig.GetText("U5103")) @(actDevice.Name)?</p>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <AuthorizeView Roles="admin">
-                <Authorized>
-                    <button class="btn btn-sm btn-danger" @onclick="() => Delete(actDevice)">@(userConfig.GetText("delete"))</button>
-                </Authorized>
-                <NotAuthorized>
-                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                </NotAuthorized> 
-            </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
+<ConfirmDelete Display="DeleteMode" PerformAction="Delete" Title="@userConfig.GetText("delete_gateway")" DeleteMessage="@(userConfig.GetText("U5103") + " " + actDevice.Name + "?")"/>
 
 <PopUp Title="@(userConfig.GetText("in_progress"))" Small="true" Show="@workInProgress">
     <Body>
@@ -238,18 +218,19 @@
         DeleteMode = true;
     }
 
-    private async Task Delete(Device device)
+    private async Task Delete()
     {
         try
         {
             // Todo: checks if delete possible. Else set e.g. an archive flag?
             DeleteMode = false;
             workInProgress = true;
-            var Variables = new { id = device.Id };
+            StateHasChanged();
+            var Variables = new { id = actDevice.Id };
             int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.deleteDevice, Variables)).DeletedId;
-            if (delId == device.Id)
+            if (delId == actDevice.Id)
             {
-                devices.Remove(device);
+                devices.Remove(actDevice);
             }
             workInProgress = false;
         }
@@ -257,7 +238,8 @@
         {
             workInProgress = false;
             DisplayMessageInUi(exception, userConfig.GetText("delete_gateway"), "", true);
-        } 
+        }
+        StateHasChanged();
     }
 
     private void Add()

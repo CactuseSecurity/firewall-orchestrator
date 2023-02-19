@@ -20,7 +20,7 @@
     <div class="p-3">
         <h5 class="text-left">@(userConfig.GetText("report_type"))</h5>
         <Dropdown ElementType="ReportType" ElementToString="@(r => userConfig.GetText(r.ToString()?.ToLower() ?? ""))"
-            Value="selectedReportType" ValueChanged="ReportTypeChanged" Elements="CustomSortReportType(Enum.GetValues(typeof(ReportType)).Cast<ReportType>().ToList())">
+            SelectedElement="selectedReportType" SelectedElementChanged="ReportTypeChanged" Elements="CustomSortReportType(Enum.GetValues(typeof(ReportType)).Cast<ReportType>().ToList())">
             <ElementTemplate Context="reportType">
                 @userConfig.GetText(reportType.ToString()?.ToLower() ?? "")
             </ElementTemplate>
@@ -33,8 +33,8 @@
                     <h7 class="text-left">@(userConfig.GetText("due_within")):</h7>
                         <input type="number" min="1" max="5000" step="1" class="form-control form-control-sm" @bind="recertLookAheadDays" />
                     <h7 class="text-left">@(userConfig.GetText("owner"))</h7>
-                        <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)"
-                            Value="selectedOwner" ValueChanged="OwnerChanged" Elements="ownerList">
+                        <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="true"
+                            @bind-SelectedElement="selectedOwner" Elements="ownerList">
                             <ElementTemplate Context="owner">
                                 @owner.Name
                             </ElementTemplate>
@@ -57,8 +57,7 @@
                                     recertWithoutOwner = !recertWithoutOwner;
                                     if (recertWithoutOwner)
                                     {
-                                        selectedOwner = new FwoOwner();
-                                        OwnerChanged(selectedOwner);
+                                        selectedOwner = null;
                                         StateHasChanged();
                                     }
                                 })" />
@@ -452,7 +451,7 @@
     private Management? globalStats = null;
 
     public ReportType selectedReportType = ReportType.Rules;
-    public FwoOwner selectedOwner = null; // new FwoOwner();
+    public FwoOwner? selectedOwner = null;
     public List<FwoOwner> ownerList = new List<FwoOwner>();
 
     private DeviceFilter deviceFilter = new DeviceFilter();
@@ -542,13 +541,6 @@
         DisplayTime();
         StateHasChanged();
         reportGenerationDuration = 0;
-    }
-
-
-    private void OwnerChanged(FwoOwner owner)
-    {
-        selectedOwner = owner;
-        // StateHasChanged();
     }
 
     private void InitTimes(TimeFilter timeFilter)
@@ -948,7 +940,7 @@
         {
             RecertFilter recertFilter = new RecertFilter()
             {
-                RecertOwnerList = new List<int>() { selectedOwner.Id },
+                RecertOwnerList = new List<int>() { selectedOwner?.Id ?? 0 },
                 RecertOverdueOnly = recertOverdueOnly, 
                 RecertShowAnyMatch = recertShowAnyMatch
             };

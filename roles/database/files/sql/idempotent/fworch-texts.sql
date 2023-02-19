@@ -2419,13 +2419,13 @@ INSERT INTO txt VALUES ('H5012', 'German',  'Das Kapitel "Berechtigungen" bietet
     In <a href="/help/settings/ldap">LDAP-Verbindungen</a> k&ouml;nnen externe Verbindungen zus&auml;tzlich zum internen LDAP definiert werden.
     <a href="/help/settings/tenants">Mandanten</a> k&ouml;nnen definiert und mit spezifischen Gateways verkn&uuml;pft werden.
     Interne oder externe <a href="/help/settings/users">Nutzer</a> k&ouml;nnen zu <a href="/help/settings/groups">Gruppen</a> zusammengefasst
-    und zu <a href="/help/settings/roles">Rollen</a> zugeordnet werden.
+    und zu <a href="/help/settings/roles">Rollen</a> zugeordnet werden, ausserdem gibt es eine &Uuml;bersicht der vorhandenen <a href="/help/settings/owners">Eigent&uuml;mer</a>.
 ');
 INSERT INTO txt VALUES ('H5012', 'English', 'The chapter "Authorization" offers the functionality for the user administration:
     In <a href="/help/settings/ldap">LDAP Connections</a> external connections besides the internal LDAP can be defined.
     <a href="/help/settings/tenants">Tenants</a> can be defined and associated with specific gateways.
     Internal or external <a href="/help/settings/users">Users</a> can be assigned to <a href="/help/settings/groups">User Groups</a>
-    and <a href="/help/settings/roles">Roles</a>
+    and <a href="/help/settings/roles">Roles</a>, additionally there is an overview of the <a href="/help/settings/owners">owners</a>.
 ');
 INSERT INTO txt VALUES ('H5013', 'German',  'Im Kapitel "Voreinstellungen" kann der Administrator <a href="/help/settings/defaults">Standardeinstellungen</a> vornehmen,
     die f&uuml;r alle Nutzer gelten, sowie die <a href="/help/settings/passwordpolicy">Passworteinstellungen</a> definieren, welche f&uuml;r alle Passwort&auml;nderungen g&uuml;ltig sind.
@@ -2443,11 +2443,11 @@ INSERT INTO txt VALUES ('H5014', 'English', 'The "Personal" chapter is accessibl
 ');
 INSERT INTO txt VALUES ('H5015', 'German',  'Das Kapitel "Workflow" dient dem Administrator, einen Workflow aufzusetzen. Dazu geh&ouml;rt die Definition der angebotenen <a href="/help/settings/stateactions">Aktionen</a>,
     der verwendeten <a href="/help/settings/statedefinitions">Stati</a> und den Status&uuml;berg&auml;ngen in den zentralen <a href="/help/settings/statematrix">Status-Matrizen</a>.
-    In den <a href="/help/settings/workflowcustomizing">Einstellungen</a> k&ouml;nnen allgemeine Voreinstellungen zu den Workflows vorgenommen werden, ausserdem gibt es eine &Uuml;bersicht der vorhandenen <a href="/help/settings/owners">Eigent&uuml;mer</a>.
+    In den <a href="/help/settings/workflowcustomizing">Einstellungen</a> k&ouml;nnen allgemeine Voreinstellungen zu den Workflows vorgenommen werden.
 ');
 INSERT INTO txt VALUES ('H5015', 'English', 'The "Workflow" chapter helps the administrator to set up a workflow. This includes the definition of the offered <a href="/help/settings/stateactions">actions</a>,
     the used <a href="/help/settings/statedefinitions">states</a>, and the state transitions in the central <a href="/help/settings/statematrix">state matrices</a>. 
-    In <a href="/help/settings/workflowcustomizing">customizing</a> general workflow settings can be done, additionally there is an overview of the <a href="/help/settings/owners">owners</a>.
+    In <a href="/help/settings/workflowcustomizing">customizing</a> general workflow settings can be done.
 ');
 
 INSERT INTO txt VALUES ('H5101', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Managements einrichten und verwalten.<br>

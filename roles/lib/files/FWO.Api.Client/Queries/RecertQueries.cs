@@ -5,7 +5,7 @@ namespace FWO.Api.Client.Queries
     public class RecertQueries : Queries
     {
         public static readonly string ruleOverviewFragments;
-        public static readonly string ruleRecertFragments;
+        public static readonly string ruleOpenRecertFragments;
 
         public static readonly string prepareNextRecertification;
         public static readonly string recertify;
@@ -21,7 +21,7 @@ namespace FWO.Api.Client.Queries
                     File.ReadAllText(QueryPath + "networkService/fragments/networkServiceOverview.graphql") +
                     File.ReadAllText(QueryPath + "user/fragments/userOverview.graphql") +
                     File.ReadAllText(QueryPath + "rule/fragments/ruleOverview.graphql");
-                ruleRecertFragments = ruleOverviewFragments + File.ReadAllText(QueryPath + "recertification/fragments/ruleCertOverview.graphql");
+                ruleOpenRecertFragments = ruleOverviewFragments + File.ReadAllText(QueryPath + "recertification/fragments/ruleOpenCertOverview.graphql");
 
                 prepareNextRecertification = File.ReadAllText(QueryPath + "recertification/prepareNextRecertification.graphql");
                 recertify = File.ReadAllText(QueryPath + "recertification/recertify.graphql");

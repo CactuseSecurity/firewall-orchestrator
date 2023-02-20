@@ -348,7 +348,7 @@ namespace FWO.Report.Filter
                     query.QueryParameters.Remove(itemToRemove);
                     paramString = string.Join(" ", query.QueryParameters.ToArray());
 
-                    query.FullQuery = Queries.compact($@"{RecertQueries.ruleRecertFragments}
+                    query.FullQuery = Queries.compact($@"{RecertQueries.ruleOpenRecertFragments}
                         query rulesCertReport({paramString}) {{
                         management(
                             where: {{
@@ -380,7 +380,7 @@ namespace FWO.Report.Filter
                                     order_by: {{ rule_num_numeric: asc }}
                                 ) {{
                                     mgm_id: mgm_id
-                                    ...ruleCertOverview
+                                    ...ruleOpenCertOverview
                                 }}
                             }}
                         }}

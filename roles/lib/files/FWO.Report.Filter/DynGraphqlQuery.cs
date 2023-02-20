@@ -224,7 +224,7 @@ namespace FWO.Report.Filter
                 // query.QueryParameters.Add("$refdate1: Timestamp!");
 
                 // setting owner filter:
-                if (recertFilter.RecertOwnerList.Count>0 && recertFilter.RecertOwnerList[0] != 0)
+                if (recertFilter.RecertOwnerList.Count > 0)
                 {
                     // query.QueryVariables["ownerIds"] = recertFilter.RecertOwnerList;
                     query.QueryParameters.Add("$ownerWhere: owner_bool_exp");

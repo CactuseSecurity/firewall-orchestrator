@@ -37,16 +37,12 @@
         <Authorized>
             <div class="p-3">
                 <h7 class="text-left">@(userConfig.GetText("owner"))</h7>
-                <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)"
-                    Value="selectedOwner" ValueChanged="OwnerChanged" Elements="ownerList">
+                <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="true"
+                    @bind-SelectedElement="selectedOwner" Elements="ownerList">
                     <ElementTemplate Context="owner">
                         @owner.Name
                     </ElementTemplate>
                 </Dropdown>
-                @if (selectedOwner.Name != "")
-                {
-                    recertWithoutOwner = false;
-                }
                 <br>
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="recertOverdue"
@@ -54,28 +50,14 @@
                         @oninput="@(async () => { recertOverdueOnly = !recertOverdueOnly; SyncFilterToDisplay(); })" />
                     <label class="form-check-label" for="recertOverdue">@(userConfig.GetText("overdue_recert"))</label>
                 </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="recertWithoutOwner"
-                        @bind="recertWithoutOwner"
-                        @oninput="@(async () => { 
-                            recertWithoutOwner = !recertWithoutOwner;
-                            if (recertWithoutOwner)
-                            {
-                                selectedOwner = new FwoOwner();
-                                OwnerChanged(selectedOwner);
-                                StateHasChanged();
-                            }
-                        })" />
-                    <label class="form-check-label" for="recertWithoutOwner">@(userConfig.GetText("without_owner"))</label>
-                </div>
             </div>
         </Authorized>
         <NotAuthorized>
             @if(collectedOwnerships.Count > 1)
             {
                 <h7 class="text-left">@(userConfig.GetText("owner"))</h7>
-                <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)"
-                    Value="selectedOwner" ValueChanged="OwnerChanged" Elements="collectedOwnerships">
+                <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="true"
+                    @bind-SelectedElement="selectedOwner" Elements="collectedOwnerships">
                     <ElementTemplate Context="owner">
                         @owner.Name
                     </ElementTemplate>
@@ -203,7 +185,6 @@
     private bool processing = false;
     private bool rulesFound = false;
     private CancellationTokenSource tokenSource = new CancellationTokenSource();
-    private bool recertWithoutOwner = false;
 
     private Management[] managements = new Management[0];
     
@@ -234,11 +215,6 @@
     private Dictionary<int, List<string>> deleteList = new Dictionary<int, List<string>>();
 
     private TicketCreator ticketCreator;
-
-    private void OwnerChanged(FwoOwner owner)
-    {
-        selectedOwner = owner;
-    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -306,7 +282,7 @@
     private async Task GenerateRecertificationReport()
     {
         processing = true;
-        readonlyMode = !authenticationStateTask!.Result.User.IsInRole("recertifier") || recertWithoutOwner;
+        readonlyMode = !authenticationStateTask!.Result.User.IsInRole("recertifier") || selectedOwner == null;
         selectedRules.Clear();
 
         Management[] managementsOrig = managements;
@@ -323,11 +299,16 @@
             }
 
             SyncFilterToDisplay();
+            List<int> ownerList = new List<int>();
+            if (selectedOwner != null)
+            {
+                ownerList.Add(selectedOwner.Id);
+            }
+
             RecertFilter recertFilter = new RecertFilter()
             {
-                RecertOwnerList = new List<int>() { selectedOwner.Id },
+                RecertOwnerList = ownerList,
                 RecertOverdueOnly = recertOverdueOnly,
-                RecertWithoutOwner = recertWithoutOwner,
                 RecertShowAnyMatch = recertShowAnyMatch,
                 RecertSingleLinePerRule = recertSingleLinePerRule,
                 RecertificationDisplayPeriod = recertLookAheadDays

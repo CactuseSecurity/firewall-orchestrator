@@ -138,7 +138,7 @@
             <form class="form-inline">
                 <label for="tenantDevice" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("gateways")):</label>
                 <div class="col-sm-8">
-                    <Dropdown Id="tenantDevice" ElementType="Device" ElementToString="@(d => d?.Name ?? "")" Elements="remainingDevices" @bind-Value="selectedDevice">
+                    <Dropdown Id="tenantDevice" ElementType="Device" ElementToString="@(d => d?.Name ?? "")" Elements="remainingDevices" @bind-SelectedElement="selectedDevice">
                         <ElementTemplate Context="d">
                             @(d?.Name ?? "")
                         </ElementTemplate>
@@ -170,7 +170,7 @@
                 <div class="form-group row">
                     <label for="tenantDeviceDel" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("gateway")):</label>
                     <div class="col-sm-8">
-                        <Dropdown Id="tenantDeviceDel" ElementType="Device" ElementToString="@(d => d?.Name ?? "")" Elements="Array.ConvertAll(actTenant.TenantDevices, d => d.VisibleDevice)" @bind-Value="selectedDevice">
+                        <Dropdown Id="tenantDeviceDel" ElementType="Device" ElementToString="@(d => d?.Name ?? "")" Elements="Array.ConvertAll(actTenant.TenantDevices, d => d.VisibleDevice)" @bind-SelectedElement="selectedDevice">
                             <ElementTemplate Context="d">
                                 @(d?.Name ?? "")
                             </ElementTemplate>

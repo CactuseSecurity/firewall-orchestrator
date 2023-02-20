@@ -132,6 +132,11 @@ namespace FWO.Middleware.Server
                             nextCheck = nextCheck.AddDays(1);
                             count++;
                         }
+                        if(nextCheck.Day != (int)checkParams.RecertCheckDayOfMonth)
+                        {
+                            // missed the day because or month change: set to first of following month
+                            nextCheck = nextCheck.AddDays(1 - nextCheck.Day);
+                        }
                     }
                 break;
                 default:

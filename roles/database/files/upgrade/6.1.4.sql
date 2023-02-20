@@ -33,10 +33,28 @@ ON CONFLICT DO NOTHING;
 Create index IF NOT EXISTS idx_object04 on object (obj_ip);
 Create index IF NOT EXISTS idx_rule04 on rule (action_id);
 
--- TODO: write stable upgrade script for switching view from standard to materialized
--- drop view view_rule_with_owner CASCADE;
-DROP VIEW IF EXISTS view_rule_with_owner CASCADE;
-DROP MATERIALIZED VIEW IF EXISTS view_rule_with_owner CASCADE;
+
+-- replacing view by materialized view
+
+
+CREATE OR REPLACE FUNCTION purge_view_rule_with_owner () RETURNS VOID AS $$
+DECLARE
+    r_temp_record RECORD;
+BEGIN
+    select INTO r_temp_record schemaname, viewname from pg_catalog.pg_views
+    where schemaname NOT IN ('pg_catalog', 'information_schema') and viewname='view_rule_with_owner'
+    order by schemaname, viewname;
+    IF FOUND THEN
+        DROP VIEW IF EXISTS view_rule_with_owner CASCADE;
+    END IF;
+    DROP MATERIALIZED VIEW IF EXISTS view_rule_with_owner CASCADE;
+    RETURN;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT * FROM purge_view_rule_with_owner ();
+DROP FUNCTION purge_view_rule_with_owner();
+
 CREATE MATERIALIZED VIEW view_rule_with_owner AS
 	SELECT DISTINCT r.rule_num_numeric, r.track_id, r.action_id, r.rule_from_zone, r.rule_to_zone, r.dev_id, r.mgm_id, r.rule_uid, uno.rule_id, uno.owner_id, uno.owner_name, uno.rule_last_certified, uno.rule_last_certifier, 
 	rule_action, rule_name, rule_comment, rule_track, rule_src_neg, rule_dst_neg, rule_svc_neg,

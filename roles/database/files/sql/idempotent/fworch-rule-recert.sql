@@ -62,6 +62,7 @@ DECLARE
 	i_previous_import BIGINT;
 	i_current_import_id BIGINT;
 	i_super_owner_id INT;
+	i_current_owner_id_tmp INT;
 BEGIN
 	IF i_owner_id IS NULL OR i_mgm_id IS NULL THEN
 		IF i_owner_id IS NULL THEN
@@ -82,7 +83,7 @@ BEGIN
 			b_super_owner_exists := TRUE;
 		END IF;
 
-		SELECT INTO i_super_owner_id id FROM owner WHERE id=i_owner_id AND is_default;
+		SELECT INTO i_current_owner_id_tmp id FROM owner WHERE id=i_owner_id AND is_default;
 		IF FOUND THEN 
 			b_super_owner := TRUE;
 		END IF;

@@ -29,3 +29,22 @@ UPDATE owner SET is_default=false WHERE id>0;   -- idempotence
 INSERT INTO owner (id, name, dn, group_dn, is_default, tenant_id, recert_interval, app_id_external) 
 VALUES    (0, 'super-owner', 'dn-of-super-owner', 'group-dn-for-super-owner', true, 1, 365, 'NONE')
 ON CONFLICT DO NOTHING; 
+
+Create index IF NOT EXISTS idx_object04 on object (obj_ip);
+Create index IF NOT EXISTS idx_rule04 on rule (action_id);
+
+-- TODO: write stable upgrade script for switching view from standard to materialized
+-- drop view view_rule_with_owner CASCADE;
+DROP VIEW IF EXISTS view_rule_with_owner CASCADE;
+DROP MATERIALIZED VIEW IF EXISTS view_rule_with_owner CASCADE;
+CREATE MATERIALIZED VIEW view_rule_with_owner AS
+	SELECT DISTINCT r.rule_num_numeric, r.track_id, r.action_id, r.rule_from_zone, r.rule_to_zone, r.dev_id, r.mgm_id, r.rule_uid, uno.rule_id, uno.owner_id, uno.owner_name, uno.rule_last_certified, uno.rule_last_certifier, 
+	rule_action, rule_name, rule_comment, rule_track, rule_src_neg, rule_dst_neg, rule_svc_neg,
+	rule_head_text, rule_disabled, access_rule, xlate_rule, nat_rule,
+	string_agg(DISTINCT match_in || ':' || matching_ip::VARCHAR, '; ' order by match_in || ':' || matching_ip::VARCHAR desc) as matches,
+	recert_interval
+	FROM ( SELECT DISTINCT * FROM v_rule_with_src_owner UNION SELECT DISTINCT * FROM v_rule_with_dst_owner ) AS uno
+	LEFT JOIN rule AS r USING (rule_id)
+	GROUP BY rule_id, owner_id, owner_name, rule_last_certified, rule_last_certifier, r.rule_from_zone, r.rule_to_zone,  recert_interval,
+		r.dev_id, r.mgm_id, r.rule_uid, rule_num_numeric, track_id, action_id, 	rule_action, rule_name, rule_comment, rule_track, rule_src_neg, rule_dst_neg, rule_svc_neg,
+		rule_head_text, rule_disabled, access_rule, xlate_rule, nat_rule;

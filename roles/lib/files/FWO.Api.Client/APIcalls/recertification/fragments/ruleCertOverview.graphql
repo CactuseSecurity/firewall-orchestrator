@@ -24,7 +24,7 @@ fragment ruleCertOverview on rule {
     rule_to_be_removed
     rule_decert_date
     rule_recertification_comment
-    recertification: recertifications (where: { owner: $ownerWhere }, order_by: { owner: { name: asc }}) {
+    recertification: recertifications (where: { _and: [{ owner: $ownerWhere }, {recert_date: {_is_null: true}}]}, order_by: { owner: { name: asc }}) {
       recert_date
       recertified
       ip_match

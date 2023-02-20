@@ -189,7 +189,7 @@
     private Management[] managements = new Management[0];
     
     private bool readonlyMode = false;
-    public FwoOwner selectedOwner = new FwoOwner();
+    public FwoOwner? selectedOwner = null;
     private List<FwoOwner> ownerList = new List<FwoOwner>();
     private List<FwoOwner> userOwnerships = new List<FwoOwner>();
     private List<FwoOwner> groupOwnerships = new List<FwoOwner>();
@@ -601,7 +601,7 @@
         var variables = new
         {
             ruleId = rule.Id,
-            ownerId = selectedOwner.Id,
+            ownerId = (selectedOwner ?? throw new Exception("Recertification without owner not allowed.")).Id,
             userDn = userConfig.User.Dn,
             recertified = rule.Metadata.Recert,
             recertDate = DateTime.Now,
@@ -621,8 +621,8 @@
         {
             ruleMetadataId = rule.Metadata.Id,
             ruleId = rule.Id,
-            ipMatch = rule.IpMatch,
-            ownerId = selectedOwner.Id,
+            ipMatch = rule.IpMatch != "" ? rule.IpMatch : null,
+            ownerId = (selectedOwner ?? throw new Exception("Recertification without owner not allowed.")).Id,
             nextRecertDate = DateTime.Now.AddDays(recertInterval[selectedOwner.Id])
         };
         await apiConnection.SendQueryAsync<object>(RecertQueries.prepareNextRecertification, prepvariables);

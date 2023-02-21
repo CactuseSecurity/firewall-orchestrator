@@ -48,7 +48,7 @@ CREATE OR REPLACE VIEW view_rule_with_owner AS
 		r.dev_id, r.mgm_id, r.rule_uid, rule_num_numeric, track_id, action_id, 	rule_action, rule_name, rule_comment, rule_track, rule_src_neg, rule_dst_neg, rule_svc_neg,
 		rule_head_text, rule_disabled, access_rule, xlate_rule, nat_rule;
 
-CREATE OR REPLACE VIEW view_recert_overdue_rules AS 
-	SELECT * FROM view_rule_with_owner as rules
-	WHERE now()::DATE -recert_interval> (select max(recert_date) from recertification where recertified and owner_id=rules.owner_id);
+-- CREATE OR REPLACE VIEW view_recert_overdue_rules AS 
+-- 	SELECT * FROM view_rule_with_owner as rules
+-- 	WHERE now()::DATE -recert_interval> (select max(recert_date) from recertification where recertified and owner_id=rules.owner_id);
 

@@ -575,6 +575,8 @@ INSERT INTO txt VALUES ('state',                'German', 	'Status');
 INSERT INTO txt VALUES ('state',                'English', 	'State');
 INSERT INTO txt VALUES ('tasks',                'German', 	'Aufgaben');
 INSERT INTO txt VALUES ('tasks',                'English', 	'Tasks');
+INSERT INTO txt VALUES ('display_task',         'German', 	'Aufgabe darstellen');
+INSERT INTO txt VALUES ('display_task',         'English', 	'Display task');
 INSERT INTO txt VALUES ('add_task',             'German', 	'Aufgabe hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_task',             'English', 	'Add task');
 INSERT INTO txt VALUES ('save_task',            'German', 	'Aufgabe speichern');
@@ -2017,6 +2019,8 @@ INSERT INTO txt VALUES ('E8012', 'German',  'Kommentar konnte nicht angelegt wer
 INSERT INTO txt VALUES ('E8012', 'English', 'Comment could not be created');
 INSERT INTO txt VALUES ('E8013', 'German',  'Regel-Uid ist auf diesem Ger&auml;t nicht vorhanden: ');
 INSERT INTO txt VALUES ('E8013', 'English', 'Rule Uid does not exist on this device: ');
+INSERT INTO txt VALUES ('E8014', 'German',  'Die Verarbeitung dieses Auftragstyps ist nicht aktiviert. Bitte Administrator kontaktieren.');
+INSERT INTO txt VALUES ('E8014', 'English', 'The handling of this Task Type is not activated. Please contact administrator.');
 
 INSERT INTO txt VALUES ('E8101', 'German',  'Email-Versand kann nicht getestet werden, da der aktell angemeldete Nutzer keine Email-Adresse hinerlegt hat.');
 INSERT INTO txt VALUES ('E8101', 'English', 'Sending of emails cannot be tested because the logged-in user does not have an email address.');

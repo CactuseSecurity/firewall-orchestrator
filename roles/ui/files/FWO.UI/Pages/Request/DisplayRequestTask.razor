@@ -348,6 +348,7 @@
     private string allComments = "";
     private int[] devicesToAdd { get; set; } = new int[]{};
     private int actRuleDeviceId;
+    bool firstParamSet = false;
 
 
     protected override async Task OnInitializedAsync()
@@ -358,6 +359,7 @@
             ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(FWO.Api.Client.Queries.StmQueries.getRuleActions);
             trackings = await apiConnection.SendQueryAsync<List<Tracking>>(FWO.Api.Client.Queries.StmQueries.getTracking);
             InitElements();
+            firstParamSet = true;
         }
         catch (Exception exception)
         {
@@ -374,6 +376,16 @@
                 InitElements();
                 await InitComments();
                 await Reset();
+                if(firstParamSet)
+                {
+                    TaskType actTasktype;
+                    Enum.TryParse<TaskType>(ReqHandler.ActReqTask.TaskType, out actTasktype);
+                    if(!availableTaskTypes.Contains(actTasktype))
+                    {
+                        DisplayMessageInUi(null, userConfig.GetText("display_task"), userConfig.GetText("E8014"), true);
+                    }
+                    firstParamSet = false;
+                }
             }
         }
         catch (Exception exception)

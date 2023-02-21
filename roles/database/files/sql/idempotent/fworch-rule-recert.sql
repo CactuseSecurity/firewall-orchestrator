@@ -118,10 +118,10 @@ BEGIN
 				END IF;
 
 				IF t_requested_next_recert_date IS NULL THEN
-					-- if the currenct next recert date is before the intended fixed input date, ignore it 
+					-- if the currenct next recert date is before the intended fixed input date, ignore it
 					IF b_never_recertified THEN
 						t_next_recert_date := t_rule_created + make_interval (days => i_recert_inverval);
-					ELSE 
+					ELSE
 						t_next_recert_date := t_rule_last_recertified + make_interval (days => i_recert_inverval);
 					END IF;
 				ELSE

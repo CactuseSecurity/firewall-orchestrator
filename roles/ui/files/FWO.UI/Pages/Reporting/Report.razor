@@ -39,29 +39,12 @@
                                 @owner.Name
                             </ElementTemplate>
                         </Dropdown>
-                        @if (selectedOwner != null)
-                        {
-                            recertWithoutOwner = false;
-                        }
                         <br>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="recertOverdue"
                                 @bind="recertOverdueOnly"
                                 @oninput="@(async () => { recertOverdueOnly = !recertOverdueOnly; SyncFilterToDisplay(); })" />
                             <label class="form-check-label" for="recertOverdue">@(userConfig.GetText("overdue_recert"))</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="recertWithoutOwner"
-                                @bind="recertWithoutOwner"
-                                @oninput="@(async () => { 
-                                    recertWithoutOwner = !recertWithoutOwner;
-                                    if (recertWithoutOwner)
-                                    {
-                                        selectedOwner = null;
-                                        StateHasChanged();
-                                    }
-                                })" />
-                            <label class="form-check-label" for="recertWithoutOwner">@(userConfig.GetText("without_owner"))</label>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="recertShowAnyMatch"
@@ -466,7 +449,6 @@
     private string displayedTimeSelection = "";
     private bool ShowSelectTimeDialog = false;
     private bool recertOverdueOnly = false;
-    private bool recertWithoutOwner = false;
     private bool recertShowAnyMatch = true;
     private bool recertSingleLinePerRule = false;
     private int recertLookAheadDays = 0;
@@ -802,12 +784,16 @@
 
             // collapse report templates
             reportTemplateControl.Collapse();
+            List<int> ownerList = new List<int>();
+            if (selectedOwner != null)
+            {
+                ownerList.Add(selectedOwner.Id);
+            }
 
             RecertFilter recertFilter = new RecertFilter()
             {
-                RecertOwnerList = new List<int>() { selectedOwner?.Id ?? 0 },
+                RecertOwnerList = ownerList,
                 RecertOverdueOnly = recertOverdueOnly,
-                RecertWithoutOwner = recertWithoutOwner,
                 RecertShowAnyMatch = recertShowAnyMatch,
                 RecertSingleLinePerRule = recertSingleLinePerRule,
                 RecertificationDisplayPeriod = recertLookAheadDays
@@ -932,14 +918,18 @@
     private void TryFilter(ChangeEventArgs changeArgs)
     {
         string input = (changeArgs.Value ?? "").ToString() ?? "";
+        List<int> ownerList = new List<int>();
+        if (selectedOwner != null)
+        {
+            ownerList.Add(selectedOwner.Id);
+        }
 
         try
         {
             RecertFilter recertFilter = new RecertFilter()
             {
-                RecertOwnerList = new List<int>() { selectedOwner?.Id ?? 0 },
+                RecertOwnerList = ownerList,
                 RecertOverdueOnly = recertOverdueOnly, 
-                RecertWithoutOwner = recertWithoutOwner, 
                 RecertShowAnyMatch = recertShowAnyMatch, 
                 RecertSingleLinePerRule = recertSingleLinePerRule
             };

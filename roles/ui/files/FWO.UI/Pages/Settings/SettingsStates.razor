@@ -90,27 +90,7 @@
         </Footer>
     </PopUp>
 
-    <PopUp Title="@(userConfig.GetText("delete_state"))" Show="@DeleteStateMode" OnClose="() => DeleteStateMode = false">
-        <Body>
-            @if (DeleteStateMode)
-            {
-                <p>@(userConfig.GetText("U5501") + actState.Name + "?")</p>
-            }
-        </Body>
-        <Footer>
-            <div class="btn-group">
-                <AuthorizeView Roles="admin">
-                    <Authorized>
-                        <button class="btn btn-sm btn-danger" @onclick="DeleteState">@(userConfig.GetText("delete"))</button>
-                    </Authorized>
-                    <NotAuthorized>
-                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                    </NotAuthorized> 
-                </AuthorizeView>
-                <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-            </div>
-        </Footer>
-    </PopUp>
+    <ConfirmDelete Display="DeleteStateMode" PerformAction="DeleteState" Title="@userConfig.GetText("delete_state")" DeleteMessage="@(userConfig.GetText("U5501") + actState.Name + "?")"/>
 
     <PopUp Title="@(userConfig.GetText("select_action"))" Show="@SelectActionMode" OnClose="() => SelectActionMode = false">
         <Body>
@@ -302,6 +282,7 @@ else
         {
             DisplayMessageInUi(exception, userConfig.GetText("delete_state"), "", true);
         }
+        StateHasChanged();
     }
 
     private void SelectAction()

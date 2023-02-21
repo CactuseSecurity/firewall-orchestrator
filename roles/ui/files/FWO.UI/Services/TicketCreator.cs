@@ -18,7 +18,7 @@ namespace FWO.Ui.Services
             this.userConfig = userConfig;
         }
 
-        public async Task CreateRuleDeleteTicket(int deviceId, List<string> ruleUids, string comment = "")
+        public async Task CreateRuleDeleteTicket(int deviceId, List<string> ruleUids, string comment = "", DateTime? deadline = null)
         {
             if(userConfig.RecAutoCreateDeleteTicket)
             {
@@ -28,7 +28,9 @@ namespace FWO.Ui.Services
                     StateId = userConfig.RecDeleteRuleInitState,
                     Title = userConfig.RecDeleteRuleTicketTitle + " " + reqHandler.Devices.FirstOrDefault(x => x.Id == deviceId)?.Name ?? "",
                     Requester = userConfig.User, // role? recertifier = requester?
-                    Reason = userConfig.RecDeleteRuleTicketReason + " " + comment
+                    Reason = userConfig.RecDeleteRuleTicketReason + " " + comment,
+                    Priority = userConfig.RecDeleteRuleTicketPriority,
+                    Deadline = deadline
                 };
                 foreach(var ruleUid in ruleUids)
                 {

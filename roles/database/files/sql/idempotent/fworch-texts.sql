@@ -575,6 +575,8 @@ INSERT INTO txt VALUES ('state',                'German', 	'Status');
 INSERT INTO txt VALUES ('state',                'English', 	'State');
 INSERT INTO txt VALUES ('tasks',                'German', 	'Aufgaben');
 INSERT INTO txt VALUES ('tasks',                'English', 	'Tasks');
+INSERT INTO txt VALUES ('display_task',         'German', 	'Aufgabe darstellen');
+INSERT INTO txt VALUES ('display_task',         'English', 	'Display task');
 INSERT INTO txt VALUES ('add_task',             'German', 	'Aufgabe hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_task',             'English', 	'Add task');
 INSERT INTO txt VALUES ('save_task',            'German', 	'Aufgabe speichern');
@@ -793,6 +795,20 @@ INSERT INTO txt VALUES ('WriteToDeviceList',    'German', 	'In Ger&auml;teliste 
 INSERT INTO txt VALUES ('WriteToDeviceList',    'English', 	'Write to device list');
 INSERT INTO txt VALUES ('DisplayFoundDevices',  'German', 	'Gefundene Ger&auml;te darstellen');
 INSERT INTO txt VALUES ('DisplayFoundDevices',  'English', 	'Display found devices');
+INSERT INTO txt VALUES ('Sunday',               'German', 	'Sonntag');
+INSERT INTO txt VALUES ('Sunday',               'English', 	'Sunday');
+INSERT INTO txt VALUES ('Monday',               'German', 	'Montag');
+INSERT INTO txt VALUES ('Monday',               'English', 	'Monday');
+INSERT INTO txt VALUES ('Tuesday',              'German', 	'Dienstag');
+INSERT INTO txt VALUES ('Tuesday',              'English', 	'Tuesday');
+INSERT INTO txt VALUES ('Wednesday',            'German', 	'Mittwoch');
+INSERT INTO txt VALUES ('Wednesday',            'English', 	'Wednesday');
+INSERT INTO txt VALUES ('Thursday',             'German', 	'Donnerstag');
+INSERT INTO txt VALUES ('Thursday',             'English', 	'Thursday');
+INSERT INTO txt VALUES ('Friday',               'German', 	'Freitag');
+INSERT INTO txt VALUES ('Friday',               'English', 	'Friday');
+INSERT INTO txt VALUES ('Saturday',             'German', 	'Samstag');
+INSERT INTO txt VALUES ('Saturday',             'English', 	'Saturday');
 
 -- network analysis
 INSERT INTO txt VALUES ('network_analysis', 	'German',	'Netzanalyse');
@@ -1177,6 +1193,20 @@ INSERT INTO txt VALUES ('recDeleteRuleTicketPriority','German','Priorit&auml;t f
 INSERT INTO txt VALUES ('recDeleteRuleTicketPriority','English','Priority for delete rule ticket');
 INSERT INTO txt VALUES ('recDeleteRuleInitState','German',  'Initialer Status f&uuml;r L&ouml;schantrag');
 INSERT INTO txt VALUES ('recDeleteRuleInitState','English', 'Initial state for delete rule ticket');
+INSERT INTO txt VALUES ('recCheckActive',       'German','Rezert Check: Aktiv');
+INSERT INTO txt VALUES ('recCheckActive',       'English','Recert Check: Active');
+INSERT INTO txt VALUES ('recCheckEmailSubject', 'German','Rezert Check: Email Betreff');
+INSERT INTO txt VALUES ('recCheckEmailSubject', 'English','Recert Check: Email subject');
+INSERT INTO txt VALUES ('recCheckEmailUpcomingText','German','Rezert Check: Text anstehend');
+INSERT INTO txt VALUES ('recCheckEmailUpcomingText','English','Recert Check: text upcoming');
+INSERT INTO txt VALUES ('recCheckEmailOverdueText','German','Rezert Check: Text &uuml;berf&auml;llig');
+INSERT INTO txt VALUES ('recCheckEmailOverdueText','English','Recert Check: text overdue');
+INSERT INTO txt VALUES ('recert_check_every',   'German', 	'Rezert Check alle');
+INSERT INTO txt VALUES ('recert_check_every',   'English', 	'Recert Check every');
+INSERT INTO txt VALUES ('each_on',              'German', 	'jeweils am');
+INSERT INTO txt VALUES ('each_on',              'English', 	'each on');
+INSERT INTO txt VALUES ('undefined',		    'German', 	'nicht definiert');
+INSERT INTO txt VALUES ('undefined',		    'English', 	'undefined');
 INSERT INTO txt VALUES ('reqAvailableTaskTypes','German', 	'Verf&uuml;gbare Auftragstypen');
 INSERT INTO txt VALUES ('reqAvailableTaskTypes','English', 	'Available Task Types');
 INSERT INTO txt VALUES ('reqAllowObjectSearch', 'German', 	'Objektsuche erlauben');
@@ -1347,8 +1377,8 @@ INSERT INTO txt VALUES ('edit_owner',           'German',   'Eigent&uuml;mer bea
 INSERT INTO txt VALUES ('edit_owner',           'English',  'Edit owner');
 INSERT INTO txt VALUES ('delete_owner',         'German',   'Eigent&uuml;mer l&ouml;schen');
 INSERT INTO txt VALUES ('delete_owner',         'English',  'Delete owner');
-INSERT INTO txt VALUES ('recert_interval',      'German',   'Rezertifzierungsintervall (in Tagen)');
-INSERT INTO txt VALUES ('recert_interval',      'English',  'Recertification interval (in days)');
+INSERT INTO txt VALUES ('recert_interval',      'German',   'Rezertintervall (in Tagen)');
+INSERT INTO txt VALUES ('recert_interval',      'English',  'Recert Interval (in days)');
 INSERT INTO txt VALUES ('ext_app_id',           'German',   'Externe Anwendungs-Id');
 INSERT INTO txt VALUES ('ext_app_id',           'English',  'External Application Id');
 INSERT INTO txt VALUES ('dn',                   'German',   'Vollst&auml;ndiger Name');
@@ -1359,7 +1389,6 @@ INSERT INTO txt VALUES ('reset_to_default',     'German',   'auf Vorgabewerte zu
 INSERT INTO txt VALUES ('reset_to_default',     'English',  'Reset to Default');
 INSERT INTO txt VALUES ('option',		        'German', 	'Option');
 INSERT INTO txt VALUES ('option',		        'English', 	'Option');
-
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
@@ -1464,6 +1493,10 @@ INSERT INTO txt VALUES ('daily_sample_data_check','German', 'T&auml;glicher Chec
 INSERT INTO txt VALUES ('daily_sample_data_check','English','Scheduled Daily Sample Data Check');
 INSERT INTO txt VALUES ('daily_importer_check', 'German',   'T&auml;glicher Check der Importer');
 INSERT INTO txt VALUES ('daily_importer_check', 'English',  'Scheduled Daily Importer Check');
+INSERT INTO txt VALUES ('daily_recert_check',   'German',   'T&auml;glicher Rezertifizierungs-Check');
+INSERT INTO txt VALUES ('daily_recert_check',   'English',  'Scheduled Daily Recertification Check');
+INSERT INTO txt VALUES ('emails_sent',          'German',   ' Emails versendet');
+INSERT INTO txt VALUES ('emails_sent',          'English',  ' emails sent');
 INSERT INTO txt VALUES ('scheduled_autodiscovery','German', 'Termingesteuerte Autodiscovery');
 INSERT INTO txt VALUES ('scheduled_autodiscovery','English','Scheduled Autodiscovery');
 INSERT INTO txt VALUES ('manual_autodiscovery', 'German', 	'Manuelle Autodiscovery');
@@ -1660,6 +1693,8 @@ INSERT INTO txt VALUES ('U5216', 'German',  'Anzeige und Verwaltung aller Eigent
 INSERT INTO txt VALUES ('U5216', 'English', 'Show and administrate all owners');
 INSERT INTO txt VALUES ('U5217', 'German',  'Sind sie sicher, dass sie folgenden Eigent&uuml;mer l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5217', 'English', 'Are you sure you want to delete owner: ');
+INSERT INTO txt VALUES ('U5218', 'German',  'L&ouml;scht alle Beispiel-Eigent&uuml;mer (auf "_demo" endend)');
+INSERT INTO txt VALUES ('U5218', 'English', 'Deletes all sample owners (ending with "_demo")');
 
 INSERT INTO txt VALUES ('U5301', 'German',  'Einstellungen ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5301', 'English', 'Settings changed.');
@@ -1667,6 +1702,8 @@ INSERT INTO txt VALUES ('U5302', 'German',  'Einstellungen ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5302', 'English', 'Policy changed.');
 INSERT INTO txt VALUES ('U5303', 'German',  '* Einstellungen k&ouml;nnen vom Nutzer in den pers&ouml;nlichen Einstellungen &uuml;berschrieben werden.');
 INSERT INTO txt VALUES ('U5303', 'English', '* Settings can be overwritten by user in personal settings.');
+INSERT INTO txt VALUES ('U5304', 'German',  '* Einstellungen k&ouml;nnen vom Nutzer in den pers&ouml;nlichen Einstellungen oder in den Eigent&uuml;mer-Einstellungen &uuml;berschrieben werden.');
+INSERT INTO txt VALUES ('U5304', 'English', '* Settings can be overwritten by user in personal settings or by the owner settings.');
 INSERT INTO txt VALUES ('U5311', 'German',  'Verwaltung der Standard-Voreinstellungen f&uuml;r alle Nutzer und einige technische Parameter');
 INSERT INTO txt VALUES ('U5311', 'English', 'Set default values for all users and some technical parameters');
 INSERT INTO txt VALUES ('U5312', 'German',  'Verwaltung der Passwortregeln');
@@ -1699,7 +1736,6 @@ INSERT INTO txt VALUES ('U5413', 'English', 'Adapt your personal reporting setti
 INSERT INTO txt VALUES ('U5414', 'German',  'Anpassung der pers&ouml;nlichen Rezertifizierungseinstellungen');
 INSERT INTO txt VALUES ('U5414', 'English', 'Adapt your personal recertification settings');
 
-
 INSERT INTO txt VALUES ('U5501', 'German',  'Sind sie sicher, dass sie folgenden Status l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5501', 'English', 'Are you sure you want to delete state: ');
 INSERT INTO txt VALUES ('U5502', 'German',  'Sind sie sicher, dass sie folgende Aktion l&ouml;schen wollen: ');
@@ -1709,8 +1745,8 @@ INSERT INTO txt VALUES ('U7001', 'German',  '&Uuml;berblick der Ereignisse im Fi
 INSERT INTO txt VALUES ('U7001', 'English', 'Alerts and events inside Firewall Orchestrator');
 INSERT INTO txt VALUES ('U7002', 'German',  'Daten sind dann verloren. Erw&auml;gen Sie eine Deaktivierung.');
 INSERT INTO txt VALUES ('U7002', 'English', 'Data will be lost. Consider deactivation.');
-INSERT INTO txt VALUES ('U7003', 'German',  'L&ouml;scht alle Beispieldaten (auf "_demo" endend): Managements, Login-Daten, Gateways, Nutzer, Mandanten, Gruppen');
-INSERT INTO txt VALUES ('U7003', 'English', 'Deletes all sample data (ending with "_demo"): managements, credentials, gateways, users, tenants, groups');
+INSERT INTO txt VALUES ('U7003', 'German',  'L&ouml;scht alle Beispieldaten (auf "_demo" endend): Managements, Login-Daten, Gateways, Nutzer, Mandanten, Gruppen, Eigent&uuml;mer');
+INSERT INTO txt VALUES ('U7003', 'English', 'Deletes all sample data (ending with "_demo"): managements, credentials, gateways, users, tenants, groups, owners');
 INSERT INTO txt VALUES ('U7101', 'German',  'Archiv der Alarme mit Best&auml;tigungen');
 INSERT INTO txt VALUES ('U7101', 'English', 'View the past alerts with acknowledgements');
 INSERT INTO txt VALUES ('U7201', 'German',  'Archiv der Importer-Nachrichten');
@@ -1983,6 +2019,8 @@ INSERT INTO txt VALUES ('E8012', 'German',  'Kommentar konnte nicht angelegt wer
 INSERT INTO txt VALUES ('E8012', 'English', 'Comment could not be created');
 INSERT INTO txt VALUES ('E8013', 'German',  'Regel-Uid ist auf diesem Ger&auml;t nicht vorhanden: ');
 INSERT INTO txt VALUES ('E8013', 'English', 'Rule Uid does not exist on this device: ');
+INSERT INTO txt VALUES ('E8014', 'German',  'Die Verarbeitung dieses Auftragstyps ist nicht aktiviert. Bitte Administrator kontaktieren.');
+INSERT INTO txt VALUES ('E8014', 'English', 'The handling of this Task Type is not activated. Please contact administrator.');
 
 INSERT INTO txt VALUES ('E8101', 'German',  'Email-Versand kann nicht getestet werden, da der aktell angemeldete Nutzer keine Email-Adresse hinerlegt hat.');
 INSERT INTO txt VALUES ('E8101', 'English', 'Sending of emails cannot be tested because the logged-in user does not have an email address.');
@@ -2385,13 +2423,13 @@ INSERT INTO txt VALUES ('H5012', 'German',  'Das Kapitel "Berechtigungen" bietet
     In <a href="/help/settings/ldap">LDAP-Verbindungen</a> k&ouml;nnen externe Verbindungen zus&auml;tzlich zum internen LDAP definiert werden.
     <a href="/help/settings/tenants">Mandanten</a> k&ouml;nnen definiert und mit spezifischen Gateways verkn&uuml;pft werden.
     Interne oder externe <a href="/help/settings/users">Nutzer</a> k&ouml;nnen zu <a href="/help/settings/groups">Gruppen</a> zusammengefasst
-    und zu <a href="/help/settings/roles">Rollen</a> zugeordnet werden.
+    und zu <a href="/help/settings/roles">Rollen</a> zugeordnet werden, ausserdem gibt es eine &Uuml;bersicht der vorhandenen <a href="/help/settings/owners">Eigent&uuml;mer</a>.
 ');
 INSERT INTO txt VALUES ('H5012', 'English', 'The chapter "Authorization" offers the functionality for the user administration:
     In <a href="/help/settings/ldap">LDAP Connections</a> external connections besides the internal LDAP can be defined.
     <a href="/help/settings/tenants">Tenants</a> can be defined and associated with specific gateways.
     Internal or external <a href="/help/settings/users">Users</a> can be assigned to <a href="/help/settings/groups">User Groups</a>
-    and <a href="/help/settings/roles">Roles</a>
+    and <a href="/help/settings/roles">Roles</a>, additionally there is an overview of the <a href="/help/settings/owners">owners</a>.
 ');
 INSERT INTO txt VALUES ('H5013', 'German',  'Im Kapitel "Voreinstellungen" kann der Administrator <a href="/help/settings/defaults">Standardeinstellungen</a> vornehmen,
     die f&uuml;r alle Nutzer gelten, sowie die <a href="/help/settings/passwordpolicy">Passworteinstellungen</a> definieren, welche f&uuml;r alle Passwort&auml;nderungen g&uuml;ltig sind.
@@ -2409,11 +2447,11 @@ INSERT INTO txt VALUES ('H5014', 'English', 'The "Personal" chapter is accessibl
 ');
 INSERT INTO txt VALUES ('H5015', 'German',  'Das Kapitel "Workflow" dient dem Administrator, einen Workflow aufzusetzen. Dazu geh&ouml;rt die Definition der angebotenen <a href="/help/settings/stateactions">Aktionen</a>,
     der verwendeten <a href="/help/settings/statedefinitions">Stati</a> und den Status&uuml;berg&auml;ngen in den zentralen <a href="/help/settings/statematrix">Status-Matrizen</a>.
-    In den <a href="/help/settings/workflowcustomizing">Einstellungen</a> k&ouml;nnen allgemeine Voreinstellungen zu den Workflows vorgenommen werden, ausserdem gibt es eine &Uuml;bersicht der vorhandenen <a href="/help/settings/owners">Eigent&uuml;mer</a>.
+    In den <a href="/help/settings/workflowcustomizing">Einstellungen</a> k&ouml;nnen allgemeine Voreinstellungen zu den Workflows vorgenommen werden.
 ');
 INSERT INTO txt VALUES ('H5015', 'English', 'The "Workflow" chapter helps the administrator to set up a workflow. This includes the definition of the offered <a href="/help/settings/stateactions">actions</a>,
     the used <a href="/help/settings/statedefinitions">states</a>, and the state transitions in the central <a href="/help/settings/statematrix">state matrices</a>. 
-    In <a href="/help/settings/workflowcustomizing">customizing</a> general workflow settings can be done, additionally there is an overview of the <a href="/help/settings/owners">owners</a>.
+    In <a href="/help/settings/workflowcustomizing">customizing</a> general workflow settings can be done.
 ');
 
 INSERT INTO txt VALUES ('H5101', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Managements einrichten und verwalten.<br>

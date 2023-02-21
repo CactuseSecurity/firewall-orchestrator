@@ -209,27 +209,7 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("delete_ldap_conn"))" Show="@DeleteMode" OnClose="() => DeleteMode = false">
-    <Body>
-        @if (DeleteMode)
-        {
-            <p>@(deleteMessage)</p>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <AuthorizeView Roles="admin">
-                <Authorized>
-                    <button class="btn btn-sm btn-danger" @onclick="() => Delete(actLdapConnection)">@(userConfig.GetText("delete"))</button>
-                </Authorized>
-                <NotAuthorized>
-                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                </NotAuthorized> 
-            </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
+<ConfirmDelete Display="DeleteMode" PerformAction="Delete" Title="@userConfig.GetText("delete_ldap_conn")" DeleteMessage="@deleteMessage"/>
 
 @code
 {
@@ -302,11 +282,11 @@
         }
     }
 
-    private async Task Delete(UiLdapConnection ldapConnection)
+    private async Task Delete()
     {
         try
         {
-            LdapDeleteParameters ldapDeleteParameters = new LdapDeleteParameters { Id = ldapConnection.Id };
+            LdapDeleteParameters ldapDeleteParameters = new LdapDeleteParameters { Id = actLdapConnection.Id };
             RestResponse<int> ldapMiddlewareServerResponse = await middlewareClient.DeleteLdap(ldapDeleteParameters);
             if (ldapMiddlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
@@ -314,9 +294,9 @@
             }
             else
             {
-                if (ldapMiddlewareServerResponse.Data == ldapConnection.Id)
+                if (ldapMiddlewareServerResponse.Data == actLdapConnection.Id)
                 {
-                    connectedLdaps.Remove(ldapConnection);
+                    connectedLdaps.Remove(actLdapConnection);
                     DeleteMode = false;
                 }
             }
@@ -326,6 +306,7 @@
             // Log.WriteDebug("Delete Ldap Connection", $"Exception occurred: {exception}");
             DisplayMessageInUi(exception, userConfig.GetText("delete_ldap_conn"), "", true);
         }
+        StateHasChanged();
     }
 
     private void Add()

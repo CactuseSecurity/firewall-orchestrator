@@ -1019,7 +1019,9 @@ create table if not exists owner
     tenant_id int,
     recert_interval int,
 	next_recert_date Timestamp,
-    app_id_external varchar not null
+    app_id_external varchar not null,
+	last_recert_check Timestamp,
+	recert_check_params Varchar
 );
 
 create table if not exists owner_network

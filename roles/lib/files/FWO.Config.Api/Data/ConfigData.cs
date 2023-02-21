@@ -91,6 +91,21 @@ namespace FWO.Config.Api.Data
         [JsonProperty("recDeleteRuleInitState"), JsonPropertyName("recDeleteRuleInitState")]
         public int RecDeleteRuleInitState { get; set; } = 0;
 
+        [JsonProperty("recCheckActive"), JsonPropertyName("recCheckActive")]
+        public bool RecCheckActive { get; set; } = false;
+
+        [JsonProperty("recCheckParams"), JsonPropertyName("recCheckParams")]
+        public string RecCheckParams { get; set; } = System.Text.Json.JsonSerializer.Serialize(new RecertCheckParams());
+
+        [JsonProperty("recCheckEmailSubject"), JsonPropertyName("recCheckEmailSubject")]
+        public string RecCheckEmailSubject { get; set; } = "";
+
+        [JsonProperty("recCheckEmailUpcomingText"), JsonPropertyName("recCheckEmailUpcomingText")]
+        public string RecCheckEmailUpcomingText { get; set; } = "";
+
+        [JsonProperty("recCheckEmailOverdueText"), JsonPropertyName("recCheckEmailOverdueText")]
+        public string RecCheckEmailOverdueText { get; set; } = "";
+
         [JsonProperty("pwMinLength"), JsonPropertyName("pwMinLength")]
         public int PwMinLength { get; set; } = 10;
 
@@ -146,7 +161,7 @@ namespace FWO.Config.Api.Data
         public bool ReqAllowObjectSearch { get; set; } = false;
 
         [JsonProperty("reqAllowManualOwnerAdmin"), JsonPropertyName("reqAllowManualOwnerAdmin")]
-        public bool ReqAllowManualOwnerAdmin { get; set; } = false;
+        public bool AllowManualOwnerAdmin { get; set; } = false;
 
         [JsonProperty("reqPriorities"), JsonPropertyName("reqPriorities")]
         public string ReqPriorities { get; set; } = "";

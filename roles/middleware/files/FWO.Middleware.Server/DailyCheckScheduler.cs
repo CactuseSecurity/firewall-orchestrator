@@ -93,12 +93,23 @@ namespace FWO.Middleware.Server
                 openAlerts = await apiConnection.SendQueryAsync<List<Alert>>(MonitorQueries.getOpenAlerts);
                 await CheckDemoData();
                 await CheckImports();
+                await CheckRecerts();
             }
             catch(Exception exc)
             {
                 Log.WriteError("DailyCheck", $"Ran into exception: ", exc);
                 await AddDailyCheckLogEntry(2, globalConfig.GetText("daily_checks"), globalConfig.GetText("ran_into_exception") + exc.Message);
                 await setAlert(GlobalConfig.kDailyCheck, AlertCode.DailyCheckError, globalConfig.GetText("daily_checks"), globalConfig.GetText("ran_into_exception") + exc.Message);
+            }
+        }
+
+        private async Task CheckRecerts()
+        {
+            if(globalConfig.RecCheckActive)
+            {
+                RecertCheck recertCheck = new RecertCheck(apiConnection, globalConfig);
+                int emailsSent = await recertCheck.CheckRecertifications();
+                await AddDailyCheckLogEntry(0, globalConfig.GetText("daily_recert_check"), emailsSent + globalConfig.GetText("emails_sent"));
             }
         }
 
@@ -161,14 +172,25 @@ namespace FWO.Middleware.Server
                 }
             }
 
+            List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+            bool sampleOwnerExisting = false;
+            foreach (var owner in owners)
+            {
+                if (owner.Name.EndsWith("_demo"))
+                {
+                    sampleOwnerExisting = true;
+                }
+            }
+
             string description = "";
-            if(sampleManagementExisting || sampleCredentialExisting || sampleUserExisting || sampleTenantExisting || sampleGroupExisting)
+            if(sampleManagementExisting || sampleCredentialExisting || sampleUserExisting || sampleTenantExisting || sampleGroupExisting || sampleOwnerExisting)
             {
                 description = globalConfig.GetText("sample_data_found_in") + (sampleManagementExisting ? globalConfig.GetText("managements") + " " : "") +
                                                         (sampleCredentialExisting ? globalConfig.GetText("import_credential") + " " : "") +
                                                         (sampleUserExisting ? globalConfig.GetText("users") + " " : "") +
                                                         (sampleTenantExisting ? globalConfig.GetText("tenants") + " " : "") +
-                                                        (sampleGroupExisting ? globalConfig.GetText("groups") : "");
+                                                        (sampleGroupExisting ? globalConfig.GetText("groups") + " " : "") +
+                                                        (sampleOwnerExisting ? globalConfig.GetText("owners") : "");
                 await setAlert(GlobalConfig.kDailyCheck, AlertCode.SampleDataExisting, globalConfig.GetText("sample_data"), description);
             }
             await AddDailyCheckLogEntry((description != "" ? 1 : 0), globalConfig.GetText("daily_sample_data_check"), (description != "" ? description : globalConfig.GetText("no_sample_data_found")));

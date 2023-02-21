@@ -31,12 +31,6 @@ create unique index if not exists only_one_future_recert_per_owner_per_rule on r
 ALTER TABLE owner_network DROP CONSTRAINT IF EXISTS owner_network_ip_unique;
 ALTER TABLE owner_network ADD CONSTRAINT owner_network_ip_unique UNIQUE (owner_id, ip);
 
-DELETE FROM owner WHERE name='defaultOwner_demo';
-UPDATE owner SET is_default=false WHERE id>0;   -- idempotence
-INSERT INTO owner (id, name, dn, group_dn, is_default, tenant_id, recert_interval, app_id_external) 
-VALUES    (0, 'super-owner', 'dn-of-super-owner', 'group-dn-for-super-owner', true, 1, 365, 'NONE')
-ON CONFLICT DO NOTHING; 
-
 Create index IF NOT EXISTS idx_object04 on object (obj_ip);
 Create index IF NOT EXISTS idx_rule04 on rule (action_id);
 
@@ -73,3 +67,9 @@ CREATE MATERIALIZED VIEW view_rule_with_owner AS
 	GROUP BY rule_id, owner_id, owner_name, rule_last_certified, rule_last_certifier, r.rule_from_zone, r.rule_to_zone,  recert_interval,
 		r.dev_id, r.mgm_id, r.rule_uid, rule_num_numeric, track_id, action_id, 	rule_action, rule_name, rule_comment, rule_track, rule_src_neg, rule_dst_neg, rule_svc_neg,
 		rule_head_text, rule_disabled, access_rule, xlate_rule, nat_rule;
+
+DELETE FROM owner WHERE name='defaultOwner_demo';
+UPDATE owner SET is_default=false WHERE id>0;   -- idempotence
+INSERT INTO owner (id, name, dn, group_dn, is_default, tenant_id, recert_interval, app_id_external) 
+VALUES    (0, 'super-owner', 'dn-of-super-owner', 'group-dn-for-super-owner', true, 1, 365, 'NONE')
+ON CONFLICT DO NOTHING; 

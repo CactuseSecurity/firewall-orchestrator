@@ -1,5 +1,6 @@
 ﻿@using FWO.Api.Client
 @using FWO.Config.Api
+@using FWO.Config.Api.Data
 @using System.Net
 @using FWO.Middleware.Client
 @using FWO.Middleware.RequestParameters
@@ -18,14 +19,20 @@
     <h3>@(userConfig.GetText("owners"))</h3>
     @(userConfig.GetText("U5216"))
     <hr />
-    @if(userConfig.ReqAllowManualOwnerAdmin)
+    @if(userConfig.AllowManualOwnerAdmin)
     {
-        <button class="btn btn-sm btn-success" @onclick="AddOwner">@(userConfig.GetText("add_owner"))</button>
-        <br><br>
+        <div class="form-group row">
+            <button class="btn btn-sm btn-success m-2" @onclick="AddOwner">@(userConfig.GetText("add_owner"))</button>
+            @if (showCleanupButton)
+            {
+                <button class="btn btn-sm btn-danger m-2" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
+            }
+            <br><br>
+        </div>
     }
     <div class="m-2">
         <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="FwoOwner" Items="owners" PageSize="0" ColumnReorder="true">
-            @if(userConfig.ReqAllowManualOwnerAdmin)
+            @if(userConfig.AllowManualOwnerAdmin)
             {
                 <Column TableItem="FwoOwner" Title="@(userConfig.GetText("owners"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                     <Template>
@@ -131,6 +138,43 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("recert_check_every")):</label>
+                        <div class="col-sm-2">
+                            <input type="number" min="1" class="form-control form-control-sm" @bind="actRecCheckParams.RecertCheckOffset" />
+                        </div>
+                        <div class="col-sm-2">
+                            <select class="form-control form-control-sm" @bind="actRecCheckParams.RecertCheckInterval">
+                                @foreach (Interval interval in Enum.GetValues(typeof(Interval)))
+                                {
+                                    if (interval != Interval.Never && interval != Interval.Years)
+                                    {
+                                        <option value="@interval">@userConfig.GetText(interval.ToString())</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        @if(actRecCheckParams.RecertCheckInterval == Interval.Weeks)
+                        {
+                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("each_on")):</label>
+                            <div class="col-sm-3">
+                                <select class="form-control form-control-sm" @bind="actRecCheckParams.RecertCheckWeekday">
+                                    <option value="-1">@userConfig.GetText("undefined")</option>
+                                    @foreach (DayOfWeek day in Enum.GetValues(typeof(DayOfWeek)))
+                                    {
+                                        <option value="@((int)day)">@userConfig.GetText(day.ToString())</option>
+                                    }
+                                </select>
+                            </div>
+                        }
+                        else if(actRecCheckParams.RecertCheckInterval == Interval.Months)
+                        {
+                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("each_on")):</label>
+                            <div class="col-sm-3">
+                                <input type="number" min="0" max ="31" class="form-control form-control-sm" @bind="actRecCheckParams.RecertCheckDayOfMonth" />
+                            </div>
+                        }
                     </div>
                     <div class="form-group row">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_app_id")):</label>
@@ -263,27 +307,8 @@
         </Footer>
     </PopUp>
 
-    <PopUp Title="@(userConfig.GetText("delete_owner"))" Show="@DeleteOwnerMode" OnClose="() => DeleteOwnerMode = false">
-        <Body>
-            @if (DeleteOwnerMode)
-            {
-                <p>@(userConfig.GetText("U5217") + actOwner.Name + "?")</p>
-            }
-        </Body>
-        <Footer>
-            <div class="btn-group">
-                <AuthorizeView Roles="admin">
-                    <Authorized>
-                        <button class="btn btn-sm btn-danger" @onclick="DeleteOwner">@(userConfig.GetText("delete"))</button>
-                    </Authorized>
-                    <NotAuthorized>
-                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                    </NotAuthorized> 
-                </AuthorizeView>
-                <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-            </div>
-        </Footer>
-    </PopUp>
+    <ConfirmDelete Display="DeleteOwnerMode" PerformAction="DeleteOwner" Title="@userConfig.GetText("delete_owner")" DeleteMessage="@(userConfig.GetText("U5217") + actOwner.Name + "?")"/>
+    <ConfirmDelete Display="CleanupMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@cleanupMessage"/>
 }
 
 
@@ -293,6 +318,7 @@
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private List<FwoOwner> owners = new List<FwoOwner>();
+    private List<FwoOwner> sampleOwners = new List<FwoOwner>();
     private FwoOwner actOwner = new FwoOwner();
     private int actTenantId = -1;
 
@@ -308,12 +334,16 @@
     private int selectedLdapId;
     private string searchPattern = "";
 
+    private bool showCleanupButton = false;
+    private bool CleanupMode = false;
+    private string cleanupMessage = "";
     private bool EditOwnerMode = false;
     private bool AddOwnerMode = false;
     private bool DeleteOwnerMode = false;
     private bool SearchUserMode = false;
     private bool SearchUserInLdapMode = false;
     private bool InitComplete = false;
+    private RecertCheckParams actRecCheckParams = new RecertCheckParams();
 
     private List<NwObjectElement> actIpAddresses = new List<NwObjectElement>();
     private bool ipChanged = false;
@@ -344,6 +374,8 @@
         try
         {
             owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+            AnalyseSampleOwners();
+
             ownerGroups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi, true);
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
             uiUsers = uiUsers.FindAll(x => x.DbId != 0);
@@ -370,6 +402,19 @@
         InitComplete = true;
     }
 
+    private void AnalyseSampleOwners()
+    {
+        sampleOwners = new List<FwoOwner>();
+        foreach (var owner in owners)
+        {
+            if (owner.Name.EndsWith("_demo"))
+            {
+                sampleOwners.Add(owner);
+            }
+        }
+        showCleanupButton = (sampleOwners.Count > 0);
+    }
+
     private void DeleteIp(NwObjectElement obj)
     {
         actIpAddresses.Remove(obj);
@@ -389,6 +434,7 @@
         {
             actOwner = owner;
             actTenantId = (actOwner.TenantId != null ? (int)actOwner.TenantId : -1);
+            actRecCheckParams = (actOwner.RecertCheckParams != null ? System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(actOwner.RecertCheckParams) : new RecertCheckParams());
             if(AddOwnerMode)
             {
                 actIpAddresses.Clear();
@@ -411,12 +457,21 @@
         try
         {
             actOwner.TenantId = (actTenantId >= 0 ? actTenantId : null);
+            if(actRecCheckParams.RecertCheckDayOfMonth == 0)
+            {
+                actRecCheckParams.RecertCheckDayOfMonth = null;
+            }
+            if(actRecCheckParams.RecertCheckWeekday == -1)
+            {
+                actRecCheckParams.RecertCheckWeekday = null;
+            }
+            actOwner.RecertCheckParams = System.Text.Json.JsonSerializer.Serialize(actRecCheckParams);
             if (actOwner.Sanitize())
             {
                 DisplayMessageInUi(null, userConfig.GetText("edit_owner"), userConfig.GetText("U0001"), true);
             }
             if (CheckValues())
-            {    
+            {
                 if(AddOwnerMode)
                 {
                     await AddOwnerInDb();
@@ -429,6 +484,7 @@
                 {
                     await addTenantIfNew(actOwner.Dn);
                 }
+                AnalyseSampleOwners();
                 EditOwnerMode = false;
                 AddOwnerMode = false;
             }
@@ -449,7 +505,8 @@
             tenantId = actOwner.TenantId,
             recertInterval = actOwner.RecertInterval,
             nextRecertDate = actOwner.NextRecertDate,
-            appIdExternal = actOwner.ExtAppId
+            appIdExternal = actOwner.ExtAppId,
+            recertCheckParams = actOwner.RecertCheckParams
         };
         ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.OwnerQueries.newOwner, Variables)).ReturnIds;
         if (returnIds == null)
@@ -475,7 +532,8 @@
             tenantId = actOwner.TenantId,
             recertInterval = actOwner.RecertInterval,
             nextRecertDate = actOwner.NextRecertDate,
-            appIdExternal = actOwner.ExtAppId
+            appIdExternal = actOwner.ExtAppId,
+            recertCheckParams = actOwner.RecertCheckParams
         };
         int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.OwnerQueries.updateOwner, Variables)).UpdatedId;
         if(udId != actOwner.Id)
@@ -514,6 +572,7 @@
         EditOwnerMode = false;
         AddOwnerMode = false;
         DeleteOwnerMode = false;
+        CleanupMode = false;
     }
 
     private void RequestDeleteOwner(FwoOwner owner)
@@ -534,6 +593,25 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("delete_owner"), "", true);
         }
+        StateHasChanged();
+    }
+
+    private void RequestRemoveSampleData()
+    {
+        cleanupMessage = userConfig.GetText("U5218");
+        CleanupMode = true;
+    }
+
+    private async Task RemoveSampleData()
+    {
+        foreach (var owner in sampleOwners)
+        {
+            actOwner = owner;
+            await DeleteOwner();
+        }
+        CleanupMode = false;
+        showCleanupButton = false;
+        StateHasChanged();
     }
 
     private async Task SetDefault(FwoOwner newDefaultOwner)

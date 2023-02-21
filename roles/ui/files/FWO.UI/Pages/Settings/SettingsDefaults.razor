@@ -16,9 +16,9 @@
 @if (configData != null)
 {
     <form class="form-inline">
-        <label for="languageSelect" class="col-form-label col-sm-4">@(userConfig.GetText("default_language"))*:</label>
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("default_language"))*:</label>
         <div class="col-sm-2">
-            <select id="languageSelect" class="form-control form-control-sm w-100" @bind="configData!.DefaultLanguage">
+            <select class="form-control form-control-sm w-100" @bind="configData!.DefaultLanguage">
                 @foreach (Language language in globalConfig.uiLanguages)
                 {
                     <option value="@(language.Name)">@(userConfig.GetText(language.Name))</option>
@@ -27,15 +27,15 @@
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
-        <label for="sessionTimeout" class="col-form-label col-sm-4">@(userConfig.GetText("sessionTimeout")):</label>
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("sessionTimeout")):</label>
         <div class="col-sm-2">
-            <input id="sessionTimeout" type="number" class="form-control form-control-sm w-100" @bind="configData!.SessionTimeout" />
+            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.SessionTimeout" />
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
-        <label for="sessionTimeoutNoticePeriod" class="col-form-label col-sm-4">@(userConfig.GetText("sessionTimeoutNoticePeriod")):</label>
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("sessionTimeoutNoticePeriod")):</label>
         <div class="col-sm-2">
-            <input id="sessionTimeoutNoticePeriod" type="number" class="form-control form-control-sm w-100" @bind="configData!.SessionTimeoutNoticePeriod" />
+            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.SessionTimeoutNoticePeriod" />
         </div>
     </form>
     @* <form class="form-inline" onsubmit="return false">
@@ -45,105 +45,112 @@
         </div>
     </form> *@
     <form class="form-inline" onsubmit="return false">
-        <label for="messageViewTime" class="col-form-label col-sm-4">@(userConfig.GetText("messageViewTime"))*:</label>
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("messageViewTime"))*:</label>
         <div class="col-sm-2">
-            <input id="messageViewTime" type="number" class="form-control form-control-sm w-100" @bind="configData!.MessageViewTime">
+            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.MessageViewTime">
         </div>
     </form>
     <hr />
     <form class="form-inline" onsubmit="return false">
-        <label for="elementsPerFetch" class="col-form-label col-sm-4">@(userConfig.GetText("elementsPerFetch"))*:</label>
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("elementsPerFetch"))*:</label>
         <div class="col-sm-2">
-            <input id="elementsPerFetch" type="number" class="form-control form-control-sm w-100" @bind="configData!.ElementsPerFetch" />
+            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.ElementsPerFetch" />
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
-        <label for="autoFillRightSidebar" class="col-form-label col-sm-4">@(userConfig.GetText("autoFillRightSidebar")):</label>
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("autoFillRightSidebar")):</label>
         <div class="col-sm-2">
-            <input id="autoFillRightSidebar" type="checkbox" class="w-100" @bind="configData!.AutoFillRightSidebar">
+            <input type="checkbox" class="w-100" @bind="configData!.AutoFillRightSidebar">
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
-        <label for="maxInitFetch" class="col-form-label col-sm-4">@(userConfig.GetText("maxInitialFetchesRightSidebar")):</label>
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("maxInitialFetchesRightSidebar")):</label>
         <div class="col-sm-2">
             @if (configData!.AutoFillRightSidebar)
             {
-                <input disabled id="maxInitFetch" type="number" class="form-control form-control-sm w-100" @bind="configData!.MaxInitialFetchesRightSidebar" />
+                <input disabled type="number" class="form-control form-control-sm w-100" @bind="configData!.MaxInitialFetchesRightSidebar" />
             }
             else
             {
-                <input id="maxInitFetch" type="number" class="form-control form-control-sm w-100" @bind="configData!.MaxInitialFetchesRightSidebar" />
+                <input type="number" class="form-control form-control-sm w-100" @bind="configData!.MaxInitialFetchesRightSidebar" />
             }
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
-        <label for="minCollapseAllDevices" class="col-form-label col-sm-4">@(userConfig.GetText("minCollapseAllDevices"))*:</label>
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("minCollapseAllDevices"))*:</label>
         <div class="col-sm-2">
-            <input id="minCollapseAllDevices" type="number" class="form-control form-control-sm w-100" @bind="configData!.MinCollapseAllDevices">
+            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.MinCollapseAllDevices">
         </div>
     </form>
     <hr />
     <form class="form-inline" onsubmit="return false">
-        <label for="dataRetentionTime" class="col-form-label col-sm-4">@(userConfig.GetText("dataRetentionTime")):</label>
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("dataRetentionTime")):</label>
         <div class="col-sm-2">
-            <input id="dataRetentionTime" type="number" class="form-control form-control-sm w-100" @bind="configData!.DataRetentionTime" />
+            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.DataRetentionTime" />
         </div>
     </form>
     <hr />
     <form class="form-inline" onsubmit="return false">
-        <label for="importSleepTime" class="col-form-label col-sm-4">@(userConfig.GetText("importSleepTime")):</label>
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("importSleepTime")):</label>
         <div class="col-sm-2">
-            <input id="importSleepTime" type="number" class="form-control form-control-sm w-100" @bind="configData!.ImportSleepTime" />
+            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.ImportSleepTime" />
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
-        <label for="importCheckCertificates" class="col-form-label col-sm-4">@(userConfig.GetText("importCheckCertificates")):</label>
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("importCheckCertificates")):</label>
         <div class="col-sm-2">
-            <input id="importCheckCertificates" type="checkbox" class="w-100" @bind="configData!.ImportCheckCertificates" />
+            <input type="checkbox" class="w-100" @bind="configData!.ImportCheckCertificates" />
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
-        <label for="importSuppressCertificateWarnings" class="col-form-label col-sm-4">@(userConfig.GetText("importSuppressCertificateWarnings")):</label>
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("importSuppressCertificateWarnings")):</label>
         <div class="col-sm-2">
-            <input id="importSuppressCertificateWarnings" type="checkbox" class="w-100" @bind="configData!.ImportSuppressCertificateWarnings" />
+            <input type="checkbox" class="w-100" @bind="configData!.ImportSuppressCertificateWarnings" />
         </div>
     </form> 
     <form class="form-inline" onsubmit="return false">
-        <label for="fwApiElementsPerFetch" class="col-form-label col-sm-4">@(userConfig.GetText("fwApiElementsPerFetch")):</label>
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("fwApiElementsPerFetch")):</label>
         <div class="col-sm-2">
-            <input id="fwApiElementsPerFetch" type="number" class="form-control form-control-sm w-100" @bind="configData!.FwApiElementsPerFetch" />
+            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.FwApiElementsPerFetch" />
         </div>
     </form>
     <hr />
     <form class="form-inline" onsubmit="return false">
-        <label for="autoDiscoverSleepTime" class="col-form-label col-sm-4">@(userConfig.GetText("autoDiscoverSleepTime")):</label>
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("autoDiscoverSleepTime")):</label>
         <div class="col-sm-2">
-            <input id="autoDiscoverSleepTime" type="number" class="form-control form-control-sm w-100" @bind="configData!.AutoDiscoverSleepTime" />
+            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.AutoDiscoverSleepTime" />
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
-        <label for="autoDiscoverStartAt" class="col-form-label col-sm-4">@(userConfig.GetText("autoDiscoverStartAt")):</label>
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("autoDiscoverStartAt")):</label>
         <div class="col-sm-2">
-            <input id="autoDiscoverStartAt" type="time" step="60" class="form-control form-control-sm w-100" @bind="configData!.AutoDiscoverStartAt" />
+            <input type="time" step="60" class="form-control form-control-sm w-100" @bind="configData!.AutoDiscoverStartAt" />
         </div>
     </form>
     <hr />
     <form class="form-inline" onsubmit="return false">
-        <label for="dailyCheckStartAt" class="col-form-label col-sm-4">@(userConfig.GetText("dailyCheckStartAt")):</label>
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("dailyCheckStartAt")):</label>
         <div class="col-sm-2">
-            <input id="dailyCheckStartAt" type="time" step="60" class="form-control form-control-sm w-100" @bind="configData!.DailyCheckStartAt" />
+            <input type="time" step="60" class="form-control form-control-sm w-100" @bind="configData!.DailyCheckStartAt" />
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
-        <label for="maxImportDuration" class="col-form-label col-sm-4">@(userConfig.GetText("maxImportDuration")):</label>
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("maxImportDuration")):</label>
         <div class="col-sm-2">
-            <input id="maxImportDuration" type="number" class="form-control form-control-sm w-100" @bind="configData!.MaxImportDuration" />
+            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.MaxImportDuration" />
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
-        <label for="maxImportInterval" class="col-form-label col-sm-4">@(userConfig.GetText("maxImportInterval")):</label>
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("maxImportInterval")):</label>
         <div class="col-sm-2">
-            <input id="maxImportInterval" type="number" class="form-control form-control-sm w-100" @bind="configData!.MaxImportInterval" />
+            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.MaxImportInterval" />
+        </div>
+    </form>
+    <hr />
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("reqAllowManualOwnerAdmin")):</label>
+        <div class="col-sm-2">
+            <input type="checkbox" class="w-100" @bind="configData!.AllowManualOwnerAdmin">
         </div>
     </form>
     <hr />

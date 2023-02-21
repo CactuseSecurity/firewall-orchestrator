@@ -39,30 +39,7 @@
                                 @owner.Name
                             </ElementTemplate>
                         </Dropdown>
-                        @* @if (selectedOwner.Name != "")
-                        {
-                            recertWithoutOwner = false;
-                        } *@
                         <br>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="recertOverdue"
-                                @bind="recertOverdueOnly"
-                                @oninput="@(async () => { recertOverdueOnly = !recertOverdueOnly; SyncFilterToDisplay(); })" />
-                            <label class="form-check-label" for="recertOverdue">@(userConfig.GetText("overdue_recert"))</label>
-                        </div>
-                        @* <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="recertWithoutOwner"
-                                @bind="recertWithoutOwner"
-                                @oninput="@(async () => { 
-                                    recertWithoutOwner = !recertWithoutOwner;
-                                    if (recertWithoutOwner)
-                                    {
-                                        selectedOwner = null;
-                                        StateHasChanged();
-                                    }
-                                })" />
-                            <label class="form-check-label" for="recertWithoutOwner">@(userConfig.GetText("without_owner"))</label>
-                        </div> *@
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="recertShowAnyMatch"
                                 @bind="recertShowAnyMatch"
@@ -87,12 +64,6 @@
                                     })" />
                             <label class="form-check-label" for="recertShowAnyMatch">@(userConfig.GetText("show_any_match"))</label>
                         </div>
-                        @* <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="recertSingleLinePerRule" disabled
-                                @bind="recertSingleLinePerRule"
-                                @oninput="@(async () => { recertSingleLinePerRule = !recertSingleLinePerRule; })" />
-                            <label class="form-check-label" for="recertSingleLinePerRule">@(userConfig.GetText("single_line_per_rule"))</label>
-                        </div> *@
             </div>
         }
         else
@@ -802,13 +773,18 @@
 
             // collapse report templates
             reportTemplateControl.Collapse();
+            List<int> ownerList = new List<int>();
+            if (selectedOwner != null)
+            {
+                ownerList.Add(selectedOwner.Id);
+            }
 
             List<int> ownerIdList = ((selectedOwner!=null)? new List<int>() { selectedOwner.Id } : new List<int>());
 
 
             RecertFilter recertFilter = new RecertFilter()
             {
-                RecertOwnerList = ownerIdList,
+                RecertOwnerList = ownerList,
                 RecertOverdueOnly = recertOverdueOnly,
                 RecertShowAnyMatch = recertShowAnyMatch,
                 RecertificationDisplayPeriod = recertLookAheadDays
@@ -935,14 +911,20 @@
     private void TryFilter(ChangeEventArgs changeArgs)
     {
         string input = (changeArgs.Value ?? "").ToString() ?? "";
+        List<int> ownerList = new List<int>();
+        if (selectedOwner != null)
+        {
+            ownerList.Add(selectedOwner.Id);
+        }
 
         try
         {
             RecertFilter recertFilter = new RecertFilter()
             {
-                RecertOwnerList = new List<int>() { selectedOwner?.Id ?? 0 },
+                RecertOwnerList = ownerList,
                 RecertOverdueOnly = recertOverdueOnly, 
-                RecertShowAnyMatch = recertShowAnyMatch
+                RecertShowAnyMatch = recertShowAnyMatch, 
+                RecertSingleLinePerRule = recertSingleLinePerRule
             };
             reportParams = new ReportTemplate(input, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter);
 

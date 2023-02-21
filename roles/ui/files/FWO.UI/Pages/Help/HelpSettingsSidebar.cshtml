@@ -32,6 +32,9 @@
                 <a class="nav-link" href="/help/settings/roles/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="oi oi-tags"></span> @(userConfig.GetText("roles"))
                 </a>
+                <a class="nav-link" href="/help/settings/owners/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-flag"></span> @(userConfig.GetText("owners"))
+                </a>
                 <h5>@(userConfig.GetText("defaults"))</h5>
                 <a class="nav-link" href="/help/settings/defaults/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="oi oi-cog"></span> @(userConfig.GetText("standards"))
@@ -54,9 +57,6 @@
                 </a>
                 <a class="nav-link" href="/help/settings/workflowcustomizing/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="oi oi-cog"></span> @(userConfig.GetText("customizing"))
-                </a>
-                <a class="nav-link" href="/help/settings/owners/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="oi oi-flag"></span> @(userConfig.GetText("owners"))
                 </a>
                 <h5>@(userConfig.GetText("personal"))</h5>
                 <a class="nav-link" href="/help/settings/password/?lang=@($"{userConfig.GetUserLanguage()}")">

@@ -250,27 +250,7 @@
         </Footer>
     </PopUp>
 
-    <PopUp Title="@(userConfig.GetText("delete_action"))" Show="@DeleteActionMode" OnClose="() => DeleteActionMode = false">
-        <Body>
-            @if (DeleteActionMode)
-            {
-                <p>@(userConfig.GetText("U5502") + actAction.Name + "?")</p>
-            }
-        </Body>
-        <Footer>
-            <div class="btn-group">
-                <AuthorizeView Roles="admin, fw-admin">
-                    <Authorized>
-                        <button class="btn btn-sm btn-danger" @onclick="DeleteAction">@(userConfig.GetText("delete"))</button>
-                    </Authorized>
-                    <NotAuthorized>
-                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                    </NotAuthorized> 
-                </AuthorizeView>
-                <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-            </div>
-        </Footer>
-    </PopUp>
+    <ConfirmDelete Display="DeleteActionMode" PerformAction="DeleteAction" Title="@userConfig.GetText("delete_action")" DeleteMessage="@(userConfig.GetText("U5502") + actAction.Name + "?")"/>
 }
 else
 {
@@ -462,5 +442,6 @@ else
         {
             DisplayMessageInUi(exception, userConfig.GetText("delete_action"), "", true);
         }
+        StateHasChanged();
     }
 }

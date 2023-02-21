@@ -244,7 +244,7 @@
     private async Task CollectOwnerships()
     {
         userOwnerships = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnerIdsForUser, new {userDn = userConfig.User.Dn});
-        recertInterval.Add(0, userConfig.RecertificationPeriod);
+        // recertInterval.Add(0, userConfig.RecertificationPeriod);
 
         List<UserGroup> ownerGroups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi, true);
         List<string> ownerGrpDns = new List<string>();

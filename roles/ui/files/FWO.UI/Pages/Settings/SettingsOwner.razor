@@ -19,7 +19,7 @@
     <h3>@(userConfig.GetText("owners"))</h3>
     @(userConfig.GetText("U5216"))
     <hr />
-    @if(userConfig.ReqAllowManualOwnerAdmin)
+    @if(userConfig.AllowManualOwnerAdmin)
     {
         <div class="form-group row">
             <button class="btn btn-sm btn-success m-2" @onclick="AddOwner">@(userConfig.GetText("add_owner"))</button>
@@ -32,7 +32,7 @@
     }
     <div class="m-2">
         <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="FwoOwner" Items="owners" PageSize="0" ColumnReorder="true">
-            @if(userConfig.ReqAllowManualOwnerAdmin)
+            @if(userConfig.AllowManualOwnerAdmin)
             {
                 <Column TableItem="FwoOwner" Title="@(userConfig.GetText("owners"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                     <Template>

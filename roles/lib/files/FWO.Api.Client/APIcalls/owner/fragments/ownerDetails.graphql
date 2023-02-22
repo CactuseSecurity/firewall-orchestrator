@@ -6,7 +6,6 @@ fragment ownerDetails on owner {
   is_default
   tenant_id
   recert_interval
-  next_recert_date
   app_id_external
   recert_check_params
   last_recert_check

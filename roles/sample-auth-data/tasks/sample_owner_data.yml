@@ -4,14 +4,14 @@
     db: "{{ fworch_db_name }}"
     query: >
       DO $do$ BEGIN
-        INSERT INTO owner (name, dn, group_dn, is_default, tenant_id, recert_interval, next_recert_date, app_id_external) 
-            VALUES    ('ownerF_demo', 'ad-single-owner-f', 'ad-group-owner-f', false, 1, 30, '2022-12-01T00:00:00', '123')
+        INSERT INTO owner (name, dn, group_dn, is_default, tenant_id, recert_interval, app_id_external) 
+            VALUES    ('ownerF_demo', 'ad-single-owner-f', 'ad-group-owner-f', false, 1, 30, '123')
             ON CONFLICT DO NOTHING; 
-        INSERT INTO owner (name, dn, group_dn, is_default, tenant_id, recert_interval, next_recert_date, app_id_external) 
-            VALUES    ('ownerD_demo', 'ad-single-owner-d', 'ad-group-owner-d', false, 1, 30, '2022-12-01T00:00:00', '234')
+        INSERT INTO owner (name, dn, group_dn, is_default, tenant_id, recert_interval, app_id_external) 
+            VALUES    ('ownerD_demo', 'ad-single-owner-d', 'ad-group-owner-d', false, 1, 30, '234')
             ON CONFLICT DO NOTHING; 
-        INSERT INTO owner (name, dn, group_dn, is_default, tenant_id, recert_interval, next_recert_date, app_id_external) 
-            VALUES    ('defaultOwner_demo', 'ad-single-owner-default', 'ad-group-owner-default', true, 1, 30, '2022-12-01T00:00:00', '111')
+        INSERT INTO owner (name, dn, group_dn, is_default, tenant_id, recert_interval, app_id_external) 
+            VALUES    ('defaultOwner_demo', 'ad-single-owner-default', 'ad-group-owner-default', true, 1, 30, '111')
             ON CONFLICT DO NOTHING; 
 
         INSERT INTO owner_network (owner_id, ip) 

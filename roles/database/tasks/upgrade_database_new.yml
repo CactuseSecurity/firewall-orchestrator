@@ -4,6 +4,9 @@
     db: "{{ fworch_db_name }}"
     path_to_script: "{{ database_install_dir }}/upgrade/{{ item }}.sql"
     as_single_query: "{{ postgresql_query_as_single_query }}"
+  # register: res
+  # when: not (res.changed|d(false))
   loop: "{{ upgrade_files | sort }}"
   become: true
+  ignore_errors: false
   become_user: postgres

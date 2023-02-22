@@ -114,11 +114,24 @@
                                    @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove("json"))">
                             <label class="form-check-label" for="outputFormatJson">JSON</label>
                         </div>
+                        @* <div class="form-check">
+                            @if (ReportToExport?.ReportType!=ReportType.ResolvedRules && ReportToExport?.ReportType!=ReportType.ResolvedRulesTech)
+                            {
+                                <input disabled class="form-check-input" type="checkbox" id="reportExportCsv" @bind="ExportCsv">
+                            }
+                            else 
+                            {
+                                <input class="form-check-input" type="checkbox" id="reportExportCsv" @bind="ExportCsv">
+                            }
+                            <label class="form-check-label" for="reportExportCsv">
+                                CSV
+                            </label>
+                        </div>                         *@
                         <div class="form-check">
-                            <input disabled class="form-check-input" type="checkbox" id="outputFormatCsv" value="Csv"
+                            <input class="form-check-input" type="checkbox" id="outputFormatCsv" value="Csv"
                                    checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == "csv"))"
                                    @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove("csv"))">
-                            <label class="form-check-label" for="outputFormatCsv">CSV @(userConfig.GetText("coming_soon"))</label>
+                            <label class="form-check-label" for="outputFormatCsv">CSV</label>
                         </div>
                     </div>
                 </div>

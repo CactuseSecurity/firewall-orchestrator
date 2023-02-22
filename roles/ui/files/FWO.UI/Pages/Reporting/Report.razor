@@ -41,12 +41,6 @@
                         </Dropdown>
                         <br>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="recertOverdue"
-                                @bind="recertOverdueOnly"
-                                @oninput="@(async () => { recertOverdueOnly = !recertOverdueOnly; SyncFilterToDisplay(); })" />
-                            <label class="form-check-label" for="recertOverdue">@(userConfig.GetText("overdue_recert"))</label>
-                        </div>
-                        <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="recertShowAnyMatch"
                                 @bind="recertShowAnyMatch"
                                 @oninput="@(async () => { 
@@ -69,12 +63,6 @@
                                         }
                                     })" />
                             <label class="form-check-label" for="recertShowAnyMatch">@(userConfig.GetText("show_any_match"))</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="recertSingleLinePerRule" disabled
-                                @bind="recertSingleLinePerRule"
-                                @oninput="@(async () => { recertSingleLinePerRule = !recertSingleLinePerRule; })" />
-                            <label class="form-check-label" for="recertSingleLinePerRule">@(userConfig.GetText("single_line_per_rule"))</label>
                         </div>
             </div>
         }
@@ -172,6 +160,8 @@
                         break;
 
                     case ReportType.Changes:
+                    case ReportType.ResolvedChanges:
+                    case ReportType.ResolvedChangesTech:
                         <ChangesReport Managements="managementsReport" RulesPerPage="rulesPerPage" @bind-SelectedRuleChanges="selectedItemsChangeReportTable"></ChangesReport>
                         break;
 
@@ -281,7 +271,7 @@
 <PopUp Large="true" Title="@(userConfig.GetText("report_time"))" Show="@ShowSelectTimeDialog">
     <Body>
         <div>
-            @if (selectedReportType == ReportType.Changes)
+            @if (selectedReportType==ReportType.Changes || selectedReportType==ReportType.ResolvedChanges || selectedReportType==ReportType.ResolvedChangesTech)
             {
                 <div class="row">
                     <div class="col-sm-1">
@@ -450,8 +440,8 @@
     private bool ShowSelectTimeDialog = false;
     private bool recertOverdueOnly = false;
     private bool recertShowAnyMatch = true;
-    private bool recertSingleLinePerRule = false;
     private int recertLookAheadDays = 0;
+    private bool recertSingleLinePerRule = true;
 
     private ScheduledReport[] scheduledReports = new ScheduledReport[0];
 
@@ -540,7 +530,7 @@
 
     private void SetTimeSelection()
     {
-        if(selectedReportType == ReportType.Changes)
+        if (selectedReportType==ReportType.Changes || selectedReportType==ReportType.ResolvedChanges || selectedReportType==ReportType.ResolvedChangesTech)
         {
             switch(actTimeFilter.TimeRangeType)
             {
@@ -602,7 +592,7 @@
 
     public void DisplayTime()
     {
-        if(selectedReportType == ReportType.Changes)
+        if (selectedReportType==ReportType.Changes || selectedReportType==ReportType.ResolvedChanges || selectedReportType==ReportType.ResolvedChangesTech)
         {
             switch (actTimeFilter.TimeRangeType)
             {
@@ -790,12 +780,14 @@
                 ownerList.Add(selectedOwner.Id);
             }
 
+            List<int> ownerIdList = ((selectedOwner!=null)? new List<int>() { selectedOwner.Id } : new List<int>());
+
+
             RecertFilter recertFilter = new RecertFilter()
             {
                 RecertOwnerList = ownerList,
                 RecertOverdueOnly = recertOverdueOnly,
                 RecertShowAnyMatch = recertShowAnyMatch,
-                RecertSingleLinePerRule = recertSingleLinePerRule,
                 RecertificationDisplayPeriod = recertLookAheadDays
             };
             reportParams = new ReportTemplate(filterInput, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter);
@@ -814,6 +806,8 @@
                     case ReportType.NatRules:
                     case ReportType.Rules:
                     case ReportType.Changes:
+                    case ReportType.ResolvedChanges:
+                    case ReportType.ResolvedChangesTech:
                     case ReportType.ResolvedRules:
                     case ReportType.ResolvedRulesTech:
                     case ReportType.Recertification:
@@ -864,7 +858,7 @@
                 {
                     DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
                 }
-                else if(currentReport is ReportChanges)
+                else if (selectedReportType==ReportType.Changes || selectedReportType==ReportType.ResolvedChanges || selectedReportType==ReportType.ResolvedChangesTech)
                 {
                     DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4003"), true);
                 }
@@ -985,7 +979,10 @@
         List<ReportType> ListOut = new List<ReportType>();
         List<ReportType> orderedReportTypeList = new List<ReportType>()
         {
-            ReportType.Rules, ReportType.ResolvedRules, ReportType.ResolvedRulesTech, ReportType.NatRules, ReportType.Changes, ReportType.Statistics
+            ReportType.Rules, ReportType.ResolvedRules, ReportType.ResolvedRulesTech, ReportType.NatRules, 
+            ReportType.Recertification,
+            ReportType.Changes, ReportType.ResolvedChanges, ReportType.ResolvedChangesTech, 
+            ReportType.Statistics
         };
         foreach (ReportType reportType in orderedReportTypeList)
         {

@@ -14,13 +14,13 @@ Create index IF NOT EXISTS idx_import_rule01 on import_rule (rule_id);
 Create index IF NOT EXISTS idx_object01 on object (mgm_id);
 Create index IF NOT EXISTS idx_object02 on object (obj_name,mgm_id,zone_id,active);
 Create index IF NOT EXISTS idx_object03 on object (obj_uid,mgm_id,zone_id,active);
+Create index IF NOT EXISTS idx_object04 on object (obj_ip);
 Create index IF NOT EXISTS idx_objgrp_flat01 on objgrp_flat (objgrp_flat_id);
 Create index IF NOT EXISTS idx_objgrp_flat02 on objgrp_flat (objgrp_flat_member_id);
-
-
 Create index IF NOT EXISTS idx_rule01 on rule (rule_uid,mgm_id,dev_id,active,nat_rule,xlate_rule);
 Create index IF NOT EXISTS idx_rule02 on rule (mgm_id,rule_id,rule_uid,dev_id);
 Create index IF NOT EXISTS idx_rule03 on rule (dev_id);
+Create index IF NOT EXISTS idx_rule04 on rule (action_id);
 Create index IF NOT EXISTS idx_rule_from01 on rule_from (rule_id);
 Create index IF NOT EXISTS idx_rule_service01 on rule_service (rule_id);
 Create index IF NOT EXISTS idx_rule_service02 on rule_service (svc_id);
@@ -34,7 +34,6 @@ Create index IF NOT EXISTS idx_usergrp_flat01 on usergrp_flat (usergrp_flat_id);
 Create index IF NOT EXISTS idx_usergrp_flat02 on usergrp_flat (usergrp_flat_member_id);
 Create index IF NOT EXISTS idx_zone01 on zone (zone_name,mgm_id);
 Create index IF NOT EXISTS idx_zone02 on zone (mgm_id); -- needed as mgm_id is not first column on above composite index
-
 
 -- make sure a maximum of one stop_time=null entry exists per mgm_id (only one running import per mgm):
 CREATE UNIQUE INDEX uidx_import_control_only_one_null_stop_time_per_mgm_when_null ON import_control (mgm_id) WHERE stop_time IS NULL;

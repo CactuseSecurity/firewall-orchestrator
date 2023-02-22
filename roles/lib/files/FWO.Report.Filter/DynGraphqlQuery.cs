@@ -233,7 +233,7 @@ namespace FWO.Report.Filter
                 else
                 { // if no ownerIds are set in the filter, return all recerts
                     query.QueryParameters.Add("$ownerWhere: owner_bool_exp");
-                    query.QueryVariables["ownerWhere"] = new {id = new {_neq = 0}};
+                    query.QueryVariables["ownerWhere"] = new {id = new {}};
                 }
             }
         }
@@ -388,6 +388,8 @@ namespace FWO.Report.Filter
                     break;
 
                 case ReportType.Changes:
+                case ReportType.ResolvedChanges:
+                case ReportType.ResolvedChangesTech:
                     query.FullQuery = Queries.compact($@"
                     {(filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
 

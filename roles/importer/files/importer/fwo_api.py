@@ -53,18 +53,22 @@ def call(url, jwt, query, query_variables="", role="reporter", show_progress=Fal
         r.raise_for_status()
     except requests.exceptions.RequestException:
         logger.error(showApiCallInfo(url, full_query, request_headers, type='error') + ":\n" + str(traceback.format_exc()))
-
-        if r.status_code == 503:
-            raise FwoApiTServiceUnavailable("FWO API HTTP error 503 (FWO API died?)" )
-        if r.status_code == 502:
-            raise FwoApiTimeout("FWO API HTTP error 502 (might have reached timeout of " + str(int(fwo_api_http_import_timeout)/60) + " minutes)" )
+        if r != None:
+            if r.status_code == 503:
+                raise FwoApiTServiceUnavailable("FWO API HTTP error 503 (FWO API died?)" )
+            if r.status_code == 502:
+                raise FwoApiTimeout("FWO API HTTP error 502 (might have reached timeout of " + str(int(fwo_api_http_import_timeout)/60) + " minutes)" )
         else:
             raise
     if int(fwo_globals.debug_level) > 4:
         logger.debug (showApiCallInfo(url, full_query, request_headers, type='debug'))
     if show_progress:
         print('.', end='', flush=True)
-    return r.json()
+
+    if r != None:
+        return r.json()
+    else:
+        return None
 
 
 def login(user, password, user_management_api_base_url, method='api/AuthenticationToken/Get'):

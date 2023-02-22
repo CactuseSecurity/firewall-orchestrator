@@ -28,9 +28,9 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'I': return "rule created";
-                case 'D': return "rule deleted";
-                case 'C': return "rule modified";
+                case 'I': return userConfig.GetText("rule_added");
+                case 'D': return userConfig.GetText("rule_deleted");
+                case 'C': return userConfig.GetText("rule_modified");
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }

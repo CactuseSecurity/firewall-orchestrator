@@ -195,7 +195,7 @@ namespace FWO.Middleware.Server
                     {
                         if (device.ContainsRules())
                         {
-                            foreach (Rule rule in device.Rules)
+                            foreach (Rule rule in device.Rules!)
                             {
                                 rule.Metadata.UpdateRecertPeriods(owner.RecertInterval ?? globalConfig.RecertificationPeriod, 0);
                                 rule.DeviceName = device.Name ?? "";

@@ -5,7 +5,6 @@ mutation updateOwner(
   $groupDn: String!
   $tenantId: Int
   $recertInterval: Int
-  $nextRecertDate: timestamp
   $appIdExternal: String!
   $recertCheckParams: String
   ) {
@@ -17,7 +16,6 @@ mutation updateOwner(
       group_dn: $groupDn
       tenant_id: $tenantId
       recert_interval: $recertInterval
-      next_recert_date: $nextRecertDate
       app_id_external: $appIdExternal
       recert_check_params: $recertCheckParams
   }) {

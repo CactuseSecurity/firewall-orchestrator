@@ -6520,8 +6520,7 @@
                       "id",
                       "recert_interval",
                       "tenant_id",
-                      "last_recert_check",
-                      "next_recert_date"
+                      "last_recert_check"
                     ],
                     "filter": {}
                   }
@@ -6539,8 +6538,7 @@
                       "id",
                       "recert_interval",
                       "tenant_id",
-                      "last_recert_check",
-                      "next_recert_date"
+                      "last_recert_check"
                     ],
                     "filter": {}
                   }
@@ -6558,8 +6556,7 @@
                       "id",
                       "recert_interval",
                       "tenant_id",
-                      "last_recert_check",
-                      "next_recert_date"
+                      "last_recert_check"
                     ],
                     "filter": {}
                   }
@@ -6577,8 +6574,7 @@
                       "id",
                       "recert_interval",
                       "tenant_id",
-                      "last_recert_check",
-                      "next_recert_date"
+                      "last_recert_check"
                     ],
                     "filter": {}
                   }
@@ -6594,7 +6590,6 @@
                       "is_default",
                       "tenant_id",
                       "recert_interval",
-                      "next_recert_date",
                       "app_id_external",
                       "last_recert_check",
                       "recert_check_params"
@@ -6615,8 +6610,7 @@
                       "id",
                       "recert_interval",
                       "tenant_id",
-                      "last_recert_check",
-                      "next_recert_date"
+                      "last_recert_check"
                     ],
                     "filter": {}
                   }
@@ -6634,8 +6628,7 @@
                       "id",
                       "recert_interval",
                       "tenant_id",
-                      "last_recert_check",
-                      "next_recert_date"
+                      "last_recert_check"
                     ],
                     "filter": {
                       "tenant_id": {
@@ -6658,8 +6651,7 @@
                       "id",
                       "recert_interval",
                       "tenant_id",
-                      "last_recert_check",
-                      "next_recert_date"
+                      "last_recert_check"
                     ],
                     "filter": {
                       "tenant_id": {
@@ -6682,8 +6674,7 @@
                       "id",
                       "recert_interval",
                       "tenant_id",
-                      "last_recert_check",
-                      "next_recert_date"
+                      "last_recert_check"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -6702,8 +6693,7 @@
                       "id",
                       "recert_interval",
                       "tenant_id",
-                      "last_recert_check",
-                      "next_recert_date"
+                      "last_recert_check"
                     ],
                     "filter": {}
                   }
@@ -6721,8 +6711,7 @@
                       "id",
                       "recert_interval",
                       "tenant_id",
-                      "last_recert_check",
-                      "next_recert_date"
+                      "last_recert_check"
                     ],
                     "filter": {}
                   }

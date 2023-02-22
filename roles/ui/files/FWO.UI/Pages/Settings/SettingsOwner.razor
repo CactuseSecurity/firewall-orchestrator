@@ -60,11 +60,6 @@
                 </Template>
             </Column>
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("recert_interval"))" Field="@(x => x.RecertInterval)" Sortable="true" Filterable="true" />
-            <Column TableItem="FwoOwner" Title="@(userConfig.GetText("next_recert"))" Field="@(x => x.NextRecertDate)" Sortable="true" Filterable="true" >
-                <Template>
-                    @(context.NextRecertDate != null ? DateOnly.FromDateTime((DateTime)context.NextRecertDate) : "")
-                </Template>
-            </Column>
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("ext_app_id"))" Field="@(x => x.ExtAppId)" Sortable="true" Filterable="true" />
         </Table>
     </div>
@@ -127,14 +122,6 @@
                                 <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("recert_interval")):</label>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control form-control-sm" @bind="actOwner.RecertInterval" />
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-sm-6">
-                            <div class="form-group row">
-                                <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("next_recert")):</label>
-                                <div class="col-sm-6">
-                                    <input type="date" class="form-control form-control-sm" @bind="actOwner.NextRecertDate" />
                                 </div>
                             </div>
                         </div>
@@ -310,7 +297,12 @@
     <ConfirmDelete Display="DeleteOwnerMode" PerformAction="DeleteOwner" Title="@userConfig.GetText("delete_owner")" DeleteMessage="@(userConfig.GetText("U5217") + actOwner.Name + "?")"/>
     <ConfirmDelete Display="CleanupMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@cleanupMessage"/>
 }
-
+else
+{
+    <div class="spinner-border" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+}
 
 @code
 {
@@ -504,7 +496,6 @@
             groupDn = actOwner.GroupDn,
             tenantId = actOwner.TenantId,
             recertInterval = actOwner.RecertInterval,
-            nextRecertDate = actOwner.NextRecertDate,
             appIdExternal = actOwner.ExtAppId,
             recertCheckParams = actOwner.RecertCheckParams
         };
@@ -531,7 +522,6 @@
             groupDn = actOwner.GroupDn,
             tenantId = actOwner.TenantId,
             recertInterval = actOwner.RecertInterval,
-            nextRecertDate = actOwner.NextRecertDate,
             appIdExternal = actOwner.ExtAppId,
             recertCheckParams = actOwner.RecertCheckParams
         };
@@ -612,25 +602,6 @@
         CleanupMode = false;
         showCleanupButton = false;
         StateHasChanged();
-    }
-
-    private async Task SetDefault(FwoOwner newDefaultOwner)
-    {
-        try
-        {
-            FwoOwner? oldDefaultOwner = owners.FirstOrDefault(x => x.IsDefault);
-            if(oldDefaultOwner != null)
-            {
-                await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.OwnerQueries.setDefaultOwner, new { id = oldDefaultOwner.Id, isDefault = false });
-                owners[owners.FindIndex(x => x.Id == oldDefaultOwner.Id)].IsDefault = false;
-            }
-            await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.OwnerQueries.setDefaultOwner, new { id = newDefaultOwner.Id, isDefault = true });
-            owners[owners.FindIndex(x => x.Id == newDefaultOwner.Id)].IsDefault = true;
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("edit_owner"), "", true);
-        }
     }
 
     private bool CheckValues()

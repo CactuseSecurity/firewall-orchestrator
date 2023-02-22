@@ -43,7 +43,6 @@
                         @owner.Name
                     </ElementTemplate>
                 </Dropdown>
-                <br>
             </div>
         </Authorized>
         <NotAuthorized>
@@ -200,7 +199,6 @@
     private Sidebar? deviceSelectionSidebar;
     private bool AddCommentMode = false;
     private string actComment = "";
-    private bool recertOverdueOnly = false;
     private bool recertShowAnyMatch = true;
     private bool recertSingleLinePerRule = false;
     private int recertLookAheadDays = 0;
@@ -302,7 +300,6 @@
             RecertFilter recertFilter = new RecertFilter()
             {
                 RecertOwnerList = ownerList,
-                RecertOverdueOnly = recertOverdueOnly,
                 RecertShowAnyMatch = recertShowAnyMatch,
                 RecertSingleLinePerRule = recertSingleLinePerRule,
                 RecertificationDisplayPeriod = recertLookAheadDays
@@ -333,9 +330,10 @@
                     if (device.ContainsRules())
                     {
                         rulesFound = true;
-                        if (device.Rules != null)
-                            foreach (Rule rule in device.Rules)
-                                rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
+                        foreach (Rule rule in device.Rules!)
+                        {
+                            rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
+                        }
                     }
             processing = false;
             

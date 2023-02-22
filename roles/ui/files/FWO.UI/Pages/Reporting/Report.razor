@@ -26,58 +26,58 @@
             </ElementTemplate>
         </Dropdown>
     </div>
-        @if (selectedReportType==ReportType.Recertification)
-        {
-            <div class="p-3">
-                <h6 class="text-left">@(userConfig.GetText("recert_parameter"))</h6>
-                    <h7 class="text-left">@(userConfig.GetText("due_within")):</h7>
-                        <input type="number" min="1" max="5000" step="1" class="form-control form-control-sm" @bind="recertLookAheadDays" />
-                    <h7 class="text-left">@(userConfig.GetText("owner"))</h7>
-                        <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="true"
-                            @bind-SelectedElement="selectedOwner" Elements="ownerList">
-                            <ElementTemplate Context="owner">
-                                @owner.Name
-                            </ElementTemplate>
-                        </Dropdown>
-                        <br>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="recertShowAnyMatch"
-                                @bind="recertShowAnyMatch"
-                                @oninput="@(async () => { 
-                                        recertShowAnyMatch = !recertShowAnyMatch;
-                                        if (!recertShowAnyMatch) 
-                                        {
-                                            if (filterInput.Length>0)
-                                            {
-                                                filterInput += " and (not src==0.0.0.0 and not dst==0.0.0.0)";
-                                            }
-                                            else
-                                            {
-                                                filterInput = "(not src==0.0.0.0 and not dst==0.0.0.0)";
-                                            }
-                                        }
-                                        else 
-                                        {
-                                            filterInput =  filterInput.Replace("and (not src==0.0.0.0 and not dst==0.0.0.0)", string.Empty);
-                                            filterInput =  filterInput.Replace("(not src==0.0.0.0 and not dst==0.0.0.0)", string.Empty);
-                                        }
-                                    })" />
-                            <label class="form-check-label" for="recertShowAnyMatch">@(userConfig.GetText("show_any_match"))</label>
-                        </div>
+    @if (selectedReportType==ReportType.Recertification)
+    {
+        <div class="p-3">
+            <h6 class="text-left">@(userConfig.GetText("recert_parameter"))</h6>
+            <h7 class="text-left">@(userConfig.GetText("due_within")):</h7>
+            <input type="number" min="1" max="5000" step="1" class="form-control form-control-sm" @bind="recertLookAheadDays" />
+            <h7 class="text-left">@(userConfig.GetText("owner"))</h7>
+            <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="true"
+                @bind-SelectedElement="selectedOwner" Elements="ownerList">
+                <ElementTemplate Context="owner">
+                    @owner.Name
+                </ElementTemplate>
+            </Dropdown>
+            <br>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="recertShowAnyMatch"
+                    @bind="recertShowAnyMatch"
+                    @oninput="@(async () => { 
+                            recertShowAnyMatch = !recertShowAnyMatch;
+                            if (!recertShowAnyMatch) 
+                            {
+                                if (filterInput.Length>0)
+                                {
+                                    filterInput += " and (not src==0.0.0.0 and not dst==0.0.0.0)";
+                                }
+                                else
+                                {
+                                    filterInput = "(not src==0.0.0.0 and not dst==0.0.0.0)";
+                                }
+                            }
+                            else 
+                            {
+                                filterInput =  filterInput.Replace("and (not src==0.0.0.0 and not dst==0.0.0.0)", string.Empty);
+                                filterInput =  filterInput.Replace("(not src==0.0.0.0 and not dst==0.0.0.0)", string.Empty);
+                            }
+                        })" />
+                <label class="form-check-label" for="recertShowAnyMatch">@(userConfig.GetText("show_any_match"))</label>
             </div>
-        }
-        else
-        {
-            <div class="p-3">
-                <h5 class="text-left">@(userConfig.GetText("report_time"))</h5>
-                <div class="input-group">
-                    <input type="text" class="form-control form-control-sm" value="@displayedTimeSelection" />
-                    <div class="input-group-append">
-                        <button class="btn btn-sm btn-outline-info" @onclick="SelectTime">@(userConfig.GetText("change"))</button>
-                    </div>
+        </div>
+    }
+    else
+    {
+        <div class="p-3">
+            <h5 class="text-left">@(userConfig.GetText("report_time"))</h5>
+            <div class="input-group">
+                <input type="text" class="form-control form-control-sm" value="@displayedTimeSelection" />
+                <div class="input-group-append">
+                    <button class="btn btn-sm btn-outline-info" @onclick="SelectTime">@(userConfig.GetText("change"))</button>
                 </div>
             </div>
-        }
+        </div>
+    }
     <DeviceSelection @bind-DeviceFilter="deviceFilter" @bind-CollapseAll="collapseDevices" @bind-SelectAll="selectAll"></DeviceSelection>
 </Sidebar>
 
@@ -438,7 +438,6 @@
     private TimeFilter savedTimeFilter = new TimeFilter();
     private string displayedTimeSelection = "";
     private bool ShowSelectTimeDialog = false;
-    private bool recertOverdueOnly = false;
     private bool recertShowAnyMatch = true;
     private int recertLookAheadDays = 0;
     private bool recertSingleLinePerRule = true;
@@ -786,7 +785,6 @@
             RecertFilter recertFilter = new RecertFilter()
             {
                 RecertOwnerList = ownerList,
-                RecertOverdueOnly = recertOverdueOnly,
                 RecertShowAnyMatch = recertShowAnyMatch,
                 RecertificationDisplayPeriod = recertLookAheadDays
             };
@@ -888,9 +886,10 @@
                 if (device.ContainsRules())
                 {
                     rulesFound = true;
-                    if (device.Rules != null)
-                        foreach (Rule rule in device.Rules)
-                            rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
+                    foreach (Rule rule in device.Rules!)
+                    {
+                        rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
+                    }
                 }
         return rulesFound;
     }
@@ -923,7 +922,6 @@
             RecertFilter recertFilter = new RecertFilter()
             {
                 RecertOwnerList = ownerList,
-                RecertOverdueOnly = recertOverdueOnly, 
                 RecertShowAnyMatch = recertShowAnyMatch, 
                 RecertSingleLinePerRule = recertSingleLinePerRule
             };

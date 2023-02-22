@@ -17,7 +17,12 @@
     <DisplayTicketTable Phase="WorkflowPhases.planning" States="states" ReqHandler="reqHandler" 
         ResetParent="Reset" StartPhase="StartPlanTask"/>
 }
-
+else
+{
+    <div class="spinner-border" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+}
 
 @code
 {

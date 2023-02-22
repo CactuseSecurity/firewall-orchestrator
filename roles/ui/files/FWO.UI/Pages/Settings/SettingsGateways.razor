@@ -90,6 +90,10 @@
                             @{
                                 IEnumerable<DeviceType> matchingDeviceTypes = deviceTypes.Where(x => x.Manufacturer == deviceTypes.Find(
                                     y => y.Id == managements.Find(z => z.Id == actDevice.Management.Id)?.DeviceType.Id)?.Manufacturer);
+                                if(matchingDeviceTypes.FirstOrDefault(x => x.Id == actDevice.DeviceType.Id) == null)
+                                {
+                                    actDevice.DeviceType = matchingDeviceTypes.First() ?? new DeviceType();
+                                }
                                 
                                 @foreach (DeviceType devType in matchingDeviceTypes)
                                 {
@@ -261,7 +265,8 @@
                 DisplayMessageInUi(null, userConfig.GetText("save_gateway"), userConfig.GetText("U0001"), true);
             }
             if (CheckValues())
-            {    
+            {
+                actDevice.Management.Name = managements.FirstOrDefault(z => z.Id == actDevice.Management.Id)?.Name ?? "";
                 if (AddMode)
                 {
                     // insert new device

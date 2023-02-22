@@ -496,6 +496,6 @@ insert into request.state (id,name) VALUES (600,'Done');
 insert into request.state (id,name) VALUES (610,'Rejected');
 insert into request.state (id,name) VALUES (620,'Discarded');
 
-INSERT INTO owner (id, name, dn, group_dn, is_default, tenant_id, recert_interval, app_id_external) 
-VALUES    (0, 'super-owner', 'dn-of-super-owner', 'group-dn-for-super-owner', true, 1, 365, 'NONE')
+INSERT INTO owner (id, name, dn, group_dn, is_default, recert_interval, app_id_external) 
+VALUES    (0, 'super-owner', 'dn-of-super-owner', 'group-dn-for-super-owner', true, 365, 'NONE')
 ON CONFLICT DO NOTHING; 

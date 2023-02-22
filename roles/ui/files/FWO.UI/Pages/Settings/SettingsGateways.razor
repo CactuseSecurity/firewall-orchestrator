@@ -165,17 +165,8 @@
 </PopUp>
 
 <ConfirmDelete Display="DeleteMode" PerformAction="Delete" Title="@userConfig.GetText("delete_gateway")" DeleteMessage="@(userConfig.GetText("U5103") + " " + actDevice.Name + "?")"/>
+<InProgress Display="workInProgress"/>
 
-<PopUp Title="@(userConfig.GetText("in_progress"))" Small="true" Show="@workInProgress">
-    <Body>
-        @if (workInProgress)
-        {
-            <div class="row">
-                <div class="spinner-border mx-auto align-self-center" role="status"></div>
-            </div>
-        }
-    </Body>
-</PopUp>
 
 @code
 {

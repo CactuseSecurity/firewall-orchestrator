@@ -23,7 +23,6 @@ CREATE TRIGGER owner_change
     FOR EACH ROW
     EXECUTE PROCEDURE owner_change_triggered ();
 
-
 CREATE OR REPLACE FUNCTION owner_network_change_triggered ()
     RETURNS TRIGGER
     AS $BODY$

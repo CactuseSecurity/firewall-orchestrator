@@ -44,12 +44,6 @@
                     </ElementTemplate>
                 </Dropdown>
                 <br>
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="recertOverdue"
-                        @bind="recertOverdueOnly"
-                        @oninput="@(async () => { recertOverdueOnly = !recertOverdueOnly; SyncFilterToDisplay(); })" />
-                    <label class="form-check-label" for="recertOverdue">@(userConfig.GetText("overdue_recert"))</label>
-                </div>
             </div>
         </Authorized>
         <NotAuthorized>
@@ -244,7 +238,7 @@
     private async Task CollectOwnerships()
     {
         userOwnerships = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnerIdsForUser, new {userDn = userConfig.User.Dn});
-        recertInterval.Add(0, userConfig.RecertificationPeriod);
+        // recertInterval.Add(0, userConfig.RecertificationPeriod);
 
         List<UserGroup> ownerGroups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi, true);
         List<string> ownerGrpDns = new List<string>();

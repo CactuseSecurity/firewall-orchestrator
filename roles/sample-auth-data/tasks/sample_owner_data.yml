@@ -10,9 +10,6 @@
         INSERT INTO owner (name, dn, group_dn, is_default, tenant_id, recert_interval, app_id_external) 
             VALUES    ('ownerD_demo', 'ad-single-owner-d', 'ad-group-owner-d', false, 1, 30, '234')
             ON CONFLICT DO NOTHING; 
-        INSERT INTO owner (name, dn, group_dn, is_default, tenant_id, recert_interval, app_id_external) 
-            VALUES    ('defaultOwner_demo', 'ad-single-owner-default', 'ad-group-owner-default', true, 1, 30, '111')
-            ON CONFLICT DO NOTHING; 
 
         INSERT INTO owner_network (owner_id, ip) 
             VALUES    ((SELECT id FROM owner WHERE name='ownerF_demo' AND tenant_id=1), '10.222.0.0/27')
@@ -31,7 +28,7 @@
             ON CONFLICT DO NOTHING; 
       END $do$
 
-  when: sample_role_purpose is not match('test')
+  when: sample_role_purpose is not match('test') and testkeys
   become: true
   become_user: postgres
 

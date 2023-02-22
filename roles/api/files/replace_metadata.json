@@ -14546,12 +14546,6 @@
             },
             {
               "table": {
-                "name": "view_recert_overdue_rules",
-                "schema": "public"
-              }
-            },
-            {
-              "table": {
                 "name": "view_reportable_changes",
                 "schema": "public"
               }

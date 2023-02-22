@@ -65,7 +65,7 @@ namespace FWO.Logging
 
                         await Task.Delay(1000);
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         //WriteError("Log file locking", "Error while accessing log lock file.", e);
                     }
@@ -81,7 +81,7 @@ namespace FWO.Logging
                 {
                     return File.Open(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
                 }
-                catch (Exception e) 
+                catch (Exception) 
                 { 
                     //WriteDebug("Log file locking", $"Could not access log lock file: {e.Message}.");
                 }

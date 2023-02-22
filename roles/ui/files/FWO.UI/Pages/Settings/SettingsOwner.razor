@@ -297,7 +297,12 @@
     <ConfirmDelete Display="DeleteOwnerMode" PerformAction="DeleteOwner" Title="@userConfig.GetText("delete_owner")" DeleteMessage="@(userConfig.GetText("U5217") + actOwner.Name + "?")"/>
     <ConfirmDelete Display="CleanupMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@cleanupMessage"/>
 }
-
+else
+{
+    <div class="spinner-border" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+}
 
 @code
 {
@@ -597,25 +602,6 @@
         CleanupMode = false;
         showCleanupButton = false;
         StateHasChanged();
-    }
-
-    private async Task SetDefault(FwoOwner newDefaultOwner)
-    {
-        try
-        {
-            FwoOwner? oldDefaultOwner = owners.FirstOrDefault(x => x.IsDefault);
-            if(oldDefaultOwner != null)
-            {
-                await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.OwnerQueries.setDefaultOwner, new { id = oldDefaultOwner.Id, isDefault = false });
-                owners[owners.FindIndex(x => x.Id == oldDefaultOwner.Id)].IsDefault = false;
-            }
-            await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.OwnerQueries.setDefaultOwner, new { id = newDefaultOwner.Id, isDefault = true });
-            owners[owners.FindIndex(x => x.Id == newDefaultOwner.Id)].IsDefault = true;
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("edit_owner"), "", true);
-        }
     }
 
     private bool CheckValues()

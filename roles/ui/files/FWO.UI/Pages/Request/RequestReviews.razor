@@ -16,7 +16,12 @@
     <DisplayTicketTable Phase="WorkflowPhases.review" States="states" ReqHandler="reqHandler" 
         ResetParent="Reset" StartImplPhase="StartReviewTask"/>
 }
-
+else
+{
+    <div class="spinner-border" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+}
 
 @code
 {

@@ -64,11 +64,6 @@
                 </Template>
             </Column>
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("recert_interval"))" Field="@(x => x.RecertInterval)" Sortable="true" Filterable="true" />
-            <Column TableItem="FwoOwner" Title="@(userConfig.GetText("next_recert"))" Field="@(x => x.NextRecertDate)" Sortable="true" Filterable="true" >
-                <Template>
-                    @(context.NextRecertDate != null ? DateOnly.FromDateTime((DateTime)context.NextRecertDate) : "")
-                </Template>
-            </Column>
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("ext_app_id"))" Field="@(x => x.ExtAppId)" Sortable="true" Filterable="true" />
         </Table>
     </div>
@@ -131,14 +126,6 @@
                                 <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("recert_interval")):</label>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control form-control-sm" @bind="actOwner.RecertInterval" />
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-sm-6">
-                            <div class="form-group row">
-                                <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("next_recert")):</label>
-                                <div class="col-sm-6">
-                                    <input type="date" class="form-control form-control-sm" @bind="actOwner.NextRecertDate" />
                                 </div>
                             </div>
                         </div>
@@ -508,7 +495,6 @@
             groupDn = actOwner.GroupDn,
             tenantId = actOwner.TenantId,
             recertInterval = actOwner.RecertInterval,
-            nextRecertDate = actOwner.NextRecertDate,
             appIdExternal = actOwner.ExtAppId,
             recertCheckParams = actOwner.RecertCheckParams
         };
@@ -535,7 +521,6 @@
             groupDn = actOwner.GroupDn,
             tenantId = actOwner.TenantId,
             recertInterval = actOwner.RecertInterval,
-            nextRecertDate = actOwner.NextRecertDate,
             appIdExternal = actOwner.ExtAppId,
             recertCheckParams = actOwner.RecertCheckParams
         };

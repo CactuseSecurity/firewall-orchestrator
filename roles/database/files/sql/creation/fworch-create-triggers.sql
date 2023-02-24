@@ -173,45 +173,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- function used during import of a single management config
-CREATE OR REPLACE FUNCTION recert_refresh_per_management (i_mgm_id INTEGER) RETURNS VOID AS $$
-DECLARE
-	r_owner   RECORD;
-BEGIN
-	BEGIN		
-		FOR r_owner IN
-			SELECT id, name FROM owner
-		LOOP
-			PERFORM recert_refresh_one_owner_one_mgm (r_owner.id, i_mgm_id, NULL::TIMESTAMP);
-		END LOOP;
-	EXCEPTION WHEN OTHERS THEN
-		RAISE EXCEPTION 'Exception caught in recert_refresh_per_management while handling owner %', r_owner.name;
-	END;
-	RETURN;
-END;
-$$ LANGUAGE plpgsql;
-
-
--- function used during import of owner data
-CREATE OR REPLACE FUNCTION recert_refresh_per_owner(i_owner_id INTEGER) RETURNS VOID AS $$
-DECLARE
-	r_mgm    RECORD;
-BEGIN
-	BEGIN
-		FOR r_mgm IN
-			SELECT mgm_id, mgm_name FROM management
-		LOOP
-			PERFORM recert_refresh_one_owner_one_mgm (i_owner_id, r_mgm.mgm_id, NULL::TIMESTAMP);
-		END LOOP;
-
-	EXCEPTION WHEN OTHERS THEN
-		RAISE EXCEPTION 'Exception caught in recert_refresh_per_owner while handling management %', r_mgm.mgm_name;
-	END;
-	RETURN;
-END;
-$$ LANGUAGE plpgsql;
-
-
 -- this function deletes existing (future) open recert entries and inserts the new ones into the recertificaiton table
 -- the new recert date will only replace an existing one, if it is closer (smaller)
 CREATE OR REPLACE FUNCTION recert_refresh_one_owner_one_mgm
@@ -342,6 +303,45 @@ BEGIN
 			PERFORM recert_refresh_one_owner_one_mgm (i_super_owner_id, i_mgm_id, t_requested_next_recert_date);
 		END IF;
 	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- function used during import of a single management config
+CREATE OR REPLACE FUNCTION recert_refresh_per_management (i_mgm_id INTEGER) RETURNS VOID AS $$
+DECLARE
+	r_owner   RECORD;
+BEGIN
+	BEGIN		
+		FOR r_owner IN
+			SELECT id, name FROM owner
+		LOOP
+			PERFORM recert_refresh_one_owner_one_mgm (r_owner.id, i_mgm_id, NULL::TIMESTAMP);
+		END LOOP;
+	EXCEPTION WHEN OTHERS THEN
+		RAISE EXCEPTION 'Exception caught in recert_refresh_per_management while handling owner %', r_owner.name;
+	END;
+	RETURN;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- function used during import of owner data
+CREATE OR REPLACE FUNCTION recert_refresh_per_owner(i_owner_id INTEGER) RETURNS VOID AS $$
+DECLARE
+	r_mgm    RECORD;
+BEGIN
+	BEGIN
+		FOR r_mgm IN
+			SELECT mgm_id, mgm_name FROM management
+		LOOP
+			PERFORM recert_refresh_one_owner_one_mgm (i_owner_id, r_mgm.mgm_id, NULL::TIMESTAMP);
+		END LOOP;
+
+	EXCEPTION WHEN OTHERS THEN
+		RAISE EXCEPTION 'Exception caught in recert_refresh_per_owner while handling management %', r_mgm.mgm_name;
+	END;
+	RETURN;
 END;
 $$ LANGUAGE plpgsql;
 

@@ -197,7 +197,7 @@ namespace FWO.Report
                 StringBuilder report = new StringBuilder();
                 RuleDisplayCsv ruleDisplay = new RuleDisplayCsv(userConfig);
 
-                report.AppendLine(ruleDisplay.DisplayReportHeader(this));
+                report.Append(ruleDisplay.DisplayReportHeader(this));
 
                 foreach (Management management in Managements.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                         Array.Exists(mgt.Devices, device => device.Rules != null && device.Rules.Length > 0)))
@@ -224,12 +224,12 @@ namespace FWO.Report
                                     report.Append(ruleDisplay.DisplayEnabled(rule, export: true));
                                     report.Append(ruleDisplay.DisplayUid(rule));
                                     report.Append(ruleDisplay.DisplayComment(rule));
+                                    report.AppendLine("");  // EO rule
                                 }
                                 else
                                 {
                                     // report.AppendLine("\"section header\": \"" + rule.SectionHeader + "\"");
                                 }
-                                report.AppendLine("");  // EO rule
                             } // rules
                         }
                     } // gateways

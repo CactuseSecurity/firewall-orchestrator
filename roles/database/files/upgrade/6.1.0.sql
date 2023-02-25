@@ -21,67 +21,11 @@ ALTER TABLE import_credential ADD COLUMN IF NOT EXISTS cloud_client_secret VARCH
 ALTER TABLE owner DROP CONSTRAINT IF EXISTS owner_name_unique_in_tenant;
 ALTER TABLE owner ADD CONSTRAINT owner_name_unique_in_tenant UNIQUE ("name","tenant_id");
 
--- -- adding owner data
--- INSERT INTO owner (name, dn, group_dn, is_default, tenant_id, recert_interval, next_recert_date, app_id_external) 
--- 		VALUES    ('ownerF_demo', 'ad-single-owner-f', 'ad-group-owner-f', false, 1, 30, '2022-12-01T00:00:00', '123')
--- 		ON CONFLICT DO NOTHING; 
--- INSERT INTO owner (name, dn, group_dn, is_default, tenant_id, recert_interval, next_recert_date, app_id_external) 
--- 		VALUES    ('ownerD_demo', 'ad-single-owner-d', 'ad-group-owner-d', false, 1, 30, '2022-12-01T00:00:00', '234')
--- 		ON CONFLICT DO NOTHING; 
--- INSERT INTO owner (name, dn, group_dn, is_default, tenant_id, recert_interval, next_recert_date, app_id_external) 
--- 		VALUES    ('defaultOwner_demo', 'ad-single-owner-default', 'ad-group-owner-default', true, 1, 30, '2022-12-01T00:00:00', '111')
--- 		ON CONFLICT DO NOTHING; 
-
----------------------------------------------------------------
-
--- DO $$
--- BEGIN
--- IF NOT EXISTS((SELECT * FROM owner_network LEFT JOIN owner ON (owner.id=owner_network.owner_id) 
--- 	WHERE owner.name='ownerF_demo' AND owner.tenant_id=1 AND owner_network.ip='10.222.0.0/27'))
--- THEN
--- 	INSERT INTO owner_network (owner_id, ip) 
--- 			VALUES    ((SELECT id FROM owner WHERE name='ownerF_demo' AND tenant_id=1), '10.222.0.0/27')
--- 			ON CONFLICT DO NOTHING; 
--- END IF;
--- END $$;
-
--- DO $$
--- BEGIN
--- IF NOT EXISTS((SELECT * FROM owner_network LEFT JOIN owner ON (owner.id=owner_network.owner_id) 
--- 	WHERE owner.name='ownerD_demo' AND owner.tenant_id=1 AND owner_network.ip='10.222.0.32/27'))
--- THEN
--- 	INSERT INTO owner_network (owner_id, ip) 
--- 			VALUES    ((SELECT id FROM owner WHERE name='ownerD_demo' AND tenant_id=1), '10.222.0.32/27')
--- 			ON CONFLICT DO NOTHING; 
--- END IF;
--- END $$;
-
--- DO $$
--- BEGIN
--- IF NOT EXISTS((SELECT * FROM owner_network LEFT JOIN owner ON (owner.id=owner_network.owner_id) 
--- 	WHERE owner.name='ownerF_demo' AND owner.tenant_id=1 AND owner_network.ip='10.0.0.0/27'))
--- THEN
--- 	INSERT INTO owner_network (owner_id, ip) 
--- 			VALUES    ((SELECT id FROM owner WHERE name='ownerF_demo' AND tenant_id=1), '10.0.0.0/27')
--- 			ON CONFLICT DO NOTHING; 
--- END IF;
--- END $$;
-
--- DO $$
--- BEGIN
--- IF NOT EXISTS((SELECT * FROM owner_network LEFT JOIN owner ON (owner.id=owner_network.owner_id) 
--- 	WHERE owner.name='ownerD_demo' AND owner.tenant_id=1 AND owner_network.ip='10.0.0.32/27'))
--- THEN
--- 	INSERT INTO owner_network (owner_id, ip) 
--- 			VALUES    ((SELECT id FROM owner WHERE name='ownerD_demo' AND tenant_id=1), '10.0.0.32/27')
--- 			ON CONFLICT DO NOTHING; 
--- END IF;
--- END $$;
-
 -- CREATE OR REPLACE VIEW v_active_access_rules AS 
 -- 	SELECT * FROM rule r
 -- 	WHERE r.active AND r.access_rule AND NOT r.rule_disabled AND r.rule_head_text IS NULL;
 
+DROP VIEW IF EXISTS v_active_access_allow_rules CASCADE; 
 CREATE OR REPLACE VIEW v_active_access_allow_rules AS 
 	SELECT * FROM rule r
 	WHERE r.active AND 					-- only show current (not historical) rules 
@@ -90,6 +34,7 @@ CREATE OR REPLACE VIEW v_active_access_allow_rules AS
 		NOT r.rule_disabled AND 		-- do not show disabled rules
 		NOT r.action_id IN (2,3,7);		-- do not deal with deny rules
 
+DROP VIEW IF EXISTS v_rule_with_src_owner CASCADE; 
 CREATE OR REPLACE VIEW v_rule_with_src_owner AS 
 	SELECT r.rule_id, owner.id as owner_id, owner_network.ip as matching_ip, 'source' AS match_in, owner.name as owner_name, 
 		rule_metadata.rule_last_certified, rule_last_certifier
@@ -102,6 +47,7 @@ CREATE OR REPLACE VIEW v_rule_with_src_owner AS
 	LEFT JOIN rule_metadata ON (r.rule_uid=rule_metadata.rule_uid AND r.dev_id=rule_metadata.dev_id)
 	GROUP BY r.rule_id, matching_ip, owner.id, owner.name, rule_metadata.rule_last_certified, rule_last_certifier;
 	
+DROP VIEW IF EXISTS v_rule_with_dst_owner CASCADE; 
 CREATE OR REPLACE VIEW v_rule_with_dst_owner AS 
 	SELECT r.rule_id, owner.id as owner_id, owner_network.ip as matching_ip, 'destination' AS match_in, owner.name as owner_name, 
 		rule_metadata.rule_last_certified, rule_last_certifier
@@ -113,6 +59,26 @@ CREATE OR REPLACE VIEW v_rule_with_dst_owner AS
 	LEFT JOIN owner ON (owner_network.owner_id=owner.id)
 	LEFT JOIN rule_metadata ON (r.rule_uid=rule_metadata.rule_uid AND r.dev_id=rule_metadata.dev_id)
 	GROUP BY r.rule_id, matching_ip, owner.id, owner.name, rule_metadata.rule_last_certified, rule_last_certifier;
+
+--necessary when changing materialized/non-mat. view
+/* CREATE OR REPLACE FUNCTION purge_view_rule_with_owner () RETURNS VOID AS $$
+DECLARE
+    r_temp_record RECORD;
+BEGIN
+    select INTO r_temp_record schemaname, viewname from pg_catalog.pg_views
+    where schemaname NOT IN ('pg_catalog', 'information_schema') and viewname='view_rule_with_owner'
+    order by schemaname, viewname;
+    IF FOUND THEN
+        DROP VIEW IF EXISTS view_rule_with_owner CASCADE;
+    END IF;
+    DROP MATERIALIZED VIEW IF EXISTS view_rule_with_owner CASCADE;
+    RETURN;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT * FROM purge_view_rule_with_owner ();
+DROP FUNCTION purge_view_rule_with_owner();
+*/
 
 CREATE OR REPLACE VIEW view_rule_with_owner AS 
 	SELECT DISTINCT r.rule_num_numeric, r.track_id, r.action_id, r.rule_from_zone, r.rule_to_zone, r.dev_id, r.mgm_id, r.rule_uid, uno.rule_id, uno.owner_id, uno.owner_name, uno.rule_last_certified, uno.rule_last_certifier, 

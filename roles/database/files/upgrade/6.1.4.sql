@@ -271,6 +271,9 @@ END;
 $$ LANGUAGE plpgsql;
 ---------------------------------------
 
+-- LargeOwnerChange: uncomment to disable triggers (e.g. for large installations without recert needs)
+-- ALTER TABLE owner DISABLE TRIGGER owner_change;
+-- ALTER TABLE owner_network DISABLE TRIGGER owner_network_change;
 
 DELETE FROM owner WHERE name='defaultOwner_demo';
 UPDATE owner SET is_default=false WHERE id>0;   -- idempotence

@@ -59,6 +59,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- LargeOwnerChange: comment out the next line to not refresh recert entries during upgrade
 SELECT * FROM refresh_recert_entries ();
 DROP FUNCTION refresh_recert_entries();
 

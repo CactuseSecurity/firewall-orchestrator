@@ -391,3 +391,8 @@ CREATE TRIGGER owner_network_change
     AFTER INSERT OR UPDATE OR DELETE ON owner_network
     FOR EACH ROW
     EXECUTE PROCEDURE owner_network_change_triggered ();
+
+-- LargeOwnerChange: uncomment to disable triggers (e.g. for large installations without recert needs)
+-- ALTER TABLE owner DISABLE TRIGGER owner_change;
+-- ALTER TABLE owner_network DISABLE TRIGGER owner_network_change;
+

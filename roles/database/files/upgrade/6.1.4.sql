@@ -58,6 +58,11 @@ $$ LANGUAGE plpgsql;
 SELECT * FROM purge_view_rule_with_owner ();
 DROP FUNCTION purge_view_rule_with_owner();
 
+-- LargeOwnerChange: uncomment to disable triggers (e.g. for large installations without recert needs)
+-- ALTER TABLE owner DISABLE TRIGGER owner_change;
+-- ALTER TABLE owner_network DISABLE TRIGGER owner_network_change;
+
+-- LargeOwnerChange: remove Materialzed to speed up upgrade
 CREATE MATERIALIZED VIEW view_rule_with_owner AS
 	SELECT DISTINCT r.rule_num_numeric, r.track_id, r.action_id, r.rule_from_zone, r.rule_to_zone, r.dev_id, r.mgm_id, r.rule_uid, uno.rule_id, uno.owner_id, uno.owner_name, uno.rule_last_certified, uno.rule_last_certifier, 
 	rule_action, rule_name, rule_comment, rule_track, rule_src_neg, rule_dst_neg, rule_svc_neg,
@@ -69,7 +74,6 @@ CREATE MATERIALIZED VIEW view_rule_with_owner AS
 	GROUP BY rule_id, owner_id, owner_name, rule_last_certified, rule_last_certifier, r.rule_from_zone, r.rule_to_zone,  recert_interval,
 		r.dev_id, r.mgm_id, r.rule_uid, rule_num_numeric, track_id, action_id, 	rule_action, rule_name, rule_comment, rule_track, rule_src_neg, rule_dst_neg, rule_svc_neg,
 		rule_head_text, rule_disabled, access_rule, xlate_rule, nat_rule;
-
 
 ----------------------
 -- make sure we have the current functions needed for recertification updates
@@ -270,10 +274,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 ---------------------------------------
-
--- LargeOwnerChange: uncomment to disable triggers (e.g. for large installations without recert needs)
--- ALTER TABLE owner DISABLE TRIGGER owner_change;
--- ALTER TABLE owner_network DISABLE TRIGGER owner_network_change;
 
 DELETE FROM owner WHERE name='defaultOwner_demo';
 UPDATE owner SET is_default=false WHERE id>0;   -- idempotence

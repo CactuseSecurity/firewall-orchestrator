@@ -34,28 +34,28 @@
 
                                 @if(Recertification || SelectedReportType==ReportType.Recertification)
                                 {
-                                    <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("next_recert"))" Field="@(rule => rule.Metadata.RuleRecertification)" Sortable="true" Filterable="false">
+                                    <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("next_recert"))" Field="@(rule => rule.Metadata.RuleRecertification)" Sortable="false" Filterable="false">
                                         <Template>
-                                            @((MarkupString)showNextRecertDateList(rule))
+                                            @((MarkupString)ruleDisplay.DisplayNextRecert(rule, filteredForMultipleOwners()))
                                         </Template>
                                     </Column>
-                                    <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("owner"))" Field="@(rule => rule.Metadata.RuleRecertification)" Sortable="true" Filterable="false">
+                                    <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("owner"))" Field="@(rule => rule.Metadata.RuleRecertification)" Sortable="false" Filterable="false">
                                         <Template>
-                                            @((MarkupString)showRecertOwnerList(rule))
+                                            @((MarkupString)ruleDisplay.DisplayOwner(rule, filteredForMultipleOwners()))
                                         </Template>
                                     </Column>
     
-                                    <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("ip_matches"))" Field="@(rule => rule.Metadata.RuleRecertification)" Sortable="true" Filterable="false">
+                                    <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("ip_matches"))" Field="@(rule => rule.Metadata.RuleRecertification)" Sortable="false" Filterable="false">
                                         <Template>
-                                            @((MarkupString)showRecertIpMatches(rule))
+                                            @((MarkupString)ruleDisplay.DisplayRecertIpMatches(rule, filteredForMultipleOwners()))
                                         </Template>
                                     </Column>
                                     @if(Recertification && RecertificationHistory)
                                     {
                                         // TODO: implement 2nd recert report containing latest recerts
-                                        <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("last_recertifier"))" Field="@(rule => rule.Metadata.RuleRecertification)" Sortable="true" Filterable="true">
+                                        <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("last_recertifier"))" Field="@(rule => rule.Metadata.RuleRecertification)" Sortable="false" Filterable="true">
                                             <Template>
-                                                @((MarkupString)showLastRecertifier(rule))
+                                                @((MarkupString)ruleDisplay.DisplayLastRecertifier(rule, filteredForMultipleOwners()))
                                             </Template>
                                         </Column>
                                     }
@@ -273,98 +273,4 @@
         return ReportParams.ReportParams.RecertFilter.RecertOwnerList.Count()>1
             || ReportParams.ReportParams.RecertFilter.RecertOwnerList.Count()==0;
     }
-
-    private string getOwnerDisplayString (int ownerCounter, Recertification recert, string format = "html")
-    {
-        string result = "";
-        string countString = (filteredForMultipleOwners())? ownerCounter.ToString() + ".&nbsp;" : "";
-        if (recert != null && recert.FwoOwner != null && recert.FwoOwner.Name != null && format=="html")
-            result += countString + recert.FwoOwner.Name + "<br />";
-        return result;
-    }
-
-    private string getIpMatchDisplayString (int ownerCounter, Recertification recert, string format = "html")
-    {
-        string result = "";
-        if (format=="html" && recert != null)
-        {
-            string matchString = "&#8208;";
-            string countString = (filteredForMultipleOwners())? ownerCounter.ToString() + ".&nbsp;" : "";
-            if (recert.IpMatch != null && recert.IpMatch != "")
-                matchString = recert.IpMatch;
-            result += countString + matchString + "<br />";
-        }
-        return result;
-    }
-
-    private string getNextRecertDateString (int ownerCounter, Recertification recert, string format = "html")
-    {
-        string result = "";
-        if (format=="html" && recert != null)
-        {
-            string countString = (filteredForMultipleOwners())? ownerCounter.ToString() + ".&nbsp;" : "";
-            string dateOnly = "-";
-            if (recert.NextRecertDate != null)
-                dateOnly = DateOnly.FromDateTime((DateTime)recert.NextRecertDate).ToString("yyyy-MM-dd");
-            result += countString + dateOnly + "<br />";
-        }
-        return result;
-    }
-
-    private string showRecertOwnerList(Rule rule, string format = "html")
-    {
-        string result = "";
-        int count=0;
-        string countString = count.ToString();
-        foreach (Recertification r in rule.Metadata.RuleRecertification) 
-        {
-            count += 1;
-            result += getOwnerDisplayString(count, r);
-        }
-        return result;
-    }    
-
-    private string showRecertIpMatches(Rule rule, string format = "html")
-    {
-        string result = "";
-        int count=0;
-        foreach (Recertification r in rule.Metadata.RuleRecertification) 
-        {
-            count += 1;
-            result += getIpMatchDisplayString(count, r);
-        }
-        return result;
-    }    
-
-    private string showLastRecertifier(Rule rule, string format = "html")
-    {
-        string result = "";
-        int count=1;
-        foreach (Recertification r in rule.Metadata.RuleRecertification) 
-        {
-            if (r != null)
-            {
-                if (format=="html")
-                {
-                    // result += count.ToString() + ".&nbsp;" + "" + "<br />";
-                    // TODO: fetch last recertifier
-                }
-            }
-            count += 1;
-        }
-        return result;
-    }    
-
-    private string showNextRecertDateList(Rule rule, string format = "html")
-    {
-        string result = "";
-        int count=0;
-        foreach (Recertification r in rule.Metadata.RuleRecertification) 
-        {
-            count += 1;
-            result += getNextRecertDateString(count, r);
-        }
-        return result;
-    }
-
 }

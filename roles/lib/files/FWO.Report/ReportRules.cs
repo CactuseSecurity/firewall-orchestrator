@@ -341,164 +341,203 @@ namespace FWO.Report
                 {
                     if (device.Rules != null && device.Rules.Length > 0)
                     {
-                        report.AppendLine($"<h4>{device.Name}</h4>");
-                        report.AppendLine("<hr>");
-
-                        report.AppendLine("<table>");
-                        report.AppendLine("<tr>");
-                        report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
-                        report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
-                        report.AppendLine($"<th>{userConfig.GetText("source_zone")}</th>");
-                        report.AppendLine($"<th>{userConfig.GetText("source")}</th>");
-                        report.AppendLine($"<th>{userConfig.GetText("destination_zone")}</th>");
-                        report.AppendLine($"<th>{userConfig.GetText("destination")}</th>");
-                        report.AppendLine($"<th>{userConfig.GetText("services")}</th>");
-                        report.AppendLine($"<th>{userConfig.GetText("action")}</th>");
-                        report.AppendLine($"<th>{userConfig.GetText("track")}</th>");
-                        report.AppendLine($"<th>{userConfig.GetText("enabled")}</th>");
-                        report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
-                        report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
-                        report.AppendLine("</tr>");
-
-                        foreach (Rule rule in device.Rules)
-                        {
-                            if (string.IsNullOrEmpty(rule.SectionHeader))
-                            {
-                                report.AppendLine("<tr>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayNumber(rule, device.Rules)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayName(rule)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplaySourceZone(rule)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplaySource(rule, location: "", reportType: this.ReportType)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayDestinationZone(rule)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayDestination(rule, location: "", reportType: this.ReportType)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayService(rule, location: "", reportType: this.ReportType)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayAction(rule)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayTrack(rule)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayEnabled(rule, export: true)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayUid(rule)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayComment(rule)}</td>");
-                                report.AppendLine("</tr>");
-                            }
-                            else
-                            {
-                                report.AppendLine("<tr>");
-                                report.AppendLine($"<td style=\"background-color: #f0f0f0;\" colspan=\"{ColumnCount}\">{rule.SectionHeader}</td>");
-                                report.AppendLine("</tr>");
-                            }
-                        }
-
-                        report.AppendLine("</table>");
+                        appendRulesForDeviceHtml(ref report, device, ruleDisplay);
                     }
                 }
 
                 // show all objects used in this management's rules
-
-                int objNumber = 1;
-                if (management.ReportObjects != null && ReportType == ReportType.Rules)
-                {
-                    report.AppendLine($"<h4>{userConfig.GetText("network_objects")}</h4>");
-                    report.AppendLine("<hr>");
-                    report.AppendLine("<table>");
-                    report.AppendLine("<tr>");
-                    report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("type")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("ip_address")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("members")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
-                    report.AppendLine("</tr>");
-                    foreach (NetworkObject nwobj in management.ReportObjects)
-                    {
-                        report.AppendLine("<tr>");
-                        report.AppendLine($"<td>{objNumber++}</td>");
-                        report.AppendLine($"<td><a name=nwobj{nwobj.Id}>{nwobj.Name}</a></td>");
-                        report.AppendLine($"<td>{nwobj.Type.Name}</td>");
-                        report.AppendLine($"<td>{nwobj.IP}{(nwobj.IpEnd != null && nwobj.IpEnd != "" && nwobj.IpEnd != nwobj.IP ? $"-{nwobj.IpEnd}" : "")}</td>");
-                        if (nwobj.MemberNames != null && nwobj.MemberNames.Contains('|'))
-                            report.AppendLine($"<td>{string.Join("<br>", nwobj.MemberNames.Split('|'))}</td>");
-                        else
-                            report.AppendLine($"<td>{nwobj.MemberNames}</td>");
-                        report.AppendLine($"<td>{nwobj.Uid}</td>");
-                        report.AppendLine($"<td>{nwobj.Comment}</td>");
-                        report.AppendLine("</tr>");
-                    }
-                    report.AppendLine("</table>");
-                }
-
-                if (management.ReportServices != null && ReportType == ReportType.Rules)
-                {
-                    report.AppendLine($"<h4>{userConfig.GetText("network_services")}</h4>");
-                    report.AppendLine("<hr>");
-                    report.AppendLine("<table>");
-                    report.AppendLine("<tr>");
-                    report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("type")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("protocol")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("port")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("members")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
-                    report.AppendLine("</tr>");
-                    objNumber = 1;
-                    foreach (NetworkService svcobj in management.ReportServices)
-                    {
-                        report.AppendLine("<tr>");
-                        report.AppendLine($"<td>{objNumber++}</td>");
-                        report.AppendLine($"<td>{svcobj.Name}</td>");
-                        report.AppendLine($"<td><a name=svc{svcobj.Id}>{svcobj.Name}</a></td>");
-                        report.AppendLine($"<td>{((svcobj.Protocol != null) ? svcobj.Protocol.Name : "")}</td>");
-                        if (svcobj.DestinationPortEnd != null && svcobj.DestinationPortEnd != svcobj.DestinationPort)
-                            report.AppendLine($"<td>{svcobj.DestinationPort}-{svcobj.DestinationPortEnd}</td>");
-                        else
-                            report.AppendLine($"<td>{svcobj.DestinationPort}</td>");
-                        if (svcobj.MemberNames != null && svcobj.MemberNames.Contains("|"))
-                            report.AppendLine($"<td>{string.Join("<br>", svcobj.MemberNames.Split('|'))}</td>");
-                        else
-                            report.AppendLine($"<td>{svcobj.MemberNames}</td>");
-                        report.AppendLine($"<td>{svcobj.Uid}</td>");
-                        report.AppendLine($"<td>{svcobj.Comment}</td>");
-                        report.AppendLine("</tr>");
-                    }
-                    report.AppendLine("</table>");
-                }
-
-                if (management.ReportUsers != null && ReportType == ReportType.Rules)
-                {
-                    report.AppendLine($"<h4>{userConfig.GetText("users")}</h4>");
-                    report.AppendLine("<hr>");
-                    report.AppendLine("<table>");
-                    report.AppendLine("<tr>");
-                    report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("type")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("members")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
-                    report.AppendLine("</tr>");
-                    objNumber = 1;
-                    foreach (NetworkUser userobj in management.ReportUsers)
-                    {
-                        report.AppendLine("<tr>");
-                        report.AppendLine($"<td>{objNumber++}</td>");
-                        report.AppendLine($"<td>{userobj.Name}</td>");
-                        report.AppendLine($"<td><a name=user{userobj.Id}>{userobj.Name}</a></td>");
-                        if (userobj.MemberNames != null && userobj.MemberNames.Contains("|"))
-                            report.AppendLine($"<td>{string.Join("<br>", userobj.MemberNames.Split('|'))}</td>");
-                        else
-                            report.AppendLine($"<td>{userobj.MemberNames}</td>");
-                        report.AppendLine($"<td>{userobj.Uid}</td>");
-                        report.AppendLine($"<td>{userobj.Comment}</td>");
-                        report.AppendLine("</tr>");
-                    }
-                    report.AppendLine("</table>");
-                }
-
-                report.AppendLine("</table>");
+                appendObjectsForManagementHtml(ref report, management);
             }
 
-            return GenerateHtmlFrame(title: userConfig.GetText("rules_report"), Query.RawFilter, DateTime.Now, report);
+            string title = (ReportType == ReportType.Recertification? "recert_report" : "rules_report");
+            return GenerateHtmlFrame(title: userConfig.GetText(title), Query.RawFilter, DateTime.Now, report);
+        }
+
+        private void appendRuleHeadlineHtml(ref StringBuilder report)
+        {
+            report.AppendLine("<tr>");
+            report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
+            if(ReportType == ReportType.Recertification)
+            {
+                report.AppendLine($"<th>{userConfig.GetText("next_recert")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("owner")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("ip_matches")}</th>");
+            }
+            report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("source_zone")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("source")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("destination_zone")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("destination")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("services")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("action")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("track")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("enabled")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
+            report.AppendLine("</tr>");
+        }
+
+        private void appendRulesForDeviceHtml(ref StringBuilder report, Device device, RuleDisplayHtml ruleDisplay)
+        {
+            if (device.ContainsRules())
+            {
+                report.AppendLine($"<h4>{device.Name}</h4>");
+                report.AppendLine("<hr>");
+                report.AppendLine("<table>");
+                appendRuleHeadlineHtml(ref report);
+                foreach (Rule rule in device.Rules!)
+                {
+                    if (string.IsNullOrEmpty(rule.SectionHeader))
+                    {
+                        report.AppendLine("<tr>");
+                        report.AppendLine($"<td>{ruleDisplay.DisplayNumber(rule, device.Rules)}</td>");
+                        if(ReportType == ReportType.Recertification)
+                        {
+                            bool multipleOwners = false; // todo: get from report params
+                            report.AppendLine($"<td>{ruleDisplay.DisplayNextRecert(rule, multipleOwners)}</td>");
+                            report.AppendLine($"<td>{ruleDisplay.DisplayOwner(rule, multipleOwners)}</td>");
+                            report.AppendLine($"<td>{ruleDisplay.DisplayRecertIpMatches(rule, multipleOwners)}</td>");
+                        }
+                        report.AppendLine($"<td>{ruleDisplay.DisplayName(rule)}</td>");
+                        report.AppendLine($"<td>{ruleDisplay.DisplaySourceZone(rule)}</td>");
+                        report.AppendLine($"<td>{ruleDisplay.DisplaySource(rule, location: "", reportType: this.ReportType)}</td>");
+                        report.AppendLine($"<td>{ruleDisplay.DisplayDestinationZone(rule)}</td>");
+                        report.AppendLine($"<td>{ruleDisplay.DisplayDestination(rule, location: "", reportType: this.ReportType)}</td>");
+                        report.AppendLine($"<td>{ruleDisplay.DisplayService(rule, location: "", reportType: this.ReportType)}</td>");
+                        report.AppendLine($"<td>{ruleDisplay.DisplayAction(rule)}</td>");
+                        report.AppendLine($"<td>{ruleDisplay.DisplayTrack(rule)}</td>");
+                        report.AppendLine($"<td>{ruleDisplay.DisplayEnabled(rule, export: true)}</td>");
+                        report.AppendLine($"<td>{ruleDisplay.DisplayUid(rule)}</td>");
+                        report.AppendLine($"<td>{ruleDisplay.DisplayComment(rule)}</td>");
+                        report.AppendLine("</tr>");
+                    }
+                    else
+                    {
+                        report.AppendLine("<tr>");
+                        report.AppendLine($"<td style=\"background-color: #f0f0f0;\" colspan=\"{ColumnCount}\">{rule.SectionHeader}</td>");
+                        report.AppendLine("</tr>");
+                    }
+                }
+                report.AppendLine("</table>");
+            }
+        }
+
+        private void appendObjectsForManagementHtml(ref StringBuilder report, Management management)
+        {
+            int objNumber = 1;
+            appendNetworkObjectsForManagementHtml(ref report, ref objNumber, management);
+            appendNetworkServicesForManagementHtml(ref report, ref objNumber, management);
+            appendUsersForManagementHtml(ref report, ref objNumber, management);
+        }
+
+        private void appendNetworkObjectsForManagementHtml(ref StringBuilder report, ref int objNumber, Management management)
+        {
+            if (management.ReportObjects != null && ReportType == ReportType.Rules)
+            {
+                report.AppendLine($"<h4>{userConfig.GetText("network_objects")}</h4>");
+                report.AppendLine("<hr>");
+                report.AppendLine("<table>");
+                report.AppendLine("<tr>");
+                report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("type")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("ip_address")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("members")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
+                report.AppendLine("</tr>");
+                foreach (NetworkObject nwobj in management.ReportObjects)
+                {
+                    report.AppendLine("<tr>");
+                    report.AppendLine($"<td>{objNumber++}</td>");
+                    report.AppendLine($"<td><a name=nwobj{nwobj.Id}>{nwobj.Name}</a></td>");
+                    report.AppendLine($"<td>{nwobj.Type.Name}</td>");
+                    report.AppendLine($"<td>{nwobj.IP}{(nwobj.IpEnd != null && nwobj.IpEnd != "" && nwobj.IpEnd != nwobj.IP ? $"-{nwobj.IpEnd}" : "")}</td>");
+                    if (nwobj.MemberNames != null && nwobj.MemberNames.Contains('|'))
+                        report.AppendLine($"<td>{string.Join("<br>", nwobj.MemberNames.Split('|'))}</td>");
+                    else
+                        report.AppendLine($"<td>{nwobj.MemberNames}</td>");
+                    report.AppendLine($"<td>{nwobj.Uid}</td>");
+                    report.AppendLine($"<td>{nwobj.Comment}</td>");
+                    report.AppendLine("</tr>");
+                }
+                report.AppendLine("</table>");
+            }
+        }
+
+        private void appendNetworkServicesForManagementHtml(ref StringBuilder report, ref int objNumber, Management management)
+        {
+            if (management.ReportServices != null && ReportType == ReportType.Rules)
+            {
+                report.AppendLine($"<h4>{userConfig.GetText("network_services")}</h4>");
+                report.AppendLine("<hr>");
+                report.AppendLine("<table>");
+                report.AppendLine("<tr>");
+                report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("type")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("protocol")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("port")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("members")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
+                report.AppendLine("</tr>");
+                objNumber = 1;
+                foreach (NetworkService svcobj in management.ReportServices)
+                {
+                    report.AppendLine("<tr>");
+                    report.AppendLine($"<td>{objNumber++}</td>");
+                    report.AppendLine($"<td>{svcobj.Name}</td>");
+                    report.AppendLine($"<td><a name=svc{svcobj.Id}>{svcobj.Name}</a></td>");
+                    report.AppendLine($"<td>{((svcobj.Protocol != null) ? svcobj.Protocol.Name : "")}</td>");
+                    if (svcobj.DestinationPortEnd != null && svcobj.DestinationPortEnd != svcobj.DestinationPort)
+                        report.AppendLine($"<td>{svcobj.DestinationPort}-{svcobj.DestinationPortEnd}</td>");
+                    else
+                        report.AppendLine($"<td>{svcobj.DestinationPort}</td>");
+                    if (svcobj.MemberNames != null && svcobj.MemberNames.Contains("|"))
+                        report.AppendLine($"<td>{string.Join("<br>", svcobj.MemberNames.Split('|'))}</td>");
+                    else
+                        report.AppendLine($"<td>{svcobj.MemberNames}</td>");
+                    report.AppendLine($"<td>{svcobj.Uid}</td>");
+                    report.AppendLine($"<td>{svcobj.Comment}</td>");
+                    report.AppendLine("</tr>");
+                }
+                report.AppendLine("</table>");
+            }
+        }
+
+        private void appendUsersForManagementHtml(ref StringBuilder report, ref int objNumber, Management management)
+        {
+            if (management.ReportUsers != null && ReportType == ReportType.Rules)
+            {
+                report.AppendLine($"<h4>{userConfig.GetText("users")}</h4>");
+                report.AppendLine("<hr>");
+                report.AppendLine("<table>");
+                report.AppendLine("<tr>");
+                report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("type")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("members")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
+                report.AppendLine("</tr>");
+                objNumber = 1;
+                foreach (NetworkUser userobj in management.ReportUsers)
+                {
+                    report.AppendLine("<tr>");
+                    report.AppendLine($"<td>{objNumber++}</td>");
+                    report.AppendLine($"<td>{userobj.Name}</td>");
+                    report.AppendLine($"<td><a name=user{userobj.Id}>{userobj.Name}</a></td>");
+                    if (userobj.MemberNames != null && userobj.MemberNames.Contains("|"))
+                        report.AppendLine($"<td>{string.Join("<br>", userobj.MemberNames.Split('|'))}</td>");
+                    else
+                        report.AppendLine($"<td>{userobj.MemberNames}</td>");
+                    report.AppendLine($"<td>{userobj.Uid}</td>");
+                    report.AppendLine($"<td>{userobj.Comment}</td>");
+                    report.AppendLine("</tr>");
+                }
+                report.AppendLine("</table>");
+            }
         }
     }
 }

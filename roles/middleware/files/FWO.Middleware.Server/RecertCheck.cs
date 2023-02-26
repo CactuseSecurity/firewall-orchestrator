@@ -155,8 +155,7 @@ namespace FWO.Middleware.Server
             List<Rule> rules = new List<Rule>();
             try
             {
-                CancellationTokenSource tokenSource = new CancellationTokenSource();
-                var token = tokenSource.Token;
+                CancellationToken token = new CancellationToken();
                 UserConfig userConfig = new UserConfig(globalConfig);
 
                 DeviceFilter deviceFilter = new DeviceFilter();
@@ -172,22 +171,14 @@ namespace FWO.Middleware.Server
                 ReportTemplate reportParams = new ReportTemplate("", deviceFilter, (int) ReportType.Recertification, new TimeFilter(), recertFilter);
                 ReportBase? currentReport = ReportBase.ConstructReport(reportParams, userConfig);
 
-                DateTime startTime = DateTime.Now;
                 Management[] managements = new Management[0];
 
-                try
+                await currentReport.Generate(int.MaxValue, apiConnection,
+                managementsReportIntermediate =>
                 {
-                    await currentReport.Generate(int.MaxValue, apiConnection,
-                    managementsReportIntermediate =>
-                    {
-                        managements = managementsReportIntermediate;
-                        return Task.CompletedTask;
-                    }, token);
-                }
-                catch (OperationCanceledException e)
-                {
-                    Log.WriteDebug("Generate Report", $"Cancelled: {e.Message}");
-                }
+                    managements = managementsReportIntermediate;
+                    return Task.CompletedTask;
+                }, token);
 
                 foreach (Management management in managements)
                 {

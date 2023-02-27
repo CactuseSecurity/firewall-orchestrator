@@ -163,6 +163,7 @@ namespace FWO.Ui.Display
             result.AppendLine("</p>");
             return result.ToString();
         }
+
         private StringBuilder ServiceToHtml(NetworkService service, int mgmtId, string location = "", string style = "", ReportType reportType = ReportType.Rules)
         {
             string link = "";
@@ -204,6 +205,97 @@ namespace FWO.Ui.Display
             {
                 return $"<div class=\"oi {(rule.Disabled ? "oi-x" : "oi-check")}\"></div>";
             }
+        }
+
+        public string DisplayNextRecert(Rule rule, bool multipleOwners)
+        {
+            string result = "";
+            int count = 0;
+            foreach (Recertification recert in rule.Metadata.RuleRecertification) 
+            {
+                count += 1;
+                result += getNextRecertDateString(count, recert, multipleOwners);
+            }
+            return result;
+        }
+
+        private string getNextRecertDateString (int ownerCounter, Recertification recert, bool multipleOwners)
+        {
+            string result = "";
+            string color = "";
+            string countString = multipleOwners ? ownerCounter.ToString() + ".&nbsp;" : "";
+            string dateOnly = "-";
+            if (recert.NextRecertDate != null)
+            {
+                dateOnly = DateOnly.FromDateTime((DateTime)recert.NextRecertDate).ToString("yyyy-MM-dd");
+                if(recert.NextRecertDate < DateTime.Now)
+                {
+                    color = " style=\"color:rgb(255, 0, 0);\"";
+                }
+            }
+            result = "<p" + color + ">" + countString + dateOnly + "</p><br />";
+            return result;
+        }
+
+        public string DisplayOwner(Rule rule, bool multipleOwners)
+        {
+            string result = "";
+            int count = 0;
+            foreach (Recertification recert in rule.Metadata.RuleRecertification) 
+            {
+                count += 1;
+                result += getOwnerDisplayString(count, recert, multipleOwners);
+            }
+            return result;
+        }
+
+        private string getOwnerDisplayString (int ownerCounter, Recertification recert, bool multipleOwners)
+        {
+            string result = "";
+            string countString = multipleOwners ? ownerCounter.ToString() + ".&nbsp;" : "";
+            if (recert.FwoOwner != null && recert.FwoOwner.Name != null)
+            {
+                result += countString + recert.FwoOwner.Name + "<br />";
+            }
+            return result;
+        }
+
+        public string DisplayRecertIpMatches(Rule rule, bool multipleOwners)
+        {
+            string result = "";
+            int count = 0;
+            foreach (Recertification recert in rule.Metadata.RuleRecertification) 
+            {
+                count += 1;
+                result += getIpMatchDisplayString(count, recert, multipleOwners);
+            }
+            return result;
+        }
+
+        private string getIpMatchDisplayString (int ownerCounter, Recertification recert, bool multipleOwners)
+        {
+            string result = "";
+            string matchString = "&#8208;";
+            string countString = multipleOwners ? ownerCounter.ToString() + ".&nbsp;" : "";
+            if (recert.IpMatch != null && recert.IpMatch != "")
+            {
+                matchString = recert.IpMatch;
+            }
+            result += countString + matchString + "<br />";
+            return result;
+        }
+
+        public string DisplayLastRecertifier(Rule rule, bool multipleOwners)
+        {
+            string result = "";
+            int count = 1;
+            foreach (Recertification recert in rule.Metadata.RuleRecertification) 
+            {
+                // result += count.ToString() + ".&nbsp;" + "" + "<br />";
+                // TODO: fetch last recertifier
+                count += 1;
+            }
+            return result;
         }
     }
 }

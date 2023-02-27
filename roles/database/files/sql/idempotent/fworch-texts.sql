@@ -475,6 +475,8 @@ INSERT INTO txt VALUES ('statistics_report',	'German', 	'Statistik-Report');
 INSERT INTO txt VALUES ('statistics_report',	'English', 	'Statistics Report');
 INSERT INTO txt VALUES ('resolved_rules_report','German', 	'Regel-Report (aufgel&ouml;st)');
 INSERT INTO txt VALUES ('resolved_rules_report','English', 	'Rules Report (resolved)');
+INSERT INTO txt VALUES ('recert_report',        'German', 	'Rezertifizierungs-Report');
+INSERT INTO txt VALUES ('recert_report',	    'English', 	'Recertification Report');
 INSERT INTO txt VALUES ('generated_on',	        'German', 	'Erstellt am');
 INSERT INTO txt VALUES ('generated_on',	        'English', 	'Generated on');
 INSERT INTO txt VALUES ('date_of_config',	    'German', 	'Zeit der Konfiguration');

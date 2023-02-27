@@ -138,25 +138,20 @@
                 @switch (currentReport.ReportType)
                 {
                     case ReportType.Recertification:
-                        bool rulesFound = true;
-                        if (!rulesFound)
-                        {
-                            DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
-                        }
                         <RulesReport Managements="managementsReport" SelectedReportType="selectedReportType" RulesPerPage="rulesPerPage"
-                            ReportParams="reportParams"
-                            @bind-SelectedRules="selectedItemsRuleReportTable"
-                        />
+                            ReportParams="reportParams" @bind-SelectedRules="selectedItemsRuleReportTable" />
                         break;
 
                     case ReportType.NatRules:
-                        <RulesReport NatRules="true" Managements="managementsReport" SelectedReportType="selectedReportType" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"></RulesReport>
+                        <RulesReport NatRules="true" Managements="managementsReport" SelectedReportType="selectedReportType" 
+                            RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable" />
                         break;
 
                     case ReportType.Rules:
                     case ReportType.ResolvedRules:
                     case ReportType.ResolvedRulesTech:
-                        <RulesReport Managements="managementsReport" SelectedReportType="selectedReportType" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"></RulesReport>
+                        <RulesReport Managements="managementsReport" SelectedReportType="selectedReportType" RulesPerPage="rulesPerPage" 
+                            @bind-SelectedRules="selectedItemsRuleReportTable" />
                         break;
 
                     case ReportType.Changes:
@@ -203,19 +198,19 @@
         </div>
     </div>
     @if (currentReport != null)
+    {
+        if (reportGenerationDuration != 0)
         {
-            if (reportGenerationDuration != 0)
+            if (reportGenerationDuration<600)
             {
-                if (reportGenerationDuration<600)
-                {
-                    <small>@(userConfig.GetText("report_duration")) @reportGenerationDuration.ToString("0.00") @(userConfig.GetText("seconds")).</small>
-                }
-                else
-                {
-                    <small> @(userConfig.GetText("report_duration")) @((reportGenerationDuration/60.0).ToString("0.00")) @(userConfig.GetText("minutes")).</small>
-                }
+                <small>@(userConfig.GetText("report_duration")) @reportGenerationDuration.ToString("0.00") @(userConfig.GetText("seconds")).</small>
+            }
+            else
+            {
+                <small> @(userConfig.GetText("report_duration")) @((reportGenerationDuration/60.0).ToString("0.00")) @(userConfig.GetText("minutes")).</small>
             }
         }
+    }
 </div>
 
 @* ==== RIGHT SIDEBAR ==== *@

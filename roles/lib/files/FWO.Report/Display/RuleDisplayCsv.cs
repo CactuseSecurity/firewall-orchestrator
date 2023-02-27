@@ -16,7 +16,7 @@ namespace FWO.Ui.Display
         private string SanitizeComment(string inputString)
         {
             string output = Regex.Replace(inputString, @"[""'']", "").Trim();
-            output = Regex.Replace(output, @"[\n]", " ").Trim();
+            output = Regex.Replace(output, @"[\n]", ", ").Trim();
             return output;
         }
         public string DisplayReportHeader(ReportRules rules)
@@ -147,7 +147,7 @@ namespace FWO.Ui.Display
             {
                 result.Append(")");
             }
-            result.Append("\\n");
+            result.Append("\n");
             return result;
         }
 
@@ -200,7 +200,7 @@ namespace FWO.Ui.Display
                     result.Append(service.DestinationPort == service.DestinationPortEnd ? $"{service.DestinationPort}/{service.Protocol?.Name}"
                         : $"{service.DestinationPort}-{service.DestinationPortEnd}/{service.Protocol?.Name}");
             }
-            result.Append("\\n");
+            result.Append("\n");
             return result;
         }
 

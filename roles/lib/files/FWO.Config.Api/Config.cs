@@ -83,7 +83,7 @@ namespace FWO.Config.Api
                         }
                         catch (Exception exception)
                         {
-                            Log.WriteInfo("Load Config Items", $"Config item with key \"{key}\" could not be loaded. Using default value.", exception);
+                            Log.WriteError("Load Config Items", $"Config item with key \"{key}\" could not be loaded. Using default value.", exception);
                         }
                     }
                     else
@@ -91,7 +91,7 @@ namespace FWO.Config.Api
                         // If this is a global config 
                         if (UserId == 0) 
                         {
-                            Log.WriteInfo("Load Global Config Items", $"Config item with key \"{key}\" could not be found. Using default value.");
+                            Log.WriteDebug("Load Global Config Items", $"Config item with key \"{key}\" could not be found. Using default value.");
                         }
 						// If this is a user config item (user might not have changed the default setting)
 						else if (property.GetCustomAttribute<UserConfigDataAttribute>() != null)

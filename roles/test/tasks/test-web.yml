@@ -1,6 +1,6 @@
 # this playbook contains web server availabitlity tests
 
-- name: test api version
+- name: test web server availability
   uri:
     url: "{{ loop_url }}"
     method: GET

@@ -96,7 +96,7 @@ def get_matching_route(destination_ip, routing_table):
         if route_matches(destination_ip, route['destination']):
             return route 
 
-    logger.error('src nat behind interface: found no matching route in routing table - no default route?!')
+    logger.warning('src nat behind interface: found no matching route in routing table - no default route?!')
     return None
 
 

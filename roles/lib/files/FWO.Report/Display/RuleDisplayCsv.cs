@@ -3,6 +3,7 @@ using FWO.Config.Api;
 using System.Text;
 using FWO.Report;
 using FWO.Report.Filter;
+using System.Text.RegularExpressions;
 
 namespace FWO.Ui.Display
 {
@@ -11,6 +12,13 @@ namespace FWO.Ui.Display
 
         public RuleDisplayCsv(UserConfig userConfig) : base(userConfig)
         { }
+
+        private string SanitizeComment(string inputString)
+        {
+            string output = Regex.Replace(inputString, @"[""'']", "").Trim();
+            output = Regex.Replace(output, @"[\n]", ", ").Trim();
+            return output;
+        }
         public string DisplayReportHeader(ReportRules rules)
         {
             StringBuilder report = new StringBuilder();
@@ -22,8 +30,7 @@ namespace FWO.Ui.Display
             report.AppendLine($"# report generator: Firewall Orchestrator - https://fwo.cactus.de/en");
             report.AppendLine($"# data protection level: For internal use only");
             report.AppendLine($"#");
-            report.AppendLine($"# rule CSV field names:");
-            report.AppendLine($"# \"management-name\",\"device-name\",\"rule-number\",\"rule-name\",\"source-zone\",\"source-negated\",\"source\",\"destination-zone\",\"destination-negated\",\"destination\",\"service-negated\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"");
+            report.AppendLine($"\"management-name\",\"device-name\",\"rule-number\",\"rule-name\",\"source-zone\",\"source-negated\",\"source\",\"destination-zone\",\"destination-negated\",\"destination\",\"service-negated\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"");
             return $"{report.ToString()}";
         }                
 
@@ -33,7 +40,7 @@ namespace FWO.Ui.Display
         }
         public new string DisplayName(Rule rule)
         {
-            return (rule.Name != null ? $"\"{rule.Name}\"," : ",");
+            return (rule.Name != null ? $"\"{SanitizeComment(rule.Name)}\"," : ",");
         }
         public new string DisplaySourceZone(Rule rule)
         {
@@ -62,7 +69,8 @@ namespace FWO.Ui.Display
 
         public new string DisplayComment(Rule rule)
         {
-            return (rule.Comment != null ? $"\"{rule.Comment}\"," : ",");
+            // assuming comment to be the last field, so no comma at the end of the line
+            return (rule.Comment != null ? $"\"{SanitizeComment(rule.Comment)}\"" : "");
         }
 
         public string DisplaySourceOrDestination(Rule rule, string style = "", string location = "report", ReportType reportType = ReportType.Rules, string side = "source")
@@ -139,7 +147,7 @@ namespace FWO.Ui.Display
             {
                 result.Append(")");
             }
-            result.Append("\\n");
+            result.Append("\n");
             return result;
         }
 
@@ -192,7 +200,7 @@ namespace FWO.Ui.Display
                     result.Append(service.DestinationPort == service.DestinationPortEnd ? $"{service.DestinationPort}/{service.Protocol?.Name}"
                         : $"{service.DestinationPort}-{service.DestinationPortEnd}/{service.Protocol?.Name}");
             }
-            result.Append("\\n");
+            result.Append("\n");
             return result;
         }
 

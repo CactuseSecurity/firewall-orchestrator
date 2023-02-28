@@ -112,7 +112,7 @@ namespace FWO.Ui.Display
                 {
                     cell.Append(NetworkLocationToCsv(networkLocation, rule.MgmtId, location, style, reportType).ToString());
                 }
-                cell.Remove(cell.ToString().Length - 2, 2);  // get rid of final line break
+                cell.Remove(cell.ToString().Length - 1, 1);  // get rid of final delimiter
                 result.Append($"\"{cell}\",");
             }
             return result.ToString();
@@ -147,7 +147,7 @@ namespace FWO.Ui.Display
             {
                 result.Append(")");
             }
-            result.Append("\n");
+            result.Append(",");
             return result;
         }
 
@@ -176,7 +176,7 @@ namespace FWO.Ui.Display
                     foreach (NetworkService service in serviceList)
                         cell.Append(ServiceToCsv(service, rule.MgmtId, location, style, reportType).ToString());
 
-                    cell.Remove(cell.ToString().Length - 2, 2);  // get rid of final line break
+                    cell.Remove(cell.ToString().Length - 1, 1);  // get rid of final delimiter
                     result.Append($"\"{cell}\",");
                     break;
             }
@@ -200,7 +200,7 @@ namespace FWO.Ui.Display
                     result.Append(service.DestinationPort == service.DestinationPortEnd ? $"{service.DestinationPort}/{service.Protocol?.Name}"
                         : $"{service.DestinationPort}-{service.DestinationPortEnd}/{service.Protocol?.Name}");
             }
-            result.Append("\n");
+            result.Append(",");
             return result;
         }
 

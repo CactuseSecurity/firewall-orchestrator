@@ -262,7 +262,6 @@ namespace FWO.Report
             }
         }
 
-
         private string ExportResolvedRulesToJson()
         {
             StringBuilder report = new StringBuilder("{");
@@ -279,15 +278,15 @@ namespace FWO.Report
                     Array.Exists(mgt.Devices, device => device.Rules != null && device.Rules.Length > 0)))
             {
                 report.AppendLine($"{{\"{management.Name}\": {{");
-                report.AppendLine($"\"gateways\": [{{");
+                report.AppendLine($"\"gateways\": [");
                 foreach (Device gateway in management.Devices)
                 {
                     if (gateway.Rules != null && gateway.Rules.Length > 0)
                     {
-                        report.Append($"\"{gateway.Name}\": {{\n\"rules\": [");
+                        report.Append($"{{\"{gateway.Name}\": {{\n\"rules\": [");
                         foreach (Rule rule in gateway.Rules)
                         {
-                            report.Append($"{{");
+                            report.Append("{");
                             if (string.IsNullOrEmpty(rule.SectionHeader))
                             {
                                 report.Append(ruleDisplay.DisplayNumber(rule, gateway.Rules));
@@ -312,12 +311,14 @@ namespace FWO.Report
                         } // rules
                         report = ruleDisplay.RemoveLastChars(report, 1); // remove last char (comma)
                         report.Append("]"); // EO rules
-                        report.Append("}},"); // EO gateway 2x
+                        report.Append("}"); // EO gateway internal
+                        report.Append("},"); // EO gateway external
                     }
                 } // gateways
                 report = ruleDisplay.RemoveLastChars(report, 1); // remove last char (comma)
-                report.Append("]"); // EO devices
-                report.Append("}},"); // EO management 2x
+                report.Append("]"); // EO gateways
+                report.Append("}"); // EO management internal
+                report.Append("},"); // EO management external
             } // managements
             report = ruleDisplay.RemoveLastChars(report, 1); // remove last char (comma)
             report.Append("]"); // EO managements

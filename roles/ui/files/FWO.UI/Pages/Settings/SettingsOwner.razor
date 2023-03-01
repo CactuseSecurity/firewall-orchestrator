@@ -94,26 +94,21 @@
                     </div>
                     <div class="form-group row">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("group"))*:</label>
-                        <div class="col-sm-9">
-                            <select class=" form-control form-control-sm" @bind="actOwner.GroupDn">
-                                <option value="">@(userConfig.GetText("none"))</option>
-                                @foreach (UserGroup group in ownerGroups)
-                                {
-                                    <option value="@group.Dn">@(group.Name)</option>
-                                }
-                            </select>
+                        <div class="col-sm-7">
+                            <input type="text" class="form-control form-control-sm" @bind="actOwner.GroupDn" />
+                        </div>
+                        <div class="col-sm-2">
+                            <button class="btn btn-sm btn-success form-control form-control-sm" @onclick="() => SearchGroup()">@(userConfig.GetText("search"))</button>
                         </div>
                     </div>
                     <div class="form-group row">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant")):</label>
                         <div class="col-sm-9">
-                            <select class="form-control form-control-sm" @bind="actTenantId">
-                                <option value="-1">@(userConfig.GetText("none"))</option>
-                                @foreach (Tenant tenant in tenants)
-                                {
-                                    <option value="@tenant.Id">@(tenant.Name)</option>
-                                }
-                            </select>
+                            <Dropdown ElementType="Tenant" ElementToString="@(t => t.Name)" @bind-SelectedElement="selectedTenant" Elements="tenants" Nullable="true">
+                                <ElementTemplate Context="tenant">
+                                    @tenant.Name
+                                </ElementTemplate>
+                            </Dropdown>
                         </div>
                     </div>
                     <div class="form-group row">
@@ -128,40 +123,32 @@
                     </div>
                     <div class="form-group row">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("recert_check_every")):</label>
-                        <div class="col-sm-2">
-                            <input type="number" min="1" class="form-control form-control-sm" @bind="actRecCheckParams.RecertCheckOffset" />
-                        </div>
-                        <div class="col-sm-2">
-                            <select class="form-control form-control-sm" @bind="actRecCheckParams.RecertCheckInterval">
-                                @foreach (Interval interval in Enum.GetValues(typeof(Interval)))
-                                {
-                                    if (interval != Interval.Never && interval != Interval.Years)
-                                    {
-                                        <option value="@interval">@userConfig.GetText(interval.ToString())</option>
-                                    }
-                                }
-                            </select>
-                        </div>
-                        @if(actRecCheckParams.RecertCheckInterval == Interval.Weeks)
-                        {
-                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("each_on")):</label>
-                            <div class="col-sm-3">
-                                <select class="form-control form-control-sm" @bind="actRecCheckParams.RecertCheckWeekday">
-                                    <option value="-1">@userConfig.GetText("undefined")</option>
-                                    @foreach (DayOfWeek day in Enum.GetValues(typeof(DayOfWeek)))
-                                    {
-                                        <option value="@((int)day)">@userConfig.GetText(day.ToString())</option>
-                                    }
-                                </select>
+                        <div class="form-group row col-sm-9">
+                            <div class="col-sm-2">
+                                <input type="number" min="1" class="form-control form-control-sm" @bind="actRecCheckParams.RecertCheckOffset" />
                             </div>
-                        }
-                        else if(actRecCheckParams.RecertCheckInterval == Interval.Months)
-                        {
-                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("each_on")):</label>
-                            <div class="col-sm-3">
-                                <input type="number" min="0" max ="31" class="form-control form-control-sm" @bind="actRecCheckParams.RecertCheckDayOfMonth" />
+                            <div class="col-sm-4">
+                                <Dropdown @bind-SelectedElement="actRecCheckParams.RecertCheckInterval" Elements="Enum.GetValues(typeof(Interval)).Cast<Interval>().Where(x => (x != Interval.Never && x != Interval.Years))" />
                             </div>
-                        }
+                            @if(actRecCheckParams.RecertCheckInterval == Interval.Weeks)
+                            {
+                                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("each_on")):</label>
+                                <div class="col-sm-4">
+                                    <Dropdown ElementType="DayOfWeek?" @bind-SelectedElement="selectedDayOfWeek" Elements="Enum.GetValues(typeof(DayOfWeek)).Cast<DayOfWeek?>()" Nullable="true">
+                                        <ElementTemplate Context="weekday">
+                                            @(weekday != null ? userConfig.GetText(weekday.ToString()) : "-")
+                                        </ElementTemplate>
+                                    </Dropdown>
+                                </div>
+                            }
+                            else if(actRecCheckParams.RecertCheckInterval == Interval.Months)
+                            {
+                                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("each_on")):</label>
+                                <div class="col-sm-4">
+                                    <input type="number" min="0" max ="31" class="form-control form-control-sm" @bind="actRecCheckParams.RecertCheckDayOfMonth" />
+                                </div>
+                            }
+                        </div>
                     </div>
                     <div class="form-group row">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_app_id")):</label>
@@ -206,50 +193,81 @@
         </Footer>
     </PopUp>
 
-    <PopUp Title="@(userConfig.GetText("assign_user") + ": " + actOwner.Name)" Show="@SearchUserMode" Large="true" OnClose="() => SearchUserMode = false">
+    <PopUp Title="@(userConfig.GetText(UserSearchMode ? "assign_user": "assign_group") + ": " + actOwner.Name)" Show="@SearchMode" Large="true" OnClose="() => SearchMode = false">
         <Body>
-            @if (SearchUserMode)
+            @if (SearchMode)
             {
                 <form>
                     <form class="form-group row">
                         <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("from_ldap")):</label>
                         <div class="col-sm-3">
-                            <select class="form-control-sm col-sm" @bind="selectedLdapId">
-                                @foreach (UiLdapConnection ldap in connectedLdaps)
-                                {
-                                    <option value="@ldap.Id">@(ldap.Name)</option>
-                                }
-                            </select>
+                            <Dropdown ElementType="UiLdapConnection" ElementToString="@(l => l.Name)" @bind-SelectedElement="selectedLdap" Elements="connectedLdaps">
+                                <ElementTemplate Context="ldap">
+                                    @ldap.Name
+                                </ElementTemplate>
+                            </Dropdown>
                         </div>
                         <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("search_pattern")):</label>
                         <div class="col-sm-3">
                             <input class="form-control-sm col-sm" type="text" @bind="searchPattern" />
                         </div>
                         <div class="col-sm-2">
-                            <button class="btn btn-sm btn-success" @onclick="async() => await SearchUserInLdap(selectedLdapId)" @onclick:preventDefault>@(userConfig.GetText("search"))</button>
+                            @if(UserSearchMode)
+                            {
+                                <button class="btn btn-sm btn-success" @onclick="async() => await SearchUserInLdap()" @onclick:preventDefault>@(userConfig.GetText("search"))</button>
+                            }
+                            else
+                            {
+                                <button class="btn btn-sm btn-success" @onclick="async() => await SearchGroupInLdap()" @onclick:preventDefault>@(userConfig.GetText("search"))</button>
+                            }
                         </div>
                     </form>
-                    <form class="form-group row">
-                        <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("active_user")):</label>
-                        <div class="col-sm-8">
-                            <select class="form-control-sm col-sm" @bind="selectedUiUser">
-                                @foreach (UiUser user in uiUsers)
-                                {
-                                    <option value="@user.Dn">@(user.Dn)</option>
-                                }
-                            </select>
-                        </div>
-                        <div class="col-sm-2">
-                            <AuthorizeView Roles="admin">
-                                <Authorized>
-                                    <button class="btn btn-sm btn-success" @onclick="() => AddUser(selectedUiUser)" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
-                                </Authorized>
-                                <NotAuthorized>
-                                    <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
-                                </NotAuthorized> 
-                            </AuthorizeView>
-                        </div>
-                    </form>
+                    @if(UserSearchMode)
+                    {
+                        <form class="form-group row">
+                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("active_user")):</label>
+                            <div class="col-sm-8">
+                                <Dropdown ElementType="UiUser" ElementToString="@(u => u.Dn)" @bind-SelectedElement="selectedUiUser" Elements="uiUsers">
+                                    <ElementTemplate Context="user">
+                                        @user.Dn
+                                    </ElementTemplate>
+                                </Dropdown>
+                            </div>
+                            <div class="col-sm-2">
+                                <AuthorizeView Roles="admin">
+                                    <Authorized>
+                                        <button class="btn btn-sm btn-success" @onclick="() => AddUser(selectedUiUser)" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                                    </Authorized>
+                                    <NotAuthorized>
+                                        <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
+                                    </NotAuthorized> 
+                                </AuthorizeView>
+                            </div>
+                        </form>
+                    }
+                    else
+                    {
+                        <form class="form-group row">
+                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("groups")):</label>
+                            <div class="col-sm-8">
+                                <Dropdown ElementType="UserGroup" ElementToString="@(g => g.Dn)" @bind-SelectedElement="selectedInternalGroup" Elements="ownerGroups">
+                                    <ElementTemplate Context="group">
+                                        @group.Dn
+                                    </ElementTemplate>
+                                </Dropdown>
+                            </div>
+                            <div class="col-sm-2">
+                                <AuthorizeView Roles="admin">
+                                    <Authorized>
+                                        <button class="btn btn-sm btn-success" @onclick="() => AddGroup(selectedInternalGroup)" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                                    </Authorized>
+                                    <NotAuthorized>
+                                        <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
+                                    </NotAuthorized> 
+                                </AuthorizeView>
+                            </div>
+                        </form>
+                    }
                 </form>
             }
         </Body>
@@ -260,24 +278,41 @@
         </Footer>
     </PopUp>
 
-    <PopUp Title="@(userConfig.GetText("select_from_ldap") + ": " + selectedLdap.Host())" Show="@SearchUserInLdapMode" Large="true" OnClose="() => CancelLdapSearch()">
+    <PopUp Title="@(userConfig.GetText("select_from_ldap") + ": " + selectedLdap.Host())" Show="@SearchInLdapMode" Large="true" OnClose="() => CancelLdapSearch()">
         <Body>
-            @if (SearchUserInLdapMode)
+            @if (SearchInLdapMode)
             {
                 <form>
                     <div class="form-group row">
                         <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("user")):</label>
                         <div class="col-sm-8">
-                            <select class="form-control form-control-sm" @bind="selectedLdapUser">
-                                @foreach (UiUser user in ldapUsers)
-                                {
-                                    <option value="@user.Dn">@(user.Dn)</option>
-                                }
-                            </select>
+                            @if(UserSearchMode)
+                            {
+                                <Dropdown ElementType="UiUser" ElementToString="@(u => u.Dn)" @bind-SelectedElement="selectedLdapUser" Elements="ldapUsers">
+                                    <ElementTemplate Context="user">
+                                        @user.Dn
+                                    </ElementTemplate>
+                                </Dropdown>
+                            }
+                            else
+                            {
+                                <Dropdown ElementType="UserGroup" ElementToString="@(g => g.Dn)" @bind-SelectedElement="selectedLdapGroup" Elements="ldapGroups">
+                                    <ElementTemplate Context="group">
+                                        @group.Dn
+                                    </ElementTemplate>
+                                </Dropdown>
+                            }
                         </div>
                         <AuthorizeView Roles="admin">
                             <Authorized>
+                            @if(UserSearchMode)
+                            {
                                 <button class="btn btn-sm btn-success" @onclick="() => AddUser(selectedLdapUser)" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                            }
+                            else
+                            {
+                                <button class="btn btn-sm btn-success" @onclick="() => AddGroup(selectedLdapGroup)" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                            }
                             </Authorized>
                             <NotAuthorized>
                                 <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
@@ -312,7 +347,8 @@ else
     private List<FwoOwner> owners = new List<FwoOwner>();
     private List<FwoOwner> sampleOwners = new List<FwoOwner>();
     private FwoOwner actOwner = new FwoOwner();
-    private int actTenantId = -1;
+    private Tenant? selectedTenant;
+    private DayOfWeek? selectedDayOfWeek;
 
     private List<UserGroup> ownerGroups = new List<UserGroup>();
     private List<Tenant> tenants = new List<Tenant>();
@@ -321,9 +357,11 @@ else
     private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
     private UiLdapConnection selectedLdap = new UiLdapConnection();
     private List<UiUser> ldapUsers = new List<UiUser>();
-    private string selectedUiUser = "";
-    private string selectedLdapUser = "";
-    private int selectedLdapId;
+    private List<UserGroup> ldapGroups = new List<UserGroup>();
+    private UiUser selectedUiUser = new UiUser();
+    private UiUser selectedLdapUser = new UiUser();
+    private UserGroup selectedInternalGroup = new UserGroup();
+    private UserGroup selectedLdapGroup = new UserGroup();
     private string searchPattern = "";
 
     private bool showCleanupButton = false;
@@ -332,8 +370,9 @@ else
     private bool EditOwnerMode = false;
     private bool AddOwnerMode = false;
     private bool DeleteOwnerMode = false;
-    private bool SearchUserMode = false;
-    private bool SearchUserInLdapMode = false;
+    private bool SearchMode = false;
+    private bool SearchInLdapMode = false;
+    private bool UserSearchMode = false;
     private bool InitComplete = false;
     private RecertCheckParams actRecCheckParams = new RecertCheckParams();
 
@@ -372,6 +411,10 @@ else
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
             uiUsers = uiUsers.FindAll(x => x.DbId != 0);
             connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(FWO.Api.Client.Queries.AuthQueries.getLdapConnections);
+            if(connectedLdaps.Count > 0)
+            {
+                selectedLdap = connectedLdaps.First();
+            }
 
             RestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
@@ -425,7 +468,8 @@ else
         try
         {
             actOwner = owner;
-            actTenantId = (actOwner.TenantId != null ? (int)actOwner.TenantId : -1);
+            selectedTenant = tenants.FirstOrDefault(x => x.Id == actOwner.TenantId);
+            selectedDayOfWeek = (DayOfWeek?)actRecCheckParams.RecertCheckWeekday;
             actRecCheckParams = (actOwner.RecertCheckParams != null ? System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(actOwner.RecertCheckParams) : new RecertCheckParams());
             if(AddOwnerMode)
             {
@@ -448,15 +492,12 @@ else
     {
         try
         {
-            actOwner.TenantId = (actTenantId >= 0 ? actTenantId : null);
+            actOwner.TenantId = selectedTenant?.Id;
             if(actRecCheckParams.RecertCheckDayOfMonth == 0)
             {
                 actRecCheckParams.RecertCheckDayOfMonth = null;
             }
-            if(actRecCheckParams.RecertCheckWeekday == -1)
-            {
-                actRecCheckParams.RecertCheckWeekday = null;
-            }
+            actRecCheckParams.RecertCheckWeekday = (int?)selectedDayOfWeek;
             actOwner.RecertCheckParams = System.Text.Json.JsonSerializer.Serialize(actRecCheckParams);
             if (actOwner.Sanitize())
             {
@@ -626,26 +667,36 @@ else
 
     private void SearchUser()
     {
-        selectedUiUser = (uiUsers.Count == 0 ? "" : uiUsers.First().Dn);
-        selectedLdapId = (connectedLdaps.Count == 0 ? 0 : connectedLdaps.First().Id);
-        SearchUserMode = true;
+        selectedUiUser = (uiUsers.Count == 0 ? new UiUser() : uiUsers.First());
+        UserSearchMode = true;
+        Search();
     }
 
-    private async Task SearchUserInLdap(int ldapId)
+    private void SearchGroup()
     {
-        UiLdapConnection? actLdap = connectedLdaps.FirstOrDefault(x => x.Id == ldapId);
-        if (actLdap != null)
-        {
-            selectedLdap = actLdap;
-        }
+        selectedInternalGroup = (ldapGroups.Count == 0 ? new UserGroup() : ldapGroups.First());
+        UserSearchMode = false;
+        Search();
+    }
 
+    private void Search()
+    {
+        if(connectedLdaps.Count > 0)
+        {
+            selectedLdap = connectedLdaps.First();
+        }
+        searchPattern = "";
+        SearchMode = true;
+    }
+
+    private async Task SearchUserInLdap()
+    {
         if(searchPattern.Length < selectedLdap.PatternLength)
         {
             DisplayMessageInUi(null, userConfig.GetText("search_users"), userConfig.GetText("E5252") + selectedLdap.PatternLength, true);
         }
         else
         {
-            // get users from Ldap
             try
             {
                 ldapUsers.Clear();
@@ -669,17 +720,61 @@ else
                 DisplayMessageInUi(null, userConfig.GetText("fetch_users"), "", true);
             }
 
-            selectedLdapUser = (ldapUsers.Count == 0 ? "" : ldapUsers.First().Dn);
-            SearchUserInLdapMode = true;
-            SearchUserMode = false;
+            selectedLdapUser = (ldapUsers.Count == 0 ? new UiUser() : ldapUsers.First());
+            SearchInLdapMode = true;
+            SearchMode = false;
         }
     }
 
-    private void AddUser(string userDn)
+    private async Task SearchGroupInLdap()
     {
-        actOwner.Dn = userDn;
-        SearchUserInLdapMode = false;
-        SearchUserMode = false;
+        if(searchPattern.Length < selectedLdap.PatternLength)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("search_users"), userConfig.GetText("E5252") + selectedLdap.PatternLength, true);
+        }
+        else
+        {
+            try
+            {
+                ldapGroups.Clear();
+                GroupGetParameters groupGetParameters = new GroupGetParameters { LdapId = selectedLdap.Id, SearchPattern = searchPattern };
+                RestResponse<List<string>> groupMiddlewareServerResponse = await middlewareClient.GetGroups(groupGetParameters);
+                if (groupMiddlewareServerResponse.StatusCode != HttpStatusCode.OK || groupMiddlewareServerResponse.Data == null)
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
+                }
+                else
+                {
+                    foreach (var group in groupMiddlewareServerResponse.Data)
+                    {
+                        UserGroup newgroup = new UserGroup() { Dn = group, Name = (new DistName(group)).Group };
+                        ldapGroups.Add(newgroup);
+                    }
+                }
+            }
+            catch (System.Exception)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("fetch_users"), "", true);
+            }
+
+            selectedLdapGroup = (ldapGroups.Count == 0 ? new UserGroup() : ldapGroups.First());
+            SearchInLdapMode = true;
+            SearchMode = false;
+        }
+    }
+
+    private void AddUser(UiUser user)
+    {
+        actOwner.Dn = user.Dn;
+        SearchInLdapMode = false;
+        SearchMode = false;
+    }
+
+    private void AddGroup(UserGroup group)
+    {
+        actOwner.GroupDn = group.Dn;
+        SearchInLdapMode = false;
+        SearchMode = false;
     }
 
     private async Task addTenantIfNew(string Dn)
@@ -714,13 +809,12 @@ else
 
     private void CancelSearch()
     {
-        SearchUserMode = false;
+        SearchMode = false;
     }
 
     private void CancelLdapSearch()
     {
-        selectedLdap = new UiLdapConnection();
-        SearchUserInLdapMode = false;
-        SearchUserMode = true;
+        SearchInLdapMode = false;
+        SearchMode = true;
     }
 }

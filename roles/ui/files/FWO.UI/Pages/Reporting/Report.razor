@@ -215,6 +215,7 @@
 
 @* ==== RIGHT SIDEBAR ==== *@
 <RightSidebar @bind-Width="sidebarRightWidth" Tabset="rsbTabset" AnchorNavToRSB="anchorNavToRSB" CurrentReport="currentReport" @bind-SelectedRules="selectedItemsRuleReportTable" ManagementsReport="managementsReport"/>
+<AnchorNavToRSB @ref="anchorNavToRSB" TabSet="rsbTabset" />
 
 <PopUp Large="true" Title="@(userConfig.GetText("report_time"))" Show="@ShowSelectTimeDialog">
     <Body>
@@ -351,7 +352,6 @@
     </Footer>
 </PopUp>
 
-<AnchorNavToRSB @ref="anchorNavToRSB" TabSet="rsbTabset" />
 
 @code
 {

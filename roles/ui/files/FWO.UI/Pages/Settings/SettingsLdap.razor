@@ -111,12 +111,7 @@
                 <div class="form-group row">
                     <label for="ldapType" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("type"))*:</label>
                     <div class="col-sm-4">
-                        <select id="ldapType" class="form-control form-control-sm" @bind="actLdapConnection.Type">
-                            @foreach (int type in Enum.GetValues(typeof(LdapType)))
-                            {
-                                <option value="@type">@(Enum.GetName(typeof(LdapType), type))</option>
-                            }
-                        </select>
+                        <Dropdown ElementType="LdapType" @bind-SelectedElement="selectedType" Elements="Enum.GetValues(typeof(LdapType)).Cast<LdapType>()" />
                     </div>
                     <label for="ldapPattern" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("pattern_length")):</label>
                     <div class="col-sm-2">
@@ -168,13 +163,11 @@
                 <div class="form-group row">
                     <label for="deviceTenant" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant")):</label>
                     <div class="col-sm-8">
-                        <select id="deviceTenant" class="form-control form-control-sm" @bind="actLdapConnection.TenantIdAsString">
-                            <option value="null">@(userConfig.GetText("none"))</option>
-                            @foreach (Tenant tenant in tenants)
-                            {
-                                <option value="@tenant.Id">@(tenant.Name)</option>
-                            }
-                        </select>
+                        <Dropdown ElementType="Tenant" ElementToString="@(t => t.Name)" @bind-SelectedElement="selectedTenant" Elements="tenants" Nullable="true">
+                            <ElementTemplate Context="tenant">
+                                @tenant.Name
+                            </ElementTemplate>
+                        </Dropdown>
                     </div>
                 </div>
                 <div class="form-group row">
@@ -226,6 +219,8 @@
 
     private UiLdapConnection newLdapConnection = new UiLdapConnection();
     private UiLdapConnection actLdapConnection = new UiLdapConnection();
+    private LdapType selectedType = LdapType.Default;
+    private Tenant? selectedTenant;
 
     private string deleteMessage = "";
     private bool wasActive = true;
@@ -259,6 +254,8 @@
     private void Edit(UiLdapConnection ldapConnection)
     {
         actLdapConnection = new UiLdapConnection(ldapConnection);
+        selectedTenant = tenants.FirstOrDefault(x => x.Id == actLdapConnection.TenantId);
+        selectedType = (LdapType)actLdapConnection.Type;
         wasActive = ldapConnection.Active;
         EditMode = true;
     }
@@ -375,6 +372,8 @@
     {
         try
         {
+            actLdapConnection.TenantId = selectedTenant?.Id;
+            actLdapConnection.Type = (int)selectedType;
             if (actLdapConnection.Sanitize())
             {
                 DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("U0001"), true);

@@ -1054,8 +1054,8 @@ create table recertification
 	user_dn varchar,
 	recertified boolean default false,
 	recert_date Timestamp,
-	next_recert_date Timestamp,
-	comment varchar
+	comment varchar,
+	next_recert_date Timestamp
 );
 
 -- workflow -------------------------------------------------------

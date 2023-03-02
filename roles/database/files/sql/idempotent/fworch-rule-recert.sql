@@ -218,8 +218,8 @@ BEGIN
 			NULL::VARCHAR AS user_dn,
 			FALSE::BOOLEAN AS recertified,
 			NULL::TIMESTAMP AS recert_date,
-			(I.start_time::timestamp + make_interval (days => i_super_owner_interval))::TIMESTAMP AS next_recert_date,
-			NULL::VARCHAR AS comment
+			NULL::VARCHAR AS comment,
+			(I.start_time::timestamp + make_interval (days => i_super_owner_interval))::TIMESTAMP AS next_recert_date
 		FROM 
 			view_rule_with_owner V 
 			LEFT JOIN rule R USING (rule_id)			
@@ -238,8 +238,8 @@ BEGIN
 			NULL::VARCHAR AS user_dn,
 			FALSE::BOOLEAN AS recertified,
 			NULL::TIMESTAMP AS recert_date,
-			(I.start_time::timestamp + make_interval (days => O.recert_interval))::TIMESTAMP AS next_recert_date,
-			NULL::VARCHAR AS comment
+			NULL::VARCHAR AS comment,
+			(I.start_time::timestamp + make_interval (days => O.recert_interval))::TIMESTAMP AS next_recert_date
 		FROM 
 			view_rule_with_owner V 
 			LEFT JOIN rule R USING (rule_id)			

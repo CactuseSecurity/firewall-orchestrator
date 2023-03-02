@@ -1,0 +1,21 @@
+mutation addOpenRecerts(
+  $ipMatch: String
+  $nextRecertDate: timestamp!
+  $ownerId: Int!
+  $ruleId: bigint!
+  $ruleMetadataId: bigint!
+) {
+  insert_recertification(
+    objects: {
+      ip_match: $ipMatch
+      next_recert_date: $nextRecertDate
+      owner_id: $ownerId
+      rule_id: $ruleId
+      rule_metadata_id: $ruleMetadataId
+    }
+  ) {
+    returning {
+      id
+    }
+  }
+}

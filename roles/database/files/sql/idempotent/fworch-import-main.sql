@@ -171,7 +171,7 @@ BEGIN
 		PERFORM import_changelog_sync (i_current_import_id, i_mgm_id); -- Abgleich zwischen import_changelog und changelog_xxx	
 		v_err_pos := 'recert_refresh_per_management';
 		-- LargeOwnerChange: comment out the following line
-		PERFORM recert_refresh_per_management (i_mgm_id);
+		-- PERFORM recert_refresh_per_management (i_mgm_id);
 	EXCEPTION
 		WHEN OTHERS THEN -- read error from import_control and rollback
 			GET STACKED DIAGNOSTICS v_exception_message = MESSAGE_TEXT,

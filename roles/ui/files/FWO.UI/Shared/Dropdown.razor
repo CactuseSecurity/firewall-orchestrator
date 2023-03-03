@@ -155,10 +155,16 @@
 
 	private async void OnGlobalClick(string elementId)
 	{
-		if (!await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-{Id}"))
+		try{
+			if (!await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-{Id}"))
+			{
+				Toggled = true;
+				await InvokeAsync(StateHasChanged);
+			}
+		}
+		catch (Exception e)
 		{
-			Toggled = true;
-			await InvokeAsync(StateHasChanged);
+			Toggled =  true;
 		}
 	}
 

@@ -136,7 +136,7 @@
                                 <div class="col-sm-4">
                                     <Dropdown ElementType="DayOfWeek?" @bind-SelectedElement="selectedDayOfWeek" Elements="Enum.GetValues(typeof(DayOfWeek)).Cast<DayOfWeek?>()" Nullable="true">
                                         <ElementTemplate Context="weekday">
-                                            @(weekday != null ? userConfig.GetText(weekday.ToString()) : "-")
+                                            @(weekday != null ? userConfig.GetText(weekday.ToString() ?? "undefined") : "-")
                                         </ElementTemplate>
                                     </Dropdown>
                                 </div>

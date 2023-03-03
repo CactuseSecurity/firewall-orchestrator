@@ -18,12 +18,11 @@
     <form class="form-inline">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("default_language"))*:</label>
         <div class="col-sm-2">
-            <select class="form-control form-control-sm w-100" @bind="configData!.DefaultLanguage">
-                @foreach (Language language in globalConfig.uiLanguages)
-                {
-                    <option value="@(language.Name)">@(userConfig.GetText(language.Name))</option>
-                }
-            </select>
+            <Dropdown ElementType="Language" ElementToString="@(l => userConfig.GetText(l.Name))" @bind-SelectedElement="selectedLanguage" Elements="globalConfig.uiLanguages">
+                <ElementTemplate Context="language">
+                    @(userConfig.GetText(language.Name))
+                </ElementTemplate>
+            </Dropdown>
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
@@ -180,12 +179,14 @@ else
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private ConfigData? configData;
+    private Language selectedLanguage = new Language();
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             configData = await globalConfig.GetEditableConfig();
+            selectedLanguage = globalConfig.uiLanguages.FirstOrDefault(l => l.Name == configData.DefaultLanguage) ?? new Language();
         }
         catch (Exception exception)
         {
@@ -199,6 +200,7 @@ else
         {
             if (configData != null)
             {
+                configData.DefaultLanguage = selectedLanguage.Name;
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
             }

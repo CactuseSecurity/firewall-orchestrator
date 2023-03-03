@@ -60,27 +60,21 @@
                     <input type="number" min="1" class="form-control form-control-sm" @bind="recCheckParams.RecertCheckOffset" />
                 </div>
                 <div class="col-sm-4">
-                    <select class="form-control form-control-sm" @bind="recCheckParams.RecertCheckInterval">
-                        @foreach (Interval interval in Enum.GetValues(typeof(Interval)))
-                        {
-                            if (interval != Interval.Never && interval != Interval.Years)
-                            {
-                                <option value="@interval">@userConfig.GetText(interval.ToString())</option>
-                            }
-                        }
-                    </select>
+                    <Dropdown @bind-SelectedElement="recCheckParams.RecertCheckInterval" ElementToString="@(i => userConfig.GetText(i.ToString()))" Elements="Enum.GetValues(typeof(Interval)).Cast<Interval>().Where(x => (x != Interval.Never && x != Interval.Years))" >
+                        <ElementTemplate Context="interval">
+                            @(userConfig.GetText(interval.ToString()))
+                        </ElementTemplate>
+                    </Dropdown>
                 </div>
                 @if(recCheckParams.RecertCheckInterval == Interval.Weeks)
                 {
                     <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("each_on")):</label>
                     <div class="col-sm-4">
-                        <select class="form-control form-control-sm" @bind="recCheckParams.RecertCheckWeekday">
-                            <option value="-1">@userConfig.GetText("undefined")</option>
-                            @foreach (DayOfWeek day in Enum.GetValues(typeof(DayOfWeek)))
-                            {
-                                <option value="@((int)day)">@userConfig.GetText(day.ToString())</option>
-                            }
-                        </select>
+                        <Dropdown ElementType="DayOfWeek?" ElementToString="@(d => userConfig.GetText(d.ToString()))" @bind-SelectedElement="selectedDayOfWeek" Elements="Enum.GetValues(typeof(DayOfWeek)).Cast<DayOfWeek?>()" Nullable="true">
+                            <ElementTemplate Context="weekday">
+                                @(weekday != null ? userConfig.GetText(weekday.ToString() ?? "undefined") : "-")
+                            </ElementTemplate>
+                        </Dropdown>
                     </div>
                 }
                 else if(recCheckParams.RecertCheckInterval == Interval.Months)
@@ -145,23 +139,21 @@
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleTicketPriority")):</label>
         <div class="col-sm-7">
-            <select class="form-control form-control-sm" @bind="configData!.RecDeleteRuleTicketPriority">
-                @foreach (var prio in PrioList)
-                {
-                    <option value="@prio.NumPrio">@(prio.Name)</option>
-                }
-            </select>
+            <Dropdown ElementType="RequestPriority" ElementToString="@(p => p.Name)" @bind-SelectedElement="selectedPriority" Elements="PrioList">
+                <ElementTemplate Context="prio">
+                    @prio.Name
+                </ElementTemplate>
+            </Dropdown>
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleInitState")):</label>
         <div class="col-sm-7">
-            <select class="form-control form-control-sm" @bind="configData!.RecDeleteRuleInitState">
-                @foreach (var state in states)
-                {
-                    <option value="@state.Id">@(state.Name)</option>
-                }
-            </select>
+            <Dropdown ElementType="RequestState" ElementToString="@(s => s.Name)" @bind-SelectedElement="selectedState" Elements="states">
+                <ElementTemplate Context="state">
+                    @state.Name
+                </ElementTemplate>
+            </Dropdown>
         </div>
     </form>
     <hr />
@@ -194,6 +186,9 @@ else
     private List<RequestPriority> PrioList = new List<RequestPriority>();
     private RecertCheckParams recCheckParams = new RecertCheckParams();
     private List<RequestState> states = new List<RequestState>();
+    private DayOfWeek? selectedDayOfWeek;
+    private RequestPriority? selectedPriority;
+    private RequestState? selectedState;
 
     protected override async Task OnInitializedAsync()
     {
@@ -203,6 +198,9 @@ else
             PrioList = System.Text.Json.JsonSerializer.Deserialize<List<RequestPriority>>(userConfig.ReqPriorities) ?? throw new Exception("Config data could not be parsed.");
             recCheckParams = System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(userConfig.RecCheckParams) ?? throw new Exception("Config data could not be parsed.");
             states = await apiConnection.SendQueryAsync<List<RequestState>>(FWO.Api.Client.Queries.RequestQueries.getStates);
+            selectedDayOfWeek = (DayOfWeek?)recCheckParams.RecertCheckWeekday;
+            selectedPriority = PrioList.FirstOrDefault(p => p.NumPrio == configData.RecDeleteRuleTicketPriority);
+            selectedState = states.FirstOrDefault(s => s.Id == configData.RecDeleteRuleInitState);
         }
         catch (Exception exception)
         {
@@ -220,10 +218,9 @@ else
                 {
                     recCheckParams.RecertCheckDayOfMonth = null;
                 }
-                if(recCheckParams.RecertCheckWeekday == -1)
-                {
-                    recCheckParams.RecertCheckWeekday = null;
-                }
+                recCheckParams.RecertCheckWeekday = (int?)selectedDayOfWeek;
+                configData.RecDeleteRuleTicketPriority = selectedPriority?.NumPrio ?? 3;
+                configData.RecDeleteRuleInitState = selectedState?.Id ?? 0;
                 configData.RecCheckParams = System.Text.Json.JsonSerializer.Serialize(recCheckParams);
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);

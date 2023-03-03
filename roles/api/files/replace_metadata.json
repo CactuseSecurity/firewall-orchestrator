@@ -6630,7 +6630,20 @@
                       "tenant_id",
                       "last_recert_check"
                     ],
-                    "filter": {},
+                    "filter": {
+                      "_or": [
+                        {
+                          "tenant_id": {
+                            "_is_null": true
+                          }
+                        },
+                        {
+                          "tenant_id": {
+                            "_eq": "x-hasura-tenant-id"
+                          }
+                        }
+                      ]
+                    },
                     "allow_aggregations": true
                   }
                 },

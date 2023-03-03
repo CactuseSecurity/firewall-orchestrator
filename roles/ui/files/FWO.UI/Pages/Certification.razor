@@ -605,14 +605,21 @@
 
     private async Task InitRecert(Rule rule)
     {
-        var prepvariables = new
+        if (recertInterval!=null && selectedOwner != null && selectedOwner.Id != null && recertInterval[selectedOwner.Id] != null)
         {
-            ruleMetadataId = rule.Metadata.Id,
-            ruleId = rule.Id,
-            ipMatch = rule.IpMatch != "" ? rule.IpMatch : null,
-            ownerId = (selectedOwner ?? throw new Exception("Recertification without owner not allowed.")).Id,
-            nextRecertDate = DateTime.Now.AddDays(recertInterval[selectedOwner.Id])
-        };
-        await apiConnection.SendQueryAsync<object>(RecertQueries.prepareNextRecertification, prepvariables);
+            var prepvariables = new
+            {
+                ruleMetadataId = rule.Metadata.Id,
+                ruleId = rule.Id,
+                ipMatch = rule.IpMatch != "" ? rule.IpMatch : null,
+                ownerId = (selectedOwner ?? throw new Exception("Recertification without owner not allowed.")).Id,
+                nextRecertDate = DateTime.Now.AddDays(recertInterval[selectedOwner.Id])
+            };
+            await apiConnection.SendQueryAsync<object>(RecertQueries.prepareNextRecertification, prepvariables);
+        }
+        else
+        {
+            DisplayMessageInUi(null, userConfig.GetText("execute_selected"), "error: no id set", false);
+        }
     }
 }

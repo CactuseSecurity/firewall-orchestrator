@@ -6630,11 +6630,7 @@
                       "tenant_id",
                       "last_recert_check"
                     ],
-                    "filter": {
-                      "tenant_id": {
-                        "_eq": "x-hasura-tenant-id"
-                      }
-                    },
+                    "filter": {},
                     "allow_aggregations": true
                   }
                 },

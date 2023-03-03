@@ -963,8 +963,6 @@ INSERT INTO txt VALUES ('domain_uid',           'German', 	'Domain UID');
 INSERT INTO txt VALUES ('domain_uid',           'English', 	'Domain UID');
 INSERT INTO txt VALUES ('super_manager',        'German', 	'Multi Domain Manager');
 INSERT INTO txt VALUES ('super_manager',        'English', 	'Multi Domain Manager');
-INSERT INTO txt VALUES ('no_super_manager',     'German', 	'kein Multi Domain Manager');
-INSERT INTO txt VALUES ('no_super_manager',     'English', 	'no Multi Domain Manager');
 INSERT INTO txt VALUES ('importer_host',        'German', 	'Importer Host');
 INSERT INTO txt VALUES ('importer_host',        'English', 	'Importer Host');
 INSERT INTO txt VALUES ('import_disabled',      'German', 	'Import Deaktiviert');

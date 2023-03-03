@@ -101,33 +101,29 @@
         {
             <form>
                 <div class="form-group row">
-                    <label for="managementId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
                     <label class="col-sm-8">@actManagement.Id</label>
                 </div>
                 <div class="form-group row">
-                    <label for="managementName" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
                     <div class="col-sm-8">
-                        <input id="managementName" type="text" class="form-control form-control-sm" @bind="actManagement.Name" />
+                        <input type="text" class="form-control form-control-sm" @bind="actManagement.Name" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="managementComment" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
                     <div class="col-sm-8">
                         <textarea rows="3" cols="60" name="text" class="form-control form-control-sm" placeholder=@(userConfig.GetText("comment")) @bind="actManagement.Comment"></textarea>   
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="managementDevType" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("device_type"))*:</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("device_type"))*:</label>
                     <div class="col-sm-8">
-                        <select id="managementDevType" class="form-control form-control-sm" @bind="actManagement.DeviceType">
-                            @foreach (DeviceType devType in deviceTypes)
-                            {
-                                @if (devType.IsManagement) 
-                                {
-                                    <option value="@devType">@(devType.NameVersion())</option>
-                                }
-                            }
-                        </select>
+                        <Dropdown ElementType="DeviceType" ElementToString="@(d => d.NameVersion())" @bind-SelectedElement="actManagement.DeviceType" Elements="deviceTypes.Where(d => d.IsManagement)">
+                            <ElementTemplate Context="devType">
+                                @devType.NameVersion()
+                            </ElementTemplate>
+                        </Dropdown>
                     </div>
                 </div>
                 @if (!actManagement.DeviceType.IsDummyRouter())
@@ -135,15 +131,15 @@
                     @if (actManagement.DeviceType.Name == "Azure")
                     {
                         <div class="form-group row">
-                            <label for="managementSubscriptionId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("cloud_sub_id")):</label>
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("cloud_sub_id")):</label>
                             <div class="col-sm-8">
-                                <input id="managementSubscriptionId" type="text" class="form-control form-control-sm" @bind="actManagement.CloudSubscriptionId" />
+                                <input type="text" class="form-control form-control-sm" @bind="actManagement.CloudSubscriptionId" />
                             </div>
                         </div>
                         <div class="form-group row">
-                            <label for="managementCloudTenantId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("cloud_tenant_id")):</label>
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("cloud_tenant_id")):</label>
                             <div class="col-sm-8">
-                                <input id="managementCloudTenantId" type="text" class="form-control form-control-sm" @bind="actManagement.CloudTenantId" />
+                                <input type="text" class="form-control form-control-sm" @bind="actManagement.CloudTenantId" />
                             </div>
                         </div>
                         // not really used just hard-coded for displaying in table:
@@ -153,70 +149,67 @@
                     else
                     {
                         <div class="form-group row">
-                            <label for="managementHostname" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("hostname"))*:</label>
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("hostname"))*:</label>
                             <div class="col-sm-8">
-                                <input id="managementHostname" type="text" class="form-control form-control-sm" @bind="actManagement.Hostname" />
+                                <input type="text" class="form-control form-control-sm" @bind="actManagement.Hostname" />
                             </div>
                         </div>
                         <div class="form-group row">
-                            <label for="managementPort" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
                             <div class="col-sm-2">
-                                <input id="managementPort" type="text" class="form-control form-control-sm" @bind="actManagement.Port" />
+                                <input type="text" class="form-control form-control-sm" @bind="actManagement.Port" />
                             </div>
                         </div>
                     }
                     <div class="form-group row">
-                        <label for="managementCredential" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("import_credential"))*:</label>
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("import_credential"))*:</label>
                         <div class="col-sm-8">
-                            <select id="managementCredential" class="form-control form-control-sm" @bind="actManagement.ImportCredential.Id">
-                                @foreach (ImportCredential cred in credentials)
-                                {
-                                    <option value="@cred.Id">@(cred.Name)</option>
-                                }
-                            </select>
+                            <Dropdown ElementType="ImportCredential" ElementToString="@(c => c.Name)" @bind-SelectedElement="actManagement.ImportCredential" Elements="credentials">
+                                <ElementTemplate Context="cred">
+                                    @cred.Name
+                                </ElementTemplate>
+                            </Dropdown>
                         </div>
                     </div>
                 }
                 @if (actManagement.DeviceType.CanHaveDomain())
                 {
                     <div class="form-group row">
-                        <label for="managementConfigPath" class="col-sm-3 col-form-label col-form-label-sm">@userConfig.GetText("config_path"):</label>
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@userConfig.GetText("config_path"):</label>
                         <div class="col-sm-8">
-                            <input id="managementConfigPath" type="text" class="form-control form-control-sm" @bind="actManagement.ConfigPath" />
+                            <input type="text" class="form-control form-control-sm" @bind="actManagement.ConfigPath" />
                         </div>
                     </div>
                     <div class="form-group row">
-                        <label for="managementDomainUid" class="col-sm-3 col-form-label col-form-label-sm">@userConfig.GetText("domain_uid"):</label>
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@userConfig.GetText("domain_uid"):</label>
                         <div class="col-sm-8">
-                            <input id="managementDomainUid" type="text" class="form-control form-control-sm" @bind="actManagement.DomainUid" />
+                            <input type="text" class="form-control form-control-sm" @bind="actManagement.DomainUid" />
                         </div>
                     </div>
                 }
                 @if (actManagement.DeviceType.CanHaveSupermanager())
                 {
                     <div class="form-group row">
-                        <label for="managementSuperManager" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("super_manager"))*:</label>
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("super_manager"))*:</label>
                         <div class="col-sm-8">
-                            <select id="managementSuperManager" class="form-control form-control-sm" @bind="actManagement.SuperManagerId">
-                                <option value="null">@(userConfig.GetText("no_super_manager"))</option>
-                                @foreach (Management superManager in managements.Where(x => x.DeviceType.Id == actManagement.DeviceType.GetSupermanagerId()))
-                                {
-                                    <option value="@superManager.Id">@(superManager.Name)</option>
-                                }
-                            </select>
+                            <Dropdown ElementType="Management" ElementToString="@(m => m.Name)" @bind-SelectedElement="selectedSuperManagement" Elements="managements.Where(x => x.DeviceType.Id == actManagement.DeviceType.GetSupermanagerId())">
+                                <ElementTemplate Context="superManager">
+                                    @superManager.Name
+                                </ElementTemplate>
+                            </Dropdown>
                         </div>
                     </div>
                 }
                 <div class="form-group row">
-                    <label for="managementImporterHostname" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("importer_host")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("importer_host")):</label>
                     <div class="col-sm-8">
-                        <input id="managementImporterHostname" type="text" class="form-control form-control-sm" @bind="actManagement.ImporterHostname" />
+                        <input type="text" class="form-control form-control-sm" @bind="actManagement.ImporterHostname" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="managementDebugLevel" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("debug_level")) (0-9):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("debug_level")) (0-9):</label>
                     <div class="col-sm-8">
-                        <input id="managementDebugLevel" type="text" class="form-control form-control-sm" @bind="actManagement.DebugLevel" />
+                        <input type="text" class="form-control form-control-sm" @bind="actManagement.DebugLevel" />
                     </div>
                 </div>
 
@@ -277,7 +270,7 @@
 
     private Management newManagement = new Management();
     private Management actManagement = new Management();
-    private Management actSuperManagement = new Management();
+    private Management? selectedSuperManagement;
 
     private AutoDiscovery? autoDiscovery;
 
@@ -331,6 +324,7 @@
     private void Edit(Management management)
     {
         actManagement = new Management(management);
+        selectedSuperManagement = actManagement.SuperManagerId != null ? managements.FirstOrDefault(m => m.Id == actManagement.SuperManagerId) : null;
         EditMode = true;
     }
 
@@ -394,7 +388,11 @@
     private void Add()
     {
         AddMode = true;
-        newManagement = new Management() { DeviceType = new DeviceType { Id = deviceTypes.First().Id } };
+        newManagement = new Management()
+        {
+            DeviceType = deviceTypes.Count > 0 ? deviceTypes.First() : new DeviceType(), 
+            ImportCredential = credentials.Count > 0 ? credentials.First() : new ImportCredential()
+        };
         Edit(newManagement);
     }
 
@@ -410,6 +408,7 @@
     {
         try
         {
+            actManagement.SuperManagerId = selectedSuperManagement?.Id;
             if (actManagement.Sanitize())
             {
                 DisplayMessageInUi(null, userConfig.GetText("save_management"), userConfig.GetText("U0001"), true);
@@ -474,13 +473,6 @@
                     EditMode = (udId == actManagement.Id ? false : true);
                     managements[managements.FindIndex(x => x.Id == actManagement.Id)] = actManagement;
                 }
-                // update actManagement
-                DeviceType? devtype = deviceTypes.FirstOrDefault(x => x.Id == actManagement.DeviceType.Id) ?? throw new Exception("Unknown Device type");
-                actManagement.DeviceType.Name = devtype.Name;
-                actManagement.DeviceType.Version = devtype.Version;
-
-                ImportCredential? cred = credentials.FirstOrDefault(x => x.Id == actManagement.ImportCredential.Id) ?? throw new Exception("Unknown credentials");
-                actManagement.ImportCredential = cred;
                 AnalyseSampleManagements();
             }
             StateHasChanged();
@@ -533,8 +525,6 @@
 
     private async Task AutoDiscover(Management superManagement)
     {
-        actSuperManagement = superManagement;
-
         try
         {
             workInProgress = true;

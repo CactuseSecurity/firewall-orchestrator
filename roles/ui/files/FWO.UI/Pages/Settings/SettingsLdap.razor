@@ -83,85 +83,85 @@
         {
             <form>
                 <div class="form-group row">
-                    <label for="ldapName" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
                     <div class="col-sm-8">
-                        <input id="ldapName" type="text" class="form-control form-control-sm" @bind="actLdapConnection.Name" />
+                        <input type="text" class="form-control form-control-sm" @bind="actLdapConnection.Name" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapAddress" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("address"))*:</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("address"))*:</label>
                     <div class="col-sm-8">
-                        <input id="ldapAddress" type="text" class="form-control form-control-sm" @bind="actLdapConnection.Address" />
+                        <input type="text" class="form-control form-control-sm" @bind="actLdapConnection.Address" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapPort" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
                     <div class="col-sm-2">
-                        <input id="ldapPort" type="text" class="form-control form-control-sm" @bind="actLdapConnection.Port" />
+                        <input type="text" class="form-control form-control-sm" @bind="actLdapConnection.Port" />
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" id="ldapTls" type="checkbox" @bind="actLdapConnection.Tls">
-                        <label class="form-check-label" for="ldapTls"><small>Tls</small></label>
+                        <input class="form-check-input" type="checkbox" @bind="actLdapConnection.Tls">
+                        <label class="form-check-label"><small>Tls</small></label>
                     </div>
-                    <label for="ldapTenantLevel" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant_level")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant_level")):</label>
                     <div class="col-sm-2">
-                        <input id="ldapTenantLevel" type="text" class="form-control form-control-sm" @bind="actLdapConnection.TenantLevel" />
+                        <input type="text" class="form-control form-control-sm" @bind="actLdapConnection.TenantLevel" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapType" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("type"))*:</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("type"))*:</label>
                     <div class="col-sm-4">
                         <Dropdown ElementType="LdapType" @bind-SelectedElement="selectedType" Elements="Enum.GetValues(typeof(LdapType)).Cast<LdapType>()" />
                     </div>
-                    <label for="ldapPattern" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("pattern_length")):</label>
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("pattern_length")):</label>
                     <div class="col-sm-2">
-                        <input id="ldapPattern" type="text" class="form-control form-control-sm" @bind="actLdapConnection.PatternLength" />
+                        <input type="text" class="form-control form-control-sm" @bind="actLdapConnection.PatternLength" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapUserSearchPath" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("user_search_path"))*:</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("user_search_path"))*:</label>
                     <div class="col-sm-8">
-                        <input id="ldapUserSearchPath" type="text" class="form-control form-control-sm" @bind="actLdapConnection.UserSearchPath" />
+                        <input type="text" class="form-control form-control-sm" @bind="actLdapConnection.UserSearchPath" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapRoleSearchPath" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("role_search_path")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("role_search_path")):</label>
                     <div class="col-sm-8">
-                        <input id="ldapRoleSearchPath" type="text" class="form-control form-control-sm" @bind="actLdapConnection.RoleSearchPath" />
+                        <input type="text" class="form-control form-control-sm" @bind="actLdapConnection.RoleSearchPath" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapGroupSearchPath" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("group_search_path")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("group_search_path")):</label>
                     <div class="col-sm-8">
-                        <input id="ldapGroupSearchPath" type="text" class="form-control form-control-sm" @bind="actLdapConnection.GroupSearchPath" />
+                        <input type="text" class="form-control form-control-sm" @bind="actLdapConnection.GroupSearchPath" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapSearchUser" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("search_user"))*:</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("search_user"))*:</label>
                     <div class="col-sm-8">
-                        <input id="ldapSearchUser" type="text" class="form-control form-control-sm" @bind="actLdapConnection.SearchUser" />
+                        <input type="text" class="form-control form-control-sm" @bind="actLdapConnection.SearchUser" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapSearchUserPwd" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("search_user_pwd"))*:</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("search_user_pwd"))*:</label>
                     <div class="col-sm-8">
-                        <input id="ldapSearchUserPwd" type="password" class="form-control form-control-sm" @bind="actLdapConnection.SearchUserPwd" />
+                        <input type="password" class="form-control form-control-sm" @bind="actLdapConnection.SearchUserPwd" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapWriteUser" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("write_user")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("write_user")):</label>
                     <div class="col-sm-8">
-                        <input id="ldapWriteUser" type="text" class="form-control form-control-sm" @bind="actLdapConnection.WriteUser" />
+                        <input type="text" class="form-control form-control-sm" @bind="actLdapConnection.WriteUser" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapWriteUserPwd" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("write_user_pwd")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("write_user_pwd")):</label>
                     <div class="col-sm-8">
-                        <input id="ldapWriteUserPwd" type="password" class="form-control form-control-sm" @bind="actLdapConnection.WriteUserPwd" />
+                        <input type="password" class="form-control form-control-sm" @bind="actLdapConnection.WriteUserPwd" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="deviceTenant" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant")):</label>
                     <div class="col-sm-8">
                         <Dropdown ElementType="Tenant" ElementToString="@(t => t.Name)" @bind-SelectedElement="selectedTenant" Elements="tenants" Nullable="true">
                             <ElementTemplate Context="tenant">
@@ -171,15 +171,15 @@
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapGlobTenName" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("global_tenant_name")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("global_tenant_name")):</label>
                     <div class="col-sm-8">
-                        <input id="ldapGlobTenName" type="text" class="form-control form-control-sm" @bind="actLdapConnection.GlobalTenantName" />
+                        <input type="text" class="form-control form-control-sm" @bind="actLdapConnection.GlobalTenantName" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapActive" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("active")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("active")):</label>
                     <div class="col-sm-8">
-                        <input id="ldapActive" type="checkbox" @bind="actLdapConnection.Active">
+                        <input type="checkbox" @bind="actLdapConnection.Active">
                     </div>
                 </div>
             </form>

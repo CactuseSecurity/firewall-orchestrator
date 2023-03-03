@@ -63,7 +63,7 @@
         {
             <form>
                 <form class="form-group row">
-                    <label for="ldapUser" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("from_ldap")):</label>
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("from_ldap")):</label>
                     <div class="col-sm-3">
                         <Dropdown ElementType="UiLdapConnection" ElementToString="@(l => l.Name)" @bind-SelectedElement="selectedLdap" Elements="connectedLdaps">
                             <ElementTemplate Context="ldap">
@@ -71,16 +71,16 @@
                             </ElementTemplate>
                         </Dropdown>
                     </div>
-                    <label for="searchpattern" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("search_pattern")):</label>
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("search_pattern")):</label>
                     <div class="col-sm-3">
-                        <input id="searchpattern" class="form-control-sm col-sm" type="text" @bind="searchPattern" />
+                        <input class="form-control-sm col-sm" type="text" @bind="searchPattern" />
                     </div>
                     <div class="col-sm-2">
                         <button class="btn btn-sm btn-success" @onclick="async() => await SearchUser()" @onclick:preventDefault>@(userConfig.GetText("search"))</button>
                     </div>
                 </form>
                 <form class="form-group row">
-                    <label for="roleUser" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("active_user")):</label>
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("active_user")):</label>
                     <div class="col-sm-8">
                         <Dropdown ElementType="UiUser" ElementToString="@(u => u.Dn)" @bind-SelectedElement="selectedUiUser" Elements="uiUsers">
                             <ElementTemplate Context="user">
@@ -100,7 +100,7 @@
                     </div>
                 </form>
                 <form class="form-group row">
-                    <label for="roleInternalGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("internal_group")):</label>
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("internal_group")):</label>
                     <div class="col-sm-8">
                         <Dropdown ElementType="string" @bind-SelectedElement="selectedGroupDn" Elements="internalGroupList" />
                     </div>
@@ -131,7 +131,7 @@
         {
             <form>
                 <div class="form-group row">
-                    <label for="roleUserdel" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("user_group")):</label>
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("user_group")):</label>
                     <div class="col-sm-9">
                         <Dropdown ElementType="UiUser" ElementToString="@(u => u.Dn)" @bind-SelectedElement="selectedUserToDelete" Elements="actRole.Users">
                             <ElementTemplate Context="user">
@@ -164,7 +164,7 @@
         {
             <form>
                 <div class="form-group row">
-                    <label for="roleUsersearch" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("user")):</label>
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("user")):</label>
                     <div class="col-sm-8">
                         <Dropdown ElementType="UiUser" ElementToString="@(u => u.Dn)" @bind-SelectedElement="selectedLdapUser" Elements="ldapUsers">
                             <ElementTemplate Context="user">
@@ -182,7 +182,7 @@
                     </AuthorizeView>
                 </div>
                 <div class="form-group row">
-                    <label for="roleGroupsearch" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("group")):</label>
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("group")):</label>
                     <div class="col-sm-8">
                         <Dropdown ElementType="string" @bind-SelectedElement="selectedGroupDn" Elements="searchedGroupList" />
                     </div>

@@ -23,35 +23,36 @@
     <h3>@(userConfig.GetText("owners"))</h3>
     @(userConfig.GetText("U5216"))
     <hr />
-    @if(userConfig.AllowManualOwnerAdmin)
-    {
-        <div class="form-group row">
+    <div class="form-group row">
+        @if(userConfig.AllowManualOwnerAdmin)
+        {
             <button class="btn btn-sm btn-success m-2" @onclick="AddOwner">@(userConfig.GetText("add_owner"))</button>
-            <AuthorizeView Roles="admin" Context="ctx">
-                <Authorized>
-                    @if (recertCalcInProgress == false)
-                        {
-                            <button class="btn btn-sm btn-info m-2" @onclick:preventDefault="true" @onclick="RecalcRecerts">@(userConfig.GetText("recalc_recerts"))</button>
-                        }
-                        else
-                        {
-                            <div class="spinner-border text-primary align-self-center" role="status"></div>
-                        }
-                </Authorized>
-            </AuthorizeView>
-            <AuthorizeView Roles="auditor" Context="ctx">
-                <Authorized>
-                    <button disabled class="btn btn-sm btn-info m-2" @onclick="RecalcRecerts">@(userConfig.GetText("recalc_recerts"))</button>
-                </Authorized>
-            </AuthorizeView>
+        }
+        <AuthorizeView Roles="admin" Context="ctx">
+            <Authorized>
+                @if (recertCalcInProgress == false)
+                    {
+                        <button class="btn btn-sm btn-info m-2" @onclick:preventDefault="true" @onclick="RecalcRecerts">@(userConfig.GetText("recalc_recerts"))</button>
+                    }
+                    else
+                    {
+                        <div class="spinner-border text-primary align-self-center" role="status"></div>
+                    }
+            </Authorized>
+        </AuthorizeView>
+        <AuthorizeView Roles="auditor" Context="ctx">
+            <Authorized>
+                <button disabled class="btn btn-sm btn-info m-2" @onclick="RecalcRecerts">@(userConfig.GetText("recalc_recerts"))</button>
+            </Authorized>
+        </AuthorizeView>
 
-            @if (showCleanupButton)
-            {
-                <button class="btn btn-sm btn-danger m-2" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
-            }
-            <br><br>
-        </div>
-    }
+        @if (showCleanupButton)
+        {
+            <button class="btn btn-sm btn-danger m-2" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
+        }
+        <br><br>
+    </div>
+    
     <div class="m-2">
         <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="FwoOwner" Items="owners" PageSize="0" ColumnReorder="true">
             @if(userConfig.AllowManualOwnerAdmin)

@@ -18917,6 +18917,12 @@
                 "name": "get_visible_managements_per_tenant",
                 "schema": "public"
               }
+            },
+            {
+              "function": {
+                "name": "recert_get_one_owner_one_mgm",
+                "schema": "public"
+              }
             }
           ],
           "configuration": {

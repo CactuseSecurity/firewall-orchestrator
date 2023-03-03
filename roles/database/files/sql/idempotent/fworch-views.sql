@@ -633,6 +633,24 @@ CREATE MATERIALIZED VIEW view_rule_with_owner AS
 		r.dev_id, r.mgm_id, r.rule_uid, rule_num_numeric, track_id, action_id, 	rule_action, rule_name, rule_comment, rule_track, rule_src_neg, rule_dst_neg, rule_svc_neg,
 		rule_head_text, rule_disabled, access_rule, xlate_rule, nat_rule;
 
+-------------------------
+-- recert refresh trigger
+
+create or replace function refresh_view_rule_with_owner()
+returns trigger language plpgsql
+as $$
+begin
+    refresh materialized view view_rule_with_owner;
+    return null;
+end $$;
+
+drop trigger IF exists refresh_view_rule_with_owner_delete_trigger ON recertification CASCADE;
+
+create trigger refresh_view_rule_with_owner_delete_trigger
+after delete on recertification for each statement 
+execute procedure refresh_view_rule_with_owner();
+
+
 ---------------------------------------------------------------------------------------------
 -- GRANTS on exportable Views
 ---------------------------------------------------------------------------------------------

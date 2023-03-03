@@ -5,6 +5,10 @@
 @using FWO.Middleware.Client
 @using FWO.Middleware.RequestParameters
 @using RestSharp
+@using System.Diagnostics
+@using FWO.Api.Data
+@using FWO.Logging
+
 
 @page "/settings/owners"
 @attribute [Authorize(Roles = "admin, auditor")]
@@ -19,17 +23,36 @@
     <h3>@(userConfig.GetText("owners"))</h3>
     @(userConfig.GetText("U5216"))
     <hr />
-    @if(userConfig.AllowManualOwnerAdmin)
-    {
-        <div class="form-group row">
+    <div class="form-group row">
+        @if(userConfig.AllowManualOwnerAdmin)
+        {
             <button class="btn btn-sm btn-success m-2" @onclick="AddOwner">@(userConfig.GetText("add_owner"))</button>
-            @if (showCleanupButton)
-            {
-                <button class="btn btn-sm btn-danger m-2" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
-            }
-            <br><br>
-        </div>
-    }
+        }
+        <AuthorizeView Roles="admin" Context="ctx">
+            <Authorized>
+                @if (recertCalcInProgress == false)
+                    {
+                        <button class="btn btn-sm btn-info m-2" @onclick:preventDefault="true" @onclick="RecalcRecerts">@(userConfig.GetText("recalc_recerts"))</button>
+                    }
+                    else
+                    {
+                        <div class="spinner-border text-primary align-self-center" role="status"></div>
+                    }
+            </Authorized>
+        </AuthorizeView>
+        <AuthorizeView Roles="auditor" Context="ctx">
+            <Authorized>
+                <button disabled class="btn btn-sm btn-info m-2" @onclick="RecalcRecerts">@(userConfig.GetText("recalc_recerts"))</button>
+            </Authorized>
+        </AuthorizeView>
+
+        @if (showCleanupButton)
+        {
+            <button class="btn btn-sm btn-danger m-2" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
+        }
+        <br><br>
+    </div>
+    
     <div class="m-2">
         <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="FwoOwner" Items="owners" PageSize="0" ColumnReorder="true">
             @if(userConfig.AllowManualOwnerAdmin)
@@ -169,25 +192,29 @@
                             <input type="text" class="form-control form-control-sm" @bind="actOwner.ExtAppId" />
                         </div>
                     </div>
-                    <div class="form-group row">
-                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ip_addresses")):</label>
-                        <div class="col-sm-9">
-                            @foreach(var ipAdd in actIpAddresses)
-                            {
+
+                    @if (!actOwner.IsDefault)
+                    {
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ip_addresses")):</label>
+                            <div class="col-sm-9">
+                                @foreach(var ipAdd in actIpAddresses)
+                                {
+                                    <div class="col-sm-12">
+                                        <div class="form-group row">
+                                            <input type="text" class="col-sm-11 form-control form-control-sm" readonly @bind="ipAdd.Cidr.CidrString" />
+                                            <button type="button" class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteIp(ipAdd)">x</button>
+                                        </div>
+                                    </div>
+                                }
                                 <div class="col-sm-12">
                                     <div class="form-group row">
-                                        <input type="text" class="col-sm-11 form-control form-control-sm" readonly @bind="ipAdd.Cidr.CidrString" />
-                                        <button type="button" class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteIp(ipAdd)">x</button>
+                                        <input @onsubmit:preventDefault @onsubmit:stopPropagation type="text" class="col-sm-12 form-control form-control-sm" placeholder="@(userConfig.GetText("insert_ip"))" @bind="newIpString"/>
                                     </div>
-                                </div>
-                            }
-                            <div class="col-sm-12">
-                                <div class="form-group row">
-                                    <input @onsubmit:preventDefault @onsubmit:stopPropagation type="text" class="col-sm-12 form-control form-control-sm" placeholder="@(userConfig.GetText("insert_ip"))" @bind="newIpString"/>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    }
                 </div>
             }
         </Body>
@@ -336,6 +363,7 @@ else
     private bool SearchUserInLdapMode = false;
     private bool InitComplete = false;
     private RecertCheckParams actRecCheckParams = new RecertCheckParams();
+    private bool recertCalcInProgress = false;
 
     private List<NwObjectElement> actIpAddresses = new List<NwObjectElement>();
     private bool ipChanged = false;
@@ -418,6 +446,72 @@ else
     {
         AddOwnerMode = true;
         await EditOwner(new FwoOwner());
+    }
+
+    private async Task RecalcRecerts()
+    {
+        if (recertCalcInProgress == false)
+        {
+            recertCalcInProgress = true;
+            double refreshDuration = 0;
+            Stopwatch watch = new System.Diagnostics.Stopwatch();
+            string secs = "";
+            var noVariables = new {};
+
+            try
+            {
+                JwtReader jwt = new JwtReader(userConfig.User.Jwt);
+                jwt.Validate();
+
+                List<Management> managements = new List<Management>();
+                if (jwt.ContainsAllowedRole("admin") || jwt.ContainsAllowedRole("fw-admin"))
+                    managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+                else
+                    managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
+
+                watch.Start();
+                ReturnId[]? returnIds = 
+                    (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RecertQueries.clearOpenRecerts, noVariables)).ReturnIds;
+                // the clearOpenRecerts refreshes materialized view view_rule_with_owner as a side-effect
+                watch.Stop();
+                refreshDuration = watch.ElapsedMilliseconds/1000.0;
+                secs = refreshDuration.ToString("0.00");
+                Log.WriteDebug("Refresh materialized view view_rule_with_owner", $"refresh took {secs} seconds");
+
+                foreach (FwoOwner owner in owners)
+                    await RecalcRecertsOfOwner(owner, managements);
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            }
+            recertCalcInProgress = false;
+        }
+
+    }
+
+    private async Task RecalcRecertsOfOwner(FwoOwner owner, List<Management> managements)
+    {
+        double refreshDuration = 0;
+        Stopwatch watch = new System.Diagnostics.Stopwatch();
+        string secs = "";
+        watch.Start();
+
+        foreach (Management mgm in managements)
+        {
+            List<RecertificationBase> currentRecerts =
+                await apiConnection.SendQueryAsync<List<RecertificationBase>>(FWO.Api.Client.Queries.RecertQueries.getOpenRecerts, new { ownerId = owner.Id, mgmId = mgm.Id });
+
+            if (currentRecerts.Count>0)
+            {
+                ReturnId[]? returnedIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RecertQueries.addRecertEntries, new  { recerts = currentRecerts })).ReturnIds;
+            }
+        }
+
+        watch.Stop();
+        refreshDuration = watch.ElapsedMilliseconds/1000.0;
+        secs = refreshDuration.ToString("0.00");
+        Log.WriteDebug("Refresh Recertification", $"refresh for owner {owner.Name} took {secs} seconds");
     }
 
     private async Task EditOwner(FwoOwner owner)

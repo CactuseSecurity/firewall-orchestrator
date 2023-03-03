@@ -1,7 +1,7 @@
-@using BlazorTable
 @using FWO.Api.Data
 @using FWO.Api.Client
 @using FWO.Config.Api
+@using FWO.Middleware.Client
 
 @page "/settings/gateways"
 @attribute [Authorize(Roles = "admin, auditor, fw-admin")]
@@ -193,7 +193,15 @@
         {
             devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
             deviceTypes = await apiConnection.SendQueryAsync<List<DeviceType>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceTypeDetails);
-            managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+
+            JwtReader jwt = new JwtReader(userConfig.User.Jwt);
+            jwt.Validate();
+            if (jwt.ContainsAllowedRole("admin") || jwt.ContainsAllowedRole("fw-admin"))
+                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+            else
+                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
+
+            // managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
         }
         catch (Exception exception)
         {

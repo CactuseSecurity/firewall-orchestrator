@@ -233,7 +233,7 @@ namespace FWO.Ui.Display
                     color = " style=\"color:rgb(255, 0, 0);\"";
                 }
             }
-            result = "<p" + color + ">" + countString + dateOnly + "</p><br />";
+            result = "<p" + color + ">" + countString + dateOnly + "</p>";
             return result;
         }
 

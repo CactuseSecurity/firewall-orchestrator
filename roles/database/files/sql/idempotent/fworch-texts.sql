@@ -883,7 +883,8 @@ INSERT INTO txt VALUES ('show_any_match',       'German',   'Any-Regeln anzeigen
 INSERT INTO txt VALUES ('show_any_match',       'English',  'show any rules');
 INSERT INTO txt VALUES ('single_line_per_rule', 'German',   'eine Zeile pro Regel');
 INSERT INTO txt VALUES ('single_line_per_rule', 'English',  'one line per rule');
-
+INSERT INTO txt VALUES ('recalc_recerts',       'German',   'Neuberechnung offene Rezertifizierungen');
+INSERT INTO txt VALUES ('recalc_recerts',       'English',  'Recalculate open recertifications');
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');
 INSERT INTO txt VALUES ('devices',				'English', 	'Devices');

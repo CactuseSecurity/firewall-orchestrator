@@ -619,7 +619,7 @@
         }
         else
         {
-            DisplayMessageInUi(null, userConfig.GetText("execute_selected"), "error: no id set", false);
+            DisplayMessageInUi(null, userConfig.GetText("execute_selected"), userConfig.GetText("missing_owner_id"), true);
         }
     }
 }

@@ -44,7 +44,7 @@
             {
                 <div class="form-group row">
                     <div class="col-sm-3">
-                        @if (AddStateMode)
+                        @if(AddStateMode)
                         {
                             <input type="number" class="form-control form-control-sm" @bind="actState.Id" />
                         }
@@ -97,12 +97,11 @@
             @if (SelectActionMode)
             {
                 <div class="col-sm-8">
-                    <select class="form-control form-control-sm" @bind="actionIdToAdd">
-                        @foreach (var action in actions)
-                        {
-                            <option value="@action.Id">@(action.Name)</option>
-                        }
-                    </select>
+                    <Dropdown ElementType="RequestStateAction" ElementToString="@(a => a.Name)" @bind-SelectedElement="selectedAction" Elements="actions">
+                        <ElementTemplate Context="action">
+                            @action.Name
+                        </ElementTemplate>
+                    </Dropdown>
                 </div>
             }
         </Body>
@@ -110,7 +109,14 @@
             <div class="btn-group">
                 <AuthorizeView Roles="admin">
                     <Authorized>
-                        <button class="btn btn-sm btn-primary" @onclick="AddActionToState">@(userConfig.GetText("add"))</button>
+                        @if(selectedAction != null)
+                        {
+                            <button class="btn btn-sm btn-primary" @onclick="AddActionToState">@(userConfig.GetText("add"))</button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("add"))</button>
+                        }
                     </Authorized>
                     <NotAuthorized>
                         <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("add"))</button>
@@ -139,7 +145,7 @@ else
     private RequestState actState = new RequestState();
 
     private List<RequestStateAction> actions = new List<RequestStateAction>();
-    private int actionIdToAdd;
+    private RequestStateAction? selectedAction;
 
     private bool EditStateMode = false;
     private bool AddStateMode = false;
@@ -243,6 +249,10 @@ else
             if(AddStateMode)
             {
                 states.Add(actState);
+                foreach(var action in actState.Actions)
+                {
+                    await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.addStateAction, new { stateId = actState.Id, actionId = action.Action.Id });
+                }
             }
             else
             {
@@ -287,6 +297,7 @@ else
 
     private void SelectAction()
     {
+        selectedAction = actions.Count > 0 ? actions.First() : null;
         SelectActionMode = true;
     }
 
@@ -299,8 +310,11 @@ else
     {
         try
         {
-            await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.addStateAction, new { stateId = actState.Id, actionId = actionIdToAdd });
-            actState.Actions.Add(new RequestStateActionDataHelper(){ Action = actions.FirstOrDefault(x => x.Id == actionIdToAdd) ?? throw new Exception("unknown action id") });
+            if(!AddStateMode)
+            {
+                await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.addStateAction, new { stateId = actState.Id, actionId = selectedAction?.Id ?? 0});
+            }
+            actState.Actions.Add(new RequestStateActionDataHelper(){ Action = selectedAction });
             SelectActionMode = false;
         }
         catch (Exception exception)
@@ -313,7 +327,10 @@ else
     {
         try
         {
-            await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.removeStateAction, new { stateId = actState.Id, actionId = action.Action.Id });
+            if(!AddStateMode)
+            {
+                await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.removeStateAction, new { stateId = actState.Id, actionId = action.Action.Id });
+            }
             actState.Actions.Remove(action);
         }
         catch (Exception exception)

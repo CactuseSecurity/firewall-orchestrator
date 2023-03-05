@@ -70,12 +70,11 @@
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAutoCreateImplTasks")):</label>
         <div class="col-sm-2">
-            <select class="form-control form-control-sm" @bind="configData!.ReqAutoCreateImplTasks">
-                @foreach (AutoCreateImplTaskOptions acitOption in Enum.GetValues(typeof(AutoCreateImplTaskOptions)))
-                {
-                    <option value="@acitOption">@(userConfig.GetText(acitOption.ToString()))</option>
-                }
-            </select>
+            <Dropdown @bind-SelectedElement="configData!.ReqAutoCreateImplTasks" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues(typeof(AutoCreateImplTaskOptions)).Cast<AutoCreateImplTaskOptions>()" >
+                <ElementTemplate Context="opt">
+                    @(userConfig.GetText(opt.ToString()))
+                </ElementTemplate>
+            </Dropdown>
         </div>
     </form>
 

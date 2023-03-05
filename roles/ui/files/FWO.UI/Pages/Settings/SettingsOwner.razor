@@ -128,13 +128,17 @@
                                 <input type="number" min="1" class="form-control form-control-sm" @bind="actRecCheckParams.RecertCheckOffset" />
                             </div>
                             <div class="col-sm-4">
-                                <Dropdown @bind-SelectedElement="actRecCheckParams.RecertCheckInterval" Elements="Enum.GetValues(typeof(Interval)).Cast<Interval>().Where(x => (x != Interval.Never && x != Interval.Years))" />
+                                <Dropdown @bind-SelectedElement="actRecCheckParams.RecertCheckInterval" ElementToString="@(i => userConfig.GetText(i.ToString()))" Elements="Enum.GetValues(typeof(Interval)).Cast<Interval>().Where(x => (x != Interval.Never && x != Interval.Years))" >
+                                    <ElementTemplate Context="interval">
+                                        @(userConfig.GetText(interval.ToString()))
+                                    </ElementTemplate>
+                                </Dropdown>
                             </div>
                             @if(actRecCheckParams.RecertCheckInterval == Interval.Weeks)
                             {
                                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("each_on")):</label>
                                 <div class="col-sm-4">
-                                    <Dropdown ElementType="DayOfWeek?" @bind-SelectedElement="selectedDayOfWeek" Elements="Enum.GetValues(typeof(DayOfWeek)).Cast<DayOfWeek?>()" Nullable="true">
+                                    <Dropdown ElementType="DayOfWeek?" ElementToString="@(d => userConfig.GetText(d.ToString()))" @bind-SelectedElement="selectedDayOfWeek" Elements="Enum.GetValues(typeof(DayOfWeek)).Cast<DayOfWeek?>()" Nullable="true">
                                         <ElementTemplate Context="weekday">
                                             @(weekday != null ? userConfig.GetText(weekday.ToString() ?? "undefined") : "-")
                                         </ElementTemplate>

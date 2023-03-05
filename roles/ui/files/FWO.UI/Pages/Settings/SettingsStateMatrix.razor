@@ -19,12 +19,11 @@
     <div class="form-group row">
         <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("type")):</label>
         <div class="col-sm-2">
-            <select class="form-control form-control-sm" @bind="actTaskType">
-                @foreach (TaskType type in availableTaskTypes)
-                {
-                    <option value="@type">@(userConfig.GetText(Enum.GetName(typeof(TaskType), type) ?? "unknown"))</option>
-                }
-            </select>
+            <Dropdown ElementType="TaskType" @bind-SelectedElement="actTaskType" ElementToString="@(t => userConfig.GetText(t.ToString()))" Elements="availableTaskTypes" >
+                <ElementTemplate Context="type">
+                    @(userConfig.GetText(type.ToString()))
+                </ElementTemplate>
+            </Dropdown>
         </div>
         <button class="btn btn-sm btn-primary" @onclick="InitMatrix">@(userConfig.GetText("select"))</button>
     </div>
@@ -33,8 +32,8 @@
     {
         <hr />
         <div class="form-group row">
-            <input id="phase" type="checkbox" @bind="actStateMatrix.GlobalMatrix[phase].Active" />
-            <label for="phase" class="col-form-label col-sm-2"><h4>@(userConfig.GetText(phase.ToString()))</h4></label>
+            <input type="checkbox" @bind="actStateMatrix.GlobalMatrix[phase].Active" />
+            <label class="col-form-label col-sm-2"><h4>@(userConfig.GetText(phase.ToString()))</h4></label>
         </div>
         @if(actStateMatrix.GlobalMatrix[phase].Active)
         {
@@ -70,36 +69,33 @@
             </div>
             <h5>@(userConfig.GetText("special_states"))</h5>
             <div class="form-group row">
-                <label for="lowestInputState" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_input_state")):</label>
-                <div class="col-sm-8">
-                    <select id="selectState" class="form-control form-control-sm col-sm-2" @bind="actStateMatrix.GlobalMatrix[phase].LowestInputState">
-                        @foreach (var state in states)
-                        {
-                            <option value="@state.Id">@(state.Name)</option>
-                        }
-                    </select>
+                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_input_state")):</label>
+                <div class="col-sm-2">
+                    <Dropdown ElementType="int" @bind-SelectedElement="actStateMatrix.GlobalMatrix[phase].LowestInputState" ElementToString="@(s => stateNames[s])" Elements="stateIds" >
+                        <ElementTemplate Context="stateId">
+                            @stateNames[stateId]
+                        </ElementTemplate>
+                    </Dropdown>
                 </div>
             </div>
             <div class="form-group row">
-                <label for="lowestStartedState" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_started_state")):</label>
-                <div class="col-sm-8">
-                    <select id="selectState" class="form-control form-control-sm col-sm-2" @bind="actStateMatrix.GlobalMatrix[phase].LowestStartedState">
-                        @foreach (var state in states)
-                        {
-                            <option value="@state.Id">@(state.Name)</option>
-                        }
-                    </select>
+                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_started_state")):</label>
+                <div class="col-sm-2">
+                    <Dropdown ElementType="int" @bind-SelectedElement="actStateMatrix.GlobalMatrix[phase].LowestStartedState" ElementToString="@(s => stateNames[s])" Elements="stateIds" >
+                        <ElementTemplate Context="stateId">
+                            @stateNames[stateId]
+                        </ElementTemplate>
+                    </Dropdown>
                 </div>
             </div>
             <div class="form-group row">
-                <label for="lowestEndState" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_end_state")):</label>
-                <div class="col-sm-8">
-                    <select id="selectState" class="form-control form-control-sm col-sm-2" @bind="actStateMatrix.GlobalMatrix[phase].LowestEndState">
-                        @foreach (var state in states)
-                        {
-                            <option value="@state.Id">@(state.Name)</option>
-                        }
-                    </select>
+                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_end_state")):</label>
+                <div class="col-sm-2">
+                    <Dropdown ElementType="int" @bind-SelectedElement="actStateMatrix.GlobalMatrix[phase].LowestEndState" ElementToString="@(s => stateNames[s])" Elements="stateIds" >
+                        <ElementTemplate Context="stateId">
+                            @stateNames[stateId]
+                        </ElementTemplate>
+                    </Dropdown>
                 </div>
             </div>
         }
@@ -172,7 +168,7 @@
                 @foreach(var stateId in actToStateIds)
                 {
                     <div class="form-group row">
-                        <label for="stateName" class="col-sm-6 col-form-label col-form-label-sm">@statesDict.Name[stateId]</label>
+                        <label class="col-sm-6 col-form-label col-form-label-sm">@statesDict.Name[stateId]</label>
                         <button class="btn btn-sm btn-danger" @onclick="() => DeleteStateId(stateId)">@(userConfig.GetText("remove"))</button>
                     </div>
                 }
@@ -180,12 +176,11 @@
                 @(userConfig.GetText("derived_state"))
                 <br><br>
                 <div class="col-sm-8">
-                    <select id="selectState" class="form-control form-control-sm" @bind="actStateMatrix.GlobalMatrix[actPhase].DerivedStates[actStateId]">
-                        @foreach (var state in states)
-                        {
-                            <option value="@state.Id">@(state.Name)</option>
-                        }
-                    </select>
+                    <Dropdown ElementType="int" @bind-SelectedElement="actStateMatrix.GlobalMatrix[actPhase].DerivedStates[actStateId]" ElementToString="@(s => stateNames[s])" Elements="stateIds" >
+                        <ElementTemplate Context="stateId">
+                            @stateNames[stateId]
+                        </ElementTemplate>
+                    </Dropdown>
                 </div>
             }
         </Body>
@@ -201,12 +196,11 @@
             @if (SelectStateMode)
             {
                 <div class="col-sm-8">
-                    <select id="selectState" class="form-control form-control-sm" @bind="stateIdToAdd">
-                        @foreach (var state in availableStates)
-                        {
-                            <option value="@state.Id">@(state.Name)</option>
-                        }
-                    </select>
+                    <Dropdown ElementType="int" @bind-SelectedElement="stateIdToAdd" ElementToString="@(s => stateNames[s])" Elements="stateIds" >
+                        <ElementTemplate Context="stateId">
+                            @stateNames[stateId]
+                        </ElementTemplate>
+                    </Dropdown>
                 </div>
             }
         </Body>
@@ -238,6 +232,8 @@ else
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private List<RequestState> states = new List<RequestState>();
+    private List<int> stateIds = new List<int>();
+    private Dictionary<int,string> stateNames = new Dictionary<int,string>();
     private List<int> actToStateIds = new List<int>();
     private List<RequestState> availableStates = new List<RequestState>();
     private RequestStateDict statesDict = new RequestStateDict();
@@ -269,6 +265,11 @@ else
         try
         {
             states = await apiConnection.SendQueryAsync<List<RequestState>>(FWO.Api.Client.Queries.RequestQueries.getStates);
+            foreach(var state in states)
+            {
+                stateIds.Add(state.Id);
+                stateNames.Add(state.Id,state.Name);
+            }
             statesDict = new RequestStateDict();
             await statesDict.Init(apiConnection);
         }
@@ -308,7 +309,7 @@ else
         {
             availableStates.Add(state);
         }
-        stateIdToAdd = (availableStates.Count > 0 ? availableStates[0].Id : 0);
+        stateIdToAdd = (availableStates.Count > 0 ? availableStates.First().Id : 0);
         SelectStateMode = true;
     }
 
@@ -341,7 +342,7 @@ else
         {
             availableStates.Add(state);
         }
-        stateIdToAdd = (availableStates.Count > 0 ? availableStates[0].Id : 0);
+        stateIdToAdd = (availableStates.Count > 0 ? availableStates.First().Id : 0);
         SelectStateMode = true;
     }
 

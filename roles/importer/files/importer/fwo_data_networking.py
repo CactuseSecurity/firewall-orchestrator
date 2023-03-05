@@ -150,7 +150,7 @@ def get_matching_route_obj(destination_ip, routing_table, dev_id):
         if route.routeMatches(destination_ip, dev_id):
             return route
 
-    logger.error('src nat behind interface: found no matching route in routing table - no default route?!')
+    logger.warning('src nat behind interface: found no matching route in routing table - no default route?!')
     return None
 
 

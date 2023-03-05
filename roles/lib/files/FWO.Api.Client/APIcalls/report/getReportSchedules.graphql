@@ -1,5 +1,5 @@
 query getReportSchedules {
-  report_schedule {
+  report_schedule(order_by: {report_schedule_id: desc}) {
     report_schedule_id
     report_schedule_name
     report_schedule_every
@@ -19,7 +19,7 @@ query getReportSchedules {
       report_filter
       report_parameters
     }
-    report_schedule_formats{
+    report_schedule_formats {
       report_schedule_format_name
     }
     report_schedule_counter

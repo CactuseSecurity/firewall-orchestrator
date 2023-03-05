@@ -6631,9 +6631,18 @@
                       "last_recert_check"
                     ],
                     "filter": {
-                      "tenant_id": {
-                        "_eq": "x-hasura-tenant-id"
-                      }
+                      "_or": [
+                        {
+                          "tenant_id": {
+                            "_is_null": true
+                          }
+                        },
+                        {
+                          "tenant_id": {
+                            "_eq": "x-hasura-tenant-id"
+                          }
+                        }
+                      ]
                     },
                     "allow_aggregations": true
                   }
@@ -18915,6 +18924,12 @@
             {
               "function": {
                 "name": "get_visible_managements_per_tenant",
+                "schema": "public"
+              }
+            },
+            {
+              "function": {
+                "name": "recert_get_one_owner_one_mgm",
                 "schema": "public"
               }
             }

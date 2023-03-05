@@ -105,7 +105,15 @@
     {
         try
         {
-            managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+            JwtReader jwt = new JwtReader(userConfig.User.Jwt);
+            jwt.Validate();
+
+            if (jwt.ContainsAllowedRole("admin") || jwt.ContainsAllowedRole("fw-admin"))
+                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+            else
+                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
+
+            // managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
         }
         catch (Exception exception)
         {
@@ -197,7 +205,17 @@
         {
             RemoveSampleDataMode = false;
             workInProgress = true;
-            List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+
+            JwtReader jwt = new JwtReader(userConfig.User.Jwt);
+            jwt.Validate();
+
+            List<Management> managements = new List<Management>();
+            if (jwt.ContainsAllowedRole("admin") || jwt.ContainsAllowedRole("fw-admin"))
+                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+            else
+                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
+
+            // List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
             int deletedSampleManagements = 0;
             foreach (var management in managements)
             {

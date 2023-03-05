@@ -620,6 +620,7 @@ $$ LANGUAGE plpgsql;
 SELECT * FROM purge_view_rule_with_owner ();
 DROP FUNCTION purge_view_rule_with_owner();
 
+-- LargeOwnerChange: remove MATERIALIZED for small installations
 CREATE MATERIALIZED VIEW view_rule_with_owner AS 
 	SELECT DISTINCT r.rule_num_numeric, r.track_id, r.action_id, r.rule_from_zone, r.rule_to_zone, r.dev_id, r.mgm_id, r.rule_uid, uno.rule_id, uno.owner_id, uno.owner_name, uno.rule_last_certified, uno.rule_last_certifier, 
 	rule_action, rule_name, rule_comment, rule_track, rule_src_neg, rule_dst_neg, rule_svc_neg,
@@ -632,9 +633,23 @@ CREATE MATERIALIZED VIEW view_rule_with_owner AS
 		r.dev_id, r.mgm_id, r.rule_uid, rule_num_numeric, track_id, action_id, 	rule_action, rule_name, rule_comment, rule_track, rule_src_neg, rule_dst_neg, rule_svc_neg,
 		rule_head_text, rule_disabled, access_rule, xlate_rule, nat_rule;
 
--- CREATE OR REPLACE VIEW view_recert_overdue_rules AS 
--- 	SELECT * FROM view_rule_with_owner as rules
--- 	WHERE now()::DATE -recert_interval> (select max(recert_date) from recertification where recertified and owner_id=rules.owner_id);
+-------------------------
+-- recert refresh trigger
+
+create or replace function refresh_view_rule_with_owner()
+returns trigger language plpgsql
+as $$
+begin
+    refresh materialized view view_rule_with_owner;
+    return null;
+end $$;
+
+drop trigger IF exists refresh_view_rule_with_owner_delete_trigger ON recertification CASCADE;
+
+create trigger refresh_view_rule_with_owner_delete_trigger
+after delete on recertification for each statement 
+execute procedure refresh_view_rule_with_owner();
+
 
 ---------------------------------------------------------------------------------------------
 -- GRANTS on exportable Views

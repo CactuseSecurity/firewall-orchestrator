@@ -36,7 +36,11 @@
         </Template>
     </Column>
     <Column TableItem="ReportFile" Title="@(userConfig.GetText("template"))" Field="@(reportFile => reportFile.Template.Name)" Filterable="true"/>
-    <Column TableItem="ReportFile" Title="@(userConfig.GetText("generation_date"))" Field="@(reportFile => reportFile.GenerationDateStart)" Sortable="true" Filterable="true"/>
+    <Column TableItem="ReportFile" Title="@(userConfig.GetText("generation_date"))" Field="@(reportFile => reportFile.GenerationDateStart)" Sortable="true" Filterable="true">
+        <Template>
+            @(context.GenerationDateStart.ToString("yyyy-MM-dd HH:mm:ssK"))
+        </Template>
+    </Column>
     <Column TableItem="ReportFile" Title="@(userConfig.GetText("owner"))" Field="@(reportFile => reportFile.Owner.Name)" Sortable="true" Filterable="true"/>
     <Column TableItem="ReportFile" Title="@(userConfig.GetText("description"))" Field="@(reportFile => reportFile.Description)" Sortable="true" Filterable="true"/>
 </Table>

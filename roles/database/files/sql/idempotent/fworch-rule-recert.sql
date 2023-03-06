@@ -242,9 +242,9 @@ BEGIN
 			(I.start_time::timestamp + make_interval (days => i_super_owner_interval))::TIMESTAMP AS next_recert_date
 		FROM 
 			recertification C 
-			LEFT JOIN view_rule_with_owner V ON (C.owner_id=V.owner_id AND C.rule_id=V.rule_id)
+			LEFT JOIN view_rule_with_owner V ON (C.owner_id=V.owner_id)
 			LEFT JOIN rule R ON (V.rule_id=R.rule_id AND R.rule_id=C.rule_id)			
-			LEFT JOIN rule_metadata M ON (R.rule_uid=M.rule_uid AND R.dev_id=M.dev_id)
+			LEFT JOIN rule_metadata M ON (R.rule_uid=M.rule_uid AND R.dev_id=M.dev_id AND C.rule_metadata_id=M.rule_metadata_id)
 			LEFT JOIN owner O ON (V.owner_id=O.id)
 			LEFT JOIN import_control I ON (R.rule_create=I.control_id)
 		WHERE V.owner_id IS NULL AND R.mgm_id=i_mgm_id AND R.active AND NOT C.recertified AND NOT recert_date IS NULL;
@@ -282,12 +282,12 @@ BEGIN
 			(I.start_time::timestamp + make_interval (days => i_super_owner_interval))::TIMESTAMP AS next_recert_date
 		FROM 
 			recertification C 
-			LEFT JOIN view_rule_with_owner V ON (C.owner_id=V.owner_id AND C.rule_id=V.rule_id)
+			LEFT JOIN view_rule_with_owner V ON (C.owner_id=V.owner_id)
 			LEFT JOIN rule R ON (V.rule_id=R.rule_id AND R.rule_id=C.rule_id)			
-			LEFT JOIN rule_metadata M ON (R.rule_uid=M.rule_uid AND R.dev_id=M.dev_id)
+			LEFT JOIN rule_metadata M ON (R.rule_uid=M.rule_uid AND R.dev_id=M.dev_id AND C.rule_metadata_id=M.rule_metadata_id)
 			LEFT JOIN owner O ON (V.owner_id=O.id)
 			LEFT JOIN import_control I ON (R.rule_create=I.control_id)
-		WHERE V.owner_id IS NULL AND R.mgm_id=i_mgm_id AND R.active AND NOT C.recertified AND NOT recert_date IS NULL;	
+		WHERE V.owner_id IS NULL AND R.mgm_id=i_mgm_id AND R.active AND NOT C.recertified AND NOT recert_date IS NULL;
 	END IF;
 END;
 $$ LANGUAGE plpgsql STABLE;

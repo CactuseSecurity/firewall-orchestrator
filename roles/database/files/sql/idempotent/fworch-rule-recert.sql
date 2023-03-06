@@ -204,8 +204,9 @@ BEGIN
 		b_super_owner := TRUE;
 	END IF;
 
+	-- ignore rule_id/owner_id combinations with existing decertification entries
+	-- owner_id=0 and not recertified and NOT recert_date is null
 	IF b_super_owner THEN
-
 		SELECT INTO i_super_owner_interval recert_interval FROM OWNER WHERE is_default;
 
 		RETURN QUERY
@@ -226,7 +227,27 @@ BEGIN
 			LEFT JOIN rule_metadata M ON (R.rule_uid=M.rule_uid AND R.dev_id=M.dev_id)
 			LEFT JOIN owner O ON (V.owner_id=O.id)
 			LEFT JOIN import_control I ON (R.rule_create=I.control_id) 
-		WHERE V.owner_id IS NULL AND R.mgm_id=i_mgm_id AND R.active;
+		WHERE V.owner_id IS NULL AND R.mgm_id=i_mgm_id AND R.active
+		EXCEPT
+		SELECT
+			NULL::bigint AS id,
+			M.rule_metadata_id, 
+			R.rule_id, 
+			V.matches::VARCHAR as ip_match, 
+			i_owner_id,
+			NULL::VARCHAR AS user_dn,
+			FALSE::BOOLEAN AS recertified,
+			NULL::TIMESTAMP AS recert_date,
+			NULL::VARCHAR AS comment,
+			(I.start_time::timestamp + make_interval (days => i_super_owner_interval))::TIMESTAMP AS next_recert_date
+		FROM 
+			recertification C 
+			LEFT JOIN view_rule_with_owner V ON (C.owner_id=V.owner_id AND C.rule_id=V.rule_id)
+			LEFT JOIN rule R ON (V.rule_id=R.rule_id AND R.rule_id=C.rule_id)			
+			LEFT JOIN rule_metadata M ON (R.rule_uid=M.rule_uid AND R.dev_id=M.dev_id)
+			LEFT JOIN owner O ON (V.owner_id=O.id)
+			LEFT JOIN import_control I ON (R.rule_create=I.control_id)
+		WHERE V.owner_id IS NULL AND R.mgm_id=i_mgm_id AND R.active AND NOT C.recertified AND NOT recert_date IS NULL;
 	ELSE
 		RETURN QUERY
 		SELECT
@@ -246,7 +267,27 @@ BEGIN
 			LEFT JOIN rule_metadata M ON (R.rule_uid=M.rule_uid AND R.dev_id=M.dev_id)
 			LEFT JOIN owner O ON (V.owner_id=O.id)
 			LEFT JOIN import_control I ON (R.rule_create=I.control_id) 
-		WHERE V.owner_id=i_owner_id AND R.mgm_id=i_mgm_id AND R.active;
+		WHERE V.owner_id=i_owner_id AND R.mgm_id=i_mgm_id AND R.active
+		EXCEPT
+		SELECT
+			NULL::bigint AS id,
+			M.rule_metadata_id, 
+			R.rule_id, 
+			V.matches::VARCHAR as ip_match, 
+			i_owner_id,
+			NULL::VARCHAR AS user_dn,
+			FALSE::BOOLEAN AS recertified,
+			NULL::TIMESTAMP AS recert_date,
+			NULL::VARCHAR AS comment,
+			(I.start_time::timestamp + make_interval (days => i_super_owner_interval))::TIMESTAMP AS next_recert_date
+		FROM 
+			recertification C 
+			LEFT JOIN view_rule_with_owner V ON (C.owner_id=V.owner_id AND C.rule_id=V.rule_id)
+			LEFT JOIN rule R ON (V.rule_id=R.rule_id AND R.rule_id=C.rule_id)			
+			LEFT JOIN rule_metadata M ON (R.rule_uid=M.rule_uid AND R.dev_id=M.dev_id)
+			LEFT JOIN owner O ON (V.owner_id=O.id)
+			LEFT JOIN import_control I ON (R.rule_create=I.control_id)
+		WHERE V.owner_id IS NULL AND R.mgm_id=i_mgm_id AND R.active AND NOT C.recertified AND NOT recert_date IS NULL;	
 	END IF;
 END;
 $$ LANGUAGE plpgsql STABLE;

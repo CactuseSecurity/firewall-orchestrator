@@ -56,11 +56,6 @@ namespace FWO.Api.Data
             return deviceList;
         }
 
-        public void SetDeviceList(int[] devArray)
-        {
-            deviceList = devArray.ToList();
-        }
-
         public void SetDeviceList(List<Device> devList)
         {
             deviceList = new List<int>();

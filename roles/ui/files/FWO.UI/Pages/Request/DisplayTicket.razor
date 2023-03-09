@@ -283,14 +283,27 @@
 
     private async Task InitSaveTicket()
     {
-        if(ReqHandler.ActTicket.Tasks.Count == 0)
+        if (CheckTicketValues())
         {
-            await ReqHandler.SaveTicket(ReqHandler.ActTicket);
-            await Close();
+            if(ReqHandler.ActTicket.Tasks.Count == 0)
+            {
+                await ReqHandler.SaveTicket(ReqHandler.ActTicket);
+                await Close();
+            }
+            else
+            {
+                ReqHandler.SetTicketPopUpOpt(ObjAction.displaySaveTicket);
+            }
         }
-        else
+    }
+
+    private bool CheckTicketValues()
+    {
+        if (ReqHandler.ActTicket.Title == null || ReqHandler.ActTicket.Title == "")
         {
-            ReqHandler.SetTicketPopUpOpt(ObjAction.displaySaveTicket);
+            DisplayMessageInUi(null, userConfig.GetText("save_request"), userConfig.GetText("E5102"), true);
+            return false;
         }
+        return true;
     }
 }

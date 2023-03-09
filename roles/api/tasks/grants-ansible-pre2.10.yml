@@ -7,3 +7,11 @@
   become: true
   become_user: postgres
 
+
+- name: set grants request schema before ansible 2.10
+  postgresql_query:
+    db: "{{ fworch_db_name }}"
+    query: "GRANT USAGE ON SCHEMA request TO dbbackupusers; Grant select on ALL TABLES in SCHEMA request to group dbbackupusers; ALTER DEFAULT PRIVILEGES IN SCHEMA request GRANT SELECT ON TABLES TO group dbbackupusers;"
+    as_single_query: "{{ postgresql_query_as_single_query }}"
+  become: true
+  become_user: postgres

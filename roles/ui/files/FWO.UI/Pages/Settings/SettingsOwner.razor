@@ -1,14 +1,13 @@
-﻿@using FWO.Api.Client
+﻿@using System.Net
+@using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.Config.Api.Data
-@using System.Net
 @using FWO.Middleware.Client
 @using FWO.Middleware.RequestParameters
 @using RestSharp
-@using System.Diagnostics
 @using FWO.Api.Data
 @using FWO.Logging
-
+@using FWO.Recert
 
 @page "/settings/owners"
 @attribute [Authorize(Roles = "admin, auditor")]
@@ -30,19 +29,26 @@
         }
         <AuthorizeView Roles="admin" Context="ctx">
             <Authorized>
-                @if (recertCalcInProgress == false)
-                    {
-                        <button class="btn btn-sm btn-info m-2" @onclick:preventDefault="true" @onclick="RecalcRecerts">@(userConfig.GetText("recalc_recerts"))</button>
-                    }
-                    else
-                    {
-                        <div class="spinner-border text-primary align-self-center" role="status"></div>
-                    }
+                @if (!recertCalcInProgress)
+                {
+                    <button class="btn btn-sm btn-info m-2" @onclick:preventDefault="true" @onclick="@( async () => { 
+                        recertCalcInProgress = true; 
+                        if (await recertRefresh.RecalcRecerts())
+                        {
+                            DisplayMessageInUi(null, userConfig.GetText("fetch_data"), "Error during recertification refresh", true);
+                        }
+                        recertCalcInProgress = false; 
+                    })">@(userConfig.GetText("recalc_recerts"))</button>
+                }
+                else
+                {
+                    <div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div>
+                }
             </Authorized>
         </AuthorizeView>
         <AuthorizeView Roles="auditor" Context="ctx">
             <Authorized>
-                <button disabled class="btn btn-sm btn-info m-2" @onclick="RecalcRecerts">@(userConfig.GetText("recalc_recerts"))</button>
+                <button disabled class="btn btn-sm btn-info m-2">@(userConfig.GetText("recalc_recerts"))</button>
             </Authorized>
         </AuthorizeView>
 
@@ -380,7 +386,8 @@ else
     private FwoOwner actOwner = new FwoOwner();
     private Tenant? selectedTenant;
     private DayOfWeek? selectedDayOfWeek;
-
+    private RecertRefresh recertRefresh;
+    private List<Management> managements;
     private List<UserGroup> ownerGroups = new List<UserGroup>();
     private List<Tenant> tenants = new List<Tenant>();
 
@@ -438,7 +445,8 @@ else
         {
             owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
             AnalyseSampleOwners();
-
+            managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
+            recertRefresh = new RecertRefresh(userConfig, apiConnection);
             ownerGroups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi, true);
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
             uiUsers = uiUsers.FindAll(x => x.DbId != 0);
@@ -493,72 +501,6 @@ else
     {
         AddOwnerMode = true;
         await EditOwner(new FwoOwner());
-    }
-
-    private async Task RecalcRecerts()
-    {
-        if (recertCalcInProgress == false)
-        {
-            recertCalcInProgress = true;
-            double refreshDuration = 0;
-            Stopwatch watch = new System.Diagnostics.Stopwatch();
-            string secs = "";
-            var noVariables = new {};
-
-            try
-            {
-                JwtReader jwt = new JwtReader(userConfig.User.Jwt);
-                jwt.Validate();
-
-                List<Management> managements = new List<Management>();
-                if (jwt.ContainsAllowedRole("admin") || jwt.ContainsAllowedRole("fw-admin"))
-                    managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
-                else
-                    managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
-
-                watch.Start();
-                ReturnId[]? returnIds = 
-                    (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RecertQueries.clearOpenRecerts, noVariables)).ReturnIds;
-                // the clearOpenRecerts refreshes materialized view view_rule_with_owner as a side-effect
-                watch.Stop();
-                refreshDuration = watch.ElapsedMilliseconds/1000.0;
-                secs = refreshDuration.ToString("0.00");
-                Log.WriteDebug("Refresh materialized view view_rule_with_owner", $"refresh took {secs} seconds");
-
-                foreach (FwoOwner owner in owners)
-                    await RecalcRecertsOfOwner(owner, managements);
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
-            }
-            recertCalcInProgress = false;
-        }
-
-    }
-
-    private async Task RecalcRecertsOfOwner(FwoOwner owner, List<Management> managements)
-    {
-        double refreshDuration = 0;
-        Stopwatch watch = new System.Diagnostics.Stopwatch();
-        string secs = "";
-        watch.Start();
-
-        foreach (Management mgm in managements)
-        {
-            List<RecertificationBase> currentRecerts =
-                await apiConnection.SendQueryAsync<List<RecertificationBase>>(FWO.Api.Client.Queries.RecertQueries.getOpenRecerts, new { ownerId = owner.Id, mgmId = mgm.Id });
-
-            if (currentRecerts.Count>0)
-            {
-                ReturnId[]? returnedIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RecertQueries.addRecertEntries, new  { recerts = currentRecerts })).ReturnIds;
-            }
-        }
-
-        watch.Stop();
-        refreshDuration = watch.ElapsedMilliseconds/1000.0;
-        secs = refreshDuration.ToString("0.00");
-        Log.WriteDebug("Refresh Recertification", $"refresh for owner {owner.Name} took {secs} seconds");
     }
 
     private async Task EditOwner(FwoOwner owner)

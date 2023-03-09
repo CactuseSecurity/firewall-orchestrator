@@ -266,3 +266,9 @@ adding report template format fk and permissions
 
 ### 6.1.4 - 27.01.2023 DEVELOP
 - prepare delete rule requests
+
+### 6.2 - 15.03.2023 MAIN
+- 
+- enhanced recertification module: adding ip-base recertification
+- adding import modules for Palo Alto and Azure Firewall
+- Workflow Module: adding delete rule request and integrated path analysis into workflow

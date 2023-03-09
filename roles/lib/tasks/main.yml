@@ -46,8 +46,18 @@
         dest: "{{ lib_dir }}"
         owner: "{{ fworch_user }}"
         group: "{{ fworch_group }}"
-      with_fileglob:
-        - "*"
+      loop:
+        - FWO.Api.Client
+        - FWO.Middleware
+        - FWO.Middleware.Client
+        - FWO.Logging
+        - FWO.Config.Api
+        - FWO.Config.File
+        - FWO.Recert
+        - FWO.Report
+        - FWO.Report.Filter
+        - FWO.DeviceAutoDiscovery
+        - FWO.Mail
 
     - name: finalize handler for datarecovery
       set_fact:

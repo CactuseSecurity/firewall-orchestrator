@@ -53,6 +53,7 @@
         - FWO.Logging
         - FWO.Config.Api
         - FWO.Config.File
+        - FWO.Recert
         - FWO.Report
         - FWO.Report.Filter
         - FWO.DeviceAutoDiscovery

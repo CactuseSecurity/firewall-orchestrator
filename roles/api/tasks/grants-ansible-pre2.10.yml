@@ -6,6 +6,4 @@
   become: true
   become_user: postgres
   loop:
-    - public
     - hdb_catalog
-    - request

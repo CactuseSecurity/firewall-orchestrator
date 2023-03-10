@@ -75,6 +75,14 @@
   when: demo_data_present.query_result == []
   become: true
 
+- name: settings grants for hasura schema old ansible to allow dbbackupusers access to all database shemas
+  include_tasks: grants-ansible-pre2.10.yml
+  when: ansible_version.full is version('2.10', '<')
+
+- name: settings grants for hasura schema new ansible to allow dbbackupusers access to all database shemas
+  include_tasks: grants-ansible-2.10.yml
+  when: ansible_version.full is version('2.10', '>=')
+
 - name: remove temp importer_password from install host
   file:
     path: "{{ importer_password_file_on_installer }}"

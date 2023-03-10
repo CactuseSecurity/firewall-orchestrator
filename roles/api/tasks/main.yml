@@ -51,14 +51,6 @@
 - name: hasura install 
   import_tasks: hasura-install.yml
 
-- name: settings grants for hasura schema old ansible
-  include_tasks: grants-ansible-pre2.10.yml
-  when: ansible_version.full is version('2.10', '<')
-
-- name: settings grants for hasura schema new ansible
-  include_tasks: grants-ansible-2.10.yml
-  when: ansible_version.full is version('2.10', '>=')
-
 - name: include upgrade script
   import_tasks: run-upgrades.yml
   when: "installation_mode == 'upgrade'"

@@ -348,8 +348,7 @@
 
     private List<RequestStateAction> offeredActions = new List<RequestStateAction>();
     private string allComments = "";
-    private IEnumerable<Device> selectedDevices { get; set; } = new Device[]{};
-    //private List<Device> selectedDevices { get; set; } = new List<Device>();
+    private IEnumerable<Device> selectedDevices { get; set; } = new List<Device>();
     private Device? actRuleDevice;
     private RuleAction? actRuleAction;
     private Tracking? actTracking;
@@ -419,13 +418,13 @@
     private async Task Reset()
     {
         offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActReqTask, RequestObjectScopes.RequestTask, ReqHandler.Phase);
-        //List<Device> devicesToAdd = new List<Device>{};
+        selectedDevices = new List<Device>();
         foreach(int devId in ReqHandler.ActReqTask.getDeviceList().ToArray())
         {
             Device? dev = ReqHandler.Devices.FirstOrDefault(x => x.Id == devId);
             if(dev != null)
             {
-                selectedDevices.Append<Device>(dev);
+                selectedDevices = selectedDevices.Append<Device>(dev);
             }
         }
         actRuleDevice = ReqHandler.Devices.FirstOrDefault(x => x.Id == ReqHandler.ActReqTask.getRuleDeviceId());
@@ -444,7 +443,7 @@
         List<string> devNames = new();
         foreach(var dev in selectedDevices)
         {
-            devNames.Add(dev.Name);
+            devNames.Add(dev?.Name ?? "");
         }
         return string.Join(", ", devNames);
     }
@@ -593,7 +592,7 @@
         }
         else if (actTaskType == TaskType.rule_delete)
         {
-            if (actRuleDevice.Id == null || actRules.Count == 0)
+            if (actRuleDevice == null || actRules.Count == 0)
             {
                 DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
                 return false;

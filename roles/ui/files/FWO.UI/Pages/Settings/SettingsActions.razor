@@ -115,12 +115,12 @@
                     <div class="col-sm-4">
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("phase")):</label>
-                            <Dropdown ElementType="string" @bind-SelectedElement="selectedPhase" ElementToString="@(p => userConfig.GetText(p))" Elements="Enum.GetNames(typeof(WorkflowPhases))" Nullable="true">
+                            <Dropdown ElementType="string" @bind-SelectedElement="selectedPhase" ElementToString="@(p => userConfig.GetText(p))" 
+                                    Elements="Enum.GetNames(typeof(WorkflowPhases))" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))" >
                                 <ElementTemplate Context="phase">
                                     @(userConfig.GetText(phase))
                                 </ElementTemplate>
                             </Dropdown>
-                            @* <option value="">@(userConfig.GetText("all"))</option> *@
                         </div>
                     </div>
                     <div class="col-sm-4">
@@ -138,12 +138,12 @@
                         <div class="col-sm-4">
                             <div class="form-group row">
                                 <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("task_type")):</label>
-                                <Dropdown ElementType="TaskType?" @bind-SelectedElement="selectedTaskType" ElementToString="@(t => userConfig.GetText(t.ToString()))" Elements="availableTaskTypes.Where(x => x != TaskType.master).Cast<TaskType?>()" Nullable="true">
+                                <Dropdown ElementType="TaskType?" @bind-SelectedElement="selectedTaskType" ElementToString="@(t => userConfig.GetText(t?.ToString() ?? "undefined"))" 
+                                        Elements="availableTaskTypes.Where(x => x != TaskType.master).Cast<TaskType?>()" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))">
                                     <ElementTemplate Context="type">
-                                        @(userConfig.GetText(type?.ToString()))
+                                        @(userConfig.GetText(type?.ToString() ?? "undefined"))
                                     </ElementTemplate>
                                 </Dropdown>
-                                @* <option value="">@(userConfig.GetText("all"))</option> *@
                             </div>
                         </div>
                     }
@@ -351,7 +351,7 @@ else
         try
         {
             actAction.Phase = selectedPhase != null ? selectedPhase : "";
-            actAction.TaskType = selectedTaskType != null ? selectedTaskType.ToString() : "";
+            actAction.TaskType = selectedTaskType?.ToString() ?? "";
             actApprovalParams.StateId = selectedState.Id;
             actApprovalParams.ApproverGroup = selectedUserGroup != null ? selectedUserGroup.Dn : "";
             switch(actAction.ActionType)

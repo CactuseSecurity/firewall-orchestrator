@@ -167,7 +167,7 @@
                             {
                                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("each_on")):</label>
                                 <div class="col-sm-4">
-                                    <Dropdown ElementType="DayOfWeek?" ElementToString="@(d => userConfig.GetText(d.ToString()))" @bind-SelectedElement="selectedDayOfWeek" Elements="Enum.GetValues(typeof(DayOfWeek)).Cast<DayOfWeek?>()" Nullable="true">
+                                    <Dropdown ElementType="DayOfWeek?" ElementToString="@(d => userConfig.GetText(d?.ToString() ?? "undefined"))" @bind-SelectedElement="selectedDayOfWeek" Elements="Enum.GetValues(typeof(DayOfWeek)).Cast<DayOfWeek?>()" Nullable="true">
                                         <ElementTemplate Context="weekday">
                                             @(weekday != null ? userConfig.GetText(weekday.ToString() ?? "undefined") : "-")
                                         </ElementTemplate>

@@ -152,8 +152,8 @@
     </Footer>
 </PopUp>
 
-<ConfirmDelete Display="DeleteManagementMode" PerformAction="DeleteManagement" Title="@userConfig.GetText("delete_management")" DeleteMessage="@deleteMessage"/>
-<ConfirmDelete Display="DeleteDeviceMode" PerformAction="DeleteDevice" Title="@userConfig.GetText("delete_gateway")" DeleteMessage="@deleteMessage"/>
+<ConfirmDelete @bind-Display="DeleteManagementMode" PerformAction="DeleteManagement" Title="@userConfig.GetText("delete_management")" DeleteMessage="@deleteMessage"/>
+<ConfirmDelete @bind-Display="DeleteDeviceMode" PerformAction="DeleteDevice" Title="@userConfig.GetText("delete_gateway")" DeleteMessage="@deleteMessage"/>
 
 
 @code

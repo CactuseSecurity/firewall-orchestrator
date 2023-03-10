@@ -238,7 +238,7 @@
         </Footer>
     </PopUp>
 
-    <ConfirmDelete Display="DeleteActionMode" PerformAction="DeleteAction" Title="@userConfig.GetText("delete_action")" DeleteMessage="@(userConfig.GetText("U5502") + actAction.Name + "?")"/>
+    <ConfirmDelete @bind-Display="DeleteActionMode" PerformAction="DeleteAction" Title="@userConfig.GetText("delete_action")" DeleteMessage="@(userConfig.GetText("U5502") + actAction.Name + "?")"/>
 }
 else
 {

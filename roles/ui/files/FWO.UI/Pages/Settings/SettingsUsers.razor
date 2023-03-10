@@ -233,8 +233,8 @@
     </Footer>
 </PopUp>
 
-<ConfirmDelete Display="DeleteMode" PerformAction="Delete" Title="@userConfig.GetText("delete_user")" DeleteMessage="@deleteMessage"/>
-<ConfirmDelete Display="SampleRemoveMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@sampleRemoveMessage" DeleteAllowed="sampleRemoveAllowed"/>
+<ConfirmDelete @bind-Display="DeleteMode" PerformAction="Delete" Title="@userConfig.GetText("delete_user")" DeleteMessage="@deleteMessage"/>
+<ConfirmDelete @bind-Display="SampleRemoveMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@sampleRemoveMessage" DeleteAllowed="sampleRemoveAllowed"/>
 <InProgress Display="workInProgress"/>
 
 

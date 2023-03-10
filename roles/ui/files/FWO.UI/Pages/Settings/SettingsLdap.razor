@@ -202,7 +202,7 @@
     </Footer>
 </PopUp>
 
-<ConfirmDelete Display="DeleteMode" PerformAction="Delete" Title="@userConfig.GetText("delete_ldap_conn")" DeleteMessage="@deleteMessage"/>
+<ConfirmDelete @bind-Display="DeleteMode" PerformAction="Delete" Title="@userConfig.GetText("delete_ldap_conn")" DeleteMessage="@deleteMessage"/>
 
 @code
 {

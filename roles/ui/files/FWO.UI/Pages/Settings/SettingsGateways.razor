@@ -154,7 +154,7 @@
     </Footer>
 </PopUp>
 
-<ConfirmDelete Display="DeleteMode" PerformAction="Delete" Title="@userConfig.GetText("delete_gateway")" DeleteMessage="@(userConfig.GetText("U5103") + " " + actDevice.Name + "?")"/>
+<ConfirmDelete @bind-Display="DeleteMode" PerformAction="Delete" Title="@userConfig.GetText("delete_gateway")" DeleteMessage="@(userConfig.GetText("U5103") + " " + actDevice.Name + "?")"/>
 <InProgress Display="workInProgress"/>
 
 

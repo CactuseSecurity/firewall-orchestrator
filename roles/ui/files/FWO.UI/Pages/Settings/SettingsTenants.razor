@@ -195,8 +195,8 @@
     </Footer>
 </PopUp>
 
-<ConfirmDelete Display="DeleteTenantMode" PerformAction="DeleteTenant" Title="@userConfig.GetText("delete_tenant")" DeleteMessage="@deleteTenantMessage" DeleteAllowed="DeleteTenantAllowed"/>
-<ConfirmDelete Display="SampleRemoveMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@sampleRemoveMessage" DeleteAllowed="sampleRemoveAllowed"/>
+<ConfirmDelete @bind-Display="DeleteTenantMode" PerformAction="DeleteTenant" Title="@userConfig.GetText("delete_tenant")" DeleteMessage="@deleteTenantMessage" DeleteAllowed="DeleteTenantAllowed"/>
+<ConfirmDelete @bind-Display="SampleRemoveMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@sampleRemoveMessage" DeleteAllowed="sampleRemoveAllowed"/>
 <InProgress Display="workInProgress"/>
 
 

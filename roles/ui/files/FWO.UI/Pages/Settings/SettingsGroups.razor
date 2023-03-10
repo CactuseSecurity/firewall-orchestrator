@@ -195,8 +195,8 @@
     </Footer>
 </PopUp>
 
-<ConfirmDelete Display="DeleteGroupMode" PerformAction="DeleteGroup" Title="@userConfig.GetText("delete_group")" DeleteMessage="@deleteGroupMessage" DeleteAllowed="DeleteGroupAllowed"/>
-<ConfirmDelete Display="SampleRemoveMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@sampleRemoveMessage" DeleteAllowed="sampleRemoveAllowed"/>
+<ConfirmDelete @bind-Display="DeleteGroupMode" PerformAction="DeleteGroup" Title="@userConfig.GetText("delete_group")" DeleteMessage="@deleteGroupMessage" DeleteAllowed="DeleteGroupAllowed"/>
+<ConfirmDelete @bind-Display="SampleRemoveMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@sampleRemoveMessage" DeleteAllowed="sampleRemoveAllowed"/>
 <InProgress Display="workInProgress"/>
 
 
@@ -314,7 +314,6 @@
 
     private async Task Save()
     {
-        EditGroupMode = false;
         try
         {
             bool shortened = false;

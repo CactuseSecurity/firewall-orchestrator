@@ -97,6 +97,7 @@
 				_selectedElements = value;
 				DisplaySelection(_selectedElements);
 				SelectedElementsChanged.InvokeAsync(value);
+				SelectedElementChanged.InvokeAsync(value.FirstOrDefault());
 			}
 		}
 	}
@@ -159,6 +160,7 @@
 	private async void OnGlobalResize()
 	{
 		Toggled = true;
+		DisplaySelection(SelectedElements);
 		await InvokeAsync(StateHasChanged);
 	}
 
@@ -167,6 +169,7 @@
 		if (!await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-{Id}"))
 		{
 			Toggled = true;
+			DisplaySelection(SelectedElements);
 			await InvokeAsync(StateHasChanged);
 		}
 	}
@@ -178,6 +181,7 @@
 			if (!await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-{Id}"))
 			{
 				Toggled = true;
+				DisplaySelection(SelectedElements);
 				await InvokeAsync(StateHasChanged);
 			}
 		}
@@ -232,7 +236,10 @@
 
 	public async Task UnselectElement(ElementType element)
 	{
-		SelectedElements = SelectedElements.Where(e => !Object.Equals(e, element));
+		if (Multiselect || Nullable)
+		{
+			SelectedElements = SelectedElements.Where(e => !Object.Equals(e, element));
+		}
 		await CompleteSelectionChange();
 	}
 

@@ -77,13 +77,11 @@
                     <input id="scheduleRepeatEvery" type="number" min="1" class="form-control form-control-sm" @bind="scheduledReportInEdit.RepeatOffset" />
                 </div>
                 <div class="col-sm-4">
-                    <select class="form-control form-control-sm" @bind="scheduledReportInEdit.RepeatInterval">
-                        <option value="@Interval.Never" selected>@(userConfig.GetText("Never"))</option>
-                        <option value="@Interval.Days">@(userConfig.GetText("Days"))</option>
-                        <option value="@Interval.Weeks">@(userConfig.GetText("Weeks"))</option>
-                        <option value="@Interval.Months">@(userConfig.GetText("Months"))</option>
-                        <option value="@Interval.Years">@(userConfig.GetText("Years"))</option>
-                    </select>
+                    <Dropdown @bind-SelectedElement="scheduledReportInEdit.RepeatInterval" ElementToString="@(i => userConfig.GetText(i.ToString()))" Elements="Enum.GetValues(typeof(Interval)).Cast<Interval>()" >
+                        <ElementTemplate Context="interval">
+                            @(userConfig.GetText(interval.ToString()))
+                        </ElementTemplate>
+                    </Dropdown>
                 </div>
             </div>
             <div class="form-group row">

@@ -232,16 +232,11 @@
                         <div class="form-group row">
                             <label for="rangeshortcut" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("shortcut")):</label>
                             <div class="col-sm-3">
-                                <select id="rangeshortcut" class="form-control form-control-sm" @bind="actTimeFilter.TimeRangeShortcut">
-                                    <option value="this year" selected>@userConfig.GetText("this year")</option>
-                                    <option value="last year">@userConfig.GetText("last year")</option>
-                                    <option value="this month">@userConfig.GetText("this month")</option>
-                                    <option value="last month">@userConfig.GetText("last month")</option>
-                                    <option value="this week">@userConfig.GetText("this week")</option>
-                                    <option value="last week">@userConfig.GetText("last week")</option>
-                                    <option value="today">@userConfig.GetText("today")</option>
-                                    <option value="yesterday">@userConfig.GetText("yesterday")</option>
-                                </select>
+                                <Dropdown @bind-SelectedElement="actTimeFilter.TimeRangeShortcut" ElementToString="@(s => userConfig.GetText(s))" Elements="TimeRangeShortcuts.Ranges" >
+                                    <ElementTemplate Context="shortcut">
+                                        @(userConfig.GetText(shortcut))
+                                    </ElementTemplate>
+                                </Dropdown>
                             </div>
                         </div>
                     </div>
@@ -259,15 +254,11 @@
                                 <input id="lastInterval" type="text" class="form-control form-control-sm" @bind="actTimeFilter.Offset" />
                             </div>
                             <div class="col-sm-3">
-                                <select id="Interval" class="form-control form-control-sm" @bind="actTimeFilter.Interval">
-                                    @foreach (Interval interval in Enum.GetValues(typeof(Interval)))
-                                    {
-                                        if (interval != Interval.Never)
-                                        {
-                                            <option value="@interval">@userConfig.GetText(interval.ToString())</option>
-                                        }
-                                    }
-                                </select>
+                                <Dropdown @bind-SelectedElement="actTimeFilter.Interval" ElementToString="@(i => userConfig.GetText(i.ToString()))" Elements="Enum.GetValues(typeof(Interval)).Cast<Interval>().Where(x => (x != Interval.Never))" >
+                                    <ElementTemplate Context="interval">
+                                        @(userConfig.GetText(interval.ToString()))
+                                    </ElementTemplate>
+                                </Dropdown>
                             </div>
                         </div>
                     </div>

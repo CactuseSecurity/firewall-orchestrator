@@ -57,16 +57,15 @@
                                 <div class="col-sm-8">
                                     @if (ReqHandler.EditImplTaskMode)
                                     {
-                                        <select class="form-control form-control-sm" @bind="ReqHandler.ActImplTask.DeviceId">
-                                            @foreach (Device device in ReqHandler.Devices)
-                                            {
-                                                <option value="@device.Id">@(device.Name)</option>
-                                            }
-                                        </select>
+                                        <Dropdown ElementType="Device" @bind-SelectedElement="actDevice" ElementToString="@(d => d.Name)" Elements="ReqHandler.Devices">
+                                            <ElementTemplate Context="device">
+                                                @device.Name
+                                            </ElementTemplate>
+                                        </Dropdown>
                                     }
                                     else
                                     {
-                                        <label class="col-sm-12 h-100 border bg-secondary">@(ReqHandler.ActImplTask.DeviceId != null && ReqHandler.ActImplTask.DeviceId != 0 ? ReqHandler.Devices[ReqHandler.Devices.FindIndex(x => x.Id == ReqHandler.ActImplTask.DeviceId)].Name : "")</label>
+                                        <label class="col-sm-12 h-100 border bg-secondary">@actDevice?.Name</label>
                                     }
                                 </div>
                             </div>
@@ -92,16 +91,15 @@
                                 <div class="col-sm-8">
                                     @if (ReqHandler.EditImplTaskMode)
                                     {
-                                        <select class="form-control form-control-sm" @bind="ReqHandler.ActImplTask.RuleAction">
-                                            @foreach (var action in ruleActions)
-                                            {
-                                                <option value="@action.Id">@(action.Name)</option>
-                                            }
-                                        </select>
+                                        <Dropdown ElementType="RuleAction" @bind-SelectedElement="actRuleAction" ElementToString="@(a => a.Name)" Elements="ruleActions">
+                                            <ElementTemplate Context="action">
+                                                @action.Name
+                                            </ElementTemplate>
+                                        </Dropdown>
                                     }
                                     else
                                     {
-                                        <label class="col-sm-12 h-100 border bg-secondary">@(((ReqHandler.ActImplTask.RuleAction != null) ? ruleActions.Find(x => x.Id == ReqHandler.ActImplTask.RuleAction)?.Name : ""))</label>
+                                        <label class="col-sm-12 h-100 border bg-secondary">@actRuleAction?.Name</label>
                                     }
                                 </div>
                             </div>
@@ -112,16 +110,15 @@
                                 <div class="col-sm-8">
                                     @if (ReqHandler.EditImplTaskMode)
                                     {
-                                        <select class="form-control form-control-sm" @bind="ReqHandler.ActImplTask.Tracking">
-                                            @foreach (var track in trackings)
-                                            {
-                                                <option value="@track.Id">@(track.Name)</option>
-                                            }
-                                        </select>
+                                        <Dropdown ElementType="Tracking" @bind-SelectedElement="actTracking" ElementToString="@(t => t.Name)" Elements="trackings">
+                                            <ElementTemplate Context="track">
+                                                @track.Name
+                                            </ElementTemplate>
+                                        </Dropdown>
                                     }
                                     else
                                     {
-                                        <label class="col-sm-12 h-100 border bg-secondary">@(((ReqHandler.ActImplTask.Tracking != null) ? trackings.Find(x => x.Id == ReqHandler.ActImplTask.Tracking)?.Name : ""))</label>
+                                        <label class="col-sm-12 h-100 border bg-secondary">@actTracking?.Name</label>
                                     }
                                 </div>
                             </div>
@@ -250,7 +247,10 @@
     private List<NwObjectElement> actDestinations = new List<NwObjectElement>();
     private List<NwServiceElement> actServices = new List<NwServiceElement>();
     private List<NwRuleElement> actRules = new List<NwRuleElement>();
-    
+    private Device? actDevice;
+    private RuleAction? actRuleAction;
+    private Tracking? actTracking;
+
     private List<RequestStateAction> offeredActions = new List<RequestStateAction>();
     private string allComments = "";
 
@@ -277,6 +277,9 @@
                 InitElements();
                 await InitComments();
                 offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActImplTask, RequestObjectScopes.ImplementationTask, ReqHandler.Phase);
+                actDevice = ReqHandler.Devices.FirstOrDefault(x => x.Id == ReqHandler.ActImplTask.DeviceId);
+                actRuleAction = ruleActions.FirstOrDefault(x => x.Id == ReqHandler.ActImplTask.RuleAction);
+                actTracking = trackings.FirstOrDefault(x => x.Id == ReqHandler.ActImplTask.Tracking);
             }
         }
         catch (Exception exception)
@@ -365,6 +368,9 @@
             {
                 DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("U0001"), true);
             }
+            ReqHandler.ActImplTask.DeviceId = actDevice?.Id;
+            ReqHandler.ActImplTask.RuleAction = actRuleAction?.Id;
+            ReqHandler.ActImplTask.Tracking = actTracking?.Id;
             if(ReqHandler.ActImplTask.TaskType == TaskType.rule_delete.ToString())
             {
                 ReqHandler.ActImplTask.ImplAction = RequestAction.delete.ToString();

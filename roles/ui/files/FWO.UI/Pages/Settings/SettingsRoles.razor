@@ -27,7 +27,14 @@
                     @if (context.Name != "middleware-server" && context.Name != "anonymous")
                     {
                         <button class="btn btn-sm btn-success" @onclick="() => AddToRole(context)">@(userConfig.GetText("assign_user_group"))</button>
-                        <button class="btn btn-sm btn-danger" @onclick="() => RemoveFromRole(context)">@(userConfig.GetText("remove_user_group"))</button>
+                        @if(context.Users.Count > 0)
+                        {
+                            <button class="btn btn-sm btn-danger" @onclick="() => RemoveFromRole(context)">@(userConfig.GetText("remove_user_group"))</button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("remove_user_group"))</button>
+                        }
                     }
                     else
                     {
@@ -56,37 +63,35 @@
         {
             <form>
                 <form class="form-group row">
-                    <label for="ldapUser" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("from_ldap")):</label>
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("from_ldap")):</label>
                     <div class="col-sm-3">
-                        <select id="ldapUser" class="form-control-sm col-sm" @bind="selectedLdapId">
-                            @foreach (UiLdapConnection ldap in connectedLdaps)
-                            {
-                                <option value="@ldap.Id">@(ldap.Name)</option>
-                            }
-                        </select>
+                        <Dropdown ElementType="UiLdapConnection" ElementToString="@(l => l.Name)" @bind-SelectedElement="selectedLdap" Elements="connectedLdaps">
+                            <ElementTemplate Context="ldap">
+                                @ldap.Name
+                            </ElementTemplate>
+                        </Dropdown>
                     </div>
-                    <label for="searchpattern" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("search_pattern")):</label>
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("search_pattern")):</label>
                     <div class="col-sm-3">
-                        <input id="searchpattern" class="form-control-sm col-sm" type="text" @bind="searchPattern" />
+                        <input class="form-control-sm col-sm" type="text" @bind="searchPattern" />
                     </div>
                     <div class="col-sm-2">
-                        <button class="btn btn-sm btn-success" @onclick="async() => await SearchUser(selectedLdapId)" @onclick:preventDefault>@(userConfig.GetText("search"))</button>
+                        <button class="btn btn-sm btn-success" @onclick="async() => await SearchUser()" @onclick:preventDefault>@(userConfig.GetText("search"))</button>
                     </div>
                 </form>
                 <form class="form-group row">
-                    <label for="roleUser" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("active_user")):</label>
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("active_user")):</label>
                     <div class="col-sm-8">
-                        <select id="roleUser" class="form-control-sm col-sm" @bind="selectedUiUser">
-                            @foreach (UiUser user in uiUsers)
-                            {
-                                <option value="@user.Dn">@(user.Dn)</option>
-                            }
-                        </select>
+                        <Dropdown ElementType="UiUser" ElementToString="@(u => u.Dn)" @bind-SelectedElement="selectedUiUser" Elements="uiUsers">
+                            <ElementTemplate Context="user">
+                                @user.Dn
+                            </ElementTemplate>
+                        </Dropdown>
                     </div>
                     <div class="col-sm-2">
                         <AuthorizeView Roles="admin">
                             <Authorized>
-                                <button class="btn btn-sm btn-success" @onclick="() => AddUserFromUiUsers(selectedUiUser)" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                                <button class="btn btn-sm btn-success" @onclick="() => AddUserFromUiUsers()" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                             </Authorized>
                             <NotAuthorized>
                                 <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
@@ -95,19 +100,14 @@
                     </div>
                 </form>
                 <form class="form-group row">
-                    <label for="roleInternalGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("internal_group")):</label>
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("internal_group")):</label>
                     <div class="col-sm-8">
-                        <select id="roleInternalGroup" class="form-control-sm col-sm" @bind="selectedGroup">
-                            @foreach (string group in internalGroupList)
-                            {
-                                <option value="@group">@(group)</option>
-                            }
-                        </select>
+                        <Dropdown ElementType="string" @bind-SelectedElement="selectedGroupDn" Elements="internalGroupList" />
                     </div>
                     <div class="col-sm-2">
                         <AuthorizeView Roles="admin">
                             <Authorized>
-                                <button class="btn btn-sm btn-success" @onclick="() => AddGroupFromLdap(selectedGroup)" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                                <button class="btn btn-sm btn-success" @onclick="() => AddGroupFromLdap()" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                             </Authorized>
                             <NotAuthorized>
                                 <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
@@ -131,14 +131,13 @@
         {
             <form>
                 <div class="form-group row">
-                    <label for="roleUserdel" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("user_group")):</label>
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("user_group")):</label>
                     <div class="col-sm-9">
-                        <select id="roleUserdel" class="form-control form-control-sm" @bind="selectedUserToDelete">
-                            @foreach (UiUser user in actRole.Users)
-                            {
-                                <option value="@user.Dn">@(user.Dn)</option>
-                            }
-                        </select>
+                        <Dropdown ElementType="UiUser" ElementToString="@(u => u.Dn)" @bind-SelectedElement="selectedUserToDelete" Elements="actRole.Users">
+                            <ElementTemplate Context="user">
+                                @user.Dn
+                            </ElementTemplate>
+                        </Dropdown>
                     </div>
                 </div>
             </form>
@@ -148,7 +147,7 @@
         <div class="btn-group">
             <AuthorizeView Roles="admin">
                 <Authorized>
-                    <button class="btn btn-sm btn-danger" @onclick="async () => await DeleteUser(selectedUserToDelete)" @onclick:preventDefault>@(userConfig.GetText("remove"))</button>
+                    <button class="btn btn-sm btn-danger" @onclick="async () => await DeleteUser()" @onclick:preventDefault>@(userConfig.GetText("remove"))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("remove"))</button>
@@ -165,18 +164,17 @@
         {
             <form>
                 <div class="form-group row">
-                    <label for="roleUsersearch" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("user")):</label>
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("user")):</label>
                     <div class="col-sm-8">
-                        <select id="roleUsersearch" class="form-control form-control-sm" @bind="selectedLdapUser">
-                            @foreach (UiUser user in ldapUsers)
-                            {
-                                <option value="@user.Dn">@(user.Dn)</option>
-                            }
-                        </select>
+                        <Dropdown ElementType="UiUser" ElementToString="@(u => u.Dn)" @bind-SelectedElement="selectedLdapUser" Elements="ldapUsers">
+                            <ElementTemplate Context="user">
+                                @user.Dn
+                            </ElementTemplate>
+                        </Dropdown>
                     </div>
                     <AuthorizeView Roles="admin">
                         <Authorized>
-                            <button class="btn btn-sm btn-success" @onclick="() => AddUserFromLdap(selectedLdapUser)" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                            <button class="btn btn-sm btn-success" @onclick="() => AddUserFromLdap()" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                         </Authorized>
                         <NotAuthorized>
                             <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
@@ -184,18 +182,13 @@
                     </AuthorizeView>
                 </div>
                 <div class="form-group row">
-                    <label for="roleGroupsearch" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("group")):</label>
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("group")):</label>
                     <div class="col-sm-8">
-                        <select id="roleGroupsearch" class="form-control form-control-sm" @bind="selectedGroup">
-                            @foreach (string group in searchedGroupList)
-                            {
-                                <option value="@group">@(group)</option>
-                            }
-                        </select>
+                        <Dropdown ElementType="string" @bind-SelectedElement="selectedGroupDn" Elements="searchedGroupList" />
                     </div>
                     <AuthorizeView Roles="admin">
                         <Authorized>
-                            <button class="btn btn-sm btn-success" @onclick="() => AddGroupFromLdap(selectedGroup)" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                            <button class="btn btn-sm btn-success" @onclick="() => AddGroupFromLdap()" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                         </Authorized>
                         <NotAuthorized>
                             <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
@@ -224,11 +217,10 @@
     private List<string> searchedGroupList = new List<string>();
     private List<string> internalGroupList = new List<string>();
     private UiLdapConnection selectedLdap = new UiLdapConnection();
-    private string selectedUiUser = "";
-    private string selectedLdapUser = "";
-    private string selectedUserToDelete = "";
-    private string selectedGroup = "";
-    private int selectedLdapId;
+    private UiUser selectedUiUser = new UiUser();
+    private UiUser selectedLdapUser = new UiUser();
+    private UiUser selectedUserToDelete = new UiUser();
+    private string selectedGroupDn = "";
     private string searchPattern = "";
 
     private Role actRole = new Role();
@@ -266,26 +258,22 @@
 
     private void AddToRole(Role role)
     {
-        AddMode = true;
         actRole = role;
-        selectedUiUser = (uiUsers.Count == 0 ? "" : uiUsers.First().Dn);
-        selectedLdapId = (connectedLdaps.Count == 0 ? 0 : connectedLdaps.First().Id);
-        selectedGroup = (internalGroupList.Count == 0 ? "" : internalGroupList.First());
+        selectedUiUser = uiUsers.Count > 0 ? uiUsers.First() : new UiUser();
+        selectedLdap = connectedLdaps.Count > 0 ? connectedLdaps.First() : new UiLdapConnection();
+        selectedGroupDn = internalGroupList.Count > 0 ? internalGroupList.First() : "";
+        AddMode = true;
     }
 
     private void RemoveFromRole(Role role)
     {
-        DeleteMode = true;
         actRole = role;
-        selectedUserToDelete = (actRole.Users.Count == 0 ? "" : actRole.Users.First().Dn);
+        selectedUserToDelete = actRole.Users.Count > 0 ? actRole.Users.First() : new UiUser();
+        DeleteMode = true;
     }
 
-    private async Task SearchUser(int ldapId)
+    private async Task SearchUser()
     {
-        UiLdapConnection? actLdap = connectedLdaps.FirstOrDefault(x => x.Id == ldapId);
-        if (actLdap != null)
-            selectedLdap = actLdap;
-
         if(searchPattern.Length < selectedLdap.PatternLength)
         {
             DisplayMessageInUi(null, userConfig.GetText("search_users"), userConfig.GetText("E5252") + selectedLdap.PatternLength, true);
@@ -331,34 +319,28 @@
                 DisplayMessageInUi(null, userConfig.GetText("fetch_users"), "", true);
             }
 
-            selectedLdapUser = (ldapUsers.Count == 0 ? "" : ldapUsers.First().Dn);
-            selectedGroup = (searchedGroupList.Count == 0 ? "" : searchedGroupList.First());
+            selectedLdapUser = ldapUsers.Count > 0 ? ldapUsers.First() : new UiUser();
+            selectedGroupDn = searchedGroupList.Count > 0 ? searchedGroupList.First() : "";
             SearchMode = true;
             AddMode = false;
         }
     }
 
-    private async Task AddUserFromUiUsers(string userDn)
+    private async Task AddUserFromUiUsers()
     {
-        UiUser? selectedUser = uiUsers.Find(x => x.Dn == userDn);
-        if (selectedUser != null)
-            await AddUserToRole(selectedUser);
+        await AddUserToRole(selectedUiUser);
     }
 
-    private async Task AddUserFromLdap(string userDn)
+    private async Task AddUserFromLdap()
     {
-        UiUser? selectedUser = ldapUsers.Find(x => x.Dn == userDn);
-        if (selectedUser != null)
-        {
-            await AddUserToRole(selectedUser);
-            await addTenantIfNew(selectedUser.Dn, selectedLdap);
-        }
+        await AddUserToRole(selectedLdapUser);
+        await addTenantIfNew(selectedLdapUser.Dn, selectedLdap);
     }
 
-    private async Task AddGroupFromLdap(string groupDn)
+    private async Task AddGroupFromLdap()
     {
-        await AddUserToRole(new UiUser(){ Dn = groupDn , Name = (new DistName(groupDn)).Group});
-        await addTenantIfNew(groupDn, selectedLdap);
+        await AddUserToRole(new UiUser(){ Dn = selectedGroupDn , Name = (new DistName(selectedGroupDn)).Group});
+        await addTenantIfNew(selectedGroupDn, selectedLdap);
     }
 
     private async Task AddUserToRole(UiUser user)
@@ -428,10 +410,9 @@
         }
     }
 
-    private async Task DeleteUser(string userDn)
+    private async Task DeleteUser()
     {
-        var itemToRemove = actRole.Users.Find(x => x.Dn == userDn);
-        if (itemToRemove != null)
+        if (selectedUserToDelete.Dn != "")
         {
             if (actRole.Name == "admin" && actRole.Users.Count < 2)
             {
@@ -442,7 +423,7 @@
                 // delete user in LDAP
                 try
                 {
-                    RoleAddDeleteUserParameters removeUserFromRoleParameters = new RoleAddDeleteUserParameters { UserDn = userDn, Role = actRole.Dn };
+                    RoleAddDeleteUserParameters removeUserFromRoleParameters = new RoleAddDeleteUserParameters { UserDn = selectedUserToDelete.Dn, Role = actRole.Dn };
                     RestResponse<bool> middlewareServerResponse = await middlewareClient.RemoveUserFromRole(removeUserFromRoleParameters);
                     if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
                     {
@@ -450,7 +431,7 @@
                     }
                     else
                     {
-                        actRole.Users.Remove(itemToRemove);
+                        actRole.Users.Remove(selectedUserToDelete);
                         roles[roles.FindIndex(x => x.Name == actRole.Name)] = actRole;
                         DeleteMode = false;
                     }

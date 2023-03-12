@@ -966,8 +966,6 @@ INSERT INTO txt VALUES ('domain_uid',           'German', 	'Domain UID');
 INSERT INTO txt VALUES ('domain_uid',           'English', 	'Domain UID');
 INSERT INTO txt VALUES ('super_manager',        'German', 	'Multi Domain Manager');
 INSERT INTO txt VALUES ('super_manager',        'English', 	'Multi Domain Manager');
-INSERT INTO txt VALUES ('no_super_manager',     'German', 	'kein Multi Domain Manager');
-INSERT INTO txt VALUES ('no_super_manager',     'English', 	'no Multi Domain Manager');
 INSERT INTO txt VALUES ('importer_host',        'German', 	'Importer Host');
 INSERT INTO txt VALUES ('importer_host',        'English', 	'Importer Host');
 INSERT INTO txt VALUES ('import_disabled',      'German', 	'Import Deaktiviert');
@@ -1384,6 +1382,8 @@ INSERT INTO txt VALUES ('lowest_end_state',     'German',   'Niedrigster Ausgang
 INSERT INTO txt VALUES ('lowest_end_state',     'English',  'Lowest exit state');
 INSERT INTO txt VALUES ('derived_state',        'German',   'Abgeleiteter Status');
 INSERT INTO txt VALUES ('derived_state',        'English',  'Derived state');
+INSERT INTO txt VALUES ('select_action',        'German',   'Aktion ausw&auml;hlen');
+INSERT INTO txt VALUES ('select_action',        'English',  'Select action');
 INSERT INTO txt VALUES ('owners',               'German',   'Eigent&uuml;mer');
 INSERT INTO txt VALUES ('owners',               'English',  'Owners');
 INSERT INTO txt VALUES ('add_owner',            'German',   'Eigent&uuml;mer hinzuf&uuml;gen');

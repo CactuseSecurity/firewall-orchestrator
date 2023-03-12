@@ -64,21 +64,20 @@
                             <div class="col-sm-8">
                                 @if (ReqHandler.EditReqTaskMode)
                                 {
-                                    <select class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.TaskType">
-                                        @foreach (TaskType type in availableTaskTypes.Where(x => x != TaskType.master))
-                                        {
-                                            <option value="@type">@(userConfig.GetText(type.ToString()))</option>
-                                        }
-                                    </select>
-                                }
+                                    <Dropdown ElementType="TaskType" @bind-SelectedElement="actTaskType" ElementToString="@(t => userConfig.GetText(t.ToString()))" Elements="availableTaskTypes.Where(x => x != TaskType.master)" >
+                                        <ElementTemplate Context="type">
+                                            @(userConfig.GetText(type.ToString()))
+                                        </ElementTemplate>
+                                    </Dropdown>
+                               }
                                 else
                                 {
-                                    <label class="col-sm-12 h-100 border bg-secondary">@(userConfig.GetText(ReqHandler.ActReqTask.TaskType))</label>
+                                    <label class="col-sm-12 h-100 border bg-secondary">@(userConfig.GetText(actTaskType.ToString()))</label>
                                 }
                             </div>
                         </div>
                     </div>
-                    @if(ReqHandler.ActReqTask.TaskType == TaskType.access.ToString() && !ReqHandler.ActStateMatrix.PhaseActive[WorkflowPhases.planning] && userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask)
+                    @if(actTaskType == TaskType.access && !ReqHandler.ActStateMatrix.PhaseActive[WorkflowPhases.planning] && userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask)
                     {
                         <div class="col-sm-3">
                             <div class="form-group row">
@@ -86,12 +85,11 @@
                                 <div class="col-sm-8">
                                     @if (ReqHandler.EditReqTaskMode)
                                     {
-                                        <select class="form-control form-control-sm" @bind="devicesToAdd" multiple>
-                                            @foreach (Device device in ReqHandler.Devices)
-                                            {
-                                                <option value="@device.Id">@(device.Name)</option>
-                                            }
-                                        </select>
+                                        <Dropdown ElementType="Device" @bind-SelectedElements="selectedDevices" ElementToString="@(d => d.Name)" Elements="ReqHandler.Devices" Multiselect="true">
+                                            <ElementTemplate Context="device">
+                                                @device.Name
+                                            </ElementTemplate>
+                                        </Dropdown>
                                     }
                                     else
                                     {
@@ -101,7 +99,7 @@
                             </div>
                         </div>
                     }
-                    else if(ReqHandler.ActReqTask.TaskType == TaskType.rule_delete.ToString())
+                    else if(actTaskType == TaskType.rule_delete)
                     {
                         <div class="col-sm-3">
                             <div class="form-group row">
@@ -109,24 +107,22 @@
                                 <div class="col-sm-8">
                                     @if (ReqHandler.EditReqTaskMode)
                                     {
-                                        <select class="form-control form-control-sm" @bind="actRuleDeviceId">
-                                            <option value="0">-</option>
-                                            @foreach (Device device in ReqHandler.Devices)
-                                            {
-                                                <option value="@device.Id">@(device.Name)</option>
-                                            }
-                                        </select>
+                                        <Dropdown ElementType="Device" @bind-SelectedElement="actRuleDevice" ElementToString="@(d => d.Name)" Elements="ReqHandler.Devices">
+                                            <ElementTemplate Context="device">
+                                                @device.Name
+                                            </ElementTemplate>
+                                        </Dropdown>
                                     }
                                     else
                                     {
-                                        <label class="col-sm-12 h-100 border bg-secondary">@ReqHandler.Devices.FirstOrDefault(x => x.Id == actRuleDeviceId)?.Name</label>
+                                        <label class="col-sm-12 h-100 border bg-secondary">@actRuleDevice?.Name</label>
                                     }
                                 </div>
                             </div>
                         </div>
                     }
                 </div>
-                @if(ReqHandler.ActReqTask.TaskType == TaskType.generic.ToString())
+                @if(actTaskType == TaskType.generic)
                 {
                     <div class="form-group row">
                         <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("free_text")):</label>
@@ -135,7 +131,7 @@
                         </div>
                     </div>
                 }
-                else if(ReqHandler.ActReqTask.TaskType == TaskType.access.ToString())
+                else if(actTaskType == TaskType.access)
                 {
                     <div class="form-group row">
                         <div class="col-sm-3">
@@ -144,16 +140,15 @@
                                 <div class="col-sm-8">
                                     @if (ReqHandler.EditReqTaskMode)
                                     {
-                                        <select class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.RuleAction">
-                                            @foreach (var action in ruleActions)
-                                            {
-                                                <option value="@action.Id">@(action.Name)</option>
-                                            }
-                                        </select>
+                                        <Dropdown ElementType="RuleAction" @bind-SelectedElement="actRuleAction" ElementToString="@(a => a.Name)" Elements="ruleActions">
+                                            <ElementTemplate Context="action">
+                                                @action.Name
+                                            </ElementTemplate>
+                                        </Dropdown>
                                     }
                                     else
                                     {
-                                        <label class="col-sm-12 h-100 border bg-secondary">@(((ReqHandler.ActReqTask.RuleAction != null) ? ruleActions.Find(x => x.Id == ReqHandler.ActReqTask.RuleAction)?.Name : ""))</label>
+                                        <label class="col-sm-12 h-100 border bg-secondary">@actRuleAction?.Name</label>
                                     }
                                 </div>
                             </div>
@@ -164,16 +159,15 @@
                                 <div class="col-sm-8">
                                     @if (ReqHandler.EditReqTaskMode)
                                     {
-                                        <select class="form-control form-control-sm" @bind="ReqHandler.ActReqTask.Tracking">
-                                            @foreach (var track in trackings)
-                                            {
-                                                <option value="@track.Id">@(track.Name)</option>
-                                            }
-                                        </select>
+                                        <Dropdown ElementType="Tracking" @bind-SelectedElement="actTracking" ElementToString="@(t => t.Name)" Elements="trackings">
+                                            <ElementTemplate Context="track">
+                                                @track.Name
+                                            </ElementTemplate>
+                                        </Dropdown>
                                     }
                                     else
                                     {
-                                        <label class="col-sm-12 h-100 border bg-secondary">@(((ReqHandler.ActReqTask.Tracking != null) ? trackings.Find(x => x.Id == ReqHandler.ActReqTask.Tracking)?.Name : ""))</label>
+                                        <label class="col-sm-12 h-100 border bg-secondary">@actTracking?.Name</label>
                                     }
                                 </div>
                             </div>
@@ -217,12 +211,12 @@
                     </div>
                 </div>
 
-                @if(ReqHandler.ActReqTask.TaskType == TaskType.access.ToString())
+                @if(actTaskType == TaskType.access)
                 {
                     <DisplayAccessElements @bind-Sources="actSources" @bind-Destinations="actDestinations" @bind-Services="actServices" 
                         TaskId="ReqHandler.ActReqTask.Id" EditMode="ReqHandler.EditReqTaskMode" />
                 }
-                else if(ReqHandler.ActReqTask.TaskType == TaskType.rule_delete.ToString())
+                else if(actTaskType == TaskType.rule_delete)
                 {
                     <DisplayRules @bind-Rules="actRules" TaskId="ReqHandler.ActReqTask.Id" EditMode="ReqHandler.EditReqTaskMode" />
                 }
@@ -343,11 +337,14 @@
     private List<NwObjectElement> actDestinations = new List<NwObjectElement>();
     private List<NwServiceElement> actServices = new List<NwServiceElement>();
     private List<NwRuleElement> actRules = new List<NwRuleElement>();
+    private TaskType actTaskType = TaskType.access;
 
     private List<RequestStateAction> offeredActions = new List<RequestStateAction>();
     private string allComments = "";
-    private int[] devicesToAdd { get; set; } = new int[]{};
-    private int actRuleDeviceId;
+    private IEnumerable<Device> selectedDevices { get; set; } = new List<Device>();
+    private Device? actRuleDevice;
+    private RuleAction? actRuleAction;
+    private Tracking? actTracking;
     bool firstParamSet = false;
 
 
@@ -378,15 +375,14 @@
                 await Reset();
                 if(firstParamSet)
                 {
-                    TaskType actTasktype;
-                    Enum.TryParse<TaskType>(ReqHandler.ActReqTask.TaskType, out actTasktype);
-                    if(!availableTaskTypes.Contains(actTasktype))
+                    Enum.TryParse<TaskType>(ReqHandler.ActReqTask.TaskType, out actTaskType);
+                    if(!availableTaskTypes.Contains(actTaskType))
                     {
                         DisplayMessageInUi(null, userConfig.GetText("display_task"), userConfig.GetText("E8014"), true);
                     }
                     firstParamSet = false;
                 }
-            }
+             }
         }
         catch (Exception exception)
         {
@@ -415,8 +411,18 @@
     private async Task Reset()
     {
         offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActReqTask, RequestObjectScopes.RequestTask, ReqHandler.Phase);
-        devicesToAdd = ReqHandler.ActReqTask.getDeviceList().ToArray();
-        actRuleDeviceId = ReqHandler.ActReqTask.getRuleDeviceId();
+        selectedDevices = new List<Device>();
+        foreach(int devId in ReqHandler.ActReqTask.getDeviceList().ToArray())
+        {
+            Device? dev = ReqHandler.Devices.FirstOrDefault(x => x.Id == devId);
+            if(dev != null)
+            {
+                selectedDevices = selectedDevices.Append<Device>(dev);
+            }
+        }
+        actRuleDevice = ReqHandler.Devices.FirstOrDefault(x => x.Id == ReqHandler.ActReqTask.getRuleDeviceId());
+        actRuleAction = ruleActions.FirstOrDefault(x => x.Id == ReqHandler.ActReqTask.RuleAction);
+        actTracking = trackings.FirstOrDefault(x => x.Id == ReqHandler.ActReqTask.Tracking);
         StateHasChanged();
     }
 
@@ -428,13 +434,9 @@
     private string DisplayDevices()
     {
         List<string> devNames = new();
-        foreach(var devId in ReqHandler.ActReqTask.getDeviceList())
+        foreach(var dev in selectedDevices)
         {
-            int? idx = ReqHandler.Devices.FindIndex(x => x.Id == devId);
-            if (idx != null)
-            {
-                devNames.Add(ReqHandler.Devices[(int)idx].Name ?? "");
-            }
+            devNames.Add(dev?.Name ?? "");
         }
         return string.Join(", ", devNames);
     }
@@ -510,7 +512,7 @@
         foreach(var rule in actRules)
         {
             RequestReqElement reqElem = rule.ToReqElement();
-            reqElem.DeviceId = actRuleDeviceId;
+            reqElem.DeviceId = actRuleDevice?.Id;
             reqElem.RequestAction = ReqHandler.ActReqTask.RequestAction;
             ReqHandler.ActReqTask.Elements.Add(reqElem);
         }
@@ -520,18 +522,21 @@
     {
         try
         {
+            ReqHandler.ActReqTask.TaskType = actTaskType.ToString();
+            ReqHandler.ActReqTask.RuleAction = actRuleAction?.Id;
+            ReqHandler.ActReqTask.Tracking = actTracking?.Id;
             if (ReqHandler.ActReqTask.Sanitize())
             {
                 DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("U0001"), true);
             }
-            if(ReqHandler.ActReqTask.TaskType == TaskType.rule_delete.ToString())
+            if(actTaskType == TaskType.rule_delete)
             {
                 ReqHandler.ActReqTask.RequestAction = RequestAction.delete.ToString();
             }
             UpdateElements();
             if (await CheckTaskValues())
             {
-                ReqHandler.ActReqTask.SetDeviceList(devicesToAdd);
+                ReqHandler.ActReqTask.SetDeviceList(selectedDevices.ToList());
                 if (ReqHandler.AddReqTaskMode)
                 {
                     await ReqHandler.AddApproval();
@@ -558,10 +563,10 @@
             DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
             return false;
         }
-        if (ReqHandler.ActReqTask.TaskType == TaskType.access.ToString())
+        if (actTaskType == TaskType.access)
         {
             if (actSources.Count == 0 || actDestinations.Count == 0 || actServices.Count == 0 ||
-                (!ReqHandler.ActStateMatrix.PhaseActive[WorkflowPhases.planning] && userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask && devicesToAdd.Length == 0))
+                (!ReqHandler.ActStateMatrix.PhaseActive[WorkflowPhases.planning] && userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask && selectedDevices.Count<Device>() == 0))
             {
                 DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
                 return false;
@@ -578,16 +583,16 @@
                 }
             }
         }
-        else if (ReqHandler.ActReqTask.TaskType == TaskType.rule_delete.ToString())
+        else if (actTaskType == TaskType.rule_delete)
         {
-            if (actRuleDeviceId == 0 || actRules.Count == 0)
+            if (actRuleDevice == null || actRules.Count == 0)
             {
                 DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
                 return false;
             }
             foreach(var elem in ReqHandler.ActReqTask.Elements.Where(x => x.Field == ElemFieldType.rule.ToString()))
             {
-                if(!(await ReqHandler.CheckRuleUid(actRuleDeviceId, elem.RuleUid)))
+                if(!(await ReqHandler.CheckRuleUid(actRuleDevice?.Id, elem.RuleUid)))
                 {
                     DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E8013") + elem.RuleUid, true);
                     return false;

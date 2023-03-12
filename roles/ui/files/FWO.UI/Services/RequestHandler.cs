@@ -238,59 +238,56 @@ namespace FWO.Ui.Services
                 {
                     DisplayMessageInUi(null, userConfig.GetText("save_request"), userConfig.GetText("U0001"), true);
                 }
-                if (CheckTicketValues())
+                foreach(RequestReqTask reqTask in ActTicket.Tasks)
                 {
-                    foreach(RequestReqTask reqTask in ActTicket.Tasks)
+                    if(reqTask.StateId < ActTicket.StateId)
                     {
-                        if(reqTask.StateId < ActTicket.StateId)
-                        {
-                            reqTask.StateId = ActTicket.StateId;
-                        }
+                        reqTask.StateId = ActTicket.StateId;
                     }
-
-                    if(ActTicket.Deadline == null)
-                    {
-                        int? tickDeadline = PrioList.FirstOrDefault(x => x.NumPrio == ActTicket.Priority)?.TicketDeadline;
-                        ActTicket.Deadline = (tickDeadline != null && tickDeadline > 0 ? DateTime.Now.AddDays((int)tickDeadline) : null);
-                    }
-
-                    if (AddTicketMode)
-                    {                  
-                        // insert new ticket
-                        ActTicket.CreationDate = DateTime.Now;
-                        ActTicket.Requester = userConfig.User;
-                        ActTicket = await dbAcc.AddTicketToDb(ActTicket);
-                        TicketList.Add(ActTicket);
-                    }
-                    else
-                    {
-                        // Update existing ticket
-                        ActTicket = await dbAcc.UpdateTicketInDb(ActTicket);
-                        TicketList[TicketList.FindIndex(x => x.Id == ActTicket.Id)] = ActTicket;
-                    }
-
-                    // update of request tasks and creation of impl tasks may be necessary
-                    foreach(RequestReqTask reqtask in ActTicket.Tasks)
-                    {
-                        if(reqtask.StateId <= ActTicket.StateId)
-                        {
-                            List<int> ticketStateList = new List<int>();
-                            ticketStateList.Add(ActTicket.StateId);
-                            reqtask.StateId = stateMatrixDict.Matrices[reqtask.TaskType].getDerivedStateFromSubStates(ticketStateList);
-                            await dbAcc.UpdateReqTaskStateInDb(reqtask);
-                        }
-                        if( reqtask.ImplementationTasks.Count == 0 && !stateMatrixDict.Matrices[reqtask.TaskType].PhaseActive[WorkflowPhases.planning] 
-                            && reqtask.StateId >= stateMatrixDict.Matrices[reqtask.TaskType].MinImplTasksNeeded)
-                        {
-                            await AutoCreateImplTasks(reqtask);
-                        }
-                    }
-
-                    //check for further promotion (req tasks may be promoted)
-                    await UpdateActTicketStateFromReqTasks();
-
-                    ResetTicketActions();
                 }
+
+                if(ActTicket.Deadline == null)
+                {
+                    int? tickDeadline = PrioList.FirstOrDefault(x => x.NumPrio == ActTicket.Priority)?.TicketDeadline;
+                    ActTicket.Deadline = (tickDeadline != null && tickDeadline > 0 ? DateTime.Now.AddDays((int)tickDeadline) : null);
+                }
+
+                if (AddTicketMode)
+                {
+                    // insert new ticket
+                    ActTicket.CreationDate = DateTime.Now;
+                    ActTicket.Requester = userConfig.User;
+                    ActTicket = await dbAcc.AddTicketToDb(ActTicket);
+                    TicketList.Add(ActTicket);
+                }
+                else
+                {
+                    // Update existing ticket
+                    ActTicket = await dbAcc.UpdateTicketInDb(ActTicket);
+                    TicketList[TicketList.FindIndex(x => x.Id == ActTicket.Id)] = ActTicket;
+                }
+
+                // update of request tasks and creation of impl tasks may be necessary
+                foreach(RequestReqTask reqtask in ActTicket.Tasks)
+                {
+                    if(reqtask.StateId <= ActTicket.StateId)
+                    {
+                        List<int> ticketStateList = new List<int>();
+                        ticketStateList.Add(ActTicket.StateId);
+                        reqtask.StateId = stateMatrixDict.Matrices[reqtask.TaskType].getDerivedStateFromSubStates(ticketStateList);
+                        await dbAcc.UpdateReqTaskStateInDb(reqtask);
+                    }
+                    if( reqtask.ImplementationTasks.Count == 0 && !stateMatrixDict.Matrices[reqtask.TaskType].PhaseActive[WorkflowPhases.planning] 
+                        && reqtask.StateId >= stateMatrixDict.Matrices[reqtask.TaskType].MinImplTasksNeeded)
+                    {
+                        await AutoCreateImplTasks(reqtask);
+                    }
+                }
+
+                //check for further promotion (req tasks may be promoted)
+                await UpdateActTicketStateFromReqTasks();
+
+                ResetTicketActions();
             }
             catch (Exception exception)
             {
@@ -1088,17 +1085,8 @@ namespace FWO.Ui.Services
 
 
         // checks
-        private bool CheckTicketValues()
-        {
-            if (ActTicket.Title == null || ActTicket.Title == "")
-            {
-                DisplayMessageInUi(null, userConfig.GetText("save_request"), userConfig.GetText("E5102"), true);
-                return false;
-            }
-            return true;
-        }
 
-        public async Task<bool> CheckRuleUid(int deviceId, string? ruleUid)
+        public async Task<bool> CheckRuleUid(int? deviceId, string? ruleUid)
         {
             return await dbAcc.FindRuleUid(deviceId, ruleUid);
         }

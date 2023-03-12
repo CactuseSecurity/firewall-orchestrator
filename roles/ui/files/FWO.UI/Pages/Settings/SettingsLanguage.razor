@@ -14,13 +14,12 @@
 <hr />
 
 <form class="form-inline">
-    <label for="languageSelect" class="col-form-label mr-2">@(userConfig.GetText("language"))</label>
-    <select id="languageSelect" class="form-control form-control-sm mr-2" @bind="selectedLanguage">
-        @foreach (Language language in globalConfig.uiLanguages)
-        {
-            <option value="@(language.Name)">@(userConfig.GetText(language.Name))</option>
-        }
-    </select>
+    <label class="col-form-label mr-2">@(userConfig.GetText("language"))</label>
+    <Dropdown ElementType="Language" ElementToString="@(l => userConfig.GetText(l.Name))" @bind-SelectedElement="selectedLanguage" Elements="globalConfig.uiLanguages">
+        <ElementTemplate Context="language">
+            @(userConfig.GetText(language.Name))
+        </ElementTemplate>
+    </Dropdown>
 </form>
 <hr />
 <button class="btn btn-sm btn-primary" @onclick="async () => { await ChangeLanguage(selectedLanguage); StateHasChanged(); }" @onclick:preventDefault>@(userConfig.GetText("apply_changes"))</button>
@@ -29,20 +28,20 @@
 {
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
-    string? selectedLanguage;
+    Language selectedLanguage = new Language();
 
     protected override void OnInitialized()
     {
-        selectedLanguage = userConfig.User.Language;
+        selectedLanguage = globalConfig.uiLanguages.FirstOrDefault(l => l.Name == userConfig.User.Language) ?? new Language();
         StateHasChanged();
     }
 
-    private async Task ChangeLanguage(string language)
+    private async Task ChangeLanguage(Language language)
     {
         try
         {
-            Log.WriteDebug("Change language", $"new language: {language}");
-            await userConfig.ChangeLanguage(language, apiConnection);
+            Log.WriteDebug("Change language", $"new language: {language.Name}");
+            await userConfig.ChangeLanguage(language.Name, apiConnection);
         }
         catch (Exception exception)
         {

@@ -100,12 +100,11 @@
                     @if (AddMode)
                     {
                         <div class="col-sm-8">
-                            <select id="ldapUser" class="form-control-sm col-sm" @bind="selectedLdapId" @oninput="(EventArgs) => {selectedLdapId = Convert.ToInt32(EventArgs.Value?.ToString()); SetAvailableTenants();}">
-                                @foreach (UiLdapConnection ldap in writableLdaps)
-                                {
-                                    <option value="@ldap.Id">@(ldap.Name)</option>
-                                }
-                            </select>
+                            <Dropdown ElementType="UiLdapConnection" ElementToString="@(l => l.Name)" SelectedElement="selectedLdap" Elements="writableLdaps" SelectedElementChanged="SetAvailableTenants">
+                                <ElementTemplate Context="ldap">
+                                    @ldap.Name
+                                </ElementTemplate>
+                            </Dropdown>
                         </div>
                     }
                     else
@@ -118,12 +117,11 @@
                     @if (AddMode)
                     {
                         <div class="col-sm-8">
-                            <select id="userTenant" class="form-control-sm col-sm" @bind="selectedTenantId">
-                                @foreach (Tenant tenant in availableTenants)
-                                {
-                                    <option value="@tenant.Id">@(tenant.Name)</option>
-                                }
-                            </select>
+                            <Dropdown ElementType="Tenant" ElementToString="@(t => t.Name)" @bind-SelectedElement="selectedTenant" Elements="availableTenants">
+                                <ElementTemplate Context="tenant">
+                                    @tenant.Name
+                                </ElementTemplate>
+                            </Dropdown>
                         </div>
                     }
                     else
@@ -155,13 +153,11 @@
                     @if (AddMode)
                     {
                         <div class="col-sm-8">
-                            <select id="userGroup" class="form-control-sm col-sm" @bind="selectedGroupName">
-                                <option value="null">@(userConfig.GetText("none"))</option>
-                                @foreach (UserGroup group in groups)
-                                {
-                                    <option value="@group.Name">@(group.Name)</option>
-                                }
-                            </select>
+                            <Dropdown ElementType="UserGroup" ElementToString="@(g => g.Name)" @bind-SelectedElement="selectedGroup" Elements="groups.OrderBy(x => x.Name).ToList()" Nullable="true">
+                                <ElementTemplate Context="group">
+                                    @group.Name
+                                </ElementTemplate>
+                            </Dropdown>
                         </div>
                     }
                     else
@@ -174,13 +170,11 @@
                     @if (AddMode)
                     {
                         <div class="col-sm-8">
-                            <select id="userRole" class="form-control-sm col-sm" @bind="selectedRoleName">
-                                <option value="null">@(userConfig.GetText("none"))</option>
-                                @foreach (Role role in availableRoles)
-                                {
-                                    <option value="@role.Name">@(role.Name)</option>
-                                }
-                            </select>
+                            <Dropdown ElementType="Role" ElementToString="@(r => r.Name)" @bind-SelectedElement="selectedRole" Elements="availableRoles" Nullable="true">
+                                <ElementTemplate Context="role">
+                                    @role.Name
+                                </ElementTemplate>
+                            </Dropdown>
                         </div>
                     }
                     else
@@ -239,8 +233,8 @@
     </Footer>
 </PopUp>
 
-<ConfirmDelete Display="DeleteMode" PerformAction="Delete" Title="@userConfig.GetText("delete_user")" DeleteMessage="@deleteMessage"/>
-<ConfirmDelete Display="SampleRemoveMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@sampleRemoveMessage" DeleteAllowed="sampleRemoveAllowed"/>
+<ConfirmDelete @bind-Display="DeleteMode" PerformAction="Delete" Title="@userConfig.GetText("delete_user")" DeleteMessage="@deleteMessage"/>
+<ConfirmDelete @bind-Display="SampleRemoveMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@sampleRemoveMessage" DeleteAllowed="sampleRemoveAllowed"/>
 <InProgress Display="workInProgress"/>
 
 
@@ -272,10 +266,10 @@
 
     private UiUser newUser = new UiUser();
     private UiUser actUser = new UiUser();
-    private int? selectedLdapId {get; set;} = 0;
-    private int? selectedTenantId = 0;
-    private string? selectedRoleName = "";
-    private string? selectedGroupName = "";
+    private UiLdapConnection? selectedLdap;
+    private Tenant? selectedTenant;
+    private Role? selectedRole;
+    private UserGroup? selectedGroup;
 
     private string deleteMessage = "";
     private string sampleRemoveMessage = "";
@@ -352,7 +346,7 @@
         await GetRolesFromInternalLdap();
         SynchronizeUsersToRoles();
 
-        availableRoles = roles.FindAll(x => (x.Name != "anonymous" && x.Name != "middleware-server"));
+        availableRoles = roles.Where(x => (x.Name != "anonymous" && x.Name != "middleware-server")).OrderBy(x => x.Name).ToList();
     }
 
     private void SynchronizeUsersToGroups()
@@ -560,11 +554,11 @@
         }
     }
 
-    private void SetAvailableTenants()
+    private void SetAvailableTenants(UiLdapConnection? newLdap)
     {
         try
         {
-            UiLdapConnection? selectedLdap = connectedLdaps.FirstOrDefault(x => x.Id == selectedLdapId);
+            selectedLdap = newLdap;
             availableTenants = new List<Tenant>();
             if(selectedLdap != null)
             {
@@ -577,6 +571,10 @@
                 {
                     availableTenants = tenants;
                 }
+            }
+            if(selectedTenant != null && !availableTenants.Contains(selectedTenant) && availableTenants.Count > 0)
+            {
+                selectedTenant = availableTenants.First();
             }
         }
         catch (Exception exception)
@@ -591,12 +589,12 @@
         {
             AddMode = true;
             newUser = new UiUser(){ Email = "" };
-            selectedLdapId = writableLdaps.FirstOrDefault()?.Id;
-            SetAvailableTenants();
-            selectedTenantId = availableTenants.FirstOrDefault()?.Id;
-            selectedGroupName = null;
+            selectedLdap = writableLdaps.FirstOrDefault();
+            SetAvailableTenants(selectedLdap);
+            selectedTenant = availableTenants.FirstOrDefault();
+            selectedGroup = null;
             newUser.Groups = new List<string>();
-            selectedRoleName = null;
+            selectedRole = null;
             newUser.Roles = new List<string>();
             Edit(newUser);
         }
@@ -613,12 +611,12 @@
             AddMode = true;
             newUser = new UiUser(user);
             newUser.Password = "";
-            selectedLdapId = (newUser.LdapConnection != null ? newUser.LdapConnection.Id : writableLdaps.FirstOrDefault()?.Id);
-            SetAvailableTenants();
-            selectedTenantId = newUser.Tenant?.Id;
-            selectedGroupName = (newUser.Groups != null ? newUser.Groups.FirstOrDefault() : null);
+            selectedLdap = (newUser.LdapConnection != null ? newUser.LdapConnection : writableLdaps.FirstOrDefault());
+            SetAvailableTenants(selectedLdap);
+            selectedTenant = newUser.Tenant;
+            selectedGroup = (newUser.Groups != null ? groups.FirstOrDefault(x => x.Name == newUser.Groups.FirstOrDefault()) : null);
             newUser.Groups = new List<string>();
-            selectedRoleName = newUser.Roles.FirstOrDefault();
+            selectedRole = (newUser.Roles != null ? roles.FirstOrDefault(x => x.Name == newUser.Roles.FirstOrDefault()) : null);
             newUser.Roles = new List<string>();
             Edit(newUser);
         }
@@ -644,24 +642,25 @@
 
     private void SynchronizeUserData(UiUser user)
     {
-        UiLdapConnection selectedLdap = connectedLdaps.FirstOrDefault(x => x.Id == selectedLdapId) ?? throw new Exception($"Ldap not found. Id: {selectedLdapId}");
-        user.LdapConnection = selectedLdap;
-        Tenant selectedTenant = tenants.FirstOrDefault(x => x.Id == selectedTenantId) ?? throw new Exception($"Tenant not found. Id: {selectedTenantId}");
-        user.Tenant = (selectedLdap.TenantLevel > 0 ? selectedTenant : null);
-        // todo: further dn specification maybe in ldapconnection?
-        user.Dn = (selectedLdap.Type == (int)LdapType.ActiveDirectory ? "cn=": "uid=") + user.Name + 
-            (selectedLdap.TenantLevel > 0 ? ",ou=" + (selectedTenant.Id == 1 && selectedLdap.GlobalTenantName != null && selectedLdap.GlobalTenantName != "" ? selectedLdap.GlobalTenantName : selectedTenant.Name) : "") + "," + selectedLdap.UserSearchPath;
-        user.Groups = new List<string>();
-        if(selectedGroupName != null)
+        if(selectedLdap != null)
         {
-            user.Groups.Add(selectedGroupName);
+            user.LdapConnection = selectedLdap;
+            user.Tenant = (selectedLdap.TenantLevel > 0 ? selectedTenant : null);
+            // todo: further dn specification maybe in ldapconnection?
+            user.Dn = (selectedLdap.Type == (int)LdapType.ActiveDirectory ? "cn=": "uid=") + user.Name + 
+                (selectedLdap.TenantLevel > 0 ? ",ou=" + (selectedTenant?.Id == 1 && selectedLdap.GlobalTenantName != null && selectedLdap.GlobalTenantName != "" ? selectedLdap.GlobalTenantName : selectedTenant?.Name) : "") + "," + selectedLdap.UserSearchPath;
+        }
+        user.Groups = new List<string>();
+        if(selectedGroup != null)
+        {
+            user.Groups.Add(selectedGroup.Name);
         }
         user.PasswordMustBeChanged = true;
         user.Roles = new List<string>();
-        if(selectedRoleName != null)
+        if(selectedRole != null)
         {
-            user.Roles.Add(selectedRoleName);
-            if (selectedRoleName == "auditor")
+            user.Roles.Add(selectedRole.Name);
+            if (selectedRole.Name == "auditor")
             {
                 user.PasswordMustBeChanged = false;
             }

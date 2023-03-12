@@ -51,17 +51,15 @@
                             <div class="col-sm-8">
                                 @if (ReqHandler.EditTicketMode)
                                 {
-                                    <select class="form-control form-control-sm" @bind="ReqHandler.ActTicket.Priority">
-                                        <option value="">-</option>
-                                        @foreach (var prio in ReqHandler.PrioList)
-                                        {
-                                            <option value="@prio.NumPrio">@(prio.Name)</option>
-                                        }
-                                    </select>
+                                    <Dropdown ElementType="RequestPriority" ElementToString="@(p => p.Name)" @bind-SelectedElement="selectedPriority" Elements="ReqHandler.PrioList" Nullable="true">
+                                        <ElementTemplate Context="prio">
+                                            @prio.Name
+                                        </ElementTemplate>
+                                    </Dropdown>
                                 }
                                 else
                                 {
-                                    <label class="col-sm-12 border bg-secondary">@(ReqHandler.ActTicket.Priority != null ? ReqHandler.ActTicket.Priority : "-")</label>
+                                    <label class="col-sm-12 border bg-secondary">@(selectedPriority != null ? selectedPriority.Name : "-")</label>
                                 }
                             </div>
                         </div>
@@ -193,6 +191,7 @@
     private List<int> possibleStates = new List<int>();
     private List<RequestStateAction> offeredActions = new List<RequestStateAction>();
     private bool ConfirmCancelMode = false;
+    private RequestPriority? selectedPriority;
 
 
     protected override async Task OnParametersSetAsync()
@@ -212,6 +211,7 @@
             if (ReqHandler.DisplayTicketMode)
             {
                 offeredActions = ReqHandler.ActionHandler.GetOfferedActions(ReqHandler.ActTicket, RequestObjectScopes.Ticket, ReqHandler.Phase);
+                selectedPriority = ReqHandler.PrioList.FirstOrDefault(p => p.NumPrio == ReqHandler.ActTicket.Priority);
             }
             StateHasChanged();
         }
@@ -283,14 +283,28 @@
 
     private async Task InitSaveTicket()
     {
-        if(ReqHandler.ActTicket.Tasks.Count == 0)
+        if (CheckTicketValues())
         {
-            await ReqHandler.SaveTicket(ReqHandler.ActTicket);
-            await Close();
+            ReqHandler.ActTicket.Priority = selectedPriority?.NumPrio ?? null;
+            if(ReqHandler.ActTicket.Tasks.Count == 0)
+            {
+                await ReqHandler.SaveTicket(ReqHandler.ActTicket);
+                await Close();
+            }
+            else
+            {
+                ReqHandler.SetTicketPopUpOpt(ObjAction.displaySaveTicket);
+            }
         }
-        else
+    }
+
+    private bool CheckTicketValues()
+    {
+        if (ReqHandler.ActTicket.Title == null || ReqHandler.ActTicket.Title == "")
         {
-            ReqHandler.SetTicketPopUpOpt(ObjAction.displaySaveTicket);
+            DisplayMessageInUi(null, userConfig.GetText("save_request"), userConfig.GetText("E5102"), true);
+            return false;
         }
+        return true;
     }
 }

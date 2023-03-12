@@ -5,7 +5,7 @@
 @inject UserConfig userConfig
 
 
-<PopUp Title="@(Title)" Show="@Display" OnClose="() => Display = false">
+<PopUp Title="@(Title)" Show="@Display" OnClose="Cancel">
     <Body>
         @if (Display)
         {
@@ -54,5 +54,6 @@
     private void Cancel()
     {
         Display = false;
+        DisplayChanged.InvokeAsync(Display);
     }
 }

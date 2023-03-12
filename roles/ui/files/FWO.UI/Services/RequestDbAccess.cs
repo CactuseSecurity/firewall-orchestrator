@@ -817,7 +817,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task<bool> FindRuleUid(int deviceId, string? ruleUid)
+        public async Task<bool> FindRuleUid(int? deviceId, string? ruleUid)
         {
             bool ruleFound = false;
             try

@@ -62,7 +62,7 @@
         </Table>
     </div>
 
-    <PopUp Title="@(userConfig.GetText("edit_action"))" Show="@EditActionMode" Large="true" OnClose="() => EditActionMode = false">
+    <PopUp Title="@(userConfig.GetText("edit_action"))" Show="@EditActionMode" XLarge="true" OnClose="() => EditActionMode = false">
         <Body>
             @if (EditActionMode)
             {
@@ -84,23 +84,21 @@
                     <div class="col-sm-4">
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("action_type"))*:</label>
-                            <select class="col-sm-8 form-control form-control-sm" @bind="actAction.ActionType">
-                                @foreach (string action in Enum.GetNames(typeof(StateActionTypes)))
-                                {
-                                    <option value="@action">@(userConfig.GetText(action))</option>
-                                }
-                            </select>
+                            <Dropdown ElementType="string" @bind-SelectedElement="actAction.ActionType" ElementToString="@(a => userConfig.GetText(a))" Elements="Enum.GetNames(typeof(StateActionTypes))" >
+                                <ElementTemplate Context="action">
+                                    @(userConfig.GetText(action))
+                                </ElementTemplate>
+                            </Dropdown>
                         </div>
                     </div>
                     <div class="col-sm-4">
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("event")):</label>
-                            <select class="col-sm-8 form-control form-control-sm" @bind="actAction.Event">
-                                @foreach (string eventt in Enum.GetNames(typeof(StateActionEvents)))
-                                {
-                                    <option value="@eventt">@(userConfig.GetText(eventt))</option>
-                                }
-                            </select>
+                            <Dropdown ElementType="string" @bind-SelectedElement="actAction.Event" ElementToString="@(e => userConfig.GetText(e))" Elements="Enum.GetNames(typeof(StateActionEvents))" >
+                                <ElementTemplate Context="eventt">
+                                    @(userConfig.GetText(eventt))
+                                </ElementTemplate>
+                            </Dropdown>
                         </div>
                     </div>
                     @if(actAction.Event == StateActionEvents.OfferButton.ToString())
@@ -117,24 +115,22 @@
                     <div class="col-sm-4">
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("phase")):</label>
-                            <select class="col-sm-8 form-control form-control-sm" @bind="actAction.Phase">
-                                <option value="">@(userConfig.GetText("all"))</option>
-                                @foreach (string phase in Enum.GetNames(typeof(WorkflowPhases)))
-                                {
-                                    <option value="@phase">@(userConfig.GetText(phase))</option>
-                                }
-                            </select>
+                            <Dropdown ElementType="string" @bind-SelectedElement="selectedPhase" ElementToString="@(p => userConfig.GetText(p))" 
+                                    Elements="Enum.GetNames(typeof(WorkflowPhases))" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))" >
+                                <ElementTemplate Context="phase">
+                                    @(userConfig.GetText(phase))
+                                </ElementTemplate>
+                            </Dropdown>
                         </div>
                     </div>
                     <div class="col-sm-4">
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("scope")):</label>
-                            <select class="col-sm-8 form-control form-control-sm" @bind="actAction.Scope">
-                                @foreach (string scope in Enum.GetNames(typeof(RequestObjectScopes)))
-                                {
-                                    <option value="@scope">@(userConfig.GetText(scope))</option>
-                                }
-                            </select>
+                            <Dropdown ElementType="string" @bind-SelectedElement="actAction.Scope" ElementToString="@(s => userConfig.GetText(s))" Elements="Enum.GetNames(typeof(RequestObjectScopes))" >
+                                <ElementTemplate Context="scope">
+                                    @(userConfig.GetText(scope))
+                                </ElementTemplate>
+                            </Dropdown>
                         </div>
                     </div>
                     @if(actAction.Scope == RequestObjectScopes.RequestTask.ToString() || actAction.Scope == RequestObjectScopes.ImplementationTask.ToString())
@@ -142,14 +138,12 @@
                         <div class="col-sm-4">
                             <div class="form-group row">
                                 <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("task_type")):</label>
-                                <select class="col-sm-8 form-control form-control-sm" @bind="actAction.TaskType">
-                                    <option value="">@(userConfig.GetText("all"))</option>
-                                        @foreach (TaskType taskType in availableTaskTypes.Where(x => x != TaskType.master))
-                                        {
-                                            <option value="@taskType">@(userConfig.GetText(taskType.ToString()))</option>
-                                        }
-                                     }
-                                </select>
+                                <Dropdown ElementType="TaskType?" @bind-SelectedElement="selectedTaskType" ElementToString="@(t => userConfig.GetText(t?.ToString() ?? "undefined"))" 
+                                        Elements="availableTaskTypes.Where(x => x != TaskType.master).Cast<TaskType?>()" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))">
+                                    <ElementTemplate Context="type">
+                                        @(userConfig.GetText(type?.ToString() ?? "undefined"))
+                                    </ElementTemplate>
+                                </Dropdown>
                             </div>
                         </div>
                     }
@@ -161,13 +155,11 @@
                             <div class="col-sm-4">
                                 <div class="form-group row">
                                     <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("to_state")):</label>
-                                    <select class="col-sm-8 form-control form-control-sm" @bind="toState">
-                                        <option value="-1">@(userConfig.GetText("automatic"))</option>
-                                        @foreach (var state in states)
-                                        {
-                                            <option value="@state.Id">@(state.Name)</option>
-                                        }
-                                    </select>
+                                    <Dropdown ElementType="RequestState" ElementToString="@(s => s.Name)" @bind-SelectedElement="selectedToState" Elements="statesPlus">
+                                        <ElementTemplate Context="state">
+                                            @state.Name
+                                        </ElementTemplate>
+                                    </Dropdown>
                                 </div>
                             </div>
                             break;
@@ -176,12 +168,11 @@
                                 <div class="form-group row">
                                     <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("state"))*:</label>
                                     <div class="col-sm-8">
-                                        <select id="selectState" class="form-control form-control-sm" @bind="actApprovalParams.StateId">
-                                            @foreach (var state in states)
-                                            {
-                                                <option value="@state.Id">@(state.Name)</option>
-                                            }
-                                        </select>
+                                        <Dropdown ElementType="RequestState" ElementToString="@(s => s.Name)" @bind-SelectedElement="selectedState" Elements="states">
+                                            <ElementTemplate Context="state">
+                                                @state.Name
+                                            </ElementTemplate>
+                                        </Dropdown>
                                     </div>
                                 </div>
                             </div>
@@ -189,13 +180,11 @@
                                 <div class="form-group row">
                                     <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("group")):</label>
                                     <div class="col-sm-8">
-                                        <select id="selectGroup" class="form-control form-control-sm" @bind="actApprovalParams.ApproverGroup">
-                                            <option value="">-</option>
-                                            @foreach (var group in userAndGroupList)
-                                            {
-                                                <option value="@group.Dn">@(group.Name)</option>
-                                            }
-                                        </select>
+                                        <Dropdown ElementType="UiUser" @bind-SelectedElement="selectedUserGroup" ElementToString="@(g => g.Name)" Elements="userAndGroupList" Nullable="true">
+                                            <ElementTemplate Context="group">
+                                                @group.Name
+                                            </ElementTemplate>
+                                        </Dropdown>
                                     </div>
                                 </div>
                             </div>
@@ -218,12 +207,11 @@
                             <div class="col-sm-12">
                                 <div class="form-group row">
                                     <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("option")):</label>
-                                    <select class="col-sm-8 form-control form-control-sm" @bind="actPathAnalysisParams.Option">
-                                        @foreach (string opt in Enum.GetNames(typeof(PathAnalysisOptions)))
-                                        {
-                                            <option value="@opt">@(userConfig.GetText(opt))</option>
-                                        }
-                                    </select>
+                                    <Dropdown ElementType="PathAnalysisOptions" @bind-SelectedElement="actPathAnalysisParams.Option" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues(typeof(PathAnalysisOptions)).Cast<PathAnalysisOptions>()">
+                                        <ElementTemplate Context="opt">
+                                            @(userConfig.GetText(opt.ToString()))
+                                        </ElementTemplate>
+                                    </Dropdown>
                                 </div>
                             </div>
                             break;
@@ -250,7 +238,7 @@
         </Footer>
     </PopUp>
 
-    <ConfirmDelete Display="DeleteActionMode" PerformAction="DeleteAction" Title="@userConfig.GetText("delete_action")" DeleteMessage="@(userConfig.GetText("U5502") + actAction.Name + "?")"/>
+    <ConfirmDelete @bind-Display="DeleteActionMode" PerformAction="DeleteAction" Title="@userConfig.GetText("delete_action")" DeleteMessage="@(userConfig.GetText("U5502") + actAction.Name + "?")"/>
 }
 else
 {
@@ -266,6 +254,7 @@ else
 
     private List<RequestStateAction> actions = new List<RequestStateAction>();
     private List<RequestState> states = new List<RequestState>();
+    private List<RequestState> statesPlus = new List<RequestState>();
     private List<UiUser> userAndGroupList = new List<UiUser>();
     private List<TaskType> availableTaskTypes { get; set; } = new List<TaskType>();
 
@@ -274,6 +263,12 @@ else
     private int toState = -1;
     private string message = "";
     private PathAnalysisActionParams actPathAnalysisParams = new PathAnalysisActionParams();
+    private string? selectedPhase;
+    private TaskType? selectedTaskType;
+    private RequestState selectedState = new RequestState();
+    private static RequestState AutomaticState = new RequestState(){ Id = -1, Name = "automatic" };
+    private RequestState selectedToState = AutomaticState;
+    private UiUser? selectedUserGroup;
 
     private bool EditActionMode = false;
     private bool AddActionMode = false;
@@ -292,6 +287,8 @@ else
         {
             actions = await apiConnection.SendQueryAsync<List<RequestStateAction>>(FWO.Api.Client.Queries.RequestQueries.getActions);
             states = await apiConnection.SendQueryAsync<List<RequestState>>(FWO.Api.Client.Queries.RequestQueries.getStates);
+            statesPlus = new List<RequestState>(states);
+            statesPlus.Add(AutomaticState);
             availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<TaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
             userAndGroupList = await RoleAccess.GetRoleMembers(middlewareClient, "approver");
         }
@@ -310,6 +307,17 @@ else
     private void EditAction(RequestStateAction action)
     {
         actAction = action;
+        selectedPhase = actAction.Phase != "" ? actAction.Phase : null;
+        if(actAction.TaskType != "")
+        {
+            TaskType tmpTaskType;
+            Enum.TryParse<TaskType>(actAction.TaskType, out tmpTaskType);
+            selectedTaskType = tmpTaskType;
+        }
+        else
+        {
+            selectedTaskType = null;
+        }
         if(action.ExternalParams != "" && action.ExternalParams != "{}")
         {
             switch(action.ActionType)
@@ -332,6 +340,9 @@ else
                     break;
             }
         }
+        selectedState = states.FirstOrDefault(x => x.Id == actApprovalParams.StateId) ?? new RequestState();
+        selectedToState = statesPlus.FirstOrDefault(x => x.Id == toState) ?? AutomaticState;
+        selectedUserGroup = userAndGroupList.FirstOrDefault(x => x.Dn == actApprovalParams.ApproverGroup);
         EditActionMode = true;
     }
 
@@ -339,10 +350,14 @@ else
     {
         try
         {
+            actAction.Phase = selectedPhase != null ? selectedPhase : "";
+            actAction.TaskType = selectedTaskType?.ToString() ?? "";
+            actApprovalParams.StateId = selectedState.Id;
+            actApprovalParams.ApproverGroup = selectedUserGroup != null ? selectedUserGroup.Dn : "";
             switch(actAction.ActionType)
             {
                 case nameof(StateActionTypes.AutoPromote):
-                    actAction.ExternalParams = toState.ToString();
+                    actAction.ExternalParams = selectedToState.Id.ToString();
                     break;
                 case nameof(StateActionTypes.AddApproval):
                     actAction.ExternalParams = JsonSerializer.Serialize(actApprovalParams);

@@ -6898,6 +6898,24 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "rule_id",
+                      "rule_metadata_id",
+                      "recertified",
+                      "comment",
+                      "ip_match",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ]
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "check": {},
@@ -6934,6 +6952,24 @@
                     ],
                     "filter": {},
                     "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "rule_id",
+                      "rule_metadata_id",
+                      "recertified",
+                      "comment",
+                      "ip_match",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ],
+                    "filter": {}
                   }
                 },
                 {
@@ -7012,6 +7048,14 @@
                     ],
                     "filter": {},
                     "check": null
+                  }
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "filter": {}
                   }
                 }
               ]
@@ -9705,6 +9749,15 @@
                     ],
                     "filter": {},
                     "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "dev_id"
+                    ],
+                    "filter": {}
                   }
                 },
                 {

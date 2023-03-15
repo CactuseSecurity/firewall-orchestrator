@@ -96,3 +96,6 @@ drop trigger IF exists refresh_view_rule_with_owner_delete_trigger ON recertific
 create trigger refresh_view_rule_with_owner_delete_trigger
 after delete on recertification for each statement 
 execute procedure refresh_view_rule_with_owner();
+
+insert into config (config_key, config_value, config_user) VALUES ('recRefreshStartup', 'False', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('recRefreshDaily', 'False', 0) ON CONFLICT DO NOTHING;

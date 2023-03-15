@@ -887,6 +887,12 @@ INSERT INTO txt VALUES ('single_line_per_rule', 'German',   'eine Zeile pro Rege
 INSERT INTO txt VALUES ('single_line_per_rule', 'English',  'one line per rule');
 INSERT INTO txt VALUES ('recalc_recerts',       'German',   'Neuberechnung offene Rezertifizierungen');
 INSERT INTO txt VALUES ('recalc_recerts',       'English',  'Recalculate open recertifications');
+INSERT INTO txt VALUES ('recalc_now',           'German',   'Jetzt neu berechnen');
+INSERT INTO txt VALUES ('recalc_now',           'English',  'Recalculate now');
+INSERT INTO txt VALUES ('at_startup',           'German',   'Beim Hochfahren');
+INSERT INTO txt VALUES ('at_startup',           'English',  'At startup');
+INSERT INTO txt VALUES ('daily',                'German',   'T&auml;glich');
+INSERT INTO txt VALUES ('daily',                'English',  'Daily');
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');
 INSERT INTO txt VALUES ('devices',				'English', 	'Devices');

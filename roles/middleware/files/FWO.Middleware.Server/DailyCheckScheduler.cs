@@ -7,6 +7,7 @@ using FWO.Logging;
 using System.Timers;
 using System.Text.Json;
 using FWO.Middleware.RequestParameters;
+using FWO.Recert;
 
 namespace FWO.Middleware.Server
 {
@@ -40,6 +41,10 @@ namespace FWO.Middleware.Server
             globalConfig.OnChange += GlobalConfig_OnChange;
 
             startDailyCheckScheduleTimer();
+            if(globalConfig.RecRefreshStartup)
+            {
+                RefreshRecert(); // no need to wait
+            }
         }
 
         private void GlobalConfig_OnChange(Config.Api.Config globalConfig, ConfigItem[] _)
@@ -93,6 +98,10 @@ namespace FWO.Middleware.Server
                 openAlerts = await apiConnection.SendQueryAsync<List<Alert>>(MonitorQueries.getOpenAlerts);
                 await CheckDemoData();
                 await CheckImports();
+                if(globalConfig.RecRefreshDaily)
+                {
+                    await RefreshRecert();
+                }
                 await CheckRecerts();
             }
             catch(Exception exc)
@@ -101,6 +110,13 @@ namespace FWO.Middleware.Server
                 await AddDailyCheckLogEntry(2, globalConfig.GetText("daily_checks"), globalConfig.GetText("ran_into_exception") + exc.Message);
                 await setAlert(GlobalConfig.kDailyCheck, AlertCode.DailyCheckError, globalConfig.GetText("daily_checks"), globalConfig.GetText("ran_into_exception") + exc.Message);
             }
+        }
+
+        private async Task RefreshRecert()
+        {
+            Log.WriteDebug("DailyCheck scheduler", "Refresh recert ownerships");
+            RecertRefresh recertRefresh = new RecertRefresh(apiConnection);
+            await recertRefresh.RecalcRecerts();
         }
 
         private async Task CheckRecerts()

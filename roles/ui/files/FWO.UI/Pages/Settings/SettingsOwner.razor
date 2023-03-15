@@ -446,7 +446,7 @@ else
             owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
             AnalyseSampleOwners();
             managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
-            recertRefresh = new RecertRefresh(userConfig, apiConnection);
+            recertRefresh = new RecertRefresh(apiConnection);
             ownerGroups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi, true);
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
             uiUsers = uiUsers.FindAll(x => x.DbId != 0);

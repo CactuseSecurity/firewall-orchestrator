@@ -2,20 +2,15 @@
 using FWO.Api.Data;
 using FWO.Api.Client;
 using FWO.Logging;
-using FWO.Middleware.Client;
-using FWO.Config.Api;
 
 namespace FWO.Recert
 {
     public class RecertRefresh
     {
-        protected UserConfig userConfig;
-        protected List<Management> managements;
         private readonly ApiConnection apiConnection;
 
-        public RecertRefresh (UserConfig userConfigIn, ApiConnection apiConnectionIn)
+        public RecertRefresh (ApiConnection apiConnectionIn)
         {
-            userConfig = userConfigIn;
             apiConnection = apiConnectionIn;
         }
 
@@ -28,9 +23,6 @@ namespace FWO.Recert
 
             try
             {
-                JwtReader jwt = new JwtReader(userConfig.User.Jwt);
-                jwt.Validate();
-
                 watch.Start();
                 List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
                 List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);

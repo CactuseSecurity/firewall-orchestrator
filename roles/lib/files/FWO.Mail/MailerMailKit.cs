@@ -131,7 +131,7 @@ namespace FWO.Mail
                         await smtp.ConnectAsync(emailConn.ServerAddress, emailConn.Port, SecureSocketOptions.SslOnConnect, ct);
                         break;
                 }
-                if (emailConn.User != "")
+                if (emailConn.User != null && emailConn.User != "")
                 {
                     await smtp.AuthenticateAsync(emailConn.User, emailConn.Password, ct);
                 }

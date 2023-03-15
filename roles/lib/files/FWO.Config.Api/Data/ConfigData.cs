@@ -106,6 +106,12 @@ namespace FWO.Config.Api.Data
         [JsonProperty("recCheckEmailOverdueText"), JsonPropertyName("recCheckEmailOverdueText")]
         public string RecCheckEmailOverdueText { get; set; } = "";
 
+        [JsonProperty("recRefreshStartup"), JsonPropertyName("recRefreshStartup")]
+        public bool RecRefreshStartup { get; set; } = false;
+
+        [JsonProperty("recRefreshDaily"), JsonPropertyName("recRefreshDaily")]
+        public bool RecRefreshDaily { get; set; } = false;
+
         [JsonProperty("pwMinLength"), JsonPropertyName("pwMinLength")]
         public int PwMinLength { get; set; } = 10;
 

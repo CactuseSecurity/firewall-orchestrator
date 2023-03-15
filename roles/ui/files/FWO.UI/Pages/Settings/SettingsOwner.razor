@@ -446,7 +446,7 @@ else
             owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
             AnalyseSampleOwners();
             managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
-            recertRefresh = new RecertRefresh(userConfig, apiConnection);
+            recertRefresh = new RecertRefresh(apiConnection);
             ownerGroups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi, true);
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
             uiUsers = uiUsers.FindAll(x => x.DbId != 0);
@@ -509,8 +509,8 @@ else
         {
             actOwner = owner;
             selectedTenant = tenants.FirstOrDefault(x => x.Id == actOwner.TenantId);
-            selectedDayOfWeek = (DayOfWeek?)actRecCheckParams.RecertCheckWeekday;
-            actRecCheckParams = (actOwner.RecertCheckParams != null ? System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(actOwner.RecertCheckParams) : new RecertCheckParams());
+            actRecCheckParams = (actOwner.RecertCheckParamString != null ? System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(actOwner.RecertCheckParamString) ?? new RecertCheckParams() : new RecertCheckParams());
+            selectedDayOfWeek = (DayOfWeek?)actRecCheckParams?.RecertCheckWeekday;
             if(AddOwnerMode)
             {
                 actIpAddresses.Clear();
@@ -538,7 +538,7 @@ else
                 actRecCheckParams.RecertCheckDayOfMonth = null;
             }
             actRecCheckParams.RecertCheckWeekday = (int?)selectedDayOfWeek;
-            actOwner.RecertCheckParams = System.Text.Json.JsonSerializer.Serialize(actRecCheckParams);
+            actOwner.RecertCheckParamString = System.Text.Json.JsonSerializer.Serialize(actRecCheckParams);
             if (actOwner.Sanitize())
             {
                 DisplayMessageInUi(null, userConfig.GetText("edit_owner"), userConfig.GetText("U0001"), true);
@@ -578,7 +578,7 @@ else
             tenantId = actOwner.TenantId,
             recertInterval = actOwner.RecertInterval,
             appIdExternal = actOwner.ExtAppId,
-            recertCheckParams = actOwner.RecertCheckParams
+            recertCheckParams = actOwner.RecertCheckParamString
         };
         ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.OwnerQueries.newOwner, Variables)).ReturnIds;
         if (returnIds == null)
@@ -604,7 +604,7 @@ else
             tenantId = actOwner.TenantId,
             recertInterval = actOwner.RecertInterval,
             appIdExternal = actOwner.ExtAppId,
-            recertCheckParams = actOwner.RecertCheckParams
+            recertCheckParams = actOwner.RecertCheckParamString
         };
         int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.OwnerQueries.updateOwner, Variables)).UpdatedId;
         if(udId != actOwner.Id)

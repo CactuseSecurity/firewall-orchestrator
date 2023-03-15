@@ -314,7 +314,7 @@ else
             {
                 await apiConnection.SendQueryAsync<object>(FWO.Api.Client.Queries.RequestQueries.addStateAction, new { stateId = actState.Id, actionId = selectedAction?.Id ?? 0});
             }
-            actState.Actions.Add(new RequestStateActionDataHelper(){ Action = selectedAction });
+            actState.Actions.Add(new RequestStateActionDataHelper(){ Action = selectedAction ?? throw new Exception("no action selected") });
             SelectActionMode = false;
         }
         catch (Exception exception)

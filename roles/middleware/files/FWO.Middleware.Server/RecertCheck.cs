@@ -90,8 +90,8 @@ namespace FWO.Middleware.Server
 
         private bool isCheckTime(FwoOwner owner)
         {
-            RecertCheckParams checkParams = (owner.RecertCheckParams != null && owner.RecertCheckParams != "" ? 
-                System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(owner.RecertCheckParams) : 
+            RecertCheckParams checkParams = (owner.RecertCheckParamString != null && owner.RecertCheckParamString != "" ? 
+                System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(owner.RecertCheckParamString) : 
                 globCheckParams) ?? throw new Exception("Config Parameters not set.");
             DateTime lastCheck = owner.LastRecertCheck ?? DateTime.MinValue;
             DateTime nextCheck;

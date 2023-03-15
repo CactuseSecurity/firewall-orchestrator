@@ -887,6 +887,12 @@ INSERT INTO txt VALUES ('single_line_per_rule', 'German',   'eine Zeile pro Rege
 INSERT INTO txt VALUES ('single_line_per_rule', 'English',  'one line per rule');
 INSERT INTO txt VALUES ('recalc_recerts',       'German',   'Neuberechnung offene Rezertifizierungen');
 INSERT INTO txt VALUES ('recalc_recerts',       'English',  'Recalculate open recertifications');
+INSERT INTO txt VALUES ('recalc_now',           'German',   'Jetzt neu berechnen');
+INSERT INTO txt VALUES ('recalc_now',           'English',  'Recalculate now');
+INSERT INTO txt VALUES ('at_startup',           'German',   'Beim Hochfahren');
+INSERT INTO txt VALUES ('at_startup',           'English',  'At startup');
+INSERT INTO txt VALUES ('daily',                'German',   'T&auml;glich');
+INSERT INTO txt VALUES ('daily',                'English',  'Daily');
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');
 INSERT INTO txt VALUES ('devices',				'English', 	'Devices');
@@ -2037,7 +2043,7 @@ INSERT INTO txt VALUES ('E8013', 'English', 'Rule Uid does not exist on this dev
 INSERT INTO txt VALUES ('E8014', 'German',  'Die Verarbeitung dieses Auftragstyps ist nicht aktiviert. Bitte Administrator kontaktieren.');
 INSERT INTO txt VALUES ('E8014', 'English', 'The handling of this Task Type is not activated. Please contact administrator.');
 
-INSERT INTO txt VALUES ('E8101', 'German',  'Email-Versand kann nicht getestet werden, da der aktell angemeldete Nutzer keine Email-Adresse hinerlegt hat.');
+INSERT INTO txt VALUES ('E8101', 'German',  'Email-Versand kann nicht getestet werden, da der aktuell angemeldete Nutzer keine Email-Adresse hinterlegt hat.');
 INSERT INTO txt VALUES ('E8101', 'English', 'Sending of emails cannot be tested because the logged-in user does not have an email address.');
 
 

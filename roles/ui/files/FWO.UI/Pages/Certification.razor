@@ -253,12 +253,15 @@
 
             try
             {
-                await currentReport.Generate(userConfig.ElementsPerFetch, apiConnection,
-                managementsReportIntermediate =>
+                if(currentReport != null)
                 {
-                    managements = managementsReportIntermediate;
-                    return InvokeAsync(StateHasChanged);
-                }, token);
+                    await currentReport.Generate(userConfig.ElementsPerFetch, apiConnection,
+                    managementsReportIntermediate =>
+                    {
+                        managements = managementsReportIntermediate;
+                        return InvokeAsync(StateHasChanged);
+                    }, token);
+                }
             }
             catch (OperationCanceledException e)
             {
@@ -468,7 +471,7 @@
 
     private async Task InitRecert(Rule rule)
     {
-        if (recertInterval!=null && selectedOwner != null && selectedOwner.Id != null && recertInterval[selectedOwner.Id] != null)
+        if (recertInterval != null && selectedOwner != null && recertInterval.ContainsKey(selectedOwner.Id))
         {
             var prepvariables = new
             {

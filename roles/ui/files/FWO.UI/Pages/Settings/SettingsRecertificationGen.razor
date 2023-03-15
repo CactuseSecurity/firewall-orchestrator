@@ -90,19 +90,19 @@
     </form>
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("recCheckEmailSubject")):</label>
-        <div class="col-sm-7">
+        <div class="col-sm-8">
             <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecCheckEmailSubject" />
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("recCheckEmailUpcomingText")):</label>
-        <div class="col-sm-7">
+        <div class="col-sm-8">
             <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecCheckEmailUpcomingText" />
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("recCheckEmailOverdueText")):</label>
-        <div class="col-sm-7">
+        <div class="col-sm-8">
             <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecCheckEmailOverdueText" />
         </div>
     </form>
@@ -115,31 +115,31 @@
     </form>
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleTicketTitle")):</label>
-        <div class="col-sm-7">
+        <div class="col-sm-8">
             <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecDeleteRuleTicketTitle" />
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleTicketReason")):</label>
-        <div class="col-sm-7">
+        <div class="col-sm-8">
             <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecDeleteRuleTicketReason" />
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleReqTaskTitle")):</label>
-        <div class="col-sm-7">
+        <div class="col-sm-8">
             <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecDeleteRuleReqTaskTitle" />
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleReqTaskReason")):</label>
-        <div class="col-sm-7">
+        <div class="col-sm-8">
             <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecDeleteRuleReqTaskReason" />
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleTicketPriority")):</label>
-        <div class="col-sm-7">
+        <div class="col-sm-2">
             <Dropdown ElementType="RequestPriority" ElementToString="@(p => p.Name)" @bind-SelectedElement="selectedPriority" Elements="PrioList">
                 <ElementTemplate Context="prio">
                     @prio.Name
@@ -149,7 +149,7 @@
     </form>
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("recDeleteRuleInitState")):</label>
-        <div class="col-sm-7">
+        <div class="col-sm-2">
             <Dropdown ElementType="RequestState" ElementToString="@(s => s.Name)" @bind-SelectedElement="selectedState" Elements="states">
                 <ElementTemplate Context="state">
                     @state.Name
@@ -158,24 +158,45 @@
         </div>
     </form>
     <hr />
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("recalc_recerts")):</label>
+        <div class="form-group col-sm-3">
+            <input type="checkbox" @bind="configData!.RecRefreshStartup" />
+            <label class="col-form-label">@(userConfig.GetText("at_startup"))</label>
+        </div>
+        <div class="form-group col-sm-3">
+            <input type="checkbox" @bind="configData!.RecRefreshDaily" />
+            <label class="col-form-label">@(userConfig.GetText("daily"))</label>
+        </div>
+        <div class="form-group col-sm-2">
+            <AuthorizeView Roles="admin">
+                <Authorized>
+                    @if (!recertCalcInProgress)
+                    {
+                        <button class="btn btn-sm btn-info" @onclick:preventDefault="true" @onclick="@( async () => { 
+                            recertCalcInProgress = true; 
+                            if (await recertRefresh.RecalcRecerts())
+                            {
+                                DisplayMessageInUi(null, userConfig.GetText("fetch_data"), "Error during recertification refresh", true);
+                            }
+                            recertCalcInProgress = false; 
+                        })">@(userConfig.GetText("recalc_now"))</button>
+                    }
+                    else
+                    {
+                        <div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div>
+                    }
+                    <br>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-info" disabled>@(userConfig.GetText("recalc_now"))</button>
+                </NotAuthorized>
+            </AuthorizeView>
+        </div>
+    </form>
+    <hr />
     <AuthorizeView Roles="admin">
         <Authorized>
-            @if (!recertCalcInProgress)
-            {
-                <button class="btn btn-sm btn-info" @onclick:preventDefault="true" @onclick="@( async () => { 
-                    recertCalcInProgress = true; 
-                    if (await recertRefresh.RecalcRecerts())
-                    {
-                        DisplayMessageInUi(null, userConfig.GetText("fetch_data"), "Error during recertification refresh", true);
-                    }
-                    recertCalcInProgress = false; 
-                })">@(userConfig.GetText("recalc_recerts"))</button>
-            }
-            else
-            {
-                <div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div>
-            }
-            <br>
             <button class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
         </Authorized>
         <NotAuthorized>
@@ -214,7 +235,7 @@ else
         try
         {
             configData = await globalConfig.GetEditableConfig();
-            recertRefresh = new RecertRefresh(userConfig, apiConnection);
+            recertRefresh = new RecertRefresh(apiConnection);
             PrioList = System.Text.Json.JsonSerializer.Deserialize<List<RequestPriority>>(userConfig.ReqPriorities) ?? throw new Exception("Config data could not be parsed.");
             recCheckParams = System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(userConfig.RecCheckParams) ?? throw new Exception("Config data could not be parsed.");
             states = await apiConnection.SendQueryAsync<List<RequestState>>(FWO.Api.Client.Queries.RequestQueries.getStates);

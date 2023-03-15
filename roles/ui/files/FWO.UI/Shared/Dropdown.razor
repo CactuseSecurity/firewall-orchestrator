@@ -49,7 +49,8 @@
 	private int xPositionDropdown;
 	private int yPositionDropdown;
 
-	public readonly string Id = Guid.NewGuid().ToString();
+	[Parameter]
+	public string Id { get; set; }
 
 	[Parameter]
 	public Func<ElementType, string> ElementToString { get; set; } = (o => o.ToString() ?? "");
@@ -139,6 +140,11 @@
 	public bool Toggled { get; private set; } = true;
 
 	private string searchValue = "";
+
+	public Dropdown()
+	{
+		Id = Guid.NewGuid().ToString();
+	}
 
 	protected override async Task OnInitializedAsync()
 	{

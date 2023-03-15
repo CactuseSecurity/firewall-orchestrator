@@ -3343,8 +3343,8 @@ INSERT INTO txt VALUES ('H5438', 'German',  'Priorit&auml;t f&uuml;r L&ouml;scha
 INSERT INTO txt VALUES ('H5438', 'English', 'Priority for delete rule ticket: Choose between existing priority labels (default: Lowest, Low, Medium, High, Highest).');
 INSERT INTO txt VALUES ('H5439', 'German',  'Initialer Status f&uuml;r L&uml;schantrag: Standard="Draft"');
 INSERT INTO txt VALUES ('H5439', 'English', 'Initial state for delete rule ticket: default="Draft"');
-INSERT INTO txt VALUES ('H5440', 'German',  'Neuberechnen offene Rezertifizierungen: Durch Dr&uuml;cken dieser Schaltfl&auml;che werden s&auml;mtliche ausstehenden Rezertifizierungen neu berechnet (kann mehrere Minuten dauern)  .');
-INSERT INTO txt VALUES ('H5440', 'English', 'Recalculate open recertifications: By clicking this button, all future recertifications are recalculated (this may several minutes).');
+INSERT INTO txt VALUES ('H5440', 'German',  'Neuberechnen offene Rezertifizierungen: Auswahl, wann die Neuberechnung durchgef&uuml;hrt werden soll - beim Hochfahren, t&auml;glich via Scheduler oder jetzt (kann mehrere Minuten dauern)  .');
+INSERT INTO txt VALUES ('H5440', 'English', 'Recalculate open recertifications: Choose, when to do this: at startup, daily via scheduler or now (this may several minutes).');
 
 INSERT INTO txt VALUES ('H5422', 'German',  'Devices zu Beginn eingeklappt ab: Legt fest, ab wievielen Devices (Managements + Gateways) diese in der linken Randleiste zun&auml;chst eingeklappt dargestellt werden.');
 INSERT INTO txt VALUES ('H5422', 'English', 'Devices collapsed at beginning from: defines from which number of devices (managements + gateways) they are displayed collapsed in the left sidebar at beginning.');

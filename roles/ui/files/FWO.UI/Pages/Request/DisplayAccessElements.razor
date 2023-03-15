@@ -434,7 +434,11 @@ else
 
     private void SetProto(IpProtocol newProto, NwServiceElement selectedService)
     {
-        Services.FirstOrDefault(x => x.ElemId == selectedService.ElemId).ProtoId = newProto.Id;
+        NwServiceElement? changedElem = Services.FirstOrDefault(x => x.ElemId == selectedService.ElemId);
+        if(changedElem != null)
+        {
+            changedElem.ProtoId = newProto.Id;
+        }
         selectedServiceProtos[selectedService] = newProto;
         StateHasChanged();
     }

@@ -12,7 +12,7 @@ namespace FWO.Api.Data
         public DateTime? LastRecertCheck { get; set; }
 
         [JsonProperty("recert_check_params"), JsonPropertyName("recert_check_params")]
-        public string? RecertCheckParams { get; set; }
+        public string? RecertCheckParamString { get; set; }
 
         public List<NwObjectElement> NwObjElements { get; set; } = new List<NwObjectElement>();
 
@@ -25,7 +25,7 @@ namespace FWO.Api.Data
             Id = owner.Id;
             NwObjElements = owner.NwObjElements;
             LastRecertCheck = owner.LastRecertCheck;
-            RecertCheckParams = owner.RecertCheckParams;
+            RecertCheckParamString = owner.RecertCheckParamString;
         }
     }
 

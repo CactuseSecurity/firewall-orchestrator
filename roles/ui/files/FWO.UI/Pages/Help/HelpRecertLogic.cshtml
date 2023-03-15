@@ -1,4 +1,4 @@
-﻿@page "/help/recertification"
+﻿@page "/help/recertification/recert_logic"
 @model FWO.Ui.Pages.Help.MainModel
 @{
     Layout = "HelpLayout";
@@ -12,7 +12,6 @@
 @inject UserConfig userConfig
 
 <div class="p-2">
-    <h3>@userConfig.GetText("recertification")</h3>
-    @userConfig.GetText("H4001")
-        @(Html.Raw(userConfig.GetText("H4031")))
+    <h3>@userConfig.GetText("recertification") @userConfig.GetText("recert_logic")</h3>
+    @(Html.Raw(userConfig.GetText("H4034")))
 </div>

@@ -145,9 +145,6 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
-    <li>100% Open Source - passen Sie Firewall Orchestrator an Ihre Bed&uuml;rfnisse an. Machen Sie mit.
-        Der Quellcode kann auf <a href="https://github.com/CactuseSecurity/firewall-orchestrator" target="_blank">GitHub</a> eingesehen und heruntergeladen werden.</li>
-    <li>GraphQL API f&uuml;r Automatisierungen</li>
     <li>Firewall-Regel Rezertifizierungsworkflow - beseitigen Sie ihre Altlasten und erf&uuml;llen Sie aktuelle regulatorische Anforderungen.</li>
     <li>Workflow module zum Beantragen von &Auml;nderungen</li>
     <li>Neue Importmodule f&uuml;r Cisco FirePower und Microsoft Azure Firewall</li>
@@ -157,9 +154,6 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
-    <li>100% Open Source - adjust Firewall Orchestrator to your needs. Join the community and contribute.
-        The code can be viewed/downloaded from <a href="https://github.com/CactuseSecurity/firewall-orchestrator" target="_blank">GitHub</a></li>
-    <li>GraphQL API for automation</li>
     <li>Firewall rule recertification workflow - remove unnecessary rules and meet current regulatory requirements.</li>
     <li>Device Auto Discovery functionality</li>
     <li>New workflow module for requesting firewall changes</li>
@@ -1206,14 +1200,14 @@ INSERT INTO txt VALUES ('recDeleteRuleTicketPriority','German','Priorit&auml;t f
 INSERT INTO txt VALUES ('recDeleteRuleTicketPriority','English','Priority for delete rule ticket');
 INSERT INTO txt VALUES ('recDeleteRuleInitState','German',  'Initialer Status f&uuml;r L&ouml;schantrag');
 INSERT INTO txt VALUES ('recDeleteRuleInitState','English', 'Initial state for delete rule ticket');
-INSERT INTO txt VALUES ('recCheckActive',       'German','Rezert Check: Aktiv');
-INSERT INTO txt VALUES ('recCheckActive',       'English','Recert Check: Active');
-INSERT INTO txt VALUES ('recCheckEmailSubject', 'German','Rezert Check: Email Betreff');
-INSERT INTO txt VALUES ('recCheckEmailSubject', 'English','Recert Check: Email subject');
-INSERT INTO txt VALUES ('recCheckEmailUpcomingText','German','Rezert Check: Text anstehend');
-INSERT INTO txt VALUES ('recCheckEmailUpcomingText','English','Recert Check: text upcoming');
-INSERT INTO txt VALUES ('recCheckEmailOverdueText','German','Rezert Check: Text &uuml;berf&auml;llig');
-INSERT INTO txt VALUES ('recCheckEmailOverdueText','English','Recert Check: text overdue');
+INSERT INTO txt VALUES ('recCheckActive',       'German','Rezert Check - aktiv');
+INSERT INTO txt VALUES ('recCheckActive',       'English','Recert Check - active');
+INSERT INTO txt VALUES ('recCheckEmailSubject', 'German','Rezert Check - Email Betreff');
+INSERT INTO txt VALUES ('recCheckEmailSubject', 'English','Recert Check - Email subject');
+INSERT INTO txt VALUES ('recCheckEmailUpcomingText','German','Rezert Check - Text anstehend');
+INSERT INTO txt VALUES ('recCheckEmailUpcomingText','English','Recert Check - text upcoming');
+INSERT INTO txt VALUES ('recCheckEmailOverdueText','German','Rezert Check - Text &uuml;berf&auml;llig');
+INSERT INTO txt VALUES ('recCheckEmailOverdueText','English','Recert Check - text overdue');
 INSERT INTO txt VALUES ('recert_check_every',   'German', 	'Rezert Check alle');
 INSERT INTO txt VALUES ('recert_check_every',   'English', 	'Recert Check every');
 INSERT INTO txt VALUES ('each_on',              'German', 	'jeweils am');
@@ -1594,7 +1588,16 @@ INSERT INTO txt VALUES ('task_types', 			'English', 	'Task Types');
 INSERT INTO txt VALUES ('state_handling', 		'German', 	'Status-Verwaltung');
 INSERT INTO txt VALUES ('state_handling', 		'English', 	'State Handling');
 INSERT INTO txt VALUES ('checklist', 		    'German', 	'Checkliste');
-INSERT INTO txt VALUES ('checklist', 		    'English', 	'Checklist');
+INSERT INTO txt VALUES ('checklist',            'English', 	'Checklist');
+INSERT INTO txt VALUES ('requirements',         'German', 	'Voraussetzungen');
+INSERT INTO txt VALUES ('requirements',         'English', 	'Requirements');
+INSERT INTO txt VALUES ('recert_logic',         'German', 	'Logik und Konfiguration');
+INSERT INTO txt VALUES ('recert_logic', 		'English', 	'Logic and Configuration');
+INSERT INTO txt VALUES ('configuration',        'German', 	'Konfiguration');
+INSERT INTO txt VALUES ('configuration',        'English', 	'Configuration');
+INSERT INTO txt VALUES ('owner_import',         'German', 	'Eigent&uuml;mer-Import');
+INSERT INTO txt VALUES ('owner_import',         'English', 	'Owner Import');
+ 
 
 -- text codes (roughly) categorized: 
 -- U: user texts (explanation or confirmation texts)
@@ -1613,6 +1616,7 @@ INSERT INTO txt VALUES ('checklist', 		    'English', 	'Checklist');
 --            5200-5299: authorization
 --            5300-5399: defaults
 --            5400-5499: personal settings
+--            5500-5599: workflow module
 -- 6000-6999: API
 -- 7000-7999: Monitoring
 -- 8000-8999: Workflow
@@ -2420,6 +2424,376 @@ INSERT INTO txt VALUES ('H4014', 'English', 'Decertified rules can be displayed 
 INSERT INTO txt VALUES ('H4021', 'German',  'Dieses Rezertifizierungsszenario ist als Basis f&uuml;r weitere angepasste Abl&auml;ufe vorgesehen.');
 INSERT INTO txt VALUES ('H4021', 'English', 'This recertification scenario is intended to be a base for further customized workflows.');
 
+INSERT INTO txt VALUES ('H4031', 'German',  'In diesem Modul k&ouml;nnen Nutzer Firewall-Regeln re- oder dezertifiziert werden.
+Daf&uuml;r wird die Rolle "recertifier" ben&ouml;tigt. Auditor- und Admin-Nutzer k&ouml;nnen hier nur lesend auf die anstehenden Rezertifizierungen zugreifen.
+<br>
+Aktuell gibt es zwei verschiedene Optionen:
+<ol>
+    <li> In der einfachen Variante kann ein Nutzer mit recertifier jede beliebige Regel rezertifizieren. 
+        Diese Option eignet sich &uuml;blicherweise nur f&uuml;r kleine Installation mit wenigen Firewall-Regeln.
+    </li>
+    <li> In gr&ouml;&szlig;eren Umgebungen ist es sinnvoll die Rezertifizierung dezentral zu organisieren. 
+        Daf&uuml;r wird eine Eigent&uuml;merstruktur unterst&uuml;tzt, die einer Liste von Eigent&uuml;mern die Verantwortlichkeit f&uuml;r jeweils einen Teil des Netzwerks in Form von IP-Adressen bzw. IP-Subnetzen zuweist. 
+        Dies kann z.B. eine Aufteilung auf Applikationsbasis sein, es ist aber genauso auch eine Unterteilung nach Subnetzen auf Basis von Betriebseinheiten denkbar.
+        Je nach Quelle und Ziel sind alle Eigent&uuml;mer, die f&uuml;r einen Teil der Regel in Form von IP-Adressen verantwortlich sind, auch f&uuml;r die Rezertifizierung der Regel verantwortlich.
+        Es ist also im Allgemeinen eine Gruppe von Eigent&uuml;mern f&uuml;r die Rezertifizierung einer Regel verantwortlich.
+    </li>
+</ol>
+Eine Regel gilt erst dann als vollst&auml;ndig rezertifiziert, wenn alle Eigent&uuml;mer die Regel rezertifiziert haben.
+<br>
+Im Reporting-Modul steht au&szlig;erdem eine Rezertifizierungs-Report zur Verf&uuml;gung.
+');
+INSERT INTO txt VALUES ('H4031', 'English', '
+In this module, users can recertify or decertify firewall rules.
+
+The "recertifier" role is required for this. Auditor and admin users have read-only access to the pending recertifications here.
+<br>
+Currently there are two different options:
+<ol>
+    <li> In the simple variant, a user can recertify any rule with recertifier. 
+        This option is usually suitable only for small installations with few firewall rules.
+    </li>
+    <li> In larger environments, it makes sense to organize recertification in a decentralized manner. 
+        For this purpose, an ownership structure is supported that assigns responsibility for a part of the network in the form of IP addresses or IP subnets to a list of owners. 
+        This can, for example, be a division on an application basis, but a subdivision by subnets based on operating units is just as conceivable.
+        Depending on the source and destination, all owners who are responsible for a part of the rule in the form of IP addresses are also responsible for recertifying the rule.
+        Thus, in general, a group of owners is responsible for the recertification of a rule.
+    </li>
+</ol>
+A rule is not considered fully recertified until all owners have recertified the rule.
+<br>
+A recertification report is also available in the reporting module.
+');
+
+INSERT INTO txt VALUES ('H4032', 'German',  '
+F&uuml;r das ordnungsgem&auml;&szlig;e Funktionieren des Rezertifzierungsprozesses sind die folgenden Konfigurationen einmalig zu Beginn vorzunehmen.
+<br><br>
+<H4>Berechtigungen</H4>
+<ul>
+    <li>Angemeldete Nutzer m&uuml;ssen die Rolle "Recertier" besitzen</li>
+    <li>Angemeldete Nutzer m&uuml;ssen Mitglied eines Eigent&uuml;mers sein (entweder direkt unter "Vollst&auml;ndiger Name*:" oder als Mitglieder einer Eigent&uuml;mergruppe)</li>
+</ul>
+<H4>Konfiguration der Eigent&uuml;mer</H4>
+    M&ouml;chte man keine Verteilung der Zust&auml;ndigkeit auf mehrere Eigent&uuml;mer vornehmen, so ist es ausreichend, dem Eigent&uuml;mer "Super-Owner" eine Gruppe von Rezertifizierern zuzuordnen,
+    die f&uuml;r die Rezertifizierung aller Firewall-Regeln verantwortlich sind.
+    Um den Super-Owner editieren zu k&ouml;nnen, 
+    ist im Men&uuml; "Einstellungen" - "Weitere Einstellungen" - "Standardeinstellungen" die Option "Manuelle Eigent&uuml;merverwaltung erlauben" zu aktivieren.
+    <br><br>
+    Soll hingegen eine dezentrale Struktur aufgebaut werden, so k&ouml;nnen die Eigent&uuml;mer entweder im Firewall Orchestrator selbst definiert werden (nicht empfohlen) 
+    oder aber man importiert eine im Unternehmen vorhandene Eigent&uuml;merliste, wordurch der Pflegeaufwand zum Aktuell-Halten dieser Zuordnung nicht dem Betreiber der Firewall-Infrastruktur zuf&auml;llt.
+    <br>
+    Es wird hierbei empfohlen, im Men&uuml; "Einstellungen" - "Weitere Einstellungen" - "Standardeinstellungen" die Option "Manuelle Eigent&uuml;merverwaltung erlauben" zu deaktivieren,
+    um sicherzustellen, dass keine lokalen &auml;nderungen vorgenommen werden, sondern die Eigent&uuml;mer-Pflege ausschlie&szlig;lich im externen Tool stattfindet.
+    <br>
+    F&uuml;r die Verwaltung in einem externen System ist der Import der Eigent&uuml;mer und deren IP-Adressen via 
+    <a href="/help/API">Firewall Orchestrator API</a> vorzunehmen.
+    <br><br>
+    Die Definition der Eigent&uuml;mer im Firewall Orchestrator selbst ist recht simpel. 
+    Hierzu muss lediglich im Men&uuml; "Einstellungen" - "Weitere Einstellungen" - "Standardeinstellungen" die Option "Manuelle Eigent&uuml;merverwaltung erlauben" aktiviert werden.
+    <br>
+    Anschlie&szlig;end ist es im Men&uuml; "Einstellungen" - "Eigent&uuml;mer" m&ouml;glich, Eigent&uuml;mer manuell hinzuzuf&uuml;gen, zu bearbeiten oder zu l&ouml;schen.
+</ul>
+');
+INSERT INTO txt VALUES ('H4032', 'English', '
+For the proper functioning of the recertification process, the following configurations must be made once at the beginning.
+<br><br>
+<H4>Permissions</H4>
+<ul>
+    <li>Logged in users must have the role "Recertier"</li>
+    <li>Logged in users must be members of an owner (either directly under "Full name*:" or as members of an owner group)</li>
+</ul>
+<H4>Owner configuration</H4>
+    If one does not want to distribute responsibility among several owners, it is sufficient to assign a group of recertifiers to the "Super-Owner" owner,
+    who are responsible for the recertification of all firewall rules.
+    To be able to edit the super-owner 
+    the "Allow manual owner management" option must be enabled in the "Settings" - "Additional settings" - "Default settings" menu.
+    <br><br>
+    If, on the other hand, a decentralized structure is to be set up, the owners can either be defined in the Firewall Orchestrator itself (not recommended) 
+    or you can import an existing list of owners in the company, which means that the maintenance effort for keeping this assignment up to date does not fall to the operator of the firewall infrastructure.
+    <br>
+  In this case, it is recommended to deactivate the "Allow manual owner administration" option in the "Settings" - "Additional settings" - "Default settings" menu,
+    to ensure that no local changes are made, but that owner maintenance takes place exclusively in the external tool.
+    <br>
+    For management in an external system, importing owners and their IP addresses should be done via the
+    <a href="/help/API">Firewall Orchestrator API</a>.
+    <br><br>
+    Defining the owners in Firewall Orchestrator itself is quite simple. 
+    All that is required is to activate the "Allow manual owner administration" option in the "Settings" - "Additional settings" - "Default settings" menu.
+    <br>
+    After that, in the "Settings" - "Owners" menu it is possible to add, edit or delete owners manually.
+</ul>
+');
+
+INSERT INTO txt VALUES ('H4033', 'German',  '
+Zum Testen der Rezertifizierungsfunktionalit&auml;t werden standardm&auml;&szlig;ig einige Demo-Daten zur Verf&uuml;gung gestellt.
+<br>
+Das sind sowohl Nutzer (userX_demo) als auch Eigent&uuml;mer (ownerX_demo).
+<br>
+Login erfolgt mit user1_demo (Passwort cactus1) oder user2_demo (Passwort cactus2)
+<br><br>
+<ol>
+    <li>
+        Im ersten Schritt kann in der linken Randleiste eine Filterung vorgenommen werden (F&auml;lligkeit der Rezertifizierung, Eigent&uuml;mer, Firewall-Ger&auml;te) 
+        und anschlie&szlig;end mit der Schaltfl&auml;che "Regeln anzeigen" eine Liste der zu rezertifizierenden Regeln generiert werden.
+    </li>
+    <li> 
+        Der Zeitraum f&uuml;r die Vorausschau kann im Feld "F&auml;llig in" gew&auml;hlt werden. 
+        Der Default-Wert kann &uuml;ber Ver&auml;ndern des "Rezertifizierungsanzeigeintervalls" in den pers&ouml;nlichen bzw. in den allgemeinen Rezertifizierungseinstellungen gesetzt werden. 
+    </li>
+    <li>
+        Bei Rezertifizierungen, die &uuml;berf&auml;llig sind, wird das Datum in rot angezeigt.<br>
+        Der Rezertifizierer hat nun die M&ouml;glichkeit, beliebige zu re- oder dezertifizierenden Regeln zu markieren. <br>
+        Durch klicken der "Ausgew&auml;hlte Aktionen ausf&uuml;hren"-Schaltfl&auml;che wird zun&auml;chst ein (optionaler - konfigurierbar) Kommentar abgefragt, und 
+        nach Best&auml;tigung werden alle markierten Re- und Dezertifizierungen in einem Schritt ausgef&uuml;hrt.<br>
+        Anschlie&szlig;end werden nur noch die verbliebenen anstehenden Rezertifizierungen angezeigt.
+    </li>
+    <li>
+        Sollte die Option zum Re- bzw. Dezertifizierung nicht angezeigt werden, 
+        sollten die <a href="/help/settings/roles">Berechtigungen</a> &uuml;berpr&uuml;ft werden bzw. wenn der Nutzer Mitglied mehrerer Eigent&uuml;mergruppen ist, 
+        muss zun&auml;chst einer der Eigent&uuml;mer ausgew&auml;hlt werden, um speziell f&uuml;r diesen rezertizieren zu k&ouml;nnen. <br>
+        In diesem Fall empfiehlt es sich f&uuml;r einen Eigent&uuml;mer nach dem anderen zu rezertifizieren.
+    </li>
+</ol>
+');
+INSERT INTO txt VALUES ('H4033', 'English', '
+To test the recertification functionality, some demo data is provided by default.
+<br>
+These are both users (userX_demo) and owners (ownerX_demo).
+<br>
+Login with user1_demo (password cactus1) or user2_demo (password cactus2)
+<br><br>
+<ol>
+    <li>
+        In the first step, a filtering can be made in the left sidebar (recertification due date, owner, firewall devices). 
+        and then a list of rules to be recertified can be generated using the "Show rules" button.
+    </li>
+    <li> 
+       The period for the preview can be selected in the "Due within" field. 
+       The default value can be set by changing the "Recertification display interval" in the personal or in the general recertification settings. 
+    </li>
+    <li>
+        For recertifications that are overdue, the date is displayed in red.<br>
+        The recertifier now has the option to mark any rules to be re- or decertified.<br>
+        By clicking the "Execute selected actions" button, a (optional - configurable) comment will be requested first, and 
+        after confirmation all marked recertifications and decertifications are executed in one step.<br>
+        Afterwards, only the remaining pending recertifications are displayed.
+    </li>
+    <li>
+        If the option to recertify or decertify is not displayed, the <a href="/help/settings/roles">permissions</a>  should be checked or if the user is a member of several owner groups, 
+        one of the owners must be selected first in order to be able to recertify specifically for this owner.<br>
+        In this case, it is recommended for one owner at a time to recertify.
+    </li>
+</ol>
+');
+
+INSERT INTO txt VALUES ('H4034', 'German',  '
+<H4>IP-Adress-Matching</H4>
+ 	Jede Regel (Quelle und Ziel) wird mit den f&uuml;r einen Eigent&uuml;mer definierten IP-Adressen auf &uuml;berlappung gepr&uuml;ft.<br>
+ 	Bei einer &Uuml;berlappung ist der Eigent&uuml;mer f&uuml;r die Rezertifizierung der Regel verantwortlich und ein entsprechender Eintrag wird
+ 	abh&auml;ngig vom Rezertifizierungsintervall des Eigent&uuml;mers erzeugt.
+ 	<br><br>
+ 	Alle Regeln, die Netzwerkobjekte enthalten, die keinem Eigent&uuml;mer zugeordnet werden k&ouml;nnen, sind automatisch dem Super-Owner zugewiesen.
+ 	<br>
+    Dieser ist somit f&uuml;r deren Rezertifzierung verantwortlich.
+<br><br>
+<H4>F&auml;lligkeitsdatum</H4>
+    Das Rezertifizierungsdatum wird errechnet aus dem letzten Rezertifizierungsdatum (falls unbekannt, wird das Erzeugungsdatum der Regel genommen)
+    und dem Rezertifizierungsintervall, welches in den Rezertifizierungseinstellungen definiert wurde. 
+<br><br>
+<H4>Konfiguration</H4>
+    Siehe auch <a href="/help/settings/recertificationgeneral">Rezertifizierungseinstellungen</a>.
+	<br><br>
+    Es ist m&ouml;glich, die einmal n&auml;chtliche laufende Neuberechnung der anstehenden Rezertifizierungen manuell anzusto&szlig;en. 
+    <br>
+	Hierzu dient die Schaltfl&auml;che Einstellungen - Weitere Einstellungen - Rezertifizierung - "Neuberechnung offene Rezertifizierungen".
+');
+INSERT INTO txt VALUES ('H4034', 'English', '
+<H4>IP Adress Matching</H4>
+ 	Each rule (source and destination) is checked for overlap with the IP addresses defined for an owner.<br>
+ 	In case of an overlap, the owner is responsible for the recertification of the rule and a corresponding entry will be
+ 	generated depending on the recertification interval of the owner.
+ 	<br><br>
+        All rules that contain network objects that cannot be assigned to an owner are automatically assigned to the super-owner.
+ 	<br>
+    The latter is thus responsible for their recertification.
+<br><br>
+<H4>Due Date</H4>
+   The recertification date is calculated from the last recertification date (if unknown, the creation date of the rule is taken)
+    and the recertification interval defined in the recertification settings. 
+<br><br>
+<H4CKonfiguration</H4>
+    Also see <a href="/help/settings/recertificationgeneral">Recertification Settings</a>.
+	<br><br>
+   It is possible to manually trigger the once-a-night running recalculation of pending recertifications. 
+    <br>
+	The button Settings - Further settings - Recertification - "Recalculation of open recertifications" is used for this purpose.
+');
+
+INSERT INTO txt VALUES ('H4035', 'German',  '
+Der initiale Owner-Import via API kann mit folgendem beispielhaften API-Befehl mit admin-Berechtigungen erfolgen:
+<br><br>
+<pre>
+mutation addOwners($owners:[owner_insert_input!]!) {
+  insert_owner(
+    objects: $owners
+  ) {
+    returning {
+      id
+    }
+  }
+}
+</pre>
+<br>
+Variablen
+<br>
+<pre>
+{
+  "owners": [
+      {
+        "name": "5",
+        "recert_interval": 365,
+        "dn":"x",
+        "group_dn":"x",
+        "app_id_external": "app-5",
+        "owner_networks": {"data": [{"ip": "10.5.0.0/16"},{"ip": "10.9.0.0/16"}]}
+      },
+      {
+        "name": "6",
+        "recert_interval": 30,
+        "dn":"x",
+        "group_dn":"x",
+        "app_id_external": "app-6",
+        "owner_networks": {"data": [{"ip": "10.6.0.0/16"}]}
+      },
+      {
+        "name": "7",
+        "recert_interval": 90,
+        "dn":"x",
+        "group_dn":"x",
+        "app_id_external": "app-7",
+        "owner_networks": {"data": [{"ip": "10.7.0.0/16"}]}
+      }
+  ]
+}
+</pre>
+<br><br>
+
+Einzelne Owner k&ouml;nnen auch beispielsweise mit folgendem API-Befehl aktualisiert werden:
+<br><br>
+<pre>
+mutation addSingleOwner {
+  insert_owner(
+    objects: [
+      {
+        name: "sechs"
+        recert_interval: 222
+        dn: "a"
+        group_dn: "b"
+        app_id_external: "app-sechs"
+        owner_networks: {
+          data: [{ ip: "10.69.0.0/16" }, { ip: "10.9.0.0/16" }]
+          on_conflict: {
+            constraint: owner_network_ip_unique
+            update_columns: [ip]
+          }
+        }
+      }
+    ]
+    on_conflict: {
+      constraint: owner_name_unique
+      update_columns: [recert_interval, dn, group_dn]
+    }
+  ) {
+    returning {
+      id
+    }
+  }
+}
+</pre>
+');
+INSERT INTO txt VALUES ('H4035', 'English', '
+The initial owner import via API can be done using the following examplary API command (with admin permissions):
+<br><br>
+<pre>
+mutation addOwners($owners:[owner_insert_input!]!) {
+  insert_owner(
+    objects: $owners
+  ) {
+    returning {
+      id
+    }
+  }
+}
+</pre>
+<br>
+Variables
+<br>
+<pre>
+{
+  "owners": [
+      {
+        "name": "5",
+        "recert_interval": 365,
+        "dn":"x",
+        "group_dn":"x",
+        "app_id_external": "app-5",
+        "owner_networks": {"data": [{"ip": "10.5.0.0/16"},{"ip": "10.9.0.0/16"}]}
+      },
+      {
+        "name": "6",
+        "recert_interval": 30,
+        "dn":"x",
+        "group_dn":"x",
+        "app_id_external": "app-6",
+        "owner_networks": {"data": [{"ip": "10.6.0.0/16"}]}
+      },
+      {
+        "name": "7",
+        "recert_interval": 90,
+        "dn":"x",
+        "group_dn":"x",
+        "app_id_external": "app-7",
+        "owner_networks": {"data": [{"ip": "10.7.0.0/16"}]}
+      }
+  ]
+}
+</pre>
+<br><br>
+
+Single owners can be updated using the following API command:
+<br><br>
+<pre>
+mutation addSingleOwner {
+  insert_owner(
+    objects: [
+      {
+        name: "sechs"
+        recert_interval: 222
+        dn: "a"
+        group_dn: "b"
+        app_id_external: "app-sechs"
+        owner_networks: {
+          data: [{ ip: "10.69.0.0/16" }, { ip: "10.9.0.0/16" }]
+          on_conflict: {
+            constraint: owner_network_ip_unique
+            update_columns: [ip]
+          }
+        }
+      }
+    ]
+    on_conflict: {
+      constraint: owner_name_unique
+      update_columns: [recert_interval, dn, group_dn]
+    }
+  ) {
+    returning {
+      id
+    }
+  }
+}
+</pre>
+');
+
 INSERT INTO txt VALUES ('H5001', 'German',  'In diesem Abschnitt werden die Setup- und Verwaltungseinstellungen behandelt.
     Die meisten Einstellungen k&ouml;nnen nur von Nutzern mit der Administrator-Rolle gesehen und ge&auml;ndert werden.
     Der Auditor kann zwar die Einstellungen sehen, da er aber keine Schreibrechte hat, sind alle Schaltfl&auml;chen, die zu &Auml;nderungen f&uuml;hren w&uuml;rden, deaktiviert.
@@ -2937,6 +3311,35 @@ INSERT INTO txt VALUES ('H5420', 'German',  'Frist zum L&ouml;schen der Regeln (
 INSERT INTO txt VALUES ('H5420', 'English', 'Rule Removal Grace Period (in days): Maximum time the fwadmin has to remove the decertified rules.');
 INSERT INTO txt VALUES ('H5421', 'German',  'Kommentar Pflichtfeld: Legt fest, dass das Kommentarfeld f&uuml;r Re- und Dezertifizierungen gef&uuml;llt sein muss.');
 INSERT INTO txt VALUES ('H5421', 'English', 'Comment Required: A non-empty comment for the re- or decertification is required.');
+
+INSERT INTO txt VALUES ('H5428', 'German',  'Rezert Check - aktiv: aktviere bzw. deaktiviere regelm&auml;&szlig;ige Pr&uuml;fungen zur Versendung von Benachrichtigungs- oder Eskalations-Emails and die Eigent&uuml;mer.');
+INSERT INTO txt VALUES ('H5428', 'English', 'Recert Check - active: enable or disable recurring recertification checks to send out notification or escalation emails to owners.');
+INSERT INTO txt VALUES ('H5429', 'German',  'Rezert Check alle: Abstand der Pr&uuml;fungen f&uuml;r den Versand von Benachrichtigungs- oder Eskalations-Emails and die Eigent&uuml;mer.');
+INSERT INTO txt VALUES ('H5429', 'English', 'Recert Check every: Interval betwenn checks for recertification notifications.');
+INSERT INTO txt VALUES ('H5430', 'German',  'Rezert Check - Email Titel: Titel der Benachrichtigungs-Email.');
+INSERT INTO txt VALUES ('H5430', 'English', 'Recert Check - Email subject: Subject line of the notification email.');
+INSERT INTO txt VALUES ('H5446', 'German',  'Rezert Check - Text anstehend: Textinhalt der Benachrichtigungsmail bei demn&auml;chst anstehenden Rezertifizierungen.');
+INSERT INTO txt VALUES ('H5446', 'English', 'Recert Check - text upcoming: Email body of the notification email for upcoming recertifications.');
+INSERT INTO txt VALUES ('H5432', 'German',  'Rezert Check - Text &uuml;berf&auml;llig: Textinhalt der Benachrichtigungsmail bei &uuml;berf&auml;lligen Rezertifizierungen (Eskalation).');
+INSERT INTO txt VALUES ('H5432', 'English', 'Recert Check - text overdue: Email body of the notification email for overdue recertifications (escalation).');
+
+INSERT INTO txt VALUES ('H5433', 'German',  'Autom. Anlegen L&ouml;schantrag: Soll automatisch ein L&ouml;sch-Ticket erzeugt werden, wenn eine Regel vollst&auml;ndig dezertifiziert wurde?');
+INSERT INTO txt VALUES ('H5433', 'English', 'Autocreate delete rule ticket: When a rule has benn fully de-certified, should a delete ticket be automatically generated?');
+INSERT INTO txt VALUES ('H5434', 'German',  'Titel f&uuml;r L&ouml;schantrag: Titel des zu erzeugenden L&ouml;sch-Tickets.');
+INSERT INTO txt VALUES ('H5434', 'English', 'Title delete ticket: Subject line of the delte ticket to be generated.');
+INSERT INTO txt VALUES ('H5435', 'German',  'Grund f&uuml;r L&ouml;sch-Antrag: Text f&uuml;r den Grund des zu erzeugenden L&ouml;sch-Tickets.');
+INSERT INTO txt VALUES ('H5435', 'English', 'Reason delete ticket: Text for the reason of the delete ticket to be generated.');
+INSERT INTO txt VALUES ('H5436', 'German',  'Titel f&uuml;r L&ouml;sch Auftrag: Titel der zu erzeugenden L&ouml;schaufgabe.');
+INSERT INTO txt VALUES ('H5436', 'English', 'Title delete rule task: Title of the delete task to be generated.');
+INSERT INTO txt VALUES ('H5437', 'German',  'Grund f&uuml;r L&ouml;schauftrag: Begr&uuml;ndungstext f&uuml;r die zu erzeugende L&ouml;schaufgabe.');
+INSERT INTO txt VALUES ('H5437', 'English', 'Reason for delete rule task: Text for the reason of the delete task to be generated.');
+INSERT INTO txt VALUES ('H5438', 'German',  'Priorit&auml;t f&uuml;r L&ouml;schantrag: Auswahl zwishen den Standard-Prio-Bezeichnungen Lowest, Low, Medium, High, Highest.');
+INSERT INTO txt VALUES ('H5438', 'English', 'Priority for delete rule ticket: Choose between existing priority labels (default: Lowest, Low, Medium, High, Highest).');
+INSERT INTO txt VALUES ('H5439', 'German',  'Initialer Status f&uuml;r L&uml;schantrag: Standard="Draft"');
+INSERT INTO txt VALUES ('H5439', 'English', 'Initial state for delete rule ticket: default="Draft"');
+INSERT INTO txt VALUES ('H5440', 'German',  'Neuberechnen offene Rezertifizierungen: Durch Dr&uuml;cken dieser Schaltfl&auml;che werden s&auml;mtliche ausstehenden Rezertifizierungen neu berechnet (kann mehrere Minuten dauern)  .');
+INSERT INTO txt VALUES ('H5440', 'English', 'Recalculate open recertifications: By clicking this button, all future recertifications are recalculated (this may several minutes).');
+
 INSERT INTO txt VALUES ('H5422', 'German',  'Devices zu Beginn eingeklappt ab: Legt fest, ab wievielen Devices (Managements + Gateways) diese in der linken Randleiste zun&auml;chst eingeklappt dargestellt werden.');
 INSERT INTO txt VALUES ('H5422', 'English', 'Devices collapsed at beginning from: defines from which number of devices (managements + gateways) they are displayed collapsed in the left sidebar at beginning.');
 INSERT INTO txt VALUES ('H5423', 'German',  'Nachrichten-Anzeigedauer (in Sekunden): legt fest, wie lange Erfolgs-Nachrichten dargestellt werden, bis sie automatisch ausgeblendet werden.

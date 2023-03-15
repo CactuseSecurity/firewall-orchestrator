@@ -49,10 +49,22 @@
 	private int xPositionDropdown;
 	private int yPositionDropdown;
 
-	public readonly string Id = Guid.NewGuid().ToString();
+	[Parameter]
+	public string Id { get; set; }
+
+	private Func<ElementType, string> _elementToString = (o => o.ToString() ?? "");
 
 	[Parameter]
-	public Func<ElementType, string> ElementToString { get; set; } = (o => o.ToString() ?? "");
+	public Func<ElementType, string> ElementToString 
+	{
+		get { return _elementToString; }
+		set
+		{
+			_elementToString = value;
+			// Update selected element display
+			DisplaySelection(SelectedElements);
+		}
+	}
 
 	private bool _nullable = false;
 
@@ -139,6 +151,11 @@
 	public bool Toggled { get; private set; } = true;
 
 	private string searchValue = "";
+
+	public Dropdown()
+	{
+		Id = Guid.NewGuid().ToString();
+	}
 
 	protected override async Task OnInitializedAsync()
 	{

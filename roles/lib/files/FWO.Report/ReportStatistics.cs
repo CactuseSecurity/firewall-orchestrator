@@ -130,11 +130,13 @@ namespace FWO.Report
                 report.AppendLine("</tr>");
                 foreach (Device device in management.Devices)
                 {
-                    report.AppendLine("<tr>");
-                    report.AppendLine($"<td>{device.Name}</td>");
-                    if (device.RuleStatistics != null) 
+                    if (device.RuleStatistics != null)
+                    {
+                        report.AppendLine("<tr>");
+                        report.AppendLine($"<td>{device.Name}</td>");
                         report.AppendLine($"<td>{device.RuleStatistics.ObjectAggregate.ObjectCount}</td>");
-                    report.AppendLine("</tr>");
+                        report.AppendLine("</tr>");
+                    }
                 }
                 report.AppendLine("</table>");
                 report.AppendLine("<hr>");

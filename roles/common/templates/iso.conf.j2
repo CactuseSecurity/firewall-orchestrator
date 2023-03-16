@@ -1,0 +1,22 @@
+# zentrales Config-File
+
+TopDir	{{ fworch_home }}		# Installationsverzeichnis
+	
+###################### database connection ##############################
+fworch database hostname              {{ fworch_db_host }}
+fworch database type                  DBX_PGSQL
+fworch database name                  {{ fworch_db_name }}
+fworch database port                  {{ fworch_db_port }}
+
+###################### logging options ##################################
+set loglevel		7
+set logtarget syslog
+syslog_local		6
+syslog_type		unix
+syslog_ident		fworch-importer-legacy
+syslog_facility		local6
+
+###################### misc #############################################
+rule_header_offset	99000					# used for creating netscreen header_rules (containing zone-info)
+								# (used in import and web-gui)
+								# must at least be higher than max expected rule number

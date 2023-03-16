@@ -1,0 +1,26 @@
+# this playbook contains web server availabitlity tests
+
+- name: test web server availability
+  uri:
+    url: "{{ loop_url }}"
+    method: GET
+    headers:
+      Content-Type: html/text
+    body:
+    validate_certs: false
+    return_content: true
+  register: web_call_result
+  changed_when: false
+  failed_when: false
+  loop:
+    - "{{ middleware_uri }}/swagger/"
+    - https://{{ ui_hostname }}/
+    - https://{{ api_network_listening_ip_address }}:9443/api/
+  loop_control:
+    loop_var: loop_url
+
+- name: show webserver test results
+  fail:
+    msg: "url: {{ item.url }}, status: {{ item.status }}"
+  loop: "{{ web_call_result.results | from_yaml | list }}"
+  when: item.status!=200

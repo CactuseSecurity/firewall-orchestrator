@@ -6,7 +6,7 @@ namespace FWO.Ui.Services
 {
     public class RequestDbAccess
     {
-        private Action<Exception?, string, string, bool>? DisplayMessageInUi;
+        private Action<Exception?, string, string, bool> DisplayMessageInUi = DefaultInit.DoNothing;
         private UserConfig UserConfig;
         private ApiConnection ApiConnection;
         private ActionHandler ActionHandler;
@@ -39,7 +39,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, UserConfig.GetText("fetch_requests"), "", true);
+                DisplayMessageInUi(exception, UserConfig.GetText("fetch_requests"), "", true);
             }
             return requests;
         }
@@ -58,7 +58,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, UserConfig.GetText("fetch_requests"), "", true);
+                DisplayMessageInUi(exception, UserConfig.GetText("fetch_requests"), "", true);
             }
             return ticket;
         }
@@ -83,7 +83,7 @@ namespace FWO.Ui.Services
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newTicket, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
-                    DisplayMessageInUi!(null, UserConfig.GetText("save_request"), UserConfig.GetText("E8001"), true);
+                    DisplayMessageInUi(null, UserConfig.GetText("save_request"), UserConfig.GetText("E8001"), true);
                 }
                 else
                 {
@@ -93,7 +93,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, UserConfig.GetText("save_request"), "", true);
+                DisplayMessageInUi(exception, UserConfig.GetText("save_request"), "", true);
             }
             return ticket;
         }
@@ -114,7 +114,7 @@ namespace FWO.Ui.Services
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateTicket, Variables)).UpdatedId;
                 if(udId != ticket.Id)
                 {
-                    DisplayMessageInUi!(null, UserConfig.GetText("save_request"), UserConfig.GetText("E8002"), true);
+                    DisplayMessageInUi(null, UserConfig.GetText("save_request"), UserConfig.GetText("E8002"), true);
                 }
                 else
                 {
@@ -123,7 +123,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, UserConfig.GetText("save_request"), "", true);
+                DisplayMessageInUi(exception, UserConfig.GetText("save_request"), "", true);
             }
             return ticket;
         }
@@ -153,7 +153,7 @@ namespace FWO.Ui.Services
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newRequestTask, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
-                    DisplayMessageInUi!(null, UserConfig.GetText("add_task"), UserConfig.GetText("E8003"), true);
+                    DisplayMessageInUi(null, UserConfig.GetText("add_task"), UserConfig.GetText("E8003"), true);
                 }
                 else
                 {
@@ -174,7 +174,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, UserConfig.GetText("add_task"), "", true);
+                DisplayMessageInUi(exception, UserConfig.GetText("add_task"), "", true);
             }
             return returnId;
         }
@@ -202,7 +202,7 @@ namespace FWO.Ui.Services
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequestTask, Variables)).UpdatedId;
                 if(udId != reqtask.Id)
                 {
-                    DisplayMessageInUi!(null, UserConfig.GetText("save_task"), UserConfig.GetText("E8004"), true);
+                    DisplayMessageInUi(null, UserConfig.GetText("save_task"), UserConfig.GetText("E8004"), true);
                 }
                 else
                 {
@@ -228,7 +228,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, UserConfig.GetText("save_task"), "", true);
+                DisplayMessageInUi(exception, UserConfig.GetText("save_task"), "", true);
             }
         }
 
@@ -239,12 +239,12 @@ namespace FWO.Ui.Services
                 int delId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.deleteRequestTask, new { id = reqtask.Id })).DeletedId;
                 if(delId != reqtask.Id)
                 {
-                    DisplayMessageInUi!(null, UserConfig.GetText("delete_task"), UserConfig.GetText("E8005"), true);
+                    DisplayMessageInUi(null, UserConfig.GetText("delete_task"), UserConfig.GetText("E8005"), true);
                 }
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, UserConfig.GetText("delete_task"), "", true);
+                DisplayMessageInUi(exception, UserConfig.GetText("delete_task"), "", true);
             }
         }
 
@@ -262,16 +262,18 @@ namespace FWO.Ui.Services
                     ip = (element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null),
                     port = element.Port,
                     proto = element.ProtoId,
-                    network_obj_id = element.NetworkId,
-                    service_id = element.ServiceId,
+                    networkObjId = element.NetworkId,
+                    serviceId = element.ServiceId,
                     field = element.Field,
-                    user_id = element.UserId,
-                    original_nat_id = element.OriginalNatId
+                    userId = element.UserId,
+                    originalNatId = element.OriginalNatId,
+                    deviceId = element.DeviceId,
+                    ruleUid = element.RuleUid
                 };
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newRequestElement, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
-                    DisplayMessageInUi!(null, UserConfig.GetText("add_element"), UserConfig.GetText("E8006"), true);
+                    DisplayMessageInUi(null, UserConfig.GetText("add_element"), UserConfig.GetText("E8006"), true);
                 }
                 else
                 {
@@ -280,7 +282,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, UserConfig.GetText("add_element"), "", true);
+                DisplayMessageInUi(exception, UserConfig.GetText("add_element"), "", true);
             }
             return returnId;
         }
@@ -297,21 +299,23 @@ namespace FWO.Ui.Services
                     ip = (element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null),
                     port = element.Port,
                     proto = element.ProtoId,
-                    network_obj_id = element.NetworkId,
-                    service_id = element.ServiceId,
+                    networkObjId = element.NetworkId,
+                    serviceId = element.ServiceId,
                     field = element.Field,
-                    user_id = element.UserId,
-                    original_nat_id = element.OriginalNatId
+                    userId = element.UserId,
+                    originalNatId = element.OriginalNatId,
+                    deviceId = element.DeviceId,
+                    ruleUid = element.RuleUid
                 };
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequestElement, Variables)).UpdatedId;
                 if(udId != element.Id)
                 {
-                    DisplayMessageInUi!(null, UserConfig.GetText("save_element"), UserConfig.GetText("E8007"), true);
+                    DisplayMessageInUi(null, UserConfig.GetText("save_element"), UserConfig.GetText("E8007"), true);
                 }
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, UserConfig.GetText("save_element"), "", true);
+                DisplayMessageInUi(exception, UserConfig.GetText("save_element"), "", true);
             }
         }
 
@@ -322,12 +326,12 @@ namespace FWO.Ui.Services
                 long delId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.deleteRequestElement, new { id = elementId })).DeletedId;
                 if(delId != elementId)
                 {
-                    DisplayMessageInUi!(null, UserConfig.GetText("delete_element"), UserConfig.GetText("E8008"), true);
+                    DisplayMessageInUi(null, UserConfig.GetText("delete_element"), UserConfig.GetText("E8008"), true);
                 }
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, UserConfig.GetText("delete_element"), "", true);
+                DisplayMessageInUi(exception, UserConfig.GetText("delete_element"), "", true);
             }
         }
 
@@ -350,7 +354,7 @@ namespace FWO.Ui.Services
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newApproval, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
-                    DisplayMessageInUi!(null, UserConfig.GetText("add_approval"), UserConfig.GetText("E8009"), true);
+                    DisplayMessageInUi(null, UserConfig.GetText("add_approval"), UserConfig.GetText("E8009"), true);
                 }
                 else
                 {
@@ -361,7 +365,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, UserConfig.GetText("add_approval"), "", true);
+                DisplayMessageInUi(exception, UserConfig.GetText("add_approval"), "", true);
             }
             return returnId;
         }
@@ -381,7 +385,7 @@ namespace FWO.Ui.Services
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateApproval, Variables)).UpdatedId;
                 if(udId != approval.Id)
                 {
-                    DisplayMessageInUi!(null, UserConfig.GetText("save_approval"), UserConfig.GetText("E8004"), true);
+                    DisplayMessageInUi(null, UserConfig.GetText("save_approval"), UserConfig.GetText("E8004"), true);
                 }
                 else
                 {
@@ -390,7 +394,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, UserConfig.GetText("save_approval"), "", true);
+                DisplayMessageInUi(exception, UserConfig.GetText("save_approval"), "", true);
             }
         }
 
@@ -420,7 +424,7 @@ namespace FWO.Ui.Services
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newImplementationTask, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
-                    DisplayMessageInUi!(null, UserConfig.GetText("add_task"), UserConfig.GetText("E8003"), true);
+                    DisplayMessageInUi(null, UserConfig.GetText("add_task"), UserConfig.GetText("E8003"), true);
                 }
                 else
                 {
@@ -444,7 +448,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, UserConfig.GetText("add_task"), "", true);
+                DisplayMessageInUi(exception, UserConfig.GetText("add_task"), "", true);
             }
             return returnId;
         }
@@ -473,7 +477,7 @@ namespace FWO.Ui.Services
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateImplementationTask, Variables)).UpdatedId;
                 if(udId != impltask.Id)
                 {
-                    DisplayMessageInUi!(null, UserConfig.GetText("save_task"), UserConfig.GetText("E8004"), true);
+                    DisplayMessageInUi(null, UserConfig.GetText("save_task"), UserConfig.GetText("E8004"), true);
                 }
                 else
                 {
@@ -499,7 +503,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, UserConfig.GetText("save_task"), "", true);
+                DisplayMessageInUi(exception, UserConfig.GetText("save_task"), "", true);
             }
         }
 
@@ -510,12 +514,12 @@ namespace FWO.Ui.Services
                 int delId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.deleteImplementationTask, new { id = impltask.Id })).DeletedId;
                 if(delId != impltask.Id)
                 {
-                    DisplayMessageInUi!(null, UserConfig.GetText("delete_task"), UserConfig.GetText("E8005"), true);
+                    DisplayMessageInUi(null, UserConfig.GetText("delete_task"), UserConfig.GetText("E8005"), true);
                 }
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, UserConfig.GetText("delete_task"), "", true);
+                DisplayMessageInUi(exception, UserConfig.GetText("delete_task"), "", true);
             }
         }
 
@@ -534,16 +538,17 @@ namespace FWO.Ui.Services
                     ip = (element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null),
                     port = element.Port,
                     proto = element.ProtoId,
-                    network_obj_id = element.NetworkId,
-                    service_id = element.ServiceId,
+                    networkObjId = element.NetworkId,
+                    serviceId = element.ServiceId,
                     field = element.Field,
-                    user_id = element.UserId,
-                    original_nat_id = element.OriginalNatId
+                    userId = element.UserId,
+                    originalNatId = element.OriginalNatId,
+                    ruleUid = element.RuleUid
                 };
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newImplementationElement, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
-                    DisplayMessageInUi!(null, UserConfig.GetText("add_element"), UserConfig.GetText("E8006"), true);
+                    DisplayMessageInUi(null, UserConfig.GetText("add_element"), UserConfig.GetText("E8006"), true);
                 }
                 else
                 {
@@ -552,7 +557,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, UserConfig.GetText("add_element"), "", true);
+                DisplayMessageInUi(exception, UserConfig.GetText("add_element"), "", true);
             }
             return returnId;
         }
@@ -569,21 +574,22 @@ namespace FWO.Ui.Services
                     ip = (element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null),
                     port = element.Port,
                     proto = element.ProtoId,
-                    network_obj_id = element.NetworkId,
-                    service_id = element.ServiceId,
+                    networkObjId = element.NetworkId,
+                    serviceId = element.ServiceId,
                     field = element.Field,
-                    user_id = element.UserId,
-                    original_nat_id = element.OriginalNatId
+                    userId = element.UserId,
+                    originalNatId = element.OriginalNatId,
+                    ruleUid = element.RuleUid
                 };
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateImplementationElement, Variables)).UpdatedId;
                 if(udId != element.Id)
                 {
-                    DisplayMessageInUi!(null, UserConfig.GetText("save_element"), UserConfig.GetText("E8007"), true);
+                    DisplayMessageInUi(null, UserConfig.GetText("save_element"), UserConfig.GetText("E8007"), true);
                 }
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, UserConfig.GetText("save_element"), "", true);
+                DisplayMessageInUi(exception, UserConfig.GetText("save_element"), "", true);
             }
         }
 
@@ -594,12 +600,12 @@ namespace FWO.Ui.Services
                 long delId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.deleteImplementationElement, new { id = elementId })).DeletedId;
                 if(delId != elementId)
                 {
-                    DisplayMessageInUi!(null, UserConfig.GetText("delete_element"), UserConfig.GetText("E8008"), true);
+                    DisplayMessageInUi(null, UserConfig.GetText("delete_element"), UserConfig.GetText("E8008"), true);
                 }
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, UserConfig.GetText("delete_element"), "", true);
+                DisplayMessageInUi(exception, UserConfig.GetText("delete_element"), "", true);
             }
         }
 
@@ -622,7 +628,7 @@ namespace FWO.Ui.Services
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.newComment, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
-                    DisplayMessageInUi!(null, UserConfig.GetText("add_comment"), UserConfig.GetText("E8012"), true);
+                    DisplayMessageInUi(null, UserConfig.GetText("add_comment"), UserConfig.GetText("E8012"), true);
                 }
                 else
                 {
@@ -631,7 +637,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, UserConfig.GetText("add_comment"), "", true);
+                DisplayMessageInUi(exception, UserConfig.GetText("add_comment"), "", true);
             }
             return returnId;
         }
@@ -648,12 +654,12 @@ namespace FWO.Ui.Services
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.addCommentToTicket, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
-                    DisplayMessageInUi!(null, UserConfig.GetText("add_comment"), UserConfig.GetText("E8012"), true);
+                    DisplayMessageInUi(null, UserConfig.GetText("add_comment"), UserConfig.GetText("E8012"), true);
                 }
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, UserConfig.GetText("add_comment"), "", true);
+                DisplayMessageInUi(exception, UserConfig.GetText("add_comment"), "", true);
             }
         }
 
@@ -669,12 +675,12 @@ namespace FWO.Ui.Services
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.addCommentToReqTask, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
-                    DisplayMessageInUi!(null, UserConfig.GetText("add_comment"), UserConfig.GetText("E8012"), true);
+                    DisplayMessageInUi(null, UserConfig.GetText("add_comment"), UserConfig.GetText("E8012"), true);
                 }
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, UserConfig.GetText("add_comment"), "", true);
+                DisplayMessageInUi(exception, UserConfig.GetText("add_comment"), "", true);
             }
         }
 
@@ -690,12 +696,12 @@ namespace FWO.Ui.Services
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.addCommentToImplTask, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
-                    DisplayMessageInUi!(null, UserConfig.GetText("add_comment"), UserConfig.GetText("E8012"), true);
+                    DisplayMessageInUi(null, UserConfig.GetText("add_comment"), UserConfig.GetText("E8012"), true);
                 }
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, UserConfig.GetText("add_comment"), "", true);
+                DisplayMessageInUi(exception, UserConfig.GetText("add_comment"), "", true);
             }
         }
 
@@ -711,12 +717,12 @@ namespace FWO.Ui.Services
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.RequestQueries.addCommentToApproval, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
-                    DisplayMessageInUi!(null, UserConfig.GetText("add_comment"), UserConfig.GetText("E8012"), true);
+                    DisplayMessageInUi(null, UserConfig.GetText("add_comment"), UserConfig.GetText("E8012"), true);
                 }
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, UserConfig.GetText("add_comment"), "", true);
+                DisplayMessageInUi(exception, UserConfig.GetText("add_comment"), "", true);
             }
         }
 
@@ -738,7 +744,7 @@ namespace FWO.Ui.Services
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateTicketState, Variables)).UpdatedId;
                 if(udId != ticket.Id)
                 {
-                    DisplayMessageInUi!(null, UserConfig.GetText("save_request"), UserConfig.GetText("E8002"), true);
+                    DisplayMessageInUi(null, UserConfig.GetText("save_request"), UserConfig.GetText("E8002"), true);
                 }
                 else
                 {
@@ -747,7 +753,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, UserConfig.GetText("save_request"), "", true);
+                DisplayMessageInUi(exception, UserConfig.GetText("save_request"), "", true);
             }
         }
 
@@ -768,7 +774,7 @@ namespace FWO.Ui.Services
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateRequestTaskState, Variables)).UpdatedId;
                 if(udId != reqtask.Id)
                 {
-                    DisplayMessageInUi!(null, UserConfig.GetText("save_task"), UserConfig.GetText("E8004"), true);
+                    DisplayMessageInUi(null, UserConfig.GetText("save_task"), UserConfig.GetText("E8004"), true);
                 }
                 else
                 {
@@ -777,7 +783,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, UserConfig.GetText("save_task"), "", true);
+                DisplayMessageInUi(exception, UserConfig.GetText("save_task"), "", true);
             }
         }
 
@@ -798,7 +804,7 @@ namespace FWO.Ui.Services
                 int udId = (await ApiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.RequestQueries.updateImplementationTaskState, Variables)).UpdatedId;
                 if(udId != impltask.Id)
                 {
-                    DisplayMessageInUi!(null, UserConfig.GetText("save_task"), UserConfig.GetText("E8004"), true);
+                    DisplayMessageInUi(null, UserConfig.GetText("save_task"), UserConfig.GetText("E8004"), true);
                 }
                 else
                 {
@@ -807,8 +813,27 @@ namespace FWO.Ui.Services
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, UserConfig.GetText("save_task"), "", true);
+                DisplayMessageInUi(exception, UserConfig.GetText("save_task"), "", true);
             }
+        }
+
+        public async Task<bool> FindRuleUid(int? deviceId, string? ruleUid)
+        {
+            bool ruleFound = false;
+            try
+            {
+                var Variables = new
+                {
+                    deviceId = deviceId,
+                    ruleUid = ruleUid
+                };
+                ruleFound = (await ApiConnection.SendQueryAsync<List<Rule>>(FWO.Api.Client.Queries.RuleQueries.getRuleByUid, Variables)).Count > 0;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, UserConfig.GetText("fetch_data"), "", true);
+            }
+            return ruleFound;
         }
     }
 }

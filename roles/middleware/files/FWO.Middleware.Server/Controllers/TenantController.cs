@@ -10,6 +10,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FWO.Middleware.Controllers
 {
+    /// <summary>
+	/// Controller class for tenant api
+	/// </summary>
     [Route("api/[controller]")]
     [ApiController]
     public class TenantController : ControllerBase
@@ -17,6 +20,9 @@ namespace FWO.Middleware.Controllers
         private readonly List<Ldap> ldaps;
         private readonly ApiConnection apiConnection;
 
+		/// <summary>
+		/// Constructor needing ldap list and connection
+		/// </summary>
         public TenantController(List<Ldap> ldaps, ApiConnection apiConnection)
         {
             this.ldaps = ldaps;
@@ -24,6 +30,10 @@ namespace FWO.Middleware.Controllers
         }
 
         // GET: api/<TenantController>
+        /// <summary>
+        /// Get all tenants
+        /// </summary>
+        /// <returns>List of tenants</returns>
         [HttpGet]
         [Authorize(Roles = "admin, auditor")]
         public async Task<List<TenantGetReturnParameters>> Get()
@@ -38,6 +48,17 @@ namespace FWO.Middleware.Controllers
         }
 
         // POST api/<TenantController>
+        /// <summary>
+        /// Add tenant to internal Ldap
+        /// </summary>
+        /// <remarks>
+        /// Name (required) &#xA;
+        /// Comment (optional) &#xA;
+        /// Project (optional) &#xA;
+        /// ViewAllDevices (required) &#xA;
+        /// </remarks>
+        /// <param name="tenant">TenantAddParameters</param>
+        /// <returns>Id of new tenant, 0 if no tenant could be created</returns>
         [HttpPost]
         [Authorize(Roles = "admin")]
         public async Task<int> Post([FromBody] TenantAddParameters tenant)
@@ -95,6 +116,17 @@ namespace FWO.Middleware.Controllers
         }
 
         // PUT api/<TenantController>/5
+        /// <summary>
+        /// Update tenant in internal Ldap
+        /// </summary>
+        /// <remarks>
+        /// Id (required) &#xA;
+        /// Comment (optional) &#xA;
+        /// Project (optional) &#xA;
+        /// ViewAllDevices (required) &#xA;
+        /// </remarks>
+        /// <param name="parameters">TenantEditParameters</param>
+        /// <returns>true if updated</returns>
         [HttpPut]
         [Authorize(Roles = "admin")]
         public async Task<bool> Change([FromBody] TenantEditParameters parameters)
@@ -126,6 +158,15 @@ namespace FWO.Middleware.Controllers
         }
 
         // DELETE api/<TenantController>/5
+        /// <summary>
+        /// Delete tenant from internal Ldap
+        /// </summary>
+        /// <remarks>
+        /// Id (required) &#xA;
+        /// Name (required) &#xA;
+        /// </remarks>
+        /// <param name="tenant">TenantDeleteParameters</param>
+        /// <returns>true if tenant deleted</returns>
         [HttpDelete]
         [Authorize(Roles = "admin")]
         public async Task<bool> Delete([FromBody] TenantDeleteParameters tenant)

@@ -12,6 +12,9 @@ using FWO.Config.File;
 
 namespace FWO.Middleware.Server
 {
+    /// <summary>
+    /// Report scheduler class
+    /// </summary>
     public class ReportScheduler
     {
         private readonly object scheduledReportsLock = new object();
@@ -26,6 +29,9 @@ namespace FWO.Middleware.Server
         private readonly object ldapLock = new object();
         private List<Ldap> connectedLdaps;
 
+		/// <summary>
+		/// Constructor needing connection, jwtWriter and subscription to connected ldaps
+		/// </summary>
         public ReportScheduler(ApiConnection apiConnection, JwtWriter jwtWriter, ApiSubscription<List<Ldap>> connectedLdapsSubscription)
         {
             this.jwtWriter = jwtWriter;            
@@ -134,7 +140,7 @@ namespace FWO.Middleware.Server
                     // get uiuser roles + tenant
                     AuthManager authManager = new AuthManager(jwtWriter, connectedLdaps, apiConnection);
                     //AuthenticationRequestHandler authHandler = new AuthenticationRequestHandler(connectedLdaps, jwtWriter, apiConnection);
-                    string jwt = await authManager.AuthorizeUserAsync(report.Owner, validatePassword: false, lifetime: TimeSpan.MaxValue);
+                    string jwt = await authManager.AuthorizeUserAsync(report.Owner, validatePassword: false, lifetime: TimeSpan.FromDays(365));
                     ApiConnection apiConnectionUserContext = new GraphQlApiConnection(apiServerUri, jwt);
                     GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(jwt);
                     UserConfig userConfig = await UserConfig.ConstructAsync(globalConfig, apiConnection, report.Owner.DbId);
@@ -148,11 +154,7 @@ namespace FWO.Middleware.Server
                         report.Template.ReportParams.DeviceFilter.applyFullDeviceSelection(true);
                     }
 
-                    ReportBase reportRules = ReportBase.ConstructReport(report.Template.Filter, 
-                        report.Template.ReportParams.DeviceFilter,
-                        report.Template.ReportParams.TimeFilter, 
-                        (report.Template.ReportParams.ReportType != null ? (ReportType)report.Template.ReportParams.ReportType : ReportType.Rules),
-                        userConfig);
+                    ReportBase reportRules = ReportBase.ConstructReport(report.Template, userConfig);
                     Management[] managementsReport = Array.Empty<Management>();
                     await reportRules.Generate(int.MaxValue, apiConnectionUserContext, 
                         managementsReportIntermediate =>

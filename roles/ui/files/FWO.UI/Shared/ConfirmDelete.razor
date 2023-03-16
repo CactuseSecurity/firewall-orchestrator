@@ -1,0 +1,59 @@
+﻿@using FWO.Config.Api
+
+@attribute [Authorize(Roles = "admin, auditor")]
+
+@inject UserConfig userConfig
+
+
+<PopUp Title="@(Title)" Show="@Display" OnClose="Cancel">
+    <Body>
+        @if (Display)
+        {
+            <p>@(DeleteMessage)</p>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            @if (DeleteAllowed)
+            {
+                <AuthorizeView Roles="admin">
+                    <Authorized>
+                        <button class="btn btn-sm btn-danger" @onclick="() => {PerformAction(); Display = false;}">@(userConfig.GetText("delete"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+            }
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+
+@code
+{
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public Func<Task> PerformAction { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public string Title { get; set; } = "";
+
+    [Parameter]
+    public string DeleteMessage { get; set; } = "";
+
+    [Parameter]
+    public bool DeleteAllowed { get; set; } = true;
+
+    private void Cancel()
+    {
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

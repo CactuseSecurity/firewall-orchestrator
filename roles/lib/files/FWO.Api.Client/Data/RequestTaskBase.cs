@@ -8,8 +8,8 @@ namespace FWO.Api.Data
         master = 0,
         generic = 1,
         access = 2, 
-        //rule_delete,
-        //rule_modify,
+        rule_delete = 3,
+        rule_modify = 4,
         group_create = 5,
         group_modify = 6,
         group_delete = 7
@@ -32,9 +32,6 @@ namespace FWO.Api.Data
 
         [JsonProperty("task_type"), JsonPropertyName("task_type")]
         public string TaskType { get; set; } = FWO.Api.Data.TaskType.access.ToString();
-
-        // [JsonProperty("request_action"), JsonPropertyName("request_action")]
-        // public string RequestAction { get; set; } = FWO.Api.Data.RequestAction.create.ToString();
 
         [JsonProperty("rule_action"), JsonPropertyName("rule_action")]
         public int? RuleAction { get; set; }
@@ -75,7 +72,6 @@ namespace FWO.Api.Data
             Title = reqtask.Title;
             TaskNumber = reqtask.TaskNumber;
             TaskType = reqtask.TaskType;
-            // RequestAction = reqtask.RequestAction;
             RuleAction = reqtask.RuleAction;
             Tracking = reqtask.Tracking;
             Start = reqtask.Start;

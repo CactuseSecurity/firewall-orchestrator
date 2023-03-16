@@ -1,9 +1,20 @@
 ### general settings
-product_version: "6.0.2"
-
+product_version: "6.2"
+ansible_user: "{{ lookup('env', 'USER') }}"
+ansible_become_method: sudo
 ansible_python_interpreter: /usr/bin/python3
 ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 product_name: fworch
+
+### host information
+importer_hostname: "{{ groups['importers'].0 }}"
+ui_hostname: "{{ groups['frontends'].0 }}"
+syslog_host: "{{ groups['logserver'].0 }}"
+fworch_db_host: "{{ groups['databaseserver'].0 }}"
+api_hostname: "{{  groups['apiserver'].0 }}"
+sample_hostname: "{{ groups['sampleserver'].0 }}"
+
+# fworch_db_host_ip: "{{ hostvars[fworch_db_host]['ansible_host'] }}"
 
 # installation_mode options:
 #   new (default) - assumes that no fworch is installed on the target devices - fails if it finds an installation
@@ -42,7 +53,6 @@ http_proxy_import_parameter: ""
 # use the following syntax for authenticated proxy access:
 # http_proxy=http://USERNAME:PASSWORD@1.2.3.4:8080/
 
-server_admin: "root@{{ api_ip_address }}"
 arch: x86_64
 redhat_major_version: "8"
 redhat_arch: "{{ redhat_major_version }}-{{ arch }}"
@@ -50,8 +60,6 @@ redhat_arch: "{{ redhat_major_version }}-{{ arch }}"
 ###############################################################
 ### database
 fworch_db_port: 5432
-# fworch_db_host: 10.1.1.83
-fworch_db_host: localhost
 fworch_db_name: fworchdb
 fworch_dbadmin_name: dbadmin
 dbadmin_password_file: "{{ fworch_secrets_dir }}/dbadmin_pwd"
@@ -61,11 +69,15 @@ fworch_db_password_file: "{{ fworch_secrets_dir }}/fworch_db_pwd"
 ### api
 api_service_name: fworch-hasura-docker-api
 api_container_name: "{{ product_name }}-api"
-api_ip_address: "127.0.0.1"
+api_local_listening_ip_address: "127.0.0.1"
+api_network_listening_ip_address: "{{ groups['apiserver'].0 }}"
+# api_network_listening_ip_address: "{{ hostvars[groups['apiserver'].0].ip_address }}"
+# api_server_ip_address: "{{ groups['apiserver'].0 }}"
 api_web_port: 9443
 api_hasura_jwt_alg: "RS256"
 api_hasura_jwt_secret: "fake-jwt-secret-for-github-install"
-api_uri: "https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql"
+api_uri: "https://{{ api_network_listening_ip_address }}:{{ api_web_port }}/api/v1/graphql"
+server_admin: "root@{{ api_network_listening_ip_address }}"
 
 ############################################################
 ### middleware server 
@@ -78,17 +90,15 @@ ldif_changetype: add
 middleware_service_name: "{{ product_name }}-middleware"
 
 # middleware web server
-middleware_server_name: 127.0.0.1
 middleware_web_listener_port: 8888
-middleware_uri: "https://{{ middleware_server_name }}:{{ middleware_web_listener_port }}/"
-
+middleware_uri: "https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/"
 ##### application server data
 middleware_internal_port: 8880
 
 ###############################################################
 ui_admin_password_file: "{{ fworch_secrets_dir }}/ui_admin_pwd"
 ui_admin_testonly_password: "fworch.1"
-
+importer_password_file_on_installer: etc/importer.pwd
 
 ### dotnet
 dotnet_deb_name: "packages-microsoft-prod.deb"
@@ -104,7 +114,6 @@ randomly_generated_pwd: "{{ lookup('password', '/dev/null length=32 chars=ascii_
 
 ### logging
 syslog_proto: tcp
-syslog_host: localhost
 syslog_port: 514
 middleware_server_syslog_id: "{{ product_name }}.middleware-server"
 ui_syslog_id: "{{ product_name }}-ui"

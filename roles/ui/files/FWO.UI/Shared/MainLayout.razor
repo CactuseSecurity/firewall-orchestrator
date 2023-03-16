@@ -55,7 +55,7 @@
 
 @code
 {
-    Action<Exception?, string, string, bool>? DisplayMessageInUiFunction;
+    Action<Exception?, string, string, bool> DisplayMessageInUiFunction = DefaultInit.DoNothing;
 
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
@@ -88,6 +88,7 @@
 
         JwtEventService.OnPermissionChanged += OnPermissionsChanged;
         JwtEventService.OnJwtAboutToExpire += OnJwtAboutToExpire;
+        JwtEventService.OnJwtExpired += OnJwtExpired;
 
         alertSubscription = apiConnection.GetSubscription<List<Alert>>(ApiExceptionHandler, OnAlertUpdate, MonitorQueries.subscribeAlertChanges);
     }
@@ -107,6 +108,15 @@
         {
             showReloginInput = true;
             ShowMessage(userConfig.GetText("jwt_expiry_title"), userConfig.GetText("jwt_expiry_text"), MessageType.Info, showtime: -1);
+        }
+    }
+
+    private void OnJwtExpired(object? sender, string userDn)
+    {
+        if (userDn == userConfig.User.Dn)
+        {
+            showReloginInput = true;
+            ShowMessage(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), MessageType.Info, showtime: -1);
         }
     }
 
@@ -136,12 +146,15 @@
                 errorMessage = (authResponse.Data != null ? userConfig.GetApiText(authResponse.Data) : "Middleware Api Error: " + authResponse.Content);            
             }
         }
-        catch (Exception ex){ Log.WriteError("Re-login", "Re-login unsuccessful.", ex); }
+        catch (Exception ex)
+        { 
+            Log.WriteError("Re-login", "Re-login unsuccessful.", ex);
+        }
 
         reloginErrorMessage = errorMessage;
         reloginCssClass = "is-invalid";
     }
-    
+
     private void OnAlertUpdate(List<Alert> alerts)
     {
         showAlert = alerts.Count() > 0;
@@ -157,7 +170,7 @@
             {
                 showtime = userConfig.MessageViewTime * 1000; // convert to milliseconds
             }
-            
+
             switch(type)
             {
                 case MessageType.Info:
@@ -230,7 +243,12 @@
             if (exception.Message.Contains("JWTExpired"))
             {
                 Log.WriteError("Auth Token Error", "JWT expired in session.", exception);
-                NavigationManager.NavigateTo("/logout");
+                // TODO: Improve error handling for jwt expiry / api unreachable, so that no action leads to unhandled exception
+                if (!showReloginInput)
+                {
+                    showReloginInput = true;
+                    ShowMessage(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), MessageType.Info, showtime: -1);
+                }
                 return;
             }
             else if (exception.Message == "no such type exists in the schema: 'cidr'")

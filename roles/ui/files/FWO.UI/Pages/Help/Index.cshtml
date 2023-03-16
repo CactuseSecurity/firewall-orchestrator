@@ -50,19 +50,71 @@
             <a href="/help/archive/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("archive")</a>
         </li>
         <li class="nav-item px-2">
+            <a href="/help/workflow/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("workflow")</a>
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item px-2">
+                    <a href="/help/workflow/objects/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("objects")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/workflow/tasktypes/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("task_types")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/workflow/phases/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("phases_roles")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/workflow/states/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("state_handling")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/workflow/actions/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("actions")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/workflow/checklist/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("checklist")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/workflow/examples/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("examples")</a>
+                </li>
+            </ul>
+        </li>
+        <li class="nav-item px-2">
             <a href="/help/recertification/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("recertification")</a>
+        </li>
+        <li class="nav-item px-2">
+            <a href="/help/monitoring/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("monitoring")</a>
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item px-2">
+                    <a href="/help/monitoring/open_alerts/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("open_alerts")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/monitoring/all_alerts/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("all_alerts")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/monitoring/autodiscovery/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("autodiscovery")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/monitoring/daily_checks/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("daily_checks")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/monitoring/import_status/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("import_status")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/monitoring/import_logs/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("import_logs")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/workflmonitoringow/ui_messages/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("ui_messages")</a>
+                </li>
+            </ul>
         </li>
         <li class="nav-item px-2">
             <a href="/help/settings/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("settings")</a>
             <ul class="navbar-nav mr-auto">
                 <li class="nav-item px-2">
+                    <a href="/help/settings/credentials/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("import_credential")</a>
+                </li>
+                <li class="nav-item px-2">
                     <a href="/help/settings/managements/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("managements")</a>
                 </li>
                 <li class="nav-item px-2">
                     <a href="/help/settings/gateways/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("gateways")</a>
-                </li>
-                <li class="nav-item px-2">
-                    <a href="/help/settings/import/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("import_status")</a>
                 </li>
                 <li class="nav-item px-2">
                     <a href="/help/settings/ldap/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("ldap_conns")</a>
@@ -80,10 +132,28 @@
                     <a href="/help/settings/roles/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("roles")</a>
                 </li>
                 <li class="nav-item px-2">
+                    <a href="/help/settings/owners/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("owners")</a>
+                </li>
+                <li class="nav-item px-2">
                     <a href="/help/settings/defaults/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("defaults")</a>
                 </li>
                 <li class="nav-item px-2">
+                    <a href="/help/settings/recertificationgeneral/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("recert_settings")</a>
+                </li>
+                <li class="nav-item px-2">
                     <a href="/help/settings/passwordpolicy/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("password_policy")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/stateactions/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("state_actions")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/statedefinitions/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("state_definitions")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/statematrix/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("state_matrix")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/workflowcustomizing/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("customizing")</a>
                 </li>
                 <li class="nav-item px-2">
                     <a href="/help/settings/password/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("password")</a>
@@ -95,9 +165,8 @@
                     <a href="/help/settings/report/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("report_settings")</a>
                 </li>
                 <li class="nav-item px-2">
-                    <a href="/help/settings/recertification/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("recert_settings")</a>
+                    <a href="/help/settings/recertificationpersonal/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("recert_settings")</a>
                 </li>
-
             </ul>
          <li class="nav-item px-2">
             <a href="/help/API/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("api")</a>

@@ -57,8 +57,8 @@ mutation newManagement(
 {
   "mgmName": "hugo",
   "devTypId": 7, 
-  "importerHostname": "fworch-srv",
-  "sshHostname": "fworch-srv",
+  "importerHostname": "install-srv",
+  "sshHostname": "install-srv",
   "sshPort": 22,
   "secret": "private-key",
   "sshUser": "fworch-import-user",

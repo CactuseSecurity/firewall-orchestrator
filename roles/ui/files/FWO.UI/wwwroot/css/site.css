@@ -83,6 +83,10 @@ app {
     color: red;
 }
 
+.col-form-label-marg7 {
+    margin-left: 7px; /* hier wird der Abstand zwischen Checkbox und Label definiert */
+}
+  
 #blazor-error-ui {
     background: lightyellow;
     bottom: 0;
@@ -221,3 +225,7 @@ app {
     }
 }
 
+.radioSpace {
+    margin-right:10px;
+    margin-left:20px;
+}

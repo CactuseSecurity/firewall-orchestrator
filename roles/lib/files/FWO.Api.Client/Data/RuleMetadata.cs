@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace FWO.Api.Data
@@ -35,12 +35,42 @@ namespace FWO.Api.Data
         [JsonProperty("rule_recertification_comment"), JsonPropertyName("rule_recertification_comment")]
         public string Comment { get; set; } = "";
 
+        [JsonProperty("recertification"), JsonPropertyName("recertification")]
+        public List<Recertification> RuleRecertification { get; set; } = new List<Recertification>();
+
         public DateTime NextRecert { get; set; }
 
         public string LastCertifierName { get; set; } = "";
 
-        public bool Recert { get; set; } 
+        public bool Recert { get; set; }
 
         public string Style { get; set; } = "";
+
+
+
+
+
+
+        public void UpdateRecertPeriods(int recertificationPeriod, int recertificationNoticePeriod)
+        {
+
+            if (LastCertifierDn != null && LastCertifierDn != "")
+                LastCertifierName = (new FWO.Api.Data.DistName(LastCertifierDn)).UserName;
+            else
+                LastCertifierName = "-";
+
+            if (LastCertified != null)
+                NextRecert = ((DateTime)LastCertified).AddDays(recertificationPeriod);
+            else if (Created != null)
+                NextRecert = ((DateTime)Created).AddDays(recertificationPeriod);
+            else
+                NextRecert = DateTime.Now;
+
+            if (NextRecert <= DateTime.Now)
+                Style = "background-overdue";
+            else if (NextRecert <= DateTime.Now.AddDays(recertificationNoticePeriod))
+                Style = "background-upcoming";
+        }
     }
+
 }

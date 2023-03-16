@@ -9,8 +9,9 @@ namespace FWO.Ui.Services
     public class ActionHandler
     {
         private List<RequestState> states = new List<RequestState>();
-        private ApiConnection apiConnection;
-        private RequestHandler requestHandler;
+        private readonly ApiConnection apiConnection;
+        private RequestHandler requestHandler = new RequestHandler();
+
 
         public ActionHandler(ApiConnection apiConnection, RequestHandler requestHandler)
         {
@@ -23,7 +24,6 @@ namespace FWO.Ui.Services
             states = new List<RequestState>();
             states = await apiConnection.SendQueryAsync<List<RequestState>>(FWO.Api.Client.Queries.RequestQueries.getStates);
         }
-
 
         private List<RequestStateAction> getRelevantActions(RequestStatefulObject statefulObject, RequestObjectScopes scope, bool toState=true)
         {
@@ -99,28 +99,37 @@ namespace FWO.Ui.Services
                     }
                     break;
                 case nameof(StateActionTypes.AddApproval):
-                    switch(scope)
-                    {
-                        case RequestObjectScopes.Ticket:
-                            break;
-                        case RequestObjectScopes.RequestTask:
-                            requestHandler.SetReqTaskEnv((RequestReqTask)statefulObject);
-                            break;
-                        case RequestObjectScopes.ImplementationTask:
-                            requestHandler.SetImplTaskEnv((RequestImplTask)statefulObject);
-                            break;
-                        case RequestObjectScopes.Approval:
-                            break;
-                        default:
-                            break;
-                    }
+                    setScope(statefulObject, scope);
                     await requestHandler.AddApproval(action.ExternalParams);
                     break;
                 case nameof(StateActionTypes.SetAlert):
                     await setAlert(action.ExternalParams);
                     break;
+                case nameof(StateActionTypes.TrafficPathAnalysis):
+                    setScope(statefulObject, scope);
+                    await requestHandler.HandlePathAnalysisAction(action.ExternalParams);
+                    break;
                 case nameof(StateActionTypes.ExternalCall):
                     await callExternal(action);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        private void setScope(RequestStatefulObject statefulObject, RequestObjectScopes scope)
+        {
+            switch(scope)
+            {
+                case RequestObjectScopes.Ticket:
+                    break;
+                case RequestObjectScopes.RequestTask:
+                    requestHandler.SetReqTaskEnv((RequestReqTask)statefulObject);
+                    break;
+                case RequestObjectScopes.ImplementationTask:
+                    requestHandler.SetImplTaskEnv((RequestImplTask)statefulObject);
+                    break;
+                case RequestObjectScopes.Approval:
                     break;
                 default:
                     break;

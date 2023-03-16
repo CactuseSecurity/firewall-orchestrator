@@ -18,20 +18,18 @@
                 <form class="form-group row">
                     <label for="assignedGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("assign_to")):</label>
                     <div class="col-sm-8">
-                        <select id="assignedGroup" class="form-control-sm col-sm" @bind="StatefulObject.AssignedGroup">
-                            <option value="">-</option>
-                            @foreach (var group in userAndGroupList)
-                            {
-                                <option value="@group.Dn">@(group.Name)</option>
-                            }
-                        </select>
+                        <Dropdown ElementType="UiUser" @bind-SelectedElement="selectedUserGroup" ElementToString="@(g => g.Name)" Elements="userAndGroupList" Nullable="true">
+                            <ElementTemplate Context="group">
+                                @group.Name
+                            </ElementTemplate>
+                        </Dropdown>
                     </div>
                     @if(userAndGroupList.Count > 0)
                     {
                         <div class="col-sm-2">
                             <AuthorizeView Roles="admin, fw-admin, requester, approver, planner, implementer, reviewer">
                                 <Authorized>
-                                    <button class="btn btn-sm btn-success" @onclick="async () => { await Assign(StatefulObject); await Close();}" @onclick:preventDefault>@(userConfig.GetText("assign1"))</button>
+                                    <button class="btn btn-sm btn-success" @onclick="async () => { PrepAssign(); await Assign(StatefulObject); await Close();}" @onclick:preventDefault>@(userConfig.GetText("assign1"))</button>
                                 </Authorized>
                                 <NotAuthorized>
                                     <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign1"))</button>
@@ -71,7 +69,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
     
     [Parameter]
     public bool Display { get; set; } = false;
@@ -80,13 +78,13 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
     [Parameter]
-    public Func<Task> ResetParent { get; set; }
+    public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
     public RequestStatefulObject StatefulObject { get; set; } = new RequestStatefulObject();
 
     [Parameter]
-    public Func<RequestStatefulObject, Task>? Assign { get; set; }
+    public Func<RequestStatefulObject, Task> Assign { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
     public Func<Task>? AssignBack { get; set; }
@@ -97,9 +95,9 @@
     [Parameter]
     public List<string> RoleList { get; set; } = new List<string>();
 
-
     private List<UiUser> userAndGroupList = new List<UiUser>();
     private string? origAssignedGroup;
+    private UiUser? selectedUserGroup;
 
 
     protected override async Task OnInitializedAsync()
@@ -120,16 +118,22 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_requests"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_requests"), "", true);
         }
     }
 
-    protected override async Task OnParametersSetAsync()
+    protected override void OnParametersSet()
     {
         if (Display)
         {
             origAssignedGroup = (StatefulObject.AssignedGroup != null ? new string(StatefulObject.AssignedGroup): null);
+            selectedUserGroup = userAndGroupList.FirstOrDefault(x => x.Dn == StatefulObject.AssignedGroup);
         }
+    }
+
+    private void PrepAssign()
+    {
+        StatefulObject.AssignedGroup = (selectedUserGroup != null ? selectedUserGroup.Dn : "");
     }
 
     private async Task Close()

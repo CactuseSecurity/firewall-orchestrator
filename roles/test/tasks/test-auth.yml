@@ -20,10 +20,10 @@
       Password: "{{ test_user1_pw }}"
     body_format: json
     validate_certs: false
-    return_content: yes
+    return_content: true
   register: sample_jwt
   changed_when: false
-  environment: "{{ proxy_env }}"
+#  environment: "{{ proxy_env }}"
 
 - debug: var=sample_jwt
 
@@ -32,7 +32,7 @@
 - debug: var=jwt_header
 
 ## adding potentially missing base64 "=" padding to header:
-- set_fact: jwt_header="{{ jwt_header }}=" cacheable=yes
+- set_fact: jwt_header="{{ jwt_header }}=" cacheable=true
   when: "jwt_header|length % 4 > 0"
   loop:
     - 1
@@ -56,7 +56,7 @@
 - name: show jwt encoded payload pre padding
   debug: var=jwt_encoded_payload
 ## adding potentially missing base64 = padding to payload:
-- set_fact: jwt_encoded_payload="{{ jwt_encoded_payload }}=" cacheable=yes
+- set_fact: jwt_encoded_payload="{{ jwt_encoded_payload }}=" cacheable=true
   when: "jwt_encoded_payload|length % 4 > 0"
   loop:
     - 1
@@ -93,10 +93,10 @@
       Password: wrong-pwd
     body_format: json
     validate_certs: false
-    return_content: yes
+    return_content: true
   register: sample_jwt
   changed_when: false
-  ignore_errors: yes
+  ignore_errors: true
 
 - debug:
     var: sample_jwt

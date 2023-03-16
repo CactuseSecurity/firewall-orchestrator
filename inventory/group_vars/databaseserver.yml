@@ -1,0 +1,46 @@
+# database_dir: /var/lib/pgsql/data
+postgresql_package: postgresql
+postgresql_test_package: pgtap
+postgresql_c_client_library_header_files: libpq-dev
+postgresql_dev_package_prefix: postgresql-server-dev
+postgresql_query_as_single_query: no
+database_install_dir: "{{ fworch_home }}/database"
+
+# table_space variable can be used to create database in another place where there is enough space
+# table_space: /var/db/fworch_tablespace
+# table_space_name: fworch
+
+database_users:
+  - dbbackup
+  - fworchimporter
+
+database_groups:
+  - secuadmins
+  - dbbackupusers
+  - configimporters
+  - reporters
+  - fworchadmins
+
+database_idempotent_files:
+  - fworch-basic-procs.sql
+  - fworch-import.sql
+  - fworch-import-main.sql
+  - fworch-obj-import.sql
+  - fworch-obj-refs.sql
+  - fworch-svc-import.sql
+  - fworch-svc-refs.sql
+  - fworch-usr-import.sql
+  - fworch-usr-refs.sql
+  - fworch-rule-import.sql
+  - fworch-rule-refs.sql
+  - fworch-rule-resolved.sql
+  - fworch-zone-import.sql
+  - fworch-report.sql
+  - fworch-qa.sql
+  - fworch-report-basics.sql
+  - fworch-views.sql
+  - fworch-api-funcs.sql
+  - fworch-grants.sql
+  - fworch-texts.sql
+  - fworch-path-analysis.sql
+  - fworch-rule-recert.sql

@@ -27,7 +27,7 @@ sample_config_user_home: "/home/{{ sample_config_user }}"
   
 ## hosts: backends
 
-- By default, this is isosrv (localhost) for demo purposes
+- By default, this is localhost for demo purposes
 - This should be changed to fit the customers infrastructure
 - Important variables from inventory/backends include
   

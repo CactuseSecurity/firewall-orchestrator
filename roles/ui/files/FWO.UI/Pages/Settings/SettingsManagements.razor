@@ -3,6 +3,7 @@
 @using FWO.Api.Client
 @using FWO.Config.Api
 @using FWO.DeviceAutoDiscovery
+@using FWO.Middleware.Client
 
 @page "/settings/managements"
 @attribute [Authorize(Roles = "admin, auditor, fw-admin")]
@@ -100,101 +101,115 @@
         {
             <form>
                 <div class="form-group row">
-                    <label for="managementId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
                     <label class="col-sm-8">@actManagement.Id</label>
                 </div>
                 <div class="form-group row">
-                    <label for="managementName" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
                     <div class="col-sm-8">
-                        <input id="managementName" type="text" class="form-control form-control-sm" @bind="actManagement.Name" />
+                        <input type="text" class="form-control form-control-sm" @bind="actManagement.Name" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="managementComment" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
                     <div class="col-sm-8">
                         <textarea rows="3" cols="60" name="text" class="form-control form-control-sm" placeholder=@(userConfig.GetText("comment")) @bind="actManagement.Comment"></textarea>   
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="managementDevType" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("device_type"))*:</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("device_type"))*:</label>
                     <div class="col-sm-8">
-                        <select id="managementDevType" class="form-control form-control-sm" @bind="actManagement.DeviceType">
-                            @foreach (DeviceType devType in deviceTypes)
-                            {
-                                @if (devType.IsManagement) 
-                                {
-                                    <option value="@devType">@(devType.NameVersion())</option>
-                                }
-                            }
-                        </select>
+                        <Dropdown ElementType="DeviceType" ElementToString="@(d => d.NameVersion())" @bind-SelectedElement="actManagement.DeviceType" Elements="deviceTypes.Where(d => d.IsManagement)">
+                            <ElementTemplate Context="devType">
+                                @devType.NameVersion()
+                            </ElementTemplate>
+                        </Dropdown>
                     </div>
                 </div>
                 @if (!actManagement.DeviceType.IsDummyRouter())
                 {
-                    <div class="form-group row">
-                        <label for="managementHostname" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("hostname"))*:</label>
-                        <div class="col-sm-8">
-                            <input id="managementHostname" type="text" class="form-control form-control-sm" @bind="actManagement.Hostname" />
+                    @if (actManagement.DeviceType.Name == "Azure")
+                    {
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("cloud_sub_id")):</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control form-control-sm" @bind="actManagement.CloudSubscriptionId" />
+                            </div>
                         </div>
-                    </div>
-                    <div class="form-group row">
-                        <label for="managementPort" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
-                        <div class="col-sm-2">
-                            <input id="managementPort" type="text" class="form-control form-control-sm" @bind="actManagement.Port" />
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("cloud_tenant_id")):</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control form-control-sm" @bind="actManagement.CloudTenantId" />
+                            </div>
                         </div>
-                    </div>
+                        // not really used just hard-coded for displaying in table:
+                        actManagement.Hostname = "management.azure.com";
+                        actManagement.Port = 443;
+                    }
+                    else
+                    {
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("hostname"))*:</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control form-control-sm" @bind="actManagement.Hostname" />
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
+                            <div class="col-sm-2">
+                                <input type="text" class="form-control form-control-sm" @bind="actManagement.Port" />
+                            </div>
+                        </div>
+                    }
                     <div class="form-group row">
-                        <label for="managementCredential" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("import_credential"))*:</label>
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("import_credential"))*:</label>
                         <div class="col-sm-8">
-                            <select id="managementCredential" class="form-control form-control-sm" @bind="actManagement.ImportCredential.Id">
-                                @foreach (ImportCredential cred in credentials)
-                                {
-                                    <option value="@cred.Id">@(cred.Name)</option>
-                                }
-                            </select>
+                            <Dropdown ElementType="ImportCredential" ElementToString="@(c => c.Name)" @bind-SelectedElement="actManagement.ImportCredential" Elements="credentials">
+                                <ElementTemplate Context="cred">
+                                    @cred.Name
+                                </ElementTemplate>
+                            </Dropdown>
                         </div>
                     </div>
                 }
                 @if (actManagement.DeviceType.CanHaveDomain())
                 {
                     <div class="form-group row">
-                        <label for="managementConfigPath" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("config_path")):</label>
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@userConfig.GetText("config_path"):</label>
                         <div class="col-sm-8">
-                            <input id="managementConfigPath" type="text" class="form-control form-control-sm" @bind="actManagement.ConfigPath" />
+                            <input type="text" class="form-control form-control-sm" @bind="actManagement.ConfigPath" />
                         </div>
                     </div>
                     <div class="form-group row">
-                        <label for="managementDomainUid" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("domain_uid")):</label>
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@userConfig.GetText("domain_uid"):</label>
                         <div class="col-sm-8">
-                            <input id="managementDomainUid" type="text" class="form-control form-control-sm" @bind="actManagement.DomainUid" />
+                            <input type="text" class="form-control form-control-sm" @bind="actManagement.DomainUid" />
                         </div>
                     </div>
                 }
                 @if (actManagement.DeviceType.CanHaveSupermanager())
                 {
                     <div class="form-group row">
-                        <label for="managementSuperManager" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("super_manager"))*:</label>
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("super_manager"))*:</label>
                         <div class="col-sm-8">
-                            <select id="managementSuperManager" class="form-control form-control-sm" @bind="actManagement.SuperManagerId">
-                                <option value="null">@(userConfig.GetText("no_super_manager"))</option>
-                                @foreach (Management superManager in managements.Where(x => x.DeviceType.Id == actManagement.DeviceType.GetSupermanagerId()))
-                                {
-                                    <option value="@superManager.Id">@(superManager.Name)</option>
-                                }
-                            </select>
+                            <Dropdown ElementType="Management" ElementToString="@(m => m.Name)" @bind-SelectedElement="selectedSuperManagement" Elements="managements.Where(x => x.DeviceType.Id == actManagement.DeviceType.GetSupermanagerId())">
+                                <ElementTemplate Context="superManager">
+                                    @superManager.Name
+                                </ElementTemplate>
+                            </Dropdown>
                         </div>
                     </div>
                 }
                 <div class="form-group row">
-                    <label for="managementImporterHostname" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("importer_host")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("importer_host")):</label>
                     <div class="col-sm-8">
-                        <input id="managementImporterHostname" type="text" class="form-control form-control-sm" @bind="actManagement.ImporterHostname" />
+                        <input type="text" class="form-control form-control-sm" @bind="actManagement.ImporterHostname" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="managementDebugLevel" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("debug_level")) (0-9):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("debug_level")) (0-9):</label>
                     <div class="col-sm-8">
-                        <input id="managementDebugLevel" type="text" class="form-control form-control-sm" @bind="actManagement.DebugLevel" />
+                        <input type="text" class="form-control form-control-sm" @bind="actManagement.DebugLevel" />
                     </div>
                 </div>
 
@@ -224,67 +239,16 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("delete_management"))" Show="@DeleteMode" OnClose="() => DeleteMode = false">
-    <Body>
-        @if (DeleteMode)
-        {
-            <p>@(deleteMessage)</p>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <AuthorizeView Roles="admin">
-                <Authorized>
-                    <button class="btn btn-sm btn-danger" @onclick="() => Delete(actManagement)">@(userConfig.GetText("delete"))</button>
-                </Authorized>
-                <NotAuthorized>
-                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                </NotAuthorized> 
-            </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
-
-<PopUp Title="@(userConfig.GetText("remove_sample_data"))" Show="@CleanupMode" OnClose="() => CleanupMode = false">
-    <Body>
-        @if (CleanupMode)
-        {
-            <p>@(cleanupMessage)</p>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <AuthorizeView Roles="admin">
-                <Authorized>
-                    <button class="btn btn-sm btn-danger" @onclick="() => RemoveSampleData()">@(userConfig.GetText("delete"))</button>
-                </Authorized>
-                <NotAuthorized>
-                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                </NotAuthorized> 
-            </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
-
+<ConfirmDelete @bind-Display="DeleteMode" PerformAction="Delete" Title="@userConfig.GetText("delete_management")" DeleteMessage="@deleteMessage"/>
+<ConfirmDelete @bind-Display="CleanupMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@cleanupMessage"/>
 <AutoDiscovery @ref="autoDiscovery" Actions="actActions" @bind-Display="AutoDiscoverMode" Closing="async () => {AutoDiscoverMode = false; await Refresh();}"/>
+<InProgress Display="workInProgress"/>
 
-<PopUp Title="@(userConfig.GetText("in_progress"))" Small="true" Show="@workInProgress">
-    <Body>
-        @if (workInProgress)
-        {
-            <div class="row">
-                <div class="spinner-border mx-auto align-self-center" role="status"></div>
-            </div>
-        }
-    </Body>
-</PopUp>
 
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private List<ActionItem> actActions = new List<ActionItem>();
     private List<Management> managements = new List<Management>();
@@ -306,7 +270,7 @@
 
     private Management newManagement = new Management();
     private Management actManagement = new Management();
-    private Management actSuperManagement = new Management();
+    private Management? selectedSuperManagement;
 
     private AutoDiscovery? autoDiscovery;
 
@@ -322,29 +286,45 @@
     {
         try
         {
-            managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
-            foreach (var management in managements)
-            {
-                if (management.Name.EndsWith("_demo"))
-                {
-                    sampleManagements.Add(management);
-                }
-            }
-            showCleanupButton = (sampleManagements.Count > 0);
+            JwtReader jwt = new JwtReader(userConfig.User.Jwt);
+            jwt.Validate();
+
+            if (jwt.ContainsAllowedRole("admin") || jwt.ContainsAllowedRole("fw-admin"))
+                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+            else
+                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
+
+            AnalyseSampleManagements();
 
             deviceTypes = await apiConnection.SendQueryAsync<List<DeviceType>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceTypeDetails);
 
-            credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(FWO.Api.Client.Queries.DeviceQueries.getCredentials);
+            if (jwt.ContainsAllowedRole("admin") || jwt.ContainsAllowedRole("fw-admin"))
+                credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(FWO.Api.Client.Queries.DeviceQueries.getCredentials);
+            else
+                credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(FWO.Api.Client.Queries.DeviceQueries.getCredentialsWithoutSecrets);
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_managements"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_managements"), "", true);
         }
     }
 
+    private void AnalyseSampleManagements()
+    {
+        sampleManagements = new List<Management>();
+        foreach (var management in managements)
+        {
+            if (management.Name.EndsWith("_demo"))
+            {
+                sampleManagements.Add(management);
+            }
+        }
+        showCleanupButton = (sampleManagements.Count > 0);
+    }
     private void Edit(Management management)
     {
         actManagement = new Management(management);
+        selectedSuperManagement = actManagement.SuperManagerId != null ? managements.FirstOrDefault(m => m.Id == actManagement.SuperManagerId) : null;
         EditMode = true;
     }
 
@@ -354,7 +334,7 @@
         // Checks if delete possible. Todo: further checks?
         if (actManagement.Devices != null && actManagement.Devices.Length > 0)
         {
-            DisplayMessageInUi!(null, userConfig.GetText("delete_management"), userConfig.GetText("E5101"), true);
+            DisplayMessageInUi(null, userConfig.GetText("delete_management"), userConfig.GetText("E5101"), true);
         }
         else
         {
@@ -363,25 +343,27 @@
         }
     }
 
-    private async Task Delete(Management management)
+    private async Task Delete()
     {
         try
         {
             DeleteMode = false;
             workInProgress = true;
-            var Variables = new { id = management.Id };
+            StateHasChanged();
+            var Variables = new { id = actManagement.Id };
             int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.deleteManagement, Variables)).DeletedId;
-            if (delId == management.Id)
+            if (delId == actManagement.Id)
             {
-                managements.Remove(management);
+                managements.Remove(actManagement);
             }
             workInProgress = false;
         }
         catch (Exception exception)
         {
             workInProgress = false;
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_management"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_management"), "", true);
         }
+        StateHasChanged();
     }
 
     private void RequestRemoveSampleData()
@@ -395,16 +377,22 @@
     {
         foreach (var management in sampleManagements)
         {
-            await Delete(management);
+            actManagement = management;
+            await Delete();
         }
         CleanupMode = false;
         showCleanupButton = false;
+        StateHasChanged();
     }
 
     private void Add()
     {
         AddMode = true;
-        newManagement = new Management() { DeviceType = new DeviceType { Id = deviceTypes.First().Id } };
+        newManagement = new Management()
+        {
+            DeviceType = deviceTypes.Count > 0 ? deviceTypes.First() : new DeviceType(), 
+            ImportCredential = credentials.Count > 0 ? credentials.First() : new ImportCredential()
+        };
         Edit(newManagement);
     }
 
@@ -420,9 +408,10 @@
     {
         try
         {
+            actManagement.SuperManagerId = selectedSuperManagement?.Id;
             if (actManagement.Sanitize())
             {
-                DisplayMessageInUi!(null, userConfig.GetText("save_management"), userConfig.GetText("U0001"), true);
+                DisplayMessageInUi(null, userConfig.GetText("save_management"), userConfig.GetText("U0001"), true);
             }
             if (CheckValues(actManagement, userConfig.GetText("save_management")))
             {
@@ -441,6 +430,8 @@
                         hideInUi = actManagement.HideInUi,
                         configPath = actManagement.ConfigPath,
                         domainUid = actManagement.DomainUid,
+                        cloudSubscriptionId = actManagement.CloudSubscriptionId,                        
+                        cloudTenantId = actManagement.CloudTenantId,                        
                         superManager = actManagement.SuperManagerId,
                         importerHostname = actManagement.ImporterHostname,
                         debugLevel = actManagement.DebugLevel,
@@ -471,6 +462,8 @@
                         hideInUi = actManagement.HideInUi,
                         configPath = actManagement.ConfigPath,
                         domainUid = actManagement.DomainUid,
+                        cloudSubscriptionId = actManagement.CloudSubscriptionId,                        
+                        cloudTenantId = actManagement.CloudTenantId,                        
                         superManager = actManagement.SuperManagerId,
                         importerHostname = actManagement.ImporterHostname,
                         debugLevel = actManagement.DebugLevel,
@@ -480,24 +473,13 @@
                     EditMode = (udId == actManagement.Id ? false : true);
                     managements[managements.FindIndex(x => x.Id == actManagement.Id)] = actManagement;
                 }
-                // update actManagement
-                DeviceType? devtype = deviceTypes.FirstOrDefault(x => x.Id == actManagement.DeviceType.Id) ?? throw new Exception("Unknown Device type");
-                actManagement.DeviceType.Name = devtype.Name;
-                actManagement.DeviceType.Version = devtype.Version;
-
-                ImportCredential? cred = credentials.FirstOrDefault(x => x.Id == actManagement.ImportCredential.Id) ?? throw new Exception("Unknown credentials");
-                actManagement.ImportCredential = cred;
-
-                // actManagement.ImportCredential.Name = cred.Name;
-                // actManagement.ImportCredential.Secret = cred.Secret;
-                // actManagement.ImportCredential.PublicKey = cred.PublicKey;
-                // actManagement.ImportCredential.IsKeyPair = cred.IsKeyPair;
+                AnalyseSampleManagements();
             }
             StateHasChanged();
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_management"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("save_management"), "", true);
         }
     }
 
@@ -509,24 +491,24 @@
                 (mgm.DeviceType.Manufacturer != "DummyRouter" && (mgm.Hostname == null || mgm.Hostname == ""))
             )
         {
-            DisplayMessageInUi!(null, checkCause, userConfig.GetText("E5102"), true);
+            DisplayMessageInUi(null, checkCause, userConfig.GetText("E5102"), true);
             return false;
         }
         if (mgm.DeviceType.Manufacturer != "DummyRouter" && (mgm.Port < 1 || mgm.Port > 65535))
         {
-            DisplayMessageInUi!(null, checkCause, userConfig.GetText("E5103"), true);
+            DisplayMessageInUi(null, checkCause, userConfig.GetText("E5103"), true);
             return false;
         }
         else if (mgm.DebugLevel != null && (mgm.DebugLevel < 0 || mgm.DebugLevel > 9))
         {
-            DisplayMessageInUi!(null, checkCause, userConfig.GetText("E5104"), true);
+            DisplayMessageInUi(null, checkCause, userConfig.GetText("E5104"), true);
             return false;
         }
         if (!mgm.ImportDisabled && managements.FirstOrDefault(existingManagement => existingManagement.Hostname == mgm.Hostname && existingManagement.Port == mgm.Port 
             && existingManagement.ConfigPath == mgm.ConfigPath && (existingManagement.SuperManagerId == null || existingManagement.SuperManagerId == mgm.SuperManagerId)
             && existingManagement.Id != mgm.Id && !existingManagement.ImportDisabled) != null)
         {
-            DisplayMessageInUi!(null, checkCause, userConfig.GetText("E5105"), true);
+            DisplayMessageInUi(null, checkCause, userConfig.GetText("E5105"), true);
             return false;
         }
         return true;
@@ -543,8 +525,6 @@
 
     private async Task AutoDiscover(Management superManagement)
     {
-        actSuperManagement = superManagement;
-
         try
         {
             workInProgress = true;
@@ -559,7 +539,7 @@
         catch (Exception exception)
         {
             workInProgress = false;
-            DisplayMessageInUi!(exception, userConfig.GetText("autodiscovery"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("autodiscovery"), "", true);
             await AddAutoDiscoverLogEntry(1, userConfig.GetText("manual_autodiscovery"), userConfig.GetText("ran_into_exception") + exception.Message, superManagement.Id);
         }
     }

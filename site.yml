@@ -16,8 +16,6 @@
   tags:
     - frontend
     - importer
-    - api
-
 
 - hosts: all
   tasks:
@@ -39,7 +37,7 @@
     - ui
     - frontend
 
-- hosts: backendserver
+- hosts: databaseserver
   roles:
     - { role: database, when: "not installation_mode == 'uninstall'" }
   tags:

@@ -1,0 +1,6 @@
+
+query getOpenRecertsForRule ($ruleId: bigint!) {
+  recertification (where: {_and: [{rule_id: {_eq: $ruleId}}, {recert_date: {_is_null: true}}]}){
+    recertified
+  }
+}

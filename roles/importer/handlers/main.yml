@@ -6,14 +6,14 @@
   delegate_to: "{{ inventory_hostname }}"
   listen: "importer handler"
   when: importer_handler_guard == "start"
-  become: yes
+  become: true
 
 - name: delete backup
   file:
     state: absent
     path: "{{ fworch_home }}/backup_importer"
   listen: "importer handler"
-  become: yes
+  become: true
     
 - name: fail message
   debug:

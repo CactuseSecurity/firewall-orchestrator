@@ -3,6 +3,28 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
+    public enum TimeRangeType
+    {
+        Shortcut = 0,
+        Interval = 1,
+        Fixeddates = 2
+    }
+
+    public class TimeRangeShortcuts
+    {
+        // of course an enum would be better, but there are already values with blanks in the database
+        public static List<string> Ranges = new List<string>
+        {
+            "this year",
+            "last year",
+            "this month",
+            "last month",
+            "this week",
+            "last week",
+            "today",
+            "yesterday"
+        };
+    }
 
     public class TimeFilter
     {
@@ -39,12 +61,5 @@ namespace FWO.Api.Data
 
         [JsonProperty("open_end"), JsonPropertyName("open_end")]
         public bool OpenEnd { get; set; } = false;
-    }
-
-    public enum TimeRangeType
-    {
-        Shortcut = 0,
-        Interval = 1,
-        Fixeddates = 2
     }
 }

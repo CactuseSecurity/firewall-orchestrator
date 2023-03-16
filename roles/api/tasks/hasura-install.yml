@@ -8,13 +8,13 @@
     - python3-pip
     - python3-virtualenv
     - python3-docker
-  become: yes
+  become: true
 
 - name: read dbadmin pwd from secrets file
   slurp:
     src: "{{ dbadmin_password_file }}"
   register: api_user_password
-  become: yes
+  become: true
 
 - name: decode dbadmin pwd
   set_fact:
@@ -24,7 +24,7 @@
   slurp:
     src: "{{ jwt_public_key_file }}"
   register: api_hasura_jwt_secret_dict
-  become: yes
+  become: true
 
 - name: decode key
   set_fact:
@@ -37,7 +37,7 @@
     mode: "0700"
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
-  become: yes
+  become: true
 
 - name: set static hasura admin pwd for test purposes only
   set_fact:
@@ -56,7 +56,7 @@
     mode: '0600'
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
-  become: yes
+  become: true
 
 - name: check for existing hasura cli file
   stat:
@@ -68,22 +68,22 @@
   get_url:
     url: "https://github.com/hasura/graphql-engine/releases/download/{{ api_hasura_version }}/cli-hasura-linux-amd64"
     dest: "{{ api_hasura_cli_bin }}"
-    force: yes
+    force: true
     mode: "0755"
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
   environment: "{{ proxy_env }}"
-  become: yes
+  become: true
   when: not api_cli_check.stat.exists 
 
 - name: initialize hasura cli directory
-  command: "{{ api_hasura_cli_bin }} init {{ product_name }} --skip-update-check --endpoint http://{{ api_ip_address }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
+  command: "{{ api_hasura_cli_bin }} init {{ product_name }} --skip-update-check --endpoint http://{{ api_local_listening_ip_address }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
   args: 
     chdir: "{{ api_home }}"
-  become: yes
+  become: true
   become_user: "{{ fworch_user }}"
   environment: "{{ proxy_env }}"
-  when: not api_cli_check.stat.exists 
+  when: not api_cli_check.stat.exists
 
 - name: set hasura env variable
   set_fact:
@@ -97,6 +97,7 @@
       HASURA_GRAPHQL_CONSOLE_ASSETS_DIR: "/srv/console-assets"
       HASURA_GRAPHQL_V1_BOOLEAN_NULL_COLLAPSE: "true"
       HASURA_GRAPHQL_CORS_DOMAIN:       "*"
+      HASURA_GRAPHQL_INFER_FUNCTION_PERMISSIONS: "{{ api_HASURA_GRAPHQL_INFER_FUNCTION_PERMISSIONS }}"
       HASURA_GRAPHQL_JWT_SECRET:        '
                                         {
                                           "type": "{{ api_hasura_jwt_alg|quote }}",
@@ -121,20 +122,20 @@
     image: hasura/graphql-engine:{{ api_hasura_version }}
     state: started
     network_mode: host
-    networks_cli_compatible: yes
+    networks_cli_compatible: true
     log_driver: syslog
     log_options:
       syslog-address: "{{ syslog_proto }}://{{ syslog_host }}:{{ syslog_port }}"
       syslog-facility: daemon
       tag: "{{ api_container_name }}"
-    recreate: yes
+    recreate: true
     exposed_ports:
       - "{{ api_port }}:{{ api_port }}"
     env:
       "{{ hasura_env }}"
     container_default_behavior: no_defaults
   register: docker_return
-  become: yes
+  become: true
   become_user: "{{ fworch_user }}"
   environment: "{{ proxy_env }}"
   when: ansible_version.full is version('2.10', '>=')
@@ -145,19 +146,19 @@
     image: hasura/graphql-engine:{{ api_hasura_version }}
     state: started
     network_mode: host
-    networks_cli_compatible: yes
+    networks_cli_compatible: true
     log_driver: syslog
     log_options:
       syslog-address: "{{ syslog_proto }}://{{ syslog_host }}:{{ syslog_port }}"
       syslog-facility: daemon
       tag: "{{ api_container_name }}"
-    recreate: yes
+    recreate: true
     exposed_ports:
       - "{{ api_port }}:{{ api_port }}"
     env:
       "{{ hasura_env }}"
   register: docker_return
-  become: yes
+  become: true
   become_user: "{{ fworch_user }}"
   environment: "{{ proxy_env }}"
   when: ansible_version.full is version('2.10', '<')
@@ -172,7 +173,7 @@
   docker_container_info:
     name: "{{ api_container_name }}"
   register: result
-  become: yes
+  become: true
   become_user: "{{ fworch_user }}"
 
 - name: Print the status of the container in case of problems only
@@ -184,22 +185,22 @@
   template:
      src: "{{ api_service_name }}.service.j2"
      dest: "/lib/systemd/system/{{ api_service_name }}.service"
-     backup: yes
+     backup: true
      mode: "0644"
      owner: "root"
-  become: yes
+  become: true
 
 - name: make hasura docker container run at host startup
   systemd:
     name: "{{ api_service_name }}"
-    daemon_reload: yes
-    enabled: yes
-  become: yes
+    daemon_reload: true
+    enabled: true
+  become: true
 
 - name:  wait for hasura port to become available
   wait_for:
     port: "{{ api_port }}"
-    host: "{{ api_ip_address }}"
+    host: "{{ api_local_listening_ip_address }}"
     connect_timeout: 1
     delay: 10
     timeout: 25
@@ -211,9 +212,9 @@
 
 - name: import API metadata via metadata API directly from local file
   uri: 
-    url: "http://{{ api_ip_address }}:{{ api_port }}/v1/metadata"
+    url: "http://{{ api_local_listening_ip_address }}:{{ api_port }}/v1/metadata"
     method: POST
-    return_content: yes
+    return_content: true
     body_format: json    
     headers:
       Content-Type: application/json      
@@ -221,4 +222,8 @@
       x-hasura-role: "admin"
     body: "{{ lookup('file','replace_metadata.json') | from_json }}"
   when: not api_rollback_is_running | bool
-# do not install latest metadata in case of rollback
+  # do not install latest metadata in case of rollback
+  environment:
+    http_proxy: ""
+    https_proxy: ""
+  # do not use http proxy for metadata import 

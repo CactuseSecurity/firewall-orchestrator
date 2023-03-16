@@ -5,8 +5,6 @@ ui_app_name: "{{ product_name }}"
 ui_dir: "{{ fworch_home }}/ui/files"
 ui_start_dir: "{{ ui_dir }}/FWO.UI"
 ui_admin_password_file: "{{ fworch_secrets_dir }}/ui_admin_pwd"
-importer_password: not4production
-importer_password_file: "{{ fworch_secrets_dir }}/importer_pwd"
 # ui_comm_mode valid values: 
 # standard (meaning with http-->https rewrite and websockets), no_ws, allow_http, no_ws_and_allow_http
 ui_comm_mode: standard
@@ -16,7 +14,6 @@ ui_server_name: fworch-test-server
 # further aliases:
 ui_server_alias: fwodemo.cactus.de
 
-ui_hostname: "localhost"
 ui_php_dir: "{{ fworch_home }}/web/htdocs"
 ui_php_web_port: 8443
 ui_service_name: "{{ product_name }}-ui"

@@ -2,8 +2,10 @@
 @using FWO.Report
 @using FWO.Report.Filter
 @using FWO.Report.Filter.Exceptions
+@using FWO.Api.Data
 @using System
 @using System.Threading
+@using System.Text.RegularExpressions
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.Reporting.Reports
 @using System.Diagnostics
@@ -18,21 +20,64 @@
     <div class="p-3">
         <h5 class="text-left">@(userConfig.GetText("report_type"))</h5>
         <Dropdown ElementType="ReportType" ElementToString="@(r => userConfig.GetText(r.ToString()?.ToLower() ?? ""))"
-            Value="selectedReportType" ValueChanged="ReportTypeChanged" Elements="CustomSortReportType(Enum.GetValues(typeof(ReportType)).Cast<ReportType>().ToList())">
+            SelectedElement="selectedReportType" SelectedElementChanged="ReportTypeChanged" Elements="CustomSortReportType(Enum.GetValues(typeof(ReportType)).Cast<ReportType>().ToList())">
             <ElementTemplate Context="reportType">
                 @userConfig.GetText(reportType.ToString()?.ToLower() ?? "")
             </ElementTemplate>
         </Dropdown>
     </div>
-    <div class="p-3">
-        <h5 class="text-left">@(userConfig.GetText("report_time"))</h5>
-        <div class="input-group">
-            <input type="text" class="form-control form-control-sm" disabled value="@displayedTimeSelection" />
-            <div class="input-group-append">
-                <button class="btn btn-sm btn-outline-info" @onclick="SelectTime">@(userConfig.GetText("change"))</button>
+    @if (selectedReportType==ReportType.Recertification)
+    {
+        <div class="p-3">
+            <h6 class="text-left">@(userConfig.GetText("recert_parameter"))</h6>
+            <h7 class="text-left">@(userConfig.GetText("due_within")):</h7>
+            <input type="number" min="1" max="5000" step="1" class="form-control form-control-sm" @bind="recertLookAheadDays" />
+            <h7 class="text-left">@(userConfig.GetText("owner"))</h7>
+            <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="true"
+                @bind-SelectedElement="selectedOwner" Elements="ownerList">
+                <ElementTemplate Context="owner">
+                    @owner.Name
+                </ElementTemplate>
+            </Dropdown>
+            <br>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="recertShowAnyMatch"
+                    @bind="recertShowAnyMatch"
+                    @oninput="@(async () => { 
+                            recertShowAnyMatch = !recertShowAnyMatch;
+                            if (!recertShowAnyMatch) 
+                            {
+                                if (filterInput.Length>0)
+                                {
+                                    filterInput += " and (not src==0.0.0.0 and not dst==0.0.0.0)";
+                                }
+                                else
+                                {
+                                    filterInput = "(not src==0.0.0.0 and not dst==0.0.0.0)";
+                                }
+                            }
+                            else 
+                            {
+                                filterInput =  filterInput.Replace("and (not src==0.0.0.0 and not dst==0.0.0.0)", string.Empty);
+                                filterInput =  filterInput.Replace("(not src==0.0.0.0 and not dst==0.0.0.0)", string.Empty);
+                            }
+                        })" />
+                <label class="form-check-label" for="recertShowAnyMatch">@(userConfig.GetText("show_any_match"))</label>
             </div>
         </div>
-    </div>
+    }
+    else
+    {
+        <div class="p-3">
+            <h5 class="text-left">@(userConfig.GetText("report_time"))</h5>
+            <div class="input-group">
+                <input type="text" class="form-control form-control-sm" value="@displayedTimeSelection" />
+                <div class="input-group-append">
+                    <button class="btn btn-sm btn-outline-info" @onclick="SelectTime">@(userConfig.GetText("change"))</button>
+                </div>
+            </div>
+        </div>
+    }
     <DeviceSelection @bind-DeviceFilter="deviceFilter" @bind-CollapseAll="collapseDevices" @bind-SelectAll="selectAll"></DeviceSelection>
 </Sidebar>
 
@@ -90,21 +135,32 @@
 
             @if (currentReport != null)
             {
-                @switch (currentReport)
+                @switch (currentReport.ReportType)
                 {
-                    case ReportNatRules natRulesReport:
-                        <RulesReport NatRules="true" Managements="managementsReport" SelectedReportType="selectedReportType" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"></RulesReport>
+                    case ReportType.Recertification:
+                        <RulesReport Managements="managementsReport" SelectedReportType="selectedReportType" RulesPerPage="rulesPerPage"
+                            ReportParams="reportParams" @bind-SelectedRules="selectedItemsRuleReportTable" />
                         break;
 
-                    case ReportRules rulesReport:
-                        <RulesReport Managements="managementsReport" SelectedReportType="selectedReportType" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"></RulesReport>
+                    case ReportType.NatRules:
+                        <RulesReport NatRules="true" Managements="managementsReport" SelectedReportType="selectedReportType" 
+                            RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable" />
                         break;
 
-                    case ReportChanges changesReport:
+                    case ReportType.Rules:
+                    case ReportType.ResolvedRules:
+                    case ReportType.ResolvedRulesTech:
+                        <RulesReport Managements="managementsReport" SelectedReportType="selectedReportType" RulesPerPage="rulesPerPage" 
+                            @bind-SelectedRules="selectedItemsRuleReportTable" />
+                        break;
+
+                    case ReportType.Changes:
+                    case ReportType.ResolvedChanges:
+                    case ReportType.ResolvedChangesTech:
                         <ChangesReport Managements="managementsReport" RulesPerPage="rulesPerPage" @bind-SelectedRuleChanges="selectedItemsChangeReportTable"></ChangesReport>
                         break;
 
-                    case ReportStatistics statisticsReport:
+                    case ReportType.Statistics:
                         @if (globalStats != null)
                         {
                             <h5>@(userConfig.GetText("glob_no_obj"))</h5>
@@ -142,75 +198,29 @@
         </div>
     </div>
     @if (currentReport != null)
+    {
+        if (reportGenerationDuration != 0)
         {
-            if (reportGenerationDuration != null && reportGenerationDuration != 0)
+            if (reportGenerationDuration<600)
             {
-                if (reportGenerationDuration<600)
-                {
-                    <small>@(userConfig.GetText("report_duration")) @reportGenerationDuration.ToString("0.00") @(userConfig.GetText("seconds")).</small>
-                }
-                else
-                {
-                    <small> @(userConfig.GetText("report_duration")) @(reportGenerationDuration/60.0).ToString("0.00") @(userConfig.GetText("minutes")).</small>
-                }
+                <small>@(userConfig.GetText("report_duration")) @reportGenerationDuration.ToString("0.00") @(userConfig.GetText("seconds")).</small>
+            }
+            else
+            {
+                <small> @(userConfig.GetText("report_duration")) @((reportGenerationDuration/60.0).ToString("0.00")) @(userConfig.GetText("minutes")).</small>
             }
         }
+    }
 </div>
 
 @* ==== RIGHT SIDEBAR ==== *@
-<Sidebar Collapsible="true" Resizeable="true" PositionLeft="false" @bind-Width="sidebarRightWidth">
-    <div class="p-3">
-        <h5 class="text-center">@(userConfig.GetText("objects"))</h5>
-        <CascadingValue Value="anchorNavToRSB">
-            <TabSet KeepPanelsAlive="true" @ref="rsbTabset">
-                <Tab Title="@(userConfig.GetText("all"))">
-                    <div class="d-md-flex justify-content-md-end sticky-marker-45 bg-white">
-                        <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseSidebarAll.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
-                    </div>
-                    <div class="mt-2">
-                        <CascadingValue Value="collapseSidebarAll">
-                            <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="all" InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
-                                                NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
-                        </CascadingValue>
-                    </div>
-                </Tab>
-                <Tab Title="Report">
-                    <div class="d-md-flex justify-content-md-end sticky-marker-45 bg-white">
-                        <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseSidebarReport.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
-                    </div>
-                    <div class="mt-2">
-                        <CascadingValue Value="collapseSidebarReport">
-                            <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="report" InputDataType="Management" Data="managementsReport.Where(m => (m.Devices.Where(d => d.Rules != null && d.Rules.Count() > 0).Count() > 0))" NameExtractor="man => man.Name"
-                                                NetworkObjectExtractor="man => man.ReportObjects"
-                                                NetworkServiceExtractor="man => man.ReportServices"
-                                                NetworkUserExtractor="man => man.ReportUsers" />
-                        </CascadingValue>
-                    </div>
-                </Tab>
-                <Tab Title="@(userConfig.GetText("rule"))">
-                    <div class="d-md-flex justify-content-md-between sticky-marker-45 bg-white">
-                        <div class="btn btn-dark btn-sm w-50" @onclick="@(() => selectedItemsRuleReportTable.Clear())">@(userConfig.GetText("clear_all"))</div>
-                        <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseSidebarRule.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
-                    </div>
-                    <div class="mt-2">
-                        <CascadingValue Value="collapseSidebarRule">
-                            <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="rule" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule" Data="selectedItemsRuleReportTable"
-                                                NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
-                                                NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object).Union(rule.Tos.Select(nl => nl.Object)).Union(rule.NatData.TranslatedFroms.Select(nl => nl.Object)).Union(rule.NatData.TranslatedTos.Select(nl => nl.Object)).OrderBy(o => o.Name).ToArray()"
-                                                NetworkServiceExtractor="rule => rule.Services.Select(sw => sw.Content).Union(rule.NatData.TranslatedServices.Select(sw => sw.Content)).OrderBy(s => s.Name).ToArray()"
-                                                NetworkUserExtractor="rule => rule.Froms.Select(nl => nl.User).Distinct().Where(u => u != null).OrderBy(u => u.Name).ToArray()" />
-                        </CascadingValue>
-                    </div>
-                </Tab>
-            </TabSet>
-        </CascadingValue>
-    </div>
-</Sidebar>
+<RightSidebar @bind-Width="sidebarRightWidth" Tabset="rsbTabset" AnchorNavToRSB="anchorNavToRSB" CurrentReport="currentReport" @bind-SelectedRules="selectedItemsRuleReportTable" ManagementsReport="managementsReport"/>
+<AnchorNavToRSB @ref="anchorNavToRSB" TabSet="rsbTabset" />
 
 <PopUp Large="true" Title="@(userConfig.GetText("report_time"))" Show="@ShowSelectTimeDialog">
     <Body>
         <div>
-            @if (selectedReportType == ReportType.Changes)
+            @if (selectedReportType==ReportType.Changes || selectedReportType==ReportType.ResolvedChanges || selectedReportType==ReportType.ResolvedChangesTech)
             {
                 <div class="row">
                     <div class="col-sm-1">
@@ -222,16 +232,11 @@
                         <div class="form-group row">
                             <label for="rangeshortcut" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("shortcut")):</label>
                             <div class="col-sm-3">
-                                <select id="rangeshortcut" class="form-control form-control-sm" @bind="actTimeFilter.TimeRangeShortcut">
-                                    <option value="this year" selected>@userConfig.GetText("this year")</option>
-                                    <option value="last year">@userConfig.GetText("last year")</option>
-                                    <option value="this month">@userConfig.GetText("this month")</option>
-                                    <option value="last month">@userConfig.GetText("last month")</option>
-                                    <option value="this week">@userConfig.GetText("this week")</option>
-                                    <option value="last week">@userConfig.GetText("last week")</option>
-                                    <option value="today">@userConfig.GetText("today")</option>
-                                    <option value="yesterday">@userConfig.GetText("yesterday")</option>
-                                </select>
+                                <Dropdown @bind-SelectedElement="actTimeFilter.TimeRangeShortcut" ElementToString="@(s => userConfig.GetText(s))" Elements="TimeRangeShortcuts.Ranges" >
+                                    <ElementTemplate Context="shortcut">
+                                        @(userConfig.GetText(shortcut))
+                                    </ElementTemplate>
+                                </Dropdown>
                             </div>
                         </div>
                     </div>
@@ -249,15 +254,11 @@
                                 <input id="lastInterval" type="text" class="form-control form-control-sm" @bind="actTimeFilter.Offset" />
                             </div>
                             <div class="col-sm-3">
-                                <select id="Interval" class="form-control form-control-sm" @bind="actTimeFilter.Interval">
-                                    @foreach (Interval interval in Enum.GetValues(typeof(Interval)))
-                                    {
-                                        if (interval != Interval.Never)
-                                        {
-                                            <option value="@interval">@userConfig.GetText(interval.ToString())</option>
-                                        }
-                                    }
-                                </select>
+                                <Dropdown @bind-SelectedElement="actTimeFilter.Interval" ElementToString="@(i => userConfig.GetText(i.ToString()))" Elements="Enum.GetValues(typeof(Interval)).Cast<Interval>().Where(x => (x != Interval.Never))" >
+                                    <ElementTemplate Context="interval">
+                                        @(userConfig.GetText(interval.ToString()))
+                                    </ElementTemplate>
+                                </Dropdown>
                             </div>
                         </div>
                     </div>
@@ -342,12 +343,11 @@
     </Footer>
 </PopUp>
 
-<AnchorNavToRSB @ref="anchorNavToRSB" TabSet="rsbTabset" />
 
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     public double reportGenerationDuration;
     private bool processing = false;
@@ -357,10 +357,11 @@
     private List<RuleChange> selectedItemsChangeReportTable = new List<RuleChange>();
 
     private Management[] managementsReport = new Management[0];
-    private Management[] managementsAllObjects = new Management[0];
     private Management? globalStats = null;
 
     public ReportType selectedReportType = ReportType.Rules;
+    public FwoOwner? selectedOwner = null;
+    public List<FwoOwner> ownerList = new List<FwoOwner>();
 
     private DeviceFilter deviceFilter = new DeviceFilter();
     private bool selectAll = true;
@@ -375,8 +376,9 @@
     private TimeFilter savedTimeFilter = new TimeFilter();
     private string displayedTimeSelection = "";
     private bool ShowSelectTimeDialog = false;
-
-    private ScheduledReport[] scheduledReports = new ScheduledReport[0];
+    private bool recertShowAnyMatch = true;
+    private int recertLookAheadDays = 0;
+    private bool recertSingleLinePerRule = true;
 
     private int rulesPerPage = 0;   // todo: remove - no pagination implemented?
 
@@ -384,6 +386,7 @@
     private int sidebarRightWidth = GlobalConfig.kSidebarRightWidth;
 
     private ReportTemplateComponent reportTemplateControl = new ReportTemplateComponent();
+    private ReportTemplate reportParams = new ReportTemplate();
 
     private ReportBase? currentReport;
 
@@ -396,9 +399,6 @@
     private string filterFeedbackEnd = "";
     private string filterInput = "";
 
-    private CollapseState collapseSidebarAll = new CollapseState();
-    private CollapseState collapseSidebarReport = new CollapseState();
-    private CollapseState collapseSidebarRule = new CollapseState();
     private bool collapseDevices = false;
 
     protected override void OnInitialized()
@@ -410,6 +410,8 @@
                 displayedTimeSelection = userConfig.GetText("now");
 
                 deviceFilter.Managements = await Connection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
+                ownerList = await Connection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+
                 await InvokeAsync(StateHasChanged);
                 if (deviceFilter.NumberMgmtDev() > userConfig.MinCollapseAllDevices)
                 {
@@ -417,13 +419,12 @@
                     await InvokeAsync(StateHasChanged);
                 }
 
-                PaginationVariables paginationVariables = new PaginationVariables() { Limit = 0, Offset = 0 };
-                managementsAllObjects = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
                 await InvokeAsync(StateHasChanged);
+                recertLookAheadDays = Convert.ToInt32(userConfig.RecertificationDisplayPeriod);
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi!(exception, userConfig.GetText("object_fetch"), "", true);
+                DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
             }
         });
     }
@@ -435,10 +436,13 @@
         managementsReport = new Management[] {};
         globalStats = null;
         selectedReportType = newReportType;
+        if (selectedReportType == ReportType.Recertification)
+        {
+            //filterInput = "remove=false and recertdisplay=0";
+        }
         DisplayTime();
         StateHasChanged();
-        if (reportGenerationDuration != null)
-            reportGenerationDuration = 0;
+        reportGenerationDuration = 0;
     }
 
     private void InitTimes(TimeFilter timeFilter)
@@ -456,7 +460,7 @@
 
     private void SetTimeSelection()
     {
-        if(selectedReportType == ReportType.Changes)
+        if (selectedReportType==ReportType.Changes || selectedReportType==ReportType.ResolvedChanges || selectedReportType==ReportType.ResolvedChangesTech)
         {
             switch(actTimeFilter.TimeRangeType)
             {
@@ -501,11 +505,16 @@
         ShowSelectTimeDialog = false;
     }
 
+    @* private void SyncFilterToDisplay()
+    {
+        filterInput = Regex.Replace(filterInput, "recertdisplay=" + @"-?\d+", $"recertdisplay={(userConfig.RecertificationPeriod-userConfig.RecertificationDisplayPeriod).ToString()}");
+    } *@
+
     public bool checkTimeRange()
     {
         if(actTimeFilter.TimeRangeType == TimeRangeType.Fixeddates && actTimeFilter.StartTime > actTimeFilter.EndTime)
         {
-            DisplayMessageInUi!(null, userConfig.GetText("check_times"), userConfig.GetText("E1011"), true);
+            DisplayMessageInUi(null, userConfig.GetText("check_times"), userConfig.GetText("E1011"), true);
             return false;
         }
         return true;
@@ -513,7 +522,7 @@
 
     public void DisplayTime()
     {
-        if(selectedReportType == ReportType.Changes)
+        if (selectedReportType==ReportType.Changes || selectedReportType==ReportType.ResolvedChanges || selectedReportType==ReportType.ResolvedChangesTech)
         {
             switch (actTimeFilter.TimeRangeType)
             {
@@ -560,117 +569,6 @@
         }
     }
 
-    const byte all = 10, report = 20, rule = 30, all_nobj = 11, all_nsrv = 12, all_user = 13, report_nobj = 21, report_nsrv = 22, report_user = 23;
-    public async Task FetchContent(byte contentType, Func<Management[], Task> callback, long id = 0, bool nat = false)
-    {
-        Log.WriteDebug("Fetching Content..", $"nat: {nat}");
-
-        Management[] managements = new Management[0];
-
-        try
-        {
-            string query = "";
-            Dictionary<String, object> queryVars = new Dictionary<string, object>();
-
-            bool newObjects = true;
-            int fetchCount = 0;
-
-            bool gotAllObjects = true;
-
-            switch (contentType)
-            {
-                case all:
-                    query = ObjectQueries.getAllObjectDetails;
-                    break;
-                case all_nobj:
-                    query = ObjectQueries.getNetworkObjectDetails;
-                    break;
-                case all_nsrv:
-                    query = ObjectQueries.getNetworkServiceObjectDetails;
-                    break;
-                case all_user:
-                    query = ObjectQueries.getUserDetails;
-                    break;
-                case rule:
-                    if (nat)
-                        query = RuleQueries.getNatRuleDetails;
-                    else
-                        query = RuleQueries.getRuleDetails;
-                    break;
-            }
-
-            switch (contentType)
-            {
-                case all or all_nobj or all_nsrv or all_user:
-
-                    queryVars = new Dictionary<string, object>()
-                    {
-                        { "management_id", (int) id },
-                        { "limit", userConfig.ElementsPerFetch },
-                        { "offset", 0 }
-                    };
-
-                    break;
-
-                case report or report_nobj or report_nsrv or report_user:
-
-                    queryVars = new Dictionary<string, object>()
-                    {
-                        { "mgmIds", (int) id },
-                        { "limit", userConfig.ElementsPerFetch },
-                        { "offset", 0 }
-                    };
-
-                    if (currentReport != null)
-                        gotAllObjects = await currentReport.GetObjectsForManagementInReport(queryVars, (byte)(contentType - report), userConfig.AutoFillRightSidebar ? int.MaxValue : userConfig.MaxInitialFetchesRightSidebar, Connection, callback);
-
-                    if (!gotAllObjects)
-                        DisplayMessageInUi!(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);
-
-                    return;
-
-                case rule:
-
-                    queryVars = new Dictionary<string, object>()
-                    {
-                        { "rule_id", id },
-                        { "limit", userConfig.ElementsPerFetch },
-                        { "offset", (int)0 }
-                    };
-
-                    break;
-            }
-
-            // lazy fetch all objects for right sidebar
-            while (newObjects && (++fetchCount <= userConfig.MaxInitialFetchesRightSidebar || userConfig.AutoFillRightSidebar))
-            {
-                Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(query, queryVars);
-                if (fetchCount == 1)
-                {
-                    managements = managementsCurrentFetch;
-                }
-                else
-                {
-                    newObjects = managements.Merge(managementsCurrentFetch);
-                }
-
-                if (queryVars.ContainsKey("offset"))
-                    queryVars["offset"] = (int)queryVars["offset"] + userConfig.ElementsPerFetch;
-                await callback(managements);
-            }
-
-            Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount - 1} cycle(s) ({userConfig.ElementsPerFetch} at a time)");
-
-            if (fetchCount > userConfig.MaxInitialFetchesRightSidebar && !userConfig.AutoFillRightSidebar)
-                DisplayMessageInUi!(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("object_fetch"), "", true);
-            // TODO: Error Interface for all Components, that enables displaying a message in the ui
-        }
-    }
-
     private async Task GenerateReport()
     {
         Stopwatch watch = new System.Diagnostics.Stopwatch();
@@ -688,15 +586,30 @@
         {
             if (!deviceFilter.isAnyDeviceFilterSet())  // display warning
             {
-                DisplayMessageInUi!(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
+                DisplayMessageInUi(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
                 return;
             }
             processing = true;
 
             // collapse report templates
             reportTemplateControl.Collapse();
+            List<int> ownerList = new List<int>();
+            if (selectedOwner != null)
+            {
+                ownerList.Add(selectedOwner.Id);
+            }
 
-            currentReport = ReportBase.ConstructReport(filterInput, deviceFilter, savedTimeFilter, selectedReportType, userConfig);
+            List<int> ownerIdList = ((selectedOwner!=null)? new List<int>() { selectedOwner.Id } : new List<int>());
+
+
+            RecertFilter recertFilter = new RecertFilter()
+            {
+                RecertOwnerList = ownerList,
+                RecertShowAnyMatch = recertShowAnyMatch,
+                RecertificationDisplayPeriod = recertLookAheadDays
+            };
+            reportParams = new ReportTemplate(filterInput, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter);
+            currentReport = ReportBase.ConstructReport(reportParams, userConfig);
 
             // save selected managements before resetting
             List<int> relevantManagements = deviceFilter.getSelectedManagements();
@@ -706,21 +619,30 @@
 
             try
             {
-                switch (currentReport)
+                switch (currentReport.ReportType)
                 {
-                    case ReportNatRules natRulesReport:
-                    case ReportRules rulesReport:
-                    case ReportChanges changesReport:
+                    case ReportType.NatRules:
+                    case ReportType.Rules:
+                    case ReportType.Changes:
+                    case ReportType.ResolvedChanges:
+                    case ReportType.ResolvedChangesTech:
+                    case ReportType.ResolvedRules:
+                    case ReportType.ResolvedRulesTech:
+                    case ReportType.Recertification:
                         await currentReport.Generate(userConfig.ElementsPerFetch, Connection,
-                            managementsReportIntermediate =>
-                            {
-                                managementsReport = managementsReportIntermediate;
-                                setRelevantManagements(relevantManagements);
-                                return InvokeAsync(StateHasChanged);
-                            }, token);
+                        managementsReportIntermediate =>
+                        {
+                            managementsReport = managementsReportIntermediate;
+                            setRelevantManagements(relevantManagements);
+                            return InvokeAsync(StateHasChanged);
+                        }, token);
+                        if (currentReport.ReportType == ReportType.Recertification)
+                        {
+                            PrepareMetadata(managementsReport);
+                        }
                         break;
 
-                    case ReportStatistics statisticsReport:
+                    case ReportType.Statistics:
                         globalStats = new Management();
                         await currentReport.Generate(0, Connection,
                             managementsReportIntermediate =>
@@ -752,11 +674,11 @@
             {
                 if(currentReport is ReportRules || currentReport is ReportNatRules)
                 {
-                    DisplayMessageInUi!(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
+                    DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
                 }
-                else if(currentReport is ReportChanges)
+                else if (selectedReportType==ReportType.Changes || selectedReportType==ReportType.ResolvedChanges || selectedReportType==ReportType.ResolvedChangesTech)
                 {
-                    DisplayMessageInUi!(null, userConfig.GetText("generate_report"), userConfig.GetText("E4003"), true);
+                    DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4003"), true);
                 }
             }
 
@@ -768,18 +690,34 @@
         {
             processing = false;
             managementsReport = managementsReportOrig;
-            await reportTemplateControl.Uncollapse();
+            reportTemplateControl.Uncollapse();
             await InvokeAsync(StateHasChanged);
-            DisplayMessageInUi!(exception, userConfig.GetText("generate_report"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("generate_report"), "", true);
         }
         watch.Stop();
         reportGenerationDuration = watch.ElapsedMilliseconds/1000.0;
     }
 
+    protected bool PrepareMetadata(Management[] Managements)
+    {
+        bool rulesFound = false;
+        foreach (Management management in Managements)
+            foreach (Device device in management.Devices)
+                if (device.ContainsRules())
+                {
+                    rulesFound = true;
+                    foreach (Rule rule in device.Rules!)
+                    {
+                        rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
+                    }
+                }
+        return rulesFound;
+    }
+
     private void CancelGeneration()
     {
         tokenSource.Cancel();
-        DisplayMessageInUi!(null, userConfig.GetText("report_data_fetch"), userConfig.GetText("E1003"), true);
+        DisplayMessageInUi(null, userConfig.GetText("report_data_fetch"), userConfig.GetText("E1003"), true);
     }
 
     private void setRelevantManagements(List<int> relevantManagements)
@@ -793,10 +731,23 @@
     private void TryFilter(ChangeEventArgs changeArgs)
     {
         string input = (changeArgs.Value ?? "").ToString() ?? "";
+        List<int> ownerList = new List<int>();
+        if (selectedOwner != null)
+        {
+            ownerList.Add(selectedOwner.Id);
+        }
 
         try
         {
-            DynGraphqlQuery query = Compiler.Compile(input);
+            RecertFilter recertFilter = new RecertFilter()
+            {
+                RecertOwnerList = ownerList,
+                RecertShowAnyMatch = recertShowAnyMatch, 
+                RecertSingleLinePerRule = recertSingleLinePerRule
+            };
+            reportParams = new ReportTemplate(input, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter);
+
+            DynGraphqlQuery query = Compiler.Compile(reportParams);
 
             filterFeedbackStart = input;
             filterFeedbackError = "";
@@ -814,7 +765,7 @@
         catch (Exception unexpectedError)
         {
 #if DEBUG
-            DisplayMessageInUi!(unexpectedError, userConfig.GetText("filter"), "", false);
+            DisplayMessageInUi(unexpectedError, userConfig.GetText("filter"), "", false);
 #endif
         }
     }
@@ -844,20 +795,20 @@
     private List<ReportType> CustomSortReportType(List<ReportType> ListIn)
     {
         List<ReportType> ListOut = new List<ReportType>();
-        List<ReportType> orderedReportTypeList = new List<ReportType>
-            (
-                new ReportType[] 
-                    {
-                        ReportType.Rules, ReportType.ResolvedRules, ReportType.ResolvedRulesTech, ReportType.NatRules, ReportType.Changes, ReportType.Statistics
-                    }
-            ); 
+        List<ReportType> orderedReportTypeList = new List<ReportType>()
+        {
+            ReportType.Rules, ReportType.ResolvedRules, ReportType.ResolvedRulesTech, ReportType.NatRules, 
+            ReportType.Recertification,
+            ReportType.Changes, ReportType.ResolvedChanges, ReportType.ResolvedChangesTech, 
+            ReportType.Statistics
+        };
         foreach (ReportType reportType in orderedReportTypeList)
         {
-            ReportType foundType = ListIn.Find(x => x == reportType);
+            ReportType? foundType = ListIn.Find(x => x == reportType);
             if (foundType != null)
             {
-                ListOut.Add(foundType);
-                ListIn.Remove(foundType);
+                ListOut.Add(reportType);
+                ListIn.Remove(reportType);
             }
         }
         // finally add remaining report types

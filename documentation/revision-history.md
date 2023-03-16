@@ -252,3 +252,26 @@ adding report template format fk and permissions
 
 ### 6.0.2 - 24.12.2022
 - bugfix release with hasura API upgrade due to security bug in hasura
+
+### 6.1.0 - 16.11.2022 DEVELOP
+- interactive network analysis prototype in UI
+- integrate path analysis to workflow
+
+### 6.1.1 - 15.12.2022 DEVELOP
+- recertification on owner base
+- preparation of new task types
+
+### 6.1.2 - 20.12.2022 DEVELOP
+- start of Palo Alto import module
+
+### 6.1.3 - xx.01.2023 DEVELOP
+- enhance recertification
+
+### 6.1.4 - 27.01.2023 DEVELOP
+- prepare delete rule requests
+
+### 6.2 - 16.03.2023 MAIN
+- enhanced recertification module: adding ip-base recertification
+- adding import modules for Palo Alto and Azure Firewall
+- Workflow Module: adding delete rule request and integrated path analysis into workflow
+

@@ -7,7 +7,7 @@
 
     - name: update operating system package cache .deb based
       apt:
-        update_cache: yes
+        update_cache: true
       when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian"
 
     - name: check for existing upgradable packages
@@ -23,7 +23,7 @@
         fail:
           msg:
             - There are upgradable OS packages available, please run OS upgrade before running FWORCH installer. 
-            - Use "-e force_install=yes" to overwrite this check and install anyway at your own risk.
+            - Use "-e force_install=true" to overwrite this check and install anyway at your own risk.
         when: |
           (ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian")
           and upgradable_packages.stdout_lines|length > 1
@@ -33,7 +33,7 @@
     - name: update operating system packages .deb based (for github actions or enforced run)
       apt:
         upgrade: dist
-        update_cache: yes
+        update_cache: true
       when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian" and run_on_github|bool
 
     - name: update operating system packages .rpm based (untested)
@@ -89,7 +89,7 @@
         home: "{{ fworch_home }}"
         shell: /bin/bash
         group: "{{ fworch_group }}"
-        generate_ssh_key: yes
+        generate_ssh_key: true
         ssh_key_bits: 4096
         ssh_key_file: .ssh/id_rsa
 
@@ -139,7 +139,7 @@
     - name: add proxy setting to fworch users .profile and .bashrc
       blockinfile:
         path: "{{ fworch_home }}/{{ item }}"
-        create: yes
+        create: true
         mode: "0644"
         owner: "{{ fworch_user }}"
         group: "{{ fworch_group }}"
@@ -176,8 +176,8 @@
         (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version']|int is version('20', '>'))
 
     - name: copy iso.conf to target
-      copy:
-        src: iso.conf
+      template:
+        src: iso.conf.j2
         dest: "{{ fworch_home }}/etc/iso.conf"
         owner: "{{ fworch_user }}"
         group: "{{ fworch_group }}"
@@ -189,5 +189,5 @@
       import_tasks: run-upgrades.yml
       when: "installation_mode == 'upgrade'"
 
-    become: yes
+    become: true
     

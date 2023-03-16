@@ -7,14 +7,14 @@
   delegate_to: "{{ inventory_hostname }}"
   listen: "lib handler"
   when: lib_handler_guard == "start"
-  become: yes
+  become: true
 
 - name: delete backup
   file:
     state: absent
     path: "{{ fworch_home }}/backup_lib"
   listen: "lib handler"
-  become: yes
+  become: true
 
 - name: fail message
   debug:

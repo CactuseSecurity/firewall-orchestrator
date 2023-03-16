@@ -80,44 +80,13 @@
 <AutoDiscovery Actions="actActions" @bind-Display="AutoDiscoverMode" Closing="async () => {AutoDiscoverMode = false; await Refresh();}"/>
 <ImportDetails ImportStatus="actStatus" @bind-DetailsMode="DetailsMode" Closing="async () => {DetailsMode = false; await Refresh();}"/>
 <ImportRollback ManagementId="actMgmtId" LastIncompleteImport="LastIncompleteImport" @bind-RollbackMode="RollbackMode" Closing="async () => {RollbackMode = false; await Refresh();}"/>
-
-<PopUp Title="@(userConfig.GetText("remove_sample_data"))" Show="@RemoveSampleDataMode" OnClose="() => RemoveSampleDataMode = false">
-    <Body>
-        @if (RemoveSampleDataMode)
-        {
-            <p>@(userConfig.GetText("U7003"))</p>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <AuthorizeView Roles="admin">
-                <Authorized>
-                    <button class="btn btn-sm btn-danger" @onclick="() => RemoveSampleData()">@(userConfig.GetText("delete"))</button>
-                </Authorized>
-                <NotAuthorized>
-                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                </NotAuthorized> 
-            </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
-
-<PopUp Title="@(userConfig.GetText("in_progress"))" Small="true" Show="@workInProgress">
-    <Body>
-        @if (workInProgress)
-        {
-            <div class="row">
-                <div class="spinner-border mx-auto align-self-center" role="status"></div>
-            </div>
-        }
-    </Body>
-</PopUp>
+<ConfirmDelete @bind-Display="RemoveSampleDataMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@userConfig.GetText("U7003")"/>
+<InProgress Display="workInProgress"/>
 
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private List<Alert> alertEntrys = new List<Alert>();
     private List<ActionItem> actActions = new List<ActionItem>();
@@ -136,11 +105,19 @@
     {
         try
         {
-            managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+            JwtReader jwt = new JwtReader(userConfig.User.Jwt);
+            jwt.Validate();
+
+            if (jwt.ContainsAllowedRole("admin") || jwt.ContainsAllowedRole("fw-admin"))
+                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+            else
+                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
+
+            // managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, "", "", true);
+            DisplayMessageInUi(exception, "", "", true);
         }
         await Refresh();
     }
@@ -153,7 +130,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_log_entrys"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_log_entrys"), "", true);
         }
     }
 
@@ -172,7 +149,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("acknowledge_alert"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("acknowledge_alert"), "", true);
         }
     }
 
@@ -185,7 +162,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("handle_alert"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("handle_alert"), "", true);
         }
     }
 
@@ -194,12 +171,12 @@
         try
         {
             actMgmtId = alert.ManagementId ?? throw new Exception($"Missing ManagementId!");
-            LastIncompleteImport = JsonSerializer.Deserialize<ImportControl[]?>((alert.JsonData ?? throw new Exception($"Missing Import Data!")).ToString());
+            LastIncompleteImport = JsonSerializer.Deserialize<ImportControl[]?>((alert.JsonData ?? throw new Exception($"Missing Import Data!")).ToString() ?? throw new Exception($"Could not convert Import Data to string!"));
             RollbackMode = true;
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("handle_alert"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("handle_alert"), "", true);
         }
     }
 
@@ -207,12 +184,12 @@
     {
         try
         {
-            actStatus = JsonSerializer.Deserialize<ImportStatus>((alert.JsonData ?? throw new Exception($"Missing Import Data!")).ToString()) ?? throw new Exception($"Import Data not converted!");
+            actStatus = JsonSerializer.Deserialize<ImportStatus>((alert.JsonData ?? throw new Exception($"Missing Import Data!")).ToString() ?? throw new Exception($"Could not convert Import Data to string!")) ?? throw new Exception($"Import Data not converted!");
             DetailsMode = true;
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("handle_alert"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("handle_alert"), "", true);
         }
     }
 
@@ -228,7 +205,17 @@
         {
             RemoveSampleDataMode = false;
             workInProgress = true;
-            List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+
+            JwtReader jwt = new JwtReader(userConfig.User.Jwt);
+            jwt.Validate();
+
+            List<Management> managements = new List<Management>();
+            if (jwt.ContainsAllowedRole("admin") || jwt.ContainsAllowedRole("fw-admin"))
+                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+            else
+                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
+
+            // List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
             int deletedSampleManagements = 0;
             foreach (var management in managements)
             {
@@ -297,6 +284,19 @@
                 }
             }
 
+            List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+            int deletedSampleOwners = 0;
+            foreach (var owner in owners)
+            {
+                if (owner.Name.EndsWith("_demo"))
+                {
+                    if (await DeleteOwner(owner))
+                    {
+                        deletedSampleOwners++;
+                    }
+                }
+            }
+
             await Acknowledge(actAlert);
 
             string text = "";
@@ -320,18 +320,23 @@
             {
                 text += $" {deletedSampleGroups} " + userConfig.GetText("groups");
             }
+            if(deletedSampleOwners > 0)
+            {
+                text += $" {deletedSampleOwners} " + userConfig.GetText("owners");
+            }
+
             if(text == "")
             {
                 text += userConfig.GetText("nothing");
             }
             text += " " + userConfig.GetText("deleted");
             workInProgress = false;
-            DisplayMessageInUi!(null, userConfig.GetText("remove_sample_data"), text, false);
+            DisplayMessageInUi(null, userConfig.GetText("remove_sample_data"), text, false);
         }
         catch (Exception exception)
         {
             workInProgress = false;
-            DisplayMessageInUi!(exception, userConfig.GetText("remove_sample_data"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("remove_sample_data"), "", true);
         }
     }
     
@@ -348,7 +353,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_management"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_management"), "", true);
         }
         return false;
     }
@@ -366,7 +371,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_credential"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_credential"), "", true);
         }
         return false;
     }
@@ -383,7 +388,7 @@
             RestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteUser(parameters);
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("delete_user"), userConfig.GetText("E5216"), true);
+                DisplayMessageInUi(null, userConfig.GetText("delete_user"), userConfig.GetText("E5216"), true);
             }
             else
             {
@@ -392,7 +397,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_user"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_user"), "", true);
         }
         return false;
     }
@@ -405,7 +410,7 @@
             RestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteTenant(deleteTenantParameters);
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("delete_tenant"), userConfig.GetText("E5282"), true);
+                DisplayMessageInUi(null, userConfig.GetText("delete_tenant"), userConfig.GetText("E5282"), true);
             }
             else
             {
@@ -414,7 +419,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_tenant"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_tenant"), "", true);
         }
         return false;
     }
@@ -427,7 +432,7 @@
             RestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteGroup(groupDeleteParameters);
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("delete_group"), userConfig.GetText("E5239"), true);
+                DisplayMessageInUi(null, userConfig.GetText("delete_group"), userConfig.GetText("E5239"), true);
             }
             else
             {
@@ -436,7 +441,25 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_group"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_group"), "", true);
+        }
+        return false;
+    }
+
+    private async Task<bool> DeleteOwner(FwoOwner owner)
+    {
+        try
+        {
+            var Variables = new { id = owner.Id };
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.OwnerQueries.deleteOwner, Variables)).DeletedId;
+            if (delId == owner.Id)
+            {
+                return true;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("delete_owner"), "", true);
         }
         return false;
     }

@@ -7,9 +7,13 @@ using FWO.Logging;
 using System.Timers;
 using System.Text.Json;
 using FWO.Middleware.RequestParameters;
+using FWO.Recert;
 
 namespace FWO.Middleware.Server
 {
+	/// <summary>
+	/// Class handling the scheduler for the daily checks
+	/// </summary>
     public class DailyCheckScheduler
     {
         private readonly ApiConnection apiConnection;
@@ -21,6 +25,9 @@ namespace FWO.Middleware.Server
 
         private List<Alert> openAlerts = new List<Alert>();
 
+		/// <summary>
+		/// Async Constructor needing the connection
+		/// </summary>
         public static async Task<DailyCheckScheduler> CreateAsync(ApiConnection apiConnection)
         {
             GlobalConfig config = await GlobalConfig.ConstructAsync(apiConnection, true);
@@ -34,6 +41,10 @@ namespace FWO.Middleware.Server
             globalConfig.OnChange += GlobalConfig_OnChange;
 
             startDailyCheckScheduleTimer();
+            if(globalConfig.RecRefreshStartup)
+            {
+                RefreshRecert(); // no need to wait
+            }
         }
 
         private void GlobalConfig_OnChange(Config.Api.Config globalConfig, ConfigItem[] _)
@@ -43,7 +54,7 @@ namespace FWO.Middleware.Server
             startDailyCheckScheduleTimer();
         }
 
-        public void startDailyCheckScheduleTimer()
+        private void startDailyCheckScheduleTimer()
         {
             DateTime? startTime = null;
             try
@@ -87,12 +98,34 @@ namespace FWO.Middleware.Server
                 openAlerts = await apiConnection.SendQueryAsync<List<Alert>>(MonitorQueries.getOpenAlerts);
                 await CheckDemoData();
                 await CheckImports();
+                if(globalConfig.RecRefreshDaily)
+                {
+                    await RefreshRecert();
+                }
+                await CheckRecerts();
             }
             catch(Exception exc)
             {
                 Log.WriteError("DailyCheck", $"Ran into exception: ", exc);
                 await AddDailyCheckLogEntry(2, globalConfig.GetText("daily_checks"), globalConfig.GetText("ran_into_exception") + exc.Message);
                 await setAlert(GlobalConfig.kDailyCheck, AlertCode.DailyCheckError, globalConfig.GetText("daily_checks"), globalConfig.GetText("ran_into_exception") + exc.Message);
+            }
+        }
+
+        private async Task RefreshRecert()
+        {
+            Log.WriteDebug("DailyCheck scheduler", "Refresh recert ownerships");
+            RecertRefresh recertRefresh = new RecertRefresh(apiConnection);
+            await recertRefresh.RecalcRecerts();
+        }
+
+        private async Task CheckRecerts()
+        {
+            if(globalConfig.RecCheckActive)
+            {
+                RecertCheck recertCheck = new RecertCheck(apiConnection, globalConfig);
+                int emailsSent = await recertCheck.CheckRecertifications();
+                await AddDailyCheckLogEntry(0, globalConfig.GetText("daily_recert_check"), emailsSent + globalConfig.GetText("emails_sent"));
             }
         }
 
@@ -155,14 +188,25 @@ namespace FWO.Middleware.Server
                 }
             }
 
+            List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+            bool sampleOwnerExisting = false;
+            foreach (var owner in owners)
+            {
+                if (owner.Name.EndsWith("_demo"))
+                {
+                    sampleOwnerExisting = true;
+                }
+            }
+
             string description = "";
-            if(sampleManagementExisting || sampleCredentialExisting || sampleUserExisting || sampleTenantExisting || sampleGroupExisting)
+            if(sampleManagementExisting || sampleCredentialExisting || sampleUserExisting || sampleTenantExisting || sampleGroupExisting || sampleOwnerExisting)
             {
                 description = globalConfig.GetText("sample_data_found_in") + (sampleManagementExisting ? globalConfig.GetText("managements") + " " : "") +
                                                         (sampleCredentialExisting ? globalConfig.GetText("import_credential") + " " : "") +
                                                         (sampleUserExisting ? globalConfig.GetText("users") + " " : "") +
                                                         (sampleTenantExisting ? globalConfig.GetText("tenants") + " " : "") +
-                                                        (sampleGroupExisting ? globalConfig.GetText("groups") : "");
+                                                        (sampleGroupExisting ? globalConfig.GetText("groups") + " " : "") +
+                                                        (sampleOwnerExisting ? globalConfig.GetText("owners") : "");
                 await setAlert(GlobalConfig.kDailyCheck, AlertCode.SampleDataExisting, globalConfig.GetText("sample_data"), description);
             }
             await AddDailyCheckLogEntry((description != "" ? 1 : 0), globalConfig.GetText("daily_sample_data_check"), (description != "" ? description : globalConfig.GetText("no_sample_data_found")));
@@ -200,7 +244,7 @@ namespace FWO.Middleware.Server
             await AddDailyCheckLogEntry((importIssues != 0 ? 1 : 0), globalConfig.GetText("daily_importer_check"), (importIssues != 0 ? importIssues + globalConfig.GetText("import_issues_found") : globalConfig.GetText("no_import_issues_found")));
         }
 
-        public async Task setAlert(string source, AlertCode alertCode, string title, string description, int? mgmtId = null, object? JsonData = null, int? devId = null)
+        private async Task setAlert(string source, AlertCode alertCode, string title, string description, int? mgmtId = null, object? JsonData = null, int? devId = null)
         {
             try
             {
@@ -252,7 +296,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        public async Task AcknowledgeAlert(long alertId)
+        private async Task AcknowledgeAlert(long alertId)
         {
             try
             {
@@ -270,7 +314,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        public async Task AddDailyCheckLogEntry(int severity, string cause, string description)
+        private async Task AddDailyCheckLogEntry(int severity, string cause, string description)
         {
             try
             {

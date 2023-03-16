@@ -8,5 +8,5 @@
       THEN UPDATE ldap_connection
       SET ldap_tenant_level=5;
       END IF; END $do$
-  become: yes
+  become: true
   become_user: postgres

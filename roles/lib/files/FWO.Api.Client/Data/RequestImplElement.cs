@@ -14,10 +14,10 @@ namespace FWO.Api.Data
         [JsonProperty("implementation_action"), JsonPropertyName("implementation_action")]
         public string ImplAction { get; set; } = "create";
 
-        public Cidr Cidr { get; set; }
+        public Cidr Cidr { get; set; } = new Cidr();
 
         public RequestImplElement()
-        { }
+        {}
 
         public RequestImplElement(RequestImplElement element) : base(element)
         {
@@ -39,6 +39,7 @@ namespace FWO.Api.Data
             Field = element.Field;
             UserId = element.UserId;
             OriginalNatId = element.OriginalNatId;
+            RuleUid = element.RuleUid;
         }
     }
 }

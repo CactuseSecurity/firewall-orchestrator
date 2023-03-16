@@ -1,5 +1,5 @@
 ﻿query getGeneratedReports {
-  report {
+  report(order_by:{report_id:desc}) {
     report_id
     report_name
     report_start_time

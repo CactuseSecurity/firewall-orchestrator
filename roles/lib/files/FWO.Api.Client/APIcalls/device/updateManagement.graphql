@@ -10,6 +10,8 @@ mutation updateManagement(
   $hideInUi: Boolean!
   $configPath: String
   $domainUid: String
+  $cloudTenantId: String
+  $cloudSubscriptionId: String
   $importerHostname: String
   $comment: String
   $tenantId: Int
@@ -25,6 +27,8 @@ mutation updateManagement(
       import_credential_id: $importCredentialId
       config_path: $configPath
       domain_uid: $domainUid
+      cloud_subscription_id: $cloudSubscriptionId
+      cloud_tenant_id: $cloudTenantId
       importer_hostname: $importerHostname
       ssh_port: $port
       do_not_import: $importDisabled

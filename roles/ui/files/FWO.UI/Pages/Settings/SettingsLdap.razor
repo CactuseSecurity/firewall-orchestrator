@@ -83,110 +83,103 @@
         {
             <form>
                 <div class="form-group row">
-                    <label for="ldapName" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
                     <div class="col-sm-8">
-                        <input id="ldapName" type="text" class="form-control form-control-sm" @bind="actLdapConnection.Name" />
+                        <input type="text" class="form-control form-control-sm" @bind="actLdapConnection.Name" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapAddress" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("address"))*:</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("address"))*:</label>
                     <div class="col-sm-8">
-                        <input id="ldapAddress" type="text" class="form-control form-control-sm" @bind="actLdapConnection.Address" />
+                        <input type="text" class="form-control form-control-sm" @bind="actLdapConnection.Address" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapPort" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
                     <div class="col-sm-2">
-                        <input id="ldapPort" type="text" class="form-control form-control-sm" @bind="actLdapConnection.Port" />
+                        <input type="text" class="form-control form-control-sm" @bind="actLdapConnection.Port" />
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" id="ldapTls" type="checkbox" @bind="actLdapConnection.Tls">
-                        <label class="form-check-label" for="ldapTls"><small>Tls</small></label>
+                        <input class="form-check-input" type="checkbox" @bind="actLdapConnection.Tls">
+                        <label class="form-check-label"><small>Tls</small></label>
                     </div>
-                    <label for="ldapTenantLevel" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant_level")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant_level")):</label>
                     <div class="col-sm-2">
-                        <input id="ldapTenantLevel" type="text" class="form-control form-control-sm" @bind="actLdapConnection.TenantLevel" />
+                        <input type="text" class="form-control form-control-sm" @bind="actLdapConnection.TenantLevel" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapType" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("type"))*:</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("type"))*:</label>
                     <div class="col-sm-4">
-                        <select id="ldapType" class="form-control form-control-sm" @bind="actLdapConnection.Type">
-                            @foreach (int type in Enum.GetValues(typeof(LdapType)))
-                            {
-                                <option value="@type">@(Enum.GetName(typeof(LdapType), type))</option>
-                            }
-                        </select>
+                        <Dropdown ElementType="LdapType" @bind-SelectedElement="selectedType" Elements="Enum.GetValues(typeof(LdapType)).Cast<LdapType>()" />
                     </div>
-                    <label for="ldapPattern" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("pattern_length")):</label>
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("pattern_length")):</label>
                     <div class="col-sm-2">
-                        <input id="ldapPattern" type="text" class="form-control form-control-sm" @bind="actLdapConnection.PatternLength" />
+                        <input type="text" class="form-control form-control-sm" @bind="actLdapConnection.PatternLength" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapUserSearchPath" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("user_search_path"))*:</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("user_search_path"))*:</label>
                     <div class="col-sm-8">
-                        <input id="ldapUserSearchPath" type="text" class="form-control form-control-sm" @bind="actLdapConnection.UserSearchPath" />
+                        <input type="text" class="form-control form-control-sm" @bind="actLdapConnection.UserSearchPath" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapRoleSearchPath" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("role_search_path")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("role_search_path")):</label>
                     <div class="col-sm-8">
-                        <input id="ldapRoleSearchPath" type="text" class="form-control form-control-sm" @bind="actLdapConnection.RoleSearchPath" />
+                        <input type="text" class="form-control form-control-sm" @bind="actLdapConnection.RoleSearchPath" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapGroupSearchPath" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("group_search_path")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("group_search_path")):</label>
                     <div class="col-sm-8">
-                        <input id="ldapGroupSearchPath" type="text" class="form-control form-control-sm" @bind="actLdapConnection.GroupSearchPath" />
+                        <input type="text" class="form-control form-control-sm" @bind="actLdapConnection.GroupSearchPath" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapSearchUser" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("search_user"))*:</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("search_user"))*:</label>
                     <div class="col-sm-8">
-                        <input id="ldapSearchUser" type="text" class="form-control form-control-sm" @bind="actLdapConnection.SearchUser" />
+                        <input type="text" class="form-control form-control-sm" @bind="actLdapConnection.SearchUser" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapSearchUserPwd" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("search_user_pwd"))*:</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("search_user_pwd"))*:</label>
                     <div class="col-sm-8">
-                        <input id="ldapSearchUserPwd" type="password" class="form-control form-control-sm" @bind="actLdapConnection.SearchUserPwd" />
+                        <input type="password" class="form-control form-control-sm" @bind="actLdapConnection.SearchUserPwd" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapWriteUser" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("write_user")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("write_user")):</label>
                     <div class="col-sm-8">
-                        <input id="ldapWriteUser" type="text" class="form-control form-control-sm" @bind="actLdapConnection.WriteUser" />
+                        <input type="text" class="form-control form-control-sm" @bind="actLdapConnection.WriteUser" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapWriteUserPwd" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("write_user_pwd")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("write_user_pwd")):</label>
                     <div class="col-sm-8">
-                        <input id="ldapWriteUserPwd" type="password" class="form-control form-control-sm" @bind="actLdapConnection.WriteUserPwd" />
+                        <input type="password" class="form-control form-control-sm" @bind="actLdapConnection.WriteUserPwd" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="deviceTenant" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant")):</label>
                     <div class="col-sm-8">
-                        <select id="deviceTenant" class="form-control form-control-sm" @bind="actLdapConnection.TenantIdAsString">
-                            <option value="null">@(userConfig.GetText("none"))</option>
-                            @foreach (Tenant tenant in tenants)
-                            {
-                                <option value="@tenant.Id">@(tenant.Name)</option>
-                            }
-                        </select>
+                        <Dropdown ElementType="Tenant" ElementToString="@(t => t.Name)" @bind-SelectedElement="selectedTenant" Elements="tenants" Nullable="true">
+                            <ElementTemplate Context="tenant">
+                                @tenant.Name
+                            </ElementTemplate>
+                        </Dropdown>
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapGlobTenName" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("global_tenant_name")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("global_tenant_name")):</label>
                     <div class="col-sm-8">
-                        <input id="ldapGlobTenName" type="text" class="form-control form-control-sm" @bind="actLdapConnection.GlobalTenantName" />
+                        <input type="text" class="form-control form-control-sm" @bind="actLdapConnection.GlobalTenantName" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapActive" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("active")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("active")):</label>
                     <div class="col-sm-8">
-                        <input id="ldapActive" type="checkbox" @bind="actLdapConnection.Active">
+                        <input type="checkbox" @bind="actLdapConnection.Active">
                     </div>
                 </div>
             </form>
@@ -209,32 +202,12 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("delete_ldap_conn"))" Show="@DeleteMode" OnClose="() => DeleteMode = false">
-    <Body>
-        @if (DeleteMode)
-        {
-            <p>@(deleteMessage)</p>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <AuthorizeView Roles="admin">
-                <Authorized>
-                    <button class="btn btn-sm btn-danger" @onclick="() => Delete(actLdapConnection)">@(userConfig.GetText("delete"))</button>
-                </Authorized>
-                <NotAuthorized>
-                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                </NotAuthorized> 
-            </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
+<ConfirmDelete @bind-Display="DeleteMode" PerformAction="Delete" Title="@userConfig.GetText("delete_ldap_conn")" DeleteMessage="@deleteMessage"/>
 
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
 
@@ -246,6 +219,8 @@
 
     private UiLdapConnection newLdapConnection = new UiLdapConnection();
     private UiLdapConnection actLdapConnection = new UiLdapConnection();
+    private LdapType selectedType = LdapType.Default;
+    private Tenant? selectedTenant;
 
     private string deleteMessage = "";
     private bool wasActive = true;
@@ -257,7 +232,7 @@
             RestResponse<List<LdapGetUpdateParameters>> ldapMiddlewareServerResponse = await middlewareClient.GetLdaps();
             if (ldapMiddlewareServerResponse.StatusCode != HttpStatusCode.OK || ldapMiddlewareServerResponse.Data == null)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("fetch_ldap_conn"), userConfig.GetText("E5204"), true);
+                DisplayMessageInUi(null, userConfig.GetText("fetch_ldap_conn"), userConfig.GetText("E5204"), true);
             }
             else
             {
@@ -272,13 +247,15 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
     }
 
     private void Edit(UiLdapConnection ldapConnection)
     {
         actLdapConnection = new UiLdapConnection(ldapConnection);
+        selectedTenant = tenants.FirstOrDefault(x => x.Id == actLdapConnection.TenantId);
+        selectedType = (LdapType)actLdapConnection.Type;
         wasActive = ldapConnection.Active;
         EditMode = true;
     }
@@ -289,11 +266,11 @@
         // Checks if delete possible. Todo: further checks?
         if (connectedLdaps.Count == 1)
         {
-            DisplayMessageInUi!(null, userConfig.GetText("delete_ldap_conn"), userConfig.GetText("E5261"), true);
+            DisplayMessageInUi(null, userConfig.GetText("delete_ldap_conn"), userConfig.GetText("E5261"), true);
         }
         else if (actLdapConnection.HasRoleHandling())
         {
-            DisplayMessageInUi!(null, userConfig.GetText("delete_ldap_conn"), userConfig.GetText("E5262"), true);
+            DisplayMessageInUi(null, userConfig.GetText("delete_ldap_conn"), userConfig.GetText("E5262"), true);
         }
         else
         {
@@ -302,21 +279,21 @@
         }
     }
 
-    private async Task Delete(UiLdapConnection ldapConnection)
+    private async Task Delete()
     {
         try
         {
-            LdapDeleteParameters ldapDeleteParameters = new LdapDeleteParameters { Id = ldapConnection.Id };
+            LdapDeleteParameters ldapDeleteParameters = new LdapDeleteParameters { Id = actLdapConnection.Id };
             RestResponse<int> ldapMiddlewareServerResponse = await middlewareClient.DeleteLdap(ldapDeleteParameters);
             if (ldapMiddlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("delete_ldap_conn"), userConfig.GetText("E5203"), true);
+                DisplayMessageInUi(null, userConfig.GetText("delete_ldap_conn"), userConfig.GetText("E5203"), true);
             }
             else
             {
-                if (ldapMiddlewareServerResponse.Data == ldapConnection.Id)
+                if (ldapMiddlewareServerResponse.Data == actLdapConnection.Id)
                 {
-                    connectedLdaps.Remove(ldapConnection);
+                    connectedLdaps.Remove(actLdapConnection);
                     DeleteMode = false;
                 }
             }
@@ -324,8 +301,9 @@
         catch (Exception exception)
         {
             // Log.WriteDebug("Delete Ldap Connection", $"Exception occurred: {exception}");
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_ldap_conn"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_ldap_conn"), "", true);
         }
+        StateHasChanged();
     }
 
     private void Add()
@@ -363,30 +341,30 @@
                 switch (middlewareServerResponse.Data)
                 {
                     case 0: 
-                        DisplayMessageInUi!(null, userConfig.GetText("test_connection"), userConfig.GetText("E5266"), false);
+                        DisplayMessageInUi(null, userConfig.GetText("test_connection"), userConfig.GetText("E5266"), false);
                         break;
                     case 1: 
-                        DisplayMessageInUi!(null, userConfig.GetText("test_connection"), userConfig.GetText("E5268"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("test_connection"), userConfig.GetText("E5268"), true);
                         break;
                     case 2: 
-                        DisplayMessageInUi!(null, userConfig.GetText("test_connection"), userConfig.GetText("E5269"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("test_connection"), userConfig.GetText("E5269"), true);
                         break;
                     case 3: 
-                        DisplayMessageInUi!(null, userConfig.GetText("test_connection"), userConfig.GetText("E5270"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("test_connection"), userConfig.GetText("E5270"), true);
                         break;
                     default: 
-                        DisplayMessageInUi!(null, userConfig.GetText("test_connection"), userConfig.GetText("E5267"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("test_connection"), userConfig.GetText("E5267"), true);
                         break;
                 }
             }
             else
             {
-                DisplayMessageInUi!(null, userConfig.GetText("test_connection"), userConfig.GetText("E5267"), true);
+                DisplayMessageInUi(null, userConfig.GetText("test_connection"), userConfig.GetText("E5267"), true);
             }
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("test_connection"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("test_connection"), "", true);
         }
     }
 
@@ -394,9 +372,11 @@
     {
         try
         {
+            actLdapConnection.TenantId = selectedTenant?.Id;
+            actLdapConnection.Type = (int)selectedType;
             if (actLdapConnection.Sanitize())
             {
-                DisplayMessageInUi!(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("U0001"), true);
+                DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("U0001"), true);
             }
             if (CheckValues())
             {    
@@ -405,7 +385,7 @@
                     RestResponse<int> ldapMiddlewareServerResponse = await middlewareClient.AddLdap(actLdapConnection.ToApiParams());
                     if (ldapMiddlewareServerResponse.StatusCode != HttpStatusCode.OK)
                     {
-                        DisplayMessageInUi!(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5201"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5201"), true);
                     }
                     else
                     {
@@ -420,7 +400,7 @@
                     RestResponse<int> ldapMiddlewareServerResponse = await middlewareClient.UpdateLdap(actLdapConnection.ToApiParams());
                     if (ldapMiddlewareServerResponse.StatusCode != HttpStatusCode.OK)
                     {
-                        DisplayMessageInUi!(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5202"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5202"), true);
                     }
                     else
                     {
@@ -434,7 +414,7 @@
         catch (Exception exception)
         {
             // Log.WriteDebug("Save Ldap Connection", $"Exception occurred: {exception}");
-            DisplayMessageInUi!(exception, userConfig.GetText("save_ldap_conn"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("save_ldap_conn"), "", true);
         }
     }
 
@@ -445,32 +425,32 @@
             actLdapConnection.SearchUserPwd == null || actLdapConnection.SearchUserPwd == "" ||
             actLdapConnection.UserSearchPath == null || actLdapConnection.UserSearchPath == "")
         {
-            DisplayMessageInUi!(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5102"), true);
+            DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5102"), true);
             return false;
         }
         if (actLdapConnection.Port < 1 || actLdapConnection.Port > 65535)
         {
-            DisplayMessageInUi!(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5103"), true);
+            DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5103"), true);
             return false;
         }
         if (actLdapConnection.PatternLength < 0)
         {
-            DisplayMessageInUi!(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5263"), true);
+            DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5263"), true);
             return false;
         }
         if (connectedLdaps.FirstOrDefault(x => x.Address == actLdapConnection.Address && x.Port == actLdapConnection.Port && x.Id != actLdapConnection.Id) != null)
         {
-            DisplayMessageInUi!(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5264"), true);
+            DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5264"), true);
             return false;
         }
         if (actLdapConnection.HasRoleHandling() && !actLdapConnection.IsInternal())
         {
-            DisplayMessageInUi!(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5265"), true);
+            DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5265"), true);
             return false;
         }
         if (!AddMode && wasActive && !actLdapConnection.Active && connectedLdaps.Where(x => x.Active).Count() == 1)
         {
-            DisplayMessageInUi!(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5260"), true);
+            DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5260"), true);
             return false;
         }
         return true;

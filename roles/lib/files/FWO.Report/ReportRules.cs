@@ -17,6 +17,7 @@ namespace FWO.Report
 
         private const byte all = 0, nobj = 1, nsrv = 2, user = 3;
         public bool GotReportedRuleIds { get; protected set; } = false;
+        private const int ColumnCount = 12;
 
         public async Task GetReportedRuleIds(ApiConnection apiConnection)
         {
@@ -146,7 +147,8 @@ namespace FWO.Report
             {
                 // setting mgmt and relevantImporId QueryVariables 
                 Query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
-                Query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1 /* managment was not yet imported at that time */;
+                if (ReportType != ReportType.Recertification)
+                    Query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1 /* managment was not yet imported at that time */;
                 Managements[i] = (await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables))[0];
                 Managements[i].Import = managementsWithRelevantImportId[i].Import;
             }
@@ -163,7 +165,8 @@ namespace FWO.Report
                 for (i = 0; i < managementsWithRelevantImportId.Length; i++)
                 {
                     Query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
-                    Query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
+                    if (ReportType != ReportType.Recertification)
+                        Query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
                     gotNewObjects |= Managements[i].Merge((await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables))[0]);
                 }
                 await callback(Managements);
@@ -182,7 +185,7 @@ namespace FWO.Report
                 foreach (Device device in management.Devices.Where(dev => dev.Rules != null && dev.Rules.Length > 0))
                 {
                     deviceCounter++;
-                    ruleCounter += device.Rules.Length;
+                    ruleCounter += device.Rules!.Length;
                 }
             }
             return $"{managementCounter} {userConfig.GetText("managements")}, {deviceCounter} {userConfig.GetText("gateways")}, {ruleCounter} {userConfig.GetText("rules")}";
@@ -190,13 +193,12 @@ namespace FWO.Report
 
         public override string ExportToCsv()
         {
-
             if (ReportType == ReportType.ResolvedRules || ReportType == ReportType.ResolvedRulesTech)
             {
                 StringBuilder report = new StringBuilder();
                 RuleDisplayCsv ruleDisplay = new RuleDisplayCsv(userConfig);
 
-                report.AppendLine(ruleDisplay.DisplayReportHeader(this));
+                report.Append(ruleDisplay.DisplayReportHeader(this));
 
                 foreach (Management management in Managements.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                         Array.Exists(mgt.Devices, device => device.Rules != null && device.Rules.Length > 0)))
@@ -223,12 +225,12 @@ namespace FWO.Report
                                     report.Append(ruleDisplay.DisplayEnabled(rule, export: true));
                                     report.Append(ruleDisplay.DisplayUid(rule));
                                     report.Append(ruleDisplay.DisplayComment(rule));
+                                    report.AppendLine("");  // EO rule
                                 }
                                 else
                                 {
                                     // report.AppendLine("\"section header\": \"" + rule.SectionHeader + "\"");
                                 }
-                                report.AppendLine("");  // EO rule
                             } // rules
                         }
                     } // gateways
@@ -239,7 +241,6 @@ namespace FWO.Report
             else
             {
                 throw new NotImplementedException();
-                return null;
             }
         }
 
@@ -247,86 +248,89 @@ namespace FWO.Report
         {
             if (ReportType == ReportType.ResolvedRules || ReportType == ReportType.ResolvedRulesTech)
             {
-                StringBuilder report = new StringBuilder("{");
-                report.AppendLine($"\"report type\": \"{userConfig.GetText("resolved_rules_report")}\",");
-                report.AppendLine($"\"report generation date\": \"{DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)\",");
-                report.AppendLine($"\"date of configuration shown\": \"{DateTime.Parse(Query.ReportTimeString).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)\",");
-                report.AppendLine($"\"device filter\": \"{string.Join("; ", Array.ConvertAll(Managements, management => management.NameAndDeviceNames()))}\",");
-                report.AppendLine($"\"other filters\": \"{Query.RawFilter}\",");
-                report.AppendLine($"\"report generator\": \"Firewall Orchestrator - https://fwo.cactus.de/en\",");
-                report.AppendLine($"\"data protection level\": \"For internal use only\",");
-                report.AppendLine("\"managements\": [");
-                RuleDisplayJson ruleDisplay = new RuleDisplayJson(userConfig);
-                foreach (Management management in Managements.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
-                        Array.Exists(mgt.Devices, device => device.Rules != null && device.Rules.Length > 0)))
-                {
-                    report.AppendLine($"{{\"{management.Name}\": {{");
-                    report.AppendLine($"\"gateways\": [{{");
-                    foreach (Device gateway in management.Devices)
-                    {
-                        if (gateway.Rules != null && gateway.Rules.Length > 0)
-                        {
-                            report.Append($"\"{gateway.Name}\": {{\n\"rules\": [");
-                            foreach (Rule rule in gateway.Rules)
-                            {
-                                report.Append($"{{");
-                                if (string.IsNullOrEmpty(rule.SectionHeader))
-                                {
-                                    report.Append(ruleDisplay.DisplayNumber(rule, gateway.Rules));
-                                    report.Append(ruleDisplay.DisplayName(rule));
-                                    report.Append(ruleDisplay.DisplaySourceZone(rule));
-                                    report.Append(ruleDisplay.DisplaySource(rule, location: "", reportType: this.ReportType));
-                                    report.Append(ruleDisplay.DisplayDestinationZone(rule));
-                                    report.Append(ruleDisplay.DisplayDestination(rule, location: "", reportType: this.ReportType));
-                                    report.Append(ruleDisplay.DisplayService(rule, location: "", reportType: this.ReportType));
-                                    report.Append(ruleDisplay.DisplayAction(rule));
-                                    report.Append(ruleDisplay.DisplayTrack(rule));
-                                    report.Append(ruleDisplay.DisplayEnabled(rule, export: true));
-                                    report.Append(ruleDisplay.DisplayUid(rule));
-                                    report.Append(ruleDisplay.DisplayComment(rule));
-                                    report = ruleDisplay.RemoveLastChars(report, 1); // remove last chars (comma)
-                                }
-                                else
-                                {
-                                    report.AppendLine("\"section header\": \"" + rule.SectionHeader + "\"");
-                                }
-                                report.Append("},");  // EO rule
-                            } // rules
-                            report = ruleDisplay.RemoveLastChars(report, 1); // remove last char (comma)
-                            report.Append("]"); // EO rules
-                            report.Append("}},"); // EO gateway 2x
-                        }
-                    } // gateways
-                    report = ruleDisplay.RemoveLastChars(report, 1); // remove last char (comma)
-                    report.Append("]"); // EO devices
-                    report.Append("}},"); // EO management 2x
-                } // managements
-                report = ruleDisplay.RemoveLastChars(report, 1); // remove last char (comma)
-                report.Append("]"); // EO managements
-                report.Append("}"); // EO top
-
-                // Debug:
-                string repStr = report.ToString();
-                dynamic json = JsonConvert.DeserializeObject(report.ToString());
-                JsonSerializerSettings settings = new JsonSerializerSettings();
-                settings.Formatting = Formatting.Indented;
-                return Newtonsoft.Json.JsonConvert.SerializeObject(json, settings);
+                // JSON code for resolved rules is stripped from all unneccessary balast, only containing the resolved rules
+                // object tables are not needed as the objects within the rules fully describe the rules (no groups)
+                return ExportResolvedRulesToJson();
             }
-            else if (ReportType == ReportType.Rules)
-            {
-                return System.Text.Json.JsonSerializer.Serialize(Managements.Where(mgt => !mgt.Ignore), new JsonSerializerOptions { WriteIndented = true });
-            }
-            else if (ReportType == ReportType.NatRules)
+            else if (ReportType == ReportType.Rules || ReportType == ReportType.Recertification || ReportType == ReportType.NatRules)
             {
                 return System.Text.Json.JsonSerializer.Serialize(Managements.Where(mgt => !mgt.Ignore), new JsonSerializerOptions { WriteIndented = true });
             }
             else
             {
-                return null;
+                return "";
             }
         }
 
-        private const int ColumnCount = 12;
+        private string ExportResolvedRulesToJson()
+        {
+            StringBuilder report = new StringBuilder("{");
+            report.AppendLine($"\"report type\": \"{userConfig.GetText("resolved_rules_report")}\",");
+            report.AppendLine($"\"report generation date\": \"{DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)\",");
+            report.AppendLine($"\"date of configuration shown\": \"{DateTime.Parse(Query.ReportTimeString).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)\",");
+            report.AppendLine($"\"device filter\": \"{string.Join("; ", Array.ConvertAll(Managements, management => management.NameAndDeviceNames()))}\",");
+            report.AppendLine($"\"other filters\": \"{Query.RawFilter}\",");
+            report.AppendLine($"\"report generator\": \"Firewall Orchestrator - https://fwo.cactus.de/en\",");
+            report.AppendLine($"\"data protection level\": \"For internal use only\",");
+            report.AppendLine("\"managements\": [");
+            RuleDisplayJson ruleDisplay = new RuleDisplayJson(userConfig);
+            foreach (Management management in Managements.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+                    Array.Exists(mgt.Devices, device => device.Rules != null && device.Rules.Length > 0)))
+            {
+                report.AppendLine($"{{\"{management.Name}\": {{");
+                report.AppendLine($"\"gateways\": [");
+                foreach (Device gateway in management.Devices)
+                {
+                    if (gateway.Rules != null && gateway.Rules.Length > 0)
+                    {
+                        report.Append($"{{\"{gateway.Name}\": {{\n\"rules\": [");
+                        foreach (Rule rule in gateway.Rules)
+                        {
+                            report.Append("{");
+                            if (string.IsNullOrEmpty(rule.SectionHeader))
+                            {
+                                report.Append(ruleDisplay.DisplayNumber(rule, gateway.Rules));
+                                report.Append(ruleDisplay.DisplayName(rule));
+                                report.Append(ruleDisplay.DisplaySourceZone(rule));
+                                report.Append(ruleDisplay.DisplaySource(rule, location: "", reportType: this.ReportType));
+                                report.Append(ruleDisplay.DisplayDestinationZone(rule));
+                                report.Append(ruleDisplay.DisplayDestination(rule, location: "", reportType: this.ReportType));
+                                report.Append(ruleDisplay.DisplayService(rule, location: "", reportType: this.ReportType));
+                                report.Append(ruleDisplay.DisplayAction(rule));
+                                report.Append(ruleDisplay.DisplayTrack(rule));
+                                report.Append(ruleDisplay.DisplayEnabled(rule, export: true));
+                                report.Append(ruleDisplay.DisplayUid(rule));
+                                report.Append(ruleDisplay.DisplayComment(rule));
+                                report = ruleDisplay.RemoveLastChars(report, 1); // remove last chars (comma)
+                            }
+                            else
+                            {
+                                report.AppendLine("\"section header\": \"" + rule.SectionHeader + "\"");
+                            }
+                            report.Append("},");  // EO rule
+                        } // rules
+                        report = ruleDisplay.RemoveLastChars(report, 1); // remove last char (comma)
+                        report.Append("]"); // EO rules
+                        report.Append("}"); // EO gateway internal
+                        report.Append("},"); // EO gateway external
+                    }
+                } // gateways
+                report = ruleDisplay.RemoveLastChars(report, 1); // remove last char (comma)
+                report.Append("]"); // EO gateways
+                report.Append("}"); // EO management internal
+                report.Append("},"); // EO management external
+            } // managements
+            report = ruleDisplay.RemoveLastChars(report, 1); // remove last char (comma)
+            report.Append("]"); // EO managements
+            report.Append("}"); // EO top
+
+            // Debug:
+            string repStr = report.ToString();
+            dynamic? json = JsonConvert.DeserializeObject(report.ToString());
+            JsonSerializerSettings settings = new JsonSerializerSettings();
+            settings.Formatting = Formatting.Indented;
+            return Newtonsoft.Json.JsonConvert.SerializeObject(json, settings);            
+        }
 
         public override string ExportToHtml()
         {
@@ -345,164 +349,203 @@ namespace FWO.Report
                 {
                     if (device.Rules != null && device.Rules.Length > 0)
                     {
-                        report.AppendLine($"<h4>{device.Name}</h4>");
-                        report.AppendLine("<hr>");
-
-                        report.AppendLine("<table>");
-                        report.AppendLine("<tr>");
-                        report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
-                        report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
-                        report.AppendLine($"<th>{userConfig.GetText("source_zone")}</th>");
-                        report.AppendLine($"<th>{userConfig.GetText("source")}</th>");
-                        report.AppendLine($"<th>{userConfig.GetText("destination_zone")}</th>");
-                        report.AppendLine($"<th>{userConfig.GetText("destination")}</th>");
-                        report.AppendLine($"<th>{userConfig.GetText("services")}</th>");
-                        report.AppendLine($"<th>{userConfig.GetText("action")}</th>");
-                        report.AppendLine($"<th>{userConfig.GetText("track")}</th>");
-                        report.AppendLine($"<th>{userConfig.GetText("enabled")}</th>");
-                        report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
-                        report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
-                        report.AppendLine("</tr>");
-
-                        foreach (Rule rule in device.Rules)
-                        {
-                            if (string.IsNullOrEmpty(rule.SectionHeader))
-                            {
-                                report.AppendLine("<tr>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayNumber(rule, device.Rules)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayName(rule)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplaySourceZone(rule)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplaySource(rule, location: "", reportType: this.ReportType)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayDestinationZone(rule)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayDestination(rule, location: "", reportType: this.ReportType)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayService(rule, location: "", reportType: this.ReportType)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayAction(rule)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayTrack(rule)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayEnabled(rule, export: true)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayUid(rule)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayComment(rule)}</td>");
-                                report.AppendLine("</tr>");
-                            }
-                            else
-                            {
-                                report.AppendLine("<tr>");
-                                report.AppendLine($"<td style=\"background-color: #f0f0f0;\" colspan=\"{ColumnCount}\">{rule.SectionHeader}</td>");
-                                report.AppendLine("</tr>");
-                            }
-                        }
-
-                        report.AppendLine("</table>");
+                        appendRulesForDeviceHtml(ref report, device, ruleDisplay);
                     }
                 }
 
                 // show all objects used in this management's rules
-
-                int objNumber = 1;
-                if (management.ReportObjects != null && ReportType == ReportType.Rules)
-                {
-                    report.AppendLine($"<h4>{userConfig.GetText("network_objects")}</h4>");
-                    report.AppendLine("<hr>");
-                    report.AppendLine("<table>");
-                    report.AppendLine("<tr>");
-                    report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("type")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("ip_address")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("members")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
-                    report.AppendLine("</tr>");
-                    foreach (NetworkObject nwobj in management.ReportObjects)
-                    {
-                        report.AppendLine("<tr>");
-                        report.AppendLine($"<td>{objNumber++}</td>");
-                        report.AppendLine($"<td><a name=nwobj{nwobj.Id}>{nwobj.Name}</a></td>");
-                        report.AppendLine($"<td>{nwobj.Type.Name}</td>");
-                        report.AppendLine($"<td>{nwobj.IP}{(nwobj.IpEnd != null && nwobj.IpEnd != "" && nwobj.IpEnd != nwobj.IP ? $"-{nwobj.IpEnd}" : "")}</td>");
-                        if (nwobj.MemberNames != null && nwobj.MemberNames.Contains('|'))
-                            report.AppendLine($"<td>{string.Join("<br>", nwobj.MemberNames.Split('|'))}</td>");
-                        else
-                            report.AppendLine($"<td>{nwobj.MemberNames}</td>");
-                        report.AppendLine($"<td>{nwobj.Uid}</td>");
-                        report.AppendLine($"<td>{nwobj.Comment}</td>");
-                        report.AppendLine("</tr>");
-                    }
-                    report.AppendLine("</table>");
-                }
-
-                if (management.ReportServices != null && ReportType == ReportType.Rules)
-                {
-                    report.AppendLine($"<h4>{userConfig.GetText("network_services")}</h4>");
-                    report.AppendLine("<hr>");
-                    report.AppendLine("<table>");
-                    report.AppendLine("<tr>");
-                    report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("type")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("protocol")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("port")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("members")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
-                    report.AppendLine("</tr>");
-                    objNumber = 1;
-                    foreach (NetworkService svcobj in management.ReportServices)
-                    {
-                        report.AppendLine("<tr>");
-                        report.AppendLine($"<td>{objNumber++}</td>");
-                        report.AppendLine($"<td>{svcobj.Name}</td>");
-                        report.AppendLine($"<td><a name=svc{svcobj.Id}>{svcobj.Name}</a></td>");
-                        report.AppendLine($"<td>{((svcobj.Protocol != null) ? svcobj.Protocol.Name : "")}</td>");
-                        if (svcobj.DestinationPortEnd != null && svcobj.DestinationPortEnd != svcobj.DestinationPort)
-                            report.AppendLine($"<td>{svcobj.DestinationPort}-{svcobj.DestinationPortEnd}</td>");
-                        else
-                            report.AppendLine($"<td>{svcobj.DestinationPort}</td>");
-                        if (svcobj.MemberNames != null && svcobj.MemberNames.Contains("|"))
-                            report.AppendLine($"<td>{string.Join("<br>", svcobj.MemberNames.Split('|'))}</td>");
-                        else
-                            report.AppendLine($"<td>{svcobj.MemberNames}</td>");
-                        report.AppendLine($"<td>{svcobj.Uid}</td>");
-                        report.AppendLine($"<td>{svcobj.Comment}</td>");
-                        report.AppendLine("</tr>");
-                    }
-                    report.AppendLine("</table>");
-                }
-
-                if (management.ReportUsers != null && ReportType == ReportType.Rules)
-                {
-                    report.AppendLine($"<h4>{userConfig.GetText("users")}</h4>");
-                    report.AppendLine("<hr>");
-                    report.AppendLine("<table>");
-                    report.AppendLine("<tr>");
-                    report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("type")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("members")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
-                    report.AppendLine("</tr>");
-                    objNumber = 1;
-                    foreach (NetworkUser userobj in management.ReportUsers)
-                    {
-                        report.AppendLine("<tr>");
-                        report.AppendLine($"<td>{objNumber++}</td>");
-                        report.AppendLine($"<td>{userobj.Name}</td>");
-                        report.AppendLine($"<td><a name=user{userobj.Id}>{userobj.Name}</a></td>");
-                        if (userobj.MemberNames != null && userobj.MemberNames.Contains("|"))
-                            report.AppendLine($"<td>{string.Join("<br>", userobj.MemberNames.Split('|'))}</td>");
-                        else
-                            report.AppendLine($"<td>{userobj.MemberNames}</td>");
-                        report.AppendLine($"<td>{userobj.Uid}</td>");
-                        report.AppendLine($"<td>{userobj.Comment}</td>");
-                        report.AppendLine("</tr>");
-                    }
-                    report.AppendLine("</table>");
-                }
-
-                report.AppendLine("</table>");
+                appendObjectsForManagementHtml(ref report, management);
             }
 
-            return GenerateHtmlFrame(title: userConfig.GetText("rules_report"), Query.RawFilter, DateTime.Now, report);
+            string title = (ReportType == ReportType.Recertification? "recert_report" : "rules_report");
+            return GenerateHtmlFrame(title: userConfig.GetText(title), Query.RawFilter, DateTime.Now, report);
+        }
+
+        private void appendRuleHeadlineHtml(ref StringBuilder report)
+        {
+            report.AppendLine("<tr>");
+            report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
+            if(ReportType == ReportType.Recertification)
+            {
+                report.AppendLine($"<th>{userConfig.GetText("next_recert")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("owner")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("ip_matches")}</th>");
+            }
+            report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("source_zone")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("source")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("destination_zone")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("destination")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("services")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("action")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("track")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("enabled")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
+            report.AppendLine("</tr>");
+        }
+
+        private void appendRulesForDeviceHtml(ref StringBuilder report, Device device, RuleDisplayHtml ruleDisplay)
+        {
+            if (device.ContainsRules())
+            {
+                report.AppendLine($"<h4>{device.Name}</h4>");
+                report.AppendLine("<hr>");
+                report.AppendLine("<table>");
+                appendRuleHeadlineHtml(ref report);
+                foreach (Rule rule in device.Rules!)
+                {
+                    if (string.IsNullOrEmpty(rule.SectionHeader))
+                    {
+                        report.AppendLine("<tr>");
+                        report.AppendLine($"<td>{ruleDisplay.DisplayNumber(rule, device.Rules)}</td>");
+                        if(ReportType == ReportType.Recertification)
+                        {
+                            bool multipleOwners = false; // todo: get from report params
+                            report.AppendLine($"<td>{ruleDisplay.DisplayNextRecert(rule, multipleOwners)}</td>");
+                            report.AppendLine($"<td>{ruleDisplay.DisplayOwner(rule, multipleOwners)}</td>");
+                            report.AppendLine($"<td>{ruleDisplay.DisplayRecertIpMatches(rule, multipleOwners)}</td>");
+                        }
+                        report.AppendLine($"<td>{ruleDisplay.DisplayName(rule)}</td>");
+                        report.AppendLine($"<td>{ruleDisplay.DisplaySourceZone(rule)}</td>");
+                        report.AppendLine($"<td>{ruleDisplay.DisplaySource(rule, location: "", reportType: this.ReportType)}</td>");
+                        report.AppendLine($"<td>{ruleDisplay.DisplayDestinationZone(rule)}</td>");
+                        report.AppendLine($"<td>{ruleDisplay.DisplayDestination(rule, location: "", reportType: this.ReportType)}</td>");
+                        report.AppendLine($"<td>{ruleDisplay.DisplayService(rule, location: "", reportType: this.ReportType)}</td>");
+                        report.AppendLine($"<td>{ruleDisplay.DisplayAction(rule)}</td>");
+                        report.AppendLine($"<td>{ruleDisplay.DisplayTrack(rule)}</td>");
+                        report.AppendLine($"<td>{ruleDisplay.DisplayEnabled(rule, export: true)}</td>");
+                        report.AppendLine($"<td>{ruleDisplay.DisplayUid(rule)}</td>");
+                        report.AppendLine($"<td>{ruleDisplay.DisplayComment(rule)}</td>");
+                        report.AppendLine("</tr>");
+                    }
+                    else
+                    {
+                        report.AppendLine("<tr>");
+                        report.AppendLine($"<td style=\"background-color: #f0f0f0;\" colspan=\"{ColumnCount}\">{rule.SectionHeader}</td>");
+                        report.AppendLine("</tr>");
+                    }
+                }
+                report.AppendLine("</table>");
+            }
+        }
+
+        private void appendObjectsForManagementHtml(ref StringBuilder report, Management management)
+        {
+            int objNumber = 1;
+            appendNetworkObjectsForManagementHtml(ref report, ref objNumber, management);
+            appendNetworkServicesForManagementHtml(ref report, ref objNumber, management);
+            appendUsersForManagementHtml(ref report, ref objNumber, management);
+        }
+
+        private void appendNetworkObjectsForManagementHtml(ref StringBuilder report, ref int objNumber, Management management)
+        {
+            if (management.ReportObjects != null && ReportType == ReportType.Rules)
+            {
+                report.AppendLine($"<h4>{userConfig.GetText("network_objects")}</h4>");
+                report.AppendLine("<hr>");
+                report.AppendLine("<table>");
+                report.AppendLine("<tr>");
+                report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("type")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("ip_address")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("members")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
+                report.AppendLine("</tr>");
+                foreach (NetworkObject nwobj in management.ReportObjects)
+                {
+                    report.AppendLine("<tr>");
+                    report.AppendLine($"<td>{objNumber++}</td>");
+                    report.AppendLine($"<td><a name=nwobj{nwobj.Id}>{nwobj.Name}</a></td>");
+                    report.AppendLine($"<td>{nwobj.Type.Name}</td>");
+                    report.AppendLine($"<td>{nwobj.IP}{(nwobj.IpEnd != null && nwobj.IpEnd != "" && nwobj.IpEnd != nwobj.IP ? $"-{nwobj.IpEnd}" : "")}</td>");
+                    if (nwobj.MemberNames != null && nwobj.MemberNames.Contains('|'))
+                        report.AppendLine($"<td>{string.Join("<br>", nwobj.MemberNames.Split('|'))}</td>");
+                    else
+                        report.AppendLine($"<td>{nwobj.MemberNames}</td>");
+                    report.AppendLine($"<td>{nwobj.Uid}</td>");
+                    report.AppendLine($"<td>{nwobj.Comment}</td>");
+                    report.AppendLine("</tr>");
+                }
+                report.AppendLine("</table>");
+            }
+        }
+
+        private void appendNetworkServicesForManagementHtml(ref StringBuilder report, ref int objNumber, Management management)
+        {
+            if (management.ReportServices != null && ReportType == ReportType.Rules)
+            {
+                report.AppendLine($"<h4>{userConfig.GetText("network_services")}</h4>");
+                report.AppendLine("<hr>");
+                report.AppendLine("<table>");
+                report.AppendLine("<tr>");
+                report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("type")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("protocol")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("port")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("members")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
+                report.AppendLine("</tr>");
+                objNumber = 1;
+                foreach (NetworkService svcobj in management.ReportServices)
+                {
+                    report.AppendLine("<tr>");
+                    report.AppendLine($"<td>{objNumber++}</td>");
+                    report.AppendLine($"<td>{svcobj.Name}</td>");
+                    report.AppendLine($"<td><a name=svc{svcobj.Id}>{svcobj.Name}</a></td>");
+                    report.AppendLine($"<td>{((svcobj.Protocol != null) ? svcobj.Protocol.Name : "")}</td>");
+                    if (svcobj.DestinationPortEnd != null && svcobj.DestinationPortEnd != svcobj.DestinationPort)
+                        report.AppendLine($"<td>{svcobj.DestinationPort}-{svcobj.DestinationPortEnd}</td>");
+                    else
+                        report.AppendLine($"<td>{svcobj.DestinationPort}</td>");
+                    if (svcobj.MemberNames != null && svcobj.MemberNames.Contains("|"))
+                        report.AppendLine($"<td>{string.Join("<br>", svcobj.MemberNames.Split('|'))}</td>");
+                    else
+                        report.AppendLine($"<td>{svcobj.MemberNames}</td>");
+                    report.AppendLine($"<td>{svcobj.Uid}</td>");
+                    report.AppendLine($"<td>{svcobj.Comment}</td>");
+                    report.AppendLine("</tr>");
+                }
+                report.AppendLine("</table>");
+            }
+        }
+
+        private void appendUsersForManagementHtml(ref StringBuilder report, ref int objNumber, Management management)
+        {
+            if (management.ReportUsers != null && ReportType == ReportType.Rules)
+            {
+                report.AppendLine($"<h4>{userConfig.GetText("users")}</h4>");
+                report.AppendLine("<hr>");
+                report.AppendLine("<table>");
+                report.AppendLine("<tr>");
+                report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("type")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("members")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
+                report.AppendLine("</tr>");
+                objNumber = 1;
+                foreach (NetworkUser userobj in management.ReportUsers)
+                {
+                    report.AppendLine("<tr>");
+                    report.AppendLine($"<td>{objNumber++}</td>");
+                    report.AppendLine($"<td>{userobj.Name}</td>");
+                    report.AppendLine($"<td><a name=user{userobj.Id}>{userobj.Name}</a></td>");
+                    if (userobj.MemberNames != null && userobj.MemberNames.Contains("|"))
+                        report.AppendLine($"<td>{string.Join("<br>", userobj.MemberNames.Split('|'))}</td>");
+                    else
+                        report.AppendLine($"<td>{userobj.MemberNames}</td>");
+                    report.AppendLine($"<td>{userobj.Uid}</td>");
+                    report.AppendLine($"<td>{userobj.Comment}</td>");
+                    report.AppendLine("</tr>");
+                }
+                report.AppendLine("</table>");
+            }
         }
     }
 }

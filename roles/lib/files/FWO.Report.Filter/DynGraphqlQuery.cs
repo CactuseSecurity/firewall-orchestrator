@@ -60,8 +60,20 @@ namespace FWO.Report.Filter
                 query.ruleWhereStatement += "}]}, ";
             }
         }
+        private static List<int> GetDeviceFilterAsList(DeviceFilter? deviceFilter)
+        {
+            List<int> devIdList = new List<int>();
+            if (deviceFilter != null)
+            {
+                foreach (ManagementSelect mgmt in deviceFilter.Managements)
+                    foreach (DeviceSelect dev in mgmt.Devices)
+                        if (dev.Selected == true)
+                            devIdList.Add(dev.Id);
+            }
+            return devIdList;
+        }
 
-        private static void SetTimeFilter(ref DynGraphqlQuery query, TimeFilter? timeFilter, ReportType? reportType)
+        private static void SetTimeFilter(ref DynGraphqlQuery query, TimeFilter? timeFilter, ReportType? reportType, RecertFilter recertFilter)
         {
             if (timeFilter != null)
             {
@@ -103,6 +115,15 @@ namespace FWO.Report.Filter
                         ]
                         change_type_id: {{ _eq: 3 }}
                         security_relevant: {{ _eq: true }}";
+                        break;
+                    case ReportType.Recertification:
+                        query.nwObjWhereStatement += "{}";
+                        query.svcObjWhereStatement += "{}";
+                        query.userObjWhereStatement += "{}";
+                        query.ReportTimeString = DateTime.Now.AddDays(recertFilter.RecertificationDisplayPeriod).ToString(fullTimeFormat);
+                        query.QueryParameters.Add("$refdate1: timestamp! ");
+                        query.QueryVariables["refdate1"] = query.ReportTimeString;
+                        query.ruleWhereStatement += $@" rule_metadatum: {{ recertifications: {{ next_recert_date: {{ _lte: $refdate1 }} }} }} ";
                         break;
                     default:
                         Log.WriteError("Filter", $"Unexpected report type found: {reportType}");
@@ -184,48 +205,79 @@ namespace FWO.Report.Filter
                     else
                         stop = timeFilter.EndTime.ToString(fullTimeFormat);
                     break;
-                
+
                 default:
                     throw new NotSupportedException($"Found unexpected TimeRangeType");
             }
             return (start, stop);
         }
 
-        private static void SetFixedFilters(ref DynGraphqlQuery query, DeviceFilter? deviceFilter, TimeFilter? timeFilter, ReportType? reportType)
+
+        private static void SetRecertFilter(ref DynGraphqlQuery query, RecertFilter? recertFilter, DeviceFilter deviceFilter)
         {
-             // leave out all header texts
-            if (reportType != null && reportType == ReportType.Statistics)
+            // bool first = true;
+
+            List<int> deviceIdFilter = GetDeviceFilterAsList(deviceFilter);
+            if (recertFilter != null)
+            {
+                // query.QueryParameters.Add("$ownerIds: [Int!] ");
+                // query.QueryParameters.Add("$refdate1: Timestamp!");
+
+                // setting owner filter:
+                if (recertFilter.RecertOwnerList.Count > 0)
+                {
+                    // query.QueryVariables["ownerIds"] = recertFilter.RecertOwnerList;
+                    query.QueryParameters.Add("$ownerWhere: owner_bool_exp");
+                    query.QueryVariables["ownerWhere"] = new {id = new {_in = recertFilter.RecertOwnerList}}; 
+                }
+                else
+                { // if no ownerIds are set in the filter, return all recerts
+                    query.QueryParameters.Add("$ownerWhere: owner_bool_exp");
+                    query.QueryVariables["ownerWhere"] = new {id = new {}};
+                }
+            }
+        }
+
+        private static void SetFixedFilters(ref DynGraphqlQuery query, ReportTemplate reportParams)
+        {
+            // leave out all header texts
+            if (reportParams.ReportParams.ReportType != null &&
+                reportParams.ReportParams.ReportType == (int)ReportType.Statistics &&
+                reportParams.ReportParams.ReportType != (int)ReportType.Recertification)
             {
                 query.ruleWhereStatement += "{rule_head_text: {_is_null: true}}, ";
             }
-
-            SetDeviceFilter(ref query, deviceFilter);
-            SetTimeFilter(ref query, timeFilter, reportType);
+            SetDeviceFilter(ref query, reportParams.ReportParams.DeviceFilter);
+            SetTimeFilter(ref query, reportParams.ReportParams.TimeFilter, (ReportType)(reportParams.ReportParams.ReportType ?? throw new Exception("No report type set")), reportParams.ReportParams.RecertFilter);
+            if (reportParams.ReportParams.ReportType!= null && (ReportType)reportParams.ReportParams.ReportType==ReportType.Recertification)
+            {
+                SetRecertFilter(ref query, reportParams.ReportParams.RecertFilter, reportParams.ReportParams.DeviceFilter);
+            }
         }
 
-        public static DynGraphqlQuery GenerateQuery(string rawInput, AstNode? ast, DeviceFilter? deviceFilter, TimeFilter? timeFilter, ReportType? reportType, bool detailed)
+        public static DynGraphqlQuery GenerateQuery(ReportTemplate filter, AstNode? ast)
         {
-            DynGraphqlQuery query = new DynGraphqlQuery(rawInput);
+            DynGraphqlQuery query = new DynGraphqlQuery(filter.Filter);
 
             query.ruleWhereStatement += "_and: [";
 
-            SetFixedFilters(ref query, deviceFilter, timeFilter, reportType);
+            SetFixedFilters(ref query, filter);
 
             query.ruleWhereStatement += "{";
 
             // now we convert the ast into a graphql query:
             if (ast != null)
-                ast.Extract(ref query, reportType);
+                ast.Extract(ref query, (ReportType)(filter.ReportParams.ReportType ?? throw new Exception("No report type set")));
 
             query.ruleWhereStatement += "}] ";
 
             string paramString = string.Join(" ", query.QueryParameters.ToArray());
-            
-            switch (reportType)
+
+            if (filter.ReportParams.ReportType == (int)ReportType.ResolvedRules || filter.ReportParams.ReportType == (int)ReportType.ResolvedRulesTech)
+                filter.Detailed = true;
+
+            switch ((ReportType)(filter.ReportParams.ReportType ?? throw new Exception("No report type set")))
             {
-                // todo: move $mdmId filter from management into query.xxxWhereStatement
-                // management(where: {{mgm_id: {{_in: $mgmId }} }} order_by: {{ mgm_name: asc }}) 
-                        // management(order_by: {{ mgm_name: asc }}) 
                 case ReportType.Statistics:
                     query.FullQuery = Queries.compact($@"
                     query statisticsReport ({paramString}) 
@@ -253,13 +305,13 @@ namespace FWO.Report.Filter
                             }}
                         }}
                     }}");
-                    break;                
+                    break;
 
                 case ReportType.Rules:
                 case ReportType.ResolvedRules:
                 case ReportType.ResolvedRulesTech:
                     query.FullQuery = Queries.compact($@"
-                    {(detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
+                    {(filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
 
                     query rulesReport ({paramString}) 
                     {{ 
@@ -283,16 +335,63 @@ namespace FWO.Report.Filter
                                             order_by: {{ rule_num_numeric: asc }} )
                                             {{
                                                 mgm_id: mgm_id
-                                                ...{(detailed ? "ruleDetails" : "ruleOverview")}
+                                                ...{(filter.Detailed ? "ruleDetails" : "ruleOverview")}
                                             }} 
                                     }}
                             }} 
                     }}");
                     break;
-                    
+
+                case ReportType.Recertification:
+                    // remove Query Parameter relevant import id
+                    var itemToRemove = query.QueryParameters.Single(r => r == " $relevantImportId: bigint");
+                    query.QueryParameters.Remove(itemToRemove);
+                    paramString = string.Join(" ", query.QueryParameters.ToArray());
+
+                    query.FullQuery = Queries.compact($@"{RecertQueries.ruleOpenRecertFragments}
+                        query rulesCertReport({paramString}) {{
+                        management(
+                            where: {{
+                                mgm_id: {{ _in: $mgmId }}
+                                hide_in_gui: {{ _eq: false }}
+                                stm_dev_typ: {{
+                                    dev_typ_is_multi_mgmt: {{ _eq: false }}
+                                    is_pure_routing_device: {{ _eq: false }}
+                                }}
+                            }}
+                            order_by: {{ mgm_name: asc }}
+                        ) {{
+                            id: mgm_id
+                            name: mgm_name
+                            devices(
+                                where: {{ hide_in_gui: {{ _eq: false }} }}
+                                order_by: {{ dev_name: asc }}
+                            ) {{
+                                id: dev_id
+                                name: dev_name
+                                rules(
+                                    where: {{ 
+                                        rule_metadatum: {{ recertifications_aggregate: {{ count: {{ filter: {{ _and: [{{owner: $ownerWhere}}, {{recert_date: {{_is_null: true}}}}, {{next_recert_date: {{_lte: $refdate1}}}}]}}, predicate: {{_gt: 0}}}}}}}}
+                                        active:{{ _eq:true }}
+                                        {query.ruleWhereStatement} 
+                                    }} 
+                                    limit: $limit
+                                    offset: $offset
+                                    order_by: {{ rule_num_numeric: asc }}
+                                ) {{
+                                    mgm_id: mgm_id
+                                    ...ruleOpenCertOverview
+                                }}
+                            }}
+                        }}
+                    }}");
+                    break;
+
                 case ReportType.Changes:
+                case ReportType.ResolvedChanges:
+                case ReportType.ResolvedChangesTech:
                     query.FullQuery = Queries.compact($@"
-                    {(detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
+                    {(filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
 
                     query changeReport({paramString}) {{
                         management(where: {{ hide_in_gui: {{_eq: false }} stm_dev_typ: {{dev_typ_is_multi_mgmt: {{_eq: false}} is_pure_routing_device: {{_eq: false}} }} }} order_by: {{mgm_name: asc}}) 
@@ -321,11 +420,11 @@ namespace FWO.Report.Filter
                                         change_action
                                         old: ruleByOldRuleId {{
                                         mgm_id: mgm_id
-                                        ...{(detailed ? "ruleDetails" : "ruleOverview")}
+                                        ...{(filter.Detailed ? "ruleDetails" : "ruleOverview")}
                                         }}
                                         new: rule {{
                                         mgm_id: mgm_id
-                                        ...{(detailed ? "ruleDetails" : "ruleOverview")}
+                                        ...{(filter.Detailed ? "ruleDetails" : "ruleOverview")}
                                         }}
                                     }}
                                 }}
@@ -336,7 +435,7 @@ namespace FWO.Report.Filter
 
                 case ReportType.NatRules:
                     query.FullQuery = Queries.compact($@"
-                    {(detailed ? RuleQueries.natRuleDetailsForReportFragments : RuleQueries.natRuleOverviewFragments)}
+                    {(filter.Detailed ? RuleQueries.natRuleDetailsForReportFragments : RuleQueries.natRuleOverviewFragments)}
 
                     query natRulesReport ({paramString}) 
                     {{ 
@@ -355,7 +454,7 @@ namespace FWO.Report.Filter
                                             order_by: {{ rule_num_numeric: asc }} )
                                             {{
                                                 mgm_id: mgm_id
-                                                ...{(detailed ? "natRuleDetails" : "natRuleOverview")}
+                                                ...{(filter.Detailed ? "natRuleDetails" : "natRuleOverview")}
                                             }} 
                                     }}
                             }} 
@@ -363,11 +462,23 @@ namespace FWO.Report.Filter
                     break;
             }
 
+            string pattern = "";
+
+            // remove comment lines (#) before joining lines!
+            // Regex.Replace("10, 20, 30", @"(\d+)$",match => (int.Parse(match.Value)+1).ToString())
+            // Regex.Replace(query.FullQuery, pattern, m => variablesDictionary[m.Value]);
+            // Regex pattern = new Regex(@"#(.*?)\n");
+
+            // TODO: get this working
+            // pattern = @"""[^""\\]*(?:\\[\W\w][^""\\]*)*""|(\#.*)";
+            // string pattern = @"(.*?)(#.*?)\n(.*?)";
+            // query.FullQuery = Regex.Replace(query.FullQuery, pattern, "");
+
             // remove line breaks and duplicate whitespaces
-            Regex pattern = new Regex("\\n");
-            query.FullQuery = pattern.Replace(query.FullQuery, "");
-            pattern = new Regex("\\s+");
-            query.FullQuery = pattern.Replace(query.FullQuery, " ");
+            pattern = @"\n";
+            query.FullQuery = Regex.Replace(query.FullQuery, pattern, "");
+            pattern = @"\s+";
+            query.FullQuery = Regex.Replace(query.FullQuery, pattern, " ");
             return query;
         }
     }

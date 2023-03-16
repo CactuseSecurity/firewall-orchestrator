@@ -6,7 +6,7 @@
     name: "{{ item }}"
     state: present
   loop: "{{ test_packages }}"
-  become: yes
+  become: true
   environment: "{{ proxy_env }}"
 
 - name: randomize test names to avoid interference with production data
@@ -72,6 +72,9 @@
 - name: imorter testing
   import_tasks: test-importer.yml
   when: "'sampleserver' in group_names"
+
+- name: testing all exposed web services
+  import_tasks: test-web.yml
 
 - name: finalize handler for deleting test data
   set_fact:

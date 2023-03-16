@@ -1,0 +1,20 @@
+mutation recertify(
+  $ruleId: bigint!
+  $ownerId: Int!
+  $userDn: String
+  $recertified: Boolean
+  $recertDate: timestamp
+  $comment: String
+  ) {
+  update_recertification(
+    where: {_and: [{rule_id: {_eq: $ruleId}}, {owner_id: {_eq: $ownerId}}, {recert_date: {_is_null: true}}]},
+    _set: {
+      user_dn: $userDn
+      recertified: $recertified
+      recert_date: $recertDate
+      comment: $comment
+      }
+    ) {
+      affected_rows
+    }
+  }

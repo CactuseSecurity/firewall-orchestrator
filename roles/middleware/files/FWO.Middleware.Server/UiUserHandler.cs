@@ -8,23 +8,39 @@ using Newtonsoft.Json;
 
 namespace FWO.Middleware.Server
 {
+	/// <summary>
+	/// Helper class to read config value for expiration time
+	/// </summary>
     public class ConfExpirationTime
     {
+        /// <summary>
+        /// config value for expiration time
+        /// </summary>
         [JsonProperty("config_value"), JsonPropertyName("config_value")]
         public int ExpirationValue { get; set; }
     }
 
+	/// <summary>
+	/// Handler class for local Ui user
+	/// </summary>
     public class UiUserHandler
     {
         private readonly string jwtToken;
         private ApiConnection apiConn;
 
+		/// <summary>
+		/// Constructor needing the jwt token
+		/// </summary>
         public UiUserHandler(string jwtToken)
         {
             this.jwtToken = jwtToken;
             apiConn = new GraphQlApiConnection(ConfigFile.ApiServerUri, jwtToken);
         }
 
+		/// <summary>
+		/// Get the configurated value for the session timeout.
+		/// </summary>
+		/// <returns>session timeout value in minutes</returns>
         public async Task<int> GetExpirationTime()
         {
             int expirationTime = 60 * 12;
@@ -126,6 +142,9 @@ namespace FWO.Middleware.Server
             return true;
         }
 
+		/// <summary>
+		/// Update the passwordMustBeChanged flag.
+		/// </summary>
         public static async Task UpdateUserPasswordChanged(ApiConnection apiConn, string userDn, bool passwordMustBeChanged = false)
         {
             try

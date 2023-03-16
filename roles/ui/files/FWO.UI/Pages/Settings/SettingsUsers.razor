@@ -100,12 +100,11 @@
                     @if (AddMode)
                     {
                         <div class="col-sm-8">
-                            <select id="ldapUser" class="form-control-sm col-sm" @bind="selectedLdapId" @oninput="(EventArgs) => {selectedLdapId = Convert.ToInt32(EventArgs.Value?.ToString()); SetAvailableTenants();}">
-                                @foreach (UiLdapConnection ldap in writableLdaps)
-                                {
-                                    <option value="@ldap.Id">@(ldap.Name)</option>
-                                }
-                            </select>
+                            <Dropdown ElementType="UiLdapConnection" ElementToString="@(l => l.Name)" SelectedElement="selectedLdap" Elements="writableLdaps" SelectedElementChanged="SetAvailableTenants">
+                                <ElementTemplate Context="ldap">
+                                    @ldap.Name
+                                </ElementTemplate>
+                            </Dropdown>
                         </div>
                     }
                     else
@@ -118,12 +117,11 @@
                     @if (AddMode)
                     {
                         <div class="col-sm-8">
-                            <select id="userTenant" class="form-control-sm col-sm" @bind="selectedTenantId">
-                                @foreach (Tenant tenant in availableTenants)
-                                {
-                                    <option value="@tenant.Id">@(tenant.Name)</option>
-                                }
-                            </select>
+                            <Dropdown ElementType="Tenant" ElementToString="@(t => t.Name)" @bind-SelectedElement="selectedTenant" Elements="availableTenants">
+                                <ElementTemplate Context="tenant">
+                                    @tenant.Name
+                                </ElementTemplate>
+                            </Dropdown>
                         </div>
                     }
                     else
@@ -155,13 +153,11 @@
                     @if (AddMode)
                     {
                         <div class="col-sm-8">
-                            <select id="userGroup" class="form-control-sm col-sm" @bind="selectedGroupName">
-                                <option value="null">@(userConfig.GetText("none"))</option>
-                                @foreach (UserGroup group in groups)
-                                {
-                                    <option value="@group.Name">@(group.Name)</option>
-                                }
-                            </select>
+                            <Dropdown ElementType="UserGroup" ElementToString="@(g => g.Name)" @bind-SelectedElement="selectedGroup" Elements="groups.OrderBy(x => x.Name).ToList()" Nullable="true">
+                                <ElementTemplate Context="group">
+                                    @group.Name
+                                </ElementTemplate>
+                            </Dropdown>
                         </div>
                     }
                     else
@@ -174,13 +170,11 @@
                     @if (AddMode)
                     {
                         <div class="col-sm-8">
-                            <select id="userRole" class="form-control-sm col-sm" @bind="selectedRoleName">
-                                <option value="null">@(userConfig.GetText("none"))</option>
-                                @foreach (Role role in availableRoles)
-                                {
-                                    <option value="@role.Name">@(role.Name)</option>
-                                }
-                            </select>
+                            <Dropdown ElementType="Role" ElementToString="@(r => r.Name)" @bind-SelectedElement="selectedRole" Elements="availableRoles" Nullable="true">
+                                <ElementTemplate Context="role">
+                                    @role.Name
+                                </ElementTemplate>
+                            </Dropdown>
                         </div>
                     }
                     else
@@ -199,28 +193,6 @@
                 </Authorized>
                 <NotAuthorized>
                     <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-                </NotAuthorized> 
-            </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
-
-<PopUp Title="@(userConfig.GetText("delete_user"))" Show="@DeleteMode" OnClose="() => DeleteMode = false">
-    <Body>
-        @if (DeleteMode)
-        {
-            <p>@(deleteMessage)</p>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <AuthorizeView Roles="admin">
-                <Authorized>
-                    <button class="btn btn-sm btn-danger" @onclick="() => Delete()">@(userConfig.GetText("delete"))</button>
-                </Authorized>
-                <NotAuthorized>
-                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
                 </NotAuthorized> 
             </AuthorizeView>
             <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
@@ -261,46 +233,15 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("remove_sample_data"))" Show="@SampleRemoveMode" OnClose="() => SampleRemoveMode = false">
-    <Body>
-        @if (SampleRemoveMode)
-        {
-            <p>@(sampleRemoveMessage)</p>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            @if (SampleRemoveAllowed)
-            {
-                <AuthorizeView Roles="admin">
-                    <Authorized>
-                        <button class="btn btn-sm btn-danger" @onclick="() => RemoveSampleData()">@(userConfig.GetText("remove"))</button>
-                    </Authorized>
-                    <NotAuthorized>
-                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("remove"))</button>
-                    </NotAuthorized> 
-                </AuthorizeView>
-            }
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
+<ConfirmDelete @bind-Display="DeleteMode" PerformAction="Delete" Title="@userConfig.GetText("delete_user")" DeleteMessage="@deleteMessage"/>
+<ConfirmDelete @bind-Display="SampleRemoveMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@sampleRemoveMessage" DeleteAllowed="sampleRemoveAllowed"/>
+<InProgress Display="workInProgress"/>
 
-<PopUp Title="@(userConfig.GetText("in_progress"))" Small="true" Show="@workInProgress">
-    <Body>
-        @if (workInProgress)
-        {
-            <div class="row">
-                <div class="spinner-border mx-auto align-self-center" role="status"></div>
-            </div>
-        }
-    </Body>
-</PopUp>
 
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
     private List<UiLdapConnection> writableLdaps = new List<UiLdapConnection>();
@@ -318,17 +259,17 @@
     private bool EditMode = false;
     private bool DeleteMode = false;
     private bool SampleRemoveMode = false;
-    private bool SampleRemoveAllowed = false;
+    private bool sampleRemoveAllowed = false;
     private bool AddMode = false;
     private bool showSampleRemoveButton = false;
     private bool ResetPasswordMode = false;
 
     private UiUser newUser = new UiUser();
     private UiUser actUser = new UiUser();
-    private int? selectedLdapId {get; set;} = 0;
-    private int? selectedTenantId = 0;
-    private string? selectedRoleName = "";
-    private string? selectedGroupName = "";
+    private UiLdapConnection? selectedLdap;
+    private Tenant? selectedTenant;
+    private Role? selectedRole;
+    private UserGroup? selectedGroup;
 
     private string deleteMessage = "";
     private string sampleRemoveMessage = "";
@@ -355,7 +296,7 @@
             RestResponse<List<UserGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetUsers();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("fetch_users_local"), userConfig.GetText("E5209"), true);
+                DisplayMessageInUi(null, userConfig.GetText("fetch_users_local"), userConfig.GetText("E5209"), true);
             }
             else
             {
@@ -370,20 +311,29 @@
                         user.Tenant.Name = tenants.FirstOrDefault(x => x.Id == user.Tenant.Id)?.Name ?? throw new ArgumentNullException(nameof(user.Tenant.Id));
                     }
                     uiUsers.Add(user);
-                    if (user.Name.EndsWith("_demo"))
-                    {
-                        sampleUsers.Add(user);
-                    }
                 }
+                AnalyseSampleUsers();
             }
-            showSampleRemoveButton = (sampleUsers.Count > 0);
             return true;
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
             return false;
         }
+    }
+
+    private void AnalyseSampleUsers()
+    {
+        sampleUsers = new List<UiUser>();
+        foreach (var user in uiUsers)
+        {
+            if (user.Name.EndsWith("_demo"))
+            {
+                sampleUsers.Add(user);
+            }
+        }
+        showSampleRemoveButton = (sampleUsers.Count > 0);
     }
 
     private async Task SynchronizeGroupsAndRoles()
@@ -396,7 +346,7 @@
         await GetRolesFromInternalLdap();
         SynchronizeUsersToRoles();
 
-        availableRoles = roles.FindAll(x => (x.Name != "anonymous" && x.Name != "middleware-server"));
+        availableRoles = roles.Where(x => (x.Name != "anonymous" && x.Name != "middleware-server")).OrderBy(x => x.Name).ToList();
     }
 
     private void SynchronizeUsersToGroups()
@@ -417,7 +367,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("sync_users"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("sync_users"), "", true);
         }
     }
 
@@ -439,7 +389,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("sync_users"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("sync_users"), "", true);
         }
     }
 
@@ -483,7 +433,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("sync_users"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("sync_users"), "", true);
         }
     }
 
@@ -498,7 +448,7 @@
             RestResponse<List<LdapUserGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetLdapUsers(userGetParameters);
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("get_user_from_ldap"), userConfig.GetText("E5208"), true);
+                DisplayMessageInUi(null, userConfig.GetText("get_user_from_ldap"), userConfig.GetText("E5208"), true);
             }
             else
             {
@@ -524,7 +474,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_users_ldap"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_users_ldap"), "", true);
         }
     }
 
@@ -532,28 +482,11 @@
     {
         try
         {
-            RestResponse<List<GroupGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetInternalGroups();
-            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
-            {
-                DisplayMessageInUi!(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
-            }
-            else
-            {
-                foreach (var ldapUserGroup in middlewareServerResponse.Data)
-                {
-                    UserGroup group = new UserGroup() { Dn = ldapUserGroup.GroupDn, Name = (new DistName(ldapUserGroup.GroupDn)).Group };
-                    foreach (var userDn in ldapUserGroup.Members)
-                    {
-                        UiUser newUser = new UiUser() { Dn = userDn, Name = (new DistName(userDn)).UserName };
-                        group.Users.Add(newUser);
-                    }
-                    groups.Add(group);
-                }
-            }
+            groups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi);
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_groups"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_groups"), "", true);
         }
     }
 
@@ -564,12 +497,12 @@
             roles = await RoleAccess.GetRolesFromInternalLdap(middlewareClient);
             if (roles.Count == 0)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("fetch_roles"), userConfig.GetText("E5251"), true);
+                DisplayMessageInUi(null, userConfig.GetText("fetch_roles"), userConfig.GetText("E5251"), true);
             }
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_roles"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_roles"), "", true);
         }
     }
 
@@ -586,7 +519,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("update_user_local"), "", false);
+            DisplayMessageInUi(exception, userConfig.GetText("update_user_local"), "", false);
         }
     }
 
@@ -617,15 +550,15 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("add_user_local"), "", false);
+            DisplayMessageInUi(exception, userConfig.GetText("add_user_local"), "", false);
         }
     }
 
-    private void SetAvailableTenants()
+    private void SetAvailableTenants(UiLdapConnection? newLdap)
     {
         try
         {
-            UiLdapConnection? selectedLdap = connectedLdaps.FirstOrDefault(x => x.Id == selectedLdapId);
+            selectedLdap = newLdap;
             availableTenants = new List<Tenant>();
             if(selectedLdap != null)
             {
@@ -639,10 +572,14 @@
                     availableTenants = tenants;
                 }
             }
+            if(selectedTenant != null && !availableTenants.Contains(selectedTenant) && availableTenants.Count > 0)
+            {
+                selectedTenant = availableTenants.First();
+            }
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("get_tenant_data"), "", false);
+            DisplayMessageInUi(exception, userConfig.GetText("get_tenant_data"), "", false);
         }
     }
 
@@ -652,18 +589,18 @@
         {
             AddMode = true;
             newUser = new UiUser(){ Email = "" };
-            selectedLdapId = writableLdaps.FirstOrDefault()?.Id;
-            SetAvailableTenants();
-            selectedTenantId = availableTenants.FirstOrDefault()?.Id;
-            selectedGroupName = null;
+            selectedLdap = writableLdaps.FirstOrDefault();
+            SetAvailableTenants(selectedLdap);
+            selectedTenant = availableTenants.FirstOrDefault();
+            selectedGroup = null;
             newUser.Groups = new List<string>();
-            selectedRoleName = null;
+            selectedRole = null;
             newUser.Roles = new List<string>();
             Edit(newUser);
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("add_user"), "", false);
+            DisplayMessageInUi(exception, userConfig.GetText("add_user"), "", false);
         }
     }
 
@@ -674,18 +611,18 @@
             AddMode = true;
             newUser = new UiUser(user);
             newUser.Password = "";
-            selectedLdapId = (newUser.LdapConnection != null ? newUser.LdapConnection.Id : writableLdaps.FirstOrDefault()?.Id);
-            SetAvailableTenants();
-            selectedTenantId = newUser.Tenant?.Id;
-            selectedGroupName = (newUser.Groups != null ? newUser.Groups.FirstOrDefault() : null);
+            selectedLdap = (newUser.LdapConnection != null ? newUser.LdapConnection : writableLdaps.FirstOrDefault());
+            SetAvailableTenants(selectedLdap);
+            selectedTenant = newUser.Tenant;
+            selectedGroup = (newUser.Groups != null ? groups.FirstOrDefault(x => x.Name == newUser.Groups.FirstOrDefault()) : null);
             newUser.Groups = new List<string>();
-            selectedRoleName = newUser.Roles.FirstOrDefault();
+            selectedRole = (newUser.Roles != null ? roles.FirstOrDefault(x => x.Name == newUser.Roles.FirstOrDefault()) : null);
             newUser.Roles = new List<string>();
             Edit(newUser);
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("add_user"), "", false);
+            DisplayMessageInUi(exception, userConfig.GetText("add_user"), "", false);
         }
     }
 
@@ -705,24 +642,25 @@
 
     private void SynchronizeUserData(UiUser user)
     {
-        UiLdapConnection selectedLdap = connectedLdaps.FirstOrDefault(x => x.Id == selectedLdapId) ?? throw new Exception($"Ldap not found. Id: {selectedLdapId}");
-        user.LdapConnection = selectedLdap;
-        Tenant selectedTenant = tenants.FirstOrDefault(x => x.Id == selectedTenantId) ?? throw new Exception($"Tenant not found. Id: {selectedTenantId}");
-        user.Tenant = (selectedLdap.TenantLevel > 0 ? selectedTenant : null);
-        // todo: further dn specification maybe in ldapconnection?
-        user.Dn = (selectedLdap.Type == (int)LdapType.ActiveDirectory ? "cn=": "uid=") + user.Name + 
-            (selectedLdap.TenantLevel > 0 ? ",ou=" + (selectedTenant.Id == 1 && selectedLdap.GlobalTenantName != null && selectedLdap.GlobalTenantName != "" ? selectedLdap.GlobalTenantName : selectedTenant.Name) : "") + "," + selectedLdap.UserSearchPath;
-        user.Groups = new List<string>();
-        if(selectedGroupName != null)
+        if(selectedLdap != null)
         {
-            user.Groups.Add(selectedGroupName);
+            user.LdapConnection = selectedLdap;
+            user.Tenant = (selectedLdap.TenantLevel > 0 ? selectedTenant : null);
+            // todo: further dn specification maybe in ldapconnection?
+            user.Dn = (selectedLdap.Type == (int)LdapType.ActiveDirectory ? "cn=": "uid=") + user.Name + 
+                (selectedLdap.TenantLevel > 0 ? ",ou=" + (selectedTenant?.Id == 1 && selectedLdap.GlobalTenantName != null && selectedLdap.GlobalTenantName != "" ? selectedLdap.GlobalTenantName : selectedTenant?.Name) : "") + "," + selectedLdap.UserSearchPath;
+        }
+        user.Groups = new List<string>();
+        if(selectedGroup != null)
+        {
+            user.Groups.Add(selectedGroup.Name);
         }
         user.PasswordMustBeChanged = true;
         user.Roles = new List<string>();
-        if(selectedRoleName != null)
+        if(selectedRole != null)
         {
-            user.Roles.Add(selectedRoleName);
-            if (selectedRoleName == "auditor")
+            user.Roles.Add(selectedRole.Name);
+            if (selectedRole.Name == "auditor")
             {
                 user.PasswordMustBeChanged = false;
             }
@@ -735,7 +673,7 @@
         {
             if (actUser.Sanitize())
             {
-                DisplayMessageInUi!(null, userConfig.GetText("add_user"), userConfig.GetText("U0001"), true);
+                DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("U0001"), true);
             }
             if (AddMode)
             {
@@ -756,7 +694,7 @@
                     RestResponse<int> middlewareServerResponse = await middlewareClient.AddUser(parameters);
                     if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == 0)
                     {
-                        DisplayMessageInUi!(null, userConfig.GetText("add_user"), userConfig.GetText("E5213"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5213"), true);
                     }
                     else
                     {
@@ -776,7 +714,7 @@
                 RestResponse<bool> middlewareServerResponse = await middlewareClient.UpdateUser(parameters);
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
                 {
-                    DisplayMessageInUi!(null, userConfig.GetText("update_user"), userConfig.GetText("E5214"), true);
+                    DisplayMessageInUi(null, userConfig.GetText("update_user"), userConfig.GetText("E5214"), true);
                 }
                 else
                 {
@@ -784,10 +722,11 @@
                     EditMode = false;
                 }
             }
+            AnalyseSampleUsers();
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_user"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("save_user"), "", true);
         }
     }
 
@@ -796,22 +735,22 @@
         string errorMsg;
         if (actUser.Name == null || actUser.Name == "" || actUser.Password == null || actUser.Password == "")
         {
-            DisplayMessageInUi!(null, userConfig.GetText("add_user"), userConfig.GetText("E5211"), true);
+            DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5211"), true);
             return false;
         }
         if (!PasswordPolicy.CheckPolicy(actUser.Password, globalConfig, userConfig, out errorMsg))
         {
-            DisplayMessageInUi!(null, userConfig.GetText("add_user"), errorMsg, true);
+            DisplayMessageInUi(null, userConfig.GetText("add_user"), errorMsg, true);
             return false;
         }
         if (actUser.LdapConnection.TenantLevel > 0 && (actUser.Tenant == null || !tenants.Exists(x => x.Name == actUser.Tenant.Name)))
         {
-            DisplayMessageInUi!(null, userConfig.GetText("add_user"), userConfig.GetText("E5212"), true);
+            DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5212"), true);
             return false;
         }
         if (uiUsers.Exists(x => x.Dn == actUser.Dn))
         {
-            DisplayMessageInUi!(null, userConfig.GetText("add_user"), userConfig.GetText("E5210"), true);
+            DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5210"), true);
             return false;
         }
         return true;
@@ -830,14 +769,14 @@
                     RestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToGroup(addUserParameters);
                     if ((middlewareServerResponse.StatusCode != HttpStatusCode.OK) || (middlewareServerResponse.Data == false))
                     {
-                        DisplayMessageInUi!(null, userConfig.GetText("assign_user_to_group"), userConfig.GetText("E5242"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("assign_user_to_group"), userConfig.GetText("E5242"), true);
                     }
                 }
             }
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("assign_user_to_group"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("assign_user_to_group"), "", true);
         }
     }
 
@@ -854,14 +793,14 @@
                     RestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToRole(parameters);
                     if ((middlewareServerResponse.StatusCode != HttpStatusCode.OK) || (middlewareServerResponse.Data == false))
                     {
-                        DisplayMessageInUi!(null, userConfig.GetText("assign_user_group_to_role"), userConfig.GetText("E5255"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("assign_user_group_to_role"), userConfig.GetText("E5255"), true);
                     }
                 }
             }
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("assign_user_group_to_role"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("assign_user_group_to_role"), "", true);
         }
     }
 
@@ -872,7 +811,7 @@
             actUser = user;
             if (actUser.Dn == userConfig.User.Dn)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("delete_user"), userConfig.GetText("E5215"), true);
+                DisplayMessageInUi(null, userConfig.GetText("delete_user"), userConfig.GetText("E5215"), true);
             }
             else
             {
@@ -886,7 +825,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_user"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_user"), "", true);
         }
     }
 
@@ -903,7 +842,7 @@
             RestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteUser(parameters);
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("delete_user"), userConfig.GetText("E5216"), true);
+                DisplayMessageInUi(null, userConfig.GetText("delete_user"), userConfig.GetText("E5216"), true);
             }
             else
             {
@@ -913,8 +852,9 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_user"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_user"), "", true);
         }
+        StateHasChanged();
     }
 
     private async Task CleanUpUser(UiUser user)
@@ -930,7 +870,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_user_local"), "", false);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_user_local"), "", false);
         }
     }
 
@@ -938,7 +878,7 @@
     {
         if(!(new DistName(user.Dn)).IsInternal())
         {
-            DisplayMessageInUi!(null, userConfig.GetText("reset_password"), userConfig.GetText("E5217"), true);
+            DisplayMessageInUi(null, userConfig.GetText("reset_password"), userConfig.GetText("E5217"), true);
         }
         else
         {
@@ -955,11 +895,11 @@
             string errorMsg = "";
             if (actUser.Password == null || actUser.Password == "")
             {
-                DisplayMessageInUi!(null, userConfig.GetText("reset_password"), userConfig.GetText("E5218"), true);
+                DisplayMessageInUi(null, userConfig.GetText("reset_password"), userConfig.GetText("E5218"), true);
             }
             else if (!PasswordPolicy.CheckPolicy(actUser.Password, globalConfig, userConfig, out errorMsg))
             {
-                DisplayMessageInUi!(null, userConfig.GetText("reset_password"), errorMsg, true);
+                DisplayMessageInUi(null, userConfig.GetText("reset_password"), errorMsg, true);
             }
             else
             {
@@ -972,7 +912,7 @@
                 RestResponse<string> middlewareServerResponse = await middlewareClient.SetPassword(parameters);
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
                 {
-                    DisplayMessageInUi!(null, userConfig.GetText("reset_password"), userConfig.GetText("E5219"), true);
+                    DisplayMessageInUi(null, userConfig.GetText("reset_password"), userConfig.GetText("E5219"), true);
                 }
                 else
                 {
@@ -982,7 +922,7 @@
                     }
                     if(errorMsg != "")
                     {
-                        DisplayMessageInUi!(null, userConfig.GetText("reset_password"), errorMsg, true);
+                        DisplayMessageInUi(null, userConfig.GetText("reset_password"), errorMsg, true);
                     }
                 }
                 ResetPasswordMode = false;
@@ -990,7 +930,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("reset_password"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("reset_password"), "", true);
         }
     }
 
@@ -999,12 +939,12 @@
         if (sampleUsers.Exists(user => user.DbId == userConfig.User.DbId))
         {
             sampleRemoveMessage = userConfig.GetText("E5220");
-            SampleRemoveAllowed = false;
+            sampleRemoveAllowed = false;
         }
         else
         {
             sampleRemoveMessage = userConfig.GetText("U5203");
-            SampleRemoveAllowed = true;
+            sampleRemoveAllowed = true;
         }
         SampleRemoveMode = true;
     }
@@ -1022,7 +962,7 @@
                 RestResponse<bool> middlewareServerResponse = await middlewareClient.RemoveUserFromAllEntries(parameters);
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
                 {
-                    DisplayMessageInUi!(null, userConfig.GetText("remove_sample_data"), userConfig.GetText("E5221"), true);
+                    DisplayMessageInUi(null, userConfig.GetText("remove_sample_data"), userConfig.GetText("E5221"), true);
                     showSampleRemoveButton = true;
                 }
                 else
@@ -1033,10 +973,11 @@
             }
             catch (System.Exception exception)
             {
-                DisplayMessageInUi!(exception, userConfig.GetText("remove_sample_data"), "", false);
+                DisplayMessageInUi(exception, userConfig.GetText("remove_sample_data"), "", false);
             }
         }
-        workInProgress = false; 
+        workInProgress = false;
+        StateHasChanged();
     }
 
     private void Cancel()

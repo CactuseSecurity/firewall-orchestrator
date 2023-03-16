@@ -67,6 +67,7 @@ namespace FWO.Ui.Display
             switch (reportType)
             {
                 case ReportType.Rules:
+                case ReportType.Recertification:
                     if (side == "source")
                     {
                         foreach (NetworkLocation networkLocation in rule.Froms)
@@ -107,7 +108,7 @@ namespace FWO.Ui.Display
                     StringBuilder cell = new StringBuilder();
                     foreach (NetworkLocation networkLocation in userNwObjectList)
                     {
-                        cell.Append(NetworkLocationToJson(networkLocation, rule.MgmtId, location, style, reportType=reportType).ToString());
+                        cell.Append(NetworkLocationToJson(networkLocation, rule.MgmtId, location, style, reportType).ToString());
                     }
                     cell.Remove(cell.ToString().Length - 1, 1);  // get rid of final comma
                     result.Append($"{cell}],");
@@ -161,6 +162,7 @@ namespace FWO.Ui.Display
             switch (reportType)
             {
                 case ReportType.Rules:
+                case ReportType.Recertification:
                     foreach (ServiceWrapper service in rule.Services)
                         result.Append(ServiceToJson(service.Content, rule.MgmtId, location, style));
                     break;
@@ -177,7 +179,7 @@ namespace FWO.Ui.Display
 
                     StringBuilder cell = new StringBuilder();
                     foreach (NetworkService service in serviceList)
-                        cell.Append(ServiceToJson(service, rule.MgmtId, location, style, reportType=reportType).ToString());
+                        cell.Append(ServiceToJson(service, rule.MgmtId, location, style, reportType).ToString());
                     
                     cell.Remove(cell.ToString().Length - 1, 1);  // get rid of final comma
                     result.Append($"{cell}],");

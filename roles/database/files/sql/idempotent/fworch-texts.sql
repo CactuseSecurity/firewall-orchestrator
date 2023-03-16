@@ -81,10 +81,14 @@ INSERT INTO txt VALUES ('old_password', 		'German',	'Altes Passwort');
 INSERT INTO txt VALUES ('old_password', 		'English',	'Old Password');
 INSERT INTO txt VALUES ('new_password', 		'German',	'Neues Passwort');
 INSERT INTO txt VALUES ('new_password', 		'English',	'New Password');
-INSERT INTO txt VALUES ('jwt_expiry_title',     'German', 	'JWT abgelaufen');
-INSERT INTO txt VALUES ('jwt_expiry_title',     'English', 	'JWT expired');
+INSERT INTO txt VALUES ('jwt_expiry_title',     'German', 	'JWT l&auml;uft bald ab');
+INSERT INTO txt VALUES ('jwt_expiry_title',     'English', 	'JWT about to expire');
 INSERT INTO txt VALUES ('jwt_expiry_text',		'German', 	'Ihr Jwt (Session Token) ist kurz davor abzulaufen. Bitte geben Sie ihr Passwort ein, um einen neuen Jwt zu erzeugen.');
-INSERT INTO txt VALUES ('jwt_expiry_text',		'English', 	'Your jwt (session token) is about to expire. Re-login to create a new jwt.');
+INSERT INTO txt VALUES ('jwt_expiry_text',		'English', 	'Your jwt (session token) is about to expire. Please enter your password to generate a new jwt.');
+INSERT INTO txt VALUES ('jwt_expired_title',     'German', 	'JWT abgelaufen');
+INSERT INTO txt VALUES ('jwt_expired_title',     'English', 'JWT expired');
+INSERT INTO txt VALUES ('jwt_expired_text',		'German', 	'Ihr Jwt (Session Token) ist abgelaufen, wodurch es zu einem Fehler kam. Bitte geben Sie ihr Passwort ein, um einen neuen Jwt zu erzeugen.');
+INSERT INTO txt VALUES ('jwt_expired_text',		'English', 	'Your jwt (session token) is expired. This lead to an error. Please enter your password to create a new jwt.');
 INSERT INTO txt VALUES ('permissions_title',	'German', 	'Berechtigungen');
 INSERT INTO txt VALUES ('permissions_title',	'English', 	'Permissions');
 INSERT INTO txt VALUES ('permissions_text',		'German', 	'Ihre Berechtigungen wurden ge&auml;ndert. Bitte geben Sie Ihr Passwort ein, um Ihre Berechtigungen zu aktualisieren!');
@@ -141,30 +145,18 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
-    <li>100% Open Source - passen Sie Firewall Orchestrator an Ihre Bed&uuml;rfnisse an. Machen Sie mit.
-        Der Quellcode kann auf <a href="https://github.com/CactuseSecurity/firewall-orchestrator" target="_blank">GitHub</a> eingesehen und heruntergeladen werden.</li>
-    <li>GraphQL API f&uuml;r Automatisierungen</li>
-    <li>Firewall-Regel Rezertifizierungsworkflow - beseitigen Sie ihre Altlasten und erf&uuml;llen Sie aktuelle regulatorische Anforderungen.</li>
-    <li>F&uuml;r FortiManager und CheckPoint (Stand-Alone & MDS Manager) Auto Discovery</li>
-    <li>Monitoring und Alerting Modul</li>
-    <li>Neues Workflow module zum Beantragen von &Auml;nderungen</li>
-    <li>Cisco FirePower Import-Module</li>
-    <li>Unterst&uuml;tzung f&uuml;r Debian Testing Betriebssystem</li>
+    <li>Neues Firewall-Regel-Rezertifizierungsmodul - beseitigen Sie ihre Altlasten und erf&uuml;llen Sie aktuelle regulatorische Anforderungen.</li>
+    <li>Workflow-Modul zum Beantragen von &Auml;nderungen</li>
+    <li>Neue Importmodule f&uuml;r Cisco FirePower und Microsoft Azure Firewall</li>
     <li>Beginn Routing/Interface Pfad Analyse (zun&auml;chst nur Fortinet)</li>
     <li>Neue Report-Typen: Regeln (aufgel&ouml;st), Regeln technisch (alle Gruppe werden in Bestandteile aufgel&ouml;st; Report-Export als "Single Table")</li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
-    <li>100% Open Source - adjust Firewall Orchestrator to your needs. Join the community and contribute.
-        The code can be viewed/downloaded from <a href="https://github.com/CactuseSecurity/firewall-orchestrator" target="_blank">GitHub</a></li>
-    <li>GraphQL API for automation</li>
-    <li>Firewall rule recertification workflow - remove unnecessary rules and meet current regulatory requirements.</li>
-    <li>Device Auto Discovery functionality</li>
-    <li>Introduction of Monitoring and Alerting module</li>
-    <li>Introduction of workflow module for requesting changes</li>
-    <li>New Cisco FirePower import module </li>
-    <li>Support for new operating system Debian testing</li>
+    <li>New Firewall rule recertification module - remove unnecessary rules and meet current regulatory requirements.</li>
+    <li>Workflow module for requesting firewall changes</li>
+    <li>New import modules for Cisco FirePower and Microsoft Azure Firewall</li>
     <li>Start routing/interface (currently implemented for fortinet only) import and path analysis</li>
     <li>New report types: resolved rules, technical rules (report without group objects, exporting into pure rule tables without additional object tables)</li>
 </ul>
@@ -340,6 +332,8 @@ INSERT INTO txt VALUES ('comment',				'German', 	'Kommentar');
 INSERT INTO txt VALUES ('comment',				'English', 	'Comment');
 INSERT INTO txt VALUES ('ip_address',		    'German', 	'IP-Adresse');
 INSERT INTO txt VALUES ('ip_address',		    'English', 	'IP Address');
+INSERT INTO txt VALUES ('ip_addresses',		    'German', 	'IP-Adressen');
+INSERT INTO txt VALUES ('ip_addresses',		    'English', 	'IP Addresses');
 INSERT INTO txt VALUES ('members',		        'German', 	'Mitglieder');
 INSERT INTO txt VALUES ('members',		        'English', 	'Members');
 INSERT INTO txt VALUES ('templates',			'German', 	'Vorlagen');
@@ -374,6 +368,16 @@ INSERT INTO txt VALUES ('resolvedrulestech',    'German', 	'Regeln (technisch)')
 INSERT INTO txt VALUES ('resolvedrulestech',    'English', 	'Rules (technical)');
 INSERT INTO txt VALUES ('changes',		        'German', 	'&Auml;nderungen');
 INSERT INTO txt VALUES ('changes',		        'English', 	'Changes');
+INSERT INTO txt VALUES ('resolvedchanges',      'German', 	'&Auml;nderungen (aufgel&ouml;st)');
+INSERT INTO txt VALUES ('resolvedchanges',      'English', 	'Changes (resolved)');
+INSERT INTO txt VALUES ('resolvedchangestech',  'German', 	'&Auml;nderungen (technisch)');
+INSERT INTO txt VALUES ('resolvedchangestech',  'English', 	'Changes (technical)');
+INSERT INTO txt VALUES ('rule_deleted',         'German', 	'Regel gel&ouml;scht');
+INSERT INTO txt VALUES ('rule_deleted',         'English', 	'Rule deleted');
+INSERT INTO txt VALUES ('rule_added',           'German', 	'Regel hinzugef&uuml;gt');
+INSERT INTO txt VALUES ('rule_added',           'English', 	'Rule added');
+INSERT INTO txt VALUES ('rule_modified',        'German', 	'Regel modifiziert');
+INSERT INTO txt VALUES ('rule_modified',        'English', 	'Rule modified');
 INSERT INTO txt VALUES ('statistics',		    'German', 	'Statistik');
 INSERT INTO txt VALUES ('statistics',		    'English', 	'Statistics');
 INSERT INTO txt VALUES ('natrules',		        'German', 	'NAT-Regeln');
@@ -464,6 +468,8 @@ INSERT INTO txt VALUES ('statistics_report',	'German', 	'Statistik-Report');
 INSERT INTO txt VALUES ('statistics_report',	'English', 	'Statistics Report');
 INSERT INTO txt VALUES ('resolved_rules_report','German', 	'Regel-Report (aufgel&ouml;st)');
 INSERT INTO txt VALUES ('resolved_rules_report','English', 	'Rules Report (resolved)');
+INSERT INTO txt VALUES ('recert_report',        'German', 	'Rezertifizierungs-Report');
+INSERT INTO txt VALUES ('recert_report',	    'English', 	'Recertification Report');
 INSERT INTO txt VALUES ('generated_on',	        'German', 	'Erstellt am');
 INSERT INTO txt VALUES ('generated_on',	        'English', 	'Generated on');
 INSERT INTO txt VALUES ('date_of_config',	    'German', 	'Zeit der Konfiguration');
@@ -531,7 +537,7 @@ INSERT INTO txt VALUES ('fetch_report',		    'English', 	'Fetch downloads of gen
 INSERT INTO txt VALUES ('delete_report',		'German', 	'Erstellten Report l&ouml;schen');
 INSERT INTO txt VALUES ('delete_report',		'English', 	'Delete generated report');
 
--- requests
+-- workflow
 INSERT INTO txt VALUES ('request',              'German', 	'Antrag');
 INSERT INTO txt VALUES ('request',              'English', 	'Request');
 INSERT INTO txt VALUES ('ticket',               'German', 	'Ticket');
@@ -560,16 +566,6 @@ INSERT INTO txt VALUES ('svc_group', 			'German', 	'Dienstgruppe');
 INSERT INTO txt VALUES ('svc_group', 			'English', 	'Service group');
 INSERT INTO txt VALUES ('obj_group', 			'German', 	'Objektgruppe');
 INSERT INTO txt VALUES ('obj_group', 			'English', 	'Object group');
-INSERT INTO txt VALUES ('rule_modify', 			'German', 	'Regel &auml;ndern');
-INSERT INTO txt VALUES ('rule_modify', 		    'English', 	'Modify Rule');
-INSERT INTO txt VALUES ('never', 			    'German', 	'Niemals');
-INSERT INTO txt VALUES ('never', 			    'English', 	'Never');
-INSERT INTO txt VALUES ('onlyForOneDevice', 	'German', 	'Nur eines wenn Ger&auml;t vorhanden');
-INSERT INTO txt VALUES ('onlyForOneDevice', 	'English', 	'Only one if device available');
-INSERT INTO txt VALUES ('forEachDevice', 		'German', 	'F&uuml;r jedes Ger&auml;t');
-INSERT INTO txt VALUES ('forEachDevice', 		'English', 	'For each device');
-INSERT INTO txt VALUES ('enterInReqTask',       'German', 	'Ger&auml;t im Antrag eingeben');
-INSERT INTO txt VALUES ('enterInReqTask',       'English', 	'Enter device in request');
 INSERT INTO txt VALUES ('add_new_request',      'German', 	'Neuen Antrag hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_new_request',      'English', 	'Add new request');
 INSERT INTO txt VALUES ('fetch_requests',       'German', 	'Antr&auml;ge holen');
@@ -584,6 +580,8 @@ INSERT INTO txt VALUES ('state',                'German', 	'Status');
 INSERT INTO txt VALUES ('state',                'English', 	'State');
 INSERT INTO txt VALUES ('tasks',                'German', 	'Aufgaben');
 INSERT INTO txt VALUES ('tasks',                'English', 	'Tasks');
+INSERT INTO txt VALUES ('display_task',         'German', 	'Aufgabe darstellen');
+INSERT INTO txt VALUES ('display_task',         'English', 	'Display task');
 INSERT INTO txt VALUES ('add_task',             'German', 	'Aufgabe hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_task',             'English', 	'Add task');
 INSERT INTO txt VALUES ('save_task',            'German', 	'Aufgabe speichern');
@@ -612,8 +610,18 @@ INSERT INTO txt VALUES ('plan',                 'German', 	'Planen');
 INSERT INTO txt VALUES ('plan',                 'English', 	'Plan');
 INSERT INTO txt VALUES ('planner',              'German', 	'Planer');
 INSERT INTO txt VALUES ('planner',              'English', 	'Planner');
-INSERT INTO txt VALUES ('create_implementation','German', 	'Implementierung hinzuf&uuml;gen');
-INSERT INTO txt VALUES ('create_implementation','English', 	'Create implementation task');
+INSERT INTO txt VALUES ('create_implementation','German', 	'Einzelne Implementierung hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('create_implementation','English', 	'Create single implementation task');
+INSERT INTO txt VALUES ('auto_create_impltasks','German', 	'Implementierungen autom. erzeugen');
+INSERT INTO txt VALUES ('auto_create_impltasks','English', 	'Autocreate implementation tasks');
+INSERT INTO txt VALUES ('cleanup_impltasks',    'German', 	'Alle Implementierungen aufr&auml;umen');
+INSERT INTO txt VALUES ('cleanup_impltasks',    'English', 	'Clean up all implementation tasks');
+INSERT INTO txt VALUES ('all_impltasks',        'German', 	'Alle Implementierungen');
+INSERT INTO txt VALUES ('all_impltasks',        'English', 	'All implementation tasks');
+INSERT INTO txt VALUES ('check_impltasks',      'German', 	'Implementierungen pr&uuml;fen');
+INSERT INTO txt VALUES ('check_impltasks',      'English', 	'Check implementation tasks');
+INSERT INTO txt VALUES ('impltask_created',     'German', 	'Implementierung angelegt');
+INSERT INTO txt VALUES ('impltask_created',     'English', 	'Implementation task created');
 INSERT INTO txt VALUES ('implementation_tasks', 'German', 	'Implementierungsaufgaben');
 INSERT INTO txt VALUES ('implementation_tasks', 'English', 	'Implementation tasks');
 INSERT INTO txt VALUES ('request_elements',     'German', 	'Auftragselemente');
@@ -730,6 +738,8 @@ INSERT INTO txt VALUES ('comments',				'German', 	'Kommentare');
 INSERT INTO txt VALUES ('comments',				'English', 	'Comments');
 INSERT INTO txt VALUES ('button_text',			'German', 	'Schaltertext');
 INSERT INTO txt VALUES ('button_text',			'English', 	'Button Text');
+INSERT INTO txt VALUES ('path_analysis',		'German', 	'Pfadanalyse');
+INSERT INTO txt VALUES ('path_analysis',		'English', 	'Path analysis');
 
 -- enum values
 INSERT INTO txt VALUES ('master', 			    'German', 	'Master');
@@ -738,6 +748,10 @@ INSERT INTO txt VALUES ('access', 			    'German', 	'Zugriff');
 INSERT INTO txt VALUES ('access', 			    'English', 	'Access');
 INSERT INTO txt VALUES ('generic',              'German', 	'Generisch');
 INSERT INTO txt VALUES ('generic',              'English', 	'Generic');
+INSERT INTO txt VALUES ('rule_modify',          'German',   'Regel &auml;ndern');
+INSERT INTO txt VALUES ('rule_modify',          'English',  'Modify Rule');
+INSERT INTO txt VALUES ('rule_delete',          'German',   'Regel l&ouml;schen');
+INSERT INTO txt VALUES ('rule_delete',          'English',  'Delete Rule');
 INSERT INTO txt VALUES ('group_create',         'German',   'Gruppe anlegen');
 INSERT INTO txt VALUES ('group_create',         'English',  'Create Group');
 INSERT INTO txt VALUES ('group_modify',         'German',   'Gruppe &auml;ndern');
@@ -760,6 +774,8 @@ INSERT INTO txt VALUES ('AddApproval',			'German', 	'Genehmigung hinzuf&uuml;gen
 INSERT INTO txt VALUES ('AddApproval',			'English', 	'Add approval');
 INSERT INTO txt VALUES ('SetAlert',			    'German', 	'Alarm ausl&ouml;sen');
 INSERT INTO txt VALUES ('SetAlert',			    'English', 	'Set alert');
+INSERT INTO txt VALUES ('TrafficPathAnalysis',  'German', 	'Pfadanalyse');
+INSERT INTO txt VALUES ('TrafficPathAnalysis',  'English', 	'Path Analysis');
 INSERT INTO txt VALUES ('ExternalCall',			'German', 	'Externer Aufruf');
 INSERT INTO txt VALUES ('ExternalCall',			'English', 	'External call');
 INSERT INTO txt VALUES ('Ticket',			    'German', 	'Ticket');
@@ -770,6 +786,50 @@ INSERT INTO txt VALUES ('ImplementationTask',	'German', 	'Implementierungs-Auftr
 INSERT INTO txt VALUES ('ImplementationTask',	'English', 	'Implementation Task');
 INSERT INTO txt VALUES ('Approval',			    'German', 	'Genehmigung');
 INSERT INTO txt VALUES ('Approval',			    'English', 	'Approval');
+INSERT INTO txt VALUES ('never', 			    'German', 	'Niemals');
+INSERT INTO txt VALUES ('never', 			    'English', 	'Never');
+INSERT INTO txt VALUES ('onlyForOneDevice', 	'German', 	'Nur eines wenn Ger&auml;t vorhanden');
+INSERT INTO txt VALUES ('onlyForOneDevice', 	'English', 	'Only one if device available');
+INSERT INTO txt VALUES ('forEachDevice', 		'German', 	'F&uuml;r jedes Ger&auml;t');
+INSERT INTO txt VALUES ('forEachDevice', 		'English', 	'For each device');
+INSERT INTO txt VALUES ('enterInReqTask',       'German', 	'Ger&auml;t im Antrag eingeben');
+INSERT INTO txt VALUES ('enterInReqTask',       'English', 	'Enter device in request');
+INSERT INTO txt VALUES ('afterPathAnalysis',    'German', 	'Nach Pfadanalyse');
+INSERT INTO txt VALUES ('afterPathAnalysis',    'English', 	'After path analysis');
+INSERT INTO txt VALUES ('WriteToDeviceList',    'German', 	'In Ger&auml;teliste eintragen');
+INSERT INTO txt VALUES ('WriteToDeviceList',    'English', 	'Write to device list');
+INSERT INTO txt VALUES ('DisplayFoundDevices',  'German', 	'Gefundene Ger&auml;te darstellen');
+INSERT INTO txt VALUES ('DisplayFoundDevices',  'English', 	'Display found devices');
+INSERT INTO txt VALUES ('Sunday',               'German', 	'Sonntag');
+INSERT INTO txt VALUES ('Sunday',               'English', 	'Sunday');
+INSERT INTO txt VALUES ('Monday',               'German', 	'Montag');
+INSERT INTO txt VALUES ('Monday',               'English', 	'Monday');
+INSERT INTO txt VALUES ('Tuesday',              'German', 	'Dienstag');
+INSERT INTO txt VALUES ('Tuesday',              'English', 	'Tuesday');
+INSERT INTO txt VALUES ('Wednesday',            'German', 	'Mittwoch');
+INSERT INTO txt VALUES ('Wednesday',            'English', 	'Wednesday');
+INSERT INTO txt VALUES ('Thursday',             'German', 	'Donnerstag');
+INSERT INTO txt VALUES ('Thursday',             'English', 	'Thursday');
+INSERT INTO txt VALUES ('Friday',               'German', 	'Freitag');
+INSERT INTO txt VALUES ('Friday',               'English', 	'Friday');
+INSERT INTO txt VALUES ('Saturday',             'German', 	'Samstag');
+INSERT INTO txt VALUES ('Saturday',             'English', 	'Saturday');
+
+-- network analysis
+INSERT INTO txt VALUES ('network_analysis', 	'German',	'Netzanalyse');
+INSERT INTO txt VALUES ('network_analysis', 	'English',	'Network Analysis');
+INSERT INTO txt VALUES ('wrong_ip_address',	    'German', 	'Keine g&uuml;ltige IP Adresse');
+INSERT INTO txt VALUES ('wrong_ip_address',		'English', 	'no valid ip address');
+INSERT INTO txt VALUES ('gws_found',		    'German', 	'Gateways im Pfad');
+INSERT INTO txt VALUES ('gws_found',		    'English', 	'Gateways in path');
+INSERT INTO txt VALUES ('no_gws_found',		    'German', 	'Keine Gateways im Pfad gefunden');
+INSERT INTO txt VALUES ('no_gws_found',		    'English', 	'No gateways found');
+INSERT INTO txt VALUES ('search_route',		    'German', 	'Gateways im Pfad suchen');
+INSERT INTO txt VALUES ('search_route',		    'English', 	'Search gateways in path');
+INSERT INTO txt VALUES ('clear_input',		    'German', 	'Eingabe l&ouml;schen');
+INSERT INTO txt VALUES ('clear_input',     	    'English', 	'Delete input');
+INSERT INTO txt VALUES ('search_access',		'German', 	'Zugriff pr&uuml;fen');
+INSERT INTO txt VALUES ('search_access',		'English', 	'Check access');
 
 -- recertification
 INSERT INTO txt VALUES ('recertify',		    'German', 	'Rezertifizieren');
@@ -784,6 +844,8 @@ INSERT INTO txt VALUES ('load_rules',		    'German', 	'Regeln anzeigen');
 INSERT INTO txt VALUES ('load_rules',		    'English', 	'Show Rules');
 INSERT INTO txt VALUES ('execute_selected',		'German', 	'Ausgew&auml;hlte Aktionen ausf&uuml;hren');
 INSERT INTO txt VALUES ('execute_selected',		'English', 	'Execute Selected Actions');
+INSERT INTO txt VALUES ('missing_owner_id',		'German', 	'Fehlende Eigent&uuml;mer ID');
+INSERT INTO txt VALUES ('missing_owner_id',		'English', 	'missing owner id');
 INSERT INTO txt VALUES ('next_recert',		    'German', 	'Datum n&auml;chste Rezertifizierung');
 INSERT INTO txt VALUES ('next_recert',		    'English', 	'Next Recertification Date');
 INSERT INTO txt VALUES ('last_recertifier',		'German', 	'Letzter Rezertifizierer');
@@ -802,9 +864,28 @@ INSERT INTO txt VALUES ('marked_to_be_removed', 'German',   'Als zu l&ouml;schen
 INSERT INTO txt VALUES ('marked_to_be_removed', 'English',  'Marked to be removed');
 INSERT INTO txt VALUES ('decert_date',          'German',   'Dezertifizierungsdatum');
 INSERT INTO txt VALUES ('decert_date',          'English',  'Decertification date');
-INSERT INTO txt VALUES ('recert_comment',       'German',   'Zertifzierungskommentar');
+INSERT INTO txt VALUES ('recert_comment',       'German',   'Zertifizierungskommentar');
 INSERT INTO txt VALUES ('recert_comment',       'English',  'Certification comment');
-
+INSERT INTO txt VALUES ('ip_matches',           'German',   'IP-Adress-&Uuml;bereinstimmung');
+INSERT INTO txt VALUES ('ip_matches',           'English',  'IP address match');
+INSERT INTO txt VALUES ('overdue_recert',       'German',   'nur&nbsp;&uuml;berf&auml;llige&nbsp;Regeln');
+INSERT INTO txt VALUES ('overdue_recert',       'English',  'only&nbsp;overdue&nbsp;rules');
+INSERT INTO txt VALUES ('recert_parameter',     'German',   'Rezertifizierungsparameter');
+INSERT INTO txt VALUES ('recert_parameter',     'English',  'Recertification Parameters');
+INSERT INTO txt VALUES ('without_owner',        'German',   'nur Regeln ohne Eigent&uuml;mer');
+INSERT INTO txt VALUES ('without_owner',        'English',  'only ownerless rules');
+INSERT INTO txt VALUES ('show_any_match',       'German',   'Any-Regeln anzeigen');
+INSERT INTO txt VALUES ('show_any_match',       'English',  'show any rules');
+INSERT INTO txt VALUES ('single_line_per_rule', 'German',   'eine Zeile pro Regel');
+INSERT INTO txt VALUES ('single_line_per_rule', 'English',  'one line per rule');
+INSERT INTO txt VALUES ('recalc_recerts',       'German',   'Neuberechnung offene Rezertifizierungen');
+INSERT INTO txt VALUES ('recalc_recerts',       'English',  'Recalculate open recertifications');
+INSERT INTO txt VALUES ('recalc_now',           'German',   'Jetzt neu berechnen');
+INSERT INTO txt VALUES ('recalc_now',           'English',  'Recalculate now');
+INSERT INTO txt VALUES ('at_startup',           'German',   'Beim Hochfahren');
+INSERT INTO txt VALUES ('at_startup',           'English',  'At startup');
+INSERT INTO txt VALUES ('daily',                'German',   'T&auml;glich');
+INSERT INTO txt VALUES ('daily',                'English',  'Daily');
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');
 INSERT INTO txt VALUES ('devices',				'English', 	'Devices');
@@ -824,12 +905,24 @@ INSERT INTO txt VALUES ('groups',		        'German', 	'Interne Gruppen');
 INSERT INTO txt VALUES ('groups',		        'English', 	'Internal Groups');
 INSERT INTO txt VALUES ('roles',		        'German', 	'Rollen');
 INSERT INTO txt VALUES ('roles',		        'English', 	'Roles');
-INSERT INTO txt VALUES ('defaults',		        'German', 	'Voreinstellungen');
-INSERT INTO txt VALUES ('defaults',		        'English', 	'Defaults');
+INSERT INTO txt VALUES ('defaults',		        'German', 	'Weitere Einstellungen');
+INSERT INTO txt VALUES ('defaults',		        'English', 	'Further settings');
 INSERT INTO txt VALUES ('standards',		    'German', 	'Standardeinstellungen');
 INSERT INTO txt VALUES ('standards',		    'English', 	'Defaults');
 INSERT INTO txt VALUES ('password_policy',      'German', 	'Passworteinstellungen');
 INSERT INTO txt VALUES ('password_policy',      'English', 	'Password Policy');
+INSERT INTO txt VALUES ('email_settings',       'German', 	'Email-Einstellungen');
+INSERT INTO txt VALUES ('email_settings',       'English', 	'Email settings');
+INSERT INTO txt VALUES ('edit_email',           'German', 	'Email-Einstellungen editieren');
+INSERT INTO txt VALUES ('edit_email',           'English', 	'Edit email settings');
+INSERT INTO txt VALUES ('email_sender',         'German', 	'Email-Absendeadresse');
+INSERT INTO txt VALUES ('email_sender',         'English', 	'Email sender address');
+INSERT INTO txt VALUES ('email_auth_user',      'German', 	'Email-Nutzer');
+INSERT INTO txt VALUES ('email_auth_user',      'English', 	'Email auth user');
+INSERT INTO txt VALUES ('email_auth_pwd',       'German', 	'Email-Nutzer Passwort');
+INSERT INTO txt VALUES ('email_auth_pwd',       'English', 	'Email user password');
+INSERT INTO txt VALUES ('email_enc_method',     'German', 	'Email-Verschl&uuml;sselung');
+INSERT INTO txt VALUES ('email_enc_method',     'English', 	'Email encryption');
 INSERT INTO txt VALUES ('state_definitions',	'German', 	'Statusdefinitionen');
 INSERT INTO txt VALUES ('state_definitions',	'English', 	'State Definitions');
 INSERT INTO txt VALUES ('state_matrix',	        'German', 	'Statusmatrix');
@@ -858,12 +951,20 @@ INSERT INTO txt VALUES ('port',                 'German', 	'Port');
 INSERT INTO txt VALUES ('port',                 'English', 	'Port');
 INSERT INTO txt VALUES ('config_path',          'German', 	'Domain');
 INSERT INTO txt VALUES ('config_path',          'English', 	'Domain');
+INSERT INTO txt VALUES ('cloud_client_id',      'German', 	'Cloud Client ID');
+INSERT INTO txt VALUES ('cloud_client_id',      'English', 	'Cloud Client ID');
+INSERT INTO txt VALUES ('cloud_client_secret',  'German', 	'Cloud Client Secret');
+INSERT INTO txt VALUES ('cloud_client_secret',  'English', 	'Cloud Client Secret');
+INSERT INTO txt VALUES ('cloud_sub_id',         'German', 	'Cloud Subscription ID');
+INSERT INTO txt VALUES ('cloud_sub_id',         'English', 	'Cloud Subscription ID');
+INSERT INTO txt VALUES ('cloud_tenant_id',      'German', 	'Cloud Tenant ID');
+INSERT INTO txt VALUES ('cloud_tenant_id',      'English', 	'Cloud Tenant ID');
+INSERT INTO txt VALUES ('unused',               'German', 	'ungenutzt');
+INSERT INTO txt VALUES ('unused',               'English', 	'unused');
 INSERT INTO txt VALUES ('domain_uid',           'German', 	'Domain UID');
 INSERT INTO txt VALUES ('domain_uid',           'English', 	'Domain UID');
 INSERT INTO txt VALUES ('super_manager',        'German', 	'Multi Domain Manager');
 INSERT INTO txt VALUES ('super_manager',        'English', 	'Multi Domain Manager');
-INSERT INTO txt VALUES ('no_super_manager',     'German', 	'kein Multi Domain Manager');
-INSERT INTO txt VALUES ('no_super_manager',     'English', 	'no Multi Domain Manager');
 INSERT INTO txt VALUES ('importer_host',        'German', 	'Importer Host');
 INSERT INTO txt VALUES ('importer_host',        'English', 	'Importer Host');
 INSERT INTO txt VALUES ('import_disabled',      'German', 	'Import Deaktiviert');
@@ -954,7 +1055,7 @@ INSERT INTO txt VALUES ('assign_user_to_group',	'German',	'Nutzer zu Gruppe zuor
 INSERT INTO txt VALUES ('assign_user_to_group',	'English',	'Assign user to group');
 INSERT INTO txt VALUES ('remove_user_from_group','German',	'Nutzer von Gruppe entfernen');
 INSERT INTO txt VALUES ('remove_user_from_group','English',	'Remove user from group');
-INSERT INTO txt VALUES ('assign_user_group_to_role','German','Nutzer/Gruppe zu Rolle zuordnenen');
+INSERT INTO txt VALUES ('assign_user_group_to_role','German','Nutzer/Gruppe zu Rolle zuordnen');
 INSERT INTO txt VALUES ('assign_user_group_to_role','English','Assign user/group to role');
 INSERT INTO txt VALUES ('remove_user_group_from_role','German','Nutzer/Gruppe von Rolle entfernen');
 INSERT INTO txt VALUES ('remove_user_group_from_role','English','Remove user/group from role');
@@ -980,6 +1081,8 @@ INSERT INTO txt VALUES ('user',                 'German', 	'Nutzer');
 INSERT INTO txt VALUES ('user',                 'English', 	'User');
 INSERT INTO txt VALUES ('group',                'German', 	'Gruppe');
 INSERT INTO txt VALUES ('group',                'English', 	'Group');
+INSERT INTO txt VALUES ('owner_group',          'German', 	'Eigent&uuml;mergruppe');
+INSERT INTO txt VALUES ('owner_group',          'English', 	'Owner group');
 INSERT INTO txt VALUES ('into_ldap',            'German', 	'in LDAP');
 INSERT INTO txt VALUES ('into_ldap',            'English', 	'into LDAP');
 INSERT INTO txt VALUES ('from_ldap',            'German', 	'von LDAP');
@@ -1002,6 +1105,8 @@ INSERT INTO txt VALUES ('edit_ldap',            'German', 	'LDAP-Verbindung bear
 INSERT INTO txt VALUES ('edit_ldap',            'English', 	'Edit LDAP connection');
 INSERT INTO txt VALUES ('test_connection',      'German', 	'Verbindung testen');
 INSERT INTO txt VALUES ('test_connection',      'English', 	'Test connection');
+INSERT INTO txt VALUES ('test_email_connection','German', 	'Email-Verbindung testen');
+INSERT INTO txt VALUES ('test_email_connection','English', 	'Test email connection');
 INSERT INTO txt VALUES ('address',              'German', 	'Adresse');
 INSERT INTO txt VALUES ('address',              'English', 	'Address');
 INSERT INTO txt VALUES ('tenant_level',         'German', 	'Mandantenebene');
@@ -1086,6 +1191,34 @@ INSERT INTO txt VALUES ('ruleRemovalGracePeriod','German', 	'Frist zum L&ouml;sc
 INSERT INTO txt VALUES ('ruleRemovalGracePeriod','English', 'Rule Removal Grace Period (in days)');
 INSERT INTO txt VALUES ('commentRequired',      'German', 	'Kommentar Pflichtfeld');
 INSERT INTO txt VALUES ('commentRequired',      'English',  'Comment Required');
+INSERT INTO txt VALUES ('recAutocreateDeleteTicket','German','Autom. Anlegen L&ouml;schantrag');
+INSERT INTO txt VALUES ('recAutocreateDeleteTicket','English','Autocreate delete rule ticket');
+INSERT INTO txt VALUES ('recDeleteRuleTicketTitle','German','Titel f&uuml;r L&ouml;schantrag');
+INSERT INTO txt VALUES ('recDeleteRuleTicketTitle','English','Title for delete rule ticket');
+INSERT INTO txt VALUES ('recDeleteRuleTicketReason','German','Grund f&uuml;r L&ouml;schantrag');
+INSERT INTO txt VALUES ('recDeleteRuleTicketReason','English','Reason for delete rule ticket');
+INSERT INTO txt VALUES ('recDeleteRuleReqTaskTitle','German','Titel f&uuml;r L&ouml;schauftrag');
+INSERT INTO txt VALUES ('recDeleteRuleReqTaskTitle','English','Title for delete rule task');
+INSERT INTO txt VALUES ('recDeleteRuleReqTaskReason','German','Grund f&uuml;r L&ouml;schauftrag');
+INSERT INTO txt VALUES ('recDeleteRuleReqTaskReason','English','Reason for delete rule task');
+INSERT INTO txt VALUES ('recDeleteRuleTicketPriority','German','Priorit&auml;t f&uuml;r L&ouml;schantrag');
+INSERT INTO txt VALUES ('recDeleteRuleTicketPriority','English','Priority for delete rule ticket');
+INSERT INTO txt VALUES ('recDeleteRuleInitState','German',  'Initialer Status f&uuml;r L&ouml;schantrag');
+INSERT INTO txt VALUES ('recDeleteRuleInitState','English', 'Initial state for delete rule ticket');
+INSERT INTO txt VALUES ('recCheckActive',       'German','Rezert Check - aktiv');
+INSERT INTO txt VALUES ('recCheckActive',       'English','Recert Check - active');
+INSERT INTO txt VALUES ('recCheckEmailSubject', 'German','Rezert Check - Email Betreff');
+INSERT INTO txt VALUES ('recCheckEmailSubject', 'English','Recert Check - Email subject');
+INSERT INTO txt VALUES ('recCheckEmailUpcomingText','German','Rezert Check - Text anstehend');
+INSERT INTO txt VALUES ('recCheckEmailUpcomingText','English','Recert Check - text upcoming');
+INSERT INTO txt VALUES ('recCheckEmailOverdueText','German','Rezert Check - Text &uuml;berf&auml;llig');
+INSERT INTO txt VALUES ('recCheckEmailOverdueText','English','Recert Check - text overdue');
+INSERT INTO txt VALUES ('recert_check_every',   'German', 	'Rezert Check alle');
+INSERT INTO txt VALUES ('recert_check_every',   'English', 	'Recert Check every');
+INSERT INTO txt VALUES ('each_on',              'German', 	'jeweils am');
+INSERT INTO txt VALUES ('each_on',              'English', 	'each on');
+INSERT INTO txt VALUES ('undefined',		    'German', 	'nicht definiert');
+INSERT INTO txt VALUES ('undefined',		    'English', 	'undefined');
 INSERT INTO txt VALUES ('reqAvailableTaskTypes','German', 	'Verf&uuml;gbare Auftragstypen');
 INSERT INTO txt VALUES ('reqAvailableTaskTypes','English', 	'Available Task Types');
 INSERT INTO txt VALUES ('reqAllowObjectSearch', 'German', 	'Objektsuche erlauben');
@@ -1096,6 +1229,8 @@ INSERT INTO txt VALUES ('reqPriorities',        'German', 	'Priorit&auml;ten');
 INSERT INTO txt VALUES ('reqPriorities',        'English', 	'Priorities');
 INSERT INTO txt VALUES ('reqAutoCreateImplTasks','German', 	'Autom. Erzeugen von Implementierungs-Auftr&auml;gen');
 INSERT INTO txt VALUES ('reqAutoCreateImplTasks','English', 'Auto-create implementation tasks');
+INSERT INTO txt VALUES ('reqActivatePathAnalysis','German', 'Pfadanalyse aktivieren');
+INSERT INTO txt VALUES ('reqActivatePathAnalysis','English','Activate Path Analysis');
 INSERT INTO txt VALUES ('numeric_prio', 		'German', 	'Numerische Priorit&auml;t');
 INSERT INTO txt VALUES ('numeric_prio', 		'English', 	'Numeric Priority');
 INSERT INTO txt VALUES ('ticket_deadline',      'German', 	'Ticket-Deadline (in Tagen)');
@@ -1246,6 +1381,8 @@ INSERT INTO txt VALUES ('lowest_end_state',     'German',   'Niedrigster Ausgang
 INSERT INTO txt VALUES ('lowest_end_state',     'English',  'Lowest exit state');
 INSERT INTO txt VALUES ('derived_state',        'German',   'Abgeleiteter Status');
 INSERT INTO txt VALUES ('derived_state',        'English',  'Derived state');
+INSERT INTO txt VALUES ('select_action',        'German',   'Aktion ausw&auml;hlen');
+INSERT INTO txt VALUES ('select_action',        'English',  'Select action');
 INSERT INTO txt VALUES ('owners',               'German',   'Eigent&uuml;mer');
 INSERT INTO txt VALUES ('owners',               'English',  'Owners');
 INSERT INTO txt VALUES ('add_owner',            'German',   'Eigent&uuml;mer hinzuf&uuml;gen');
@@ -1254,8 +1391,8 @@ INSERT INTO txt VALUES ('edit_owner',           'German',   'Eigent&uuml;mer bea
 INSERT INTO txt VALUES ('edit_owner',           'English',  'Edit owner');
 INSERT INTO txt VALUES ('delete_owner',         'German',   'Eigent&uuml;mer l&ouml;schen');
 INSERT INTO txt VALUES ('delete_owner',         'English',  'Delete owner');
-INSERT INTO txt VALUES ('recert_interval',      'German',   'Rezertifzierungsintervall (in Tagen)');
-INSERT INTO txt VALUES ('recert_interval',      'English',  'Recertification interval (in days)');
+INSERT INTO txt VALUES ('recert_interval',      'German',   'Rezertintervall (in Tagen)');
+INSERT INTO txt VALUES ('recert_interval',      'English',  'Recert Interval (in days)');
 INSERT INTO txt VALUES ('ext_app_id',           'German',   'Externe Anwendungs-Id');
 INSERT INTO txt VALUES ('ext_app_id',           'English',  'External Application Id');
 INSERT INTO txt VALUES ('dn',                   'German',   'Vollst&auml;ndiger Name');
@@ -1264,7 +1401,8 @@ INSERT INTO txt VALUES ('set_default',          'German',   'als Vorgabewert set
 INSERT INTO txt VALUES ('set_default',          'English',  'Set as Default');
 INSERT INTO txt VALUES ('reset_to_default',     'German',   'auf Vorgabewerte zur&uuml;cksetzen');
 INSERT INTO txt VALUES ('reset_to_default',     'English',  'Reset to Default');
-
+INSERT INTO txt VALUES ('option',		        'German', 	'Option');
+INSERT INTO txt VALUES ('option',		        'English', 	'Option');
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
@@ -1369,6 +1507,10 @@ INSERT INTO txt VALUES ('daily_sample_data_check','German', 'T&auml;glicher Chec
 INSERT INTO txt VALUES ('daily_sample_data_check','English','Scheduled Daily Sample Data Check');
 INSERT INTO txt VALUES ('daily_importer_check', 'German',   'T&auml;glicher Check der Importer');
 INSERT INTO txt VALUES ('daily_importer_check', 'English',  'Scheduled Daily Importer Check');
+INSERT INTO txt VALUES ('daily_recert_check',   'German',   'T&auml;glicher Rezertifizierungs-Check');
+INSERT INTO txt VALUES ('daily_recert_check',   'English',  'Scheduled Daily Recertification Check');
+INSERT INTO txt VALUES ('emails_sent',          'German',   ' Emails versendet');
+INSERT INTO txt VALUES ('emails_sent',          'English',  ' emails sent');
 INSERT INTO txt VALUES ('scheduled_autodiscovery','German', 'Termingesteuerte Autodiscovery');
 INSERT INTO txt VALUES ('scheduled_autodiscovery','English','Scheduled Autodiscovery');
 INSERT INTO txt VALUES ('manual_autodiscovery', 'German', 	'Manuelle Autodiscovery');
@@ -1451,7 +1593,16 @@ INSERT INTO txt VALUES ('task_types', 			'English', 	'Task Types');
 INSERT INTO txt VALUES ('state_handling', 		'German', 	'Status-Verwaltung');
 INSERT INTO txt VALUES ('state_handling', 		'English', 	'State Handling');
 INSERT INTO txt VALUES ('checklist', 		    'German', 	'Checkliste');
-INSERT INTO txt VALUES ('checklist', 		    'English', 	'Checklist');
+INSERT INTO txt VALUES ('checklist',            'English', 	'Checklist');
+INSERT INTO txt VALUES ('requirements',         'German', 	'Voraussetzungen');
+INSERT INTO txt VALUES ('requirements',         'English', 	'Requirements');
+INSERT INTO txt VALUES ('recert_logic',         'German', 	'Logik und Konfiguration');
+INSERT INTO txt VALUES ('recert_logic', 		'English', 	'Logic and Configuration');
+INSERT INTO txt VALUES ('configuration',        'German', 	'Konfiguration');
+INSERT INTO txt VALUES ('configuration',        'English', 	'Configuration');
+INSERT INTO txt VALUES ('owner_import',         'German', 	'Eigent&uuml;mer-Import');
+INSERT INTO txt VALUES ('owner_import',         'English', 	'Owner Import');
+ 
 
 -- text codes (roughly) categorized: 
 -- U: user texts (explanation or confirmation texts)
@@ -1470,6 +1621,7 @@ INSERT INTO txt VALUES ('checklist', 		    'English', 	'Checklist');
 --            5200-5299: authorization
 --            5300-5399: defaults
 --            5400-5499: personal settings
+--            5500-5599: workflow module
 -- 6000-6999: API
 -- 7000-7999: Monitoring
 -- 8000-8999: Workflow
@@ -1565,6 +1717,8 @@ INSERT INTO txt VALUES ('U5216', 'German',  'Anzeige und Verwaltung aller Eigent
 INSERT INTO txt VALUES ('U5216', 'English', 'Show and administrate all owners');
 INSERT INTO txt VALUES ('U5217', 'German',  'Sind sie sicher, dass sie folgenden Eigent&uuml;mer l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5217', 'English', 'Are you sure you want to delete owner: ');
+INSERT INTO txt VALUES ('U5218', 'German',  'L&ouml;scht alle Beispiel-Eigent&uuml;mer (auf "_demo" endend)');
+INSERT INTO txt VALUES ('U5218', 'English', 'Deletes all sample owners (ending with "_demo")');
 
 INSERT INTO txt VALUES ('U5301', 'German',  'Einstellungen ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5301', 'English', 'Settings changed.');
@@ -1572,6 +1726,8 @@ INSERT INTO txt VALUES ('U5302', 'German',  'Einstellungen ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5302', 'English', 'Policy changed.');
 INSERT INTO txt VALUES ('U5303', 'German',  '* Einstellungen k&ouml;nnen vom Nutzer in den pers&ouml;nlichen Einstellungen &uuml;berschrieben werden.');
 INSERT INTO txt VALUES ('U5303', 'English', '* Settings can be overwritten by user in personal settings.');
+INSERT INTO txt VALUES ('U5304', 'German',  '* Einstellungen k&ouml;nnen vom Nutzer in den pers&ouml;nlichen Einstellungen oder in den Eigent&uuml;mer-Einstellungen &uuml;berschrieben werden.');
+INSERT INTO txt VALUES ('U5304', 'English', '* Settings can be overwritten by user in personal settings or by the owner settings.');
 INSERT INTO txt VALUES ('U5311', 'German',  'Verwaltung der Standard-Voreinstellungen f&uuml;r alle Nutzer und einige technische Parameter');
 INSERT INTO txt VALUES ('U5311', 'English', 'Set default values for all users and some technical parameters');
 INSERT INTO txt VALUES ('U5312', 'German',  'Verwaltung der Passwortregeln');
@@ -1588,9 +1744,13 @@ INSERT INTO txt VALUES ('U5317', 'German',  'Verwaltung der Aktionsdefinitionen 
 INSERT INTO txt VALUES ('U5317', 'English', 'Set the action definitions of the workflows. Be careful when changing workflow already in use!');
 INSERT INTO txt VALUES ('U5318', 'German',  'Sind sie sicher, dass sie die Einstellungen zur&uuml;cksetzen wollen? &Auml;nderungen an den Workflows gehen verloren.');
 INSERT INTO txt VALUES ('U5318', 'English', 'Are you sure you want to reset the settings? Changes on workflows get lost.');
+INSERT INTO txt VALUES ('U5319', 'German',  'Server f&uuml;r ausgehende Emails zur Benachrichtigung verwalten.');
+INSERT INTO txt VALUES ('U5319', 'English', 'Manage email server for outgoing user notifications.');
 
 INSERT INTO txt VALUES ('U5401', 'German',  'Passwort ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5401', 'English', 'Password changed.');
+INSERT INTO txt VALUES ('U5402', 'German',  'Test-Email gesendet.');
+INSERT INTO txt VALUES ('U5402', 'English', 'Test email sent.');
 INSERT INTO txt VALUES ('U5411', 'German',  '&Auml;nderung des pers&ouml;nlichen Anmeldepassworts');
 INSERT INTO txt VALUES ('U5411', 'English', 'Change your personal login password');
 INSERT INTO txt VALUES ('U5412', 'German',  'Einstellung der bevorzugten Sprache');
@@ -1609,8 +1769,8 @@ INSERT INTO txt VALUES ('U7001', 'German',  '&Uuml;berblick der Ereignisse im Fi
 INSERT INTO txt VALUES ('U7001', 'English', 'Alerts and events inside Firewall Orchestrator');
 INSERT INTO txt VALUES ('U7002', 'German',  'Daten sind dann verloren. Erw&auml;gen Sie eine Deaktivierung.');
 INSERT INTO txt VALUES ('U7002', 'English', 'Data will be lost. Consider deactivation.');
-INSERT INTO txt VALUES ('U7003', 'German',  'L&ouml;scht alle Beispieldaten (auf "_demo" endend): Managements, Login-Daten, Gateways, Nutzer, Mandanten, Gruppen');
-INSERT INTO txt VALUES ('U7003', 'English', 'Deletes all sample data (ending with "_demo"): managements, credentials, gateways, users, tenants, groups');
+INSERT INTO txt VALUES ('U7003', 'German',  'L&ouml;scht alle Beispieldaten (auf "_demo" endend): Managements, Login-Daten, Gateways, Nutzer, Mandanten, Gruppen, Eigent&uuml;mer');
+INSERT INTO txt VALUES ('U7003', 'English', 'Deletes all sample data (ending with "_demo"): managements, credentials, gateways, users, tenants, groups, owners');
 INSERT INTO txt VALUES ('U7101', 'German',  'Archiv der Alarme mit Best&auml;tigungen');
 INSERT INTO txt VALUES ('U7101', 'English', 'View the past alerts with acknowledgements');
 INSERT INTO txt VALUES ('U7201', 'German',  'Archiv der Importer-Nachrichten');
@@ -1685,6 +1845,8 @@ INSERT INTO txt VALUES ('E5106', 'German',  'Management wurde bereits angelegt: 
 INSERT INTO txt VALUES ('E5106', 'English', 'Management has already been created: ');
 INSERT INTO txt VALUES ('E5107', 'German',  'Gateway wurde bereits angelegt: ');
 INSERT INTO txt VALUES ('E5107', 'English', 'Gateway has already been created: ');
+INSERT INTO txt VALUES ('E5108', 'German',  'Email-Adresse muss "@"-Zeichen enthalten.');
+INSERT INTO txt VALUES ('E5108', 'English', 'Email address must contain "@"-sign.');
 INSERT INTO txt VALUES ('E5111', 'German',  'Es gibt bereits ein Gateway mit derselben Konfiguration und Import aktiviert');
 INSERT INTO txt VALUES ('E5111', 'English', 'There is already a gateway in the same configuration with import enabled');
 INSERT INTO txt VALUES ('E5112', 'German',  'Gateway konnte nicht angelegt werden');
@@ -1810,6 +1972,8 @@ INSERT INTO txt VALUES ('E5285', 'German',  'Mandant konnte nicht ge&auml;ndert 
 INSERT INTO txt VALUES ('E5285', 'English', 'Tenant could not be updated');
 INSERT INTO txt VALUES ('E5291', 'German',  'Eigent&uuml;mer konnte nicht gespeichert werden');
 INSERT INTO txt VALUES ('E5291', 'English', 'Owner could not be saved');
+INSERT INTO txt VALUES ('E5292', 'German',  'Dn oder Gruppe muss gef&uuml;llt sein');
+INSERT INTO txt VALUES ('E5292', 'English', 'Dn or group has to be filled');
 
 INSERT INTO txt VALUES ('E5301', 'German',  'Konfiguration f&uuml;r Standardsprache konnte nicht gelesen werden: Wert auf Englisch gesetzt');
 INSERT INTO txt VALUES ('E5301', 'English', 'Error reading Config for default language: taking default English');
@@ -1877,6 +2041,14 @@ INSERT INTO txt VALUES ('E8011', 'German',  'Aktion konnte nicht angelegt werden
 INSERT INTO txt VALUES ('E8011', 'English', 'Action could not be created');
 INSERT INTO txt VALUES ('E8012', 'German',  'Kommentar konnte nicht angelegt werden');
 INSERT INTO txt VALUES ('E8012', 'English', 'Comment could not be created');
+INSERT INTO txt VALUES ('E8013', 'German',  'Regel-Uid ist auf diesem Ger&auml;t nicht vorhanden: ');
+INSERT INTO txt VALUES ('E8013', 'English', 'Rule Uid does not exist on this device: ');
+INSERT INTO txt VALUES ('E8014', 'German',  'Die Verarbeitung dieses Auftragstyps ist nicht aktiviert. Bitte Administrator kontaktieren.');
+INSERT INTO txt VALUES ('E8014', 'English', 'The handling of this Task Type is not activated. Please contact administrator.');
+
+INSERT INTO txt VALUES ('E8101', 'German',  'Email-Versand kann nicht getestet werden, da der aktuell angemeldete Nutzer keine Email-Adresse hinterlegt hat.');
+INSERT INTO txt VALUES ('E8101', 'English', 'Sending of emails cannot be tested because the logged-in user does not have an email address.');
+
 
 
 -- errors from Api
@@ -1904,8 +2076,8 @@ INSERT INTO txt VALUES ('T0008', 'German',  '(f&uuml;r zuk&uuml;nftige Anwendung
 INSERT INTO txt VALUES ('T0008', 'English', '(for future use) users who can request firewall changes');
 INSERT INTO txt VALUES ('T0009', 'German',  '(f&uuml;r zuk&uuml;nftige Anwendung) Nutzer zum Anlegen von change request workflows');
 INSERT INTO txt VALUES ('T0009', 'English', '(for future use) users who can create change request workflows');
-INSERT INTO txt VALUES ('T0010', 'German',  'wie reporter-viewall, aber mit Erlaubnis, Devices anzulegen und zu &auml;ndern');
-INSERT INTO txt VALUES ('T0010', 'English', 'like reporter-viewall, but allowed to create and update devices');
+INSERT INTO txt VALUES ('T0010', 'German',  'wie reporter-viewall, aber mit Erlaubnis, Devices anzulegen und zu &auml;ndern; desweiteren Berechtigungen als Planer und Implementer');
+INSERT INTO txt VALUES ('T0010', 'English', 'like reporter-viewall, but allowed to create and update devices; furthermore permissions as planner and implementer');
 INSERT INTO txt VALUES ('T0011', 'German',  'Nutzer mit vollem Zugriff auf den Firewall Orchestrator');
 INSERT INTO txt VALUES ('T0011', 'English', 'users with full access rights to firewall orchestrator');
 INSERT INTO txt VALUES ('T0012', 'German',  'Nutzer mit Berechtigung zum Rezertifizieren von Regeln');
@@ -2086,8 +2258,8 @@ INSERT INTO txt VALUES ('H1215', 'German',  'Aktuelle NAT Regeln: Aktuell aktive
 INSERT INTO txt VALUES ('H1215', 'English', 'Current NAT Rules: Currently active NAT rules of all selected devices.');
 INSERT INTO txt VALUES ('H1301', 'German',  'Direkt nach der Erzeugung oder vom <a href="/help/archive">Archiv</a> aus k&ouml;nnen Reports in verschiedenen Ausgabeformaten exportiert werden:');
 INSERT INTO txt VALUES ('H1301', 'English', 'Directly after creation or from the <a href="/help/archive">archive</a> reports can be exported to different output formats:');
-INSERT INTO txt VALUES ('H1302', 'German',  '<li>pdf</li><li>html</li><li>csv (noch nicht unterst&uuml;tzt)</li><li>json</li>');
-INSERT INTO txt VALUES ('H1302', 'English', '<li>pdf</li><li>html</li><li>csv (currently not supported)</li><li>json</li>');
+INSERT INTO txt VALUES ('H1302', 'German',  '<li>pdf</li><li>html</li><li>csv (aktuell nur f&uuml;r aufgel&ouml;sten Regel-Report-Typ unterst&uuml;tzt)</li><li>json</li>');
+INSERT INTO txt VALUES ('H1302', 'English', '<li>pdf</li><li>html</li><li>csv (currently only supported for resolved rules report type)</li><li>json</li>');
 INSERT INTO txt VALUES ('H1303', 'German',  'Nach bet&auml;tigen des "Report exportieren"-Auswahlfeldes kann eines oder mehrere dieser Formate ausgew&auml;hlt werden.
     Auch kann der Report mit einem Namen versehen und <a href="/help/archive">archiviert</a> werden.
     Ein weiteres Ausgabefenster erlaubt dann das separate Abholen der ausgew&auml;hlten Ausgabedateien.
@@ -2217,38 +2389,38 @@ INSERT INTO txt VALUES ('H4001', 'German',  'In diesem Abschnitt k&ouml;nnen Reg
 INSERT INTO txt VALUES ('H4001', 'English', 'In this part rules can be re- or decertified. For this the role "recertifier" (or "admin") is necessary.');
 INSERT INTO txt VALUES ('H4011', 'German',  'Im ersten Schritt muss ein Report mit den demn&auml;chst zu rezertifizierenden Regeln geladen werden.
     Der Zeitraum f&uuml;r die Vorausschau kann im Feld "F&auml;llig in" gew&auml;hlt werden.
-    Diese wird im "Rezertifizierungsanzeigeintervall" in den <a href="/help/settings/recertification">Rezertifizierungseinstellungen</a> bzw. 
-    in den <a href="/help/settings/defaults">Standardeinstellungen</a> initialisiert.
+    Diese wird im "Rezertifizierungsanzeigeintervall" in den <a href="/help/settings/recertificationpersonal">pers&ouml;nlichen</a> bzw. 
+    in den <a href="/help/settings/recertificationgeneral">allgemeinen</a> Rezertifizierungseinstellungen initialisiert.
     Desweiteren m&uuml;ssen die zu betrachtenden Ger&auml;te in der linken Randleiste ausgew&auml;hlt werden.
 ');
 INSERT INTO txt VALUES ('H4011', 'English', 'In the first step a report of upcoming rules to be certified has to be loaded. 
     The lookahead period for this can be chosen in the "Due within" field. 
     It is initialized by the settings value "Recertification Display Period" in the 
-    <a href="/help/settings/recertification">Recertification Settings</a> resp. <a href="/help/settings/defaults">Default Settings</a>.
+    <a href="/help/settings/recertificationpersonal">personal</a> resp. <a href="/help/settings/recertificationgeneral">general</a> Recertification Settings.
     Also the regarded devices have to be chosen in the left sidebar.
 ');
 INSERT INTO txt VALUES ('H4012', 'German',  'Der Report zeigt nun alle Regeln, die im gew&auml;hlten Zeitraum zertifiziert werden m&uuml;ssen.
     Das Rezertifizierungsdatum wird errechnet aus dem letzten Rezertifizierungsdatum (falls unbekannt, wird das Erzeugungsdatum der Regel genommen)
-    und dem Rezertifizierungsintervall, welches in den <a href="/help/settings/defaults">Standardeinstellungen</a> definiert wurde.
+    und dem Rezertifizierungsintervall, welches in den <a href="/help/settings/recertificationgeneral">Rezertifizierungseinstellungen</a> definiert wurde.
     Rezertifizierungen, die in den n&auml;chsten Tagen (definiert im Rezertifizierungserinnerungsintervall in den Standardeinstellungen) f&auml;llig sind, 
     werden in gelb, &uuml;berf&auml;llige Rezertifizierungen in rot unterlegt.
     Zus&auml;tzlich wird der letzte Rezertifizierer dargestellt ("unbekannt" zeigt an, dass noch keine Rezertifizierung stattgefunden hat).
 ');
 INSERT INTO txt VALUES ('H4012', 'English', 'The report shows all rules that are upcoming for recertification within the selected interval.
     The recertification date is computed from the last recertification date (if unknown the rule creation date is taken)
-    and the Recertification Period, defined in the <a href="/help/settings/defaults">Default Settings</a>.
+    and the Recertification Period, defined in the <a href="/help/settings/recertificationgeneral">Recertification Settings</a>.
     Recertifications upcoming in the next days (defined in the Recertification Notice Period in the Default Settings) are marked in yellow, overdue recertifications in red.
     Additionally the last recertifier is mentioned ("unknown" indicates that there has been no recertification so far).
 ');
 INSERT INTO txt VALUES ('H4013', 'German',  'Der Rezertifizierer hat nun die M&ouml;glichkeit alle zu re- oder dezertifizierenden Regeln zu markieren.
     Durch klicken der "Ausgew&auml;hlte Aktionen ausf&uuml;hren"-Schaltfl&auml;che wird zun&auml;chst ein Kommentar abgefragt.
-    Dieser ist ein Pflichtfeld, wenn "Kommentar Pflichtfeld" in den <a href="/help/settings/defaults">Standardeinstellungen</a> gesetzt wurde.
+    Dieser ist ein Pflichtfeld, wenn "Kommentar Pflichtfeld" in den <a href="/help/settings/recertificationgeneral">Rezertifizierungseinstellungen</a> gesetzt wurde.
     Nach der Best&auml;tigung werden alle markierten Re- und Dezertifizierungen in einem Schritt ausgef&uuml;hrt.
     Danach werden nur noch die verbleibenden anstehenden Rezertifizierungen angezeigt.
 ');
 INSERT INTO txt VALUES ('H4013', 'English', 'The recertifier has now the possibility to mark each of the displayed rules for recertification or decertification.
     After clicking the "Execute Selected Actions" button a comment is requested. 
-    This has to be filled, if the setting "Comment Required" in <a href="/help/settings/defaults">Default Settings</a> is activated.
+    This has to be filled, if the setting "Comment Required" in <a href="/help/settings/recertificationgeneral">Recertification Settings</a> is activated.
     When confirmed all selected re- and decertifications are executed in on step. 
     After that only the remaining open certifications are displayed.
 ');
@@ -2256,6 +2428,376 @@ INSERT INTO txt VALUES ('H4014', 'German',  'Dezertifizierte Regel k&ouml;nnen i
 INSERT INTO txt VALUES ('H4014', 'English', 'Decertified rules can be displayed in the <a href="/help/reporting">Reporting</a> part with the filter parameter "remove=true".');
 INSERT INTO txt VALUES ('H4021', 'German',  'Dieses Rezertifizierungsszenario ist als Basis f&uuml;r weitere angepasste Abl&auml;ufe vorgesehen.');
 INSERT INTO txt VALUES ('H4021', 'English', 'This recertification scenario is intended to be a base for further customized workflows.');
+
+INSERT INTO txt VALUES ('H4031', 'German',  'In diesem Modul k&ouml;nnen Nutzer Firewall-Regeln re- oder dezertifiziert werden.
+Daf&uuml;r wird die Rolle "recertifier" ben&ouml;tigt. Auditor- und Admin-Nutzer k&ouml;nnen hier nur lesend auf die anstehenden Rezertifizierungen zugreifen.
+<br>
+Aktuell gibt es zwei verschiedene Optionen:
+<ol>
+    <li> In der einfachen Variante kann ein Nutzer mit recertifier jede beliebige Regel rezertifizieren. 
+        Diese Option eignet sich &uuml;blicherweise nur f&uuml;r kleine Installation mit wenigen Firewall-Regeln.
+    </li>
+    <li> In gr&ouml;&szlig;eren Umgebungen ist es sinnvoll die Rezertifizierung dezentral zu organisieren. 
+        Daf&uuml;r wird eine Eigent&uuml;merstruktur unterst&uuml;tzt, die einer Liste von Eigent&uuml;mern die Verantwortlichkeit f&uuml;r jeweils einen Teil des Netzwerks in Form von IP-Adressen bzw. IP-Subnetzen zuweist. 
+        Dies kann z.B. eine Aufteilung auf Applikationsbasis sein, es ist aber genauso auch eine Unterteilung nach Subnetzen auf Basis von Betriebseinheiten denkbar.
+        Je nach Quelle und Ziel sind alle Eigent&uuml;mer, die f&uuml;r einen Teil der Regel in Form von IP-Adressen verantwortlich sind, auch f&uuml;r die Rezertifizierung der Regel verantwortlich.
+        Es ist also im Allgemeinen eine Gruppe von Eigent&uuml;mern f&uuml;r die Rezertifizierung einer Regel verantwortlich.
+    </li>
+</ol>
+Eine Regel gilt erst dann als vollst&auml;ndig rezertifiziert, wenn alle Eigent&uuml;mer die Regel rezertifiziert haben.
+<br>
+Im Reporting-Modul steht au&szlig;erdem eine Rezertifizierungs-Report zur Verf&uuml;gung.
+');
+INSERT INTO txt VALUES ('H4031', 'English', '
+In this module, users can recertify or decertify firewall rules.
+
+The "recertifier" role is required for this. Auditor and admin users have read-only access to the pending recertifications here.
+<br>
+Currently there are two different options:
+<ol>
+    <li> In the simple variant, a user can recertify any rule with recertifier. 
+        This option is usually suitable only for small installations with few firewall rules.
+    </li>
+    <li> In larger environments, it makes sense to organize recertification in a decentralized manner. 
+        For this purpose, an ownership structure is supported that assigns responsibility for a part of the network in the form of IP addresses or IP subnets to a list of owners. 
+        This can, for example, be a division on an application basis, but a subdivision by subnets based on operating units is just as conceivable.
+        Depending on the source and destination, all owners who are responsible for a part of the rule in the form of IP addresses are also responsible for recertifying the rule.
+        Thus, in general, a group of owners is responsible for the recertification of a rule.
+    </li>
+</ol>
+A rule is not considered fully recertified until all owners have recertified the rule.
+<br>
+A recertification report is also available in the reporting module.
+');
+
+INSERT INTO txt VALUES ('H4032', 'German',  '
+F&uuml;r das ordnungsgem&auml;&szlig;e Funktionieren des Rezertifzierungsprozesses sind die folgenden Konfigurationen einmalig zu Beginn vorzunehmen.
+<br><br>
+<H4>Berechtigungen</H4>
+<ul>
+    <li>Angemeldete Nutzer m&uuml;ssen die Rolle "Recertier" besitzen</li>
+    <li>Angemeldete Nutzer m&uuml;ssen Mitglied eines Eigent&uuml;mers sein (entweder direkt unter "Vollst&auml;ndiger Name*:" oder als Mitglieder einer Eigent&uuml;mergruppe)</li>
+</ul>
+<H4>Konfiguration der Eigent&uuml;mer</H4>
+    M&ouml;chte man keine Verteilung der Zust&auml;ndigkeit auf mehrere Eigent&uuml;mer vornehmen, so ist es ausreichend, dem Eigent&uuml;mer "Super-Owner" eine Gruppe von Rezertifizierern zuzuordnen,
+    die f&uuml;r die Rezertifizierung aller Firewall-Regeln verantwortlich sind.
+    Um den Super-Owner editieren zu k&ouml;nnen, 
+    ist im Men&uuml; "Einstellungen" - "Weitere Einstellungen" - "Standardeinstellungen" die Option "Manuelle Eigent&uuml;merverwaltung erlauben" zu aktivieren.
+    <br><br>
+    Soll hingegen eine dezentrale Struktur aufgebaut werden, so k&ouml;nnen die Eigent&uuml;mer entweder im Firewall Orchestrator selbst definiert werden (nicht empfohlen) 
+    oder aber man importiert eine im Unternehmen vorhandene Eigent&uuml;merliste, wordurch der Pflegeaufwand zum Aktuell-Halten dieser Zuordnung nicht dem Betreiber der Firewall-Infrastruktur zuf&auml;llt.
+    <br>
+    Es wird hierbei empfohlen, im Men&uuml; "Einstellungen" - "Weitere Einstellungen" - "Standardeinstellungen" die Option "Manuelle Eigent&uuml;merverwaltung erlauben" zu deaktivieren,
+    um sicherzustellen, dass keine lokalen &auml;nderungen vorgenommen werden, sondern die Eigent&uuml;mer-Pflege ausschlie&szlig;lich im externen Tool stattfindet.
+    <br>
+    F&uuml;r die Verwaltung in einem externen System ist der Import der Eigent&uuml;mer und deren IP-Adressen via 
+    <a href="/help/API">Firewall Orchestrator API</a> vorzunehmen.
+    <br><br>
+    Die Definition der Eigent&uuml;mer im Firewall Orchestrator selbst ist recht simpel. 
+    Hierzu muss lediglich im Men&uuml; "Einstellungen" - "Weitere Einstellungen" - "Standardeinstellungen" die Option "Manuelle Eigent&uuml;merverwaltung erlauben" aktiviert werden.
+    <br>
+    Anschlie&szlig;end ist es im Men&uuml; "Einstellungen" - "Eigent&uuml;mer" m&ouml;glich, Eigent&uuml;mer manuell hinzuzuf&uuml;gen, zu bearbeiten oder zu l&ouml;schen.
+</ul>
+');
+INSERT INTO txt VALUES ('H4032', 'English', '
+For the proper functioning of the recertification process, the following configurations must be made once at the beginning.
+<br><br>
+<H4>Permissions</H4>
+<ul>
+    <li>Logged in users must have the role "Recertier"</li>
+    <li>Logged in users must be members of an owner (either directly under "Full name*:" or as members of an owner group)</li>
+</ul>
+<H4>Owner configuration</H4>
+    If one does not want to distribute responsibility among several owners, it is sufficient to assign a group of recertifiers to the "Super-Owner" owner,
+    who are responsible for the recertification of all firewall rules.
+    To be able to edit the super-owner 
+    the "Allow manual owner management" option must be enabled in the "Settings" - "Additional settings" - "Default settings" menu.
+    <br><br>
+    If, on the other hand, a decentralized structure is to be set up, the owners can either be defined in the Firewall Orchestrator itself (not recommended) 
+    or you can import an existing list of owners in the company, which means that the maintenance effort for keeping this assignment up to date does not fall to the operator of the firewall infrastructure.
+    <br>
+  In this case, it is recommended to deactivate the "Allow manual owner administration" option in the "Settings" - "Additional settings" - "Default settings" menu,
+    to ensure that no local changes are made, but that owner maintenance takes place exclusively in the external tool.
+    <br>
+    For management in an external system, importing owners and their IP addresses should be done via the
+    <a href="/help/API">Firewall Orchestrator API</a>.
+    <br><br>
+    Defining the owners in Firewall Orchestrator itself is quite simple. 
+    All that is required is to activate the "Allow manual owner administration" option in the "Settings" - "Additional settings" - "Default settings" menu.
+    <br>
+    After that, in the "Settings" - "Owners" menu it is possible to add, edit or delete owners manually.
+</ul>
+');
+
+INSERT INTO txt VALUES ('H4033', 'German',  '
+Zum Testen der Rezertifizierungsfunktionalit&auml;t werden standardm&auml;&szlig;ig einige Demo-Daten zur Verf&uuml;gung gestellt.
+<br>
+Das sind sowohl Nutzer (userX_demo) als auch Eigent&uuml;mer (ownerX_demo).
+<br>
+Login erfolgt mit user1_demo (Passwort cactus1) oder user2_demo (Passwort cactus2)
+<br><br>
+<ol>
+    <li>
+        Im ersten Schritt kann in der linken Randleiste eine Filterung vorgenommen werden (F&auml;lligkeit der Rezertifizierung, Eigent&uuml;mer, Firewall-Ger&auml;te) 
+        und anschlie&szlig;end mit der Schaltfl&auml;che "Regeln anzeigen" eine Liste der zu rezertifizierenden Regeln generiert werden.
+    </li>
+    <li> 
+        Der Zeitraum f&uuml;r die Vorausschau kann im Feld "F&auml;llig in" gew&auml;hlt werden. 
+        Der Default-Wert kann &uuml;ber Ver&auml;ndern des "Rezertifizierungsanzeigeintervalls" in den pers&ouml;nlichen bzw. in den allgemeinen Rezertifizierungseinstellungen gesetzt werden. 
+    </li>
+    <li>
+        Bei Rezertifizierungen, die &uuml;berf&auml;llig sind, wird das Datum in rot angezeigt.<br>
+        Der Rezertifizierer hat nun die M&ouml;glichkeit, beliebige zu re- oder dezertifizierenden Regeln zu markieren. <br>
+        Durch klicken der "Ausgew&auml;hlte Aktionen ausf&uuml;hren"-Schaltfl&auml;che wird zun&auml;chst ein (optionaler - konfigurierbar) Kommentar abgefragt, und 
+        nach Best&auml;tigung werden alle markierten Re- und Dezertifizierungen in einem Schritt ausgef&uuml;hrt.<br>
+        Anschlie&szlig;end werden nur noch die verbliebenen anstehenden Rezertifizierungen angezeigt.
+    </li>
+    <li>
+        Sollte die Option zum Re- bzw. Dezertifizierung nicht angezeigt werden, 
+        sollten die <a href="/help/settings/roles">Berechtigungen</a> &uuml;berpr&uuml;ft werden bzw. wenn der Nutzer Mitglied mehrerer Eigent&uuml;mergruppen ist, 
+        muss zun&auml;chst einer der Eigent&uuml;mer ausgew&auml;hlt werden, um speziell f&uuml;r diesen rezertizieren zu k&ouml;nnen. <br>
+        In diesem Fall empfiehlt es sich f&uuml;r einen Eigent&uuml;mer nach dem anderen zu rezertifizieren.
+    </li>
+</ol>
+');
+INSERT INTO txt VALUES ('H4033', 'English', '
+To test the recertification functionality, some demo data is provided by default.
+<br>
+These are both users (userX_demo) and owners (ownerX_demo).
+<br>
+Login with user1_demo (password cactus1) or user2_demo (password cactus2)
+<br><br>
+<ol>
+    <li>
+        In the first step, a filtering can be made in the left sidebar (recertification due date, owner, firewall devices). 
+        and then a list of rules to be recertified can be generated using the "Show rules" button.
+    </li>
+    <li> 
+       The period for the preview can be selected in the "Due within" field. 
+       The default value can be set by changing the "Recertification display interval" in the personal or in the general recertification settings. 
+    </li>
+    <li>
+        For recertifications that are overdue, the date is displayed in red.<br>
+        The recertifier now has the option to mark any rules to be re- or decertified.<br>
+        By clicking the "Execute selected actions" button, a (optional - configurable) comment will be requested first, and 
+        after confirmation all marked recertifications and decertifications are executed in one step.<br>
+        Afterwards, only the remaining pending recertifications are displayed.
+    </li>
+    <li>
+        If the option to recertify or decertify is not displayed, the <a href="/help/settings/roles">permissions</a>  should be checked or if the user is a member of several owner groups, 
+        one of the owners must be selected first in order to be able to recertify specifically for this owner.<br>
+        In this case, it is recommended for one owner at a time to recertify.
+    </li>
+</ol>
+');
+
+INSERT INTO txt VALUES ('H4034', 'German',  '
+<H4>IP-Adress-Matching</H4>
+ 	Jede Regel (Quelle und Ziel) wird mit den f&uuml;r einen Eigent&uuml;mer definierten IP-Adressen auf &uuml;berlappung gepr&uuml;ft.<br>
+ 	Bei einer &Uuml;berlappung ist der Eigent&uuml;mer f&uuml;r die Rezertifizierung der Regel verantwortlich und ein entsprechender Eintrag wird
+ 	abh&auml;ngig vom Rezertifizierungsintervall des Eigent&uuml;mers erzeugt.
+ 	<br><br>
+ 	Alle Regeln, die Netzwerkobjekte enthalten, die keinem Eigent&uuml;mer zugeordnet werden k&ouml;nnen, sind automatisch dem Super-Owner zugewiesen.
+ 	<br>
+    Dieser ist somit f&uuml;r deren Rezertifzierung verantwortlich.
+<br><br>
+<H4>F&auml;lligkeitsdatum</H4>
+    Das Rezertifizierungsdatum wird errechnet aus dem letzten Rezertifizierungsdatum (falls unbekannt, wird das Erzeugungsdatum der Regel genommen)
+    und dem Rezertifizierungsintervall, welches in den Rezertifizierungseinstellungen definiert wurde. 
+<br><br>
+<H4>Konfiguration</H4>
+    Siehe auch <a href="/help/settings/recertificationgeneral">Rezertifizierungseinstellungen</a>.
+	<br><br>
+    Es ist m&ouml;glich, die einmal n&auml;chtliche laufende Neuberechnung der anstehenden Rezertifizierungen manuell anzusto&szlig;en. 
+    <br>
+	Hierzu dient die Schaltfl&auml;che Einstellungen - Weitere Einstellungen - Rezertifizierung - "Neuberechnung offene Rezertifizierungen".
+');
+INSERT INTO txt VALUES ('H4034', 'English', '
+<H4>IP Adress Matching</H4>
+ 	Each rule (source and destination) is checked for overlap with the IP addresses defined for an owner.<br>
+ 	In case of an overlap, the owner is responsible for the recertification of the rule and a corresponding entry will be
+ 	generated depending on the recertification interval of the owner.
+ 	<br><br>
+        All rules that contain network objects that cannot be assigned to an owner are automatically assigned to the super-owner.
+ 	<br>
+    The latter is thus responsible for their recertification.
+<br><br>
+<H4>Due Date</H4>
+   The recertification date is calculated from the last recertification date (if unknown, the creation date of the rule is taken)
+    and the recertification interval defined in the recertification settings. 
+<br><br>
+<H4CKonfiguration</H4>
+    Also see <a href="/help/settings/recertificationgeneral">Recertification Settings</a>.
+	<br><br>
+   It is possible to manually trigger the once-a-night running recalculation of pending recertifications. 
+    <br>
+	The button Settings - Further settings - Recertification - "Recalculation of open recertifications" is used for this purpose.
+');
+
+INSERT INTO txt VALUES ('H4035', 'German',  '
+Der initiale Owner-Import via API kann mit folgendem beispielhaften API-Befehl mit admin-Berechtigungen erfolgen:
+<br><br>
+<pre>
+mutation addOwners($owners:[owner_insert_input!]!) {
+  insert_owner(
+    objects: $owners
+  ) {
+    returning {
+      id
+    }
+  }
+}
+</pre>
+<br>
+Variablen
+<br>
+<pre>
+{
+  "owners": [
+      {
+        "name": "5",
+        "recert_interval": 365,
+        "dn":"x",
+        "group_dn":"x",
+        "app_id_external": "app-5",
+        "owner_networks": {"data": [{"ip": "10.5.0.0/16"},{"ip": "10.9.0.0/16"}]}
+      },
+      {
+        "name": "6",
+        "recert_interval": 30,
+        "dn":"x",
+        "group_dn":"x",
+        "app_id_external": "app-6",
+        "owner_networks": {"data": [{"ip": "10.6.0.0/16"}]}
+      },
+      {
+        "name": "7",
+        "recert_interval": 90,
+        "dn":"x",
+        "group_dn":"x",
+        "app_id_external": "app-7",
+        "owner_networks": {"data": [{"ip": "10.7.0.0/16"}]}
+      }
+  ]
+}
+</pre>
+<br><br>
+
+Einzelne Owner k&ouml;nnen auch beispielsweise mit folgendem API-Befehl aktualisiert werden:
+<br><br>
+<pre>
+mutation addSingleOwner {
+  insert_owner(
+    objects: [
+      {
+        name: "sechs"
+        recert_interval: 222
+        dn: "a"
+        group_dn: "b"
+        app_id_external: "app-sechs"
+        owner_networks: {
+          data: [{ ip: "10.69.0.0/16" }, { ip: "10.9.0.0/16" }]
+          on_conflict: {
+            constraint: owner_network_ip_unique
+            update_columns: [ip]
+          }
+        }
+      }
+    ]
+    on_conflict: {
+      constraint: owner_name_unique
+      update_columns: [recert_interval, dn, group_dn]
+    }
+  ) {
+    returning {
+      id
+    }
+  }
+}
+</pre>
+');
+INSERT INTO txt VALUES ('H4035', 'English', '
+The initial owner import via API can be done using the following examplary API command (with admin permissions):
+<br><br>
+<pre>
+mutation addOwners($owners:[owner_insert_input!]!) {
+  insert_owner(
+    objects: $owners
+  ) {
+    returning {
+      id
+    }
+  }
+}
+</pre>
+<br>
+Variables
+<br>
+<pre>
+{
+  "owners": [
+      {
+        "name": "5",
+        "recert_interval": 365,
+        "dn":"x",
+        "group_dn":"x",
+        "app_id_external": "app-5",
+        "owner_networks": {"data": [{"ip": "10.5.0.0/16"},{"ip": "10.9.0.0/16"}]}
+      },
+      {
+        "name": "6",
+        "recert_interval": 30,
+        "dn":"x",
+        "group_dn":"x",
+        "app_id_external": "app-6",
+        "owner_networks": {"data": [{"ip": "10.6.0.0/16"}]}
+      },
+      {
+        "name": "7",
+        "recert_interval": 90,
+        "dn":"x",
+        "group_dn":"x",
+        "app_id_external": "app-7",
+        "owner_networks": {"data": [{"ip": "10.7.0.0/16"}]}
+      }
+  ]
+}
+</pre>
+<br><br>
+
+Single owners can be updated using the following API command:
+<br><br>
+<pre>
+mutation addSingleOwner {
+  insert_owner(
+    objects: [
+      {
+        name: "sechs"
+        recert_interval: 222
+        dn: "a"
+        group_dn: "b"
+        app_id_external: "app-sechs"
+        owner_networks: {
+          data: [{ ip: "10.69.0.0/16" }, { ip: "10.9.0.0/16" }]
+          on_conflict: {
+            constraint: owner_network_ip_unique
+            update_columns: [ip]
+          }
+        }
+      }
+    ]
+    on_conflict: {
+      constraint: owner_name_unique
+      update_columns: [recert_interval, dn, group_dn]
+    }
+  ) {
+    returning {
+      id
+    }
+  }
+}
+</pre>
+');
 
 INSERT INTO txt VALUES ('H5001', 'German',  'In diesem Abschnitt werden die Setup- und Verwaltungseinstellungen behandelt.
     Die meisten Einstellungen k&ouml;nnen nur von Nutzern mit der Administrator-Rolle gesehen und ge&auml;ndert werden.
@@ -2275,13 +2817,13 @@ INSERT INTO txt VALUES ('H5012', 'German',  'Das Kapitel "Berechtigungen" bietet
     In <a href="/help/settings/ldap">LDAP-Verbindungen</a> k&ouml;nnen externe Verbindungen zus&auml;tzlich zum internen LDAP definiert werden.
     <a href="/help/settings/tenants">Mandanten</a> k&ouml;nnen definiert und mit spezifischen Gateways verkn&uuml;pft werden.
     Interne oder externe <a href="/help/settings/users">Nutzer</a> k&ouml;nnen zu <a href="/help/settings/groups">Gruppen</a> zusammengefasst
-    und zu <a href="/help/settings/roles">Rollen</a> zugeordnet werden.
+    und zu <a href="/help/settings/roles">Rollen</a> zugeordnet werden, ausserdem gibt es eine &Uuml;bersicht der vorhandenen <a href="/help/settings/owners">Eigent&uuml;mer</a>.
 ');
 INSERT INTO txt VALUES ('H5012', 'English', 'The chapter "Authorization" offers the functionality for the user administration:
     In <a href="/help/settings/ldap">LDAP Connections</a> external connections besides the internal LDAP can be defined.
     <a href="/help/settings/tenants">Tenants</a> can be defined and associated with specific gateways.
     Internal or external <a href="/help/settings/users">Users</a> can be assigned to <a href="/help/settings/groups">User Groups</a>
-    and <a href="/help/settings/roles">Roles</a>
+    and <a href="/help/settings/roles">Roles</a>, additionally there is an overview of the <a href="/help/settings/owners">owners</a>.
 ');
 INSERT INTO txt VALUES ('H5013', 'German',  'Im Kapitel "Voreinstellungen" kann der Administrator <a href="/help/settings/defaults">Standardeinstellungen</a> vornehmen,
     die f&uuml;r alle Nutzer gelten, sowie die <a href="/help/settings/passwordpolicy">Passworteinstellungen</a> definieren, welche f&uuml;r alle Passwort&auml;nderungen g&uuml;ltig sind.
@@ -2291,19 +2833,19 @@ INSERT INTO txt VALUES ('H5013', 'English', 'In the "Defaults" chapter the admin
 ');
 INSERT INTO txt VALUES ('H5014', 'German',  'Das Kapitel "Pers&ouml;nlich" ist f&uuml;r alle Nutzer zug&auml;nglich. Hier k&ouml;nnen das individuelle <a href="/help/settings/password">Password</a>,
     die bevorzugte <a href="/help/settings/language">Sprache</a> und <a href="/help/settings/report">Reporting</a>-Einstellungen gesetzt werden.
-    Nutzer mit Rezertifizierer-Rolle k&ouml;nnen auch ihre <a href="/help/settings/recertification">Rezertifizierungseinstellungen</a> anpassen.
+    Nutzer mit Rezertifizierer-Rolle k&ouml;nnen auch ihre <a href="/help/settings/recertificationpersonal">Rezertifizierungseinstellungen</a> anpassen.
 ');
 INSERT INTO txt VALUES ('H5014', 'English', 'The "Personal" chapter is accessible by all users, where they can set their individual <a href="/help/settings/password">Password</a>,
     <a href="/help/settings/language">Language</a> and <a href="/help/settings/report">Reporting</a> preferences. 
-    Users with recertifier role have also the possibility to adjust their <a href="/help/settings/recertification">Recertification Setting</a>.
+    Users with recertifier role have also the possibility to adjust their <a href="/help/settings/recertificationpersonal">Recertification Setting</a>.
 ');
 INSERT INTO txt VALUES ('H5015', 'German',  'Das Kapitel "Workflow" dient dem Administrator, einen Workflow aufzusetzen. Dazu geh&ouml;rt die Definition der angebotenen <a href="/help/settings/stateactions">Aktionen</a>,
     der verwendeten <a href="/help/settings/statedefinitions">Stati</a> und den Status&uuml;berg&auml;ngen in den zentralen <a href="/help/settings/statematrix">Status-Matrizen</a>.
-    In den <a href="/help/settings/workflowcustomizing">Einstellungen</a> k&ouml;nnen allgemeine Voreinstellungen zu den Workflows vorgenommen werden, ausserdem gibt es eine &Uuml;bersicht der vorhandenen <a href="/help/settings/owners">Eigent&uuml;mer</a>.
+    In den <a href="/help/settings/workflowcustomizing">Einstellungen</a> k&ouml;nnen allgemeine Voreinstellungen zu den Workflows vorgenommen werden.
 ');
 INSERT INTO txt VALUES ('H5015', 'English', 'The "Workflow" chapter helps the administrator to set up a workflow. This includes the definition of the offered <a href="/help/settings/stateactions">actions</a>,
     the used <a href="/help/settings/statedefinitions">states</a>, and the state transitions in the central <a href="/help/settings/statematrix">state matrices</a>. 
-    In <a href="/help/settings/workflowcustomizing">customizing</a> general workflow settings can be done, additionally there is an overview of the <a href="/help/settings/owners">owners</a>.
+    In <a href="/help/settings/workflowcustomizing">customizing</a> general workflow settings can be done.
 ');
 
 INSERT INTO txt VALUES ('H5101', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Managements einrichten und verwalten.<br>
@@ -2384,15 +2926,15 @@ INSERT INTO txt VALUES ('H5114', 'German',  'Hostname*: Adresse des Hosts (entwe
 ');
 INSERT INTO txt VALUES ('H5114', 'English', 'Hostname*: Address of the host (either IP address or resolvable name). 
     For Check Point R8x MDS installations use the address of the MDS server for all domains.<br>
-    For Fortinet, Barradua, Juniper you need to specify the IP of resolvable name of the firewall gateway.
+    For Fortinet, Barradua, Juniper you need to specify the IP or resolvable name of the firewall gateway.
 ');
 INSERT INTO txt VALUES ('H5115', 'German',  'Port*: Port-Nummer des Hosts.<br>
-    Wenn das Ziel Check Point R8x ist, wird die Verbindung via API aufgebaut. Die Standard-Port-Nummer ist 443. Denken Sie daran, den API-Zugang auf Ihrem Check Point Managment zu aktivieren.<br>
-    Wenn das Ziel nicht Check Point R8x ist, braucht Firewall Orchestrator einen ssh-basierten Zugang. Die Standard-Port-Nummer ist 22.
+    Wenn das Ziel Check Point R8x, FortiManager, Azure oder Cisco FirePower ist, wird die Verbindung via API aufgebaut. Die Standard-Port-Nummer ist 443. Denken Sie daran, den API-Zugang auf Ihrem Firewall Managment zu aktivieren.<br>
+    Wenn das Ziel eine andere Plattform ist, braucht Firewall Orchestrator einen ssh-basierten Zugang. Die Standard-Port-Nummer ist in diesem Fall 22.
 ');
 INSERT INTO txt VALUES ('H5115', 'English', 'Port*: Port number of the host.<br>
-    If the target is Check Point R8x the connection is established via API. The default port number is 443. Remember to enable API access on your Check Point managment.<br>
-    If the target is not Check Point R8x Firewall Orchestrator needs ssh-based access. The default port number is 22.
+    If the target is Check Point R8x, FortiManager, Azure or Cisco FirePower the connection is established via API. The default port number is 443. Remember to enable API access on your firewall managment.<br>
+    If the target any other platform Firewall Orchestrator needs ssh-based access. The default port number here is 22.
 ');
 INSERT INTO txt VALUES ('H5116', 'German',  'Login-Daten*: Zugangsdaten f&uuml;r den Import-Nutzer des Managements.<br>
     Hier kann ein Satz Zugangsdaten ausgew&auml;hlt werden, der zum Login auf dem Management dient.
@@ -2424,17 +2966,25 @@ INSERT INTO txt VALUES ('H5130', 'German',  'Hier werden die Zugangsdaten f&uuml
 Diese k&ouml;nnen auch f&uuml;r den Zugriff auf mehrere Firewall-Managements verwendet werden.
 Ein L&ouml;schen is erst m&ouml;glich, wenn die Zugangsdaten nirgends verwendet werden. 
 ');
-INSERT INTO txt VALUES ('H5130', 'English', 'Import credentials*: Manage credentials for importing firewall configuration data.
+INSERT INTO txt VALUES ('H5130', 'English', 'Manage credentials for importing firewall configuration data.
 Credentials can be used for logging in to one or multiple firewall managements.
 Credentials can only be deleted when they are not used for importing any management.
+');
+INSERT INTO txt VALUES ('H5131', 'German',  'Name*: Ein beliebiger Name, der diese Zugangsdaten eindeutig beschreibt.
+');
+INSERT INTO txt VALUES ('H5131', 'English', 'Name*: An arbitrary name you can assign to your credetials.
 ');
 INSERT INTO txt VALUES ('H5132', 'German',  'Import Nutzer*: Der Nutzer, der zum Anmelden am Firewall Management benutzt wird.
     Er muss vorher auf dem Firewallsystem angelegt sein und vollen Lesezugriff auf das System besitzen.<br>
     Auf Check Point R8x wird empfohlen, das vordefinierte "Read Only All"-Profil (sowohl globales als auch Domainmanagement) zu verwenden.
 ');
-INSERT INTO txt VALUES ('H5132', 'English', 'Import User*: The user used to login to the firewall management. 
+INSERT INTO txt VALUES ('H5132', 'English', 'Username*: The user used to login to the firewall management. 
     This user needs to be created on the firewall system in advance and needs full read access to the system.<br>
     On Check Point R8x we recommend using the predefined "Read Only All" profile (both global and domain management) for the user.
+');
+INSERT INTO txt VALUES ('H5135', 'German',  'Schl&uuml;sselpaar*: Handelt es sich bei diesen Login-Daten um ein SSH Public-Key Paar oder um Standard ein Standard-Passwort.
+');
+INSERT INTO txt VALUES ('H5135', 'English', 'Key Pair*: Do these credentials consist of a private/public SSH key pair or do they contain a standard password.
 ');
 INSERT INTO txt VALUES ('H5133', 'German',  'Privater Schl&uuml;ssel* / Passwort*: F&uuml;r den ssh-Zugang hier den privaten ssh-Schl&uuml;ssel hinterlegen (Schl&uuml;ssel muss unverschl&uuml;sselt und ohne Passphrase sein)<br>
     F&uuml;r den API-Zugang ist dies das Passwort des API-Nutzers.
@@ -2444,9 +2994,13 @@ INSERT INTO txt VALUES ('H5133', 'English', 'Login Secret* / Password*: For ssh 
 ');
 INSERT INTO txt VALUES ('H5134', 'German',  '&Ouml;ffentlicher Schl&uuml;ssel: Dieses Feld muss nur f&uuml;r Netscreen-Firewalls gef&uuml;llt werden - dieses System ben&ouml;tigt auch den &ouml;ffentlichen Schl&uuml;ssel zum Anmelden.');
 INSERT INTO txt VALUES ('H5134', 'English', 'Public Key: This field only needs to be filled for netscreen firewalls - this system also needs the public key for successful login.');
-INSERT INTO txt VALUES ('H5135', 'German',  'Schl&uuml;sselpaar*: Handelt es sich bei diesen Login-Daten um ein SSH Public-Key Paar oder um Standard ein Standard-Passwort.
+INSERT INTO txt VALUES ('H5136', 'German',  'Cloud Client ID: Nur f&uuml;r Cloud Instanzen (Azure) ben&ouml;tigt - f&uuml;r alle anderen Plattformen kann dieses Feld leer gelassen werden.
 ');
-INSERT INTO txt VALUES ('H5135', 'English', 'Key Pair*: Do these credentials consist of a private/public SSH key pair or do they contain a standard password.
+INSERT INTO txt VALUES ('H5136', 'English', 'Cloud Client ID: If you have a cloud installation (e.g. Azure) - enter your Azure client ID here. For all other installations, leave this field empty.
+');
+INSERT INTO txt VALUES ('H5137', 'German',  'Cloud Client Secret: Nur f&uuml;r Cloud Instanzen (Azure) ben&ouml;tigt - f&uuml;r alle anderen Plattformen kann dieses Feld leer gelassen werden.
+');
+INSERT INTO txt VALUES ('H5137', 'English', 'Cloud Client Secret: If you have a cloud installation (e.g. Azure) - enter your Azure client secret here. For all other installations, leave this field empty.
 ');
 
 INSERT INTO txt VALUES ('H5141', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Gateways einrichten und verwalten.<br>
@@ -2682,7 +3236,7 @@ INSERT INTO txt VALUES ('H5331', 'German',  'Alle definierten Rollen werden mit 
 INSERT INTO txt VALUES ('H5331', 'English', 'All defined roles in the system are displayed with a short explanation.<br>
     The admin can assign or remove users or user groups to/from the roles.
 ');
-INSERT INTO txt VALUES ('H5332', 'German',  'Die verf&uuml;gbaren Rollen k&ouml;nnen in mehrere Kategorien eingeteil werden:');
+INSERT INTO txt VALUES ('H5332', 'German',  'Die verf&uuml;gbaren Rollen k&ouml;nnen in mehrere Kategorien eingeteilt werden:');
 INSERT INTO txt VALUES ('H5332', 'English', 'The provided roles can be divided into several categories:');
 INSERT INTO txt VALUES ('H5341', 'German',  'Aktionen: Der Admin hat die M&ouml;glichkeit, Nutzer den Rollen zuzuordnen oder sie von ihnen zu entfernen,
     ausser f&uuml;r "anonymous" oder "middleware-server", welche nur intern genutzt werden kann.
@@ -2762,6 +3316,35 @@ INSERT INTO txt VALUES ('H5420', 'German',  'Frist zum L&ouml;schen der Regeln (
 INSERT INTO txt VALUES ('H5420', 'English', 'Rule Removal Grace Period (in days): Maximum time the fwadmin has to remove the decertified rules.');
 INSERT INTO txt VALUES ('H5421', 'German',  'Kommentar Pflichtfeld: Legt fest, dass das Kommentarfeld f&uuml;r Re- und Dezertifizierungen gef&uuml;llt sein muss.');
 INSERT INTO txt VALUES ('H5421', 'English', 'Comment Required: A non-empty comment for the re- or decertification is required.');
+
+INSERT INTO txt VALUES ('H5428', 'German',  'Rezert Check - aktiv: aktviere bzw. deaktiviere regelm&auml;&szlig;ige Pr&uuml;fungen zur Versendung von Benachrichtigungs- oder Eskalations-Emails and die Eigent&uuml;mer.');
+INSERT INTO txt VALUES ('H5428', 'English', 'Recert Check - active: enable or disable recurring recertification checks to send out notification or escalation emails to owners.');
+INSERT INTO txt VALUES ('H5429', 'German',  'Rezert Check alle: Abstand der Pr&uuml;fungen f&uuml;r den Versand von Benachrichtigungs- oder Eskalations-Emails and die Eigent&uuml;mer.');
+INSERT INTO txt VALUES ('H5429', 'English', 'Recert Check every: Interval betwenn checks for recertification notifications.');
+INSERT INTO txt VALUES ('H5430', 'German',  'Rezert Check - Email Titel: Titel der Benachrichtigungs-Email.');
+INSERT INTO txt VALUES ('H5430', 'English', 'Recert Check - Email subject: Subject line of the notification email.');
+INSERT INTO txt VALUES ('H5446', 'German',  'Rezert Check - Text anstehend: Textinhalt der Benachrichtigungsmail bei demn&auml;chst anstehenden Rezertifizierungen.');
+INSERT INTO txt VALUES ('H5446', 'English', 'Recert Check - text upcoming: Email body of the notification email for upcoming recertifications.');
+INSERT INTO txt VALUES ('H5432', 'German',  'Rezert Check - Text &uuml;berf&auml;llig: Textinhalt der Benachrichtigungsmail bei &uuml;berf&auml;lligen Rezertifizierungen (Eskalation).');
+INSERT INTO txt VALUES ('H5432', 'English', 'Recert Check - text overdue: Email body of the notification email for overdue recertifications (escalation).');
+
+INSERT INTO txt VALUES ('H5433', 'German',  'Autom. Anlegen L&ouml;schantrag: Soll automatisch ein L&ouml;sch-Ticket erzeugt werden, wenn eine Regel vollst&auml;ndig dezertifiziert wurde?');
+INSERT INTO txt VALUES ('H5433', 'English', 'Autocreate delete rule ticket: When a rule has benn fully de-certified, should a delete ticket be automatically generated?');
+INSERT INTO txt VALUES ('H5434', 'German',  'Titel f&uuml;r L&ouml;schantrag: Titel des zu erzeugenden L&ouml;sch-Tickets.');
+INSERT INTO txt VALUES ('H5434', 'English', 'Title delete ticket: Subject line of the delte ticket to be generated.');
+INSERT INTO txt VALUES ('H5435', 'German',  'Grund f&uuml;r L&ouml;sch-Antrag: Text f&uuml;r den Grund des zu erzeugenden L&ouml;sch-Tickets.');
+INSERT INTO txt VALUES ('H5435', 'English', 'Reason delete ticket: Text for the reason of the delete ticket to be generated.');
+INSERT INTO txt VALUES ('H5436', 'German',  'Titel f&uuml;r L&ouml;sch Auftrag: Titel der zu erzeugenden L&ouml;schaufgabe.');
+INSERT INTO txt VALUES ('H5436', 'English', 'Title delete rule task: Title of the delete task to be generated.');
+INSERT INTO txt VALUES ('H5437', 'German',  'Grund f&uuml;r L&ouml;schauftrag: Begr&uuml;ndungstext f&uuml;r die zu erzeugende L&ouml;schaufgabe.');
+INSERT INTO txt VALUES ('H5437', 'English', 'Reason for delete rule task: Text for the reason of the delete task to be generated.');
+INSERT INTO txt VALUES ('H5438', 'German',  'Priorit&auml;t f&uuml;r L&ouml;schantrag: Auswahl zwishen den Standard-Prio-Bezeichnungen Lowest, Low, Medium, High, Highest.');
+INSERT INTO txt VALUES ('H5438', 'English', 'Priority for delete rule ticket: Choose between existing priority labels (default: Lowest, Low, Medium, High, Highest).');
+INSERT INTO txt VALUES ('H5439', 'German',  'Initialer Status f&uuml;r L&uml;schantrag: Standard="Draft"');
+INSERT INTO txt VALUES ('H5439', 'English', 'Initial state for delete rule ticket: default="Draft"');
+INSERT INTO txt VALUES ('H5440', 'German',  'Neuberechnen offene Rezertifizierungen: Auswahl, wann die Neuberechnung durchgef&uuml;hrt werden soll - beim Hochfahren, t&auml;glich via Scheduler oder jetzt (kann mehrere Minuten dauern)  .');
+INSERT INTO txt VALUES ('H5440', 'English', 'Recalculate open recertifications: Choose, when to do this: at startup, daily via scheduler or now (this may several minutes).');
+
 INSERT INTO txt VALUES ('H5422', 'German',  'Devices zu Beginn eingeklappt ab: Legt fest, ab wievielen Devices (Managements + Gateways) diese in der linken Randleiste zun&auml;chst eingeklappt dargestellt werden.');
 INSERT INTO txt VALUES ('H5422', 'English', 'Devices collapsed at beginning from: defines from which number of devices (managements + gateways) they are displayed collapsed in the left sidebar at beginning.');
 INSERT INTO txt VALUES ('H5423', 'German',  'Nachrichten-Anzeigedauer (in Sekunden): legt fest, wie lange Erfolgs-Nachrichten dargestellt werden, bis sie automatisch ausgeblendet werden.
@@ -2867,6 +3450,12 @@ INSERT INTO txt VALUES ('H5524', 'German',  'Alarm ausl&ouml;sen: Hier wird die 
 INSERT INTO txt VALUES ('H5524', 'English', 'Set alert: Here the message for the alert is filled.');
 INSERT INTO txt VALUES ('H5525', 'German',  'Externer Aufruf: Hier werden in zuk&uuml;nftigen Entwicklungen die f&uuml;r externe Aufrufe anzugebenden Parameter erfasst.');
 INSERT INTO txt VALUES ('H5525', 'English', 'External call: Here in later releases the parameters for external calls will be recorded.');
+INSERT INTO txt VALUES ('H5526', 'German',  'Pfadanalyse: Hier kann zwischen den Optionen "In Ger&auml;teliste eintragen" und "Gefundene Ger&auml;te darstellen" gew&auml;hlt werden.
+    Bei Ersterer wird die Liste der betroffenen Ger&auml;te des Auftrags durch die in der Pfadanalyse gefundenen ersetzt, bei Letzterer wird das Ergebnis der Pfadanalyse lediglich in einem separaten Fenster eingeblendet.
+');
+INSERT INTO txt VALUES ('H5526', 'English', 'Path analysis: Here the options "Write to device list" or "Display found devices" can be selected.
+    In the first case the list of devices in the request task is replaced by the devices found in the path analysis, in the second the result of the path analysis is only displayed in a separate window.
+');
 INSERT INTO txt VALUES ('H5531', 'German',  'Es k&ouml;nne beliebig viele neue Stati angelegt bzw. vorhandene Stati umbenannt, ggf. auch gel&ouml;scht werden. Die Namen und Nummern der Stati sind weitgehend frei w&auml;hlbar. 
     Zu beachten ist dabei, dass die Nummern zu den in den <a href="/help/settings/statematrix">Status-Matrizen</a> definierten Bereichen (Eingang, Bearbeitung, Ausgang) der jeweiligen Phasen passen.
     Da intern ausschliesslich die Nummern verarbeitet werden, sind auch doppelt vergebene Status-Namen (technisch) m&ouml;glich.
@@ -2899,13 +3488,13 @@ INSERT INTO txt VALUES ('H5542', 'English', 'Phases: The workflow phases provide
 ');
 INSERT INTO txt VALUES ('H5543', 'German',  'Status&uuml;berg&auml;nge: F&uuml;r jeden in einer Phase vorkommenden Status muss hier festgelegt werden, in welche Stati von dort beim Speichern gewechselt werden kann. 
     Diese werden dann bei den jeweiligen Aktionen in einer Liste angeboten. Ist nur der &Uuml;bergang zu genau einem Status m&ouml;glich, so wird dieser &Uuml;bergang automatisch ohne R&uuml;ckfrage ausgef&uuml;hrt.
-    (z.B. ist in der Standardkonfiguration nur der &Uuml;bergang "Requested" -> "In Approval" eingetragen, so dass beim bet&auml;tigen von "Genehmigung beginnen" automatisch letzterer Status gesetzt wird.)
+    (z.B. ist in der Standardkonfiguration nur der &Uuml;bergang "Requested" -&amp;gt; "In Approval" eingetragen, so dass beim bet&auml;tigen von "Genehmigung beginnen" automatisch letzterer Status gesetzt wird.)
     Soll eine Aktion, die ein Speichern bewirkt, auch ohne Statuswechsel stattfinden k&ouml;nnen, so ist der Ausgangszustand auch in der Liste der Zielzust&auml;nde aufzunehmen.
     Es ist darauf zu achten, dass alle vorkommenden Zielstati der &Uuml;bergangsmatrizen auch in den Ausgangsstati zu finden sind.
 ');
 INSERT INTO txt VALUES ('H5543', 'English', 'State transitions: For each state appearing in a phase it has to be defined, to which states transitions are possible on saving.
     These states are displayed in a list in the particular actions. If there is only the transition to exactly one state possible, this transition is performed automatically without further dialogue.
-    (E.g. in the default configuration the transition "Requested" -> "In Approval" is listed, so that on pushing the button "Start approval" the latter state is set automatically.)
+    (E.g. in the default configuration the transition "Requested" -&amp;gt; "In Approval" is listed, so that on pushing the button "Start approval" the latter state is set automatically.)
     If an action leading to a storage should also have the possibility to be performed without state change, the source state has to be added also to the target state list.
     Make sure that all used target states in all transition matrices also appear in the source states.
 ');
@@ -2953,6 +3542,8 @@ INSERT INTO txt VALUES ('H5566', 'German',  'Autom. Erzeugen von Implementierung
 INSERT INTO txt VALUES ('H5566', 'English', 'Auto-create implementation tasks: If the planning phase is not activated, one or more implementation tasks have to be created automatically from the request task.
     Therefore the following options can be selected:
 ');
+INSERT INTO txt VALUES ('H5567', 'German',  'Pfadanalyse aktivieren: Dem Planer werden Werkzeuge zur automatischen Pfadanalyse (Pr&uuml;fung, Erzeugen von Implementierungsauftr&auml;gen, Bereinigung) zur Verf&uuml;gung gestellt.');
+INSERT INTO txt VALUES ('H5567', 'English', 'Activate Path Analysis: The planner gets access to tools for automatic path analysis (check, creation of implementation tasks, cleanup).');
 INSERT INTO txt VALUES ('H5571', 'German',  'Niemals: Es wird kein Implementierungs-Auftrag erzeugt (nur sinnvoll, falls Implementierung und folgende Phasen nicht ben&ouml;tigt werden).');
 INSERT INTO txt VALUES ('H5571', 'English', 'Never: No implementation task is created (only reasonable, if implementation and following phases are not needed).');
 INSERT INTO txt VALUES ('H5572', 'German',  'Nur eines wenn Ger&auml;t vorhanden: Bei mindestens einem vorhandenen Ger&auml;t wird das erste der Liste eingetragen
@@ -2969,6 +3560,8 @@ INSERT INTO txt VALUES ('H5574', 'German',  'Ger&auml;t im Antrag eingeben: Stan
 INSERT INTO txt VALUES ('H5574', 'English', 'Enter device in request: Default value: A mandatory field to select devices is already displayed during request task creation,
     if needed in the task type (in this case some technical know-how is presumed from the requester).
 ');
+INSERT INTO txt VALUES ('H5575', 'German',  'Nach Pfadanalyse: F&uuml;r jedes bei der automatischen Pfadanalyse gefundene Ger&auml;t wird ein eigener Implementierungs-Auftrag angelegt.');
+INSERT INTO txt VALUES ('H5575', 'English', 'After path analysis: For each device found in the automatic path analysis an own implementation task is created.');
 INSERT INTO txt VALUES ('H5581', 'German',  'In diesem Abschnitt k&ouml;nnen die vorhandenen Eigent&uuml;mer eingesehen und administriert (falls in den <a href="/help/settings/workflowcustomizing">Einstellungen</a> aktiviert) werden. 
     Es ist geplant, die Eigent&uuml;merschaft mit der Zust&auml;ndigkeit bei der Antragsstellung zu verkn&uuml;pfen.
 ');
@@ -3446,8 +4039,12 @@ INSERT INTO txt VALUES ('H8313', 'English', 'Approvals (Role: approver), presele
 INSERT INTO txt VALUES ('H8314', 'German',  'Planungen (Rolle: planner, fw-admin), optional: 
     Im Workflow kann vorgesehen werden, dass die Implementierungs-Auftr&auml;ge aus den fachlichen Auftr&auml;gen manuell von einem Planer erzeugt werden.
     Ist diese Phase aktiviert, greift die automatische Erzeugung der Implementierungs-Auftr&auml;ge nicht (<a href="/help/settings/workflowcustomizing">Einstellungen</a>).
-    Stattdessen kann der Planer beliebige Implementierungs-Auftr&auml;ge erzeugen, editieren und l&ouml;schen. 
+    Stattdessen kann der Planer beliebige Implementierungs-Auftr&auml;ge erzeugen, editieren und l&ouml;schen.
     Dabei werden die Felder aus den analogen Feldern des fachlichen Auftrags zwar weitgehend vorbelegt, k&ouml;nnen aber beliebig den Erfordernissen entsprechend abge&auml;ndert werden.
+    F&uuml;r die Bearbeitung von Zugriffsauftr&auml;gen stehen ihm zus&auml;tzliche Funktionen zur Pfadanalyse zur Verf&uuml;gung (soweit in den <a href="/help/settings/workflowcustomizing">Einstellungen</a> aktiviert):
+    Zum &Uuml;berpr&uuml;fen, f&uuml;r welche der bei der Pfadanalyse gefundenen Ger&auml;te bereits Implementierungs-Auftr&auml;ge angelegt sind,
+    zum automatischen Anlegen von Implementierungs-Auftr&auml;gen f&uuml;r alle der bei der Pfadanalyse gefundenen Ger&auml;te (soweit noch nicht vorhanden),
+    sowie zum L&ouml;schen aller vorhandenen Implementierungs-Auftr&auml;ge.
     Die fachlichen Auftr&auml;ge k&ouml;nnen in dieser Phase auch anderen Nutzern oder Gruppen zugewiesen werden. 
     Bei Bet&auml;tigen der entsprechenden Schaltfl&auml;che erscheint eine Auswahlliste aller Nutzer und internen Gruppen, welche den notwendigen Rollen f&uuml;r diese Planungsphase besitzen.
     Wurde einem selbst auf diese Weise der Auftrag zugewiesen, wird auch eine Option zum direkten Zur&uuml;ckzuweisen angeboten.
@@ -3457,6 +4054,10 @@ INSERT INTO txt VALUES ('H8314', 'English', 'Plannings (Role: planner, fw-admin)
     In case this phase is active, the automatic creation of implementation tasks is deactivated (<a href="/help/settings/workflowcustomizing">Customizing</a>).
     Instead, the planner can create, edit or delete arbitrarily implementation tasks.
     When creating, the fields are largely prefilled by the corresponding fields in the request task, but can be changed according to the needs.
+    For the handling of access requests further path analysis functions are offered (if activated in <a href="/help/settings/workflowcustomizing">Customizing</a>):
+    To check, for which of the found devices of the path analysis there are already implementation tasks existing,
+    to create automatically implemntation tasks for all devices found in path analysis (if not already existing),
+    as well as to delete all existing implementation tasks. 
     The request tasks can also be assigned to other users or groups in this phase.
     After pushing the respective button a selection list appears with all users and groups, which own the necessary roles for the planning phase.
     If the task had been assigned to oneself this way, an option for direct assigning back is shown.
@@ -3531,6 +4132,8 @@ INSERT INTO txt VALUES ('H8514', 'German',  'Externer Aufruf: Aufrufe externer K
 INSERT INTO txt VALUES ('H8514', 'English', 'External call: Calls to external components provide a wide range of extension or integration possibilities, which strongly depend on the system environment.
     Here connecting factors for extensions future releases are planned.
 ');
+INSERT INTO txt VALUES ('H8515', 'German',  'Pfadanalyse: Die in der automatischen Pfadanalyse gefundenen Ger&auml;te werden als Liste der Ger&auml;te eines Zugriffs-Auftrags &uuml;bernommen oder in einem eigenen Fenster dargestellt.');
+INSERT INTO txt VALUES ('H8515', 'English', 'Path Analysis: The devices found in the automatic path analysis are transferred to the list of devices of a request task or displayed in an own window.');
 INSERT INTO txt VALUES ('H8601', 'German',  'Zum Aufsetzen eines Workflows empfiehlt es sich, in folgenden Schritten vorzugehen:
     <ul>
         <li><a href="/help/settings/workflowcustomizing">Einstellungen</a>: Auswahl der zu verwendenden Tasktypen</li>
@@ -3559,5 +4162,350 @@ INSERT INTO txt VALUES ('H8601', 'English', 'For the setup of a workflow it is s
         <li><a href="/help/settings/roles">Roles</a>: Assign roles to users/groups</li>
     </ul>
 ');
-INSERT INTO txt VALUES ('H8701', 'German',  '');
-INSERT INTO txt VALUES ('H8701', 'English', '');
+INSERT INTO txt VALUES ('H8701', 'German',  'Die folgenden Beispiele sollen ein Schlaglicht auf die verschiedenen Konfigurationsm&ouml;glichkeiten des Workflowmoduls werfen.
+    Sie k&ouml;nnen gleichzeitig oder voneinander unabh&auml;ngig ausprobiert werden (mit Ausnahme von Beispiel 5, welches auf den in Beispiel 4 definierten Stati aufsetzt). 
+    Es wurden hier englische Namen f&uuml;r Stati oder Aktionen gew&auml;hlt (wie sie ja auch vorinstalliert sind),
+    eine beliebige Umbenennung (z. B. &Uuml;bersetzung ins Deutsche) ist nat&uuml;rlich jederzeit und einfach m&ouml;glich.
+');
+INSERT INTO txt VALUES ('H8701', 'English', 'Following examples are intended to give an idea about the different configuration options of the workflow module.
+    They can be used all together or independently (with exeption of example 5, which uses the states defined in example 4).
+    Names of states or actions are given arbitrarily and can be changed (e.g. translated) easily at any time.
+');
+INSERT INTO txt VALUES ('H8711', 'German',  '<H4>1) Einf&uuml;gen eines neuen Status in die Genehmigungsphase</H4>
+    Dient zum Markieren von "geparkten" offenen Genehmigungen (nur zu erreichen von "In Approval" und zur&uuml;ck)
+    <ul>
+        <li>Einstellungen -&amp;gt; Statusdefinitionen -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; Eingabe Id: 61 
+            (Nummer im Bereich zwischen niedrigstem Bearbeitungs- und niedrigstem Ausgangsstatus der Genehmigungsphase), Name: "Approval on Hold" -&amp;gt; Speichern</li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Master
+            <ul>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Approval on Hold" ausw&auml;hlen</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: "Approval on Hold" bearbeiten -&amp;gt; Status hinzuf&uuml;gen 
+                    -&amp;gt; "Approval on Hold" ausw&auml;hlen -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "In Approval" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: "In Approval" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Approval on Hold" ausw&auml;hlen -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Zugriff
+            <ul>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Approval on Hold" ausw&auml;hlen</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: "Approval on Hold" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Approval on Hold" ausw&auml;hlen 
+                    -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "In Approval" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: "In Approval" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Approval on Hold" ausw&auml;hlen -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8711', 'English', '<H4>1) Insert new state to approval phase</H4>
+    Serves for marking of "parked" open approvals (only reachable from "In Approval" and back)
+    <ul>
+        <li>Settings -&amp;gt; State Definitions -&amp;gt; Add State -&amp;gt; Insert Id: 61 
+            (Id has to be in the range between lowest started state and lowest exit state of approval phase), Name: "Approval on Hold" -&amp;gt; Save</li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Master
+            <ul>
+                <li>Approval: Allowed transitions: Add State -&amp;gt; Select "Approval on Hold"</li>
+                <li>Approval: Allowed transitions: Edit "Approval on Hold" -&amp;gt; Add State -&amp;gt; Select "Approval on Hold" -&amp;gt; Add State -&amp;gt; Select "In Approval" -&amp;gt; Ok</li>
+                <li>Approval: Allowed transitions: Edit "In Approval" -&amp;gt; Add State -&amp;gt; Select "Approval on Hold" -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Access
+            <ul>
+                <li>Approval: Allowed transitions: Add State -&amp;gt; Select "Approval on Hold"</li>
+                <li>Approval: Allowed transitions: Edit "Approval on Hold" -&amp;gt; Add State -&amp;gt; Select "Approval on Hold" -&amp;gt; Add State -&amp;gt; Select "In Approval" -&amp;gt; Ok</li>
+                <li>Approval: Allowed transitions: Edit "In Approval" -&amp;gt; Add State -&amp;gt; Select "Approval on Hold" -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8712', 'German',  '<H4>2) R&uuml;cksprung in vorherige Phase</H4>
+    Soll beispielsweise dem Genehmiger erlaubt werden, den Antrag an den Antragsteller zur&uuml;ckzuschicken, 
+    kann einfach in der Status-Matrix ein &Uuml;bergang zu einem Status im Eingangsbeerich der Antragsphase eingetragen werden.
+    Dann wird dieser Status beim Genehmigen automatisch als m&ouml;glicher Zielstatus angezeigt.
+    Zur leichteren Erkennung f&uuml;r den Antragsteller wird in diesem Beispiel in der anzuspringenden Phase ein weiterer Status definiert und in der Status-Matrix mit den erw&uuml;nschten Status&uuml;berg&auml;ngen versehen:
+    <ul>
+        <li>Einstellungen -&amp;gt; Statusdefinitionen -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; Eingabe Id: 1, Name: "Back To Requester" -&amp;gt; Speichern 
+            (Nummer im Bereich zwischen niedrigstem Eingangs- und niedrigstem Bearbeitungsstatus der Request-Phase)</li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Master
+            <ul>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Back To Requester" ausw&auml;hlen</li>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: "Back To Requester" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Back To Requester" ausw&auml;hlen 
+                    -&amp;gt; Status hinzuf&uuml;gene -&amp;gt; "Requested" ausw&auml;hlen -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Discarded" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Back To Requester" ausw&auml;hlen</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Zugriff 
+            <ul>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Back To Requester" ausw&auml;hlen</li>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: "Back To Requester" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Back To Requester" ausw&auml;hlen 
+                    -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Requested" ausw&auml;hlen -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Discarded" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: "In Approval" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Back To Requester" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Back To Requester" ausw&auml;hlen</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: "Back To Requester" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "In Approval" ausw&auml;hlen -&amp;gt; Status hinzuf&uuml;gen 
+                    -&amp;gt; "Approved" ausw&auml;hlen -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Rejected" ausw&auml;hlen -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Back To Requester" ausw&auml;hlen -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8712', 'English', '<H4>2) Jump back to previous phase</H4>
+    If an approver should be able to send back a ticket to the requester, a new transition to a state in the input range of the request phase can be inserted easily into the state matrix.
+    This state is then offered automatically as target state for the approver.
+    For easier identification for the requester, in this example a new state is defined and equipped with the necessary transitions in the state matrix:
+    <ul>
+        <li>Settings -&amp;gt; State Definitions -&amp;gt; Add State -&amp;gt; Insert Id: 1, Name: "Back To Requester" -&amp;gt; Save 
+            (Id in the range between lowest imput and lowest started state of Request phase)</li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Master
+            <ul>
+                <li>Request: Allowed transitions: Add State -&amp;gt; Select "Back To Requester"</li>
+                <li>Request: Allowed transitions: Edit "Back To Requester" -&amp;gt; Add State -&amp;gt; Select "Back To Requester" 
+                    -&amp;gt; Add State -&amp;gt; Select "Requested" -&amp;gt; Add State -&amp;gt; Select "Discarded" -&amp;gt; Ok</li>
+                <li>Approval: Allowed transitions: Add State -&amp;gt; Select "Back To Requester"</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Access 
+            <ul>
+                <li>Request: Allowed transitions: Add State -&amp;gt; Select "Back To Requester"</li>
+                <li>Request: Allowed transitions: Edit "Back To Requester" -&amp;gt; Add State -&amp;gt; Select "Back To Requester" 
+                    -&amp;gt; Add State -&amp;gt; Select "Requested" -&amp;gt; Add State -&amp;gt; Select "Discarded" -&amp;gt; Ok</li>
+                <li>Approval: Allowed transitions: Edit "In Approval" -&amp;gt; Add State -&amp;gt; Select "Back To Requester" -&amp;gt; Ok</li>
+                <li>Approval: Allowed transitions: Add State -&amp;gt; Select "Back To Requester"</li>
+                <li>Approval: Allowed transitions: Edit "Back To Requester" -&amp;gt; Add State -&amp;gt; Select "In Approval" -&amp;gt; Add State -&amp;gt; Select "Approved" 
+                    -&amp;gt; Add State -&amp;gt; Select "Rejected" -&amp;gt; Add State -&amp;gt; Select "Back To Requester" -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8713', 'German',  '<H4>3) Auslassen von Phasen f&uuml;r bestimmten Tasktyp</H4>
+    In diesem Beispiel soll die Genehmigungsphase f&uuml;r Generische Aufgaben &uuml;bersprungen werden:
+    <ul>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Generisch
+            <ul>
+                <li>Genehmigung: Phase deselektieren (die &Uuml;bergangsmatrix wird ausgeblendet)
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: "Requested" bearbeiten -&amp;gt; Abgeleiteter Status: "To Implement" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "To Implement" ausw&auml;hlen</li>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: "To Implement" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "In Implementation" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: "Approved" l&ouml;schen (wird nicht mehr ben&ouml;tigt)</li>
+                <li>Implementierung: Spezielle Stati: Niedrigster Eingangsstatus: "To Implement" ausw&auml;hlen</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8713', 'English', '<H4>3) Skip phase for specific Task Type</H4>
+    In this example the approval phase for generic task is skipped: 
+    <ul>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Generic
+            <ul>
+                <li>Approval: unselect phase (the transition matrix disappears)
+                <li>Request: Allowed transitions: Edit "Requested" -&amp;gt; Derived State: Select "To Implement" -&amp;gt; Ok</li>
+                <li>Implementation: Allowed transitions: Add State -&amp;gt; Select "To Implement"</li>
+                <li>Implementation: Allowed transitions: Edit "To Implement" -&amp;gt; Add State -&amp;gt; Select "In Implementation" -&amp;gt; Ok</li>
+                <li>Implementation: Allowed transitions: Remove "Approved" (not necessary any more)</li>
+                <li>Implementation: Special States: Lowest input state: Select "To Implement"</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8714', 'German',  '<H4>4) Aktion Autom. Weiterleitung</H4>
+    Als weitere Option ist es auch m&ouml;glich, eine Aktion vom Typ Autom. Weiterleitung zu nutzen.
+    In diesem Beispiel wird beim Reject durch den Implementer (nur zu erreichen nach vorherigem Status "Implementation Trouble") das Ticket automatisch wieder dem Requester zur Best&auml;tigung vorgelegt
+    (der Einfachheit halber werden die vorhandenen Stati soweit m&ouml;glich weiterverwendet, eine Definition weiterer Stati wie "Acknowledge Reject" und "Try again" w&uuml;rde sich aber anbieten):
+    <ul>
+        <li>Einstellungen -&amp;gt; Statusdefinitionen -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; Eingabe Id: 2, Name "Rejected By Implementer" -&amp;gt; Speichern</li>
+        <li>Einstellungen -&amp;gt; Statusaktionen -&amp;gt; Aktion hinzuf&uuml;gen -&amp;gt; Name: "Acknowledge Reject", Aktionstyp: "Autom. Weiterleitung", Ereignis: "Beim Erreichen", Phase: "Implementierung", 
+            Geltungsbereich: "Implementierungs-Auftrag", Tasktyp: "All", Zielstatus: "Rejected By Implementer" -&amp;gt; Speichern</li>
+        <li>Einstellungen -&amp;gt; Statusdefinitionen -&amp;gt; "Rejected" bearbeiten -&amp;gt; Aktion hinzuf&uuml;gen -&amp;gt; "Acknowledge Reject" ausw&auml;hlen -&amp;gt; Speichern</li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Master
+            <ul>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Rejected By Implementer" ausw&auml;hlen</li>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: "Rejected By Implementer" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Discarded" ausw&auml;hlen 
+                    -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Requested" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Rejected By Implementer" ausw&auml;hlen</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Generisch
+            <ul>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Rejected By Implementer" ausw&auml;hlen</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Zugriff
+            <ul>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Rejected By Implementer" ausw&auml;hlen</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8714', 'English', '<H4>4) Action Auto-forward</H4>
+    As further option it is possible to use an action of type Auto-forward.
+    In this example in case of a reject by the implementer (only reachable from the preceeding state Implementation Trouble") the ticket is assigned back to the requester for confirmation
+    (for simplicity the existing states are reused if possible, a definition of further states as "Acknowledge Reject" and "Try again" would be appropriate):
+    <ul>
+        <li>Settings -&amp;gt; State Definitions -&amp;gt; Add State -&amp;gt; Insert Id: 2, Name "Rejected By Implementer" -&amp;gt; Save</li>
+        <li>Settings -&amp;gt; State Actions -&amp;gt; Add Action -&amp;gt; Name: "Acknowledge Reject", Action Type: "Auto-forward", Event: "On Set", Phase: "Implementation", 
+            Scope: "Implementation Task", Task Type: "All", To State: "Rejected By Implementer" -&amp;gt; Save</li>
+        <li>Settings -&amp;gt; State Definitions -&amp;gt; Edit "Rejected" -&amp;gt; Add Action -&amp;gt; Select "Acknowledge Reject" -&amp;gt; Save</li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Master
+            <ul>
+                <li>Request: Allowed transitions: Add State -&amp;gt; Select "Rejected By Implementer"</li>
+                <li>Request: Allowed transitions: Edit "Rejected By Implementer" -&amp;gt; Add State -&amp;gt; Select "Discarded" -&amp;gt; Add State -&amp;gt; Select "Requested" -&amp;gt; Ok</li>
+                <li>Implementation: Allowed transitions: Add State -&amp;gt; Select "Rejected By Implementer"</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Generic
+            <ul>
+                <li>Implementation: Allowed transitions: Add State -&amp;gt; Select "Rejected By Implementer"</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Access
+            <ul>
+                <li>Implementation: Allowed transitions: Add State -&amp;gt; Select "Rejected By Implementer"</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8715', 'German',  '<H4>5) Automatische Aktion Genehmigung hinzuf&uuml;gen</H4>
+    Nun soll f&uuml;r den erneuten Versuch nach "Rejected By Implementer" (Beispiel 4) statt die alte zu &uuml;berschreiben eine neue Genemigung erzeugt werden.
+    Daf&uuml;r wird der noch unbenutzte Status "To approve" nach "Requested again" umbenannt (nat&uuml;rlich k&ouml;nnte stattdessen auch ein neuer Status definiert werden):
+    <ul>
+        <li>Einstellungen -&amp;gt; Statusdefinitionen -&amp;gt; Status "50: To Approve" bearbeiten -&amp;gt; Name &auml;ndern in "Requested again" -&amp;gt; Speichern</li>
+        <li>Einstellungen -&amp;gt; Statusaktionen -&amp;gt; Aktion hinzuf&uuml;gen -&amp;gt; Name: "Reapprove", Aktionstyp: "Genehmigung hinzuf&uuml;gen", Ereignis: "Beim Erreichen", 
+            Phase: "Antrag", Geltungsbereich: "fachlicher Auftrag", Tasktyp: "Zugriff", Zielstatus: "Requested again" -&amp;gt; Speichern</li>
+        <li>Einstellungen -&amp;gt; Statusdefinitionen -&amp;gt; "Requested again" bearbeiten -&amp;gt; Aktion hinzuf&uuml;gen -&amp;gt; "Reapprove" ausw&auml;hlen -&amp;gt; Speichern</li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Master
+            <ul>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Requested again" ausw&auml;hlen</li>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: "Rejected By Implementer" bearbeiten -&amp;gt; "Requested" l&ouml;schen -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "Requested again" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Requested again" ausw&auml;hlen</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: "Requested again" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "In Approval" ausw&auml;hlen -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Zugriff
+            <ul>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Requested again" ausw&auml;hlen</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Requested again" ausw&auml;hlen</li>
+                <li>Genehmigung: Erlaubte &Uuml;berg&auml;nge: "Requested again" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "In Approval" ausw&auml;hlen -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlene: Generisch
+            <ul>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Requested again" ausw&auml;hlen</li>
+                <li>Antrag: Erlaubte &Uuml;berg&auml;nge: "Requested again" bearbeiten -&amp;gt; Abgeleiteter Status: "To Implement" ausw&auml;hlen -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8715', 'English', '<H4>5) Automatic action Add Approval</H4>
+    Now, when resending the request after reaching the state "Rejected By Implementer" (example 4), instead of overwriting the old approval a new approval should be created.
+    Therefore the currently unused state "To approve" is renamed to "Requested again" (of course instead a new state could be defined):
+    <ul>
+        <li>Settings -&amp;gt; State Definitions -&amp;gt; Edit State "50: To Approve" -&amp;gt; Change Name to "Requested again" -&amp;gt; Save</li>
+        <li>Settings -&amp;gt; State Actions -&amp;gt; Add Action -&amp;gt; Name: "Reapprove", Action Type: "Add approval", Event: "On Set", 
+            Phase: "Request", Scope: "Request Task", Task Type: "Access", To State: "Requested again" -&amp;gt; Save</li>
+        <li>Settings -&amp;gt; State Definitions -&amp;gt; Edit "Requested again" -&amp;gt; Add Action -&amp;gt; Select "Reapprove" -&amp;gt; Save</li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Master
+            <ul>
+                <li>Request: Allowed transitions: Add State -&amp;gt; Select "Requested again"</li>
+                <li>Request: Allowed transitions: Edit "Rejected By Implementer" -&amp;gt; Remove "Requested" -&amp;gt; Add State -&amp;gt; Select "Requested again" -&amp;gt; Ok</li>
+                <li>Approval: Allowed transitions: Add State -&amp;gt; Select "Requested again"</li>
+                <li>Approval: Allowed transitions: Edit "Requested again" -&amp;gt; Add State -&amp;gt; Select "In Approval" -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Access
+            <ul>
+                <li>Request: Allowed transitions: Add State -&amp;gt; Select "Requested again"</li>
+                <li>Approval: Allowed transitions: Add State -&amp;gt; Select "Requested again"</li>
+                <li>Approval: Allowed transitions: Edit "Requested again" -&amp;gt; Add State -&amp;gt; Select "In Approval" -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Generic
+            <ul>
+                <li>Request: Allowed transitions: Add State -&amp;gt; Select "Requested again"</li>
+                <li>Request: Allowed transitions: Edit "Requested again" -&amp;gt; Derived State: Select "To Implement" -&amp;gt; Ok</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8716', 'German',  '<H4>6) Aktion Genehmigung hinzuf&uuml;gen als Schaltfl&auml;che</H4>
+    Der Genehmiger soll die M&ouml;glichkeit bekommen, bei Bedarf ein weiteres Approval zu erzeugen (um es z.B. jemand anderem zuzuweisen).
+    Daf&uuml;r soll eine Schaltfl&auml;che mit dem Text "weitere Genehmigung erforderlich" angeboten werden, die beim Bearbeiten des Auftrags im Status "In approval" erscheint:
+    <ul>
+        <li>Einstellungen -&amp;gt; Statusaktionen -&amp;gt; Aktion hinzuf&uuml;gen -&amp;gt; Name: "FurtherApproval", Aktionstyp: "Genehmigung hinzuf&uuml;gen", Ereignis: "Schaltfl&auml;che anbieten", 
+            Schaltertext: "weitere Genehmigung erforderlich", Phase: "Genehmigung", Geltungsbereich: "fachlicher Auftrag", Tasktyp: "Zugriff", Zielstatus: "Requested" -&amp;gt; Speichern</li>
+        <li>Einstellungen -&amp;gt; Statusdefinitionen -&amp;gt; "In approval" bearbeiten -&amp;gt; Aktion hinzuf&uuml;gen -&amp;gt; "FurtherApproval" ausw&auml;hlen -&amp;gt; Speichern</li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8716', 'English', '<H4>6) Action Add Approval as button</H4>
+    The approver should get the possibility to create a further approval (e.g. to assign it to someone else).
+    To achieve this, a button with the text "Further approval needed" is offered, which appears when working on the task with the state "In approval":
+    <ul>
+        <li>Settings -&amp;gt; State Actions -&amp;gt; Add Action -&amp;gt; Name: "FurtherApproval", Action Type: "Add approval", Event: "Offer Button", 
+            Button Text: "Further approval needed", Phase: "Approval", Scope: "Request Task", Task Type: "Access", To State: "Requested" -&amp;gt; Save</li>
+        <li>Settings -&amp;gt; State Definitions -&amp;gt; Edit "In approval" -&amp;gt; Add Action -&amp;gt; Select "FurtherApproval" -&amp;gt; Save</li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8717', 'German',  '<H4>7) Aktivieren Planungsphase</H4>
+    F&uuml;r Zugriffsauftr&auml;ge soll die Planungsphase wie vorinstalliert aktiviert werden 
+    (Implementierungsauftr&auml;ge werden dann nicht mehr automatisch erzeugt, sondern m&uuml;ssen vom Planer erstellt werden):
+    <ul>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Master
+            <ul>
+                <li>Planung: Phase ausw&auml;hlen (die &Uuml;bergangsmatrix wird eingeblendet)</li>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Planned" ausw&auml;hlen</li>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: "Planned" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "In Implementation" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Implementierung: Spezielle Stati: Niedrigster Eingangsstatus: "Planned" ausw&auml;hlen</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+        <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Zugriff
+            <ul>
+                <li>Planung: Phase ausw&auml;hlen (die &Uuml;bergangsmatrix wird eingeblendet)</li>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Planned" ausw&auml;hlen</li>
+                <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: "Planned" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "In Implementation" ausw&auml;hlen -&amp;gt; Ok</li>
+                <li>Implementierung: Spezielle Stati: Niedrigster Eingangsstatus: "Planned" ausw&auml;hlen</li>
+            </ul>
+            -&amp;gt; Statusmatrix: Speichern
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H8717', 'English', '<H4>7) Activate Planning phase</H4>
+    For access tasks the Planning phase will be activated as preinstalled 
+    (Implementation tasks will not be created automatically but have to be defined by the planner):
+    <ul>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Master
+            <ul>
+                <li>Planning: select phase (the transition matrix is displayed)</li>
+                <li>Implementation: Allowed transitions: Add State -&amp;gt; Select "Planned"</li>
+                <li>Implementation: Allowed transitions: Edit "Planned" -&amp;gt; Add State -&amp;gt; Select "In Implementation" -&amp;gt; Ok</li>
+                <li>Implementation: Special States: Lowest input state: Select "Planned"</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+        <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Access
+            <ul>
+                <li>Planning: select phase (the transition matrix is displayed)</li>
+                <li>Implementation: Allowed transitions: Add State -&amp;gt; Select "Planned"</li>
+                <li>Implementation: Allowed transitions: Edit "Planned" -&amp;gt; Add State -&amp;gt; Select "In Implementation" -&amp;gt; Ok</li>
+                <li>Implementation: Special States: Lowest input state: Select "Planned"</li>
+            </ul>
+            -&amp;gt; State Matrix: Save
+        </li>
+    </ul>
+');

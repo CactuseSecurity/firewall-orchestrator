@@ -4,8 +4,8 @@ from fwo_log import getFwoLogger
 import requests.packages
 import requests
 import json
-import common
 import fwo_globals
+from fwo_exception import FwLoginFailed
 
 
 def api_call(url, command, json_payload, sid, show_progress=False, method=''):
@@ -61,9 +61,9 @@ def login(user, password, base_url):
     try:
        response = api_call(base_url, 'sys/login/user', payload, '', method="exec")
     except Exception:
-        raise common.FwLoginFailed("FortiManager login ERROR: url=" + base_url) from None
+        raise FwLoginFailed("FortiManager login ERROR: url=" + base_url) from None
     if "session" not in response:   # leaving out payload as it contains pwd
-        raise common.FwLoginFailed("FortiManager login ERROR: url=" + base_url) from None
+        raise FwLoginFailed("FortiManager login ERROR: url=" + base_url) from None
     return response["session"]
 
 

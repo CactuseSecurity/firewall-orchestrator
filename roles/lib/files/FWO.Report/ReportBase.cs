@@ -158,18 +158,21 @@ namespace FWO.Report
             return converter.Convert(doc);
         }
 
-        public static ReportBase ConstructReport(string filterInput, DeviceFilter deviceFilter, TimeFilter timeFilter, ReportType reportType, UserConfig userConfig)
+        public static ReportBase ConstructReport(ReportTemplate reportFilter, UserConfig userConfig)
         {
-            DynGraphqlQuery query = Compiler.Compile(filterInput, reportType, deviceFilter, timeFilter);
-
-            return reportType switch
+            DynGraphqlQuery query = Compiler.Compile(reportFilter);
+            ReportType repType = (ReportType) (reportFilter.ReportParams.ReportType ?? throw new NotSupportedException("Report Type is not set."));
+            return repType switch
             {
-                ReportType.Statistics => new ReportStatistics(query, userConfig, reportType),
-                ReportType.Rules => new ReportRules(query, userConfig, reportType),
-                ReportType.ResolvedRules => new ReportRules(query, userConfig, reportType),
-                ReportType.ResolvedRulesTech => new ReportRules(query, userConfig, reportType),
-                ReportType.Changes => new ReportChanges(query, userConfig, reportType),
-                ReportType.NatRules => new ReportNatRules(query, userConfig, reportType),
+                ReportType.Statistics => new ReportStatistics(query, userConfig, repType),
+                ReportType.Rules => new ReportRules(query, userConfig, repType),
+                ReportType.ResolvedRules => new ReportRules(query, userConfig, repType),
+                ReportType.ResolvedRulesTech => new ReportRules(query, userConfig, repType),
+                ReportType.Changes => new ReportChanges(query, userConfig, repType),
+                ReportType.ResolvedChanges => new ReportChanges(query, userConfig, repType),
+                ReportType.ResolvedChangesTech => new ReportChanges(query, userConfig, repType),
+                ReportType.NatRules => new ReportNatRules(query, userConfig, repType),
+                ReportType.Recertification => new ReportRules(query, userConfig, repType),
                 _ => throw new NotSupportedException("Report Type is not supported."),
             };
         }

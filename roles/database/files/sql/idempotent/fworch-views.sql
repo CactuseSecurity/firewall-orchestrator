@@ -511,8 +511,6 @@ CREATE MATERIALIZED VIEW nw_object_limits AS
 Create index IF NOT EXISTS idx_nw_object_limits_obj_id on nw_object_limits (obj_id);
 Create index IF NOT EXISTS idx_nw_object_limits_mgm_id on nw_object_limits (mgm_id);
 
-
-
 DROP MATERIALIZED VIEW IF EXISTS view_tenant_rules;
 CREATE MATERIALIZED VIEW IF NOT EXISTS view_tenant_rules AS
     select tenant_rules.* from (
@@ -565,11 +563,101 @@ GRANT SELECT ON TABLE view_tenant_rules TO GROUP secuadmins, reporters;
 -- where access_rule, tenant_id=123 and mgm_id=8 and rule_last_seen>=28520 
 -- order by dev_id asc, rule_num_numeric asc
 
+
+----------------
+-- recert views
+
+CREATE OR REPLACE VIEW v_active_access_allow_rules AS 
+	SELECT * FROM rule r
+	WHERE r.active AND 					-- only show current (not historical) rules 
+		r.access_rule AND 				-- only show access rules (no NAT)
+		r.rule_head_text IS NULL AND 	-- do not show header rules
+		NOT r.rule_disabled AND 		-- do not show disabled rules
+		NOT r.action_id IN (2,3,7);		-- do not deal with deny rules
+
+CREATE OR REPLACE VIEW v_rule_with_src_owner AS 
+	SELECT r.rule_id, owner.id as owner_id, owner_network.ip as matching_ip, 'source' AS match_in, owner.name as owner_name, 
+		recert_interval, rule_metadata.rule_last_certified, rule_last_certifier
+	FROM v_active_access_allow_rules r
+	LEFT JOIN rule_from ON (r.rule_id=rule_from.rule_id)
+	LEFT JOIN objgrp_flat of ON (rule_from.obj_id=of.objgrp_flat_id)
+	LEFT JOIN object o ON (of.objgrp_flat_member_id=o.obj_id)
+	LEFT JOIN owner_network ON (o.obj_ip>>=owner_network.ip OR o.obj_ip<<=owner_network.ip)
+	LEFT JOIN owner ON (owner_network.owner_id=owner.id)
+	LEFT JOIN rule_metadata ON (r.rule_uid=rule_metadata.rule_uid AND r.dev_id=rule_metadata.dev_id)
+	WHERE NOT o.obj_ip IS NULL
+	GROUP BY r.rule_id, matching_ip, owner.id, owner.name, rule_metadata.rule_last_certified, rule_last_certifier;
+	
+CREATE OR REPLACE VIEW v_rule_with_dst_owner AS 
+	SELECT r.rule_id, owner.id as owner_id, owner_network.ip as matching_ip, 'destination' AS match_in, owner.name as owner_name, 
+		recert_interval, rule_metadata.rule_last_certified, rule_last_certifier
+	FROM v_active_access_allow_rules r
+	LEFT JOIN rule_to ON (r.rule_id=rule_to.rule_id)
+	LEFT JOIN objgrp_flat of ON (rule_to.obj_id=of.objgrp_flat_id)
+	LEFT JOIN object o ON (of.objgrp_flat_member_id=o.obj_id)
+	LEFT JOIN owner_network ON (o.obj_ip>>=owner_network.ip OR o.obj_ip<<=owner_network.ip)
+	LEFT JOIN owner ON (owner_network.owner_id=owner.id)
+	LEFT JOIN rule_metadata ON (r.rule_uid=rule_metadata.rule_uid AND r.dev_id=rule_metadata.dev_id)
+	WHERE NOT o.obj_ip IS NULL
+	GROUP BY r.rule_id, matching_ip, owner.id, owner.name, rule_metadata.rule_last_certified, rule_last_certifier;
+
+
+CREATE OR REPLACE FUNCTION purge_view_rule_with_owner () RETURNS VOID AS $$
+DECLARE
+    r_temp_record RECORD;
+BEGIN
+    select INTO r_temp_record schemaname, viewname from pg_catalog.pg_views
+    where schemaname NOT IN ('pg_catalog', 'information_schema') and viewname='view_rule_with_owner'
+    order by schemaname, viewname;
+    IF FOUND THEN
+        DROP VIEW IF EXISTS view_rule_with_owner CASCADE;
+    END IF;
+    DROP MATERIALIZED VIEW IF EXISTS view_rule_with_owner CASCADE;
+    RETURN;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT * FROM purge_view_rule_with_owner ();
+DROP FUNCTION purge_view_rule_with_owner();
+
+-- LargeOwnerChange: remove MATERIALIZED for small installations
+CREATE MATERIALIZED VIEW view_rule_with_owner AS 
+	SELECT DISTINCT r.rule_num_numeric, r.track_id, r.action_id, r.rule_from_zone, r.rule_to_zone, r.dev_id, r.mgm_id, r.rule_uid, uno.rule_id, uno.owner_id, uno.owner_name, uno.rule_last_certified, uno.rule_last_certifier, 
+	rule_action, rule_name, rule_comment, rule_track, rule_src_neg, rule_dst_neg, rule_svc_neg,
+	rule_head_text, rule_disabled, access_rule, xlate_rule, nat_rule,
+	string_agg(DISTINCT match_in || ':' || matching_ip::VARCHAR, '; ' order by match_in || ':' || matching_ip::VARCHAR desc) as matches,
+	recert_interval
+	FROM ( SELECT DISTINCT * FROM v_rule_with_src_owner UNION SELECT DISTINCT * FROM v_rule_with_dst_owner ) AS uno
+	LEFT JOIN rule AS r USING (rule_id)
+	GROUP BY rule_id, owner_id, owner_name, rule_last_certified, rule_last_certifier, r.rule_from_zone, r.rule_to_zone,  recert_interval,
+		r.dev_id, r.mgm_id, r.rule_uid, rule_num_numeric, track_id, action_id, 	rule_action, rule_name, rule_comment, rule_track, rule_src_neg, rule_dst_neg, rule_svc_neg,
+		rule_head_text, rule_disabled, access_rule, xlate_rule, nat_rule;
+
+-------------------------
+-- recert refresh trigger
+
+create or replace function refresh_view_rule_with_owner()
+returns trigger language plpgsql
+as $$
+begin
+    refresh materialized view view_rule_with_owner;
+    return null;
+end $$;
+
+drop trigger IF exists refresh_view_rule_with_owner_delete_trigger ON recertification CASCADE;
+
+create trigger refresh_view_rule_with_owner_delete_trigger
+after delete on recertification for each statement 
+execute procedure refresh_view_rule_with_owner();
+
+
 ---------------------------------------------------------------------------------------------
 -- GRANTS on exportable Views
 ---------------------------------------------------------------------------------------------
 
--- views for docu admins
+GRANT SELECT ON TABLE view_rule_with_owner TO GROUP secuadmins, reporters, configimporters;
+
+-- views for secuadmins
 GRANT SELECT ON TABLE view_change_counter TO GROUP secuadmins;
 GRANT SELECT ON TABLE view_undocumented_change_counter TO GROUP secuadmins;
 GRANT SELECT ON TABLE view_documented_change_counter TO GROUP secuadmins;

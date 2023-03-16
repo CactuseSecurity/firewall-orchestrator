@@ -53,9 +53,11 @@
         - FWO.Logging
         - FWO.Config.Api
         - FWO.Config.File
+        - FWO.Recert
         - FWO.Report
         - FWO.Report.Filter
         - FWO.DeviceAutoDiscovery
+        - FWO.Mail
 
     - name: finalize handler for datarecovery
       set_fact:
@@ -68,6 +70,6 @@
       set_fact:
         lib_role_has_run: true
 
-  become: yes
+  become: true
   when: not lib_role_has_run|bool
   # make sure lib role is only run once per host to save time

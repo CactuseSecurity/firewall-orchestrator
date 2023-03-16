@@ -8,6 +8,13 @@ namespace FWO.Api.Client
 {
     public abstract class ApiConnection
     {
+        public event EventHandler<string>? OnAuthHeaderChanged;
+
+        protected void InvokeOnAuthHeaderChanged(object? sender, string newAuthHeader)
+        {
+            OnAuthHeaderChanged?.Invoke(sender, newAuthHeader);
+        }
+
         public abstract void SetAuthHeader(string jwt);
 
         public abstract void SetRole(string role);

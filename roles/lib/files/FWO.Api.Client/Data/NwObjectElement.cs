@@ -1,10 +1,24 @@
-﻿namespace FWO.Api.Data
+﻿using System.Text.Json.Serialization; 
+using Newtonsoft.Json;
+
+namespace FWO.Api.Data
 {
     public class NwObjectElement
     {
+
+        [JsonProperty("id"), JsonPropertyName("id")]
         public long ElemId { get; set; }
+
+        [JsonProperty("ip"), JsonPropertyName("ip")]
+        public string IpString
+        {
+            get { return Cidr.CidrString; }
+            set { Cidr = new Cidr(value); }
+        }
+        public Cidr Cidr { get; set; } = new Cidr();
+
         public long TaskId { get; set; }
-        public Cidr Cidr { get; set; }
+
         public long? NetworkId { get; set; }
 
         public NwObjectElement()
@@ -16,7 +30,7 @@
             TaskId = taskId;
         }
 
-        public RequestReqElement ToReqElement(AccessField field)
+        public RequestReqElement ToReqElement(ElemFieldType field)
         {
             RequestReqElement element = new RequestReqElement()
             {
@@ -29,7 +43,7 @@
             return element;
         }
 
-        public RequestImplElement ToImplElement(AccessField field)
+        public RequestImplElement ToImplElement(ElemFieldType field)
         {
             RequestImplElement element = new RequestImplElement()
             {

@@ -2,7 +2,7 @@ from asyncio.log import logger
 import random
 
 from fwo_log import getFwoLogger
-from common import list_delimiter
+from fwo_const import list_delimiter
 from netaddr import IPAddress
 
 def normalize_nwobjects(full_config, config2import, import_id, jwt=None, mgm_id=None):
@@ -25,7 +25,7 @@ def parse_obj_group(orig_grp, import_id, nw_objects, id = None):
             id = orig_grp["id"] if "id" in orig_grp else random.random()
         for orig_literal in orig_grp["literals"]:
             literal = parse_object(orig_literal, import_id)
-            literal["obj_uid"] += "_" + id
+            literal["obj_uid"] += "_" + str(id)
             nw_objects.append(literal)
             names.append(orig_literal["value"])
             refs.append(literal["obj_uid"])
@@ -44,6 +44,7 @@ def parse_obj_group(orig_grp, import_id, nw_objects, id = None):
     return list_delimiter.join(refs), list_delimiter.join(names)
 
 def extract_base_object_infos(obj_orig, import_id):
+    logger = getFwoLogger()
     obj = {}
     if "id" in obj_orig:
         obj["obj_uid"] = obj_orig['id']
@@ -57,7 +58,7 @@ def extract_base_object_infos(obj_orig, import_id):
         obj["obj_comment"] = obj_orig["description"] 
     if 'color' in obj_orig:
         # TODO Do colors exist?
-        logger.log("colors exist :)")
+        logger.debug("colors exist :)")
     obj['control_id'] = import_id
     return obj
 
@@ -65,18 +66,28 @@ def parse_object(obj_orig, import_id):
     obj = extract_base_object_infos(obj_orig, import_id)
     if obj_orig["type"] == "Network":  # network
         obj["obj_typ"] = "network"
-        cidr = obj_orig["value"].split("/")
-        if str.isdigit(cidr[1]):
-            obj['obj_ip'] = cidr[0] + "/" + cidr[1]
-        else: # not real cidr (netmask after /)
-            obj['obj_ip'] = cidr[0] + "/" + str(IPAddress(cidr[1]).netmask_bits())    
+        if "value" in obj_orig:
+            cidr = obj_orig["value"].split("/")
+            if str.isdigit(cidr[1]):
+                obj['obj_ip'] = cidr[0] + "/" + cidr[1]
+            else: # not real cidr (netmask after /)
+                obj['obj_ip'] = cidr[0] + "/" + str(IPAddress(cidr[1]).netmask_bits())
+        else:
+            logger.warn("missing value field in object - skipping: " + str(obj_orig))  
+            obj['obj_ip'] = "0.0.0.0"        
     elif obj_orig["type"] == "Host": # host
         obj["obj_typ"] = "host"
-        obj["obj_ip"] = obj_orig["value"]
-        if obj_orig["value"].find(":") != -1:  # ipv6
-            obj["obj_ip"] + "/64"
-        else:                               # ipv4
-            obj["obj_ip"] + "/32"
+        if "value" in obj_orig:
+            obj["obj_ip"] = obj_orig["value"]
+            if obj_orig["value"].find(":") != -1: # ipv6
+                if obj_orig["value"].find("/") == -1: 
+                    obj["obj_ip"] += "/128"
+            else:                               # ipv4
+                if obj_orig["value"].find("/") == -1: 
+                    obj["obj_ip"] += "/32"
+        else:
+            logger.warn("missing value field in object - skipping: " + str(obj_orig))  
+            obj['obj_ip'] = "0.0.0.0/0"        
     elif obj_orig["type"] == "Range": # ip range
         obj['obj_typ'] = 'ip_range'
         ip_range = obj_orig['value'].split("-")

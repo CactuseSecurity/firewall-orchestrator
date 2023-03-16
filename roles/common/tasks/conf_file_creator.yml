@@ -4,7 +4,7 @@
     fetch:
       src: "{{ fworch_conf_file }}"
       dest: "temp_remote_config_file.json"
-      flat: yes
+      flat: true
     when: already_installed and installation_mode == "upgrade"
 
   - name: read config file of currently installed product
@@ -35,7 +35,7 @@
         product_version: "{{ product_version }}"
         fworch_home: "{{ fworch_home }}"
         dotnet_mode: "{{ dotnet_mode }}" 
-        api_uri: "https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql"
+        api_uri: "https://{{ api_network_listening_ip_address }}:{{ api_web_port }}/api/v1/graphql"
         api_hasura_jwt_alg: "{{ api_hasura_jwt_alg }}"
         middleware_native_uri: "http://{{ middleware_hostname }}:{{ middleware_internal_port }}/"
         middleware_uri: "{{ middleware_uri }}"
@@ -46,4 +46,4 @@
       dest: "{{ fworch_conf_file }}"
     when: installation_mode == "new"
 
-  become: yes
+  become: true

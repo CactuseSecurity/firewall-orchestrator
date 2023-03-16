@@ -7,14 +7,14 @@
   delegate_to: "{{ inventory_hostname }}"
   listen: "middleware handler"
   when: middleware_handler_guard == "start"
-  become: yes
+  become: true
 
 - name: delete backup
   file:
     state: absent
     path: "{{ fworch_home }}/backup_middleware"
   listen: "middleware handler"
-  become: yes
+  become: true
   
 - name: fail message
   debug:

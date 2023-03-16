@@ -235,7 +235,6 @@ This is a complete example of a config which may be imported:
   "zone_objects": [
     {
       "zone_name": "test-zone",
-      "svc_typ": "simple",
       "zone_uid": "98aeb44f-9aea-11d5-bd16-0090272ccb30",
       "control_id": 1074,
       "zone_comment": "just a test"

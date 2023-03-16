@@ -86,7 +86,7 @@ namespace FWO.Ui.Auth
                 await CreateUserContext(jwt, apiConnection, middlewareClient, userConfig, circuitHandler);
 
                 // Add jwt expiry timer
-                JwtEventService.AddJwtTimer(userConfig.User.Dn, (int)reader.TimeUntilExpiry().TotalMilliseconds - 1000 * 60 * userConfig.SessionTimeoutNoticePeriod);
+                JwtEventService.AddJwtTimers(userConfig.User.Dn, (int)reader.TimeUntilExpiry().TotalMilliseconds, 1000 * 60 * userConfig.SessionTimeoutNoticePeriod);
             }
             return apiAuthResponse;
         }

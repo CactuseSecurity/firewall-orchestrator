@@ -1,7 +1,8 @@
 ### general settings
 product_version: "6.2"
 ansible_user: "{{ lookup('env', 'USER') }}"
-ansible_become_method: sudoansible_python_interpreter: /usr/bin/python3
+ansible_become_method: sudo
+ansible_python_interpreter: /usr/bin/python3
 ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 product_name: fworch
 

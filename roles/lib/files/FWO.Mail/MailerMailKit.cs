@@ -61,7 +61,7 @@ namespace FWO.Mail
             EmailConn = emailConn;
         }
 
-        public async Task<bool> SendAsync(MailData mailData, EmailConnection emailConn, CancellationToken ct = default)
+        public async Task<bool> SendAsync(MailData mailData, EmailConnection emailConn, CancellationToken ct = default, bool mailFormatHtml = false)
         {
             try
             {
@@ -109,7 +109,10 @@ namespace FWO.Mail
                 // Add Content to Mime Message
                 var body = new BodyBuilder();
                 mail.Subject = mailData.Subject;
-                body.HtmlBody = mailData.Body;
+                if (mailFormatHtml)
+                    body.HtmlBody = mailData.Body;
+                else
+                    body.TextBody = mailData.Body;
                 mail.Body = body.ToMessageBody();
 
                 #endregion
@@ -131,7 +134,7 @@ namespace FWO.Mail
                         await smtp.ConnectAsync(emailConn.ServerAddress, emailConn.Port, SecureSocketOptions.SslOnConnect, ct);
                         break;
                 }
-                if (emailConn.User != "")
+                if (emailConn.User != null && emailConn.User != "")
                 {
                     await smtp.AuthenticateAsync(emailConn.User, emailConn.Password, ct);
                 }

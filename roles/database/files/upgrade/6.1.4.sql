@@ -97,5 +97,10 @@ create trigger refresh_view_rule_with_owner_delete_trigger
 after delete on recertification for each statement 
 execute procedure refresh_view_rule_with_owner();
 
+ALTER TABLE owner DROP CONSTRAINT IF EXISTS owner_name_key;
+ALTER TABLE owner ADD CONSTRAINT owner_name_key UNIQUE (name);
+ALTER TABLE owner DROP CONSTRAINT IF EXISTS owner_app_id_external_key;
+ALTER TABLE owner ADD CONSTRAINT owner_app_id_external_key UNIQUE (app_id_external);
+ALTER TABLE owner ALTER COLUMN app_id_external DROP NOT NULL;
 insert into config (config_key, config_value, config_user) VALUES ('recRefreshStartup', 'False', 0) ON CONFLICT DO NOTHING;
 insert into config (config_key, config_value, config_user) VALUES ('recRefreshDaily', 'False', 0) ON CONFLICT DO NOTHING;

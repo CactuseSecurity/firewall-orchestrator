@@ -73,7 +73,7 @@
     - name: edit postgresql.conf client_min_messages
       lineinfile:
         path: "{{ postgresql_config_file }}"
-        line: client_min_messages = log
+        line: client_min_messages = WARNING
         regexp: '\s*client_min_messages'
         backup: true
           
@@ -101,7 +101,7 @@
     - name: edit postgresql.conf log_min_error_statement
       lineinfile:
         path: "{{ postgresql_config_file }}"
-        line: log_min_error_statement = DEBUG2
+        line: log_min_error_statement = ERROR
         regexp: '\s*log_min_error_statement'
         backup: true
 

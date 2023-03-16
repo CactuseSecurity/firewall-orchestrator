@@ -1,5 +1,5 @@
 ﻿function newWindow (link) {
-    window.open(link, "name", "width=1200,height=800");
+    window.open(link, "name", "width=1300,height=800");
 }
 
 function globalScroll(dotNetHelper) {

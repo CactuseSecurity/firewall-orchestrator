@@ -19,3 +19,23 @@ objectClass: groupofuniquenames
 cn: group2{{ sample_postfix }}
 uniqueMember:
 {%- endif %}
+
+
+dn: cn=ownergroup_D{{ sample_postfix }},ou=group,{{ openldap_path }}
+changetype: {{ ldif_changetype }}
+{% if ldif_changetype != 'delete' -%}
+objectClass: top
+objectClass: groupofuniquenames
+cn: group2{{ sample_postfix }}
+uniqueMember:
+{%- endif %}
+
+
+dn: cn=ownergroup_F{{ sample_postfix }},ou=group,{{ openldap_path }}
+changetype: {{ ldif_changetype }}
+{% if ldif_changetype != 'delete' -%}
+objectClass: top
+objectClass: groupofuniquenames
+cn: group2{{ sample_postfix }}
+uniqueMember:
+{%- endif %}

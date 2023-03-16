@@ -1012,15 +1012,15 @@ Create table "config"
 create table owner
 (
     id SERIAL PRIMARY KEY,
-    name Varchar NOT NULL,
+    name Varchar UNIQUE NOT NULL,
     dn Varchar NOT NULL,
     group_dn Varchar NOT NULL,
     is_default boolean default false,
     tenant_id int,
     recert_interval int,
-    app_id_external varchar not null,
-	last_recert_check Timestamp,
-	recert_check_params Varchar
+    app_id_external varchar UNIQUE,
+    last_recert_check Timestamp,
+    recert_check_params Varchar
 );
 
 create table owner_network

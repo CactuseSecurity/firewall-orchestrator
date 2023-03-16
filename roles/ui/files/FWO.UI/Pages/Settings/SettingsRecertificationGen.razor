@@ -162,11 +162,11 @@
         <label class="col-form-label col-sm-4">@(userConfig.GetText("recalc_recerts")):</label>
         <div class="form-group col-sm-3">
             <input type="checkbox" @bind="configData!.RecRefreshStartup" />
-            <label class="col-form-label">@(userConfig.GetText("at_startup"))</label>
+            <label class="col-form-label-marg7">@(userConfig.GetText("at_startup"))</label>
         </div>
         <div class="form-group col-sm-3">
             <input type="checkbox" @bind="configData!.RecRefreshDaily" />
-            <label class="col-form-label">@(userConfig.GetText("daily"))</label>
+            <label class="col-form-label-marg7">@(userConfig.GetText("daily"))</label>
         </div>
         <div class="form-group col-sm-2">
             <AuthorizeView Roles="admin">

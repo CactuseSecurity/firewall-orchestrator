@@ -145,8 +145,8 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
-    <li>Firewall-Regel Rezertifizierungsworkflow - beseitigen Sie ihre Altlasten und erf&uuml;llen Sie aktuelle regulatorische Anforderungen.</li>
-    <li>Workflow module zum Beantragen von &Auml;nderungen</li>
+    <li>Neues Firewall-Regel-Rezertifizierungsmodul - beseitigen Sie ihre Altlasten und erf&uuml;llen Sie aktuelle regulatorische Anforderungen.</li>
+    <li>Workflow-Modul zum Beantragen von &Auml;nderungen</li>
     <li>Neue Importmodule f&uuml;r Cisco FirePower und Microsoft Azure Firewall</li>
     <li>Beginn Routing/Interface Pfad Analyse (zun&auml;chst nur Fortinet)</li>
     <li>Neue Report-Typen: Regeln (aufgel&ouml;st), Regeln technisch (alle Gruppe werden in Bestandteile aufgel&ouml;st; Report-Export als "Single Table")</li>
@@ -154,9 +154,8 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
-    <li>Firewall rule recertification workflow - remove unnecessary rules and meet current regulatory requirements.</li>
-    <li>Device Auto Discovery functionality</li>
-    <li>New workflow module for requesting firewall changes</li>
+    <li>New Firewall rule recertification module - remove unnecessary rules and meet current regulatory requirements.</li>
+    <li>Workflow module for requesting firewall changes</li>
     <li>New import modules for Cisco FirePower and Microsoft Azure Firewall</li>
     <li>Start routing/interface (currently implemented for fortinet only) import and path analysis</li>
     <li>New report types: resolved rules, technical rules (report without group objects, exporting into pure rule tables without additional object tables)</li>

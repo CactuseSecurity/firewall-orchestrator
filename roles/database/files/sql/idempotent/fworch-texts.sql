@@ -2385,8 +2385,6 @@ INSERT INTO txt VALUES ('H3001', 'English', 'Here the archived reports can be fo
     It is possible to download or delete these archived reports.
 ');
 
-INSERT INTO txt VALUES ('H4001', 'German',  'In diesem Abschnitt k&ouml;nnen Regeln re- oder dezertifiziert werden. Daf&uuml;r wird die Rolle "recertifier" (oder "admin") ben&ouml;tigt.');
-INSERT INTO txt VALUES ('H4001', 'English', 'In this part rules can be re- or decertified. For this the role "recertifier" (or "admin") is necessary.');
 INSERT INTO txt VALUES ('H4011', 'German',  'Im ersten Schritt muss ein Report mit den demn&auml;chst zu rezertifizierenden Regeln geladen werden.
     Der Zeitraum f&uuml;r die Vorausschau kann im Feld "F&auml;llig in" gew&auml;hlt werden.
     Diese wird im "Rezertifizierungsanzeigeintervall" in den <a href="/help/settings/recertificationpersonal">pers&ouml;nlichen</a> bzw. 
@@ -2429,12 +2427,12 @@ INSERT INTO txt VALUES ('H4014', 'English', 'Decertified rules can be displayed 
 INSERT INTO txt VALUES ('H4021', 'German',  'Dieses Rezertifizierungsszenario ist als Basis f&uuml;r weitere angepasste Abl&auml;ufe vorgesehen.');
 INSERT INTO txt VALUES ('H4021', 'English', 'This recertification scenario is intended to be a base for further customized workflows.');
 
-INSERT INTO txt VALUES ('H4031', 'German',  'In diesem Modul k&ouml;nnen Nutzer Firewall-Regeln re- oder dezertifiziert werden.
+INSERT INTO txt VALUES ('H4031', 'German',  'In diesem Modul k&ouml;nnen Nutzer Firewall-Regeln re- oder dezertifizieren.
 Daf&uuml;r wird die Rolle "recertifier" ben&ouml;tigt. Auditor- und Admin-Nutzer k&ouml;nnen hier nur lesend auf die anstehenden Rezertifizierungen zugreifen.
 <br>
 Aktuell gibt es zwei verschiedene Optionen:
 <ol>
-    <li> In der einfachen Variante kann ein Nutzer mit recertifier jede beliebige Regel rezertifizieren. 
+    <li> In der einfachen Variante kann ein Nutzer mit recertifier Rolle jede beliebige Regel rezertifizieren. 
         Diese Option eignet sich &uuml;blicherweise nur f&uuml;r kleine Installation mit wenigen Firewall-Regeln.
     </li>
     <li> In gr&ouml;&szlig;eren Umgebungen ist es sinnvoll die Rezertifizierung dezentral zu organisieren. 
@@ -2455,7 +2453,7 @@ The "recertifier" role is required for this. Auditor and admin users have read-o
 <br>
 Currently there are two different options:
 <ol>
-    <li> In the simple variant, a user can recertify any rule with recertifier. 
+    <li> In the simple variant, a user with recertifier role can recertify any rule. 
         This option is usually suitable only for small installations with few firewall rules.
     </li>
     <li> In larger environments, it makes sense to organize recertification in a decentralized manner. 
@@ -2593,7 +2591,7 @@ Login with user1_demo (password cactus1) or user2_demo (password cactus2)
 
 INSERT INTO txt VALUES ('H4034', 'German',  '
 <H4>IP-Adress-Matching</H4>
- 	Jede Regel (Quelle und Ziel) wird mit den f&uuml;r einen Eigent&uuml;mer definierten IP-Adressen auf &uuml;berlappung gepr&uuml;ft.<br>
+ 	Jede Regel (Quelle und Ziel) wird mit den f&uuml;r einen Eigent&uuml;mer definierten IP-Adressen auf &Uuml;berlappung gepr&uuml;ft.<br>
  	Bei einer &Uuml;berlappung ist der Eigent&uuml;mer f&uuml;r die Rezertifizierung der Regel verantwortlich und ein entsprechender Eintrag wird
  	abh&auml;ngig vom Rezertifizierungsintervall des Eigent&uuml;mers erzeugt.
  	<br><br>
@@ -2603,7 +2601,7 @@ INSERT INTO txt VALUES ('H4034', 'German',  '
 <br><br>
 <H4>F&auml;lligkeitsdatum</H4>
     Das Rezertifizierungsdatum wird errechnet aus dem letzten Rezertifizierungsdatum (falls unbekannt, wird das Erzeugungsdatum der Regel genommen)
-    und dem Rezertifizierungsintervall, welches in den Rezertifizierungseinstellungen definiert wurde. 
+    und dem Rezertifizierungsintervall des jeweiligen Eigent&uuml;mers.
 <br><br>
 <H4>Konfiguration</H4>
     Siehe auch <a href="/help/settings/recertificationgeneral">Rezertifizierungseinstellungen</a>.
@@ -2624,7 +2622,7 @@ INSERT INTO txt VALUES ('H4034', 'English', '
 <br><br>
 <H4>Due Date</H4>
    The recertification date is calculated from the last recertification date (if unknown, the creation date of the rule is taken)
-    and the recertification interval defined in the recertification settings. 
+    and the recertification interval defined for the respective owner. 
 <br><br>
 <H4CKonfiguration</H4>
     Also see <a href="/help/settings/recertificationgeneral">Recertification Settings</a>.

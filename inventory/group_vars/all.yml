@@ -1,5 +1,5 @@
 ### general settings
-product_version: "6.2"
+product_version: "6.2.1"
 ansible_user: "{{ lookup('env', 'USER') }}"
 ansible_become_method: sudo
 ansible_python_interpreter: /usr/bin/python3
@@ -98,6 +98,7 @@ middleware_internal_port: 8880
 ###############################################################
 ui_admin_password_file: "{{ fworch_secrets_dir }}/ui_admin_pwd"
 ui_admin_testonly_password: "fworch.1"
+importer_password_file: "{{ fworch_secrets_dir }}/importer_pwd"
 importer_password_file_on_installer: etc/importer.pwd
 
 ### dotnet

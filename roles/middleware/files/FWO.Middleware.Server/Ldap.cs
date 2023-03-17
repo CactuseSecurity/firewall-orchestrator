@@ -132,6 +132,10 @@ namespace FWO.Middleware.Server
                     // Authenticate as search user
                     connection.Bind(SearchUser, SearchUserPwd);
 
+                    LdapSearchConstraints cons = connection.SearchConstraints;
+                    cons.ReferralFollowing = true;
+                    connection.Constraints = cons;
+
                     List<LdapEntry> possibleUserEntries = new List<LdapEntry>();
 
                     // If dn was already provided
@@ -144,17 +148,16 @@ namespace FWO.Middleware.Server
                             possibleUserEntries.Add(userEntry);
                         }
                     }
-                    // Dn was not provided, search for user name
-                    else
+                    else // Dn was not provided, search for user name
                     {
                         string[] attrList = new string[] { "*", "memberof" };
+                        string userSearchFilter = getUserSearchFilter(user.Name);
 
                         // Search for users in ldap with same name as user to validate
                         possibleUserEntries = ((LdapSearchResults)connection.Search(
                             UserSearchPath,             // top-level path under which to search for user
                             LdapConnection.ScopeSub,    // search all levels beneath
-                            getUserSearchFilter(user.Name),
-                            // $"(|(&(sAMAccountName={user.Name})(objectClass=person))(&(objectClass=inetOrgPerson)(uid:dn:={user.Name})))", // matching both AD and openldap filter
+                            userSearchFilter,
                             attrList,
                             typesOnly: false
                         )).ToList();

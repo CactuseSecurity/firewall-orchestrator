@@ -2432,7 +2432,7 @@ Daf&uuml;r wird die Rolle "recertifier" ben&ouml;tigt. Auditor- und Admin-Nutzer
 <br>
 Aktuell gibt es zwei verschiedene Optionen:
 <ol>
-    <li> In der einfachen Variante kann ein Nutzer mit recertifier jede beliebige Regel rezertifizieren. 
+    <li> In der einfachen Variante kann ein Nutzer mit recertifier Rolle jede beliebige Regel rezertifizieren. 
         Diese Option eignet sich &uuml;blicherweise nur f&uuml;r kleine Installationen mit wenigen Firewall-Regeln.
     </li>
     <li> In gr&ouml;&szlig;eren Umgebungen ist es sinnvoll, die Rezertifizierung dezentral zu organisieren. 
@@ -2453,7 +2453,7 @@ The "recertifier" role is required for this. Auditor and admin users have read-o
 <br>
 Currently there are two different options:
 <ol>
-    <li> In the simple variant, a user can recertify any rule with recertifier. 
+    <li> In the simple variant, a user with recertifier role can recertify any rule. 
         This option is usually suitable only for small installations with few firewall rules.
     </li>
     <li> In larger environments, it makes sense to organize recertification in a decentralized manner. 
@@ -2601,7 +2601,7 @@ INSERT INTO txt VALUES ('H4034', 'German',  '
 <br><br>
 <H4>F&auml;lligkeitsdatum</H4>
     Das Rezertifizierungsdatum wird errechnet aus dem letzten Rezertifizierungsdatum (falls unbekannt, wird das Erzeugungsdatum der Regel genommen)
-    und dem Rezertifizierungsintervall, welches in den Rezertifizierungseinstellungen definiert wurde. 
+    und dem Rezertifizierungsintervall des jeweiligen Eigent&uuml;mers.
 <br><br>
 <H4>Konfiguration</H4>
     Siehe auch <a href="/help/settings/recertificationgeneral">Rezertifizierungseinstellungen</a>.
@@ -2622,7 +2622,7 @@ INSERT INTO txt VALUES ('H4034', 'English', '
 <br><br>
 <H4>Due Date</H4>
    The recertification date is calculated from the last recertification date (if unknown, the creation date of the rule is taken)
-    and the recertification interval defined in the recertification settings. 
+    and the recertification interval defined for the respective owner. 
 <br><br>
 <H4CKonfiguration</H4>
     Also see <a href="/help/settings/recertificationgeneral">Recertification Settings</a>.

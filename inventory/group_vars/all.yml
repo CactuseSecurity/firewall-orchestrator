@@ -98,6 +98,7 @@ middleware_internal_port: 8880
 ###############################################################
 ui_admin_password_file: "{{ fworch_secrets_dir }}/ui_admin_pwd"
 ui_admin_testonly_password: "fworch.1"
+importer_password_file: "{{ fworch_secrets_dir }}/importer_pwd"
 importer_password_file_on_installer: etc/importer.pwd
 
 ### dotnet

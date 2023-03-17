@@ -211,7 +211,14 @@ namespace FWO.Middleware.Controllers
                             if (currentLdapEntry != null)
                             {
                                 // User was successfully authenticated via this LDAP
-                                Log.WriteInfo("User Authentication", $"User {user.Name + " " + currentLdapEntry.Dn} found.");
+                                if(user.Name == "importer")
+                                {
+                                    Log.WriteDebug("User Authentication", $"User {user.Name + " " + currentLdapEntry.Dn} found.");
+                                }
+                                else
+                                {
+                                    Log.WriteInfo("User Authentication", $"User {user.Name + " " + currentLdapEntry.Dn} found.");
+                                }
 
                                 lock (dnLock)
                                 {
@@ -242,6 +249,7 @@ namespace FWO.Middleware.Controllers
 
                     ldapValidationRequests.Remove(finishedDnRequest);
                 }
+                Log.WriteInfo("User Authentication", $"User {user.Name} not found in any connected LDAP.");
             }
 
             // Invalid User Credentials

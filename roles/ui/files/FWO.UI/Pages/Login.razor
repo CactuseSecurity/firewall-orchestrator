@@ -156,11 +156,22 @@
                 }
                 else
                 {
-                    // There was an error trying to authenticate the user. Probably invalid credentials
-                    errorMessage = (authResponse.Data != null ? userConfig.GetApiText(authResponse.Data) : "Middleware Api Error: " + authResponse.Content);
+                    // There was an error trying to authenticate the user. Probably invalid credentials or the middleware server is unreachable
+                    if(authResponse.Data != null)
+                    {
+                        // Probably invalid credentials
+                        errorMessage = userConfig.GetApiText(authResponse.Data);
+                        // Visualisize the error by making border of all inputboxes red
+                        InputClass = "is-invalid";
+                        Log.WriteInfo("Login", $"Login of user {Username} failed: " + errorMessage);
+                    }
+                    else
+                    {
+                        // Probably the middleware server is unreachable
+                        errorMessage = "Middleware Api Error: " + authResponse.ErrorMessage;
+                        Log.WriteError("Login", $"Login of user {Username} failed: " + errorMessage);
+                    }
 
-                    // Visualisize the error by making border of all inputboxes red
-                    InputClass = "is-invalid";
                     await focusInput();
                     StateHasChanged();
                 }

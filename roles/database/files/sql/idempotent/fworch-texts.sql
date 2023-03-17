@@ -2385,8 +2385,6 @@ INSERT INTO txt VALUES ('H3001', 'English', 'Here the archived reports can be fo
     It is possible to download or delete these archived reports.
 ');
 
-INSERT INTO txt VALUES ('H4001', 'German',  'In diesem Abschnitt k&ouml;nnen Regeln re- oder dezertifiziert werden. Daf&uuml;r wird die Rolle "recertifier" (oder "admin") ben&ouml;tigt.');
-INSERT INTO txt VALUES ('H4001', 'English', 'In this part rules can be re- or decertified. For this the role "recertifier" (or "admin") is necessary.');
 INSERT INTO txt VALUES ('H4011', 'German',  'Im ersten Schritt muss ein Report mit den demn&auml;chst zu rezertifizierenden Regeln geladen werden.
     Der Zeitraum f&uuml;r die Vorausschau kann im Feld "F&auml;llig in" gew&auml;hlt werden.
     Diese wird im "Rezertifizierungsanzeigeintervall" in den <a href="/help/settings/recertificationpersonal">pers&ouml;nlichen</a> bzw. 
@@ -2429,15 +2427,15 @@ INSERT INTO txt VALUES ('H4014', 'English', 'Decertified rules can be displayed 
 INSERT INTO txt VALUES ('H4021', 'German',  'Dieses Rezertifizierungsszenario ist als Basis f&uuml;r weitere angepasste Abl&auml;ufe vorgesehen.');
 INSERT INTO txt VALUES ('H4021', 'English', 'This recertification scenario is intended to be a base for further customized workflows.');
 
-INSERT INTO txt VALUES ('H4031', 'German',  'In diesem Modul k&ouml;nnen Nutzer Firewall-Regeln re- oder dezertifiziert werden.
+INSERT INTO txt VALUES ('H4031', 'German',  'In diesem Modul k&ouml;nnen Nutzer Firewall-Regeln re- oder dezertifizieren.
 Daf&uuml;r wird die Rolle "recertifier" ben&ouml;tigt. Auditor- und Admin-Nutzer k&ouml;nnen hier nur lesend auf die anstehenden Rezertifizierungen zugreifen.
 <br>
 Aktuell gibt es zwei verschiedene Optionen:
 <ol>
     <li> In der einfachen Variante kann ein Nutzer mit recertifier jede beliebige Regel rezertifizieren. 
-        Diese Option eignet sich &uuml;blicherweise nur f&uuml;r kleine Installation mit wenigen Firewall-Regeln.
+        Diese Option eignet sich &uuml;blicherweise nur f&uuml;r kleine Installationen mit wenigen Firewall-Regeln.
     </li>
-    <li> In gr&ouml;&szlig;eren Umgebungen ist es sinnvoll die Rezertifizierung dezentral zu organisieren. 
+    <li> In gr&ouml;&szlig;eren Umgebungen ist es sinnvoll, die Rezertifizierung dezentral zu organisieren. 
         Daf&uuml;r wird eine Eigent&uuml;merstruktur unterst&uuml;tzt, die einer Liste von Eigent&uuml;mern die Verantwortlichkeit f&uuml;r jeweils einen Teil des Netzwerks in Form von IP-Adressen bzw. IP-Subnetzen zuweist. 
         Dies kann z.B. eine Aufteilung auf Applikationsbasis sein, es ist aber genauso auch eine Unterteilung nach Subnetzen auf Basis von Betriebseinheiten denkbar.
         Je nach Quelle und Ziel sind alle Eigent&uuml;mer, die f&uuml;r einen Teil der Regel in Form von IP-Adressen verantwortlich sind, auch f&uuml;r die Rezertifizierung der Regel verantwortlich.
@@ -2446,7 +2444,7 @@ Aktuell gibt es zwei verschiedene Optionen:
 </ol>
 Eine Regel gilt erst dann als vollst&auml;ndig rezertifiziert, wenn alle Eigent&uuml;mer die Regel rezertifiziert haben.
 <br>
-Im Reporting-Modul steht au&szlig;erdem eine Rezertifizierungs-Report zur Verf&uuml;gung.
+Im Reporting-Modul steht au&szlig;erdem ein Rezertifizierungs-Report zur Verf&uuml;gung.
 ');
 INSERT INTO txt VALUES ('H4031', 'English', '
 In this module, users can recertify or decertify firewall rules.
@@ -2475,7 +2473,7 @@ F&uuml;r das ordnungsgem&auml;&szlig;e Funktionieren des Rezertifzierungsprozess
 <br><br>
 <H4>Berechtigungen</H4>
 <ul>
-    <li>Angemeldete Nutzer m&uuml;ssen die Rolle "Recertier" besitzen</li>
+    <li>Angemeldete Nutzer m&uuml;ssen die Rolle "Recertifier" besitzen</li>
     <li>Angemeldete Nutzer m&uuml;ssen Mitglied eines Eigent&uuml;mers sein (entweder direkt unter "Vollst&auml;ndiger Name*:" oder als Mitglieder einer Eigent&uuml;mergruppe)</li>
 </ul>
 <H4>Konfiguration der Eigent&uuml;mer</H4>
@@ -2485,10 +2483,10 @@ F&uuml;r das ordnungsgem&auml;&szlig;e Funktionieren des Rezertifzierungsprozess
     ist im Men&uuml; "Einstellungen" - "Weitere Einstellungen" - "Standardeinstellungen" die Option "Manuelle Eigent&uuml;merverwaltung erlauben" zu aktivieren.
     <br><br>
     Soll hingegen eine dezentrale Struktur aufgebaut werden, so k&ouml;nnen die Eigent&uuml;mer entweder im Firewall Orchestrator selbst definiert werden (nicht empfohlen) 
-    oder aber man importiert eine im Unternehmen vorhandene Eigent&uuml;merliste, wordurch der Pflegeaufwand zum Aktuell-Halten dieser Zuordnung nicht dem Betreiber der Firewall-Infrastruktur zuf&auml;llt.
+    oder aber man importiert eine im Unternehmen vorhandene Eigent&uuml;merliste, wodurch der Pflegeaufwand zum Aktuell-Halten dieser Zuordnung nicht dem Betreiber der Firewall-Infrastruktur zuf&auml;llt.
     <br>
     Es wird hierbei empfohlen, im Men&uuml; "Einstellungen" - "Weitere Einstellungen" - "Standardeinstellungen" die Option "Manuelle Eigent&uuml;merverwaltung erlauben" zu deaktivieren,
-    um sicherzustellen, dass keine lokalen &auml;nderungen vorgenommen werden, sondern die Eigent&uuml;mer-Pflege ausschlie&szlig;lich im externen Tool stattfindet.
+    um sicherzustellen, dass keine lokalen &Auml;nderungen vorgenommen werden, sondern die Eigent&uuml;mer-Pflege ausschlie&szlig;lich im externen Tool stattfindet.
     <br>
     F&uuml;r die Verwaltung in einem externen System ist der Import der Eigent&uuml;mer und deren IP-Adressen via 
     <a href="/help/API">Firewall Orchestrator API</a> vorzunehmen.
@@ -2555,7 +2553,7 @@ Login erfolgt mit user1_demo (Passwort cactus1) oder user2_demo (Passwort cactus
     <li>
         Sollte die Option zum Re- bzw. Dezertifizierung nicht angezeigt werden, 
         sollten die <a href="/help/settings/roles">Berechtigungen</a> &uuml;berpr&uuml;ft werden bzw. wenn der Nutzer Mitglied mehrerer Eigent&uuml;mergruppen ist, 
-        muss zun&auml;chst einer der Eigent&uuml;mer ausgew&auml;hlt werden, um speziell f&uuml;r diesen rezertizieren zu k&ouml;nnen. <br>
+        muss zun&auml;chst einer der Eigent&uuml;mer ausgew&auml;hlt werden, um speziell f&uuml;r diesen rezertifizieren zu k&ouml;nnen. <br>
         In diesem Fall empfiehlt es sich f&uuml;r einen Eigent&uuml;mer nach dem anderen zu rezertifizieren.
     </li>
 </ol>
@@ -2593,7 +2591,7 @@ Login with user1_demo (password cactus1) or user2_demo (password cactus2)
 
 INSERT INTO txt VALUES ('H4034', 'German',  '
 <H4>IP-Adress-Matching</H4>
- 	Jede Regel (Quelle und Ziel) wird mit den f&uuml;r einen Eigent&uuml;mer definierten IP-Adressen auf &uuml;berlappung gepr&uuml;ft.<br>
+ 	Jede Regel (Quelle und Ziel) wird mit den f&uuml;r einen Eigent&uuml;mer definierten IP-Adressen auf &Uuml;berlappung gepr&uuml;ft.<br>
  	Bei einer &Uuml;berlappung ist der Eigent&uuml;mer f&uuml;r die Rezertifizierung der Regel verantwortlich und ein entsprechender Eintrag wird
  	abh&auml;ngig vom Rezertifizierungsintervall des Eigent&uuml;mers erzeugt.
  	<br><br>
@@ -3317,10 +3315,10 @@ INSERT INTO txt VALUES ('H5420', 'English', 'Rule Removal Grace Period (in days)
 INSERT INTO txt VALUES ('H5421', 'German',  'Kommentar Pflichtfeld: Legt fest, dass das Kommentarfeld f&uuml;r Re- und Dezertifizierungen gef&uuml;llt sein muss.');
 INSERT INTO txt VALUES ('H5421', 'English', 'Comment Required: A non-empty comment for the re- or decertification is required.');
 
-INSERT INTO txt VALUES ('H5428', 'German',  'Rezert Check - aktiv: aktviere bzw. deaktiviere regelm&auml;&szlig;ige Pr&uuml;fungen zur Versendung von Benachrichtigungs- oder Eskalations-Emails and die Eigent&uuml;mer.');
+INSERT INTO txt VALUES ('H5428', 'German',  'Rezert Check - aktiv: aktviere bzw. deaktiviere regelm&auml;&szlig;ige Pr&uuml;fungen zur Versendung von Benachrichtigungs- oder Eskalations-Emails an die Eigent&uuml;mer.');
 INSERT INTO txt VALUES ('H5428', 'English', 'Recert Check - active: enable or disable recurring recertification checks to send out notification or escalation emails to owners.');
-INSERT INTO txt VALUES ('H5429', 'German',  'Rezert Check alle: Abstand der Pr&uuml;fungen f&uuml;r den Versand von Benachrichtigungs- oder Eskalations-Emails and die Eigent&uuml;mer.');
-INSERT INTO txt VALUES ('H5429', 'English', 'Recert Check every: Interval betwenn checks for recertification notifications.');
+INSERT INTO txt VALUES ('H5429', 'German',  'Rezert Check alle: Abstand der Pr&uuml;fungen f&uuml;r den Versand von Benachrichtigungs- oder Eskalations-Emails an die Eigent&uuml;mer.');
+INSERT INTO txt VALUES ('H5429', 'English', 'Recert Check every: Interval between checks for recertification notifications.');
 INSERT INTO txt VALUES ('H5430', 'German',  'Rezert Check - Email Titel: Titel der Benachrichtigungs-Email.');
 INSERT INTO txt VALUES ('H5430', 'English', 'Recert Check - Email subject: Subject line of the notification email.');
 INSERT INTO txt VALUES ('H5446', 'German',  'Rezert Check - Text anstehend: Textinhalt der Benachrichtigungsmail bei demn&auml;chst anstehenden Rezertifizierungen.');
@@ -3329,21 +3327,21 @@ INSERT INTO txt VALUES ('H5432', 'German',  'Rezert Check - Text &uuml;berf&auml
 INSERT INTO txt VALUES ('H5432', 'English', 'Recert Check - text overdue: Email body of the notification email for overdue recertifications (escalation).');
 
 INSERT INTO txt VALUES ('H5433', 'German',  'Autom. Anlegen L&ouml;schantrag: Soll automatisch ein L&ouml;sch-Ticket erzeugt werden, wenn eine Regel vollst&auml;ndig dezertifiziert wurde?');
-INSERT INTO txt VALUES ('H5433', 'English', 'Autocreate delete rule ticket: When a rule has benn fully de-certified, should a delete ticket be automatically generated?');
+INSERT INTO txt VALUES ('H5433', 'English', 'Autocreate delete rule ticket: When a rule has been fully de-certified, should a delete ticket be automatically generated?');
 INSERT INTO txt VALUES ('H5434', 'German',  'Titel f&uuml;r L&ouml;schantrag: Titel des zu erzeugenden L&ouml;sch-Tickets.');
-INSERT INTO txt VALUES ('H5434', 'English', 'Title delete ticket: Subject line of the delte ticket to be generated.');
+INSERT INTO txt VALUES ('H5434', 'English', 'Title delete ticket: Subject line of the delete ticket to be generated.');
 INSERT INTO txt VALUES ('H5435', 'German',  'Grund f&uuml;r L&ouml;sch-Antrag: Text f&uuml;r den Grund des zu erzeugenden L&ouml;sch-Tickets.');
 INSERT INTO txt VALUES ('H5435', 'English', 'Reason delete ticket: Text for the reason of the delete ticket to be generated.');
 INSERT INTO txt VALUES ('H5436', 'German',  'Titel f&uuml;r L&ouml;sch Auftrag: Titel der zu erzeugenden L&ouml;schaufgabe.');
 INSERT INTO txt VALUES ('H5436', 'English', 'Title delete rule task: Title of the delete task to be generated.');
 INSERT INTO txt VALUES ('H5437', 'German',  'Grund f&uuml;r L&ouml;schauftrag: Begr&uuml;ndungstext f&uuml;r die zu erzeugende L&ouml;schaufgabe.');
 INSERT INTO txt VALUES ('H5437', 'English', 'Reason for delete rule task: Text for the reason of the delete task to be generated.');
-INSERT INTO txt VALUES ('H5438', 'German',  'Priorit&auml;t f&uuml;r L&ouml;schantrag: Auswahl zwishen den Standard-Prio-Bezeichnungen Lowest, Low, Medium, High, Highest.');
-INSERT INTO txt VALUES ('H5438', 'English', 'Priority for delete rule ticket: Choose between existing priority labels (default: Lowest, Low, Medium, High, Highest).');
-INSERT INTO txt VALUES ('H5439', 'German',  'Initialer Status f&uuml;r L&uml;schantrag: Standard="Draft"');
+INSERT INTO txt VALUES ('H5438', 'German',  'Priorit&auml;t f&uuml;r L&ouml;schantrag: Auswahl zwischen den Prio-Bezeichnungen wie in den <a href="/help/settings/workflowcustomizing">Workflow-Einstellungen</a> definiert (Vorgabe: Lowest, Low, Medium, High, Highest).');
+INSERT INTO txt VALUES ('H5438', 'English', 'Priority for delete rule ticket: Choose between existing priority labels as defined in <a href="/help/settings/workflowcustomizing">workflow customizing</a>(default: Lowest, Low, Medium, High, Highest).');
+INSERT INTO txt VALUES ('H5439', 'German',  'Initialer Status f&uuml;r L&ouml;schantrag: Standard="Draft"');
 INSERT INTO txt VALUES ('H5439', 'English', 'Initial state for delete rule ticket: default="Draft"');
-INSERT INTO txt VALUES ('H5440', 'German',  'Neuberechnen offene Rezertifizierungen: Auswahl, wann die Neuberechnung durchgef&uuml;hrt werden soll - beim Hochfahren, t&auml;glich via Scheduler oder jetzt (kann mehrere Minuten dauern)  .');
-INSERT INTO txt VALUES ('H5440', 'English', 'Recalculate open recertifications: Choose, when to do this: at startup, daily via scheduler or now (this may several minutes).');
+INSERT INTO txt VALUES ('H5440', 'German',  'Neuberechnen offene Rezertifizierungen: Auswahl, wann die Neuberechnung durchgef&uuml;hrt werden soll - beim Hochfahren, t&auml;glich via Scheduler oder jetzt (kann mehrere Minuten dauern).');
+INSERT INTO txt VALUES ('H5440', 'English', 'Recalculate open recertifications: Choose, when to do this: at startup, daily via scheduler or now (this may take several minutes).');
 
 INSERT INTO txt VALUES ('H5422', 'German',  'Devices zu Beginn eingeklappt ab: Legt fest, ab wievielen Devices (Managements + Gateways) diese in der linken Randleiste zun&auml;chst eingeklappt dargestellt werden.');
 INSERT INTO txt VALUES ('H5422', 'English', 'Devices collapsed at beginning from: defines from which number of devices (managements + gateways) they are displayed collapsed in the left sidebar at beginning.');

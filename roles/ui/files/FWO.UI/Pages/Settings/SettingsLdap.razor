@@ -300,7 +300,6 @@
         }
         catch (Exception exception)
         {
-            // Log.WriteDebug("Delete Ldap Connection", $"Exception occurred: {exception}");
             DisplayMessageInUi(exception, userConfig.GetText("delete_ldap_conn"), "", true);
         }
         StateHasChanged();
@@ -413,7 +412,6 @@
         }
         catch (Exception exception)
         {
-            // Log.WriteDebug("Save Ldap Connection", $"Exception occurred: {exception}");
             DisplayMessageInUi(exception, userConfig.GetText("save_ldap_conn"), "", true);
         }
     }

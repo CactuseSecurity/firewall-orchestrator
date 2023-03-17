@@ -123,7 +123,7 @@ namespace FWO.Middleware.Server
         /// <returns>LdapEntry for the given user if found</returns>
         public LdapEntry? GetLdapEntry(UiUser user, bool validateCredentials)
         {
-            Log.WriteInfo("User Validation", $"Validating User: \"{user.Name}\" ...");
+            Log.WriteDebug("User Validation", $"Validating User: \"{user.Name}\" ...");
             try         
             {
                 // Connecting to Ldap
@@ -186,7 +186,7 @@ namespace FWO.Middleware.Server
                 Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to validate user", exception);
             }
 
-            Log.WriteInfo("Invalid Credentials", $"Invalid login credentials - could not authenticate user \"{ user.Name}\" on {Address}:{Port}.");
+            Log.WriteDebug("Invalid Credentials", $"Invalid login credentials - could not authenticate user \"{ user.Name}\" on {Address}:{Port}.");
             return null;
         }
 

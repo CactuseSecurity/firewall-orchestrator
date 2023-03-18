@@ -53,7 +53,7 @@ namespace FWO.Middleware.Controllers
             }
             catch (Exception e)
             {
-                Problem("Connection test failed: " + e.Message);
+                return Problem("Connection test failed: " + e.Message);
             }
             return Ok("Connection tested successfully");
         }

@@ -17,6 +17,9 @@
                 "action": "openExternally",
                 "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
                 "uriFormat": "%s/swagger"
+            },
+            "logging": {
+                "moduleLoad": false
             }
         },
         {
@@ -38,6 +41,9 @@
             },
             "sourceFileMap": {
                 "/Views": "${workspaceFolder}/Views"
+            },
+            "logging": {
+                "moduleLoad": false
             }
         },
         {

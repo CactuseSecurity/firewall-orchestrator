@@ -123,7 +123,7 @@ namespace FWO.Middleware.Server
         /// <returns>LdapEntry for the given user if found</returns>
         public LdapEntry? GetLdapEntry(UiUser user, bool validateCredentials)
         {
-            Log.WriteInfo("User Validation", $"Validating User: \"{user.Name}\" ...");
+            Log.WriteDebug("User Validation", $"Validating User: \"{user.Name}\" ...");
             try         
             {
                 // Connecting to Ldap
@@ -131,6 +131,10 @@ namespace FWO.Middleware.Server
                 {
                     // Authenticate as search user
                     connection.Bind(SearchUser, SearchUserPwd);
+
+                    LdapSearchConstraints cons = connection.SearchConstraints;
+                    cons.ReferralFollowing = true;
+                    connection.Constraints = cons;
 
                     List<LdapEntry> possibleUserEntries = new List<LdapEntry>();
 
@@ -144,17 +148,16 @@ namespace FWO.Middleware.Server
                             possibleUserEntries.Add(userEntry);
                         }
                     }
-                    // Dn was not provided, search for user name
-                    else
+                    else // Dn was not provided, search for user name
                     {
                         string[] attrList = new string[] { "*", "memberof" };
+                        string userSearchFilter = getUserSearchFilter(user.Name);
 
                         // Search for users in ldap with same name as user to validate
                         possibleUserEntries = ((LdapSearchResults)connection.Search(
                             UserSearchPath,             // top-level path under which to search for user
                             LdapConnection.ScopeSub,    // search all levels beneath
-                            getUserSearchFilter(user.Name),
-                            // $"(|(&(sAMAccountName={user.Name})(objectClass=person))(&(objectClass=inetOrgPerson)(uid:dn:={user.Name})))", // matching both AD and openldap filter
+                            userSearchFilter,
                             attrList,
                             typesOnly: false
                         )).ToList();
@@ -186,7 +189,7 @@ namespace FWO.Middleware.Server
                 Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to validate user", exception);
             }
 
-            Log.WriteInfo("Invalid Credentials", $"Invalid login credentials - could not authenticate user \"{ user.Name}\" on {Address}:{Port}.");
+            Log.WriteDebug("Invalid Credentials", $"Invalid login credentials - could not authenticate user \"{ user.Name}\" on {Address}:{Port}.");
             return null;
         }
 

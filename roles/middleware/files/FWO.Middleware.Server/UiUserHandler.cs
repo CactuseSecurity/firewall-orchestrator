@@ -71,17 +71,17 @@ namespace FWO.Middleware.Server
             bool userSetInDb = false;
             try
             {
-                UiUser[] existingUserFound = await apiConn.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = user.Dn });
+                UiUser[] existingUsers = await apiConn.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = user.Dn });
 
-                if (existingUserFound.Length == 1)
+                if (existingUsers.Length > 0)
                 {
-                    user.DbId = existingUserFound[0].DbId;
+                    user.DbId = existingUsers[0].DbId;
                     user.PasswordMustBeChanged = await UpdateLastLogin(apiConn, user.DbId);
                     userSetInDb = true;
                 }
                 else
                 {
-                    Log.WriteError("User not found", $"Couldn't find {user.Name} exactly once!");
+                    Log.WriteDebug("User not found", $"Couldn't find {user.Name} in internal database");
                 }
             }
             catch(Exception exeption)
@@ -91,7 +91,7 @@ namespace FWO.Middleware.Server
 
             if(!userSetInDb)
             {
-                Log.WriteInfo("New User", $"User {user.Name} first time log in - adding to database.");
+                Log.WriteInfo("New User", $"User {user.Name} first time log in - adding to internal database.");
                 await AddUiUserToDb(apiConn, user);
             }
             return user;

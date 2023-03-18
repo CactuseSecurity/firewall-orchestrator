@@ -61,9 +61,9 @@ namespace FWO.Middleware.Server
 
             string GeneratedToken = tokenHandler.WriteToken(token);
             if (user != null)
-                Log.WriteInfo("Jwt generation", $"Generated JWT {GeneratedToken} for User {user.Name}");
+                Log.WriteDebug("Jwt generation", $"Generated JWT {GeneratedToken} for User {user.Name}");
             else
-                Log.WriteInfo("Jwt generation", $"Generated JWT {GeneratedToken}");
+                Log.WriteDebug("Jwt generation", $"Generated JWT {GeneratedToken}");
             return GeneratedToken;
         }
 
@@ -106,7 +106,7 @@ namespace FWO.Middleware.Server
                 signingCredentials: new SigningCredentials(jwtPrivateKey, SecurityAlgorithms.RsaSha256)
             );
             string GeneratedToken = tokenHandler.WriteToken(token);
-            Log.WriteInfo("Jwt generation", $"Generated JWT {GeneratedToken} for {role}.");
+            Log.WriteDebug("Jwt generation", $"Generated JWT {GeneratedToken} for {role}.");
             return GeneratedToken;
         }
 
@@ -161,7 +161,6 @@ namespace FWO.Middleware.Server
             }
 
             claimsIdentity.AddClaim(new Claim("x-hasura-default-role", defaultRole));
-            // Log.WriteDebug("Default role assignment", $"User {user.Name} was assigned default-role {defaultRole}");
             return claimsIdentity;
         }
     }

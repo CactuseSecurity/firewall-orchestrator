@@ -1,5 +1,13 @@
 # this playbook contains web server availabitlity tests
 
+# TODO - find out why UI sometimes crashes during upgrade of heavy data installations
+- name: restart UI to avoid testing against crashed UI
+  ansible.builtin.systemd:
+    name: "{{ product_name }}-ui"
+    state: restarted
+  become: true
+  when: "'frontends' in group_names"
+
 - name: test web server availability
   uri:
     url: "{{ loop_url }}"

@@ -12,6 +12,9 @@
   register: web_call_result
   changed_when: false
   failed_when: false
+  until: web_call_result.status == 200
+  retries: 10 # 10 * 5 seconds
+  delay: 5 # Every 5 seconds
   loop:
     - "{{ middleware_uri }}/swagger/"
     - https://{{ ui_hostname }}/

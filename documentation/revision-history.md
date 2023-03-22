@@ -280,5 +280,5 @@ adding report template format fk and permissions
 - reduced logging in release mode
 - hasura v2.21.0 upgrade
 
-### 6.2.2 x.x.2023 DEVELOP
+### 6.2.2 22.03.2023 DEVELOP
 - adding last hit for check point to recertification (report)

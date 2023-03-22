@@ -264,7 +264,7 @@ def get_inline_layer_names_from_rulebase(rulebase, inline_layers):
                 # get_inline_layer_names_from_rulebase(rulebase, inline_layers)
 
 
-def get_layer_from_api_as_dict (api_host, api_port, api_v_url, sid, show_params_rules, layername):
+def get_layer_from_api_as_dict (api_v_url, sid, show_params_rules, layername):
     logger = getFwoLogger()
     current_layer_json = { "layername": layername, "layerchunks": [] }
     current=0

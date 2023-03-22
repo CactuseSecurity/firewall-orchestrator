@@ -169,8 +169,23 @@
 
     protected override async Task OnInitializedAsync()
     {
+
+
         try
         {
+            if(authenticationStateTask!.Result.User.IsInRole("recertifier"))
+            {
+                apiConnection.SetRole("recertifier");
+            }
+            else if(authenticationStateTask!.Result.User.IsInRole("admin"))
+            {
+                apiConnection.SetRole("admin");
+            }
+            else
+            {
+                apiConnection.SetRole("auditor");
+            }
+
             rulesFound = false;
             ticketCreator = new TicketCreator(apiConnection, userConfig);
 

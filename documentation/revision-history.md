@@ -279,3 +279,6 @@ adding report template format fk and permissions
 - fix ldap issues - closes ldap bugs #2023
 - reduced logging in release mode
 - hasura v2.21.0 upgrade
+
+### 6.2.2 x.x.2023 DEVELOP
+- adding last hit for check point to recertification (report)

@@ -712,6 +712,7 @@ Create table "import_rule"
 	"rule_svc_refs" Text,
 	"parent_rule_uid" Text,
 	"rule_type" Varchar Default 'access',
+	"last_hit" Timestamp,
  primary key ("control_id","rule_id")
 );
 

@@ -281,4 +281,4 @@ adding report template format fk and permissions
 - hasura v2.21.0 upgrade
 
 ### 6.2.2 22.03.2023 DEVELOP
-- adding last hit for check point to recertification (report)
+- adding last hit of each rule for check point and FortiManager to recertification (report)

@@ -138,6 +138,11 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
                     else:
                         rule.update({ 'rule_track': 'Log'})
 
+                    if '_last_hit' not in rule_orig or rule_orig['_last_hit'] == 0:
+                        rule.update({ 'last_hit': None})
+                    else:
+                        rule.update({ 'last_hit': rule_orig['_last_hit']})
+
                     rule['rule_src'] = extend_string_list(rule['rule_src'], rule_orig, 'srcaddr', list_delimiter, jwt=jwt, import_id=import_id)
                     rule['rule_dst'] = extend_string_list(rule['rule_dst'], rule_orig, 'dstaddr', list_delimiter, jwt=jwt, import_id=import_id)
                     rule['rule_svc'] = extend_string_list(rule['rule_svc'], rule_orig, 'service', list_delimiter, jwt=jwt, import_id=import_id)

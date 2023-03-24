@@ -303,6 +303,52 @@ def import_json_config(fwo_api_base_url, jwt, mgm_id, query_variables):
         return 1
 
 
+def update_hit_counter(fwo_api_base_url, jwt, mgm_id, query_variables):
+    logger = getFwoLogger()
+    # currently only data for check point firewalls is collected!
+
+    if 'config' in query_variables and 'rules' in query_variables['config']:
+        queryVariablesLocal = {"mgmId": mgm_id}
+        # prerequesite: rule_uids are unique across a management
+        # this is guaranteed for the newer devices
+        # older devices like netscreen or FortiGate (via ssh) need to be checked
+        # when hits information should be gathered here in the future
+
+        found_hits = False
+        last_hit_update_mutation = """
+            mutation updateRuleLastHit($mgmId:Int!) {
+                update_rule_metadata_many(updates: [
+        """
+
+        for rule in query_variables['config']['rules']:
+            if 'last_hit' in rule and rule['last_hit'] is not None:
+                found_hits = True
+                update_expr = '{{ where: {{ device: {{ mgm_id:{{_eq:$mgmId}} }} rule_uid: {{ _eq: "{rule_uid}" }} }}, _set: {{ rule_last_hit: "{last_hit}" }} }}, '.format(rule_uid=rule["rule_uid"], last_hit=rule['last_hit'])
+                last_hit_update_mutation += update_expr
+
+        last_hit_update_mutation += " ]) { affected_rows } }"
+
+        if found_hits:
+            try:
+                update_result = call(fwo_api_base_url, jwt, last_hit_update_mutation,
+                                    query_variables=queryVariablesLocal, role='importer')
+                if 'errors' in update_result:
+                    logger.exception("fwo_api:update_hit_counter - error while updating hit counters for mgm id " +
+                                    str(mgm_id) + ": " + str(update_result['errors']))
+                update_counter = len(update_result['data']['update_rule_metadata_many'])
+            except:
+                logger.exception("failed to update hit counter for mgm id " + str(mgm_id))
+                return 1 # error
+            
+            return 0
+        else:
+            logger.debug("found no rules with hit information for mgm_id " + str(mgm_id))
+            return 1
+    else:
+        logger.debug("no rules found for mgm_id " + str(mgm_id))
+        return 1
+
+
 def delete_import_object_tables(fwo_api_base_url, jwt, query_variables):
     logger = getFwoLogger()
     delete_mutation = """

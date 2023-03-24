@@ -210,6 +210,11 @@ def parse_single_rule_to_json(src_rule, rulebase, layer_name, import_id, rule_nu
             else:
                 comments = None
 
+            if 'hits' in src_rule and 'last-date' in src_rule['hits'] and 'iso-8601' in src_rule['hits']['last-date']:
+                last_hit = src_rule['hits']['last-date']['iso-8601']
+            else:
+                last_hit = None
+
             rule = {
                 "control_id":       int(import_id),
                 "rule_num":         int(rule_num),
@@ -238,7 +243,8 @@ def parse_single_rule_to_json(src_rule, rulebase, layer_name, import_id, rule_nu
                 # rule_from_zone
                 # rule_to_zone
                 "rule_last_change_admin": sanitize(rule_last_change_admin),
-                "parent_rule_uid":  sanitize(parent_rule_uid)
+                "parent_rule_uid":  sanitize(parent_rule_uid),
+                "last_hit":         sanitize(last_hit)
             }
             rulebase.append(rule)
 

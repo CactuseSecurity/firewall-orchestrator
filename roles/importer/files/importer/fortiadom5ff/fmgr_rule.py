@@ -10,6 +10,7 @@ from fwo_log import getFwoLogger
 from fwo_data_networking import get_matching_route_obj, get_ip_of_interface_obj
 import ipaddress
 from fmgr_network import resolve_objects, resolve_raw_objects
+import time
 
 rule_access_scope_v4 = ['rules_global_header_v4', 'rules_adom_v4', 'rules_global_footer_v4']
 rule_access_scope_v6 = ['rules_global_header_v6', 'rules_adom_v6', 'rules_global_footer_v6']
@@ -137,6 +138,11 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
                         rule.update({ 'rule_track': 'None'})
                     else:
                         rule.update({ 'rule_track': 'Log'})
+
+                    if '_last_hit' not in rule_orig or rule_orig['_last_hit'] == 0:
+                        rule.update({ 'last_hit': None})
+                    else:                      	
+                        rule.update({ 'last_hit': time.strftime("%Y-%m-%d", time.localtime(rule_orig['_last_hit']))})
 
                     rule['rule_src'] = extend_string_list(rule['rule_src'], rule_orig, 'srcaddr', list_delimiter, jwt=jwt, import_id=import_id)
                     rule['rule_dst'] = extend_string_list(rule['rule_dst'], rule_orig, 'dstaddr', list_delimiter, jwt=jwt, import_id=import_id)

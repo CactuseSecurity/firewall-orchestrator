@@ -1870,8 +1870,8 @@ INSERT INTO txt VALUES ('E5209', 'German',  'Nutzer konnten nicht geholt werden'
 INSERT INTO txt VALUES ('E5209', 'English', 'Users could not be fetched');
 INSERT INTO txt VALUES ('E5210', 'German',  'Nutzer (Dn) existiert bereits');
 INSERT INTO txt VALUES ('E5210', 'English', 'User (Dn) is already existing');
-INSERT INTO txt VALUES ('E5211', 'German',  'Name und Passwort m&uuml;ssen gef&uuml;llt sein');
-INSERT INTO txt VALUES ('E5211', 'English', 'Name and Password have to be filled');
+INSERT INTO txt VALUES ('E5211', 'German',  'Name, Passwort und initiale Rolle m&uuml;ssen gef&uuml;llt sein');
+INSERT INTO txt VALUES ('E5211', 'English', 'Name, password and initial role have to be filled');
 INSERT INTO txt VALUES ('E5212', 'German',  'Unbekannter Mandant');
 INSERT INTO txt VALUES ('E5212', 'English', 'Unknown tenant');
 INSERT INTO txt VALUES ('E5213', 'German',  'Nutzer konnte nicht hinzugef&uuml;gt werden');

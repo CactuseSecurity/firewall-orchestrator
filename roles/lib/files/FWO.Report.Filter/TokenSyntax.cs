@@ -51,6 +51,12 @@
                     NoWhiteSpaceRequiered: new string[] { }
                 ),
 
+                TokenKind.LastHit => new TokenSyntax
+                (
+                    WhiteSpaceRequiered: new string[] { "lasthit", "last-hit", "last-used", "lastused", "last-usage", "lastusage", "last-use", "lastuse" },
+                    NoWhiteSpaceRequiered: new string[] { }
+                ),
+
                 TokenKind.Source => new TokenSyntax
                 (
                     WhiteSpaceRequiered: new string[] { "source", "src" },

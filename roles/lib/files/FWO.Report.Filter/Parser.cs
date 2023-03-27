@@ -231,7 +231,7 @@ namespace FWO.Report.Filter
                 TokenKind.Disabled or TokenKind.SourceNegated or TokenKind.DestinationNegated or TokenKind.ServiceNegated or TokenKind.Remove
                 => new AstNodeFilterBool() { Name = Name, Operator = Operator, Value = Value },
 
-                TokenKind.Time
+                TokenKind.Time or TokenKind.LastHit 
                 => new AstNodeFilterDateTimeRange() { Name = Name, Operator = Operator, Value = Value },
 
                 TokenKind.ReportType 
@@ -255,7 +255,7 @@ namespace FWO.Report.Filter
         private Token ParseFilterName()
         {
             return CheckToken(
-                TokenKind.Owner, TokenKind.Destination, TokenKind.Source, TokenKind.Service, TokenKind.Protocol,
+                TokenKind.LastHit, TokenKind.Owner, TokenKind.Destination, TokenKind.Source, TokenKind.Service, TokenKind.Protocol,
                 TokenKind.DestinationPort, TokenKind.Action, TokenKind.FullText, TokenKind.Gateway,
                 TokenKind.Management, TokenKind.Remove, TokenKind.RecertDisplay, TokenKind.Disabled);
         }

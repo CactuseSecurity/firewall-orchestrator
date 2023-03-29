@@ -22,4 +22,4 @@
     - roles_for_sample_operators
     - groups_for_sample_operators
   become: true
-  when: "not installation_mode == 'test'"
+  when: sample_role_purpose is not match('test')

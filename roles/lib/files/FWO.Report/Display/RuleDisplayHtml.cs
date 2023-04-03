@@ -272,6 +272,14 @@ namespace FWO.Ui.Display
             return result;
         }
 
+        public string DisplayLastHit(Rule rule, bool multipleOwners)
+        {
+            if (rule.Metadata.LastHit == null)
+                return "";
+            else
+                return DateOnly.FromDateTime((DateTime)rule.Metadata.LastHit).ToString("yyyy-MM-dd");  //rule.Metadata.LastHit.ToString("yyyy-MM-dd");
+        }
+
         private string getIpMatchDisplayString (int ownerCounter, Recertification recert, bool multipleOwners)
         {
             string result = "";

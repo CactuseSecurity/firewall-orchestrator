@@ -275,5 +275,10 @@ adding report template format fk and permissions
 - adding import modules for Palo Alto and Azure Firewall
 - Workflow Module: adding delete rule request and integrated path analysis into workflow
 
-### 6.2.1 17.03.2023 MAIN
+### 6.2.1 18.03.2023 MAIN
 - fix ldap issues - closes ldap bugs #2023
+- reduced logging in release mode
+- hasura v2.21.0 upgrade
+
+### 6.2.2 22.03.2023 DEVELOP
+- adding last hit of each rule for check point and FortiManager to recertification (report)

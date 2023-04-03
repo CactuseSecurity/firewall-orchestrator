@@ -50,6 +50,11 @@
                                             @((MarkupString)ruleDisplay.DisplayRecertIpMatches(rule, filteredForMultipleOwners()))
                                         </Template>
                                     </Column>
+                                    <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("last_hit"))" Field="@(rule => rule.Metadata.LastHit)" Sortable="false" Filterable="false">
+                                        <Template>
+                                            @((MarkupString)ruleDisplay.DisplayLastHit(rule, filteredForMultipleOwners()))
+                                        </Template>
+                                    </Column>
                                     @if(Recertification && RecertificationHistory)
                                     {
                                         // TODO: implement 2nd recert report containing latest recerts

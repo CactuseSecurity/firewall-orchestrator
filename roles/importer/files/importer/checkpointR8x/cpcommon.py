@@ -92,7 +92,9 @@ def get_basic_config (config_json, mgm_details, force=False, config_filename=Non
     v_url = getter.get_api_url (sid, api_host, api_port, api_user, base_url, limit, test_version, ssl_verification, debug_level=debug_level)
 
     config_json.update({'rulebases': [], 'nat_rulebases': [] })
-    show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary,'details-level':details_level}
+    
+    with_hits = True
+    show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary,'details-level':details_level, 'show-hits' : with_hits}
 
     # read all rulebases: handle per device details
     for device in mgm_details['devices']:
@@ -100,14 +102,14 @@ def get_basic_config (config_json, mgm_details, force=False, config_filename=Non
             show_params_rules['name'] = device['global_rulebase_name']
             # get global layer rulebase
             logger.debug ( "getting layer: " + show_params_rules['name'] )
-            current_layer_json = getter.get_layer_from_api_as_dict (api_host, api_port, v_url, sid, show_params_rules, layername=device['global_rulebase_name'])
+            current_layer_json = getter.get_layer_from_api_as_dict (v_url, sid, show_params_rules, layername=device['global_rulebase_name'])
             if current_layer_json is None:
                 return 1
             # now also get domain rules 
             show_params_rules['name'] = device['local_rulebase_name']
             current_layer_json['layername'] = device['local_rulebase_name']
             logger.debug ( "getting domain rule layer: " + show_params_rules['name'] )
-            domain_rules = getter.get_layer_from_api_as_dict (api_host, api_port, v_url, sid, show_params_rules, layername=device['local_rulebase_name'])
+            domain_rules = getter.get_layer_from_api_as_dict (v_url, sid, show_params_rules, layername=device['local_rulebase_name'])
             if current_layer_json is None:
                 return 1
 
@@ -122,7 +124,7 @@ def get_basic_config (config_json, mgm_details, force=False, config_filename=Non
         else:   # no global rules, just get local ones
             show_params_rules['name'] = device['local_rulebase_name']
             logger.debug ( "getting layer: " + show_params_rules['name'] )
-            current_layer_json = getter.get_layer_from_api_as_dict (api_host, api_port, v_url, sid, show_params_rules, layername=device['local_rulebase_name'])
+            current_layer_json = getter.get_layer_from_api_as_dict (v_url, sid, show_params_rules, layername=device['local_rulebase_name'])
             if current_layer_json is None:
                 return 1
 

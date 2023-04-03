@@ -21,6 +21,7 @@
         Time,
         RecertDisplay,
         FullText,
+        LastHit,
         BL, // (
         BR, // )
         And,

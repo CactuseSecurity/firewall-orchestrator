@@ -22,9 +22,49 @@ namespace FWO.Report.Filter.Ast
 
             switch (Name.Kind)
             {
+                case TokenKind.LastHit:
+                    ExtractLastHitFilter(query, (ReportType)reportType);
+                    break;
                 default:
                     break;
             }
+        }
+
+        private DynGraphqlQuery ExtractLastHitFilter(DynGraphqlQuery query, ReportType reportType)
+        {
+            string queryVarName = AddVariable<DateTimeRange>(query, "lastHitLimit", Operator.Kind, semanticValue!);
+            
+            if (reportType == ReportType.Changes)
+            {
+                if (Operator.Kind==TokenKind.LSS) // only show rules which have a hit before a certain date (including no hit rules)
+                {
+                    query.ruleWhereStatement += $@"
+                        _or: [
+                            {{ rule: {{ rule_metadatum: {{ rule_last_hit: {{{ExtractOperator()}: ${queryVarName} }} }} }} }}
+                            {{ rule: {{ rule_metadatum: {{ rule_last_hit: {{_is_null: true }} }} }} }}
+                        ]";
+                }
+                else // only show rules which have a hit after a certain date (leaving out no hit rules)
+                {
+                    query.ruleWhereStatement += $"rule: {{ rule_metadatum:{{ rule_last_hit: {{{ExtractOperator()}: ${queryVarName} }} }} }}";
+                }
+            }
+            else
+            {
+                if (Operator.Kind==TokenKind.LSS) // only show rules which have a hit before a certain date (including no hit rules)
+                {
+                    query.ruleWhereStatement += $@"
+                        _or: [
+                            {{ rule_metadatum: {{ rule_last_hit: {{{ExtractOperator()}: ${queryVarName} }} }} }}
+                            {{ rule_metadatum: {{ rule_last_hit: {{_is_null: true }} }} }}
+                            ]";
+                }
+                else // only show rules which have a hit after a certain date (leaving out no hit rules)
+                {
+                    query.ruleWhereStatement += $"rule_metadatum: {{ rule_last_hit: {{{ExtractOperator()}: ${queryVarName} }} }}";
+                }
+            }
+            return query;
         }
 
         //private DynGraphqlQuery ExtractTimeFilter(DynGraphqlQuery query)

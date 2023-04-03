@@ -65,6 +65,18 @@ namespace FWO.Report.Filter.Ast
                     queryVarValue = dateTimeValue.ToString(DynGraphqlQuery.fullTimeFormat);
                     break;
 
+                case DateTimeRange dateTimeValue:
+                    queryVarType = "timestamp";
+                    if (dateTimeValue.Start == null && dateTimeValue.End == null)
+                        throw new NotSupportedException($"LastHit filter with missing date");
+                    DateTime date = new DateTime();
+                    if (dateTimeValue.End != null)
+                        date = (DateTime)dateTimeValue.End;
+                    if (dateTimeValue.Start != null)
+                        date = (DateTime)dateTimeValue.Start;
+                    queryVarValue = date.ToString(DynGraphqlQuery.fullTimeFormat);
+                    break;
+
                 default:
                     throw new NotSupportedException($"Type \"{typeof(Type)}\" is not supported in GraphQL Query");
             }

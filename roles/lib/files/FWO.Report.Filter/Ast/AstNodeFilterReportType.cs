@@ -1,9 +1,4 @@
 ﻿using FWO.Report.Filter.Exceptions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace FWO.Report.Filter.Ast
 {
@@ -20,6 +15,7 @@ namespace FWO.Report.Filter.Ast
                 "resolvedrules" or "resolvedrule" => ReportType.ResolvedRules,
                 "statistics" or "statistic" => ReportType.Statistics,
                 "changes" or "change" => ReportType.Changes,
+                "resolvedchanges" or "resolvedchange" => ReportType.ResolvedChanges,
                 "natrules" or "nat_rules" => ReportType.NatRules,
                 _ => throw new SemanticException($"Unexpected report type found", Value.Position)
             };

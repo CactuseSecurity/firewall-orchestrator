@@ -15,7 +15,7 @@ namespace FWO.Report
         public override string ExportToHtml()
         {
             StringBuilder report = new StringBuilder();
-            NatRuleDisplay ruleDisplay = new NatRuleDisplay(userConfig);
+            NatRuleDisplayHtml ruleDisplay = new NatRuleDisplayHtml(userConfig);
 
             foreach (Management management in Managements.Where(mgt => !mgt.Ignore))
             {
@@ -185,7 +185,7 @@ namespace FWO.Report
                 report.AppendLine("</table>");
             }
 
-            return GenerateHtmlFrame(title: userConfig.GetText("natrules_report"), Query.RawFilter, DateTime.Now, report);
+            return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
         }
     }
 }

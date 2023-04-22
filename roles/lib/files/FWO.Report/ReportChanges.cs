@@ -68,17 +68,50 @@ namespace FWO.Report
 
         public override string ExportToCsv()
         {
-            StringBuilder csvBuilder = new StringBuilder();
-
-            foreach (Management management in Managements.Where(mgt => !mgt.Ignore))
+            if (ReportType.IsResolvedReport())
             {
-                //foreach (var item in collection)
-                //{
+                StringBuilder report = new StringBuilder();
+                RuleChangeDisplayCsv ruleChangeDisplayCsv = new RuleChangeDisplayCsv(userConfig);
 
-                //}
+                report.Append(DisplayReportHeaderCsv());
+                report.AppendLine($"\"management-name\",\"device-name\",\"change-time\",\"change-type\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"");
+
+                foreach (Management management in Managements.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+                        Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
+                {
+                    foreach (Device gateway in management.Devices)
+                    {
+                        if (gateway.RuleChanges != null && gateway.RuleChanges.Length > 0)
+                        {
+                            foreach (RuleChange ruleChange in gateway.RuleChanges)
+                            {
+                                report.Append(ruleChangeDisplayCsv.OutputCsv(management.Name));
+                                report.Append(ruleChangeDisplayCsv.OutputCsv(gateway.Name));
+                                report.Append(ruleChangeDisplayCsv.DisplayChangeTime(ruleChange));
+                                report.Append(ruleChangeDisplayCsv.DisplayChangeAction(ruleChange));
+                                report.Append(ruleChangeDisplayCsv.DisplayName(ruleChange));
+                                report.Append(ruleChangeDisplayCsv.DisplaySourceZone(ruleChange));
+                                report.Append(ruleChangeDisplayCsv.DisplaySource(ruleChange, ReportType));
+                                report.Append(ruleChangeDisplayCsv.DisplayDestinationZone(ruleChange));
+                                report.Append(ruleChangeDisplayCsv.DisplayDestination(ruleChange, ReportType));
+                                report.Append(ruleChangeDisplayCsv.DisplayService(ruleChange, ReportType));
+                                report.Append(ruleChangeDisplayCsv.DisplayAction(ruleChange));
+                                report.Append(ruleChangeDisplayCsv.DisplayTrack(ruleChange));
+                                report.Append(ruleChangeDisplayCsv.DisplayEnabled(ruleChange));
+                                report.Append(ruleChangeDisplayCsv.DisplayUid(ruleChange));
+                                report.Append(ruleChangeDisplayCsv.DisplayComment(ruleChange));
+                                report = ruleChangeDisplayCsv.RemoveLastChars(report, 1); // remove last chars (comma)
+                                report.AppendLine("");
+                            }
+                        }
+                    }
+                }
+                return report.ToString();
             }
-
-            throw new NotImplementedException();
+            else
+            {
+                throw new NotImplementedException();
+            }
         }
 
         private const int ColumnCount = 13;
@@ -86,7 +119,7 @@ namespace FWO.Report
         public override string ExportToHtml()
         {
             StringBuilder report = new StringBuilder();
-            RuleChangeDisplay ruleChangeDisplay = new RuleChangeDisplay(userConfig);
+            RuleChangeDisplayHtml ruleChangeDisplayHtml = new RuleChangeDisplayHtml(userConfig);
 
             foreach (Management management in Managements.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                     Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
@@ -121,19 +154,19 @@ namespace FWO.Report
                         foreach (RuleChange ruleChange in device.RuleChanges)
                         {
                             report.AppendLine("<tr>");
-                            report.AppendLine($"<td>{ruleChangeDisplay.DisplayChangeTime(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplay.DisplayChangeAction(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplay.DisplayName(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplay.DisplaySourceZone(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplay.DisplaySource(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplay.DisplayDestinationZone(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplay.DisplayDestination(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplay.DisplayService(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplay.DisplayAction(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplay.DisplayTrack(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplay.DisplayEnabled(ruleChange, export: true)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplay.DisplayUid(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplay.DisplayComment(ruleChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayChangeTime(ruleChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayChangeAction(ruleChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayName(ruleChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplaySourceZone(ruleChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplaySource(ruleChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayDestinationZone(ruleChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayDestination(ruleChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayService(ruleChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayAction(ruleChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayTrack(ruleChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayEnabled(ruleChange, export: true)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayUid(ruleChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayComment(ruleChange)}</td>");
                             report.AppendLine("</tr>");
                         }
                     }
@@ -148,7 +181,7 @@ namespace FWO.Report
                 }
             }
 
-            return GenerateHtmlFrame(title: userConfig.GetText("changes_report"), Query.RawFilter, DateTime.Now, report);
+            return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
         }
     }
 }

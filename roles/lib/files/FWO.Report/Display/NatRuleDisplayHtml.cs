@@ -4,9 +4,9 @@ using System.Text;
 
 namespace FWO.Ui.Display
 {
-    public class NatRuleDisplay : RuleDisplayHtml
+    public class NatRuleDisplayHtml : RuleDisplayHtml
     {
-        public NatRuleDisplay(UserConfig userConfig) : base(userConfig)
+        public NatRuleDisplayHtml(UserConfig userConfig) : base(userConfig)
         {}
 
         public string DisplayTranslatedSource(Rule rule, string style = "", string location = "report")
@@ -17,7 +17,7 @@ namespace FWO.Ui.Display
 
             if (rule.NatData.TranslatedSourceNegated)
             {
-                result.AppendLine(userConfig.GetText("anything_but") + " <br>");
+                result.AppendLine(userConfig.GetText("negated") + " <br>");
             }
 
             string symbol = "";
@@ -59,7 +59,7 @@ namespace FWO.Ui.Display
 
             if (rule.NatData.TranslatedDestinationNegated)
             {
-                result.AppendLine(userConfig.GetText("anything_but") + " <br>");
+                result.AppendLine(userConfig.GetText("negated") + " <br>");
             }
 
             string symbol = "";
@@ -96,7 +96,7 @@ namespace FWO.Ui.Display
 
             if (rule.NatData.TranslatedServiceNegated)
             {
-                result.AppendLine(userConfig.GetText("anything_but") + " <br>");
+                result.AppendLine(userConfig.GetText("negated") + " <br>");
             }
 
             string symbol = "";

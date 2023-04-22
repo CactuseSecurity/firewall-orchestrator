@@ -2,7 +2,6 @@ using FWO.Api.Data;
 using System.Text;
 using FWO.Api.Client;
 using FWO.Report.Filter;
-using FWO.Api.Client.Queries;
 using System.Text.Json;
 using FWO.Config.Api;
 using FWO.Logging;
@@ -141,7 +140,7 @@ namespace FWO.Report
                 report.AppendLine("</table>");
                 report.AppendLine("<hr>");
             }
-            return GenerateHtmlFrame(title: userConfig.GetText("statistics_report"), Query.RawFilter, DateTime.Now, report);
+            return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
         }
     }
 }

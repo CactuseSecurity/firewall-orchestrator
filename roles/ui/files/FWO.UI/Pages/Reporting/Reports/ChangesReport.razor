@@ -11,7 +11,7 @@
 
             @foreach (Device device in management.Devices)
             {
-                @if (device.RuleChanges != null && device.RuleChanges.Length > 0 && ruleChangeDisplay != null && SelectedRuleChanges != null)
+                @if (device.RuleChanges != null && device.RuleChanges.Length > 0 && ruleChangeDisplayHtml != null && SelectedRuleChanges != null)
                 {
                     <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
                         <Table SelectedItems="SelectedRuleChanges"
@@ -22,85 +22,85 @@
                             <Column TableItem="RuleChange" Title="@(userConfig.GetText("change_time"))" Field="@(rChange => rChange.ChangeImport.Time)" Sortable="true" Filterable="true" Hideable="true" />
                             <Column TableItem="RuleChange" Title="@(userConfig.GetText("change_type"))" Hideable="true">
                                 <Template>
-                                    <div style="@ruleChangeDisplay.DisplayStyle(context)">
-                                        @((MarkupString)ruleChangeDisplay.DisplayChangeAction(context))
+                                    <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
+                                        @((MarkupString)ruleChangeDisplayHtml.DisplayChangeAction(context))
                                     </div>
                                 </Template>
                             </Column>
                             <Column TableItem="RuleChange" Title="@(userConfig.GetText("name"))" Hideable="true">
                                 <Template>
-                                    <div style="@ruleChangeDisplay.DisplayStyle(context)">
-                                        @((MarkupString)ruleChangeDisplay.DisplayName(context))
+                                    <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
+                                        @((MarkupString)ruleChangeDisplayHtml.DisplayName(context))
                                     </div>
                                 </Template>
                             </Column>
                             <Column TableItem="RuleChange" Title="@(userConfig.GetText("source_zone"))" Hideable="true">
                                 <Template>
-                                    <div style="@ruleChangeDisplay.DisplayStyle(context)">
-                                        @((MarkupString)ruleChangeDisplay.DisplaySourceZone(context))
+                                    <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
+                                        @((MarkupString)ruleChangeDisplayHtml.DisplaySourceZone(context))
                                     </div>
                                 </Template>
                             </Column>
                             <Column TableItem="RuleChange" Title="@(userConfig.GetText("source"))" Hideable="true">
                                 <Template>
-                                    <div style="@ruleChangeDisplay.DisplayStyle(context)">
-                                        @((MarkupString)ruleChangeDisplay.DisplaySource(context))
+                                    <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
+                                        @((MarkupString)ruleChangeDisplayHtml.DisplaySource(context))
                                     </div>
                                 </Template>
                             </Column>
                             <Column TableItem="RuleChange" Title="@(userConfig.GetText("destination_zone"))" Hideable="true">
                                 <Template>
-                                    <div style="@ruleChangeDisplay.DisplayStyle(context)">
-                                        @((MarkupString)ruleChangeDisplay.DisplayDestinationZone(context))
+                                    <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
+                                        @((MarkupString)ruleChangeDisplayHtml.DisplayDestinationZone(context))
                                     </div>
                                 </Template>
                             </Column>
                             <Column TableItem="RuleChange" Title="@(userConfig.GetText("destination"))" Hideable="true">
                                 <Template>
-                                    <div style="@ruleChangeDisplay.DisplayStyle(context)">
-                                        @((MarkupString)ruleChangeDisplay.DisplayDestination(context))
+                                    <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
+                                        @((MarkupString)ruleChangeDisplayHtml.DisplayDestination(context))
                                     </div>
                                 </Template>
                             </Column>
                             <Column TableItem="RuleChange" Title="@(userConfig.GetText("services"))" Hideable="true">
                                 <Template>
-                                    <div style="@ruleChangeDisplay.DisplayStyle(context)">
-                                        @((MarkupString)ruleChangeDisplay.DisplayService(context))
+                                    <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
+                                        @((MarkupString)ruleChangeDisplayHtml.DisplayService(context))
                                     </div>
                                 </Template>
                             </Column>
                             <Column TableItem="RuleChange" Title="@(userConfig.GetText("action"))" Hideable="true">
                                 <Template>
-                                    <div style="@ruleChangeDisplay.DisplayStyle(context)">
-                                        @((MarkupString)ruleChangeDisplay.DisplayAction(context))
+                                    <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
+                                        @((MarkupString)ruleChangeDisplayHtml.DisplayAction(context))
                                     </div>
                                 </Template>
                             </Column>
                             <Column TableItem="RuleChange" Title="@(userConfig.GetText("track"))" Hideable="true">
                                 <Template>
-                                    <div style="@ruleChangeDisplay.DisplayStyle(context)">
-                                        @((MarkupString)ruleChangeDisplay.DisplayTrack(context))
+                                    <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
+                                        @((MarkupString)ruleChangeDisplayHtml.DisplayTrack(context))
                                     </div>
                                 </Template>
                             </Column>
                             <Column TableItem="RuleChange" Title="@(userConfig.GetText("enabled"))" Hideable="true">
                                 <Template>
-                                    <div style="@ruleChangeDisplay.DisplayStyle(context)">
-                                        @((MarkupString)ruleChangeDisplay.DisplayEnabled(context))
+                                    <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
+                                        @((MarkupString)ruleChangeDisplayHtml.DisplayEnabled(context))
                                     </div>
                                 </Template>
                             </Column>
                             <Column TableItem="RuleChange" Title="@(userConfig.GetText("uid"))" Hideable="true">
                                 <Template>
-                                    <div style="@ruleChangeDisplay.DisplayStyle(context)">
-                                        @((MarkupString)ruleChangeDisplay.DisplayUid(context))
+                                    <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
+                                        @((MarkupString)ruleChangeDisplayHtml.DisplayUid(context))
                                     </div>
                                 </Template>
                             </Column>
                             <Column TableItem="RuleChange" Title="@(userConfig.GetText("comment"))" Hideable="true">
                                 <Template>
-                                    <div style="@ruleChangeDisplay.DisplayStyle(context)">
-                                        @((MarkupString)ruleChangeDisplay.DisplayComment(context))
+                                    <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
+                                        @((MarkupString)ruleChangeDisplayHtml.DisplayComment(context))
                                     </div>
                                 </Template>
                             </Column>
@@ -132,10 +132,10 @@
     [Parameter]
     public Management[] Managements { get; set; } = new Management[]{};
 
-    public RuleChangeDisplay? ruleChangeDisplay;
+    public RuleChangeDisplayHtml? ruleChangeDisplayHtml;
 
     protected override void OnInitialized()
     {
-        ruleChangeDisplay = new RuleChangeDisplay(userConfig);
+        ruleChangeDisplayHtml = new RuleChangeDisplayHtml(userConfig);
     }
 }

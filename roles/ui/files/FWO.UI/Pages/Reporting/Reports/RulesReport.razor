@@ -252,11 +252,11 @@
     private const int ColumnsCount = 12;
     private bool[] EmptyColumns = new bool[ColumnsCount];
 
-    private NatRuleDisplay? ruleDisplay;
+    private NatRuleDisplayHtml? ruleDisplay;
     
     protected override void OnInitialized()
     {
-        ruleDisplay = new NatRuleDisplay(userConfig);
+        ruleDisplay = new NatRuleDisplayHtml(userConfig);
     }
 
     private string getTableRowClasses(Rule rule)

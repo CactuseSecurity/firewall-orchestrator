@@ -1,7 +1,6 @@
 ﻿using FWO.Api.Data;
 using FWO.Config.Api;
 using System.Text;
-using FWO.Report.Filter;
 
 namespace FWO.Ui.Display
 {
@@ -67,5 +66,40 @@ namespace FWO.Ui.Display
             return s.Remove(s.ToString().Length - count, count);
         }
 
+        public List<NetworkLocation> getNetworkLocations(NetworkLocation[] locationArray)
+        {
+            HashSet<NetworkLocation> collectedUserNetworkObjects = new HashSet<NetworkLocation>();
+            foreach (NetworkLocation networkObject in locationArray)
+            {
+                foreach (GroupFlat<NetworkObject> nwObject in networkObject.Object.ObjectGroupFlats)
+                {
+                    if (nwObject.Object != null && nwObject.Object.Type.Name != "group")    // leave out group level altogether
+                    {
+                        collectedUserNetworkObjects.Add(new NetworkLocation(networkObject.User, nwObject.Object));
+                    }
+                }
+            }
+            List<NetworkLocation> userNwObjectList = collectedUserNetworkObjects.ToList<NetworkLocation>();
+            userNwObjectList.Sort();
+            return userNwObjectList;
+        }
+
+        public List<NetworkService> getNetworkServices(ServiceWrapper[] serviceArray)
+        {
+            HashSet<NetworkService> collectedServices = new HashSet<NetworkService>();
+            foreach (ServiceWrapper service in serviceArray)
+            {
+                foreach (GroupFlat<NetworkService> nwService in service.Content.ServiceGroupFlats)
+                {
+                    if (nwService.Object != null && nwService.Object.Type.Name != "group")
+                    {
+                        collectedServices.Add(nwService.Object);
+                    }
+                }
+            }
+            List<NetworkService> serviceList = collectedServices.ToList<NetworkService>();
+            serviceList.Sort(delegate (NetworkService x, NetworkService y) { return x.Name.CompareTo(y.Name); });
+            return serviceList;
+        }
     }
 }

@@ -370,6 +370,7 @@ namespace FWO.Report
                 report.AppendLine($"<th>{userConfig.GetText("next_recert")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("owner")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("ip_matches")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("last_hit")}</th>");
             }
             report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("source_zone")}</th>");
@@ -405,6 +406,7 @@ namespace FWO.Report
                             report.AppendLine($"<td>{ruleDisplay.DisplayNextRecert(rule, multipleOwners)}</td>");
                             report.AppendLine($"<td>{ruleDisplay.DisplayOwner(rule, multipleOwners)}</td>");
                             report.AppendLine($"<td>{ruleDisplay.DisplayRecertIpMatches(rule, multipleOwners)}</td>");
+                            report.AppendLine($"<td>{ruleDisplay.DisplayLastHit(rule, multipleOwners)}</td>");
                         }
                         report.AppendLine($"<td>{ruleDisplay.DisplayName(rule)}</td>");
                         report.AppendLine($"<td>{ruleDisplay.DisplaySourceZone(rule)}</td>");
@@ -497,7 +499,7 @@ namespace FWO.Report
                     report.AppendLine($"<td>{objNumber++}</td>");
                     report.AppendLine($"<td>{svcobj.Name}</td>");
                     report.AppendLine($"<td><a name=svc{svcobj.Id}>{svcobj.Name}</a></td>");
-                    report.AppendLine($"<td>{((svcobj.Protocol != null) ? svcobj.Protocol.Name : "")}</td>");
+                    report.AppendLine($"<td>{((svcobj.Type.Name!="group" && svcobj.Protocol != null) ? svcobj.Protocol.Name : "")}</td>");
                     if (svcobj.DestinationPortEnd != null && svcobj.DestinationPortEnd != svcobj.DestinationPort)
                         report.AppendLine($"<td>{svcobj.DestinationPort}-{svcobj.DestinationPortEnd}</td>");
                     else

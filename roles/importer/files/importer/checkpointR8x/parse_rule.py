@@ -1,7 +1,7 @@
 from asyncio.log import logger
 from fwo_log import getFwoLogger
 import json
-import cpcommon
+import cp_const, cpcommon
 import fwo_const
 from fwo_const import list_delimiter
 from fwo_base import sanitize
@@ -18,13 +18,13 @@ def add_section_header_rule_in_json(rulebase, section_name, layer_name, import_i
         "rule_disabled":    False,
         "rule_src_neg":     False,
         "rule_src":         "Any",
-        "rule_src_refs":    sanitize(cpcommon.any_obj_uid),
+        "rule_src_refs":    sanitize(cp_const.any_obj_uid),
         "rule_dst_neg":     False,
         "rule_dst":         "Any",
-        "rule_dst_refs":    sanitize(cpcommon.any_obj_uid),
+        "rule_dst_refs":    sanitize(cp_const.any_obj_uid),
         "rule_svc_neg":     False,
         "rule_svc":         "Any",
-        "rule_svc_refs":    sanitize(cpcommon.any_obj_uid),
+        "rule_svc_refs":    sanitize(cp_const.any_obj_uid),
         "rule_action":      "Accept",
         "rule_track":       "Log",
         "rule_installon":   "Policy Targets",
@@ -96,7 +96,7 @@ def parse_single_rule_to_json(src_rule, rulebase, layer_name, import_id, rule_nu
                         if isinstance(src['networks'], str):  # just a single source
                             if src['networks'] == 'any':
                                 rule_src_ref += src['uid'] + '@' + \
-                                    cpcommon.any_obj_uid + list_delimiter
+                                    cp_const.any_obj_uid + list_delimiter
                             else:
                                 rule_src_ref += src['uid'] + '@' + \
                                     src['networks'] + list_delimiter
@@ -148,7 +148,7 @@ def parse_single_rule_to_json(src_rule, rulebase, layer_name, import_id, rule_nu
                         if isinstance(dst['networks'], str):  # just a single destination
                             if dst['networks'] == 'any':
                                 rule_dst_ref += dst['uid'] + '@' + \
-                                    cpcommon.any_obj_uid + list_delimiter
+                                    cp_const.any_obj_uid + list_delimiter
                             else:
                                 rule_dst_ref += dst['uid'] + '@' + \
                                     dst['networks'] + list_delimiter
@@ -210,6 +210,11 @@ def parse_single_rule_to_json(src_rule, rulebase, layer_name, import_id, rule_nu
             else:
                 comments = None
 
+            if 'hits' in src_rule and 'last-date' in src_rule['hits'] and 'iso-8601' in src_rule['hits']['last-date']:
+                last_hit = src_rule['hits']['last-date']['iso-8601']
+            else:
+                last_hit = None
+
             rule = {
                 "control_id":       int(import_id),
                 "rule_num":         int(rule_num),
@@ -238,7 +243,8 @@ def parse_single_rule_to_json(src_rule, rulebase, layer_name, import_id, rule_nu
                 # rule_from_zone
                 # rule_to_zone
                 "rule_last_change_admin": sanitize(rule_last_change_admin),
-                "parent_rule_uid":  sanitize(parent_rule_uid)
+                "parent_rule_uid":  sanitize(parent_rule_uid),
+                "last_hit":         sanitize(last_hit)
             }
             rulebase.append(rule)
 

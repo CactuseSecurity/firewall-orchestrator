@@ -128,6 +128,7 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0,
             try: # now we import the config via API chunk by chunk:
                 for config_chunk in split_config(config2import, current_import_id, mgm_id):
                     error_count += fwo_api.import_json_config(fwo_config['fwo_api_base_url'], jwt, mgm_id, config_chunk)
+                    fwo_api.update_hit_counter(fwo_config['fwo_api_base_url'], jwt, mgm_id, config_chunk)
             except:
                 logger.error("import_management - unspecified error while importing config via FWO API: " + str(traceback.format_exc()))
                 raise

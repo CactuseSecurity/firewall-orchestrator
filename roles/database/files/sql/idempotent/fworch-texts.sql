@@ -145,6 +145,7 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
+    <li>Importer Modul Check Point R8x Unterst&uuml;tzung f&uuml;r Updatable Objects, Domain-Namen und Application Categories</li>
     <li>Neues Firewall-Regel-Rezertifizierungsmodul - beseitigen Sie ihre Altlasten und erf&uuml;llen Sie aktuelle regulatorische Anforderungen.</li>
     <li>Workflow-Modul zum Beantragen von &Auml;nderungen</li>
     <li>Neue Importmodule f&uuml;r Cisco FirePower und Microsoft Azure Firewall</li>
@@ -154,6 +155,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
+    <li>Importer support for Check Point R8x updatable objects, domain name objects and application categories</li>
     <li>New Firewall rule recertification module - remove unnecessary rules and meet current regulatory requirements.</li>
     <li>Workflow module for requesting firewall changes</li>
     <li>New import modules for Cisco FirePower and Microsoft Azure Firewall</li>
@@ -172,7 +174,7 @@ Die folgenden Hauptmen&uuml;punkte stehen (je nach Rollenzugeh&ouml;rigkeit) zur
     <li><a href="/certification">Rezertifizierung</a>: Workflow zur Bereinigung des Regelwerks um nicht mehr ben&ouml;tigte Regeln</li>
     <li><a href="/help" target="_blank">Hilfeseiten</a>: Benutzerhandbuch</li>
     <li><a href="/settings">Einstellungen</a>: Alle Einstellungen wie z.B. Sprache der Benutzeroberfl&auml;che oder
-        das Einbinden <a href="/settings/managements">Ihrer eigenen Firewall-Systeme.</a>
+        das Einbinden <a href="/settings/managements">Ihrer eigenen Firewall-Systeme</a>.<br>
         N.B. Stellen Sie sicher, dass Sie alle Demo-Daten (insbesondere die Demo-User) l&ouml;schen (mit Hilfe der "Beispieldaten l&ouml;schen" Option in den Einstellungen), 
         bevor Sie in den produktiven Betrieb &uuml;bergehen, da andernfalls ggf. Ihre Daten mit Default-Logins angezeigt werden k&ouml;nnten.</li>
     <li><a href="/logout">Abmelden</a>: Firewall Orchestrator verlassen</li>
@@ -187,7 +189,7 @@ The following top-level menu items are available (depending on role memberships)
     <li><a href="/certification">Recertification</a>: Workflow for removing unnecessary rules from your rulebases</li>
     <li><a href="/help" target="_blank">Help</a>: Manual pages</li>
     <li><a href="/settings">Settings</a>: All settings like e.g. language of the user interface or 
-        integration of <a href="/settings/managements">your own firewalls</a>.
+        integration of <a href="/settings/managements">your own firewalls</a>.<br>
         N.B. Please make sure to delete all demo data (using the "Remove sample data" option under settings) 
         before using Firewall Orchestrator with production data.
         Otherwise you might expose your data by providing default accounts.</li>
@@ -1037,7 +1039,7 @@ INSERT INTO txt VALUES ('err_since_last_succ',  'German', 	'Fehler seit letztem 
 INSERT INTO txt VALUES ('err_since_last_succ',  'English', 	'Errors since last successful import');
 INSERT INTO txt VALUES ('remove_sample_data',   'German', 	'Beispieldaten l&ouml;schen');
 INSERT INTO txt VALUES ('remove_sample_data',	'English', 	'Remove Sample Data');
-INSERT INTO txt VALUES ('refresh', 				'German',	'Neu anzeigen');
+INSERT INTO txt VALUES ('refresh', 				'German',	'Aktualisieren');
 INSERT INTO txt VALUES ('refresh', 				'English',	'Refresh');
 INSERT INTO txt VALUES ('add_new_user',			'German',	'Neuen Nutzer hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_new_user',			'English',	'Add new user');
@@ -1870,8 +1872,8 @@ INSERT INTO txt VALUES ('E5209', 'German',  'Nutzer konnten nicht geholt werden'
 INSERT INTO txt VALUES ('E5209', 'English', 'Users could not be fetched');
 INSERT INTO txt VALUES ('E5210', 'German',  'Nutzer (Dn) existiert bereits');
 INSERT INTO txt VALUES ('E5210', 'English', 'User (Dn) is already existing');
-INSERT INTO txt VALUES ('E5211', 'German',  'Name und Passwort m&uuml;ssen gef&uuml;llt sein');
-INSERT INTO txt VALUES ('E5211', 'English', 'Name and Password have to be filled');
+INSERT INTO txt VALUES ('E5211', 'German',  'Name, Passwort und initiale Rolle m&uuml;ssen gef&uuml;llt sein');
+INSERT INTO txt VALUES ('E5211', 'English', 'Name, password and initial role have to be filled');
 INSERT INTO txt VALUES ('E5212', 'German',  'Unbekannter Mandant');
 INSERT INTO txt VALUES ('E5212', 'English', 'Unknown tenant');
 INSERT INTO txt VALUES ('E5213', 'German',  'Nutzer konnte nicht hinzugef&uuml;gt werden');
@@ -2188,6 +2190,7 @@ INSERT INTO txt VALUES ('H1111', 'German',  '<li>gateway (gw, firewall, fw, devi
     <li>action (act, enforce)</li>
     <li>remove: M&ouml;gliche Werte: true/false. Wenn "true", werden nur dezertifizierte Regeln gesucht</li>
     <li>recertdisplay (recertdisp): Definiert den Zeitraum f&uuml;r die Vorausschau (in Tagen) f&uuml;r die n&auml;chste Rezertifizierung. Nur Regeln in diesem Zeitfenster werden gesucht.</li>
+    <li>lasthit (last-hit, last-used, last-usage, last-use): Filtern nach Regel-Nutzung - aktuell unterst&uuml;tzt f&uuml;r FortiManager und Check Point >=R80.</li>
     <li>fulltext (full, fulltextsearch, fts, text, textsearch)</li>
 ');
 INSERT INTO txt VALUES ('H1111', 'English', '<li>gateway (gw, firewall, fw, device, dev): Additionally to the specific device selection in the <a href="/help/reporting/leftside">left sidebar</a>
@@ -2202,6 +2205,7 @@ INSERT INTO txt VALUES ('H1111', 'English', '<li>gateway (gw, firewall, fw, devi
     <li>action (act, enforce)</li>
     <li>remove: Possible Values: true/false. If "true", only decertified rules are searched</li>
     <li>recertdisplay (recertdisp): Defines the lookahead period (in days) for next recertification. Only rules in this time range are searched.</li>
+    <li>lasthit (last-hit, last-used, last-usage, last-use): filter by rule usage - supported for FortiManager and Check Point >=R80 only.</li>
     <li>fulltext (full, fulltextsearch, fts, text, textsearch)</li>
 ');
 INSERT INTO txt VALUES ('H1131', 'German',  '<li>and (&)</li><li>or (|)</li><li>not (!)</li><li>eq (=, :)</li><li>neq</li><li>(</li><li>)</li>');
@@ -2225,6 +2229,14 @@ INSERT INTO txt VALUES ('H1144', 'German',  '<li> Filtern nach Gateways oder Man
 ');
 INSERT INTO txt VALUES ('H1144', 'English', '<li> filter for gateways or managements</li><ul>
     <li>gateway=forti and src=cactus</li><li>gateway=forti or gateway=check</li><li>not gateway=check</li></ul>
+');
+INSERT INTO txt VALUES ('H1145', 'German',  '<li> Filtern nach letzter Verwendung der Regeln</li><ul>
+    <li>lasthit<2023-01-01 - zeigt nur Regeln, die vor dem Jahr 2023 verwendet wurden sowie auch alle Regeln, die noch nie verwendet wurden</li>
+    <li>lasthit>2022-12-31 - zeigt nur Regeln, die in 2023 (oder sp&auml;ter) verwendet wurden. Regeln ohne jegliche Verwendung werden nicht angezeigt.</li></ul>
+');
+INSERT INTO txt VALUES ('H1145', 'English', '<li> filter for last hit of rules</li><ul>
+    <li>lasthit<2023-01-01 - only shows rules with hits before the year 2023 including those rules which have no hits at all</li>
+    <li>lasthit>2022-12-31 - only shows rules which have hits in 2023 (or later). Rules without any hits are not shown.</li></ul>
 ');
 INSERT INTO txt VALUES ('H1201', 'German',  'Vorlagen k&ouml;nnen genutzt werden, um wiederkehrende Reports zu definieren. Diese werden f&uuml;r das Scheduling ben&ouml;tigt.
     Jeder Nutzer kann seine eigenen Vorlagen definieren und sie mit anderen teilen.<br>
@@ -3055,7 +3067,7 @@ INSERT INTO txt VALUES ('H5171', 'English', 'The status of the import jobs for t
     Managements which show anomalies (which would also lead to alerts in the <a href="/help/monitoring/daily_checks">Daily Check</a>) are highlighted in red and listed first,
     followed by running imports highlighted in yellow, finally the remaining managements.
 ');
-INSERT INTO txt VALUES ('H5181', 'German',  'Neu anzeigen: Aktualisiert die dargestellten Daten.');
+INSERT INTO txt VALUES ('H5181', 'German',  'Aktualisieren: Aktualisiert die dargestellten Daten.');
 INSERT INTO txt VALUES ('H5181', 'English', 'Refresh: Updates the displayed data.');
 INSERT INTO txt VALUES ('H5182', 'German',  'Details: F&uuml;r das ausgew&auml;hlte Management wird hier eine genauere &Uuml;bersicht &uuml;ber die Import-Ids, Start/Stop-Zeiten, 
     Dauer und Fehler des ersten, letzten erfolgreichen und letzten Imports gegeben, sowie die Anzahl der Fehler seit dem letzten erfolgreichen Import.

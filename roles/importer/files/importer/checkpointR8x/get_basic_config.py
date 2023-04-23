@@ -5,7 +5,8 @@ import argparse
 from fwo_const import importer_base_dir
 sys.path.append(importer_base_dir)
 from fwo_log import getFwoLogger
-from cpcommon import use_object_dictionary, details_level, get_basic_config
+from cp_const import details_level
+from cpcommon import get_basic_config
 
 
 parser = argparse.ArgumentParser(description='Read configuration from Check Point R8x management via API calls')

@@ -1,6 +1,6 @@
 from fwo_log import getFwoLogger
 import json
-import cpcommon, parse_rule, fwo_const
+import cp_const, cpcommon, parse_rule, fwo_const
 from fwo_const import list_delimiter, csv_delimiter, line_delimiter
 from fwo_base import csv_add_field
 from fwo_exception import ImportRecursionLimitReached
@@ -15,13 +15,13 @@ def create_section_header(section_name, layer_name, import_id, rule_uid, rule_nu
     header_rule_csv += csv_add_field('False')            # rule_disabled
     header_rule_csv += csv_add_field('False')            # rule_src_neg
     header_rule_csv += csv_add_field('Any')              # rule_src
-    header_rule_csv += csv_add_field(cpcommon.any_obj_uid) # rule_src_refs
+    header_rule_csv += csv_add_field(cp_const.any_obj_uid) # rule_src_refs
     header_rule_csv += csv_add_field('False')            # rule_dst_neg
     header_rule_csv += csv_add_field('Any')              # rule_dst
-    header_rule_csv += csv_add_field(cpcommon.any_obj_uid) # rule_dst_refs
+    header_rule_csv += csv_add_field(cp_const.any_obj_uid) # rule_dst_refs
     header_rule_csv += csv_add_field('False')            # rule_svc_neg
     header_rule_csv += csv_add_field('Any')              # rule_svc
-    header_rule_csv += csv_add_field(cpcommon.any_obj_uid) # rule_svc_refs
+    header_rule_csv += csv_add_field(cp_const.any_obj_uid) # rule_svc_refs
     header_rule_csv += csv_add_field('Accept')           # rule_action
     header_rule_csv += csv_add_field('Log')              # rule_track
     header_rule_csv += csv_add_field('Policy Targets')   # rule_installon
@@ -87,7 +87,7 @@ def csv_dump_rule(rule, layer_name, import_id, rule_num, parent_uid, debug_level
                 elif src['type'] == 'access-role':
                     if isinstance(src['networks'], str):  # just a single source
                         if src['networks'] == 'any':
-                            rule_src_ref += src['uid'] + '@' + cpcommon.any_obj_uid + list_delimiter
+                            rule_src_ref += src['uid'] + '@' + cp_const.any_obj_uid + list_delimiter
                         else:
                             rule_src_ref += src['uid'] + '@' + src['networks'] + list_delimiter
                     else:  # more than one source

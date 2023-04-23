@@ -8,7 +8,6 @@ import argparse
 import json
 import sys
 import fwo_log
-from cpcommon import use_object_dictionary, details_level
 
 
 parser = argparse.ArgumentParser(description='parse json configuration file from Check Point R8x management')

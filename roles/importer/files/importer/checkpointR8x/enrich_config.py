@@ -2,11 +2,13 @@
 import argparse, time
 import json
 import sys, os
+import cp_const
+
 from common import importer_base_dir, set_ssl_verification
 sys.path.append(importer_base_dir)
 sys.path.append(importer_base_dir + "/checkpointR8x")
 from fwo_log import getFwoLogger
-from cpcommon import use_object_dictionary, details_level, enrich_config
+from cpcommon import enrich_config
 
 
 parser = argparse.ArgumentParser(description='Read configuration from Check Point R8x management via API calls')
@@ -52,7 +54,7 @@ mgm_details = {
     ]
 }
 
-result = enrich_config (config, mgm_details, noapi=False, limit=args.limit, details_level=details_level)
+result = enrich_config (config, mgm_details, noapi=False, limit=args.limit, details_level=cp_const.details_level)
 
 duration = int(time.time()) - starttime
 logger.debug ( "checkpointR8x/enrich_config - duration: " + str(duration) + "s" )

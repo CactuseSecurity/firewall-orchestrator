@@ -112,7 +112,7 @@
                                 {
                                     <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                         <Template>
-                                            @((MarkupString)ruleDisplay.DisplaySource(rule, location: Recertification ? "certification" : "report", reportType: SelectedReportType))
+                                            @((MarkupString)ruleDisplay.DisplaySource(rule, Recertification ? "certification" : "report", SelectedReportType))
                                         </Template>
                                     </Column>
                                 }
@@ -128,7 +128,7 @@
                                 {
                                     <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                         <Template>
-                                            @((MarkupString)ruleDisplay.DisplayDestination(rule, location: Recertification ? "certification" : "report", reportType: SelectedReportType))
+                                            @((MarkupString)ruleDisplay.DisplayDestination(rule, Recertification ? "certification" : "report", SelectedReportType))
                                         </Template>
                                     </Column>
                                 }
@@ -136,7 +136,7 @@
                                 {
                                     <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("services"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                         <Template>
-                                            @((MarkupString)ruleDisplay.DisplayService(rule, location: Recertification ? "certification" : "report", reportType: SelectedReportType))
+                                            @((MarkupString)ruleDisplay.DisplayService(rule, Recertification ? "certification" : "report", SelectedReportType))
                                         </Template>
                                     </Column>
                                 }
@@ -144,17 +144,17 @@
                                 {
                                         <Column Class="table-active" TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_source"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                             <Template>
-                                                    @((MarkupString)ruleDisplay.DisplayTranslatedSource(rule, location: Recertification ? "certification" : "report"))
+                                                    @((MarkupString)ruleDisplay.DisplayTranslatedSource(rule, Recertification ? "certification" : "report"))
                                             </Template>
                                         </Column>
                                         <Column Class="table-active" TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_destination"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                             <Template>
-                                                @((MarkupString)ruleDisplay.DisplayTranslatedDestination(rule, location: Recertification ? "certification" : "report"))
+                                                @((MarkupString)ruleDisplay.DisplayTranslatedDestination(rule, Recertification ? "certification" : "report"))
                                             </Template>
                                         </Column>
                                         <Column Class="table-active" TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_services"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                             <Template>
-                                                @((MarkupString)ruleDisplay.DisplayTranslatedService(rule, location: Recertification ? "certification" : "report"))
+                                                @((MarkupString)ruleDisplay.DisplayTranslatedService(rule, Recertification ? "certification" : "report"))
                                             </Template>
                                         </Column>
                                 }

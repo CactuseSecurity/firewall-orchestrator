@@ -400,8 +400,6 @@ INSERT INTO txt VALUES ('source_zone',		    'German', 	'Quellzone');
 INSERT INTO txt VALUES ('source_zone',		    'English', 	'Source Zone');
 INSERT INTO txt VALUES ('destination_zone',		'German', 	'Zielzone');
 INSERT INTO txt VALUES ('destination_zone',		'English', 	'Destination Zone');
--- INSERT INTO txt VALUES ('anything_but',		    'German', 	'alles ausser');
--- INSERT INTO txt VALUES ('anything_but',		    'English', 	'anything but');
 INSERT INTO txt VALUES ('enabled',		        'German', 	'Aktiviert');
 INSERT INTO txt VALUES ('enabled',		        'English', 	'Enabled');
 INSERT INTO txt VALUES ('uid',		            'German', 	'UID');

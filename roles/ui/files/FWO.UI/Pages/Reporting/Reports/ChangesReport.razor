@@ -1,5 +1,6 @@
 ﻿@using FWO.Ui.Display
 @using FWO.Config.Api
+@using FWO.Report.Filter
 
 @inject UserConfig userConfig
 
@@ -44,7 +45,7 @@
                             <Column TableItem="RuleChange" Title="@(userConfig.GetText("source"))" Hideable="true">
                                 <Template>
                                     <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
-                                        @((MarkupString)ruleChangeDisplayHtml.DisplaySource(context))
+                                        @((MarkupString)ruleChangeDisplayHtml.DisplaySource(context, SelectedReportType))
                                     </div>
                                 </Template>
                             </Column>
@@ -58,14 +59,14 @@
                             <Column TableItem="RuleChange" Title="@(userConfig.GetText("destination"))" Hideable="true">
                                 <Template>
                                     <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
-                                        @((MarkupString)ruleChangeDisplayHtml.DisplayDestination(context))
+                                        @((MarkupString)ruleChangeDisplayHtml.DisplayDestination(context, SelectedReportType))
                                     </div>
                                 </Template>
                             </Column>
                             <Column TableItem="RuleChange" Title="@(userConfig.GetText("services"))" Hideable="true">
                                 <Template>
                                     <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
-                                        @((MarkupString)ruleChangeDisplayHtml.DisplayService(context))
+                                        @((MarkupString)ruleChangeDisplayHtml.DisplayService(context, SelectedReportType))
                                     </div>
                                 </Template>
                             </Column>
@@ -131,6 +132,9 @@
 
     [Parameter]
     public Management[] Managements { get; set; } = new Management[]{};
+
+    [Parameter]
+    public ReportType SelectedReportType { get; set; }
 
     public RuleChangeDisplayHtml? ruleChangeDisplayHtml;
 

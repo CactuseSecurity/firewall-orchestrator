@@ -7,149 +7,39 @@ namespace FWO.Ui.Display
 {
     public class RuleDisplayHtml: RuleDisplayBase
     {
-
         public RuleDisplayHtml(UserConfig userConfig) : base(userConfig)
         {}
 
-        private string DisplaySourceOrDestination(Rule rule, string style = "", string location = "report", ReportType reportType = ReportType.Rules, bool isSource = true)
-        {
-            if (location=="certification")
-                reportType=ReportType.Rules;
-            result = new StringBuilder();
-            result.AppendLine("<p>");
-            if ((isSource && rule.SourceNegated) ||(!isSource && rule.DestinationNegated))
-            {
-                result.AppendLine(userConfig.GetText("negated") + " <br>");
-            }
-
-            if(reportType.IsResolvedReport())
-            {
-                List<NetworkLocation> userNwObjectList = getNetworkLocations(isSource ? rule.Froms : rule.Tos);
-                foreach (NetworkLocation networkLocation in userNwObjectList)
-                {
-                    result.Append(NetworkLocationToHtml(networkLocation, rule.MgmtId, location, style, reportType));
-                }
-            }
-            else
-            {
-                foreach (NetworkLocation networkLocation in isSource ? rule.Froms : rule.Tos)
-                {
-                    result.Append(NetworkLocationToHtml(networkLocation, rule.MgmtId, location, style));
-                }
-            }
-
-            result.AppendLine("</p>");
-            return result.ToString();
-        }
-
-        public string DisplaySource(Rule rule, string style = "", string location = "report", ReportType reportType = ReportType.Rules)
+        public string DisplaySource(Rule rule, string location, ReportType reportType, string style = "")
         {
             return DisplaySourceOrDestination(rule, style, location, reportType, true);
         }
 
-        public string DisplayDestination(Rule rule, string style = "", string location = "report", ReportType reportType = ReportType.Rules)
+        public string DisplayDestination(Rule rule, string location, ReportType reportType, string style = "")
         {
             return DisplaySourceOrDestination(rule, style, location, reportType, false);
         }
 
-        private StringBuilder NetworkLocationToHtml(NetworkLocation userNetworkObject, int mgmtId, string location = "", string style = "", ReportType reportType = ReportType.Rules)
-        {
-            string nwobjLink = "";
-            string symbol = "oi oi-wrench";
-            StringBuilder result = new StringBuilder();
-            if (userNetworkObject.Object.Type.Name == "group")
-                symbol = "oi oi-list-rich";
-            else if (userNetworkObject.Object.Type.Name == "network")
-                symbol = "oi oi-rss";
-            else if (userNetworkObject.Object.Type.Name == "ip_range")
-                symbol = "oi oi-resize-width";
-            else
-                symbol = "oi oi-monitor";
-            
-            if (userNetworkObject.User?.Id != null)
-            {
-                if (reportType.IsTechReport())
-                    result.Append($"{userNetworkObject.User.Name}@");
-                else
-                {
-                    string userLink = location == "" ? $"user{userNetworkObject.User.Id}" : $"goto-report-m{mgmtId}-user{userNetworkObject.User.Id}";
-                    result.Append($"<span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{location}#{userLink}\" target=\"_top\" style=\"{style}\">{userNetworkObject.User.Name}</a>@");
-                }
-            }
-
-            nwobjLink = location == "" ? $"nwobj{userNetworkObject.Object.Id}" : $"goto-report-m{mgmtId}-nwobj{userNetworkObject.Object.Id}";
-
-            if (!reportType.IsTechReport())
-            {
-                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{location}#{nwobjLink}\" target=\"_top\" style=\"{style}\">{userNetworkObject.Object.Name}</a>");
-                if (userNetworkObject.Object.Type.Name != "group")
-                    result.Append(" (");
-            }
-            result.Append(DisplayIpRange(userNetworkObject.Object.IP, userNetworkObject.Object.IpEnd));
-            if (userNetworkObject.Object.Type.Name != "group" && !reportType.IsTechReport())
-                result.Append(")");
-            result.AppendLine("<br>");
-            return result;
-        }
-
-        public string DisplayService(Rule rule, string style = "", string location = "report", ReportType reportType = ReportType.Rules)
+        public string DisplayService(Rule rule, string location, ReportType reportType, string style = "")
         {
             if (location=="certification")
                 reportType=ReportType.Rules;
             result = new StringBuilder();
             result.AppendLine("<p>");
             if (rule.ServiceNegated)
-                result.AppendLine(userConfig.GetText("negated") + " <br>");
+                result.AppendLine(userConfig.GetText("negated") + "<br>");
 
             if(reportType.IsResolvedReport())
             {
-                List<NetworkService> serviceList = getNetworkServices(rule.Services);
-                foreach (NetworkService service in serviceList)
-                {
-                    result.Append(ServiceToHtml(service, rule.MgmtId, location, style, reportType));
-                }
+                NetworkService[] services = getNetworkServices(rule.Services).ToArray();
+                result.AppendJoin("<br>", Array.ConvertAll(services, service => ServiceToHtml(service, rule.MgmtId, location, style, reportType)));
             }
             else
             {
-                foreach (ServiceWrapper service in rule.Services)
-                {
-                    result.Append(ServiceToHtml(service.Content, rule.MgmtId, location, style, reportType));
-                }
+                result.AppendJoin("<br>", Array.ConvertAll(rule.Services, service => ServiceToHtml(service.Content, rule.MgmtId, location, style, reportType)));
             }
-
             result.AppendLine("</p>");
             return result.ToString();
-        }
-
-        private StringBuilder ServiceToHtml(NetworkService service, int mgmtId, string location = "", string style = "", ReportType reportType = ReportType.Rules)
-        {
-            string link = "";
-            string symbol = "oi oi-wrench";
-            StringBuilder result = new StringBuilder();
-            if (service.Type.Name == "group")
-                symbol = "oi oi-list-rich";
-            else
-                symbol = "oi oi-wrench";
-            link = location == "" ? $"svc{service.Id}" : $"goto-report-m{mgmtId}-svc{service.Id}";
-            if (!reportType.IsTechReport())
-                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{location}#{link}\" target=\"_top\" style=\"{style}\">{service.Name}</a>");
-
-            if (service.DestinationPort != null)
-            {
-                if (!reportType.IsTechReport())
-                    result.Append(" (");
-                result.Append(service.DestinationPort == service.DestinationPortEnd ? $"{service.DestinationPort}/{service.Protocol?.Name}"
-                    : $" {service.DestinationPort}-{service.DestinationPortEnd}/{service.Protocol?.Name}");
-                if (!reportType.IsTechReport())
-                    result.Append(")");
-            }
-            else if (reportType.IsTechReport())
-            {
-                // if no port can be displayed, use the service name as fall-back
-                result.Append($"{service.Name}");
-            }
-            result.AppendLine("<br>");
-            return result;
         }
 
         public string DisplayEnabled(Rule rule, bool export = false)
@@ -176,24 +66,6 @@ namespace FWO.Ui.Display
             return result;
         }
 
-        private string getNextRecertDateString (int ownerCounter, Recertification recert, bool multipleOwners)
-        {
-            string result = "";
-            string color = "";
-            string countString = multipleOwners ? ownerCounter.ToString() + ".&nbsp;" : "";
-            string dateOnly = "-";
-            if (recert.NextRecertDate != null)
-            {
-                dateOnly = DateOnly.FromDateTime((DateTime)recert.NextRecertDate).ToString("yyyy-MM-dd");
-                if(recert.NextRecertDate < DateTime.Now)
-                {
-                    color = " style=\"color:rgb(255, 0, 0);\"";
-                }
-            }
-            result = "<p" + color + ">" + countString + dateOnly + "</p>";
-            return result;
-        }
-
         public string DisplayOwner(Rule rule, bool multipleOwners)
         {
             string result = "";
@@ -202,17 +74,6 @@ namespace FWO.Ui.Display
             {
                 count += 1;
                 result += getOwnerDisplayString(count, recert, multipleOwners);
-            }
-            return result;
-        }
-
-        private string getOwnerDisplayString (int ownerCounter, Recertification recert, bool multipleOwners)
-        {
-            string result = "";
-            string countString = multipleOwners ? ownerCounter.ToString() + ".&nbsp;" : "";
-            if (recert.FwoOwner != null && recert.FwoOwner.Name != null)
-            {
-                result += countString + recert.FwoOwner.Name + "<br />";
             }
             return result;
         }
@@ -237,19 +98,6 @@ namespace FWO.Ui.Display
                 return DateOnly.FromDateTime((DateTime)rule.Metadata.LastHit).ToString("yyyy-MM-dd");  //rule.Metadata.LastHit.ToString("yyyy-MM-dd");
         }
 
-        private string getIpMatchDisplayString (int ownerCounter, Recertification recert, bool multipleOwners)
-        {
-            string result = "";
-            string matchString = "&#8208;";
-            string countString = multipleOwners ? ownerCounter.ToString() + ".&nbsp;" : "";
-            if (recert.IpMatch != null && recert.IpMatch != "")
-            {
-                matchString = recert.IpMatch;
-            }
-            result += countString + matchString + "<br />";
-            return result;
-        }
-
         public string DisplayLastRecertifier(Rule rule, bool multipleOwners)
         {
             string result = "";
@@ -260,6 +108,160 @@ namespace FWO.Ui.Display
                 // TODO: fetch last recertifier
                 count += 1;
             }
+            return result;
+        }
+
+        protected string constructLink(string type, string symbol, long id, string name, string location, int mgmtId, string style)
+        {
+            string link = location == "" ? $"{type}{id}" : $"goto-report-m{mgmtId}-{type}{id}";
+            return $"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{location}#{link}\" target=\"_top\" style=\"{style}\">{name}</a>";
+        }
+
+        protected string getObjSymbol(string objType)
+        {
+            switch(objType)
+            {
+                case "group": return "oi oi-list-rich";
+                case "network": return "oi oi-rss";
+                case "ip_range": return "oi oi-resize-width";
+                default: return "oi oi-monitor";
+            }
+        }
+
+        private string DisplaySourceOrDestination(Rule rule, string style, string location, ReportType reportType, bool isSource)
+        {
+            if (location=="certification")
+                reportType=ReportType.Rules;
+            result = new StringBuilder();
+            result.AppendLine("<p>");
+            if ((isSource && rule.SourceNegated) ||(!isSource && rule.DestinationNegated))
+            {
+                result.AppendLine(userConfig.GetText("negated") + "<br>");
+            }
+
+            if(reportType.IsResolvedReport())
+            {
+                NetworkLocation[] userNwObjects = getNetworkLocations(isSource ? rule.Froms : rule.Tos).ToArray();
+                result.AppendJoin("<br>", Array.ConvertAll(userNwObjects, networkLocation => NetworkLocationToHtml(networkLocation, rule.MgmtId, location, style, reportType)));
+            }
+            else
+            {
+                result.AppendJoin("<br>", Array.ConvertAll(isSource ? rule.Froms : rule.Tos, networkLocation => NetworkLocationToHtml(networkLocation, rule.MgmtId, location, style, reportType)));
+            }
+
+            result.AppendLine("</p>");
+            return result.ToString();
+        }
+
+        private string NetworkLocationToHtml(NetworkLocation userNetworkObject, int mgmtId, string location, string style, ReportType reportType)
+        {
+            StringBuilder result = new StringBuilder();
+            
+            if (userNetworkObject.User?.Id != null && userNetworkObject.User?.Id > 0)
+            {
+                if (reportType.IsResolvedReport())
+                {
+                    result.Append($"{userNetworkObject.User.Name}@");
+                }
+                else
+                {
+                    result.Append(constructLink("user", "oi oi-people", userNetworkObject.User.Id, userNetworkObject.User.Name, location, mgmtId, style) + "@");
+                }
+            }
+
+            if(!reportType.IsTechReport())
+            {
+                if (reportType.IsResolvedReport())
+                {
+                    result.Append($"{userNetworkObject.Object.Name}");
+                }
+                else
+                {
+                    result.Append(constructLink("nwobj", getObjSymbol(userNetworkObject.Object.Type.Name), userNetworkObject.Object.Id, userNetworkObject.Object.Name, location, mgmtId, style));
+                }
+                if (userNetworkObject.Object.Type.Name != "group")
+                {
+                    result.Append(" (");
+                }
+            }
+            result.Append(DisplayIpRange(userNetworkObject.Object.IP, userNetworkObject.Object.IpEnd));
+            if (!reportType.IsTechReport() && userNetworkObject.Object.Type.Name != "group")
+            {
+                result.Append(")");
+            }
+            return result.ToString();
+        }
+
+        private string ServiceToHtml(NetworkService service, int mgmtId, string location, string style, ReportType reportType)
+        {
+            StringBuilder result = new StringBuilder();
+            if(!reportType.IsTechReport())
+            {
+                if (reportType.IsResolvedReport())
+                {
+                    result.Append($"{service.Name}");
+                }
+                else
+                {
+                    result.Append(constructLink("svc", service.Type.Name == "group" ? "oi oi-list-rich" : "oi oi-wrench", service.Id, service.Name, location, mgmtId, style));
+                }
+            }
+            if (service.DestinationPort != null)
+            {
+                if (!reportType.IsTechReport())
+                    result.Append(" (");
+                result.Append(service.DestinationPort == service.DestinationPortEnd ? $"{service.DestinationPort}/{service.Protocol?.Name}"
+                    : $"{service.DestinationPort}-{service.DestinationPortEnd}/{service.Protocol?.Name}");
+                if (!reportType.IsTechReport())
+                    result.Append(")");
+            }
+            else if (reportType.IsTechReport())
+            {
+                // if no port can be displayed, use the service name as fall-back
+                result.Append($"{service.Name}");
+            }
+            return result.ToString();
+        }
+
+        private string getNextRecertDateString (int ownerCounter, Recertification recert, bool multipleOwners)
+        {
+            string result = "";
+            string color = "";
+            string countString = multipleOwners ? ownerCounter.ToString() + ".&nbsp;" : "";
+            string dateOnly = "-";
+            if (recert.NextRecertDate != null)
+            {
+                dateOnly = DateOnly.FromDateTime((DateTime)recert.NextRecertDate).ToString("yyyy-MM-dd");
+                if(recert.NextRecertDate < DateTime.Now)
+                {
+                    color = " style=\"color:rgb(255, 0, 0);\"";
+                }
+            }
+            result = "<p" + color + ">" + countString + dateOnly + "</p>";
+            return result;
+        }
+
+        private string getOwnerDisplayString (int ownerCounter, Recertification recert, bool multipleOwners)
+        {
+            string result = "";
+            string countString = multipleOwners ? ownerCounter.ToString() + ".&nbsp;" : "";
+            if (recert.FwoOwner != null && recert.FwoOwner.Name != null)
+            {
+                result += countString + recert.FwoOwner.Name + "<br />";
+            }
+            return result;
+        }
+
+        private string getIpMatchDisplayString (int ownerCounter, Recertification recert, bool multipleOwners)
+        {
+            string result = "";
+            string matchString = "&#8208;";
+            string countString = multipleOwners ? ownerCounter.ToString() + ".&nbsp;" : "";
+            if (recert.IpMatch != null && recert.IpMatch != "")
+            {
+                matchString = recert.IpMatch;
+            }
+            result += countString + matchString + "<br />";
             return result;
         }
     }

@@ -158,10 +158,10 @@ namespace FWO.Report
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayChangeAction(ruleChange)}</td>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayName(ruleChange)}</td>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplaySourceZone(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplaySource(ruleChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplaySource(ruleChange, ReportType)}</td>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayDestinationZone(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayDestination(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayService(ruleChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayDestination(ruleChange, ReportType)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayService(ruleChange, ReportType)}</td>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayAction(ruleChange)}</td>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayTrack(ruleChange)}</td>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayEnabled(ruleChange, export: true)}</td>");

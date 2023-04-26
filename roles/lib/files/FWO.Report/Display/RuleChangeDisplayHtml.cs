@@ -1,6 +1,7 @@
 ﻿using FWO.Api.Data;
 using FWO.Logging;
 using FWO.Config.Api;
+using FWO.Report.Filter;
 
 namespace FWO.Ui.Display
 {
@@ -47,13 +48,13 @@ namespace FWO.Ui.Display
             }
         }
 
-        public string DisplaySource(RuleChange ruleChange)
+        public string DisplaySource(RuleChange ruleChange, ReportType reportType)
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return DisplaySource(ruleChange.OldRule, DisplayStyle(ruleChange));
-                case 'I': return DisplaySource(ruleChange.NewRule, DisplayStyle(ruleChange));
-                case 'C': return DisplayArrayDiff(DisplaySource(ruleChange.OldRule), DisplaySource(ruleChange.NewRule), ruleChange.OldRule.SourceNegated, ruleChange.NewRule.SourceNegated);
+                case 'D': return DisplaySource(ruleChange.OldRule, "report", reportType, DisplayStyle(ruleChange));
+                case 'I': return DisplaySource(ruleChange.NewRule, "report", reportType, DisplayStyle(ruleChange));
+                case 'C': return DisplayArrayDiff(DisplaySource(ruleChange.OldRule,"report", reportType), DisplaySource(ruleChange.NewRule, "report", reportType), ruleChange.OldRule.SourceNegated, ruleChange.NewRule.SourceNegated);
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }
@@ -69,24 +70,24 @@ namespace FWO.Ui.Display
             }
         }
 
-        public string DisplayDestination(RuleChange ruleChange)
+        public string DisplayDestination(RuleChange ruleChange, ReportType reportType)
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return DisplayDestination(ruleChange.OldRule, DisplayStyle(ruleChange));
-                case 'I': return DisplayDestination(ruleChange.NewRule, DisplayStyle(ruleChange));
-                case 'C': return DisplayArrayDiff(DisplayDestination(ruleChange.OldRule), DisplayDestination(ruleChange.NewRule), ruleChange.OldRule.DestinationNegated, ruleChange.NewRule.DestinationNegated);
+                case 'D': return DisplayDestination(ruleChange.OldRule, "report", reportType, DisplayStyle(ruleChange));
+                case 'I': return DisplayDestination(ruleChange.NewRule, "report", reportType, DisplayStyle(ruleChange));
+                case 'C': return DisplayArrayDiff(DisplayDestination(ruleChange.OldRule, "report", reportType), DisplayDestination(ruleChange.NewRule, "report", reportType), ruleChange.OldRule.DestinationNegated, ruleChange.NewRule.DestinationNegated);
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }
 
-        public string DisplayService(RuleChange ruleChange)
+        public string DisplayService(RuleChange ruleChange, ReportType reportType)
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return DisplayService(ruleChange.OldRule, DisplayStyle(ruleChange));
-                case 'I': return DisplayService(ruleChange.NewRule, DisplayStyle(ruleChange));
-                case 'C': return DisplayArrayDiff(DisplayService(ruleChange.OldRule), DisplayService(ruleChange.NewRule), ruleChange.OldRule.ServiceNegated, ruleChange.NewRule.ServiceNegated);
+                case 'D': return DisplayService(ruleChange.OldRule, "report", reportType, DisplayStyle(ruleChange));
+                case 'I': return DisplayService(ruleChange.NewRule, "report", reportType, DisplayStyle(ruleChange));
+                case 'C': return DisplayArrayDiff(DisplayService(ruleChange.OldRule, "report", reportType), DisplayService(ruleChange.NewRule, "report", reportType), ruleChange.OldRule.ServiceNegated, ruleChange.NewRule.ServiceNegated);
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }
@@ -165,8 +166,8 @@ namespace FWO.Ui.Display
             }
             else
             {
-                return (oldElement.Length > 0 ? $" {userConfig.GetText("deleted")}: {oldElement}" : "")
-                    + (newElement.Length > 0 ? $" {userConfig.GetText("added")}: {newElement}" : "") + ",";
+                return (oldElement.Length > 0 ? $"{userConfig.GetText("deleted")}: <p style=\"color: red; text-decoration: line-through red;\">{oldElement}<br></p>" : "")
+                    + (newElement.Length > 0 ? $"{userConfig.GetText("added")}: <p style=\"color: green; text-decoration: bold;\">{newElement}</p>" : "");
             }
         }
 
@@ -182,14 +183,20 @@ namespace FWO.Ui.Display
                 return oldElement;
             else
             {
+                oldElement = oldElement.Replace("<p>", "");
+                oldElement = oldElement.Replace("</p>", "");
+                oldElement = oldElement.Replace("\r\n", "");
+                newElement = newElement.Replace("<p>", "");
+                newElement = newElement.Replace("</p>", "");
+                newElement = newElement.Replace("\r\n", "");
                 List<string> unchanged = new List<string>();
                 List<string> added = new List<string>();
                 List<string> deleted = new List<string>();
 
                 if(oldNegated != newNegated)
                 {
-                    deleted.Add(oldElement.Replace("style=\"\"", "style=\"color: red\""));
-                    added.Add(newElement.Replace("style=\"\"", "style=\"color: green\""));
+                    deleted.Add(oldElement);
+                    added.Add(newElement);
                 }
                 else
                 {
@@ -205,25 +212,21 @@ namespace FWO.Ui.Display
                         }
                         else
                         {
-                            string deletedItem = item;
-                            deletedItem = deletedItem.Replace("<p>", "");
-                            deleted.Add(deletedItem.Replace("style=\"\"", "style=\"color: red\""));
+                            deleted.Add(item);
                         }
                     }
                     foreach (var item in newAr)
                     {
                         if (!oldAr.Contains(item))
                         {
-                            string newItem = item; 
-                            newItem = newItem.Replace("<p>", "");
-                            added.Add(newItem.Replace("style=\"\"", "style=\"color: green\""));
+                            added.Add(item);
                         }
                     }
                 }
 
-                return string.Join("<br>", unchanged) 
-                       + (deleted.Count > 0 ? $" {userConfig.GetText("deleted")}: <p style=\"color: red; text-decoration: line-through red;\">{string.Join("<br>", deleted)}</p>" : "")
-                       + (added.Count > 0 ? $" {userConfig.GetText("added")}: <p style=\"color: green; text-decoration: bold;\">{string.Join("<br>", added)}</p>" : "");
+                return (unchanged.Count > 0 ? $"<p>{string.Join("<br>", unchanged)}<br></p>" : "")
+                       + (deleted.Count > 0 ? $"{userConfig.GetText("deleted")}: <p style=\"color: red; text-decoration: line-through red;\">{string.Join("<br>", deleted)}<br></p>" : "")
+                       + (added.Count > 0 ? $"{userConfig.GetText("added")}: <p style=\"color: green; text-decoration: bold;\">{string.Join("<br>", added)}</p>" : "");
             }
         }
         

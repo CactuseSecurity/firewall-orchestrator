@@ -102,7 +102,7 @@ namespace FWO.Ui.Display
             return DisplaySourceOrDestination(rule, reportType, false);
         }
 
-        public string DisplayService(Rule rule, ReportType reportType = ReportType.Rules)
+        public string DisplayService(Rule rule, ReportType reportType)
         {
             result = new StringBuilder();
             if (reportType.IsResolvedReport())
@@ -133,7 +133,7 @@ namespace FWO.Ui.Display
             return output;
         }
 
-        private string DisplaySourceOrDestination(Rule rule, ReportType reportType , bool isSource = true)
+        private string DisplaySourceOrDestination(Rule rule, ReportType reportType , bool isSource)
         {
             result = new StringBuilder("");
 

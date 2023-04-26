@@ -157,7 +157,8 @@
                     case ReportType.Changes:
                     case ReportType.ResolvedChanges:
                     case ReportType.ResolvedChangesTech:
-                        <ChangesReport Managements="managementsReport" RulesPerPage="rulesPerPage" @bind-SelectedRuleChanges="selectedItemsChangeReportTable"></ChangesReport>
+                        <ChangesReport Managements="managementsReport" SelectedReportType="selectedReportType" RulesPerPage="rulesPerPage"
+                            @bind-SelectedRuleChanges="selectedItemsChangeReportTable" />
                         break;
 
                     case ReportType.Statistics:

@@ -13,7 +13,8 @@ original_obj_uid = "85c0f50f-6d8a-4528-88ab-5fb11d8fe16c"
 # simple as in: no groups
 simple_svc_obj_types = ['services-tcp', 'services-udp', 'services-dce-rpc', 'services-rpc', 'services-other', 
                         'services-icmp', 'services-icmp6', 'services-sctp', 'services-gtp']
-svc_obj_types = ['service-groups', 'application-site-categories'] + simple_svc_obj_types
+group_svc_obj_types = ['service-groups', 'application-site-categories', 'application-sites']
+svc_obj_types = group_svc_obj_types + simple_svc_obj_types
 
 cp_specific_object_types = [    # used for fetching enrichment data via "get object" separately (no specific API call)
     'simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiVsxClusterNetobj', 'CpmiVsxClusterMember', 
@@ -23,7 +24,7 @@ cp_specific_object_types = [    # used for fetching enrichment data via "get obj
 nw_obj_table_names = [
     'hosts', 'networks', 'groups', 'address-ranges', 'multicast-address-ranges', 'groups-with-exclusion', 
     'gateways-and-servers', 'simple-gateways', 
-    'CpmiGatewayPlain', 'CpmiAnyObject', 'dns-domains', 'updatable-objects-repository-content'
+    'dns-domains', 'updatable-objects-repository-content'
 ]
 svc_obj_table_names = svc_obj_types + [ 'CpmiAnyObject' ]
 # usr_obj_table_names : do not exist yet - not fetchable via API

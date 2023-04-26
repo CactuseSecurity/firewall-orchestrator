@@ -14,7 +14,7 @@ def collect_svc_objects(object_table, svc_objects):
     if object_table['object_type'] in cp_const.svc_obj_table_names:
         session_timeout = ''
         typ = 'undef'
-        if object_table['object_type'] == 'service-groups' or object_table['object_type'] == 'application-site-categories':
+        if object_table['object_type'] in cp_const.group_svc_obj_types:
             typ = 'group'
         if object_table['object_type'] in cp_const.simple_svc_obj_types:
             typ = 'simple'

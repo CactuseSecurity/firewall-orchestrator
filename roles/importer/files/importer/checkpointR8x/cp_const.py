@@ -10,22 +10,25 @@ any_obj_uid = "97aeb369-9aea-11d5-bd16-0090272ccb30"
 original_obj_uid = "85c0f50f-6d8a-4528-88ab-5fb11d8fe16c"
 # used for nat only (both svc and nw obj)
 
+
+nw_obj_table_names = [
+    'hosts', 'networks', 'groups', 'address-ranges', 'multicast-address-ranges', 'groups-with-exclusion', 
+    'gateways-and-servers', 'simple-gateways', 
+    'dns-domains', 'updatable-objects-repository-content'
+]
+
 # simple as in: no groups
 simple_svc_obj_types = ['services-tcp', 'services-udp', 'services-dce-rpc', 'services-rpc', 'services-other', 
                         'services-icmp', 'services-icmp6', 'services-sctp', 'services-gtp']
-svc_obj_types = ['service-groups', 'application-site-categories'] + simple_svc_obj_types
+group_svc_obj_types = ['service-groups', 'application-site-categories', 'application-sites']
+
+svc_obj_table_names = group_svc_obj_types + simple_svc_obj_types + [ 'CpmiAnyObject' ]
+# usr_obj_table_names : do not exist yet - not fetchable via API
+
+api_obj_types = nw_obj_table_names + svc_obj_table_names  # all obj table names to look at during import
 
 cp_specific_object_types = [    # used for fetching enrichment data via "get object" separately (no specific API call)
     'simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiVsxClusterNetobj', 'CpmiVsxClusterMember', 
     'CpmiAnyObject', 'CpmiClusterMember', 'CpmiGatewayPlain', 'CpmiHostCkp', 'CpmiGatewayCluster', 'checkpoint-host', 
     'cluster-member'
 ]
-nw_obj_table_names = [
-    'hosts', 'networks', 'groups', 'address-ranges', 'multicast-address-ranges', 'groups-with-exclusion', 
-    'gateways-and-servers', 'simple-gateways', 
-    'CpmiGatewayPlain', 'CpmiAnyObject', 'dns-domains', 'updatable-objects-repository-content'
-]
-svc_obj_table_names = svc_obj_types + [ 'CpmiAnyObject' ]
-# usr_obj_table_names : do not exist yet - not fetchable via API
-
-api_obj_types = nw_obj_table_names + svc_obj_table_names  # all obj table names to look at during import

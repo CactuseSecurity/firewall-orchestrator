@@ -45,7 +45,7 @@
                             <Column TableItem="RuleChange" Title="@(userConfig.GetText("source"))" Hideable="true">
                                 <Template>
                                     <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
-                                        @((MarkupString)ruleChangeDisplayHtml.DisplaySource(context, SelectedReportType))
+                                        @((MarkupString)ruleChangeDisplayHtml.DisplaySource(context, OutputLocation.report, SelectedReportType))
                                     </div>
                                 </Template>
                             </Column>
@@ -59,14 +59,14 @@
                             <Column TableItem="RuleChange" Title="@(userConfig.GetText("destination"))" Hideable="true">
                                 <Template>
                                     <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
-                                        @((MarkupString)ruleChangeDisplayHtml.DisplayDestination(context, SelectedReportType))
+                                        @((MarkupString)ruleChangeDisplayHtml.DisplayDestination(context, OutputLocation.report, SelectedReportType))
                                     </div>
                                 </Template>
                             </Column>
                             <Column TableItem="RuleChange" Title="@(userConfig.GetText("services"))" Hideable="true">
                                 <Template>
                                     <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
-                                        @((MarkupString)ruleChangeDisplayHtml.DisplayService(context, SelectedReportType))
+                                        @((MarkupString)ruleChangeDisplayHtml.DisplayService(context, OutputLocation.report, SelectedReportType))
                                     </div>
                                 </Template>
                             </Column>
@@ -87,7 +87,7 @@
                             <Column TableItem="RuleChange" Title="@(userConfig.GetText("enabled"))" Hideable="true">
                                 <Template>
                                     <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
-                                        @((MarkupString)ruleChangeDisplayHtml.DisplayEnabled(context))
+                                        @((MarkupString)ruleChangeDisplayHtml.DisplayEnabled(context, OutputLocation.report))
                                     </div>
                                 </Template>
                             </Column>

@@ -9,6 +9,7 @@ namespace FWO.Test
             {"Rules","Rules Report"},
             {"ResolvedRules","Rules Report (resolved)"},
             {"ResolvedRulesTech","Rules Report (technical)"},
+            {"Changes","Changes Report"},
             {"ResolvedChanges","Changes Report (resolved)"},
             {"ResolvedChangesTech","Changes Report (technical)"},
             {"date_of_config","Time of configuration"},

@@ -32,7 +32,7 @@
                                     </Column>
                                 }
 
-                                @if(Recertification || SelectedReportType==ReportType.Recertification)
+                                @if(SelectedReportType == ReportType.Recertification)
                                 {
                                     <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("next_recert"))" Field="@(rule => rule.Metadata.RuleRecertification)" Sortable="false" Filterable="false">
                                         <Template>
@@ -112,7 +112,7 @@
                                 {
                                     <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                         <Template>
-                                            @((MarkupString)ruleDisplay.DisplaySource(rule, Recertification ? "certification" : "report", SelectedReportType))
+                                            @((MarkupString)ruleDisplay.DisplaySource(rule, getActLocation(), SelectedReportType))
                                         </Template>
                                     </Column>
                                 }
@@ -128,7 +128,7 @@
                                 {
                                     <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                         <Template>
-                                            @((MarkupString)ruleDisplay.DisplayDestination(rule, Recertification ? "certification" : "report", SelectedReportType))
+                                            @((MarkupString)ruleDisplay.DisplayDestination(rule, getActLocation(), SelectedReportType))
                                         </Template>
                                     </Column>
                                 }
@@ -136,7 +136,7 @@
                                 {
                                     <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("services"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                         <Template>
-                                            @((MarkupString)ruleDisplay.DisplayService(rule, Recertification ? "certification" : "report", SelectedReportType))
+                                            @((MarkupString)ruleDisplay.DisplayService(rule, getActLocation(), SelectedReportType))
                                         </Template>
                                     </Column>
                                 }
@@ -144,17 +144,17 @@
                                 {
                                         <Column Class="table-active" TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_source"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                             <Template>
-                                                    @((MarkupString)ruleDisplay.DisplayTranslatedSource(rule, Recertification ? "certification" : "report"))
+                                                    @((MarkupString)ruleDisplay.DisplayTranslatedSource(rule, getActLocation()))
                                             </Template>
                                         </Column>
                                         <Column Class="table-active" TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_destination"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                             <Template>
-                                                @((MarkupString)ruleDisplay.DisplayTranslatedDestination(rule, Recertification ? "certification" : "report"))
+                                                @((MarkupString)ruleDisplay.DisplayTranslatedDestination(rule, getActLocation()))
                                             </Template>
                                         </Column>
                                         <Column Class="table-active" TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_services"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                             <Template>
-                                                @((MarkupString)ruleDisplay.DisplayTranslatedService(rule, Recertification ? "certification" : "report"))
+                                                @((MarkupString)ruleDisplay.DisplayTranslatedService(rule, getActLocation()))
                                             </Template>
                                         </Column>
                                 }
@@ -170,7 +170,7 @@
                                 {
                                     <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("enabled"))" Field="@(rChange => rChange.Disabled)" Sortable="true" Filterable="false" Hideable="true">
                                         <Template>
-                                            @((MarkupString)ruleDisplay.DisplayEnabled(rule))
+                                            @((MarkupString)ruleDisplay.DisplayEnabled(rule, getActLocation()))
                                         </Template>
                                     </Column>
                                 }
@@ -277,5 +277,10 @@
     {
         return ReportParams.ReportParams.RecertFilter.RecertOwnerList.Count()>1
             || ReportParams.ReportParams.RecertFilter.RecertOwnerList.Count()==0;
+    }
+
+    private OutputLocation getActLocation()
+    {
+        return Recertification ? OutputLocation.certification : OutputLocation.report;
     }
 }

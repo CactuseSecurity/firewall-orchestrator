@@ -9,17 +9,17 @@ namespace FWO.Ui.Display
         public NatRuleDisplayHtml(UserConfig userConfig) : base(userConfig)
         {}
 
-        public string DisplayTranslatedSource(Rule rule, string location, string style = "")
+        public string DisplayTranslatedSource(Rule rule, OutputLocation location, string style = "")
         {
             return DisplayTranslatedSourceOrDestination(rule, style, location, true);
         }
 
-        public string DisplayTranslatedDestination(Rule rule, string location, string style = "")
+        public string DisplayTranslatedDestination(Rule rule, OutputLocation location, string style = "")
         {
             return DisplayTranslatedSourceOrDestination(rule, style, location, false);
         }
 
-        public string DisplayTranslatedService(Rule rule, string location, string style = "")
+        public string DisplayTranslatedService(Rule rule, OutputLocation location, string style = "")
         {
             result = new StringBuilder();
 
@@ -44,7 +44,7 @@ namespace FWO.Ui.Display
             return result.ToString();
         }
 
-        private string DisplayTranslatedSourceOrDestination(Rule rule, string style, string location, bool isSource)
+        private string DisplayTranslatedSourceOrDestination(Rule rule, string style, OutputLocation location, bool isSource)
         {
             result = new StringBuilder();
 

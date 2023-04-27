@@ -14,7 +14,7 @@ namespace FWO.Test
         static NetworkObject dummyIp2 = new NetworkObject(){ Id = 2, Name = "dummyIp2", IP = "127.0.0.1/32", IpEnd = "", Type = new NetworkObjectType(){ Name = "network" }};
         static NetworkObject dummyIpRange = new NetworkObject(){ Id = 3, Name = "dummyIpRange", IP = "1.2.3.4/32", IpEnd = "1.2.3.5/32", Type = new NetworkObjectType(){ Name = "ip_range" }};
         static NetworkObject dummyIpNew = new NetworkObject(){ Id = 4, Name = "dummyIpNew", IP = "10.0.6.1/32", Type = new NetworkObjectType(){ Name = "network" }};
-        static NetworkObject dummyIp1Changed = new NetworkObject(){ Id = 1, Name = "dummyIp1", IP = "2.3.4.5/32", IpEnd = "", Type = new NetworkObjectType(){ Name = "network" }};
+        static NetworkObject dummyIp1Changed = new NetworkObject(){ Id = 5, Name = "dummyIp1Changed", IP = "2.3.4.5/32", IpEnd = "", Type = new NetworkObjectType(){ Name = "network" }};
 
         static NetworkService dummyservice1 = new NetworkService(){  Id = 1, DestinationPort = 443, DestinationPortEnd = 443, Name = "dummyservice1", Protocol = new NetworkProtocol { Name = "TCP" }};
         static NetworkService dummyservice2 = new NetworkService(){  Id = 2, DestinationPort = 6666, DestinationPortEnd = 7777, Name = "dummyservice2", Protocol = new NetworkProtocol { Name = "UDP" }};
@@ -193,6 +193,78 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ChangesGenerateHtml()
+        {
+            Log.WriteInfo("Test Log", "starting changes report html generation");
+            ReportChanges reportChanges = new ReportChanges(query, userConfig, ReportType.Changes);
+            reportChanges.Managements = ConstructChangeReport(false);
+
+            string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Changes Report</title>" +
+            "<style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head>" +
+            "<body>" +
+            "<h2>Changes Report</h2>" +
+            "<p>Filter: TestFilter</p>" +
+            "<p>Generated on: Z (UTC)</p>" +
+            "<p>Devices: TestMgt [TestDev]</p><hr>" +
+            "<h3>TestMgt</h3><hr>" +
+            "<h4>TestDev</h4><hr>" +
+            "<table><tr><th>Change Time</th><th>Change Type</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr>" +
+            "<tr><td>05.04.2023 12:00:00</td><td>Rule modified</td><td>TestRule1</td><td>srczn</td>" +
+            "<td><p><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2\" target=\"_top\" style=\"\">dummyIp2</a> (127.0.0.1/32)<br></p>" +
+            "deleted: <p style=\"color: red; text-decoration: line-through red;\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1\" target=\"_top\" style=\"color: red\">dummyIp1</a> (1.2.3.4/32)<br></p>" +
+            "added: <p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj5\" target=\"_top\" style=\"color: green\">dummyIp1Changed</a> (2.3.4.5/32)</p></td>" +
+            "<td>dstzn</td>" +
+            "<td><p><span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"\">dummyIpRange</a> (1.2.3.4/32-1.2.3.5/32)<br></p>" +
+            "added: <p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj4\" target=\"_top\" style=\"color: green\">dummyIpNew</a> (10.0.6.1/32)</p></td>" +
+            "<td>deleted: <p style=\"color: red; text-decoration: line-through red;\"><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1\" target=\"_top\" style=\"color: red\">dummyservice1</a> (443/TCP)<br></p>" +
+            "added: <p style=\"color: green; text-decoration: bold;\">not<br><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1\" target=\"_top\" style=\"color: green\">dummyservice1</a> (443/TCP)</p></td>" +
+            "<td>accept</td><td>none</td><td><b>Y</b></td><td>deleted: <p style=\"color: red; text-decoration: line-through red;\">uid1<br></p></td>" +
+            "<td>deleted: <p style=\"color: red; text-decoration: line-through red;\">comment1<br></p>added: <p style=\"color: green; text-decoration: bold;\">new comment</p></td></tr>" +
+            "<tr><td>05.04.2023 12:00:00</td><td>Rule modified</td><td>TestRule2</td><td></td>" +
+            "<td><p>not<br><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1\" target=\"_top\" style=\"\">dummyuser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1\" target=\"_top\" style=\"\">dummyIp1</a> (1.2.3.4/32)<br>" +
+            "<span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1\" target=\"_top\" style=\"\">dummyuser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2\" target=\"_top\" style=\"\">dummyIp2</a> (127.0.0.1/32)</p></td>" +
+            "<td></td>" +
+            "<td>deleted: <p style=\"color: red; text-decoration: line-through red;\">not<br><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user2\" target=\"_top\" style=\"color: red\">dummyuser2</a>@<span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"color: red\">dummyIpRange</a> (1.2.3.4/32-1.2.3.5/32)<br></p>" +
+            "added: <p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user2\" target=\"_top\" style=\"color: green\">dummyuser2</a>@<span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"color: green\">dummyIpRange</a> (1.2.3.4/32-1.2.3.5/32)</p></td>" +
+            "<td>deleted: <p style=\"color: red; text-decoration: line-through red;\">not<br><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc2\" target=\"_top\" style=\"color: red\">dummyservice2</a> (6666-7777/UDP)<br></p>" +
+            "added: <p style=\"color: green; text-decoration: bold;\"><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc2\" target=\"_top\" style=\"color: green\">dummyservice2</a> (6666-7777/UDP)</p></td>" +
+            "<td>deny</td><td>none</td><td>deleted: <p style=\"color: red; text-decoration: line-through red;\"><b>Y</b><br></p>added: <p style=\"color: green; text-decoration: bold;\"><b>N</b></p></td><td>uid2:123</td><td>comment2</td></tr>" +
+            "<tr><td>05.04.2023 12:00:00</td><td>Rule added</td><td>TestRule1</td><td>srczn</td>" +
+            "<td><p><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1\" target=\"_top\" style=\"color: green\">dummyIp1</a> (1.2.3.4/32)<br><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2\" target=\"_top\" style=\"color: green\">dummyIp2</a> (127.0.0.1/32)</p></td>" +
+            "<td>dstzn</td>" +
+            "<td><p><span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"color: green\">dummyIpRange</a> (1.2.3.4/32-1.2.3.5/32)</p></td>" +
+            "<td><p><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1\" target=\"_top\" style=\"color: green\">dummyservice1</a> (443/TCP)</p></td>" +
+            "<td>accept</td><td>none</td><td><b>Y</b></td><td>uid1</td><td>comment1</td></tr>" +
+            "<tr><td>05.04.2023 12:00:00</td><td>Rule deleted</td><td>TestRule2</td><td></td>" +
+            "<td><p>not<br><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1\" target=\"_top\" style=\"color: red\">dummyuser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1\" target=\"_top\" style=\"color: red\">dummyIp1</a> (1.2.3.4/32)<br>" +
+            "<span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1\" target=\"_top\" style=\"color: red\">dummyuser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2\" target=\"_top\" style=\"color: red\">dummyIp2</a> (127.0.0.1/32)</p></td>" +
+            "<td></td>" +
+            "<td><p>not<br><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user2\" target=\"_top\" style=\"color: red\">dummyuser2</a>@<span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"color: red\">dummyIpRange</a> (1.2.3.4/32-1.2.3.5/32)</p></td>" +
+            "<td><p>not<br><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc2\" target=\"_top\" style=\"color: red\">dummyservice2</a> (6666-7777/UDP)</p></td>" +
+            "<td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr></table>" +
+            // "<h4>Network Objects</h4><hr>" +
+            // "<table><tr><th>No.</th><th>Name</th><th>Type</th><th>IP Address</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
+            // "<tr><td>1</td><td><a name=nwobj1>dummyIp1</a></td><td>network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr>" +
+            // "<tr><td>2</td><td><a name=nwobj2>dummyIp2</a></td><td>network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr>" +
+            // "<tr><td>3</td><td><a name=nwobj3>dummyIpRange</a></td><td>ip_range</td><td>1.2.3.4/32-1.2.3.5/32</td><td></td><td></td><td></td></tr>" +
+            // "<tr><td>3</td><td><a name=nwobj4>dummyIpNew</a></td><td>network</td><td>10.0.6.1/32</td><td></td><td></td><td></td></tr>" +
+            // "<tr><td>3</td><td><a name=nwobj5>dummyIp1Changed</a></td><td>network</td><td>2.3.4.5/32</td><td></td><td></td><td></td></tr>" +
+            // "</table>" +
+            // "<h4>Network Services</h4><hr>" +
+            // "<table><tr><th>No.</th><th>Name</th><th>Type</th><th>Protocol</th><th>Port</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
+            // "<tr><td>1</td><td>dummyservice1</td><td><a name=svc1>dummyservice1</a></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr>" +
+            // "<tr><td>2</td><td>dummyservice2</td><td><a name=svc2>dummyservice2</a></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr>" +
+            // "</table>" +
+            // "<h4>Users</h4><hr>" +
+            // "<table><tr><th>No.</th><th>Name</th><th>Type</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
+            // "<tr><td>1</td><td>dummyuser1</td><td><a name=user1>dummyuser1</a></td><td></td><td></td><td></td></tr>" +
+            // "<tr><td>2</td><td>dummyuser2</td><td><a name=user2>dummyuser2</a></td><td></td><td></td><td></td></tr>" +
+            // "</table>"+
+            "</body></html>";
+            Assert.AreEqual(expectedHtmlResult, removeLinebreaks((removeGenDate(reportChanges.ExportToHtml(), true))));
+        }
+
+        [Test]
         public void ResolvedChangesGenerateCsv()
         {
             Log.WriteInfo("Test Log", "starting changes report resolved csv generation");
@@ -206,10 +278,16 @@ namespace FWO.Test
             "# report generator: Firewall Orchestrator - https://fwo.cactus.de/en\r\n" +
             "# data protection level: For internal use only\r\n#\r\n" +
             "\"management-name\",\"device-name\",\"change-time\",\"change-type\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"\r\n" +
-            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule1\",\"srczn\",\"dummyIp2 (127.0.0.1/32) deleted: dummyIp1 (1.2.3.4/32) added: dummyIp1 (2.3.4.5/32)\",\"dstzn\",\"dummyIpRange (1.2.3.4/32-1.2.3.5/32) added: dummyIpNew (10.0.6.1/32)\",\" deleted: dummyservice1 (443/TCP) added: not(dummyservice1 (443/TCP))\",\"accept\",\"none\",\"enabled\",\" deleted: uid1\",\" deleted: comment1 added: new comment\"\r\n" +
-            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule2\",\"\",\"not(dummyuser1@dummyIp1 (1.2.3.4/32),dummyuser1@dummyIp2 (127.0.0.1/32))\",\"\",\" deleted: not(dummyuser2@dummyIpRange (1.2.3.4/32-1.2.3.5/32)) added: dummyuser2@dummyIpRange (1.2.3.4/32-1.2.3.5/32)\",\" deleted: not(dummyservice2 (6666-7777/UDP)) added: dummyservice2 (6666-7777/UDP)\",\"deny\",\"none\",\" deleted: enabled added: disabled\",\"uid2:123\",\"comment2\"\r\n" +
-            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule added\",\"TestRule1\",\"srczn\",\"dummyIp1 (1.2.3.4/32),dummyIp2 (127.0.0.1/32)\",\"dstzn\",\"dummyIpRange (1.2.3.4/32-1.2.3.5/32)\",\"dummyservice1 (443/TCP)\",\"accept\",\"none\",\"enabled\",\"uid1\",\"comment1\"\r\n" +
-            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule deleted\",\"TestRule2\",\"\",\"not(dummyuser1@dummyIp1 (1.2.3.4/32),dummyuser1@dummyIp2 (127.0.0.1/32))\",\"\",\"not(dummyuser2@dummyIpRange (1.2.3.4/32-1.2.3.5/32))\",\"not(dummyservice2 (6666-7777/UDP))\",\"deny\",\"none\",\"enabled\",\"uid2:123\",\"comment2\"\r\n";
+            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule1\",\"srczn\",\"dummyIp2 (127.0.0.1/32) deleted: dummyIp1 (1.2.3.4/32) added: dummyIp1Changed (2.3.4.5/32)\"," +
+            "\"dstzn\",\"dummyIpRange (1.2.3.4/32-1.2.3.5/32) added: dummyIpNew (10.0.6.1/32)\"," +
+            "\" deleted: dummyservice1 (443/TCP) added: not(dummyservice1 (443/TCP))\",\"accept\",\"none\",\"enabled\",\" deleted: uid1\",\" deleted: comment1 added: new comment\"\r\n" +
+            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule2\",\"\",\"not(dummyuser1@dummyIp1 (1.2.3.4/32),dummyuser1@dummyIp2 (127.0.0.1/32))\"," +
+            "\"\",\" deleted: not(dummyuser2@dummyIpRange (1.2.3.4/32-1.2.3.5/32)) added: dummyuser2@dummyIpRange (1.2.3.4/32-1.2.3.5/32)\"," +
+            "\" deleted: not(dummyservice2 (6666-7777/UDP)) added: dummyservice2 (6666-7777/UDP)\",\"deny\",\"none\",\" deleted: enabled added: disabled\",\"uid2:123\",\"comment2\"\r\n" +
+            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule added\",\"TestRule1\",\"srczn\",\"dummyIp1 (1.2.3.4/32),dummyIp2 (127.0.0.1/32)\"," +
+            "\"dstzn\",\"dummyIpRange (1.2.3.4/32-1.2.3.5/32)\",\"dummyservice1 (443/TCP)\",\"accept\",\"none\",\"enabled\",\"uid1\",\"comment1\"\r\n" +
+            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule deleted\",\"TestRule2\",\"\",\"not(dummyuser1@dummyIp1 (1.2.3.4/32),dummyuser1@dummyIp2 (127.0.0.1/32))\"," +
+            "\"\",\"not(dummyuser2@dummyIpRange (1.2.3.4/32-1.2.3.5/32))\",\"not(dummyservice2 (6666-7777/UDP))\",\"deny\",\"none\",\"enabled\",\"uid2:123\",\"comment2\"\r\n";
             Assert.AreEqual(expectedCsvResult, removeGenDate(reportChanges.ExportToCsv()));
         }
 
@@ -232,7 +310,7 @@ namespace FWO.Test
             "<table><tr><th>Change Time</th><th>Change Type</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr>" +
             "<tr><td>05.04.2023 12:00:00</td><td>Rule modified</td><td>TestRule1</td><td>srczn</td>" +
             "<td><p>dummyIp2 (127.0.0.1/32)<br></p>deleted: <p style=\"color: red; text-decoration: line-through red;\">dummyIp1 (1.2.3.4/32)<br></p>" +
-            "added: <p style=\"color: green; text-decoration: bold;\">dummyIp1 (2.3.4.5/32)</p></td>" +
+            "added: <p style=\"color: green; text-decoration: bold;\">dummyIp1Changed (2.3.4.5/32)</p></td>" +
             "<td>dstzn</td>" +
             "<td><p>dummyIpRange (1.2.3.4/32-1.2.3.5/32)<br></p>added: <p style=\"color: green; text-decoration: bold;\">dummyIpNew (10.0.6.1/32)</p></td>" +
             "<td>deleted: <p style=\"color: red; text-decoration: line-through red;\">dummyservice1 (443/TCP)<br></p>" +
@@ -455,12 +533,24 @@ namespace FWO.Test
             Rule1Changed = InitRule1(resolved);
             Rule2 = InitRule2(resolved);
             Rule2Changed = InitRule2(resolved);
-            Rule1Changed.Froms[0].Object.ObjectGroupFlats[0].Object = dummyIp1Changed;
-            Rule1Changed.Tos = new NetworkLocation[]{new NetworkLocation(new NetworkUser(), new NetworkObject(){ObjectGroupFlats = new GroupFlat<NetworkObject>[]
+            if(resolved)
             {
-                new GroupFlat<NetworkObject>(){ Object = dummyIpRange },
-                new GroupFlat<NetworkObject>(){ Object = dummyIpNew }
-            }})};
+                Rule1Changed.Froms[0].Object.ObjectGroupFlats[0].Object = dummyIp1Changed;
+                Rule1Changed.Tos = new NetworkLocation[]{new NetworkLocation(new NetworkUser(), new NetworkObject(){ObjectGroupFlats = new GroupFlat<NetworkObject>[]
+                {
+                    new GroupFlat<NetworkObject>(){ Object = dummyIpRange },
+                    new GroupFlat<NetworkObject>(){ Object = dummyIpNew }
+                }})};  
+            }
+            else
+            {
+                Rule1Changed.Froms[0].Object = dummyIp1Changed;
+                Rule1Changed.Tos = new NetworkLocation[]
+                {
+                    new NetworkLocation(new NetworkUser(), dummyIpRange),
+                    new NetworkLocation(new NetworkUser(), dummyIpNew)
+                };
+            }
             Rule1Changed.Uid = "";
             Rule1Changed.ServiceNegated = true;
             Rule1Changed.Comment = "new comment";

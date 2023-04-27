@@ -5,25 +5,30 @@ using FWO.Report.Filter;
 
 namespace FWO.Ui.Display
 {
+    public enum OutputLocation
+    {
+        export,
+        report,
+        certification
+    }
+
     public class RuleDisplayHtml: RuleDisplayBase
     {
         public RuleDisplayHtml(UserConfig userConfig) : base(userConfig)
         {}
 
-        public string DisplaySource(Rule rule, string location, ReportType reportType, string style = "")
+        public string DisplaySource(Rule rule, OutputLocation location, ReportType reportType, string style = "")
         {
-            return DisplaySourceOrDestination(rule, style, location, reportType, true);
+            return DisplaySourceOrDestination(rule, location, reportType, style, true);
         }
 
-        public string DisplayDestination(Rule rule, string location, ReportType reportType, string style = "")
+        public string DisplayDestination(Rule rule, OutputLocation location, ReportType reportType, string style = "")
         {
-            return DisplaySourceOrDestination(rule, style, location, reportType, false);
+            return DisplaySourceOrDestination(rule, location, reportType, style, false);
         }
 
-        public string DisplayService(Rule rule, string location, ReportType reportType, string style = "")
+        public string DisplayService(Rule rule, OutputLocation location, ReportType reportType, string style = "")
         {
-            if (location=="certification")
-                reportType=ReportType.Rules;
             result = new StringBuilder();
             result.AppendLine("<p>");
             if (rule.ServiceNegated)
@@ -42,9 +47,9 @@ namespace FWO.Ui.Display
             return result.ToString();
         }
 
-        public string DisplayEnabled(Rule rule, bool export = false)
+        public string DisplayEnabled(Rule rule, OutputLocation location)
         {
-            if (export)
+            if (location == OutputLocation.export)
             {
                 return $"<b>{(rule.Disabled ? "N" : "Y")}</b>";
             }
@@ -111,10 +116,10 @@ namespace FWO.Ui.Display
             return result;
         }
 
-        protected string constructLink(string type, string symbol, long id, string name, string location, int mgmtId, string style)
+        protected string constructLink(string type, string symbol, long id, string name, OutputLocation location, int mgmtId, string style)
         {
-            string link = location == "" ? $"{type}{id}" : $"goto-report-m{mgmtId}-{type}{id}";
-            return $"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{location}#{link}\" target=\"_top\" style=\"{style}\">{name}</a>";
+            string link = location == OutputLocation.export ? $"#" : $"{location.ToString()}#goto-report-m{mgmtId}-";
+            return $"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{link}{type}{id}\" target=\"_top\" style=\"{style}\">{name}</a>";
         }
 
         protected string getObjSymbol(string objType)
@@ -128,10 +133,8 @@ namespace FWO.Ui.Display
             }
         }
 
-        private string DisplaySourceOrDestination(Rule rule, string style, string location, ReportType reportType, bool isSource)
+        private string DisplaySourceOrDestination(Rule rule, OutputLocation location, ReportType reportType, string style, bool isSource)
         {
-            if (location=="certification")
-                reportType=ReportType.Rules;
             result = new StringBuilder();
             result.AppendLine("<p>");
             if ((isSource && rule.SourceNegated) ||(!isSource && rule.DestinationNegated))
@@ -153,7 +156,7 @@ namespace FWO.Ui.Display
             return result.ToString();
         }
 
-        private string NetworkLocationToHtml(NetworkLocation userNetworkObject, int mgmtId, string location, string style, ReportType reportType)
+        private string NetworkLocationToHtml(NetworkLocation userNetworkObject, int mgmtId, OutputLocation location, string style, ReportType reportType)
         {
             StringBuilder result = new StringBuilder();
             
@@ -192,7 +195,7 @@ namespace FWO.Ui.Display
             return result.ToString();
         }
 
-        private string ServiceToHtml(NetworkService service, int mgmtId, string location, string style, ReportType reportType)
+        private string ServiceToHtml(NetworkService service, int mgmtId, OutputLocation location, string style, ReportType reportType)
         {
             StringBuilder result = new StringBuilder();
             if(!reportType.IsTechReport())

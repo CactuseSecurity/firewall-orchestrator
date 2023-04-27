@@ -158,13 +158,13 @@ namespace FWO.Report
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayChangeAction(ruleChange)}</td>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayName(ruleChange)}</td>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplaySourceZone(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplaySource(ruleChange, ReportType)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplaySource(ruleChange, OutputLocation.export, ReportType)}</td>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayDestinationZone(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayDestination(ruleChange, ReportType)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayService(ruleChange, ReportType)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayDestination(ruleChange, OutputLocation.export, ReportType)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayService(ruleChange, OutputLocation.export, ReportType)}</td>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayAction(ruleChange)}</td>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayTrack(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayEnabled(ruleChange, export: true)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayEnabled(ruleChange, OutputLocation.export)}</td>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayUid(ruleChange)}</td>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayComment(ruleChange)}</td>");
                             report.AppendLine("</tr>");

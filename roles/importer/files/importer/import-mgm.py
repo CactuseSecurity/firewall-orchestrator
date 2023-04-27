@@ -16,7 +16,7 @@ if __name__ == "__main__":
     parser.add_argument('-c', '--clear', action='store_true', default=False,
                         help='If set the import will delete all data for the given management instead of importing')
     parser.add_argument('-f', '--force', action='store_true', default=False,
-                        help='If set the import will be attempted without checking for changes before')
+                        help='If set the import will be attempted without checking for changes or if the importer module is the one defined')
     parser.add_argument('-d', '--debug', metavar='debug_level', default='0',
                         help='Debug Level: 0=off, 1=send debug to console, 2=send debug to file, 3=save noramlized config file; 4=additionally save native config file; default=0. \n' +\
                             'config files are saved to $FWORCH/tmp/import dir')

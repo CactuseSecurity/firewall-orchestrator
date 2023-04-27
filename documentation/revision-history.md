@@ -289,3 +289,6 @@ adding report template format fk and permissions
   - application categories
   - updatable objects
   - domain names
+
+### 6.3.1 27.04.2023 MAIN
+- hotfix adding CP R8X object type application site

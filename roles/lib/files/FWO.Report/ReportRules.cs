@@ -214,7 +214,7 @@ namespace FWO.Report
                                 {
                                     report.Append(ruleDisplayCsv.OutputCsv(management.Name));
                                     report.Append(ruleDisplayCsv.OutputCsv(gateway.Name));
-                                    report.Append(ruleDisplayCsv.DisplayNumberCsv(rule, gateway.Rules));
+                                    report.Append(ruleDisplayCsv.DisplayNumberCsv(rule));
                                     report.Append(ruleDisplayCsv.DisplayNameCsv(rule));
                                     report.Append(ruleDisplayCsv.DisplaySourceZoneCsv(rule));
                                     report.Append(ruleDisplayCsv.DisplaySourceCsv(rule, ReportType));
@@ -291,7 +291,7 @@ namespace FWO.Report
                             report.Append("{");
                             if (string.IsNullOrEmpty(rule.SectionHeader))
                             {
-                                report.Append(ruleDisplayJson.DisplayNumber(rule, gateway.Rules));
+                                report.Append(ruleDisplayJson.DisplayNumber(rule));
                                 report.Append(ruleDisplayJson.DisplayName(rule));
                                 report.Append(ruleDisplayJson.DisplaySourceZone(rule));
                                 report.Append(ruleDisplayJson.DisplaySource(rule, ReportType));
@@ -400,7 +400,7 @@ namespace FWO.Report
                     if (string.IsNullOrEmpty(rule.SectionHeader))
                     {
                         report.AppendLine("<tr>");
-                        report.AppendLine($"<td>{ruleDisplayHtml.DisplayNumber(rule, device.Rules)}</td>");
+                        report.AppendLine($"<td>{ruleDisplayHtml.DisplayNumber(rule)}</td>");
                         if(ReportType == ReportType.Recertification)
                         {
                             bool multipleOwners = false; // todo: get from report params

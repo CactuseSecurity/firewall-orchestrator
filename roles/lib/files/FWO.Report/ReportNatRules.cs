@@ -51,7 +51,7 @@ namespace FWO.Report
                             if (string.IsNullOrEmpty(rule.SectionHeader))
                             {
                                 report.AppendLine("<tr>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayNumber(rule, device.Rules)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayNumber(rule)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayName(rule)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplaySourceZone(rule)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplaySource(rule, OutputLocation.export, ReportType)}</td>");

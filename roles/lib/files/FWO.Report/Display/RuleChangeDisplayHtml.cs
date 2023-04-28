@@ -7,6 +7,9 @@ namespace FWO.Ui.Display
 {
     public class RuleChangeDisplayHtml : RuleDisplayHtml
     {
+        static string addedStyle = "color: green; text-decoration: bold;";
+        static string deletedStyle = "color: red; text-decoration: line-through red;";
+
         public RuleChangeDisplayHtml(UserConfig userConfig) : base(userConfig)
         { }
 
@@ -30,8 +33,8 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return DisplayName(ruleChange.OldRule);
-                case 'I': return DisplayName(ruleChange.NewRule);
+                case 'D': return OutputHtmlDeleted(DisplayName(ruleChange.OldRule));
+                case 'I': return OutputHtmlAdded(DisplayName(ruleChange.NewRule));
                 case 'C': return DisplayDiff(DisplayName(ruleChange.OldRule), DisplayName(ruleChange.NewRule));
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
@@ -41,8 +44,8 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return DisplaySourceZone(ruleChange.OldRule);
-                case 'I': return DisplaySourceZone(ruleChange.NewRule);
+                case 'D': return OutputHtmlDeleted(DisplaySourceZone(ruleChange.OldRule));
+                case 'I': return OutputHtmlAdded(DisplaySourceZone(ruleChange.NewRule));
                 case 'C': return DisplayDiff(DisplaySourceZone(ruleChange.OldRule), DisplaySourceZone(ruleChange.NewRule));
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
@@ -52,10 +55,10 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return DisplaySource(ruleChange.OldRule, location, reportType, DisplayStyle(ruleChange));
-                case 'I': return DisplaySource(ruleChange.NewRule, location, reportType, DisplayStyle(ruleChange));
-                case 'C': return DisplayArrayDiff(DisplaySource(ruleChange.OldRule, location, reportType, DisplayStyle(ruleChange)),
-                                                  DisplaySource(ruleChange.NewRule, location, reportType, DisplayStyle(ruleChange)),
+                case 'D': return OutputHtmlDeleted(DisplaySource(ruleChange.OldRule, location, reportType, deletedStyle));
+                case 'I': return OutputHtmlAdded(DisplaySource(ruleChange.NewRule, location, reportType, addedStyle));
+                case 'C': return DisplayArrayDiff(DisplaySource(ruleChange.OldRule, location, reportType),
+                                                  DisplaySource(ruleChange.NewRule, location, reportType),
                                                   ruleChange.OldRule.SourceNegated, ruleChange.NewRule.SourceNegated);
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
@@ -65,8 +68,8 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return DisplayDestinationZone(ruleChange.OldRule);
-                case 'I': return DisplayDestinationZone(ruleChange.NewRule);
+                case 'D': return OutputHtmlDeleted(DisplayDestinationZone(ruleChange.OldRule));
+                case 'I': return OutputHtmlAdded(DisplayDestinationZone(ruleChange.NewRule));
                 case 'C': return DisplayDiff(DisplayDestinationZone(ruleChange.OldRule), DisplayDestinationZone(ruleChange.NewRule));
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
@@ -76,10 +79,10 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return DisplayDestination(ruleChange.OldRule, location, reportType, DisplayStyle(ruleChange));
-                case 'I': return DisplayDestination(ruleChange.NewRule, location, reportType, DisplayStyle(ruleChange));
-                case 'C': return DisplayArrayDiff(DisplayDestination(ruleChange.OldRule, location, reportType, DisplayStyle(ruleChange)),
-                                                  DisplayDestination(ruleChange.NewRule, location, reportType, DisplayStyle(ruleChange)),
+                case 'D': return OutputHtmlDeleted(DisplayDestination(ruleChange.OldRule, location, reportType, deletedStyle));
+                case 'I': return OutputHtmlAdded(DisplayDestination(ruleChange.NewRule, location, reportType, addedStyle));
+                case 'C': return DisplayArrayDiff(DisplayDestination(ruleChange.OldRule, location, reportType),
+                                                  DisplayDestination(ruleChange.NewRule, location, reportType),
                                                   ruleChange.OldRule.DestinationNegated, ruleChange.NewRule.DestinationNegated);
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
@@ -89,10 +92,10 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return DisplayService(ruleChange.OldRule, location, reportType, DisplayStyle(ruleChange));
-                case 'I': return DisplayService(ruleChange.NewRule, location, reportType, DisplayStyle(ruleChange));
-                case 'C': return DisplayArrayDiff(DisplayService(ruleChange.OldRule, location, reportType, DisplayStyle(ruleChange)),
-                                                  DisplayService(ruleChange.NewRule, location, reportType, DisplayStyle(ruleChange)),
+                case 'D': return OutputHtmlDeleted(DisplayService(ruleChange.OldRule, location, reportType, deletedStyle));
+                case 'I': return OutputHtmlAdded(DisplayService(ruleChange.NewRule, location, reportType, addedStyle));
+                case 'C': return DisplayArrayDiff(DisplayService(ruleChange.OldRule, location, reportType),
+                                                  DisplayService(ruleChange.NewRule, location, reportType),
                                                   ruleChange.OldRule.ServiceNegated, ruleChange.NewRule.ServiceNegated);
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
@@ -102,8 +105,8 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return DisplayAction(ruleChange.OldRule);
-                case 'I': return DisplayAction(ruleChange.NewRule);
+                case 'D': return OutputHtmlDeleted(DisplayAction(ruleChange.OldRule));
+                case 'I': return OutputHtmlAdded(DisplayAction(ruleChange.NewRule));
                 case 'C': return DisplayDiff(DisplayAction(ruleChange.OldRule), DisplayAction(ruleChange.NewRule));
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
@@ -113,8 +116,8 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return DisplayTrack(ruleChange.OldRule);
-                case 'I': return DisplayTrack(ruleChange.NewRule);
+                case 'D': return OutputHtmlDeleted(DisplayTrack(ruleChange.OldRule));
+                case 'I': return OutputHtmlAdded(DisplayTrack(ruleChange.NewRule));
                 case 'C': return DisplayDiff(DisplayTrack(ruleChange.OldRule), DisplayTrack(ruleChange.NewRule));
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
@@ -124,8 +127,8 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return DisplayEnabled(ruleChange.OldRule, location);
-                case 'I': return DisplayEnabled(ruleChange.NewRule, location);
+                case 'D': return OutputHtmlDeleted(DisplayEnabled(ruleChange.OldRule, location));
+                case 'I': return OutputHtmlAdded(DisplayEnabled(ruleChange.NewRule, location));
                 case 'C': return DisplayDiff(DisplayEnabled(ruleChange.OldRule, location), DisplayEnabled(ruleChange.NewRule, location));
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
@@ -135,8 +138,8 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return DisplayUid(ruleChange.OldRule);
-                case 'I': return DisplayUid(ruleChange.NewRule);
+                case 'D': return OutputHtmlDeleted(DisplayUid(ruleChange.OldRule));
+                case 'I': return OutputHtmlAdded(DisplayUid(ruleChange.NewRule));
                 case 'C': return DisplayDiff(DisplayUid(ruleChange.OldRule), DisplayUid(ruleChange.NewRule));
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
@@ -146,8 +149,8 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return DisplayComment(ruleChange.OldRule);
-                case 'I': return DisplayComment(ruleChange.NewRule);
+                case 'D': return OutputHtmlDeleted(DisplayComment(ruleChange.OldRule));
+                case 'I': return OutputHtmlAdded(DisplayComment(ruleChange.NewRule));
                 case 'C': return DisplayDiff(DisplayComment(ruleChange.OldRule), DisplayComment(ruleChange.NewRule));
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
@@ -157,8 +160,8 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return "color: red";
-                case 'I': return "color: green";
+                case 'D': return deletedStyle;
+                case 'I': return addedStyle;
                 case 'C': return "";
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
@@ -172,8 +175,8 @@ namespace FWO.Ui.Display
             }
             else
             {
-                return (oldElement.Length > 0 ? $"{userConfig.GetText("deleted")}: <p style=\"color: red; text-decoration: line-through red;\">{oldElement}<br></p>" : "")
-                    + (newElement.Length > 0 ? $"{userConfig.GetText("added")}: <p style=\"color: green; text-decoration: bold;\">{newElement}</p>" : "");
+                return (oldElement.Length > 0 ? $"{userConfig.GetText("deleted")}: <p style=\"{deletedStyle}\">{oldElement}<br></p>" : "")
+                    + (newElement.Length > 0 ? $"{userConfig.GetText("added")}: <p style=\"{addedStyle}\">{newElement}</p>" : "");
             }
         }
 
@@ -201,8 +204,8 @@ namespace FWO.Ui.Display
 
                 if(oldNegated != newNegated)
                 {
-                    deleted.Add(oldElement.Replace("style=\"\"", "style=\"color: red\""));
-                    added.Add(newElement.Replace("style=\"\"", "style=\"color: green\""));
+                    deleted.Add(setStyle(oldElement, deletedStyle));
+                    added.Add(setStyle(newElement, addedStyle));
                 }
                 else
                 {
@@ -218,24 +221,39 @@ namespace FWO.Ui.Display
                         }
                         else
                         {
-                            deleted.Add(item.Replace("style=\"\"", "style=\"color: red\""));
+                            deleted.Add(setStyle(item, deletedStyle));
                         }
                     }
                     foreach (var item in newAr)
                     {
                         if (!oldAr.Contains(item))
                         {
-                            added.Add(item.Replace("style=\"\"", "style=\"color: green\""));
+                            added.Add(setStyle(item, addedStyle));
                         }
                     }
                 }
 
                 return (unchanged.Count > 0 ? $"<p>{string.Join("<br>", unchanged)}<br></p>" : "")
-                       + (deleted.Count > 0 ? $"{userConfig.GetText("deleted")}: <p style=\"color: red; text-decoration: line-through red;\">{string.Join("<br>", deleted)}<br></p>" : "")
-                       + (added.Count > 0 ? $"{userConfig.GetText("added")}: <p style=\"color: green; text-decoration: bold;\">{string.Join("<br>", added)}</p>" : "");
+                       + (deleted.Count > 0 ? $"{userConfig.GetText("deleted")}: <p style=\"{deletedStyle}\">{string.Join("<br>", deleted)}<br></p>" : "")
+                       + (added.Count > 0 ? $"{userConfig.GetText("added")}: <p style=\"{addedStyle}\">{string.Join("<br>", added)}</p>" : "");
             }
         }
         
+        private string OutputHtmlDeleted(string? input)
+        {
+            return  input != null && input != "" ? $"<p style=\"{deletedStyle}\">{input}</p>" : "";
+        }
+
+        private string OutputHtmlAdded(string? input)
+        {
+            return  input != null && input != "" ? $"<p style=\"{addedStyle}\">{input}</p>" : "";
+        }
+
+        private string setStyle(string input, string style)
+        {
+            return input.Replace("style=\"\"", $"style=\"{style}\"");
+        }
+
         /// <summary>
         /// displays differences between two json objects
         /// </summary>

@@ -16,9 +16,9 @@ namespace FWO.Ui.Display
             return  $"\"{input ?? ""}\",";
         }
 
-        public string DisplayNumberCsv(Rule rule, Rule[] rules)
+        public string DisplayNumberCsv(Rule rule)
         {
-            return OutputCsv(DisplayNumber(rule, rules));
+            return OutputCsv(DisplayNumber(rule));
         }
 
         public string DisplayNameCsv(Rule rule)

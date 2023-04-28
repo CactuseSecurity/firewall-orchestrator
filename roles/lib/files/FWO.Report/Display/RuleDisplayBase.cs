@@ -14,7 +14,7 @@ namespace FWO.Ui.Display
             this.userConfig = userConfig;
         }
 
-        public string DisplayNumber(Rule rule, Rule[] rules)
+        public string DisplayNumber(Rule rule)
         {
             return rule.DisplayOrderNumber.ToString();
         }

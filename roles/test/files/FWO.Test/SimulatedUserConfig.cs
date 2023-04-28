@@ -9,6 +9,7 @@ namespace FWO.Test
             {"Rules","Rules Report"},
             {"ResolvedRules","Rules Report (resolved)"},
             {"ResolvedRulesTech","Rules Report (technical)"},
+            {"NatRules","NAT Rules Report"},
             {"Changes","Changes Report"},
             {"ResolvedChanges","Changes Report (resolved)"},
             {"ResolvedChangesTech","Changes Report (technical)"},
@@ -41,7 +42,10 @@ namespace FWO.Test
             {"network_objects","Network Objects"},
             {"network_services","Network Services"},
             {"protocol","Protocol"},
-            {"port","Port"}
+            {"port","Port"},
+            {"trans_source","Translated Source"},
+            {"trans_destination","Translated Destination"},
+            {"trans_services","Translated Services"}
         };
 
         public override string GetText(string key)

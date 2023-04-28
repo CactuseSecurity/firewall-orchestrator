@@ -27,7 +27,7 @@
                                 {
                                     <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("number"))" DefaultSortColumn="true" Field="@(rChange => rChange.OrderNumber)" Sortable="true" Filterable="false" Hideable="true">
                                         <Template>
-                                            @((MarkupString)ruleDisplay.DisplayNumber(rule, device.Rules))
+                                            @((MarkupString)ruleDisplay.DisplayNumber(rule))
                                         </Template>
                                     </Column>
                                 }

@@ -11,7 +11,7 @@ namespace FWO.Ui.Display
         public RuleDisplayJson(UserConfig userConfig) : base(userConfig)
         { }
 
-        public new string DisplayNumber(Rule rule, Rule[] rules)
+        public new string DisplayNumber(Rule rule)
         {
             return $"\"number\": {rule.DisplayOrderNumber.ToString()},";
         }

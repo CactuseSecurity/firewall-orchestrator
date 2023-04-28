@@ -30,9 +30,10 @@ namespace FWO.Ui.Display
         public string DisplayService(Rule rule, OutputLocation location, ReportType reportType, string style = "")
         {
             result = new StringBuilder();
-            result.AppendLine("<p>");
             if (rule.ServiceNegated)
+            {
                 result.AppendLine(userConfig.GetText("negated") + "<br>");
+            }
 
             if(reportType.IsResolvedReport())
             {
@@ -43,7 +44,6 @@ namespace FWO.Ui.Display
             {
                 result.AppendJoin("<br>", Array.ConvertAll(rule.Services, service => ServiceToHtml(service.Content, rule.MgmtId, location, style, reportType)));
             }
-            result.AppendLine("</p>");
             return result.ToString();
         }
 
@@ -136,7 +136,6 @@ namespace FWO.Ui.Display
         private string DisplaySourceOrDestination(Rule rule, OutputLocation location, ReportType reportType, string style, bool isSource)
         {
             result = new StringBuilder();
-            result.AppendLine("<p>");
             if ((isSource && rule.SourceNegated) ||(!isSource && rule.DestinationNegated))
             {
                 result.AppendLine(userConfig.GetText("negated") + "<br>");
@@ -152,11 +151,10 @@ namespace FWO.Ui.Display
                 result.AppendJoin("<br>", Array.ConvertAll(isSource ? rule.Froms : rule.Tos, networkLocation => NetworkLocationToHtml(networkLocation, rule.MgmtId, location, style, reportType)));
             }
 
-            result.AppendLine("</p>");
             return result.ToString();
         }
 
-        private string NetworkLocationToHtml(NetworkLocation userNetworkObject, int mgmtId, OutputLocation location, string style, ReportType reportType)
+        protected string NetworkLocationToHtml(NetworkLocation userNetworkObject, int mgmtId, OutputLocation location, string style, ReportType reportType)
         {
             StringBuilder result = new StringBuilder();
             
@@ -195,7 +193,7 @@ namespace FWO.Ui.Display
             return result.ToString();
         }
 
-        private string ServiceToHtml(NetworkService service, int mgmtId, OutputLocation location, string style, ReportType reportType)
+        protected string ServiceToHtml(NetworkService service, int mgmtId, OutputLocation location, string style, ReportType reportType)
         {
             StringBuilder result = new StringBuilder();
             if(!reportType.IsTechReport())

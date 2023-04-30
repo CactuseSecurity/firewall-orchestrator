@@ -59,43 +59,25 @@ namespace FWO.Ui.Display
             }
         }
 
-        public string DisplayNextRecert(Rule rule, bool multipleOwners)
+        public string DisplayNextRecert(Rule rule)
         {
-            string result = "";
             int count = 0;
-            foreach (Recertification recert in rule.Metadata.RuleRecertification) 
-            {
-                count += 1;
-                result += getNextRecertDateString(count, recert, multipleOwners);
-            }
-            return result;
+            return string.Join("", Array.ConvertAll<Recertification, string>(rule.Metadata.RuleRecertification.ToArray(), recert => getNextRecertDateString(countString(rule.Metadata.RuleRecertification.Count > 1, ++count), recert).ToString()));
         }
 
-        public string DisplayOwner(Rule rule, bool multipleOwners)
+        public string DisplayOwner(Rule rule)
         {
-            string result = "";
             int count = 0;
-            foreach (Recertification recert in rule.Metadata.RuleRecertification) 
-            {
-                count += 1;
-                result += getOwnerDisplayString(count, recert, multipleOwners);
-            }
-            return result;
+            return string.Join("", Array.ConvertAll<Recertification, string>(rule.Metadata.RuleRecertification.ToArray(), recert => getOwnerDisplayString(countString(rule.Metadata.RuleRecertification.Count > 1, ++count), recert).ToString()));
         }
 
-        public string DisplayRecertIpMatches(Rule rule, bool multipleOwners)
+        public string DisplayRecertIpMatches(Rule rule)
         {
-            string result = "";
             int count = 0;
-            foreach (Recertification recert in rule.Metadata.RuleRecertification) 
-            {
-                count += 1;
-                result += getIpMatchDisplayString(count, recert, multipleOwners);
-            }
-            return result;
+            return string.Join("", Array.ConvertAll<Recertification, string>(rule.Metadata.RuleRecertification.ToArray(), recert => getIpMatchDisplayString(countString(rule.Metadata.RuleRecertification.Count > 1, ++count), recert).ToString()));
         }
 
-        public string DisplayLastHit(Rule rule, bool multipleOwners)
+        public string DisplayLastHit(Rule rule)
         {
             if (rule.Metadata.LastHit == null)
                 return "";
@@ -103,17 +85,10 @@ namespace FWO.Ui.Display
                 return DateOnly.FromDateTime((DateTime)rule.Metadata.LastHit).ToString("yyyy-MM-dd");  //rule.Metadata.LastHit.ToString("yyyy-MM-dd");
         }
 
-        public string DisplayLastRecertifier(Rule rule, bool multipleOwners)
+        public string DisplayLastRecertifier(Rule rule)
         {
-            string result = "";
-            int count = 1;
-            foreach (Recertification recert in rule.Metadata.RuleRecertification) 
-            {
-                // result += count.ToString() + ".&nbsp;" + "" + "<br />";
-                // TODO: fetch last recertifier
-                count += 1;
-            }
-            return result;
+            int count = 0;
+            return string.Join("", Array.ConvertAll<Recertification, string>(rule.Metadata.RuleRecertification.ToArray(), recert => getLastRecertifierDisplayString(countString(rule.Metadata.RuleRecertification.Count > 1, ++count), recert).ToString()));
         }
 
         protected string constructLink(string type, string symbol, long id, string name, OutputLocation location, int mgmtId, string style)
@@ -131,27 +106,6 @@ namespace FWO.Ui.Display
                 case "ip_range": return "oi oi-resize-width";
                 default: return "oi oi-monitor";
             }
-        }
-
-        private string DisplaySourceOrDestination(Rule rule, OutputLocation location, ReportType reportType, string style, bool isSource)
-        {
-            result = new StringBuilder();
-            if ((isSource && rule.SourceNegated) ||(!isSource && rule.DestinationNegated))
-            {
-                result.AppendLine(userConfig.GetText("negated") + "<br>");
-            }
-
-            if(reportType.IsResolvedReport())
-            {
-                NetworkLocation[] userNwObjects = getNetworkLocations(isSource ? rule.Froms : rule.Tos).ToArray();
-                result.AppendJoin("<br>", Array.ConvertAll(userNwObjects, networkLocation => NetworkLocationToHtml(networkLocation, rule.MgmtId, location, style, reportType)));
-            }
-            else
-            {
-                result.AppendJoin("<br>", Array.ConvertAll(isSource ? rule.Froms : rule.Tos, networkLocation => NetworkLocationToHtml(networkLocation, rule.MgmtId, location, style, reportType)));
-            }
-
-            return result.ToString();
         }
 
         protected string NetworkLocationToHtml(NetworkLocation userNetworkObject, int mgmtId, OutputLocation location, string style, ReportType reportType)
@@ -224,46 +178,60 @@ namespace FWO.Ui.Display
             return result.ToString();
         }
 
-        private string getNextRecertDateString (int ownerCounter, Recertification recert, bool multipleOwners)
+        private string DisplaySourceOrDestination(Rule rule, OutputLocation location, ReportType reportType, string style, bool isSource)
         {
-            string result = "";
+            result = new StringBuilder();
+            if ((isSource && rule.SourceNegated) ||(!isSource && rule.DestinationNegated))
+            {
+                result.AppendLine(userConfig.GetText("negated") + "<br>");
+            }
+
+            if(reportType.IsResolvedReport())
+            {
+                NetworkLocation[] userNwObjects = getNetworkLocations(isSource ? rule.Froms : rule.Tos).ToArray();
+                result.AppendJoin("<br>", Array.ConvertAll(userNwObjects, networkLocation => NetworkLocationToHtml(networkLocation, rule.MgmtId, location, style, reportType)));
+            }
+            else
+            {
+                result.AppendJoin("<br>", Array.ConvertAll(isSource ? rule.Froms : rule.Tos, networkLocation => NetworkLocationToHtml(networkLocation, rule.MgmtId, location, style, reportType)));
+            }
+
+            return result.ToString();
+        }
+
+        private string getNextRecertDateString (string countString, Recertification recert)
+        {
             string color = "";
-            string countString = multipleOwners ? ownerCounter.ToString() + ".&nbsp;" : "";
             string dateOnly = "-";
             if (recert.NextRecertDate != null)
             {
                 dateOnly = DateOnly.FromDateTime((DateTime)recert.NextRecertDate).ToString("yyyy-MM-dd");
                 if(recert.NextRecertDate < DateTime.Now)
                 {
-                    color = " style=\"color:rgb(255, 0, 0);\"";
+                    color = " style=\"color: red;\"";
                 }
             }
-            result = "<p" + color + ">" + countString + dateOnly + "</p>";
-            return result;
+            return "<p" + color + ">" + countString + dateOnly + "</p>";
         }
 
-        private string getOwnerDisplayString (int ownerCounter, Recertification recert, bool multipleOwners)
+        private string getOwnerDisplayString (string countString, Recertification recert)
         {
-            string result = "";
-            string countString = multipleOwners ? ownerCounter.ToString() + ".&nbsp;" : "";
-            if (recert.FwoOwner != null && recert.FwoOwner.Name != null)
-            {
-                result += countString + recert.FwoOwner.Name + "<br />";
-            }
-            return result;
+            return "<p>" + countString + (recert.FwoOwner != null && recert.FwoOwner?.Name != null ? recert.FwoOwner.Name : "") + "</p>";
         }
 
-        private string getIpMatchDisplayString (int ownerCounter, Recertification recert, bool multipleOwners)
+        private string getIpMatchDisplayString (string countString, Recertification recert)
         {
-            string result = "";
-            string matchString = "&#8208;";
-            string countString = multipleOwners ? ownerCounter.ToString() + ".&nbsp;" : "";
-            if (recert.IpMatch != null && recert.IpMatch != "")
-            {
-                matchString = recert.IpMatch;
-            }
-            result += countString + matchString + "<br />";
-            return result;
+            return "<p>" + countString + (recert.IpMatch != null && recert.IpMatch != "" ? recert.IpMatch : "&#8208;") + "</p>";
+        }
+
+        private string getLastRecertifierDisplayString (string countString, Recertification recert)
+        {
+            return "<p>" + countString + "</p>"; // TODO: fetch last recertifier
+        }
+
+        private string countString(bool multipleOwners, int ownerCounter)
+        {
+            return multipleOwners ? ownerCounter.ToString() + ".&nbsp;" : "";
         }
     }
 }

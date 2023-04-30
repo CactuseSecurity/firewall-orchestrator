@@ -27,6 +27,8 @@ namespace FWO.Test
         static Rule Rule2 = new Rule();
         static Rule Rule2Changed = new Rule();
         static Rule NatRule = new Rule();
+        static Rule RecertRule1 = new Rule();
+        static Rule RecertRule2 = new Rule();
 
         SimulatedUserConfig userConfig = new SimulatedUserConfig();
         DynGraphqlQuery query = new DynGraphqlQuery("TestFilter"){ ReportTimeString = "2023-04-20T17:50:04" };
@@ -194,6 +196,72 @@ namespace FWO.Test
         }
 
         [Test]
+        public void RecertReportGenerateHtml()
+        {
+            Log.WriteInfo("Test Log", "starting recert report html generation");
+            ReportRules reportRecerts = new ReportRules(query, userConfig, ReportType.Recertification);
+            reportRecerts.Managements = ConstructRecertReport();
+
+            string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Recertification Report</title>" +
+            "<style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head>" +
+            "<body>" +
+            "<h2>Recertification Report</h2>" +
+            "<p>Filter: TestFilter</p>" +
+            "<p>Time of configuration: 2023-04-20T15:50:04Z (UTC)</p>" +
+            "<p>Generated on: Z (UTC)</p>" +
+            "<p>Devices: TestMgt [TestDev]</p><hr>" +
+            "<h3>TestMgt</h3><hr>" +
+            "<h4>TestDev</h4><hr>" +
+            "<table><tr><th>No.</th><th>Next Recertification Date</th><th>Owner</th><th>IP address match</th><th>Last Hit</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr>" +
+            "<tr><td>1</td>" +
+            $"<td><p>1.&nbsp;{DateOnly.FromDateTime(DateTime.Now.AddDays(5)).ToString("yyyy-MM-dd")}</p><p style=\"color: red;\">2.&nbsp;{DateOnly.FromDateTime(DateTime.Now.AddDays(-5)).ToString("yyyy-MM-dd")}</p></td>" +
+            "<td><p>1.&nbsp;TestOwner1</p><p>2.&nbsp;TestOwner2</p></td>" +
+            "<td><p>1.&nbsp;TestIp1</p><p>2.&nbsp;TestIp2</p></td>" +
+            "<td></td>" +
+            "<td>TestRule1</td>" +
+            "<td>srczn</td>" +
+            "<td><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)<br><span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</td>" +
+            "<td>dstzn</td>" +
+            "<td><span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4/32-1.2.3.5/32)</td>" +
+            "<td><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1\" target=\"_top\" style=\"\">TestService1</a> (443/TCP)</td>" +
+            "<td>accept</td>" +
+            "<td>none</td>" +
+            "<td><b>Y</b></td>" +
+            "<td>uid1</td>" +
+            "<td>comment1</td></tr>" +
+            "<tr><td>2</td>" +
+            $"<td><p style=\"color: red;\">{DateOnly.FromDateTime(DateTime.Now).ToString("yyyy-MM-dd")}</p></td>" +
+            "<td><p>TestOwner1</p></td>" +
+            "<td><p>TestIpRange</p></td>" +
+            "<td></td>" +
+            "<td>TestRule2</td>" +
+            "<td></td>" +
+            "<td>not<br><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)<br><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"oi oi-rss\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</td>" +
+            "<td></td>" +
+            "<td>not<br><span class=\"oi oi-people\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user2\" target=\"_top\" style=\"\">TestUser2</a>@<span class=\"oi oi-resize-width\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4/32-1.2.3.5/32)</td>" +
+            "<td>not<br><span class=\"oi oi-wrench\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc2\" target=\"_top\" style=\"\">TestService2</a> (6666-7777/UDP)</td>" +
+            "<td>deny</td>" +
+            "<td>none</td>" +
+            "<td><b>Y</b></td>" +
+            "<td>uid2:123</td>" +
+            "<td>comment2</td></tr></table>" +
+            "<h4>Network Objects</h4><hr><table><tr><th>No.</th><th>Name</th><th>Type</th><th>IP Address</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
+            "<tr><td>1</td><td><a name=nwobj1>TestIp1</a></td><td>network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>2</td><td><a name=nwobj2>TestIp2</a></td><td>network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>3</td><td><a name=nwobj3>TestIpRange</a></td><td>ip_range</td><td>1.2.3.4/32-1.2.3.5/32</td><td></td><td></td><td></td></tr>" +
+            "</table>" +
+            "<h4>Network Services</h4><hr><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Protocol</th><th>Port</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
+            "<tr><td>1</td><td>TestService1</td><td><a name=svc1>TestService1</a></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr>" +
+            "<tr><td>2</td><td>TestService2</td><td><a name=svc2>TestService2</a></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr>" +
+            "</table>" +
+            "<h4>Users</h4><hr><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
+            "<tr><td>1</td><td>TestUser1</td><td><a name=user1>TestUser1</a></td><td></td><td></td><td></td></tr>" +
+            "<tr><td>2</td><td>TestUser2</td><td><a name=user2>TestUser2</a></td><td></td><td></td><td></td></tr>" +
+            "</table></body></html>";
+            Assert.AreEqual(expectedHtmlResult, removeLinebreaks((removeGenDate(reportRecerts.ExportToHtml(), true))));
+        }
+
+        [Test]
         public void NatRulesGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting nat rules report html generation");
@@ -236,8 +304,7 @@ namespace FWO.Test
             "<tr><td>2</td><td>TestService2</td><td><a name=svc2>TestService2</a></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr>" +
             "</table>" +
             "<h4>Users</h4><hr><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Members</th><th>Uid</th><th>Comment</th></tr>" +
-            "<tr><td>1</td><td>TestUser1</td><td><a name=user1>TestUser1</a></td><td></td><td></td><td></td></tr>" +
-            "<tr><td>2</td><td>TestUser2</td><td><a name=user2>TestUser2</a></td><td></td><td></td><td></td></tr>" +
+            "<tr><td>1</td><td>TestUser2</td><td><a name=user2>TestUser2</a></td><td></td><td></td><td></td></tr>" +
             "</table></table></body></html>";
             Assert.AreEqual(expectedHtmlResult, removeLinebreaks((removeGenDate(reportNatRules.ExportToHtml(), true))));
         }
@@ -591,30 +658,78 @@ namespace FWO.Test
 
         private Management[] ConstructRuleReport(bool resolved)
         {
-            List<Management> report = new List<Management>();
             Rule1 = InitRule1(resolved);
             Rule2 = InitRule2(resolved);
-            report.Add(new Management()
-            { 
-                Name = "TestMgt",
-                ReportObjects = new NetworkObject[]{ TestIp1, TestIp2, TestIpRange },
-                ReportServices = new NetworkService[]{ TestService1, TestService2 },
-                ReportUsers = new NetworkUser[]{ TestUser1, TestUser2 },
-                Devices = new Device[]
+            return new List<Management>()
+            {
+                new Management()
                 { 
-                    new Device()
+                    Name = "TestMgt",
+                    ReportObjects = new NetworkObject[]{ TestIp1, TestIp2, TestIpRange },
+                    ReportServices = new NetworkService[]{ TestService1, TestService2 },
+                    ReportUsers = new NetworkUser[]{ TestUser1, TestUser2 },
+                    Devices = new Device[]
                     { 
-                        Name = "TestDev",
-                        Rules = new Rule[]{ Rule1, Rule2 }
-                    } 
+                        new Device()
+                        { 
+                            Name = "TestDev",
+                            Rules = new Rule[]{ Rule1, Rule2 }
+                        } 
+                    }
                 }
-            });
-            return report.ToArray();
+            }.ToArray();
+        }
+
+        private Management[] ConstructRecertReport()
+        {
+            RecertRule1 = InitRule1(false);
+            RecertRule1.Metadata.RuleRecertification = new List<Recertification>()
+            {
+                new Recertification()
+                {
+                    NextRecertDate  = DateTime.Now.AddDays(5),
+                    FwoOwner = new FwoOwner(){ Name = "TestOwner1" },
+                    IpMatch = TestIp1.Name
+                },
+                new Recertification()
+                {
+                    NextRecertDate  = DateTime.Now.AddDays(-5),
+                    FwoOwner = new FwoOwner(){ Name = "TestOwner2" },
+                    IpMatch = TestIp2.Name
+                }
+            };
+            RecertRule2 = InitRule2(false);
+            RecertRule2.Metadata.RuleRecertification = new List<Recertification>()
+            {
+                new Recertification()
+                {
+                    NextRecertDate  = DateTime.Now,
+                    FwoOwner = new FwoOwner(){ Name = "TestOwner1" },
+                    IpMatch = TestIpRange.Name
+                }
+            };
+            return new List<Management>()
+            {
+                new Management()
+                { 
+                    Name = "TestMgt",
+                    ReportObjects = new NetworkObject[]{ TestIp1, TestIp2, TestIpRange },
+                    ReportServices = new NetworkService[]{ TestService1, TestService2 },
+                    ReportUsers = new NetworkUser[]{ TestUser1, TestUser2 },
+                    Devices = new Device[]
+                    { 
+                        new Device()
+                        { 
+                            Name = "TestDev", 
+                            Rules = new Rule[]{ RecertRule1, RecertRule2 }
+                        } 
+                    }
+                }
+            }.ToArray();
         }
 
         private Management[] ConstructNatRuleReport()
         {
-            List<Management> report = new List<Management>();
             NatRule = InitRule1(false);
             NatRule.NatData = new NatData()
             {
@@ -636,24 +751,24 @@ namespace FWO.Test
                     new ServiceWrapper(){ Content = TestService2 }
                 }
             };
-
-            report.Add(new Management()
-            { 
-                Name = "TestMgt",
-                ReportObjects = new NetworkObject[]{ TestIp1, TestIp2, TestIpRange, TestIpNew, TestIp1Changed },
-                ReportServices = new NetworkService[]{ TestService1, TestService2 },
-                ReportUsers = new NetworkUser[]{ TestUser1, TestUser2 },
-                Devices = new Device[]
+            return new List<Management>()
+            {
+                new Management()
                 { 
-                    new Device(){ Name = "TestDev", Rules = new Rule[]{ NatRule }} 
+                    Name = "TestMgt",
+                    ReportObjects = new NetworkObject[]{ TestIp1, TestIp2, TestIpRange, TestIpNew, TestIp1Changed },
+                    ReportServices = new NetworkService[]{ TestService1, TestService2 },
+                    ReportUsers = new NetworkUser[]{ TestUser2 },
+                    Devices = new Device[]
+                    { 
+                        new Device(){ Name = "TestDev", Rules = new Rule[]{ NatRule }} 
+                    }
                 }
-            });
-            return report.ToArray();
+            }.ToArray();
         }
 
         private Management[] ConstructChangeReport(bool resolved)
         {
-            List<Management> report = new List<Management>();
             Rule1 = InitRule1(resolved);
             Rule1Changed = InitRule1(resolved);
             Rule2 = InitRule2(resolved);
@@ -710,20 +825,21 @@ namespace FWO.Test
                 ChangeImport = new ChangeImport(){ Time = new DateTime(2023,04,05,12,0,0) },
                 OldRule = Rule2
             };
-
-            report.Add(new Management()
-            { 
-                Name = "TestMgt",
-                Devices = new Device[]
-                {
-                    new Device()
-                    { 
-                        Name = "TestDev",
-                        RuleChanges = new RuleChange[]{ ruleChange1, ruleChange2, ruleChange3, ruleChange4 }
+            return new List<Management>()
+            {
+                new Management()
+                { 
+                    Name = "TestMgt",
+                    Devices = new Device[]
+                    {
+                        new Device()
+                        { 
+                            Name = "TestDev",
+                            RuleChanges = new RuleChange[]{ ruleChange1, ruleChange2, ruleChange3, ruleChange4 }
+                        }
                     }
                 }
-            });
-            return report.ToArray();
+            }.ToArray();
         }
 
         private string removeGenDate(string exportString, bool html = false)

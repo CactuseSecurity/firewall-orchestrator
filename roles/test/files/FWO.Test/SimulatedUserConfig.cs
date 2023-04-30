@@ -9,6 +9,7 @@ namespace FWO.Test
             {"Rules","Rules Report"},
             {"ResolvedRules","Rules Report (resolved)"},
             {"ResolvedRulesTech","Rules Report (technical)"},
+            {"Recertification","Recertification Report"},
             {"NatRules","NAT Rules Report"},
             {"Changes","Changes Report"},
             {"ResolvedChanges","Changes Report (resolved)"},
@@ -43,6 +44,10 @@ namespace FWO.Test
             {"network_services","Network Services"},
             {"protocol","Protocol"},
             {"port","Port"},
+            {"next_recert","Next Recertification Date"},
+            {"owner","Owner"},
+            {"ip_matches","IP address match"},
+            {"last_hit","Last Hit"},
             {"trans_source","Translated Source"},
             {"trans_destination","Translated Destination"},
             {"trans_services","Translated Services"}

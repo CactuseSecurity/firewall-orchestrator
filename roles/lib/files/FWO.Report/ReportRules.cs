@@ -403,11 +403,10 @@ namespace FWO.Report
                         report.AppendLine($"<td>{ruleDisplayHtml.DisplayNumber(rule)}</td>");
                         if(ReportType == ReportType.Recertification)
                         {
-                            bool multipleOwners = false; // todo: get from report params
-                            report.AppendLine($"<td>{ruleDisplayHtml.DisplayNextRecert(rule, multipleOwners)}</td>");
-                            report.AppendLine($"<td>{ruleDisplayHtml.DisplayOwner(rule, multipleOwners)}</td>");
-                            report.AppendLine($"<td>{ruleDisplayHtml.DisplayRecertIpMatches(rule, multipleOwners)}</td>");
-                            report.AppendLine($"<td>{ruleDisplayHtml.DisplayLastHit(rule, multipleOwners)}</td>");
+                            report.AppendLine($"<td>{ruleDisplayHtml.DisplayNextRecert(rule)}</td>");
+                            report.AppendLine($"<td>{ruleDisplayHtml.DisplayOwner(rule)}</td>");
+                            report.AppendLine($"<td>{ruleDisplayHtml.DisplayRecertIpMatches(rule)}</td>");
+                            report.AppendLine($"<td>{ruleDisplayHtml.DisplayLastHit(rule)}</td>");
                         }
                         report.AppendLine($"<td>{ruleDisplayHtml.DisplayName(rule)}</td>");
                         report.AppendLine($"<td>{ruleDisplayHtml.DisplaySourceZone(rule)}</td>");

@@ -135,7 +135,7 @@ namespace FWO.Report
                         report.AppendLine($"<td>{objNumber++}</td>");
                         report.AppendLine($"<td>{svcobj.Name}</td>");
                         report.AppendLine($"<td><a name=svc{svcobj.Id}>{svcobj.Name}</a></td>");
-                        report.AppendLine($"<td>{((svcobj.Protocol!=null)?svcobj.Protocol.Name:"")}</td>");
+                        report.AppendLine($"<td>{((svcobj.Type.Name!="group" && svcobj.Protocol!=null)?svcobj.Protocol.Name:"")}</td>");
                         if (svcobj.DestinationPortEnd != null && svcobj.DestinationPortEnd != svcobj.DestinationPort)
                             report.AppendLine($"<td>{svcobj.DestinationPort}-{svcobj.DestinationPortEnd}</td>");
                         else

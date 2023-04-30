@@ -1,7 +1,7 @@
 from asyncio.log import logger
 from fwo_log import getFwoLogger
 import json
-import cpcommon
+import cp_const, cpcommon
 import fwo_const
 from fwo_const import list_delimiter
 from fwo_base import sanitize
@@ -18,13 +18,13 @@ def add_section_header_rule_in_json(rulebase, section_name, layer_name, import_i
         "rule_disabled":    False,
         "rule_src_neg":     False,
         "rule_src":         "Any",
-        "rule_src_refs":    sanitize(cpcommon.any_obj_uid),
+        "rule_src_refs":    sanitize(cp_const.any_obj_uid),
         "rule_dst_neg":     False,
         "rule_dst":         "Any",
-        "rule_dst_refs":    sanitize(cpcommon.any_obj_uid),
+        "rule_dst_refs":    sanitize(cp_const.any_obj_uid),
         "rule_svc_neg":     False,
         "rule_svc":         "Any",
-        "rule_svc_refs":    sanitize(cpcommon.any_obj_uid),
+        "rule_svc_refs":    sanitize(cp_const.any_obj_uid),
         "rule_action":      "Accept",
         "rule_track":       "Log",
         "rule_installon":   "Policy Targets",
@@ -96,7 +96,7 @@ def parse_single_rule_to_json(src_rule, rulebase, layer_name, import_id, rule_nu
                         if isinstance(src['networks'], str):  # just a single source
                             if src['networks'] == 'any':
                                 rule_src_ref += src['uid'] + '@' + \
-                                    cpcommon.any_obj_uid + list_delimiter
+                                    cp_const.any_obj_uid + list_delimiter
                             else:
                                 rule_src_ref += src['uid'] + '@' + \
                                     src['networks'] + list_delimiter
@@ -148,7 +148,7 @@ def parse_single_rule_to_json(src_rule, rulebase, layer_name, import_id, rule_nu
                         if isinstance(dst['networks'], str):  # just a single destination
                             if dst['networks'] == 'any':
                                 rule_dst_ref += dst['uid'] + '@' + \
-                                    cpcommon.any_obj_uid + list_delimiter
+                                    cp_const.any_obj_uid + list_delimiter
                             else:
                                 rule_dst_ref += dst['uid'] + '@' + \
                                     dst['networks'] + list_delimiter

@@ -145,6 +145,7 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
+    <li>Importer Modul Check Point R8x Unterst&uuml;tzung f&uuml;r Updatable Objects, Domain-Namen und Application Categories</li>
     <li>Neues Firewall-Regel-Rezertifizierungsmodul - beseitigen Sie ihre Altlasten und erf&uuml;llen Sie aktuelle regulatorische Anforderungen.</li>
     <li>Workflow-Modul zum Beantragen von &Auml;nderungen</li>
     <li>Neue Importmodule f&uuml;r Cisco FirePower und Microsoft Azure Firewall</li>
@@ -154,6 +155,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
+    <li>Importer support for Check Point R8x updatable objects, domain name objects and application categories</li>
     <li>New Firewall rule recertification module - remove unnecessary rules and meet current regulatory requirements.</li>
     <li>Workflow module for requesting firewall changes</li>
     <li>New import modules for Cisco FirePower and Microsoft Azure Firewall</li>
@@ -1033,7 +1035,7 @@ INSERT INTO txt VALUES ('err_since_last_succ',  'German', 	'Fehler seit letztem 
 INSERT INTO txt VALUES ('err_since_last_succ',  'English', 	'Errors since last successful import');
 INSERT INTO txt VALUES ('remove_sample_data',   'German', 	'Beispieldaten l&ouml;schen');
 INSERT INTO txt VALUES ('remove_sample_data',	'English', 	'Remove Sample Data');
-INSERT INTO txt VALUES ('refresh', 				'German',	'Neu anzeigen');
+INSERT INTO txt VALUES ('refresh', 				'German',	'Aktualisieren');
 INSERT INTO txt VALUES ('refresh', 				'English',	'Refresh');
 INSERT INTO txt VALUES ('add_new_user',			'German',	'Neuen Nutzer hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_new_user',			'English',	'Add new user');
@@ -3061,7 +3063,7 @@ INSERT INTO txt VALUES ('H5171', 'English', 'The status of the import jobs for t
     Managements which show anomalies (which would also lead to alerts in the <a href="/help/monitoring/daily_checks">Daily Check</a>) are highlighted in red and listed first,
     followed by running imports highlighted in yellow, finally the remaining managements.
 ');
-INSERT INTO txt VALUES ('H5181', 'German',  'Neu anzeigen: Aktualisiert die dargestellten Daten.');
+INSERT INTO txt VALUES ('H5181', 'German',  'Aktualisieren: Aktualisiert die dargestellten Daten.');
 INSERT INTO txt VALUES ('H5181', 'English', 'Refresh: Updates the displayed data.');
 INSERT INTO txt VALUES ('H5182', 'German',  'Details: F&uuml;r das ausgew&auml;hlte Management wird hier eine genauere &Uuml;bersicht &uuml;ber die Import-Ids, Start/Stop-Zeiten, 
     Dauer und Fehler des ersten, letzten erfolgreichen und letzten Imports gegeben, sowie die Anzahl der Fehler seit dem letzten erfolgreichen Import.

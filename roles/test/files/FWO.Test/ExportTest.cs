@@ -855,15 +855,20 @@ namespace FWO.Test
 
         private string removeLinebreaks(string exportString)
         {
-            while(exportString.Contains("\r\n "))
+            while(exportString.Contains("\n "))
             {
-                exportString = exportString.Replace("\r\n ","\r\n");
+                exportString = exportString.Replace("\n ","\n");
             }
-            while(exportString.Contains(" \r\n"))
+            while(exportString.Contains(" \n"))
             {
-                exportString = exportString.Replace(" \r\n","\r\n");
+                exportString = exportString.Replace(" \n","\n");
             }
-            return exportString.Replace("\r\n","");
+            while(exportString.Contains(" \r"))
+            {
+                exportString = exportString.Replace(" \r","\r");
+            }
+            exportString = exportString.Replace("\r","");
+            return exportString.Replace("\n","");
         }
     }
 }

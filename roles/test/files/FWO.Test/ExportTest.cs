@@ -94,17 +94,17 @@ namespace FWO.Test
             ReportRules reportRules = new ReportRules(query, userConfig, ReportType.ResolvedRules);
             reportRules.Managements = ConstructRuleReport(true);
 
-            string expectedCsvResult = "# report type: Rules Report (resolved)\r\n" +
-            "# report generation date: Z (UTC)\r\n" +
-            "# date of configuration shown: 2023-04-20T15:50:04Z (UTC)\r\n" +
-            "# device filter: TestMgt [TestDev]\r\n" +
-            "# other filters: TestFilter\r\n" +
-            "# report generator: Firewall Orchestrator - https://fwo.cactus.de/en\r\n" +
-            "# data protection level: For internal use only\r\n#\r\n" +
-            "\"management-name\",\"device-name\",\"rule-number\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"\r\n" +
-            "\"TestMgt\",\"TestDev\",\"1\",\"TestRule1\",\"srczn\",\"TestIp1 (1.2.3.4/32),TestIp2 (127.0.0.1/32)\",\"dstzn\",\"TestIpRange (1.2.3.4/32-1.2.3.5/32)\",\"TestService1 (443/TCP)\",\"accept\",\"none\",\"enabled\",\"uid1\",\"comment1\"\r\n" +
-            "\"TestMgt\",\"TestDev\",\"2\",\"TestRule2\",\"\",\"not(TestUser1@TestIp1 (1.2.3.4/32),TestUser1@TestIp2 (127.0.0.1/32))\",\"\",\"not(TestUser2@TestIpRange (1.2.3.4/32-1.2.3.5/32))\",\"not(TestService2 (6666-7777/UDP))\",\"deny\",\"none\",\"enabled\",\"uid2:123\",\"comment2\"\r\n";
-            Assert.AreEqual(expectedCsvResult, removeGenDate(reportRules.ExportToCsv()));
+            string expectedCsvResult = "# report type: Rules Report (resolved)" +
+            "# report generation date: Z (UTC)" +
+            "# date of configuration shown: 2023-04-20T15:50:04Z (UTC)" +
+            "# device filter: TestMgt [TestDev]" +
+            "# other filters: TestFilter" +
+            "# report generator: Firewall Orchestrator - https://fwo.cactus.de/en" +
+            "# data protection level: For internal use only#" +
+            "\"management-name\",\"device-name\",\"rule-number\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"" +
+            "\"TestMgt\",\"TestDev\",\"1\",\"TestRule1\",\"srczn\",\"TestIp1 (1.2.3.4/32),TestIp2 (127.0.0.1/32)\",\"dstzn\",\"TestIpRange (1.2.3.4/32-1.2.3.5/32)\",\"TestService1 (443/TCP)\",\"accept\",\"none\",\"enabled\",\"uid1\",\"comment1\"" +
+            "\"TestMgt\",\"TestDev\",\"2\",\"TestRule2\",\"\",\"not(TestUser1@TestIp1 (1.2.3.4/32),TestUser1@TestIp2 (127.0.0.1/32))\",\"\",\"not(TestUser2@TestIpRange (1.2.3.4/32-1.2.3.5/32))\",\"not(TestService2 (6666-7777/UDP))\",\"deny\",\"none\",\"enabled\",\"uid2:123\",\"comment2\"";
+            Assert.AreEqual(expectedCsvResult, removeLinebreaks(removeGenDate(reportRules.ExportToCsv())));
         }
 
         [Test]
@@ -148,17 +148,17 @@ namespace FWO.Test
             ReportRules reportRules = new ReportRules(query, userConfig, ReportType.ResolvedRulesTech);
             reportRules.Managements = ConstructRuleReport(true);
 
-            string expectedCsvResult = "# report type: Rules Report (technical)\r\n" +
-            "# report generation date: Z (UTC)\r\n" +
-            "# date of configuration shown: 2023-04-20T15:50:04Z (UTC)\r\n" +
-            "# device filter: TestMgt [TestDev]\r\n" +
-            "# other filters: TestFilter\r\n" +
-            "# report generator: Firewall Orchestrator - https://fwo.cactus.de/en\r\n" +
-            "# data protection level: For internal use only\r\n#\r\n" +
-            "\"management-name\",\"device-name\",\"rule-number\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"\r\n" +
-            "\"TestMgt\",\"TestDev\",\"1\",\"TestRule1\",\"srczn\",\"1.2.3.4/32,127.0.0.1/32\",\"dstzn\",\"1.2.3.4/32-1.2.3.5/32\",\"443/TCP\",\"accept\",\"none\",\"enabled\",\"uid1\",\"comment1\"\r\n" +
-            "\"TestMgt\",\"TestDev\",\"2\",\"TestRule2\",\"\",\"not(TestUser1@1.2.3.4/32,TestUser1@127.0.0.1/32)\",\"\",\"not(TestUser2@1.2.3.4/32-1.2.3.5/32)\",\"not(6666-7777/UDP)\",\"deny\",\"none\",\"enabled\",\"uid2:123\",\"comment2\"\r\n";
-            Assert.AreEqual(expectedCsvResult, removeGenDate(reportRules.ExportToCsv()));
+            string expectedCsvResult = "# report type: Rules Report (technical)" +
+            "# report generation date: Z (UTC)" +
+            "# date of configuration shown: 2023-04-20T15:50:04Z (UTC)" +
+            "# device filter: TestMgt [TestDev]" +
+            "# other filters: TestFilter" +
+            "# report generator: Firewall Orchestrator - https://fwo.cactus.de/en" +
+            "# data protection level: For internal use only#" +
+            "\"management-name\",\"device-name\",\"rule-number\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"" +
+            "\"TestMgt\",\"TestDev\",\"1\",\"TestRule1\",\"srczn\",\"1.2.3.4/32,127.0.0.1/32\",\"dstzn\",\"1.2.3.4/32-1.2.3.5/32\",\"443/TCP\",\"accept\",\"none\",\"enabled\",\"uid1\",\"comment1\"" +
+            "\"TestMgt\",\"TestDev\",\"2\",\"TestRule2\",\"\",\"not(TestUser1@1.2.3.4/32,TestUser1@127.0.0.1/32)\",\"\",\"not(TestUser2@1.2.3.4/32-1.2.3.5/32)\",\"not(6666-7777/UDP)\",\"deny\",\"none\",\"enabled\",\"uid2:123\",\"comment2\"";
+            Assert.AreEqual(expectedCsvResult, removeLinebreaks(removeGenDate(reportRules.ExportToCsv())));
         }
 
         [Test]
@@ -397,24 +397,24 @@ namespace FWO.Test
             ReportChanges reportChanges = new ReportChanges(query, userConfig, ReportType.ResolvedChanges);
             reportChanges.Managements = ConstructChangeReport(true);
 
-            string expectedCsvResult = "# report type: Changes Report (resolved)\r\n" +
-            "# report generation date: Z (UTC)\r\n" +
-            "# device filter: TestMgt [TestDev]\r\n" +
-            "# other filters: TestFilter\r\n" +
-            "# report generator: Firewall Orchestrator - https://fwo.cactus.de/en\r\n" +
-            "# data protection level: For internal use only\r\n#\r\n" +
-            "\"management-name\",\"device-name\",\"change-time\",\"change-type\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"\r\n" +
+            string expectedCsvResult = "# report type: Changes Report (resolved)" +
+            "# report generation date: Z (UTC)" +
+            "# device filter: TestMgt [TestDev]" +
+            "# other filters: TestFilter" +
+            "# report generator: Firewall Orchestrator - https://fwo.cactus.de/en" +
+            "# data protection level: For internal use only#" +
+            "\"management-name\",\"device-name\",\"change-time\",\"change-type\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"" +
             "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule added\",\"TestRule1\",\"srczn\",\"TestIp1 (1.2.3.4/32),TestIp2 (127.0.0.1/32)\"," +
-            "\"dstzn\",\"TestIpRange (1.2.3.4/32-1.2.3.5/32)\",\"TestService1 (443/TCP)\",\"accept\",\"none\",\"enabled\",\"uid1\",\"comment1\"\r\n" +
+            "\"dstzn\",\"TestIpRange (1.2.3.4/32-1.2.3.5/32)\",\"TestService1 (443/TCP)\",\"accept\",\"none\",\"enabled\",\"uid1\",\"comment1\"" +
             "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule1\",\"srczn\",\"TestIp2 (127.0.0.1/32) deleted: TestIp1 (1.2.3.4/32) added: TestIp1Changed (2.3.4.5/32)\"," +
             "\"dstzn\",\"TestIpRange (1.2.3.4/32-1.2.3.5/32) added: TestIpNew (10.0.6.1/32)\"," +
-            "\" deleted: TestService1 (443/TCP) added: not(TestService1 (443/TCP))\",\"accept\",\"none\",\"enabled\",\" deleted: uid1\",\" deleted: comment1 added: new comment\"\r\n" +
+            "\" deleted: TestService1 (443/TCP) added: not(TestService1 (443/TCP))\",\"accept\",\"none\",\"enabled\",\" deleted: uid1\",\" deleted: comment1 added: new comment\"" +
             "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule2\",\"\",\"not(TestUser1@TestIp1 (1.2.3.4/32),TestUser1@TestIp2 (127.0.0.1/32))\"," +
             "\"\",\" deleted: not(TestUser2@TestIpRange (1.2.3.4/32-1.2.3.5/32)) added: TestUser2@TestIpRange (1.2.3.4/32-1.2.3.5/32)\"," +
-            "\" deleted: not(TestService2 (6666-7777/UDP)) added: TestService2 (6666-7777/UDP)\",\"deny\",\"none\",\" deleted: enabled added: disabled\",\"uid2:123\",\"comment2\"\r\n" +
+            "\" deleted: not(TestService2 (6666-7777/UDP)) added: TestService2 (6666-7777/UDP)\",\"deny\",\"none\",\" deleted: enabled added: disabled\",\"uid2:123\",\"comment2\"" +
             "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule deleted\",\"TestRule2\",\"\",\"not(TestUser1@TestIp1 (1.2.3.4/32),TestUser1@TestIp2 (127.0.0.1/32))\"," +
-            "\"\",\"not(TestUser2@TestIpRange (1.2.3.4/32-1.2.3.5/32))\",\"not(TestService2 (6666-7777/UDP))\",\"deny\",\"none\",\"enabled\",\"uid2:123\",\"comment2\"\r\n";
-            Assert.AreEqual(expectedCsvResult, removeGenDate(reportChanges.ExportToCsv()));
+            "\"\",\"not(TestUser2@TestIpRange (1.2.3.4/32-1.2.3.5/32))\",\"not(TestService2 (6666-7777/UDP))\",\"deny\",\"none\",\"enabled\",\"uid2:123\",\"comment2\"";
+            Assert.AreEqual(expectedCsvResult, removeLinebreaks(removeGenDate(reportChanges.ExportToCsv())));
         }
 
         [Test]
@@ -483,18 +483,18 @@ namespace FWO.Test
             ReportChanges reportChanges = new ReportChanges(query, userConfig, ReportType.ResolvedChangesTech);
             reportChanges.Managements = ConstructChangeReport(true);
 
-            string expectedCsvResult = "# report type: Changes Report (technical)\r\n" +
-            "# report generation date: Z (UTC)\r\n" +
-            "# device filter: TestMgt [TestDev]\r\n" +
-            "# other filters: TestFilter\r\n" +
-            "# report generator: Firewall Orchestrator - https://fwo.cactus.de/en\r\n" +
-            "# data protection level: For internal use only\r\n#\r\n" +
-            "\"management-name\",\"device-name\",\"change-time\",\"change-type\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"\r\n" +
-            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule added\",\"TestRule1\",\"srczn\",\"1.2.3.4/32,127.0.0.1/32\",\"dstzn\",\"1.2.3.4/32-1.2.3.5/32\",\"443/TCP\",\"accept\",\"none\",\"enabled\",\"uid1\",\"comment1\"\r\n" +
-            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule1\",\"srczn\",\"127.0.0.1/32 deleted: 1.2.3.4/32 added: 2.3.4.5/32\",\"dstzn\",\"1.2.3.4/32-1.2.3.5/32 added: 10.0.6.1/32\",\" deleted: 443/TCP added: not(443/TCP)\",\"accept\",\"none\",\"enabled\",\" deleted: uid1\",\" deleted: comment1 added: new comment\"\r\n" +
-            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule2\",\"\",\"not(TestUser1@1.2.3.4/32,TestUser1@127.0.0.1/32)\",\"\",\" deleted: not(TestUser2@1.2.3.4/32-1.2.3.5/32) added: TestUser2@1.2.3.4/32-1.2.3.5/32\",\" deleted: not(6666-7777/UDP) added: 6666-7777/UDP\",\"deny\",\"none\",\" deleted: enabled added: disabled\",\"uid2:123\",\"comment2\"\r\n" +
-            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule deleted\",\"TestRule2\",\"\",\"not(TestUser1@1.2.3.4/32,TestUser1@127.0.0.1/32)\",\"\",\"not(TestUser2@1.2.3.4/32-1.2.3.5/32)\",\"not(6666-7777/UDP)\",\"deny\",\"none\",\"enabled\",\"uid2:123\",\"comment2\"\r\n";
-            Assert.AreEqual(expectedCsvResult, removeGenDate(reportChanges.ExportToCsv()));
+            string expectedCsvResult = "# report type: Changes Report (technical)" +
+            "# report generation date: Z (UTC)" +
+            "# device filter: TestMgt [TestDev]" +
+            "# other filters: TestFilter" +
+            "# report generator: Firewall Orchestrator - https://fwo.cactus.de/en" +
+            "# data protection level: For internal use only#" +
+            "\"management-name\",\"device-name\",\"change-time\",\"change-type\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"" +
+            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule added\",\"TestRule1\",\"srczn\",\"1.2.3.4/32,127.0.0.1/32\",\"dstzn\",\"1.2.3.4/32-1.2.3.5/32\",\"443/TCP\",\"accept\",\"none\",\"enabled\",\"uid1\",\"comment1\"" +
+            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule1\",\"srczn\",\"127.0.0.1/32 deleted: 1.2.3.4/32 added: 2.3.4.5/32\",\"dstzn\",\"1.2.3.4/32-1.2.3.5/32 added: 10.0.6.1/32\",\" deleted: 443/TCP added: not(443/TCP)\",\"accept\",\"none\",\"enabled\",\" deleted: uid1\",\" deleted: comment1 added: new comment\"" +
+            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule2\",\"\",\"not(TestUser1@1.2.3.4/32,TestUser1@127.0.0.1/32)\",\"\",\" deleted: not(TestUser2@1.2.3.4/32-1.2.3.5/32) added: TestUser2@1.2.3.4/32-1.2.3.5/32\",\" deleted: not(6666-7777/UDP) added: 6666-7777/UDP\",\"deny\",\"none\",\" deleted: enabled added: disabled\",\"uid2:123\",\"comment2\"" +
+            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule deleted\",\"TestRule2\",\"\",\"not(TestUser1@1.2.3.4/32,TestUser1@127.0.0.1/32)\",\"\",\"not(TestUser2@1.2.3.4/32-1.2.3.5/32)\",\"not(6666-7777/UDP)\",\"deny\",\"none\",\"enabled\",\"uid2:123\",\"comment2\"";
+            Assert.AreEqual(expectedCsvResult, removeLinebreaks(removeGenDate(reportChanges.ExportToCsv())));
         }
 
         [Test]

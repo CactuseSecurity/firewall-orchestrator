@@ -15,7 +15,6 @@ namespace FWO.Report
     {
         public ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
 
-        private const byte all = 0, nobj = 1, nsrv = 2, user = 3;
         public bool GotReportedRuleIds { get; protected set; } = false;
         private const int ColumnCount = 12;
 
@@ -62,7 +61,7 @@ namespace FWO.Report
                         };
 
                         // get objects for this management in the current report
-                        gotAllObjects &= await GetObjectsForManagementInReport(objQueryVariables, all, int.MaxValue, apiConnection, callback);
+                        gotAllObjects &= await GetObjectsForManagementInReport(objQueryVariables, RsbObjType.all, int.MaxValue, apiConnection, callback);
                     }
                 }
                 GotObjectsInReport = true;
@@ -71,7 +70,7 @@ namespace FWO.Report
             return gotAllObjects;
         }
 
-        public override async Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, int maxFetchCycles, ApiConnection apiConnection, Func<Management[], Task> callback)
+        public override async Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, RsbObjType objects, int maxFetchCycles, ApiConnection apiConnection, Func<Management[], Task> callback)
         {
             if (!objQueryVariables.ContainsKey("mgmIds") || !objQueryVariables.ContainsKey("limit") || !objQueryVariables.ContainsKey("offset"))
                 throw new ArgumentException("Given objQueryVariables dictionary does not contain variable for management id, limit or offset");
@@ -88,13 +87,13 @@ namespace FWO.Report
             string query = "";
             switch (objects)
             {
-                case all:
+                case RsbObjType.all:
                     query = ObjectQueries.getReportFilteredObjectDetails; break;
-                case nobj:
+                case RsbObjType.nobj:
                     query = ObjectQueries.getReportFilteredNetworkObjectDetails; break;
-                case nsrv:
+                case RsbObjType.nsrv:
                     query = ObjectQueries.getReportFilteredNetworkServiceObjectDetails; break;
-                case user:
+                case RsbObjType.user:
                     query = ObjectQueries.getReportFilteredUserDetails; break;
             }
 
@@ -116,11 +115,11 @@ namespace FWO.Report
                     newObjects = allFilteredObjects.MergeReportObjects(filteredObjects);
                 }
 
-                if (objects == all || objects == nobj)
+                if (objects == RsbObjType.all || objects == RsbObjType.nobj)
                     management.ReportObjects = allFilteredObjects.ReportObjects;
-                if (objects == all || objects == nsrv)
+                if (objects == RsbObjType.all || objects == RsbObjType.nsrv)
                     management.ReportServices = allFilteredObjects.ReportServices;
-                if (objects == all || objects == user)
+                if (objects == RsbObjType.all || objects == RsbObjType.user)
                     management.ReportUsers = allFilteredObjects.ReportUsers;
 
                 objQueryVariables["offset"] = (int)objQueryVariables["offset"] + elementsPerFetch;

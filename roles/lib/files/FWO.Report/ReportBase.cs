@@ -9,6 +9,21 @@ using WkHtmlToPdfDotNet;
 
 namespace FWO.Report
 {
+    public enum RsbTab
+    {
+        all = 10, 
+        report = 20, 
+        rule = 30
+    }
+
+    public enum RsbObjType
+    {
+        all = 0,
+        nobj = 1, 
+        nsrv = 2, 
+        user = 3
+    }
+
     public abstract class ReportBase
     {
         protected StringBuilder HtmlTemplate = new StringBuilder($@"
@@ -74,7 +89,7 @@ namespace FWO.Report
 
         public abstract Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback); // to be called when exporting
 
-        public abstract Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, int maxFetchCycles, ApiConnection apiConnection, Func<Management[], Task> callback);
+        public abstract Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, RsbObjType objects, int maxFetchCycles, ApiConnection apiConnection, Func<Management[], Task> callback);
 
         public abstract string ExportToCsv();
 

@@ -1,9 +1,6 @@
 ﻿using NUnit.Framework;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Globalization;
+
 
 namespace FWO.Test
 {
@@ -13,13 +10,19 @@ namespace FWO.Test
         [OneTimeSetUp]
         public void OnStart()
         {
-
+            SetGermanCultureOnAllUnitTest();
         }
 
         [OneTimeTearDown]
         public void OnFinish()
         {
 
+        }
+
+        public static void SetGermanCultureOnAllUnitTest()
+        {
+            Thread.CurrentThread.CurrentCulture = new CultureInfo("de-DE");
+            Thread.CurrentThread.CurrentUICulture = new CultureInfo("de-DE");
         }
     }
 }

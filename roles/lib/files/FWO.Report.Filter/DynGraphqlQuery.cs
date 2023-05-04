@@ -244,7 +244,8 @@ namespace FWO.Report.Filter
         {
             // leave out all header texts
             if (reportParams.ReportParams.ReportType != null &&
-                reportParams.ReportParams.ReportType == (int)ReportType.Statistics)
+                (reportParams.ReportParams.ReportType == (int)ReportType.Statistics ||
+                 reportParams.ReportParams.ReportType == (int)ReportType.Recertification))
             {
                 query.ruleWhereStatement += "{rule_head_text: {_is_null: true}}, ";
             }

@@ -23,14 +23,14 @@ namespace FWO.Report.Filter
             " $offset: Int ",
             " $mgmId: [Int!]",
             " $relevantImportId: bigint"
-        };
+        };  // $mgmId and $relevantImporId are only needed for time based filtering
+
         public string ReportTimeString { get; set; } = "";
         public List<int> RelevantManagementIds { get; set; } = new List<int>();
 
         public ReportType ReportType { get; set; } = ReportType.Rules;
 
-        // $mgmId and $relevantImporId are only needed for time based filtering
-        private DynGraphqlQuery(string rawInput) { RawFilter = rawInput; }
+        public DynGraphqlQuery(string rawInput) { RawFilter = rawInput; }
 
         public static string fullTimeFormat = "yyyy-MM-dd HH:mm:ss";
         public static string dateFormat = "yyyy-MM-dd";
@@ -102,6 +102,8 @@ namespace FWO.Report.Filter
                                                   timeFilter.ReportTime.ToString(fullTimeFormat));
                         break;
                     case ReportType.Changes:
+                    case ReportType.ResolvedChanges:
+                    case ReportType.ResolvedChangesTech:
                         (string start, string stop) = ResolveTimeRange(timeFilter);
                         query.QueryVariables["start"] = start;
                         query.QueryVariables["stop"] = stop;
@@ -242,8 +244,8 @@ namespace FWO.Report.Filter
         {
             // leave out all header texts
             if (reportParams.ReportParams.ReportType != null &&
-                reportParams.ReportParams.ReportType == (int)ReportType.Statistics &&
-                reportParams.ReportParams.ReportType != (int)ReportType.Recertification)
+                (reportParams.ReportParams.ReportType == (int)ReportType.Statistics ||
+                 reportParams.ReportParams.ReportType == (int)ReportType.Recertification))
             {
                 query.ruleWhereStatement += "{rule_head_text: {_is_null: true}}, ";
             }
@@ -273,7 +275,7 @@ namespace FWO.Report.Filter
 
             string paramString = string.Join(" ", query.QueryParameters.ToArray());
 
-            if (filter.ReportParams.ReportType == (int)ReportType.ResolvedRules || filter.ReportParams.ReportType == (int)ReportType.ResolvedRulesTech)
+            if (((ReportType)(filter.ReportParams.ReportType ?? throw new Exception("No report type set"))).IsResolvedReport())
                 filter.Detailed = true;
 
             switch ((ReportType)(filter.ReportParams.ReportType ?? throw new Exception("No report type set")))

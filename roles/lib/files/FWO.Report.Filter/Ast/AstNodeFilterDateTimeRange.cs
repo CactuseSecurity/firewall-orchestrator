@@ -34,7 +34,7 @@ namespace FWO.Report.Filter.Ast
         {
             string queryVarName = AddVariable<DateTimeRange>(query, "lastHitLimit", Operator.Kind, semanticValue!);
             
-            if (reportType == ReportType.Changes)
+            if (reportType.IsChangeReport())
             {
                 if (Operator.Kind==TokenKind.LSS) // only show rules which have a hit before a certain date (including no hit rules)
                 {

@@ -15,7 +15,7 @@ namespace FWO.Report
         public override string ExportToHtml()
         {
             StringBuilder report = new StringBuilder();
-            NatRuleDisplay ruleDisplay = new NatRuleDisplay(userConfig);
+            NatRuleDisplayHtml ruleDisplay = new NatRuleDisplayHtml(userConfig);
 
             foreach (Management management in Managements.Where(mgt => !mgt.Ignore))
             {
@@ -51,17 +51,17 @@ namespace FWO.Report
                             if (string.IsNullOrEmpty(rule.SectionHeader))
                             {
                                 report.AppendLine("<tr>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayNumber(rule, device.Rules)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayNumber(rule)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayName(rule)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplaySourceZone(rule)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplaySource(rule, location: "")}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplaySource(rule, OutputLocation.export, ReportType)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayDestinationZone(rule)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayDestination(rule, location: "")}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayService(rule, location: "")}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedSource(rule, location: "")}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedDestination(rule, location: "")}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedService(rule, location: "")}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayEnabled(rule, export: true)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayDestination(rule, OutputLocation.export, ReportType)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayService(rule, OutputLocation.export, ReportType)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedSource(rule, OutputLocation.export)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedDestination(rule, OutputLocation.export)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedService(rule, OutputLocation.export)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayEnabled(rule, OutputLocation.export)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayUid(rule)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayComment(rule)}</td>");
                                 report.AppendLine("</tr>");
@@ -185,7 +185,7 @@ namespace FWO.Report
                 report.AppendLine("</table>");
             }
 
-            return GenerateHtmlFrame(title: userConfig.GetText("natrules_report"), Query.RawFilter, DateTime.Now, report);
+            return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
         }
     }
 }

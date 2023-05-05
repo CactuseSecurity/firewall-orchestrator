@@ -59,13 +59,14 @@
                             </label>
                         </div>
                         <div class="form-check">
-                            @if (ReportToExport?.ReportType!=ReportType.ResolvedRules && ReportToExport?.ReportType!=ReportType.ResolvedRulesTech)
+                            @if (csvAvailable())
                             {
-                                <input disabled class="form-check-input" type="checkbox" id="reportExportCsv" @bind="ExportCsv">
+                                <input class="form-check-input" type="checkbox" id="reportExportCsv" @bind="ExportCsv">
                             }
                             else 
                             {
-                                <input class="form-check-input" type="checkbox" id="reportExportCsv" @bind="ExportCsv">
+                                ExportCsv = false;
+                                <input disabled class="form-check-input" type="checkbox" id="reportExportCsv">
                             }
                             <label class="form-check-label" for="reportExportCsv">
                                 CSV
@@ -129,6 +130,11 @@ Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportD
 
     private int PaperSizeWidth = 0;
     private int PaperSizeHeight = 0;
+
+    private bool csvAvailable()
+    {
+        return (bool)ReportToExport?.ReportType.IsResolvedReport();
+    }
 
     private async Task Export()
     {

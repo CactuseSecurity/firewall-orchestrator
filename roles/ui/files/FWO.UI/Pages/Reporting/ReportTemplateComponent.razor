@@ -184,7 +184,7 @@
 
     public string DisplayTime()
     {
-        if(reportTypeInEdit == ReportType.Changes)
+        if(reportTypeInEdit.IsChangeReport())
         {
             switch (reportTemplateInEdit.ReportParams.TimeFilter.TimeRangeType)
             {

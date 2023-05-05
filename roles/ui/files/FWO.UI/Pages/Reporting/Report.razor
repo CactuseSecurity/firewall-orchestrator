@@ -19,10 +19,10 @@
 <Sidebar @ref="deviceSelectionSidebar" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth" >
     <div class="p-3">
         <h5 class="text-left">@(userConfig.GetText("report_type"))</h5>
-        <Dropdown ElementType="ReportType" ElementToString="@(r => userConfig.GetText(r.ToString()?.ToLower() ?? ""))"
+        <Dropdown ElementType="ReportType" ElementToString="@(r => userConfig.GetText(r.ToString()))"
             SelectedElement="selectedReportType" SelectedElementChanged="ReportTypeChanged" Elements="CustomSortReportType(Enum.GetValues(typeof(ReportType)).Cast<ReportType>().ToList())">
             <ElementTemplate Context="reportType">
-                @userConfig.GetText(reportType.ToString()?.ToLower() ?? "")
+                @userConfig.GetText(reportType.ToString())
             </ElementTemplate>
         </Dropdown>
     </div>
@@ -157,7 +157,8 @@
                     case ReportType.Changes:
                     case ReportType.ResolvedChanges:
                     case ReportType.ResolvedChangesTech:
-                        <ChangesReport Managements="managementsReport" RulesPerPage="rulesPerPage" @bind-SelectedRuleChanges="selectedItemsChangeReportTable"></ChangesReport>
+                        <ChangesReport Managements="managementsReport" SelectedReportType="selectedReportType" RulesPerPage="rulesPerPage"
+                            @bind-SelectedRuleChanges="selectedItemsChangeReportTable" />
                         break;
 
                     case ReportType.Statistics:
@@ -220,7 +221,7 @@
 <PopUp Large="true" Title="@(userConfig.GetText("report_time"))" Show="@ShowSelectTimeDialog">
     <Body>
         <div>
-            @if (selectedReportType==ReportType.Changes || selectedReportType==ReportType.ResolvedChanges || selectedReportType==ReportType.ResolvedChangesTech)
+            @if (selectedReportType.IsChangeReport())
             {
                 <div class="row">
                     <div class="col-sm-1">
@@ -460,7 +461,7 @@
 
     private void SetTimeSelection()
     {
-        if (selectedReportType==ReportType.Changes || selectedReportType==ReportType.ResolvedChanges || selectedReportType==ReportType.ResolvedChangesTech)
+        if (selectedReportType.IsChangeReport())
         {
             switch(actTimeFilter.TimeRangeType)
             {
@@ -522,7 +523,7 @@
 
     public void DisplayTime()
     {
-        if (selectedReportType==ReportType.Changes || selectedReportType==ReportType.ResolvedChanges || selectedReportType==ReportType.ResolvedChangesTech)
+        if (selectedReportType.IsChangeReport())
         {
             switch (actTimeFilter.TimeRangeType)
             {
@@ -676,7 +677,7 @@
                 {
                     DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
                 }
-                else if (selectedReportType==ReportType.Changes || selectedReportType==ReportType.ResolvedChanges || selectedReportType==ReportType.ResolvedChangesTech)
+                else if (selectedReportType.IsChangeReport())
                 {
                     DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4003"), true);
                 }

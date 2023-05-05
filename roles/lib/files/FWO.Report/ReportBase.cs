@@ -9,6 +9,21 @@ using WkHtmlToPdfDotNet;
 
 namespace FWO.Report
 {
+    public enum RsbTab
+    {
+        all = 10, 
+        report = 20, 
+        rule = 30
+    }
+
+    public enum RsbObjType
+    {
+        all = 0,
+        nobj = 1, 
+        nsrv = 2, 
+        user = 3
+    }
+
     public abstract class ReportBase
     {
         protected StringBuilder HtmlTemplate = new StringBuilder($@"
@@ -74,7 +89,7 @@ namespace FWO.Report
 
         public abstract Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback); // to be called when exporting
 
-        public abstract Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, int maxFetchCycles, ApiConnection apiConnection, Func<Management[], Task> callback);
+        public abstract Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, RsbObjType objects, int maxFetchCycles, ApiConnection apiConnection, Func<Management[], Task> callback);
 
         public abstract string ExportToCsv();
 
@@ -103,13 +118,37 @@ namespace FWO.Report
                 HtmlTemplate = HtmlTemplate.Replace("##Filter##", filter);
                 HtmlTemplate = HtmlTemplate.Replace("##GeneratedOn##", userConfig.GetText("generated_on"));
                 HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
-                HtmlTemplate = HtmlTemplate.Replace("##Date-of-Config##", userConfig.GetText("date_of_config"));
-                HtmlTemplate = HtmlTemplate.Replace("##GeneratedFor##", DateTime.Parse(Query.ReportTimeString).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
-                HtmlTemplate = HtmlTemplate.Replace("##DeviceFilter##", string.Join("; ", Array.ConvertAll(Managements, management => management.NameAndDeviceNames())));
+                if(ReportType.IsChangeReport())
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("<p>##Date-of-Config##: ##GeneratedFor## (UTC)</p>", "");
+                }
+                else
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("##Date-of-Config##", userConfig.GetText("date_of_config"));
+                    HtmlTemplate = HtmlTemplate.Replace("##GeneratedFor##", DateTime.Parse(Query.ReportTimeString).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
+                }
+                HtmlTemplate = HtmlTemplate.Replace("##DeviceFilter##", string.Join("; ", Array.ConvertAll(Managements.Where(mgt => !mgt.Ignore).ToArray(), management => management.NameAndDeviceNames())));
                 HtmlTemplate = HtmlTemplate.Replace("##Body##", htmlReport.ToString());
                 htmlExport = HtmlTemplate.ToString();
             }
             return htmlExport;
+        }
+
+        public string DisplayReportHeaderCsv()
+        {
+            StringBuilder report = new StringBuilder();
+            report.AppendLine($"# report type: {userConfig.GetText(ReportType.ToString())}");
+            report.AppendLine($"# report generation date: {DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)");
+            if(!ReportType.IsChangeReport())
+            {
+                report.AppendLine($"# date of configuration shown: {DateTime.Parse(Query.ReportTimeString).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)");
+            }
+            report.AppendLine($"# device filter: {string.Join(" ", Array.ConvertAll(Managements.Where(mgt => !mgt.Ignore).ToArray(), management => management.NameAndDeviceNames(" ")))}");
+            report.AppendLine($"# other filters: {Query.RawFilter}");
+            report.AppendLine($"# report generator: Firewall Orchestrator - https://fwo.cactus.de/en");
+            report.AppendLine($"# data protection level: For internal use only");
+            report.AppendLine($"#");
+            return $"{report.ToString()}";
         }
 
         public virtual byte[] ToPdf(PaperKind paperKind, int width = -1, int height = -1)

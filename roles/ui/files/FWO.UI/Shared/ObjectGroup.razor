@@ -1,6 +1,8 @@
 ﻿@using BlazorTable
 @using FWO.Config.Api
 @using FWO.Api.Data
+@using FWO.Report
+
 
 @inject UserConfig userConfig
 @inject IJSRuntime jsRuntime
@@ -10,7 +12,7 @@
 
 @if(Content != null)
 {
-    <Collapse Title="@(NameExtractor != null ? NameExtractor(Content) : "")" UseHtmlTitle="@(Tab == ruleTab)" Style="@("primary")" StartToggled="StartCollapsed">
+    <Collapse Title="@(NameExtractor != null ? NameExtractor(Content) : "")" UseHtmlTitle="@(Tab == RsbTab.rule)" Style="@("primary")" StartToggled="StartCollapsed">
         <TitleWithHtml>
             @if (Content.GetType() == typeof(Rule))
             {
@@ -34,12 +36,12 @@
         <ChildContent>
             @if(NetworkObjectExtractor != null)
             {
-                <Collapse Title="@(userConfig.GetText("network_objects"))" StartToggled="StartCollapsed"  OnOpen="() => HandleUncollapse(nobj)">
+                <Collapse Title="@(userConfig.GetText("network_objects"))" StartToggled="StartCollapsed"  OnOpen="() => HandleUncollapse(RsbObjType.nobj)">
                     <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkObject" Items="@NetworkObjectExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                         <Column TableItem="NetworkObject" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
-                                <span class="@GetIconClass(nobj, context.Type.Name)">&nbsp;</span>
-                                <b id="@(GetID(nobj, context.Id))">@(context.Name)</b>
+                                <span class="@GetIconClass(RsbObjType.nobj, context.Type.Name)">&nbsp;</span>
+                                <b id="@(GetID(RsbObjType.nobj, context.Id))">@(context.Name)</b>
                             </Template>
                         </Column>
                         <DetailTemplate TableItem="NetworkObject">
@@ -55,7 +57,7 @@
                                         {
                                             if(member.Object != null)
                                             {
-                                                @AddLinkToObject(nobj, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                @AddLinkToObject(RsbObjType.nobj, member.Object.Id, member.Object.Type.Name, member.Object.Name)
                                                 <br>
                                             }
                                         }
@@ -70,7 +72,7 @@
                                                     continue;
                                                 shownMemberIds.Add(member.Object.Id);
 
-                                                @AddLinkToObject(nobj, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                @AddLinkToObject(RsbObjType.nobj, member.Object.Id, member.Object.Type.Name, member.Object.Name)
                                                 <br>
                                             }
                                         }
@@ -85,12 +87,12 @@
             }
             @if(NetworkServiceExtractor != null)
             {
-                <Collapse Title="@(userConfig.GetText("services"))" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(nsrv)">
+                <Collapse Title="@(userConfig.GetText("services"))" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(RsbObjType.nsrv)">
                     <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkService" Items="@NetworkServiceExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                         <Column TableItem="NetworkService" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
-                                <span class="@GetIconClass(nsrv, context.Type.Name)">&nbsp;</span>
-                                <b id="@(GetID(nsrv, context.Id))">@(context.Name)</b>
+                                <span class="@GetIconClass(RsbObjType.nsrv, context.Type.Name)">&nbsp;</span>
+                                <b id="@(GetID(RsbObjType.nsrv, context.Id))">@(context.Name)</b>
                             </Template>
                         </Column>
                         <DetailTemplate TableItem="NetworkService">
@@ -112,7 +114,7 @@
                                         {
                                             if(member.Object != null)
                                             {
-                                                @AddLinkToObject(nsrv, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                @AddLinkToObject(RsbObjType.nsrv, member.Object.Id, member.Object.Type.Name, member.Object.Name)
                                                 <br>
                                             }
                                         }
@@ -127,7 +129,7 @@
                                                     continue;
                                                 shownMemberIds.Add(member.Object.Id);
 
-                                                @AddLinkToObject(nsrv, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                @AddLinkToObject(RsbObjType.nsrv, member.Object.Id, member.Object.Type.Name, member.Object.Name)
                                                 <br>
                                             }
                                         }
@@ -142,12 +144,12 @@
             }
             @if(NetworkUserExtractor != null)
             {
-                <Collapse Title="@(userConfig.GetText("users"))" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(user)">
+                <Collapse Title="@(userConfig.GetText("users"))" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(RsbObjType.user)">
                     <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkUser" Items="@NetworkUserExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                         <Column TableItem="NetworkUser" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
-                                <span class="@GetIconClass(user, context.Type.Name)">&nbsp;</span>
-                                <b id="@(GetID(user, context.Id))">@(context.Name)</b>
+                                <span class="@GetIconClass(RsbObjType.user, context.Type.Name)">&nbsp;</span>
+                                <b id="@(GetID(RsbObjType.user, context.Id))">@(context.Name)</b>
                             </Template>
                         </Column>
                         <DetailTemplate TableItem="NetworkUser">
@@ -162,7 +164,7 @@
                                         {
                                             if(member.Object != null)
                                             {
-                                                @AddLinkToObject(user, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                @AddLinkToObject(RsbObjType.user, member.Object.Id, member.Object.Type.Name, member.Object.Name)
                                                 <br>
                                             }
                                         }
@@ -177,7 +179,7 @@
                                                     continue;
                                                 shownMemberIds.Add(member.Object.Id);
 
-                                                @AddLinkToObject(user, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                @AddLinkToObject(RsbObjType.user, member.Object.Id, member.Object.Type.Name, member.Object.Name)
                                                 <br>
                                             }
                                         }
@@ -203,13 +205,13 @@
     AnchorNavToRSB? anchorNavToRSB { get; set; }
 
     [Parameter]
-    public Func<byte, Func<Management[], Task>, long, bool, Task>? FetchObjects { get; set; }
+    public Func<RsbTab, RsbObjType, Func<Management[], Task>, long, bool, Task>? FetchObjects { get; set; }
 
     [Parameter]
     public bool Recert { get; set; }
 
     [Parameter]
-    public byte Tab { get; set; }
+    public RsbTab Tab { get; set; }
 
     [Parameter]
     public int PageSize { get; set; }
@@ -237,8 +239,6 @@
 
     // Parameter Variables are being overwritten, because something happens with the component on StateHasChanged (but the Initialize Task does not get called)
     public InputDataType? Content { get; set; }
-    private const byte allTab = 10, reportTab = 20, ruleTab = 30;
-    private const byte all = 0, nobj = 1, nsrv = 2, user = 3;
     public bool ContentIsDetailed => nobjDetailed && nsrvDetailed && userDetailed;
     private bool nobjDetailed = false;
     private bool nsrvDetailed = false;
@@ -248,21 +248,21 @@
     {
         Content = InitialContent;
         if (StartContentDetailed)
-            await FetchContent(all);
+            await FetchContent(RsbObjType.all);
     }
 
-    private string GetIDPrefix(byte objCategory, byte? tab = null, bool toMgmtObj = false)
+    private string GetIDPrefix(RsbObjType objCategory, RsbTab? tab = null, bool toMgmtObj = false)
     {
         string idPref = "";
         switch (tab ?? Tab)
         {
-            case allTab:
+            case RsbTab.all:
                 idPref += "all-";
                 break;
-            case reportTab:
+            case RsbTab.report:
                 idPref += "report-";
                 break;
-            case ruleTab:
+            case RsbTab.rule:
                 idPref += "rule-";
                 break;
         }
@@ -280,29 +280,29 @@
         }
         switch (objCategory)
         {
-            case nobj:
+            case RsbObjType.nobj:
                 idPref += "nwobj";
                 break;
-            case nsrv:
+            case RsbObjType.nsrv:
                 idPref += "svc";
                 break;
-            case user:
+            case RsbObjType.user:
                 idPref += "user";
                 break;
         }
 
         return idPref;
     }
-    private string GetID(byte objCategory, long objId)
+    private string GetID(RsbObjType objCategory, long objId)
     {
         return GetIDPrefix(objCategory) + objId;
     }
 
-    private string GetIconClass(byte objCategory, string type)
+    private string GetIconClass(RsbObjType objCategory, string type)
     {
         switch (type)
         {
-            case "group" when objCategory == user:
+            case "group" when objCategory == RsbObjType.user:
                 return "oi oi-people";
             case "group":
                 return "oi oi-list-rich";
@@ -315,20 +315,20 @@
             default:
                 switch (objCategory)
                 {
-                    case nobj:
+                    case RsbObjType.nobj:
                         return "oi oi-laptop";
-                    case nsrv:
+                    case RsbObjType.nsrv:
                         return "oi oi-wrench";
-                    case user:
+                    case RsbObjType.user:
                         return "oi oi-person";
                 }
                 return "";
         }
     }
 
-    RenderFragment AddLinkToObject(byte objCategory, long objId, string type, string name)
+    RenderFragment AddLinkToObject(RsbObjType objCategory, long objId, string type, string name)
     {
-        byte targetTab = Tab == allTab ? allTab : reportTab;
+        RsbTab targetTab = Tab == RsbTab.all ? RsbTab.all : RsbTab.report;
         string htmlObjRefPrefix = GetIDPrefix(objCategory, targetTab, true);
 
         string page = Recert ? "certification" : "report";
@@ -336,28 +336,28 @@
         return @<a href="@(page)#goto-@(htmlObjRefPrefix + objId)" target="_top"><span class="@GetIconClass(objCategory, type)">&nbsp;</span>@(name)</a>;
     }
 
-    private async Task HandleUncollapse(byte objCategory)
+    private async Task HandleUncollapse(RsbObjType objCategory)
     {
-        if (Tab != ruleTab)
+        if (Tab != RsbTab.rule)
             await FetchContent(objCategory);
         anchorNavToRSB?.ScrollToFragmentIfMatch(GetIDPrefix(objCategory));
     }
 
-    private async Task FetchContent(byte objCategory)
+    private async Task FetchContent(RsbObjType objCategory)
     {
         try
         {
-            if (Tab == ruleTab && objCategory != 0)
+            if (Tab == RsbTab.rule && objCategory != RsbObjType.all)
                 return;
 
-            if (objCategory == all && !ContentIsDetailed || objCategory == nobj && !nobjDetailed || objCategory == nsrv && !nsrvDetailed || objCategory == user && !userDetailed)
+            if (objCategory == RsbObjType.all && !ContentIsDetailed || objCategory == RsbObjType.nobj && !nobjDetailed || objCategory == RsbObjType.nsrv && !nsrvDetailed || objCategory == RsbObjType.user && !userDetailed)
             {
                 if(FetchObjects != null)
                 {
                     switch (Content)
                     {
                         case Management m:
-                            await FetchObjects((byte)(Tab + objCategory),
+                            await FetchObjects(Tab, objCategory,
                                 managementsUpdate =>
                                 {
                                     int id = m.Id;
@@ -366,13 +366,13 @@
                                     {
                                         switch (objCategory)
                                         {
-                                            case all:
+                                            case RsbObjType.all:
                                                 m = m_updated; break;
-                                            case nobj:
+                                            case RsbObjType.nobj:
                                                 m.Objects = m_updated.Objects; break;
-                                            case nsrv:
+                                            case RsbObjType.nsrv:
                                                 m.Services = m_updated.Services; break;
-                                            case user:
+                                            case RsbObjType.user:
                                                 m.Users = m_updated.Users; break;
                                         }
 
@@ -384,7 +384,7 @@
                             break;
 
                         case Rule r:
-                            await FetchObjects((byte)(Tab + objCategory),
+                            await FetchObjects(Tab, objCategory,
                                 managementsUpdate =>
                                 {
                                     Rule? r_updated = managementsUpdate.SelectMany(m => m.Devices).SelectMany(d => d.Rules ?? new Rule[0]).FirstOrDefault();
@@ -400,9 +400,9 @@
                     }
                 }
 
-                nobjDetailed = nobjDetailed || objCategory == 0 || objCategory == 1;
-                nsrvDetailed = nsrvDetailed || objCategory == 0 || objCategory == 2;
-                userDetailed = userDetailed || objCategory == 0 || objCategory == 3;
+                nobjDetailed = nobjDetailed || objCategory == RsbObjType.all || objCategory == RsbObjType.nobj;
+                nsrvDetailed = nsrvDetailed || objCategory == RsbObjType.all || objCategory == RsbObjType.nsrv;
+                userDetailed = userDetailed || objCategory == RsbObjType.all || objCategory == RsbObjType.user;
 
                 await InvokeAsync(StateHasChanged);
             }

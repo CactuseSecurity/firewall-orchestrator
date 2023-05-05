@@ -20,7 +20,7 @@
                     </div>
                     <div class="mt-2">
                         <CascadingValue Value="collapseSidebarAll">
-                            <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="all" InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
+                            <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="RsbTab.all" InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
                                                 NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
                         </CascadingValue>
                     </div>
@@ -33,7 +33,7 @@
                         </div>
                         <div class="mt-2">
                             <CascadingValue Value="collapseSidebarReport">
-                                <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="report" InputDataType="Management" Data="ManagementsReport.Where(m => (m.Devices.Where(d => d.Rules != null && d.Rules.Count() > 0).Count() > 0))" NameExtractor="man => man.Name"
+                                <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="RsbTab.report" InputDataType="Management" Data="ManagementsReport.Where(m => (m.Devices.Where(d => d.Rules != null && d.Rules.Count() > 0).Count() > 0))" NameExtractor="man => man.Name"
                                                     NetworkObjectExtractor="man => man.ReportObjects"
                                                     NetworkServiceExtractor="man => man.ReportServices"
                                                     NetworkUserExtractor="man => man.ReportUsers" />
@@ -48,7 +48,7 @@
                     </div>
                     <div class="mt-2">
                         <CascadingValue Value="collapseSidebarRule">
-                            <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="rule" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule" Data="SelectedRules"
+                            <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="RsbTab.rule" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule" Data="SelectedRules"
                                                 NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
                                                 NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object).Union(rule.Tos.Select(nl => nl.Object)).Union(rule.NatData.TranslatedFroms.Select(nl => nl.Object)).Union(rule.NatData.TranslatedTos.Select(nl => nl.Object)).OrderBy(o => o.Name).ToArray()"
                                                 NetworkServiceExtractor="rule => rule.Services.Select(sw => sw.Content).Union(rule.NatData.TranslatedServices.Select(sw => sw.Content)).OrderBy(s => s.Name).ToArray()"
@@ -116,8 +116,7 @@
         });
     }
 
-    const byte all = 10, report = 20, rule = 30, all_nobj = 11, all_nsrv = 12, all_user = 13, report_nobj = 21, report_nsrv = 22, report_user = 23;
-    public async Task FetchContent(byte contentType, Func<Management[], Task> callback, long id = 0, bool nat = false)
+    public async Task FetchContent(RsbTab rsbTab, RsbObjType objType, Func<Management[], Task> callback, long id = 0, bool nat = false)
     {
         Log.WriteDebug("Fetching Content..", $"nat: {nat}");
 
@@ -127,77 +126,80 @@
         {
             string query = "";
             Dictionary<String, object> queryVars = new Dictionary<string, object>();
-
-            bool newObjects = true;
-            int fetchCount = 0;
-
             bool gotAllObjects = true;
 
-            switch (contentType)
+            switch (rsbTab)
             {
-                case all:
-                    query = ObjectQueries.getAllObjectDetails;
-                    break;
-                case all_nobj:
-                    query = ObjectQueries.getNetworkObjectDetails;
-                    break;
-                case all_nsrv:
-                    query = ObjectQueries.getNetworkServiceObjectDetails;
-                    break;
-                case all_user:
-                    query = ObjectQueries.getUserDetails;
-                    break;
-                case rule:
-                    if (nat)
-                        query = RuleQueries.getNatRuleDetails;
-                    else
-                        query = RuleQueries.getRuleDetails;
-                    break;
-            }
-
-            switch (contentType)
-            {
-                case all or all_nobj or all_nsrv or all_user:
-
+                case RsbTab.all:
                     queryVars = new Dictionary<string, object>()
                     {
                         { "management_id", (int) id },
                         { "limit", userConfig.ElementsPerFetch },
                         { "offset", 0 }
                     };
-
+                    switch (objType)
+                    {
+                        case RsbObjType.all:
+                            query = ObjectQueries.getAllObjectDetails;
+                            break;
+                        case RsbObjType.nobj:
+                            query = ObjectQueries.getNetworkObjectDetails;
+                            break;
+                        case RsbObjType.nsrv:
+                            query = ObjectQueries.getNetworkServiceObjectDetails;
+                            break;
+                        case RsbObjType.user:
+                            query = ObjectQueries.getUserDetails;
+                            break;
+                    }
+                    await FetchObjects(query, queryVars, callback);
                     break;
-
-                case report or report_nobj or report_nsrv or report_user:
-
+                case RsbTab.report:
                     queryVars = new Dictionary<string, object>()
                     {
                         { "mgmIds", (int) id },
                         { "limit", userConfig.ElementsPerFetch },
                         { "offset", 0 }
                     };
-
                     if (CurrentReport != null)
-                        gotAllObjects = await CurrentReport.GetObjectsForManagementInReport(queryVars, (byte)(contentType - report), userConfig.AutoFillRightSidebar ? int.MaxValue : userConfig.MaxInitialFetchesRightSidebar, Connection, callback);
+                        gotAllObjects = await CurrentReport.GetObjectsForManagementInReport(queryVars, objType, userConfig.AutoFillRightSidebar ? int.MaxValue : userConfig.MaxInitialFetchesRightSidebar, Connection, callback);
 
                     if (!gotAllObjects)
                         DisplayMessageInUi(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);
-
-                    return;
-
-                case rule:
-
+                    break;
+                case RsbTab.rule:
                     queryVars = new Dictionary<string, object>()
                     {
                         { "rule_id", id },
                         { "limit", userConfig.ElementsPerFetch },
                         { "offset", (int)0 }
                     };
-
+                    if(objType == RsbObjType.all)
+                    {
+                        if (nat)
+                            query = RuleQueries.getNatRuleDetails;
+                        else
+                            query = RuleQueries.getRuleDetails;
+                    }
+                    await FetchObjects(query, queryVars, callback);
                     break;
             }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+        }
+    }
 
-            // lazy fetch all objects for right sidebar
+    private async Task FetchObjects(string query, Dictionary<string, object> queryVars, Func<Management[], Task> callback)
+    {
+        // lazy fetch all objects for right sidebar
+        try
+        {
+            Management[] managements = new Management[0];
+            bool newObjects = true;
+            int fetchCount = 0;
+
             while (newObjects && (++fetchCount <= userConfig.MaxInitialFetchesRightSidebar || userConfig.AutoFillRightSidebar))
             {
                 Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(query, queryVars);

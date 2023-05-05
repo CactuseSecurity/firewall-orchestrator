@@ -283,7 +283,6 @@ adding report template format fk and permissions
 ### 6.2.2 22.03.2023 DEVELOP
 - adding last hit of each rule for check point and FortiManager to recertification (report)
 
-
 ### 6.3 24.04.2023 MAIN
 - adding CP R8X object types
   - application categories
@@ -292,3 +291,8 @@ adding report template format fk and permissions
 
 ### 6.3.1 27.04.2023 MAIN
 - hotfix adding CP R8X object type application site
+
+### 6.3.2 05.05.2023 MAIN
+- hotfix UI and fortigate importer credential handling
+- checkpoint R8X importer adding support for Internet object type
+- reporting - CSV export for change report

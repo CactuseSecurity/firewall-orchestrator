@@ -32,7 +32,7 @@
                             @if (ExportPdf)
                             {
                                 <div>
-                                    Paper Kind:
+                                    @(userConfig.GetText("page_format")):
                                     <Dropdown @bind-SelectedElement="SelectedPaperKind" Elements="Enum.GetValues<PaperKind>().Cast<PaperKind>()"></Dropdown>
                                     @if (SelectedPaperKind == PaperKind.Custom)
                                     {

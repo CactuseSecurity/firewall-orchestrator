@@ -1,6 +1,7 @@
 ﻿using FWO.Api.Data;
 using FWO.Config.Api;
 using System.Text;
+using FWO.Report;
 using FWO.Report.Filter;
 
 namespace FWO.Ui.Display
@@ -97,17 +98,6 @@ namespace FWO.Ui.Display
             return $"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{link}{type}{id}\" target=\"_top\" style=\"{style}\">{name}</a>";
         }
 
-        protected string getObjSymbol(string objType)
-        {
-            switch(objType)
-            {
-                case "group": return "oi oi-list-rich";
-                case "network": return "oi oi-rss";
-                case "ip_range": return "oi oi-resize-width";
-                default: return "oi oi-monitor";
-            }
-        }
-
         protected string NetworkLocationToHtml(NetworkLocation userNetworkObject, int mgmtId, OutputLocation location, string style, ReportType reportType)
         {
             StringBuilder result = new StringBuilder();
@@ -120,7 +110,7 @@ namespace FWO.Ui.Display
                 }
                 else
                 {
-                    result.Append(constructLink("user", "oi oi-people", userNetworkObject.User.Id, userNetworkObject.User.Name, location, mgmtId, style) + "@");
+                    result.Append(constructLink("user", ReportBase.GetIconClass(ObjCategory.user, userNetworkObject.User.Type.Name), userNetworkObject.User.Id, userNetworkObject.User.Name, location, mgmtId, style) + "@");
                 }
             }
 
@@ -132,7 +122,7 @@ namespace FWO.Ui.Display
                 }
                 else
                 {
-                    result.Append(constructLink("nwobj", getObjSymbol(userNetworkObject.Object.Type.Name), userNetworkObject.Object.Id, userNetworkObject.Object.Name, location, mgmtId, style));
+                    result.Append(constructLink("nwobj", ReportBase.GetIconClass(ObjCategory.nobj, userNetworkObject.Object.Type.Name), userNetworkObject.Object.Id, userNetworkObject.Object.Name, location, mgmtId, style));
                 }
                 if (userNetworkObject.Object.Type.Name != "group")
                 {
@@ -158,7 +148,7 @@ namespace FWO.Ui.Display
                 }
                 else
                 {
-                    result.Append(constructLink("svc", service.Type.Name == "group" ? "oi oi-list-rich" : "oi oi-wrench", service.Id, service.Name, location, mgmtId, style));
+                    result.Append(constructLink("svc", ReportBase.GetIconClass(ObjCategory.nsrv, service.Type.Name), service.Id, service.Name, location, mgmtId, style));
                 }
             }
             if (service.DestinationPort != null)

@@ -3,7 +3,7 @@ from fwo_log import getFwoLogger
 from netaddr import IPAddress, IPNetwork
 from functools import cmp_to_key
 import traceback
-import roles.importer.files.importer.fortiosmanagementREST.fOS_getter as fOS_getter
+import fOS_getter as fOS_getter
 import fwo_globals
 from fwo_data_networking import Route, Interface
 from fwo_data_networking import getRouteDestination

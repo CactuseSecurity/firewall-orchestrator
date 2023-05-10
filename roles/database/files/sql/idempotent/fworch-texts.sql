@@ -2918,7 +2918,7 @@ INSERT INTO txt VALUES ('H5102', 'English', 'The following firewall products can
 ');
 INSERT INTO txt VALUES ('H5103', 'German',  'F&uuml;r Firewallgateways ohne separates Management oder im Falle, dass das zentrale Management nicht in den Firewall Orchestrator eingebunden werden kann,
     werden die Details des Gateways als Management und gleichzeitig auch als Gateway eingetragen.<br>
-    Im Falle Fortigate: Um einen vollst&auml;ndigen Datenimport zu gew&auml;hrleisten, bitte in der Fortigate config den Seitenumbruch deaktivieren, damit beim Kommando "show full-configuration" die komplette Config zu ausgegeben wird.
+    Im Falle Fortigate: Um einen vollst&auml;ndigen Datenimport zu gew&auml;hrleisten, bitte in der Fortigate config den Seitenumbruch deaktivieren, damit beim Kommando "show full-configuration" die komplette Config ausgegeben wird.
 ');
 INSERT INTO txt VALUES ('H5103', 'English', 'For firewall gateways without a separate management or in case the central management cannot be integrated into Firewall Orchestrator 
     you may enter the details of the gateway here as a management system as well and then add it again as a gateway.<br>
@@ -2944,11 +2944,13 @@ INSERT INTO txt VALUES ('H5113', 'German',  'Ger&auml;tetyp*: bitte das korrekte
 INSERT INTO txt VALUES ('H5113', 'English', 'Device Type*: Select correct product from a list of available types, see above.');
 INSERT INTO txt VALUES ('H5114', 'German',  'Hostname*: Adresse des Hosts (entweder IP-Addresse oder aufl&ouml;sbarer Name). 
     F&uuml;r Check Point R8x MDS Installationen die Addresse des MDS-Servers f&uuml;r alle Domains benutzen.<br>
-    F&uuml;r Fortinet, Barracuda, Juniper muss die IP vom aufl&ouml;sbaren Namen des Firewallgateways spezifiziert werden.
+    F&uuml;r Fortinet, Barracuda, Juniper muss die IP vom aufl&ouml;sbaren Namen des Firewallgateways spezifiziert werden.<br>
+    F&uuml;r alle &uuml;brigen Firewall-Plattformen, bei denen es es kein separates Management gibt, muss die IP oder der aufl&ouml;sbare Name des Firewallgateways spezifiziert werden.
 ');
 INSERT INTO txt VALUES ('H5114', 'English', 'Hostname*: Address of the host (either IP address or resolvable name). 
     For Check Point R8x MDS installations use the address of the MDS server for all domains.<br>
-    For Fortinet, Barracuda, Juniper you need to specify the IP or resolvable name of the firewall gateway.
+    For Fortinet, Barracuda, Juniper you need to specify the IP or resolvable name of the firewall gateway.<br>
+    For all other firewall platforms which do not possess a separate management, use the IP address or the resolvable name of the firewall gateway.
 ');
 INSERT INTO txt VALUES ('H5115', 'German',  'Port*: Port-Nummer des Hosts.<br>
     Wenn das Ziel Check Point R8x, FortiManager, Azure oder Cisco FirePower ist, wird die Verbindung via API aufgebaut. Die Standard-Port-Nummer ist 443. Denken Sie daran, den API-Zugang auf Ihrem Firewall Managment zu aktivieren.<br>
@@ -3003,20 +3005,20 @@ INSERT INTO txt VALUES ('H5132', 'English', 'Username*: The user used to login t
     This user needs to be created on the firewall system in advance and needs full read access to the system.<br>
     On Check Point R8x we recommend using the predefined "Read Only All" profile (both global and domain management) for the user.
 ');
-INSERT INTO txt VALUES ('H5135', 'German',  'Schl&uuml;sselpaar*: Handelt es sich bei diesen Login-Daten um ein SSH Public-Key Paar oder um ein Standard-Passwort.
-');
-INSERT INTO txt VALUES ('H5135', 'English', 'Key Pair*: Do these credentials consist of a private/public SSH key pair or do they contain a standard password.
-');
 INSERT INTO txt VALUES ('H5133', 'German',  'Privater Schl&uuml;ssel* / Passwort*: F&uuml;r den ssh-Zugang hier den privaten ssh-Schl&uuml;ssel hinterlegen (Schl&uuml;ssel muss unverschl&uuml;sselt und ohne Passphrase sein).
-    Bitte kein RSA benutzen, da zumindest FortiGate ein Problem mit RSA-Schl&uuml;sseln zu haben scheint.<br>
+    Bitte f&uuml;r ssh-basierten legacy FortiGate Zugriff kein RSA benutzen, da es hier ein Problem mit RSA-Schl&uuml;sseln zu geben scheint.<br>
     F&uuml;r den API-Zugang ist hier das Passwort des API-Nutzers einzutragen.
 ');
 INSERT INTO txt VALUES ('H5133', 'English', 'Login Secret* / Password*: For ssh access enter the private ssh key (key needs to be unencrypted without passphrase).
-    Please do not use RSA as at least FortiGate seems to have a problem with RSA keys.<br>
+    For legacy ssh based FortiGate, do not use RSA as there seems to be a problem with RSA keys.<br>
     For API access insert the password of the API user here.
 ');
 INSERT INTO txt VALUES ('H5134', 'German',  '&Ouml;ffentlicher Schl&uuml;ssel: Dieses Feld muss nur f&uuml;r Netscreen-Firewalls gef&uuml;llt werden - dieses System ben&ouml;tigt auch den &ouml;ffentlichen Schl&uuml;ssel zum Anmelden.');
 INSERT INTO txt VALUES ('H5134', 'English', 'Public Key: This field only needs to be filled for netscreen firewalls - this system also needs the public key for successful login.');
+INSERT INTO txt VALUES ('H5135', 'German',  'Schl&uuml;sselpaar*: Handelt es sich bei diesen Login-Daten um ein SSH Public-Key Paar oder um ein Standard-Passwort.
+');
+INSERT INTO txt VALUES ('H5135', 'English', 'Key Pair*: Do these credentials consist of a private/public SSH key pair or do they contain a standard password.
+');
 INSERT INTO txt VALUES ('H5136', 'German',  'Cloud Client ID: Nur f&uuml;r Cloud Instanzen (Azure) ben&ouml;tigt - f&uuml;r alle anderen Plattformen kann dieses Feld leer gelassen werden.
 ');
 INSERT INTO txt VALUES ('H5136', 'English', 'Cloud Client ID: If you have a cloud installation (e.g. Azure) - enter your Azure client ID here. For all other installations, leave this field empty.

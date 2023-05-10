@@ -180,7 +180,7 @@
                     cssClass = "footer alert alert-success fly-in-animation";
                     break;
                 case MessageType.Warning:
-                    cssClass = "footer alert alert-warning fly-in-animation";
+                    cssClass = "footer alert alert-warning-override  fly-in-animation";
                     break;
                 case MessageType.Error:
                     Task.Run(async () => await setAlert(title, message));

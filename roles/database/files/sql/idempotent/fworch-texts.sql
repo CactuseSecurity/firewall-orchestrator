@@ -2944,13 +2944,11 @@ INSERT INTO txt VALUES ('H5113', 'German',  'Ger&auml;tetyp*: bitte das korrekte
 INSERT INTO txt VALUES ('H5113', 'English', 'Device Type*: Select correct product from a list of available types, see above.');
 INSERT INTO txt VALUES ('H5114', 'German',  'Hostname*: Adresse des Hosts (entweder IP-Addresse oder aufl&ouml;sbarer Name). 
     F&uuml;r Check Point R8x MDS Installationen die Addresse des MDS-Servers f&uuml;r alle Domains benutzen.<br>
-    F&uuml;r Fortinet, Barracuda, Juniper muss die IP vom aufl&ouml;sbaren Namen des Firewallgateways spezifiziert werden.<br>
-    F&uuml;r alle &uuml;brigen Firewall-Plattformen, bei denen es es kein separates Management gibt, muss die IP oder der aufl&ouml;sbare Name des Firewallgateways spezifiziert werden.
+    F&uuml;r alle Firewall-Plattformen, die kein separates Management-System besitzen, muss die IP oder der aufl&ouml;sbare Name des Firewallgateways spezifiziert werden.
 ');
 INSERT INTO txt VALUES ('H5114', 'English', 'Hostname*: Address of the host (either IP address or resolvable name). 
     For Check Point R8x MDS installations use the address of the MDS server for all domains.<br>
-    For Fortinet, Barracuda, Juniper you need to specify the IP or resolvable name of the firewall gateway.<br>
-    For all other firewall platforms which do not possess a separate management, use the IP address or the resolvable name of the firewall gateway.
+    For all firewall platforms which do not possess a separate management, use the IP address or the resolvable name of the firewall gateway.
 ');
 INSERT INTO txt VALUES ('H5115', 'German',  'Port*: Port-Nummer des Hosts.<br>
     Wenn das Ziel Check Point R8x, FortiManager, Azure oder Cisco FirePower ist, wird die Verbindung via API aufgebaut. Die Standard-Port-Nummer ist 443. Denken Sie daran, den API-Zugang auf Ihrem Firewall Managment zu aktivieren.<br>

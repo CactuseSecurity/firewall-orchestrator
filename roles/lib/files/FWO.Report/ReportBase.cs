@@ -16,7 +16,7 @@ namespace FWO.Report
         rule = 30
     }
 
-    public enum RsbObjType
+    public enum ObjCategory
     {
         all = 0,
         nobj = 1, 
@@ -89,7 +89,7 @@ namespace FWO.Report
 
         public abstract Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback); // to be called when exporting
 
-        public abstract Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, RsbObjType objects, int maxFetchCycles, ApiConnection apiConnection, Func<Management[], Task> callback);
+        public abstract Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<Management[], Task> callback);
 
         public abstract string ExportToCsv();
 
@@ -222,6 +222,34 @@ namespace FWO.Report
             ImpIdQueryVariables["time"] = (Query.ReportTimeString != "" ? Query.ReportTimeString : DateTime.Now.ToString(DynGraphqlQuery.fullTimeFormat));
             ImpIdQueryVariables["mgmIds"] = Query.RelevantManagementIds;
             return await apiConnection.SendQueryAsync<Management[]>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
+        }
+
+        public static string GetIconClass(ObjCategory objCategory, string objType)
+        {
+            switch (objType)
+            {
+                case "group" when objCategory == ObjCategory.user:
+                    return "oi oi-people";
+                case "group":
+                    return "oi oi-list-rich";
+                case "host":
+                    return "oi oi-laptop";
+                case "network":
+                    return "oi oi-rss";
+                case "ip_range":
+                    return "oi oi-resize-width";
+                default:
+                    switch (objCategory)
+                    {
+                        case ObjCategory.nobj:
+                            return "oi oi-laptop";
+                        case ObjCategory.nsrv:
+                            return "oi oi-wrench";
+                        case ObjCategory.user:
+                            return "oi oi-person";
+                    }
+                    return "";
+            }
         }
     }
 }

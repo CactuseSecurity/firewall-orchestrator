@@ -83,6 +83,12 @@ app {
     color: red;
 }
 
+.alert-warning-override {
+    color:#732d00;
+    background-color:#ffe494;
+    border-color:#f5d0b8
+}
+
 .col-form-label-marg7 {
     margin-left: 7px; /* hier wird der Abstand zwischen Checkbox und Label definiert */
 }

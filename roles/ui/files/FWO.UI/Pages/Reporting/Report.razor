@@ -360,9 +360,9 @@
     private Management[] managementsReport = new Management[0];
     private Management? globalStats = null;
 
-    public ReportType selectedReportType = ReportType.Rules;
-    public FwoOwner? selectedOwner = null;
-    public List<FwoOwner> ownerList = new List<FwoOwner>();
+    private ReportType selectedReportType = ReportType.Rules;
+    private FwoOwner? selectedOwner = null;
+    private List<FwoOwner> ownerList = new List<FwoOwner>();
 
     private DeviceFilter deviceFilter = new DeviceFilter();
     private bool selectAll = true;
@@ -454,7 +454,7 @@
         actEndDate = actEndTime = timeFilter.EndTime;
     }
 
-    public void SelectTime()
+    private void SelectTime()
     {
         ShowSelectTimeDialog = true;
     }
@@ -511,7 +511,7 @@
         filterInput = Regex.Replace(filterInput, "recertdisplay=" + @"-?\d+", $"recertdisplay={(userConfig.RecertificationPeriod-userConfig.RecertificationDisplayPeriod).ToString()}");
     } *@
 
-    public bool checkTimeRange()
+    private bool checkTimeRange()
     {
         if(actTimeFilter.TimeRangeType == TimeRangeType.Fixeddates && actTimeFilter.StartTime > actTimeFilter.EndTime)
         {
@@ -521,7 +521,7 @@
         return true;
     }
 
-    public void DisplayTime()
+    private void DisplayTime()
     {
         if (selectedReportType.IsChangeReport())
         {
@@ -699,7 +699,7 @@
         reportGenerationDuration = watch.ElapsedMilliseconds/1000.0;
     }
 
-    protected bool PrepareMetadata(Management[] Managements)
+    private bool PrepareMetadata(Management[] Managements)
     {
         bool rulesFound = false;
         foreach (Management management in Managements)

@@ -61,7 +61,7 @@ namespace FWO.Report
                         };
 
                         // get objects for this management in the current report
-                        gotAllObjects &= await GetObjectsForManagementInReport(objQueryVariables, RsbObjType.all, int.MaxValue, apiConnection, callback);
+                        gotAllObjects &= await GetObjectsForManagementInReport(objQueryVariables, ObjCategory.all, int.MaxValue, apiConnection, callback);
                     }
                 }
                 GotObjectsInReport = true;
@@ -70,7 +70,7 @@ namespace FWO.Report
             return gotAllObjects;
         }
 
-        public override async Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, RsbObjType objects, int maxFetchCycles, ApiConnection apiConnection, Func<Management[], Task> callback)
+        public override async Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<Management[], Task> callback)
         {
             if (!objQueryVariables.ContainsKey("mgmIds") || !objQueryVariables.ContainsKey("limit") || !objQueryVariables.ContainsKey("offset"))
                 throw new ArgumentException("Given objQueryVariables dictionary does not contain variable for management id, limit or offset");
@@ -87,13 +87,13 @@ namespace FWO.Report
             string query = "";
             switch (objects)
             {
-                case RsbObjType.all:
+                case ObjCategory.all:
                     query = ObjectQueries.getReportFilteredObjectDetails; break;
-                case RsbObjType.nobj:
+                case ObjCategory.nobj:
                     query = ObjectQueries.getReportFilteredNetworkObjectDetails; break;
-                case RsbObjType.nsrv:
+                case ObjCategory.nsrv:
                     query = ObjectQueries.getReportFilteredNetworkServiceObjectDetails; break;
-                case RsbObjType.user:
+                case ObjCategory.user:
                     query = ObjectQueries.getReportFilteredUserDetails; break;
             }
 
@@ -115,11 +115,11 @@ namespace FWO.Report
                     newObjects = allFilteredObjects.MergeReportObjects(filteredObjects);
                 }
 
-                if (objects == RsbObjType.all || objects == RsbObjType.nobj)
+                if (objects == ObjCategory.all || objects == ObjCategory.nobj)
                     management.ReportObjects = allFilteredObjects.ReportObjects;
-                if (objects == RsbObjType.all || objects == RsbObjType.nsrv)
+                if (objects == ObjCategory.all || objects == ObjCategory.nsrv)
                     management.ReportServices = allFilteredObjects.ReportServices;
-                if (objects == RsbObjType.all || objects == RsbObjType.user)
+                if (objects == ObjCategory.all || objects == ObjCategory.user)
                     management.ReportUsers = allFilteredObjects.ReportUsers;
 
                 objQueryVariables["offset"] = (int)objQueryVariables["offset"] + elementsPerFetch;

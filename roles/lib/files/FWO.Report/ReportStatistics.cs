@@ -23,7 +23,7 @@ namespace FWO.Report
             return true;
         }
 
-        public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, RsbObjType objects, int maxFetchCycles, ApiConnection apiConnection, Func<Management[], Task> callback)
+        public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<Management[], Task> callback)
         {
             return Task.FromResult<bool>(true);
         }

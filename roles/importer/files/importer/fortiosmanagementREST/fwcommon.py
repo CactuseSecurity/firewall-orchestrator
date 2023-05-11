@@ -9,7 +9,7 @@ import fOS_network
 import fOS_getter
 from curses import raw
 from fwo_log import getFwoLogger
-from fOS_gw_networking import getInterfacesAndRouting, normalize_network_data
+# from fOS_gw_networking import getInterfacesAndRouting, normalize_network_data
 from fwo_data_networking import get_ip_of_interface_obj
 
 from fwo_const import list_delimiter, nat_postfix, fwo_config_filename

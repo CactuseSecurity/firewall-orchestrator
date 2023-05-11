@@ -296,3 +296,6 @@ adding report template format fk and permissions
 - hotfix UI and fortigate importer credential handling
 - checkpoint R8X importer adding support for Internet object type
 - reporting - CSV export for change report
+
+### 6.3.3 09.05.2023 MAIN
+- new importer module for importing FortiGate directly via FortiOS REST API

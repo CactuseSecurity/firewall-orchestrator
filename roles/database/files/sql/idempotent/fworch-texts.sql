@@ -146,6 +146,7 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firew
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
     <li>Importer Modul Check Point R8x Unterst&uuml;tzung f&uuml;r Updatable Objects, Domain-Namen und Application Categories</li>
+    <li>Importer Modul f&uuml;r Stand-Alone FortiGate via REST API</li>
     <li>Neues Firewall-Regel-Rezertifizierungsmodul - beseitigen Sie ihre Altlasten und erf&uuml;llen Sie aktuelle regulatorische Anforderungen.</li>
     <li>Workflow-Modul zum Beantragen von &Auml;nderungen</li>
     <li>Neue Importmodule f&uuml;r Cisco FirePower und Microsoft Azure Firewall</li>
@@ -156,6 +157,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
     <li>Importer support for Check Point R8x updatable objects, domain name objects and application categories</li>
+    <li>New importer module for stand-alone FortiGate via REST API</li>
     <li>New Firewall rule recertification module - remove unnecessary rules and meet current regulatory requirements.</li>
     <li>Workflow module for requesting firewall changes</li>
     <li>New import modules for Cisco FirePower and Microsoft Azure Firewall</li>
@@ -2891,6 +2893,10 @@ INSERT INTO txt VALUES ('H5102', 'German',  'Folgende Firewallprodukte k&ouml;nn
                 <li>Check Point R8x - SmartCenter</li>
                 <li>Check Point R8x - Multi Domain Server (MDS)</li>
                 <li>FortiManager 5ff - FortiManager. F&uuml;r diesen Management-Typ kann die komplette Struktur (ADOM, FortiGateway Devices) mittels AutoDiscovery automatisch ausgelesen werden.</li>
+                <li>Palo Alto Firewalls (nicht Panorama)</li>
+                <li>Azure Firewall</li>
+                <li>Cisco FirePower</li>
+                <li>FortiGate (via REST API)</li>
             </ul>
         </li>            
     </ul>
@@ -2912,6 +2918,10 @@ INSERT INTO txt VALUES ('H5102', 'English', 'The following firewall products can
                 <li>Check Point R8x - SmartCenter</li>
                 <li>Check Point R8x - MDS (Multi Domain Server)</li>
                 <li>FortiManager 5ff - FortiManager - for this management type the complete infrastructure (ADOM, FortiGateway devices) can be auto discovered.</li>
+                <li>Palo Alto Firewalls (not Panorama)</li>
+                <li>Azure Firewall</li>
+                <li>Cisco FirePower</li>
+                <li>FortiGate (via REST API)</li>                
             </ul>
         </li>            
     </ul>

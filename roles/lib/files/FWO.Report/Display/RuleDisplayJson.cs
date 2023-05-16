@@ -7,7 +7,6 @@ namespace FWO.Ui.Display
 {
     public class RuleDisplayJson : RuleDisplayBase
     {
-
         public RuleDisplayJson(UserConfig userConfig) : base(userConfig)
         { }
 
@@ -26,9 +25,45 @@ namespace FWO.Ui.Display
             return (rule.SourceZone != null ? $"\"source zone\": \"{rule.SourceZone.Name}\"," : "");
         }
 
+        public string DisplaySource(Rule rule, ReportType reportType = ReportType.Rules)
+        {
+            return DisplaySourceOrDestination(rule, reportType, true);
+        }
+
         public new string DisplayDestinationZone(Rule rule)
         {
             return (rule.DestinationZone != null ? $"\"destination zone\": \"{rule.DestinationZone.Name}\"," : "");
+        }
+
+        public string DisplayDestination(Rule rule, ReportType reportType = ReportType.Rules)
+        {
+            return DisplaySourceOrDestination(rule, reportType, false);
+        }
+
+        public string DisplayServices(Rule rule, ReportType reportType = ReportType.Rules)
+        {
+            result = new StringBuilder();
+            result.AppendLine($"\"service negated\": {rule.ServiceNegated.ToString().ToLower()},");
+            result.Append($"\"service\": [");
+
+            if (reportType.IsResolvedReport())
+            {
+                List<string> displayedServices = new List<string>();
+                foreach (NetworkService service in getNetworkServices(rule.Services))
+                {
+                    displayedServices.Add(Quote(DisplayService(service, reportType).ToString()));
+                }
+                result.Append(string.Join(",", displayedServices));
+            }
+            // else
+            // {
+            //     foreach (ServiceWrapper service in rule.Services)
+            //     {
+            //         result.Append(Quote(DisplayService(service.Content, reportType).ToString()));
+            //     }
+            // }
+            result.Append($"],");
+            return result.ToString();
         }
 
         public new string DisplayAction(Rule rule)
@@ -46,12 +81,17 @@ namespace FWO.Ui.Display
             return (rule.Uid != null ? $"\"rule uid\": \"{rule.Uid}\"," : "");
         }
 
+        public string DisplayEnabled(Rule rule)
+        {
+            return $"\"disabled\": {rule.Disabled.ToString().ToLower()},";
+        }
+
         public new string DisplayComment(Rule rule)
         {
             return (rule.Comment != null ? $"\"comment\": \"{rule.Comment}\"," : "");
         }
 
-        private string DisplaySourceOrDestination(Rule rule, ReportType reportType = ReportType.Rules, bool isSource = true)
+        private string DisplaySourceOrDestination(Rule rule, ReportType reportType, bool isSource)
         {
             result = new StringBuilder();
             if (isSource)
@@ -67,118 +107,22 @@ namespace FWO.Ui.Display
 
             if (reportType.IsResolvedReport())
             {
-                List<NetworkLocation> userNwObjectList = getNetworkLocations(isSource ? rule.Froms : rule.Tos);
-                StringBuilder cell = new StringBuilder();
-                foreach (NetworkLocation networkLocation in userNwObjectList)
+                List<string> displayedLocations = new List<string>();
+                foreach (NetworkLocation networkLocation in getNetworkLocations(isSource ? rule.Froms : rule.Tos))
                 {
-                    cell.Append(NetworkLocationToJson(networkLocation, reportType).ToString());
+                    displayedLocations.Add(Quote(DisplayNetworkLocation(networkLocation, reportType).ToString()));
                 }
-                if(cell.ToString().Length > 0)
-                {
-                    cell.Remove(cell.ToString().Length - 1, 1);  // get rid of final comma
-                }
-                result.Append($"{cell}],");
+                result.Append(string.Join(",", displayedLocations));
             }
-            else
-            {
-                foreach (NetworkLocation networkLocation in isSource ? rule.Froms : rule.Tos)
-                {
-                    result.Append(NetworkLocationToJson(networkLocation));
-                }
-            }
+            // else
+            // {
+            //     foreach (NetworkLocation networkLocation in isSource ? rule.Froms : rule.Tos)
+            //     {
+            //         result.Append(Quote(DisplayNetworkLocation(networkLocation, reportType).ToString()));
+            //     }
+            // }
+            result.Append($"],");
             return result.ToString();
-        }
-
-        public string DisplaySource(Rule rule, ReportType reportType = ReportType.Rules)
-        {
-            return DisplaySourceOrDestination(rule, reportType, true);
-        }
-
-        public string DisplayDestination(Rule rule, ReportType reportType = ReportType.Rules)
-        {
-            return DisplaySourceOrDestination(rule, reportType, false);
-        }
-
-        private StringBuilder NetworkLocationToJson(NetworkLocation userNetworkObject, ReportType reportType = ReportType.Rules)
-        {
-            StringBuilder result = new StringBuilder();
-
-            result.Append("\"");
-            if (userNetworkObject.User?.Id != null)
-            {
-                result.Append($"{userNetworkObject.User.Name}@");
-            }
-
-            if (!reportType.IsTechReport())
-            {
-                result.Append($"{userNetworkObject.Object.Name}");
-                result.Append(" (");
-            }
-            result.Append(DisplayIpRange(userNetworkObject.Object.IP, userNetworkObject.Object.IpEnd));
-            if (!reportType.IsTechReport())
-            {
-                result.Append(")");
-            }
-            result.Append("\",");
-            return result;
-        }
-
-        public string DisplayService(Rule rule, ReportType reportType = ReportType.Rules)
-        {
-            result = new StringBuilder();
-            result.AppendLine($"\"service negated\": {rule.ServiceNegated.ToString().ToLower()},");
-            result.Append($"\"service\": [");
-
-            if (reportType.IsResolvedReport())
-            {
-                List<NetworkService> serviceList = getNetworkServices(rule.Services);
-                StringBuilder cell = new StringBuilder();
-                foreach (NetworkService service in serviceList)
-                {
-                    cell.Append(ServiceToJson(service, reportType).ToString());
-                }
-                if(cell.ToString().Length > 0)
-                {
-                    cell.Remove(cell.ToString().Length - 1, 1);  // get rid of final comma
-                }
-                result.Append($"{cell}],");
-            }
-            else
-            {
-                foreach (ServiceWrapper service in rule.Services)
-                {
-                    result.Append(ServiceToJson(service.Content));
-                }
-            }
-            return result.ToString();
-        }
-
-        private StringBuilder ServiceToJson(NetworkService service, ReportType reportType = ReportType.Rules)
-        {
-            StringBuilder result = new StringBuilder();
-            result.Append("\"");
-            if (reportType.IsTechReport())
-            {
-                if (service.DestinationPort == null)
-                    result.Append($"{service.Name}");
-                else
-                    result.Append(service.DestinationPort == service.DestinationPortEnd ? $"{service.DestinationPort}/{service.Protocol?.Name}"
-                        : $"{service.DestinationPort}-{service.DestinationPortEnd}/{service.Protocol?.Name}");
-            }
-            else
-            {
-                result.Append($"{service.Name}");
-                if (service.DestinationPort != null)
-                    result.Append(service.DestinationPort == service.DestinationPortEnd ? $" ({service.DestinationPort}/{service.Protocol?.Name})"
-                        : $" ({service.DestinationPort}-{service.DestinationPortEnd}/{service.Protocol?.Name})");
-            }
-            result.Append("\",");
-            return result;
-        }
-
-        public string DisplayEnabled(Rule rule)
-        {
-            return $"\"disabled\": {rule.Disabled.ToString().ToLower()},";
         }
     }
 }

@@ -94,7 +94,7 @@ namespace FWO.Report
                                 report.Append(ruleChangeDisplayCsv.DisplaySource(ruleChange, ReportType));
                                 report.Append(ruleChangeDisplayCsv.DisplayDestinationZone(ruleChange));
                                 report.Append(ruleChangeDisplayCsv.DisplayDestination(ruleChange, ReportType));
-                                report.Append(ruleChangeDisplayCsv.DisplayService(ruleChange, ReportType));
+                                report.Append(ruleChangeDisplayCsv.DisplayServices(ruleChange, ReportType));
                                 report.Append(ruleChangeDisplayCsv.DisplayAction(ruleChange));
                                 report.Append(ruleChangeDisplayCsv.DisplayTrack(ruleChange));
                                 report.Append(ruleChangeDisplayCsv.DisplayEnabled(ruleChange));
@@ -161,7 +161,7 @@ namespace FWO.Report
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplaySource(ruleChange, OutputLocation.export, ReportType)}</td>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayDestinationZone(ruleChange)}</td>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayDestination(ruleChange, OutputLocation.export, ReportType)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayService(ruleChange, OutputLocation.export, ReportType)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayServices(ruleChange, OutputLocation.export, ReportType)}</td>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayAction(ruleChange)}</td>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayTrack(ruleChange)}</td>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayEnabled(ruleChange, OutputLocation.export)}</td>");

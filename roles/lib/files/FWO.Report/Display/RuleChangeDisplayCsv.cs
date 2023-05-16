@@ -80,13 +80,13 @@ namespace FWO.Ui.Display
             }
         }
 
-        public string DisplayService(RuleChange ruleChange, ReportType reportType)
+        public string DisplayServices(RuleChange ruleChange, ReportType reportType)
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return OutputCsv(DisplayService(ruleChange.OldRule, reportType));
-                case 'I': return OutputCsv(DisplayService(ruleChange.NewRule, reportType));
-                case 'C': return OutputCsv(DisplayArrayDiff(DisplayService(ruleChange.OldRule, reportType), DisplayService(ruleChange.NewRule, reportType), ruleChange.OldRule.ServiceNegated, ruleChange.NewRule.ServiceNegated));
+                case 'D': return OutputCsv(DisplayServices(ruleChange.OldRule, reportType));
+                case 'I': return OutputCsv(DisplayServices(ruleChange.NewRule, reportType));
+                case 'C': return OutputCsv(DisplayArrayDiff(DisplayServices(ruleChange.OldRule, reportType), DisplayServices(ruleChange.NewRule, reportType), ruleChange.OldRule.ServiceNegated, ruleChange.NewRule.ServiceNegated));
                 default: return ",";
             }
         }

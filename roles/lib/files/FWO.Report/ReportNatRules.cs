@@ -57,7 +57,7 @@ namespace FWO.Report
                                 report.AppendLine($"<td>{ruleDisplay.DisplaySource(rule, OutputLocation.export, ReportType)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayDestinationZone(rule)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayDestination(rule, OutputLocation.export, ReportType)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayService(rule, OutputLocation.export, ReportType)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayServices(rule, OutputLocation.export, ReportType)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedSource(rule, OutputLocation.export)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedDestination(rule, OutputLocation.export)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedService(rule, OutputLocation.export)}</td>");

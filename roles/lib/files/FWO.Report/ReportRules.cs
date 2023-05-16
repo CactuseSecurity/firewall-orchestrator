@@ -219,7 +219,7 @@ namespace FWO.Report
                                     report.Append(ruleDisplayCsv.DisplaySourceCsv(rule, ReportType));
                                     report.Append(ruleDisplayCsv.DisplayDestinationZoneCsv(rule));
                                     report.Append(ruleDisplayCsv.DisplayDestinationCsv(rule, ReportType));
-                                    report.Append(ruleDisplayCsv.DisplayServiceCsv(rule, ReportType));
+                                    report.Append(ruleDisplayCsv.DisplayServicesCsv(rule, ReportType));
                                     report.Append(ruleDisplayCsv.DisplayActionCsv(rule));
                                     report.Append(ruleDisplayCsv.DisplayTrackCsv(rule));
                                     report.Append(ruleDisplayCsv.DisplayEnabledCsv(rule));
@@ -296,7 +296,7 @@ namespace FWO.Report
                                 report.Append(ruleDisplayJson.DisplaySource(rule, ReportType));
                                 report.Append(ruleDisplayJson.DisplayDestinationZone(rule));
                                 report.Append(ruleDisplayJson.DisplayDestination(rule, ReportType));
-                                report.Append(ruleDisplayJson.DisplayService(rule, ReportType));
+                                report.Append(ruleDisplayJson.DisplayServices(rule, ReportType));
                                 report.Append(ruleDisplayJson.DisplayAction(rule));
                                 report.Append(ruleDisplayJson.DisplayTrack(rule));
                                 report.Append(ruleDisplayJson.DisplayEnabled(rule));
@@ -412,7 +412,7 @@ namespace FWO.Report
                         report.AppendLine($"<td>{ruleDisplayHtml.DisplaySource(rule, OutputLocation.export, ReportType)}</td>");
                         report.AppendLine($"<td>{ruleDisplayHtml.DisplayDestinationZone(rule)}</td>");
                         report.AppendLine($"<td>{ruleDisplayHtml.DisplayDestination(rule, OutputLocation.export, ReportType)}</td>");
-                        report.AppendLine($"<td>{ruleDisplayHtml.DisplayService(rule, OutputLocation.export, ReportType)}</td>");
+                        report.AppendLine($"<td>{ruleDisplayHtml.DisplayServices(rule, OutputLocation.export, ReportType)}</td>");
                         report.AppendLine($"<td>{ruleDisplayHtml.DisplayAction(rule)}</td>");
                         report.AppendLine($"<td>{ruleDisplayHtml.DisplayTrack(rule)}</td>");
                         report.AppendLine($"<td>{ruleDisplayHtml.DisplayEnabled(rule, OutputLocation.export)}</td>");

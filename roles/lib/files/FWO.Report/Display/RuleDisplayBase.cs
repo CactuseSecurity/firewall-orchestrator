@@ -1,6 +1,7 @@
 ﻿using FWO.Api.Data;
 using FWO.Config.Api;
 using System.Text;
+using FWO.Report.Filter;
 
 namespace FWO.Ui.Display
 {
@@ -59,11 +60,68 @@ namespace FWO.Ui.Display
             return (rule.Comment != null ? rule.Comment : "");
         }
 
+        public StringBuilder DisplayNetworkLocation(NetworkLocation userNetworkObject, ReportType reportType, string? userName = null, string? objName = null)
+        {
+            StringBuilder result = new StringBuilder();
+
+            if (userNetworkObject.User != null &&  userNetworkObject.User.Id > 0)
+            {
+                result.Append($"{userName ?? userNetworkObject.User.Name}@");
+            }
+
+            if (!reportType.IsTechReport())
+            {
+                result.Append($"{objName ?? userNetworkObject.Object.Name}");
+                if(userNetworkObject.Object.Type.Name != "group")
+                {
+                    result.Append(" (");
+                }
+            }
+            result.Append(DisplayIpRange(userNetworkObject.Object.IP, userNetworkObject.Object.IpEnd));
+            if (!reportType.IsTechReport() && userNetworkObject.Object.Type.Name != "group")
+            {
+                result.Append(")");
+            }
+            return result;
+        }
+
+        public StringBuilder DisplayService(NetworkService service, ReportType reportType, string? serviceName = null)
+        {
+            StringBuilder result = new StringBuilder();
+            if (reportType.IsTechReport())
+            {
+                if (service.DestinationPort == null)
+                {
+                    result.Append($"{service.Name}");
+                }
+                else
+                {
+                    result.Append(service.DestinationPort == service.DestinationPortEnd ? $"{service.DestinationPort}/{service.Protocol?.Name}"
+                        : $"{service.DestinationPort}-{service.DestinationPortEnd}/{service.Protocol?.Name}");
+                }
+            }
+            else
+            {
+                result.Append($"{serviceName ?? service.Name}");
+                if (service.DestinationPort != null)
+                {
+                    result.Append(service.DestinationPort == service.DestinationPortEnd ? $" ({service.DestinationPort}/{service.Protocol?.Name})"
+                        : $" ({service.DestinationPort}-{service.DestinationPortEnd}/{service.Protocol?.Name})");
+                }
+            }
+            return result;
+        }
+
         public StringBuilder RemoveLastChars(StringBuilder s, int count)
         {
             string x = s.ToString(); 
             x = x.Remove(x.ToString().Length - count, count).ToString();
             return s.Remove(s.ToString().Length - count, count);
+        }
+
+        public string Quote(string? input)
+        {
+            return  $"\"{input ?? ""}\"";
         }
 
         public List<NetworkLocation> getNetworkLocations(NetworkLocation[] locationArray)

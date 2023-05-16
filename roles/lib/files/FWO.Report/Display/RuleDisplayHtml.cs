@@ -28,7 +28,7 @@ namespace FWO.Ui.Display
             return DisplaySourceOrDestination(rule, location, reportType, style, false);
         }
 
-        public string DisplayService(Rule rule, OutputLocation location, ReportType reportType, string style = "")
+        public string DisplayServices(Rule rule, OutputLocation location, ReportType reportType, string style = "")
         {
             result = new StringBuilder();
             if (rule.ServiceNegated)
@@ -100,72 +100,18 @@ namespace FWO.Ui.Display
 
         protected string NetworkLocationToHtml(NetworkLocation userNetworkObject, int mgmtId, OutputLocation location, string style, ReportType reportType)
         {
-            StringBuilder result = new StringBuilder();
-            
-            if (userNetworkObject.User?.Id != null && userNetworkObject.User?.Id > 0)
-            {
-                if (reportType.IsResolvedReport())
-                {
-                    result.Append($"{userNetworkObject.User.Name}@");
-                }
-                else
-                {
-                    result.Append(constructLink("user", ReportBase.GetIconClass(ObjCategory.user, userNetworkObject.User.Type.Name), userNetworkObject.User.Id, userNetworkObject.User.Name, location, mgmtId, style) + "@");
-                }
-            }
-
-            if(!reportType.IsTechReport())
-            {
-                if (reportType.IsResolvedReport())
-                {
-                    result.Append($"{userNetworkObject.Object.Name}");
-                }
-                else
-                {
-                    result.Append(constructLink("nwobj", ReportBase.GetIconClass(ObjCategory.nobj, userNetworkObject.Object.Type.Name), userNetworkObject.Object.Id, userNetworkObject.Object.Name, location, mgmtId, style));
-                }
-                if (userNetworkObject.Object.Type.Name != "group")
-                {
-                    result.Append(" (");
-                }
-            }
-            result.Append(DisplayIpRange(userNetworkObject.Object.IP, userNetworkObject.Object.IpEnd));
-            if (!reportType.IsTechReport() && userNetworkObject.Object.Type.Name != "group")
-            {
-                result.Append(")");
-            }
-            return result.ToString();
+            return DisplayNetworkLocation(userNetworkObject, reportType, 
+                reportType.IsResolvedReport() ? null :
+                constructLink("user", ReportBase.GetIconClass(ObjCategory.user, userNetworkObject.User.Type.Name), userNetworkObject.User.Id, userNetworkObject.User.Name, location, mgmtId, style),
+                reportType.IsResolvedReport() ? null :
+                constructLink("nwobj", ReportBase.GetIconClass(ObjCategory.nobj, userNetworkObject.Object.Type.Name), userNetworkObject.Object.Id, userNetworkObject.Object.Name, location, mgmtId, style)
+                ).ToString();
         }
 
         protected string ServiceToHtml(NetworkService service, int mgmtId, OutputLocation location, string style, ReportType reportType)
         {
-            StringBuilder result = new StringBuilder();
-            if(!reportType.IsTechReport())
-            {
-                if (reportType.IsResolvedReport())
-                {
-                    result.Append($"{service.Name}");
-                }
-                else
-                {
-                    result.Append(constructLink("svc", ReportBase.GetIconClass(ObjCategory.nsrv, service.Type.Name), service.Id, service.Name, location, mgmtId, style));
-                }
-            }
-            if (service.DestinationPort != null)
-            {
-                if (!reportType.IsTechReport())
-                    result.Append(" (");
-                result.Append(service.DestinationPort == service.DestinationPortEnd ? $"{service.DestinationPort}/{service.Protocol?.Name}"
-                    : $"{service.DestinationPort}-{service.DestinationPortEnd}/{service.Protocol?.Name}");
-                if (!reportType.IsTechReport())
-                    result.Append(")");
-            }
-            else if (reportType.IsTechReport())
-            {
-                // if no port can be displayed, use the service name as fall-back
-                result.Append($"{service.Name}");
-            }
-            return result.ToString();
+            return DisplayService(service, reportType, reportType.IsResolvedReport() ? null : 
+                constructLink("svc", ReportBase.GetIconClass(ObjCategory.nsrv, service.Type.Name), service.Id, service.Name, location, mgmtId, style)).ToString();
         }
 
         private string DisplaySourceOrDestination(Rule rule, OutputLocation location, ReportType reportType, string style, bool isSource)

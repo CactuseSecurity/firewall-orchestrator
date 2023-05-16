@@ -46,9 +46,9 @@ namespace FWO.Ui.Display
             return OutputCsv(DisplayDestination(rule, reportType));
         }
 
-        public string DisplayServiceCsv(Rule rule, ReportType reportType)
+        public string DisplayServicesCsv(Rule rule, ReportType reportType)
         {
-            return OutputCsv(DisplayService(rule, reportType));
+            return OutputCsv(DisplayServices(rule, reportType));
         }
 
         public string DisplayActionCsv(Rule rule)
@@ -102,7 +102,7 @@ namespace FWO.Ui.Display
             return DisplaySourceOrDestination(rule, reportType, false);
         }
 
-        public string DisplayService(Rule rule, ReportType reportType)
+        public string DisplayServices(Rule rule, ReportType reportType)
         {
             result = new StringBuilder();
             if (reportType.IsResolvedReport())
@@ -110,7 +110,7 @@ namespace FWO.Ui.Display
                 List<string> displayedServices = new List<string>();
                 foreach (NetworkService service in getNetworkServices(rule.Services))
                 {
-                    displayedServices.Add(ServiceToCsv(service, reportType).ToString());
+                    displayedServices.Add(DisplayService(service, reportType).ToString());
                 }
 
                 if(rule.ServiceNegated)
@@ -142,7 +142,7 @@ namespace FWO.Ui.Display
                 List<string> displayedLocations = new List<string>();
                 foreach (NetworkLocation networkLocation in getNetworkLocations(isSource ? rule.Froms : rule.Tos))
                 {
-                    displayedLocations.Add(NetworkLocationToCsv(networkLocation, reportType).ToString());
+                    displayedLocations.Add(DisplayNetworkLocation(networkLocation, reportType).ToString());
                 }
 
                 if ((isSource && rule.SourceNegated) || (!isSource && rule.DestinationNegated))
@@ -157,49 +157,6 @@ namespace FWO.Ui.Display
             }
 
             return result.ToString();
-        }
-
-        private StringBuilder NetworkLocationToCsv(NetworkLocation userNetworkObject, ReportType reportType)
-        {
-            StringBuilder result = new StringBuilder();
-
-            if (userNetworkObject.User != null &&  userNetworkObject.User.Id > 0)
-            {
-                result.Append($"{userNetworkObject.User.Name}@");
-            }
-
-            if (!reportType.IsTechReport())
-            {
-                result.Append($"{userNetworkObject.Object.Name}");
-                result.Append(" (");
-            }
-            result.Append(DisplayIpRange(userNetworkObject.Object.IP, userNetworkObject.Object.IpEnd));
-            if (!reportType.IsTechReport())
-            {
-                result.Append(")");
-            }
-            return result;
-        }
-
-        private StringBuilder ServiceToCsv(NetworkService service, ReportType reportType)
-        {
-            StringBuilder result = new StringBuilder();
-            if (reportType.IsTechReport())
-            {
-                if (service.DestinationPort == null)
-                    result.Append($"{service.Name}");
-                else
-                    result.Append(service.DestinationPort == service.DestinationPortEnd ? $"{service.DestinationPort}/{service.Protocol?.Name}"
-                        : $"{service.DestinationPort}-{service.DestinationPortEnd}/{service.Protocol?.Name}");
-            }
-            else
-            {
-                result.Append($"{service.Name}");
-                if (service.DestinationPort != null)
-                    result.Append(service.DestinationPort == service.DestinationPortEnd ? $" ({service.DestinationPort}/{service.Protocol?.Name})"
-                        : $" ({service.DestinationPort}-{service.DestinationPortEnd}/{service.Protocol?.Name})");
-            }
-            return result;
         }
     }
 }

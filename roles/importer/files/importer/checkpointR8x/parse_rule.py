@@ -269,7 +269,7 @@ def parse_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, ru
         if 'rulebase' in src_rulebase:
             # add section header, but only if it does not exist yet (can happen by chunking a section)
             if src_rulebase['type'] == 'access-section' and not src_rulebase['uid'] in section_header_uids:
-                section_name = ""
+                section_name = "section without name"
                 if 'name' in src_rulebase:
                     section_name = src_rulebase['name']
                 if 'parent_rule_uid' in src_rulebase:

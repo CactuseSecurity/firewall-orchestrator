@@ -159,5 +159,33 @@ namespace FWO.Ui.Display
             serviceList.Sort(delegate (NetworkService x, NetworkService y) { return x.Name.CompareTo(y.Name); });
             return serviceList;
         }
+
+        protected void AnalyzeElements(string oldElement, string newElement, ref List<string> unchanged, ref List<string> deleted, ref List<string> added)
+        {
+            string[] separatingStrings = { "," };
+            string[] oldAr = oldElement.Split(separatingStrings, System.StringSplitOptions.RemoveEmptyEntries);
+            string[] newAr = newElement.Split(separatingStrings, System.StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var item in oldAr)
+            {
+                if (newAr.Contains(item))
+                {
+                    unchanged.Add(item);
+                }
+                else
+                {
+                    string deletedItem = item;
+                    deleted.Add(deletedItem);
+                }
+            }
+            foreach (var item in newAr)
+            {
+                if (!oldAr.Contains(item))
+                {
+                    string newItem = item; 
+                    added.Add(newItem);
+                }
+            }
+        }
     }
 }

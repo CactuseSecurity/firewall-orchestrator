@@ -180,12 +180,6 @@ namespace FWO.Ui.Display
             }
         }
 
-        /// <summary>
-        /// displays differences between two string objects
-        /// </summary>
-        /// <param name="oldElement">the original value of the object</param>
-        /// <param name="newElement">the new (changed) value of the object</param>
-        /// <returns><paramref name=""/>string diff result</returns>
         private string DisplayArrayDiff(string oldElement, string newElement, bool oldNegated, bool newNegated)
         {
             if (oldElement == newElement)
@@ -253,21 +247,6 @@ namespace FWO.Ui.Display
         {
             return input.Replace("style=\"\"", $"style=\"{style}\"");
         }
-
-        /// <summary>
-        /// displays differences between two json objects
-        /// </summary>
-        /// <param name="oldJsonObject">the original value of the object</param>
-        /// <param name="newJsonObject">the new (changed) value of the object</param>
-        /// <returns><paramref name=""/> wrapped in <c>Dictionary</c> serialized to Json.</returns>
-        // private string DisplayJsonDiff(string oldJsonObject, string newJsonObject)
-        // {
-        //     // todo: implement diff
-        //     if (oldJsonObject == newJsonObject)
-        //         return oldJsonObject;
-        //     else
-        //         return $"{oldJsonObject} --> {newJsonObject}";
-        // }
 
         private void ThrowErrorUnknowChangeAction(char action)
         {

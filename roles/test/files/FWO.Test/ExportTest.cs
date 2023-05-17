@@ -38,70 +38,6 @@ namespace FWO.Test
         {
         }
 
-        [Test]
-        public void RulesGenerateJson()
-        {
-            Log.WriteInfo("Test Log", "starting rules report json generation");
-            ReportRules reportRules = new ReportRules(query, userConfig, ReportType.Rules);
-            reportRules.Managements = ConstructRuleReport(false);
-
-            string expectedJsonResult = 
-            "[{\"id\": 0,\"name\": \"TestMgt\",\"hostname\": \"\"," +
-            "\"import_credential\": {\"id\": 0,\"credential_name\": \"\",\"is_key_pair\": false,\"user\": null,\"secret\": \"\",\"sshPublicKey\": null,\"cloud_client_id\": null,\"cloud_client_secret\": null}," +
-            "\"configPath\": \"\",\"domainUid\": \"\",\"cloudSubscriptionId\": \"\",\"cloudTenantId\": \"\",\"superManager\": null,\"importerHostname\": \"\",\"port\": 0,\"importDisabled\": false,\"forceInitialImport\": false,\"hideInUi\": false,\"comment\": null,\"debugLevel\": null,\"tenant_id\": 0," +
-            "\"devices\": [{\"id\": 0,\"name\": \"TestDev\",\"deviceType\": {\"id\": 0,\"name\": \"\",\"version\": \"\",\"manufacturer\": \"\",\"isPureRoutingDevice\": false,\"isManagement\": false}," +
-            "\"management\": {\"id\": 0,\"name\": \"\",\"hostname\": \"\"," +
-            "\"import_credential\": {\"id\": 0,\"credential_name\": \"\",\"is_key_pair\": false,\"user\": null,\"secret\": \"\",\"sshPublicKey\": null,\"cloud_client_id\": null,\"cloud_client_secret\": null}," +
-            "\"configPath\": \"\",\"domainUid\": \"\",\"cloudSubscriptionId\": \"\",\"cloudTenantId\": \"\",\"superManager\": null,\"importerHostname\": \"\",\"port\": 0,\"importDisabled\": false,\"forceInitialImport\": false,\"hideInUi\": false,\"comment\": null,\"debugLevel\": null,\"tenant_id\": 0," +
-            "\"devices\": [],\"networkObjects\": [],\"serviceObjects\": [],\"userObjects\": [],\"reportNetworkObjects\": [],\"reportServiceObjects\": [],\"reportUserObjects\": []," +
-            "\"deviceType\": {\"id\": 0,\"name\": \"\",\"version\": \"\",\"manufacturer\": \"\",\"isPureRoutingDevice\": false,\"isManagement\": false}," +
-            "\"import\": {\"aggregate\": {\"max\": {\"id\": null}}},\"RelevantImportId\": null,\"Ignore\": false,\"AwaitDevice\": false,\"Delete\": false,\"ActionId\": 0,\"ReportedRuleIds\": [],\"ReportedNetworkServiceIds\": [],\"objects_aggregate\": {\"aggregate\": {\"count\": 0}}," +
-            "\"services_aggregate\": {\"aggregate\": {\"count\": 0}},\"usrs_aggregate\": {\"aggregate\": {\"count\": 0}},\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}},\"local_rulebase_name\": null,\"global_rulebase_name\": null,\"package_name\": null,\"importDisabled\": false,\"hideInUi\": false,\"comment\": null," +
-            "\"rules\": [{\"rule_id\": 0,\"rule_uid\": \"uid1\",\"mgm_id\": 0,\"rule_num_numeric\": 0,\"rule_name\": \"TestRule1\",\"rule_comment\": \"comment1\",\"rule_disabled\": false," +
-            "\"rule_services\": [{\"service\": {\"svc_id\": 1,\"svc_name\": \"TestService1\",\"svc_uid\": \"\",\"svc_port\": 443,\"svc_port_end\": 443,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0," +
-            "\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0," +
-            "\"service_type\": {\"name\": \"\"},\"svc_comment\": \"\",\"svc_color_id\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 0,\"name\": \"TCP\"},\"svc_member_names\": \"\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": []}}]," +
-            "\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_src_neg\": false,\"rule_src\": \"\",\"src_zone\": {\"zone_id\": 0,\"zone_name\": \"srczn\"}," +
-            "\"rule_froms\": [{\"object\": {\"obj_id\": 1,\"obj_name\": \"TestIp1\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
-            "\"usr\": {\"user_id\": 0,\"user_uid\": \"\",\"user_name\": \"\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}," +
-            "{\"object\": {\"obj_id\": 2,\"obj_name\": \"TestIp2\",\"obj_ip\": \"127.0.0.1/32\",\"obj_ip_end\": \"\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
-            "\"usr\": {\"user_id\": 0,\"user_uid\": \"\",\"user_name\": \"\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
-            "\"rule_dst_neg\": false,\"rule_dst\": \"\",\"dst_zone\": {\"zone_id\": 0,\"zone_name\": \"dstzn\"}," +
-            "\"rule_tos\": [{\"object\": {\"obj_id\": 3,\"obj_name\": \"TestIpRange\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.5/32\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"ip_range\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
-            "\"usr\": {\"user_id\": 0,\"user_uid\": \"\",\"user_name\": \"\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
-            "\"rule_action\": \"accept\",\"rule_track\": \"none\",\"section_header\": \"\"," +
-            "\"rule_metadatum\": {\"rule_metadata_id\": 0,\"rule_created\": null,\"rule_last_modified\": null,\"rule_first_hit\": null,\"rule_last_hit\": null,\"rule_last_certified\": null,\"rule_last_certifier_dn\": \"\",\"rule_to_be_removed\": false,\"rule_decert_date\": null,\"rule_recertification_comment\": \"\",\"recertification\": [],\"NextRecert\": \"0001-01-01T00:00:00\",\"LastCertifierName\": \"\",\"Recert\": false,\"Style\": \"\"}," +
-            "\"translate\": {\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_services\": [],\"rule_src_neg\": false,\"rule_src\": \"\",\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"rule_tos\": []},\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"DisplayOrderNumber\": 1,\"Certified\": false,\"DeviceId\": 0,\"DeviceName\": \"\"}," +
-            "{\"rule_id\": 0,\"rule_uid\": \"uid2:123\",\"mgm_id\": 0,\"rule_num_numeric\": 0,\"rule_name\": \"TestRule2\",\"rule_comment\": \"comment2\",\"rule_disabled\": false," +
-            "\"rule_services\": [{\"service\": {\"svc_id\": 2,\"svc_name\": \"TestService2\",\"svc_uid\": \"\",\"svc_port\": 6666,\"svc_port_end\": 7777,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0," +
-            "\"service_type\": {\"name\": \"\"},\"svc_comment\": \"\",\"svc_color_id\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 0,\"name\": \"UDP\"},\"svc_member_names\": \"\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": []}}]," +
-            "\"rule_svc_neg\": true,\"rule_svc\": \"\",\"rule_src_neg\": true,\"rule_src\": \"\",\"src_zone\": {\"zone_id\": 0,\"zone_name\": \"\"}," +
-            "\"rule_froms\": [{\"object\": {\"obj_id\": 1,\"obj_name\": \"TestIp1\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
-            "\"usr\": {\"user_id\": 1,\"user_uid\": \"\",\"user_name\": \"TestUser1\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}," +
-            "{\"object\": {\"obj_id\": 2,\"obj_name\": \"TestIp2\",\"obj_ip\": \"127.0.0.1/32\",\"obj_ip_end\": \"\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
-            "\"usr\": {\"user_id\": 1,\"user_uid\": \"\",\"user_name\": \"TestUser1\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
-            "\"rule_dst_neg\": true,\"rule_dst\": \"\",\"dst_zone\": {\"zone_id\": 0,\"zone_name\": \"\"}," +
-            "\"rule_tos\": [{\"object\": {\"obj_id\": 3,\"obj_name\": \"TestIpRange\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.5/32\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"ip_range\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
-            "\"usr\": {\"user_id\": 2,\"user_uid\": \"\",\"user_name\": \"TestUser2\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"group\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
-            "\"rule_action\": \"deny\",\"rule_track\": \"none\",\"section_header\": \"\"," +
-            "\"rule_metadatum\": {\"rule_metadata_id\": 0,\"rule_created\": null,\"rule_last_modified\": null,\"rule_first_hit\": null,\"rule_last_hit\": null,\"rule_last_certified\": null,\"rule_last_certifier_dn\": \"\",\"rule_to_be_removed\": false,\"rule_decert_date\": null,\"rule_recertification_comment\": \"\",\"recertification\": [],\"NextRecert\": \"0001-01-01T00:00:00\",\"LastCertifierName\": \"\",\"Recert\": false,\"Style\": \"\"}," +
-            "\"translate\": {\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_services\": [],\"rule_src_neg\": false,\"rule_src\": \"\",\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"rule_tos\": []},\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"DisplayOrderNumber\": 2,\"Certified\": false,\"DeviceId\": 0,\"DeviceName\": \"\"}],\"changelog_rules\": null,\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}," +
-            "\"Selected\": false,\"Relevant\": false,\"AwaitMgmt\": false,\"Delete\": false,\"ActionId\": 0}],\"networkObjects\": [],\"serviceObjects\": [],\"userObjects\": []," +
-            "\"reportNetworkObjects\": [{\"obj_id\": 1,\"obj_name\": \"TestIp1\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
-            "{\"obj_id\": 2,\"obj_name\": \"TestIp2\",\"obj_ip\": \"127.0.0.1/32\",\"obj_ip_end\": \"\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
-            "{\"obj_id\": 3,\"obj_name\": \"TestIpRange\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.5/32\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"ip_range\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}]," +
-            "\"reportServiceObjects\": [{\"svc_id\": 1,\"svc_name\": \"TestService1\",\"svc_uid\": \"\",\"svc_port\": 443,\"svc_port_end\": 443,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0," +
-            "\"service_type\": {\"name\": \"\"},\"svc_comment\": \"\",\"svc_color_id\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 0,\"name\": \"TCP\"},\"svc_member_names\": \"\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": []}," +
-            "{\"svc_id\": 2,\"svc_name\": \"TestService2\",\"svc_uid\": \"\",\"svc_port\": 6666,\"svc_port_end\": 7777,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0," +
-            "\"service_type\": {\"name\": \"\"},\"svc_comment\": \"\",\"svc_color_id\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 0,\"name\": \"UDP\"},\"svc_member_names\": \"\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": []}]," +
-            "\"reportUserObjects\": [{\"user_id\": 1,\"user_uid\": \"\",\"user_name\": \"TestUser1\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}," +
-            "{\"user_id\": 2,\"user_uid\": \"\",\"user_name\": \"TestUser2\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"group\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}]," +
-            "\"deviceType\": {\"id\": 0,\"name\": \"\",\"version\": \"\",\"manufacturer\": \"\",\"isPureRoutingDevice\": false,\"isManagement\": false}," +
-            "\"import\": {\"aggregate\": {\"max\": {\"id\": null}}},\"RelevantImportId\": null,\"Ignore\": false,\"AwaitDevice\": false,\"Delete\": false,\"ActionId\": 0,\"ReportedRuleIds\": [],\"ReportedNetworkServiceIds\": []," +
-            "\"objects_aggregate\": {\"aggregate\": {\"count\": 0}},\"services_aggregate\": {\"aggregate\": {\"count\": 0}},\"usrs_aggregate\": {\"aggregate\": {\"count\": 0}},\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}}]";
-            // Log.WriteInfo("Test Log", removeLinebreaks((removeGenDate(reportRules.ExportToJson(), true, true))));
-            Assert.AreEqual(expectedJsonResult, removeLinebreaks((removeGenDate(reportRules.ExportToJson(), false, true))));
-        }
 
         [Test]
         public void RulesGenerateHtml()
@@ -153,50 +89,6 @@ namespace FWO.Test
         }
 
         [Test]
-        public void ResolvedRulesGenerateJson()
-        {
-            Log.WriteInfo("Test Log", "starting resolved rules report json generation");
-            ReportRules reportRules = new ReportRules(query, userConfig, ReportType.ResolvedRules);
-            reportRules.Managements = ConstructRuleReport(true);
-
-            string expectedJsonResult = 
-            "{\"report type\": \"Rules Report (resolved)\",\"report generation date\": \"Z (UTC)\"," +
-            "\"date of configuration shown\": \"2023-04-20T15:50:04Z (UTC)\",\"device filter\": \"TestMgt [TestDev]\",\"other filters\": \"TestFilter\"," +
-            "\"report generator\": \"Firewall Orchestrator - https://fwo.cactus.de/en\",\"data protection level\": \"For internal use only\"," +
-            "\"managements\": [{\"TestMgt\": {\"gateways\": [{\"TestDev\": {" +
-            "\"rules\": [{\"number\": 1,\"name\": \"TestRule1\",\"source zone\": \"srczn\",\"source negated\": false," +
-            "\"source\": [\"TestIp1 (1.2.3.4/32)\",\"TestIp2 (127.0.0.1/32)\"],\"destination zone\": \"dstzn\",\"destination negated\": false," +
-            "\"destination\": [\"TestIpRange (1.2.3.4/32-1.2.3.5/32)\"],\"service negated\": false," +
-            "\"service\": [\"TestService1 (443/TCP)\"],\"action\": \"accept\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"uid1\",\"comment\": \"comment1\"}," +
-            "{\"number\": 2,\"name\": \"TestRule2\",\"source zone\": \"\",\"source negated\": true," +
-            "\"source\": [\"TestUser1@TestIp1 (1.2.3.4/32)\",\"TestUser1@TestIp2 (127.0.0.1/32)\"],\"destination zone\": \"\",\"destination negated\": true," +
-            "\"destination\": [\"TestUser2@TestIpRange (1.2.3.4/32-1.2.3.5/32)\"],\"service negated\": true," +
-            "\"service\": [\"TestService2 (6666-7777/UDP)\"],\"action\": \"deny\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"uid2:123\",\"comment\": \"comment2\"}]}}]}}]}";
-            // Log.WriteInfo("Test Log", removeLinebreaks((removeGenDate(reportRules.ExportToJson(), false, true))));
-            Assert.AreEqual(expectedJsonResult, removeLinebreaks((removeGenDate(reportRules.ExportToJson(), false, true))));
-        }
-
-        [Test]
-        public void ResolvedRulesGenerateCsv()
-        {
-            Log.WriteInfo("Test Log", "starting rules report resolved csv generation");
-            ReportRules reportRules = new ReportRules(query, userConfig, ReportType.ResolvedRules);
-            reportRules.Managements = ConstructRuleReport(true);
-
-            string expectedCsvResult = "# report type: Rules Report (resolved)" +
-            "# report generation date: Z (UTC)" +
-            "# date of configuration shown: 2023-04-20T15:50:04Z (UTC)" +
-            "# device filter: TestMgt [TestDev]" +
-            "# other filters: TestFilter" +
-            "# report generator: Firewall Orchestrator - https://fwo.cactus.de/en" +
-            "# data protection level: For internal use only#" +
-            "\"management-name\",\"device-name\",\"rule-number\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"" +
-            "\"TestMgt\",\"TestDev\",\"1\",\"TestRule1\",\"srczn\",\"TestIp1 (1.2.3.4/32),TestIp2 (127.0.0.1/32)\",\"dstzn\",\"TestIpRange (1.2.3.4/32-1.2.3.5/32)\",\"TestService1 (443/TCP)\",\"accept\",\"none\",\"enabled\",\"uid1\",\"comment1\"" +
-            "\"TestMgt\",\"TestDev\",\"2\",\"TestRule2\",\"\",\"not(TestUser1@TestIp1 (1.2.3.4/32),TestUser1@TestIp2 (127.0.0.1/32))\",\"\",\"not(TestUser2@TestIpRange (1.2.3.4/32-1.2.3.5/32))\",\"not(TestService2 (6666-7777/UDP))\",\"deny\",\"none\",\"enabled\",\"uid2:123\",\"comment2\"";
-            Assert.AreEqual(expectedCsvResult, removeLinebreaks(removeGenDate(reportRules.ExportToCsv())));
-        }
-
-        [Test]
         public void ResolvedRulesGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting rules report resolved html generation");
@@ -228,51 +120,6 @@ namespace FWO.Test
             "<td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr></table>" +
             "</body></html>";
             Assert.AreEqual(expectedHtmlResult, removeLinebreaks((removeGenDate(reportRules.ExportToHtml(), true))));
-        }
-
-       [Test]
-        public void ResolvedRulesTechGenerateJson()
-        {
-            Log.WriteInfo("Test Log", "starting resolved rules report tech json generation");
-            ReportRules reportRules = new ReportRules(query, userConfig, ReportType.ResolvedRulesTech);
-            reportRules.Managements = ConstructRuleReport(true);
-
-            string expectedJsonResult = 
-            "{\"report type\": \"Rules Report (technical)\",\"report generation date\": \"Z (UTC)\"," +
-            "\"date of configuration shown\": \"2023-04-20T15:50:04Z (UTC)\"," +
-            "\"device filter\": \"TestMgt [TestDev]\",\"other filters\": \"TestFilter\"," +
-            "\"report generator\": \"Firewall Orchestrator - https://fwo.cactus.de/en\",\"data protection level\": \"For internal use only\"," +
-            "\"managements\": [{\"TestMgt\": {\"gateways\": [{\"TestDev\": {" +
-            "\"rules\": [{\"number\": 1,\"name\": \"TestRule1\",\"source zone\": \"srczn\",\"source negated\": false," +
-            "\"source\": [\"1.2.3.4/32\",\"127.0.0.1/32\"],\"destination zone\": \"dstzn\",\"destination negated\": false," +
-            "\"destination\": [\"1.2.3.4/32-1.2.3.5/32\"],\"service negated\": false," +
-            "\"service\": [\"443/TCP\"],\"action\": \"accept\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"uid1\",\"comment\": \"comment1\"}," +
-            "{\"number\": 2,\"name\": \"TestRule2\",\"source zone\": \"\",\"source negated\": true," +
-            "\"source\": [\"TestUser1@1.2.3.4/32\",\"TestUser1@127.0.0.1/32\"],\"destination zone\": \"\"," +
-            "\"destination negated\": true,\"destination\": [\"TestUser2@1.2.3.4/32-1.2.3.5/32\"],\"service negated\": true," +
-            "\"service\": [\"6666-7777/UDP\"],\"action\": \"deny\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"uid2:123\",\"comment\": \"comment2\"}]}}]}}]}";
-            // Log.WriteInfo("Test Log", removeLinebreaks((removeGenDate(reportRules.ExportToJson(), false, true))));
-            Assert.AreEqual(expectedJsonResult, removeLinebreaks((removeGenDate(reportRules.ExportToJson(), false, true))));
-        }
-
-        [Test]
-        public void ResolvedRulesTechGenerateCsv()
-        {
-            Log.WriteInfo("Test Log", "starting rules report tech csv generation");
-            ReportRules reportRules = new ReportRules(query, userConfig, ReportType.ResolvedRulesTech);
-            reportRules.Managements = ConstructRuleReport(true);
-
-            string expectedCsvResult = "# report type: Rules Report (technical)" +
-            "# report generation date: Z (UTC)" +
-            "# date of configuration shown: 2023-04-20T15:50:04Z (UTC)" +
-            "# device filter: TestMgt [TestDev]" +
-            "# other filters: TestFilter" +
-            "# report generator: Firewall Orchestrator - https://fwo.cactus.de/en" +
-            "# data protection level: For internal use only#" +
-            "\"management-name\",\"device-name\",\"rule-number\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"" +
-            "\"TestMgt\",\"TestDev\",\"1\",\"TestRule1\",\"srczn\",\"1.2.3.4/32,127.0.0.1/32\",\"dstzn\",\"1.2.3.4/32-1.2.3.5/32\",\"443/TCP\",\"accept\",\"none\",\"enabled\",\"uid1\",\"comment1\"" +
-            "\"TestMgt\",\"TestDev\",\"2\",\"TestRule2\",\"\",\"not(TestUser1@1.2.3.4/32,TestUser1@127.0.0.1/32)\",\"\",\"not(TestUser2@1.2.3.4/32-1.2.3.5/32)\",\"not(6666-7777/UDP)\",\"deny\",\"none\",\"enabled\",\"uid2:123\",\"comment2\"";
-            Assert.AreEqual(expectedCsvResult, removeLinebreaks(removeGenDate(reportRules.ExportToCsv())));
         }
 
         [Test]
@@ -487,33 +334,6 @@ namespace FWO.Test
         }
 
         [Test]
-        public void ResolvedChangesGenerateCsv()
-        {
-            Log.WriteInfo("Test Log", "starting changes report resolved csv generation");
-            ReportChanges reportChanges = new ReportChanges(query, userConfig, ReportType.ResolvedChanges);
-            reportChanges.Managements = ConstructChangeReport(true);
-
-            string expectedCsvResult = "# report type: Changes Report (resolved)" +
-            "# report generation date: Z (UTC)" +
-            "# device filter: TestMgt [TestDev]" +
-            "# other filters: TestFilter" +
-            "# report generator: Firewall Orchestrator - https://fwo.cactus.de/en" +
-            "# data protection level: For internal use only#" +
-            "\"management-name\",\"device-name\",\"change-time\",\"change-type\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"" +
-            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule added\",\"TestRule1\",\"srczn\",\"TestIp1 (1.2.3.4/32),TestIp2 (127.0.0.1/32)\"," +
-            "\"dstzn\",\"TestIpRange (1.2.3.4/32-1.2.3.5/32)\",\"TestService1 (443/TCP)\",\"accept\",\"none\",\"enabled\",\"uid1\",\"comment1\"" +
-            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule1\",\"srczn\",\"TestIp2 (127.0.0.1/32) deleted: TestIp1 (1.2.3.4/32) added: TestIp1Changed (2.3.4.5/32)\"," +
-            "\"dstzn\",\"TestIpRange (1.2.3.4/32-1.2.3.5/32) added: TestIpNew (10.0.6.1/32)\"," +
-            "\" deleted: TestService1 (443/TCP) added: not(TestService1 (443/TCP))\",\"accept\",\"none\",\"enabled\",\" deleted: uid1\",\" deleted: comment1 added: new comment\"" +
-            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule2\",\"\",\"not(TestUser1@TestIp1 (1.2.3.4/32),TestUser1@TestIp2 (127.0.0.1/32))\"," +
-            "\"\",\" deleted: not(TestUser2@TestIpRange (1.2.3.4/32-1.2.3.5/32)) added: TestUser2@TestIpRange (1.2.3.4/32-1.2.3.5/32)\"," +
-            "\" deleted: not(TestService2 (6666-7777/UDP)) added: TestService2 (6666-7777/UDP)\",\"deny\",\"none\",\" deleted: enabled added: disabled\",\"uid2:123\",\"comment2\"" +
-            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule deleted\",\"TestRule2\",\"\",\"not(TestUser1@TestIp1 (1.2.3.4/32),TestUser1@TestIp2 (127.0.0.1/32))\"," +
-            "\"\",\"not(TestUser2@TestIpRange (1.2.3.4/32-1.2.3.5/32))\",\"not(TestService2 (6666-7777/UDP))\",\"deny\",\"none\",\"enabled\",\"uid2:123\",\"comment2\"";
-            Assert.AreEqual(expectedCsvResult, removeLinebreaks(removeGenDate(reportChanges.ExportToCsv())));
-        }
-
-        [Test]
         public void ResolvedChangesGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting changes report resolved html generation");
@@ -570,27 +390,6 @@ namespace FWO.Test
             "<td><p style=\"color: red; text-decoration: line-through red;\">comment2</p></td></tr></table>" +
             "</body></html>";
             Assert.AreEqual(expectedHtmlResult, removeLinebreaks((removeGenDate(reportChanges.ExportToHtml(), true))));
-        }
-
-        [Test]
-        public void ResolvedChangesTechGenerateCsv()
-        {
-            Log.WriteInfo("Test Log", "starting changes report tech csv generation");
-            ReportChanges reportChanges = new ReportChanges(query, userConfig, ReportType.ResolvedChangesTech);
-            reportChanges.Managements = ConstructChangeReport(true);
-
-            string expectedCsvResult = "# report type: Changes Report (technical)" +
-            "# report generation date: Z (UTC)" +
-            "# device filter: TestMgt [TestDev]" +
-            "# other filters: TestFilter" +
-            "# report generator: Firewall Orchestrator - https://fwo.cactus.de/en" +
-            "# data protection level: For internal use only#" +
-            "\"management-name\",\"device-name\",\"change-time\",\"change-type\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"" +
-            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule added\",\"TestRule1\",\"srczn\",\"1.2.3.4/32,127.0.0.1/32\",\"dstzn\",\"1.2.3.4/32-1.2.3.5/32\",\"443/TCP\",\"accept\",\"none\",\"enabled\",\"uid1\",\"comment1\"" +
-            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule1\",\"srczn\",\"127.0.0.1/32 deleted: 1.2.3.4/32 added: 2.3.4.5/32\",\"dstzn\",\"1.2.3.4/32-1.2.3.5/32 added: 10.0.6.1/32\",\" deleted: 443/TCP added: not(443/TCP)\",\"accept\",\"none\",\"enabled\",\" deleted: uid1\",\" deleted: comment1 added: new comment\"" +
-            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule2\",\"\",\"not(TestUser1@1.2.3.4/32,TestUser1@127.0.0.1/32)\",\"\",\" deleted: not(TestUser2@1.2.3.4/32-1.2.3.5/32) added: TestUser2@1.2.3.4/32-1.2.3.5/32\",\" deleted: not(6666-7777/UDP) added: 6666-7777/UDP\",\"deny\",\"none\",\" deleted: enabled added: disabled\",\"uid2:123\",\"comment2\"" +
-            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule deleted\",\"TestRule2\",\"\",\"not(TestUser1@1.2.3.4/32,TestUser1@127.0.0.1/32)\",\"\",\"not(TestUser2@1.2.3.4/32-1.2.3.5/32)\",\"not(6666-7777/UDP)\",\"deny\",\"none\",\"enabled\",\"uid2:123\",\"comment2\"";
-            Assert.AreEqual(expectedCsvResult, removeLinebreaks(removeGenDate(reportChanges.ExportToCsv())));
         }
 
         [Test]
@@ -651,6 +450,366 @@ namespace FWO.Test
             "<td><p style=\"color: red; text-decoration: line-through red;\">comment2</p></td></tr></table>" +
             "</body></html>";
             Assert.AreEqual(expectedHtmlResult, removeLinebreaks((removeGenDate(reportChanges.ExportToHtml(), true))));
+        }
+
+
+        [Test]
+        public void ResolvedRulesGenerateCsv()
+        {
+            Log.WriteInfo("Test Log", "starting rules report resolved csv generation");
+            ReportRules reportRules = new ReportRules(query, userConfig, ReportType.ResolvedRules);
+            reportRules.Managements = ConstructRuleReport(true);
+
+            string expectedCsvResult = "# report type: Rules Report (resolved)" +
+            "# report generation date: Z (UTC)" +
+            "# date of configuration shown: 2023-04-20T15:50:04Z (UTC)" +
+            "# device filter: TestMgt [TestDev]" +
+            "# other filters: TestFilter" +
+            "# report generator: Firewall Orchestrator - https://fwo.cactus.de/en" +
+            "# data protection level: For internal use only#" +
+            "\"management-name\",\"device-name\",\"rule-number\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"" +
+            "\"TestMgt\",\"TestDev\",\"1\",\"TestRule1\",\"srczn\",\"TestIp1 (1.2.3.4/32),TestIp2 (127.0.0.1/32)\",\"dstzn\",\"TestIpRange (1.2.3.4/32-1.2.3.5/32)\",\"TestService1 (443/TCP)\",\"accept\",\"none\",\"enabled\",\"uid1\",\"comment1\"" +
+            "\"TestMgt\",\"TestDev\",\"2\",\"TestRule2\",\"\",\"not(TestUser1@TestIp1 (1.2.3.4/32),TestUser1@TestIp2 (127.0.0.1/32))\",\"\",\"not(TestUser2@TestIpRange (1.2.3.4/32-1.2.3.5/32))\",\"not(TestService2 (6666-7777/UDP))\",\"deny\",\"none\",\"enabled\",\"uid2:123\",\"comment2\"";
+            Assert.AreEqual(expectedCsvResult, removeLinebreaks(removeGenDate(reportRules.ExportToCsv())));
+        }
+
+        [Test]
+        public void ResolvedRulesTechGenerateCsv()
+        {
+            Log.WriteInfo("Test Log", "starting rules report tech csv generation");
+            ReportRules reportRules = new ReportRules(query, userConfig, ReportType.ResolvedRulesTech);
+            reportRules.Managements = ConstructRuleReport(true);
+
+            string expectedCsvResult = "# report type: Rules Report (technical)" +
+            "# report generation date: Z (UTC)" +
+            "# date of configuration shown: 2023-04-20T15:50:04Z (UTC)" +
+            "# device filter: TestMgt [TestDev]" +
+            "# other filters: TestFilter" +
+            "# report generator: Firewall Orchestrator - https://fwo.cactus.de/en" +
+            "# data protection level: For internal use only#" +
+            "\"management-name\",\"device-name\",\"rule-number\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"" +
+            "\"TestMgt\",\"TestDev\",\"1\",\"TestRule1\",\"srczn\",\"1.2.3.4/32,127.0.0.1/32\",\"dstzn\",\"1.2.3.4/32-1.2.3.5/32\",\"443/TCP\",\"accept\",\"none\",\"enabled\",\"uid1\",\"comment1\"" +
+            "\"TestMgt\",\"TestDev\",\"2\",\"TestRule2\",\"\",\"not(TestUser1@1.2.3.4/32,TestUser1@127.0.0.1/32)\",\"\",\"not(TestUser2@1.2.3.4/32-1.2.3.5/32)\",\"not(6666-7777/UDP)\",\"deny\",\"none\",\"enabled\",\"uid2:123\",\"comment2\"";
+            Assert.AreEqual(expectedCsvResult, removeLinebreaks(removeGenDate(reportRules.ExportToCsv())));
+        }
+
+        [Test]
+        public void ResolvedChangesGenerateCsv()
+        {
+            Log.WriteInfo("Test Log", "starting changes report resolved csv generation");
+            ReportChanges reportChanges = new ReportChanges(query, userConfig, ReportType.ResolvedChanges);
+            reportChanges.Managements = ConstructChangeReport(true);
+
+            string expectedCsvResult = "# report type: Changes Report (resolved)" +
+            "# report generation date: Z (UTC)" +
+            "# device filter: TestMgt [TestDev]" +
+            "# other filters: TestFilter" +
+            "# report generator: Firewall Orchestrator - https://fwo.cactus.de/en" +
+            "# data protection level: For internal use only#" +
+            "\"management-name\",\"device-name\",\"change-time\",\"change-type\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"" +
+            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule added\",\"TestRule1\",\"srczn\",\"TestIp1 (1.2.3.4/32),TestIp2 (127.0.0.1/32)\"," +
+            "\"dstzn\",\"TestIpRange (1.2.3.4/32-1.2.3.5/32)\",\"TestService1 (443/TCP)\",\"accept\",\"none\",\"enabled\",\"uid1\",\"comment1\"" +
+            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule1\",\"srczn\",\"TestIp2 (127.0.0.1/32) deleted: TestIp1 (1.2.3.4/32) added: TestIp1Changed (2.3.4.5/32)\"," +
+            "\"dstzn\",\"TestIpRange (1.2.3.4/32-1.2.3.5/32) added: TestIpNew (10.0.6.1/32)\"," +
+            "\" deleted: TestService1 (443/TCP) added: not(TestService1 (443/TCP))\",\"accept\",\"none\",\"enabled\",\" deleted: uid1\",\" deleted: comment1 added: new comment\"" +
+            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule2\",\"\",\"not(TestUser1@TestIp1 (1.2.3.4/32),TestUser1@TestIp2 (127.0.0.1/32))\"," +
+            "\"\",\" deleted: not(TestUser2@TestIpRange (1.2.3.4/32-1.2.3.5/32)) added: TestUser2@TestIpRange (1.2.3.4/32-1.2.3.5/32)\"," +
+            "\" deleted: not(TestService2 (6666-7777/UDP)) added: TestService2 (6666-7777/UDP)\",\"deny\",\"none\",\" deleted: enabled added: disabled\",\"uid2:123\",\"comment2\"" +
+            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule deleted\",\"TestRule2\",\"\",\"not(TestUser1@TestIp1 (1.2.3.4/32),TestUser1@TestIp2 (127.0.0.1/32))\"," +
+            "\"\",\"not(TestUser2@TestIpRange (1.2.3.4/32-1.2.3.5/32))\",\"not(TestService2 (6666-7777/UDP))\",\"deny\",\"none\",\"enabled\",\"uid2:123\",\"comment2\"";
+            Assert.AreEqual(expectedCsvResult, removeLinebreaks(removeGenDate(reportChanges.ExportToCsv())));
+        }
+
+        [Test]
+        public void ResolvedChangesTechGenerateCsv()
+        {
+            Log.WriteInfo("Test Log", "starting changes report tech csv generation");
+            ReportChanges reportChanges = new ReportChanges(query, userConfig, ReportType.ResolvedChangesTech);
+            reportChanges.Managements = ConstructChangeReport(true);
+
+            string expectedCsvResult = "# report type: Changes Report (technical)" +
+            "# report generation date: Z (UTC)" +
+            "# device filter: TestMgt [TestDev]" +
+            "# other filters: TestFilter" +
+            "# report generator: Firewall Orchestrator - https://fwo.cactus.de/en" +
+            "# data protection level: For internal use only#" +
+            "\"management-name\",\"device-name\",\"change-time\",\"change-type\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"" +
+            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule added\",\"TestRule1\",\"srczn\",\"1.2.3.4/32,127.0.0.1/32\",\"dstzn\",\"1.2.3.4/32-1.2.3.5/32\",\"443/TCP\",\"accept\",\"none\",\"enabled\",\"uid1\",\"comment1\"" +
+            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule1\",\"srczn\",\"127.0.0.1/32 deleted: 1.2.3.4/32 added: 2.3.4.5/32\",\"dstzn\",\"1.2.3.4/32-1.2.3.5/32 added: 10.0.6.1/32\",\" deleted: 443/TCP added: not(443/TCP)\",\"accept\",\"none\",\"enabled\",\" deleted: uid1\",\" deleted: comment1 added: new comment\"" +
+            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule2\",\"\",\"not(TestUser1@1.2.3.4/32,TestUser1@127.0.0.1/32)\",\"\",\" deleted: not(TestUser2@1.2.3.4/32-1.2.3.5/32) added: TestUser2@1.2.3.4/32-1.2.3.5/32\",\" deleted: not(6666-7777/UDP) added: 6666-7777/UDP\",\"deny\",\"none\",\" deleted: enabled added: disabled\",\"uid2:123\",\"comment2\"" +
+            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule deleted\",\"TestRule2\",\"\",\"not(TestUser1@1.2.3.4/32,TestUser1@127.0.0.1/32)\",\"\",\"not(TestUser2@1.2.3.4/32-1.2.3.5/32)\",\"not(6666-7777/UDP)\",\"deny\",\"none\",\"enabled\",\"uid2:123\",\"comment2\"";
+            Assert.AreEqual(expectedCsvResult, removeLinebreaks(removeGenDate(reportChanges.ExportToCsv())));
+        }
+
+
+        [Test]
+        public void RulesGenerateJson()
+        {
+            Log.WriteInfo("Test Log", "starting rules report json generation");
+            ReportRules reportRules = new ReportRules(query, userConfig, ReportType.Rules);
+            reportRules.Managements = ConstructRuleReport(false);
+
+            string expectedJsonResult = 
+            "[{\"id\": 0,\"name\": \"TestMgt\",\"hostname\": \"\"," +
+            "\"import_credential\": {\"id\": 0,\"credential_name\": \"\",\"is_key_pair\": false,\"user\": null,\"secret\": \"\",\"sshPublicKey\": null,\"cloud_client_id\": null,\"cloud_client_secret\": null}," +
+            "\"configPath\": \"\",\"domainUid\": \"\",\"cloudSubscriptionId\": \"\",\"cloudTenantId\": \"\",\"superManager\": null,\"importerHostname\": \"\",\"port\": 0,\"importDisabled\": false,\"forceInitialImport\": false,\"hideInUi\": false,\"comment\": null,\"debugLevel\": null,\"tenant_id\": 0," +
+            "\"devices\": [{\"id\": 0,\"name\": \"TestDev\",\"deviceType\": {\"id\": 0,\"name\": \"\",\"version\": \"\",\"manufacturer\": \"\",\"isPureRoutingDevice\": false,\"isManagement\": false}," +
+            "\"management\": {\"id\": 0,\"name\": \"\",\"hostname\": \"\"," +
+            "\"import_credential\": {\"id\": 0,\"credential_name\": \"\",\"is_key_pair\": false,\"user\": null,\"secret\": \"\",\"sshPublicKey\": null,\"cloud_client_id\": null,\"cloud_client_secret\": null}," +
+            "\"configPath\": \"\",\"domainUid\": \"\",\"cloudSubscriptionId\": \"\",\"cloudTenantId\": \"\",\"superManager\": null,\"importerHostname\": \"\",\"port\": 0,\"importDisabled\": false,\"forceInitialImport\": false,\"hideInUi\": false,\"comment\": null,\"debugLevel\": null,\"tenant_id\": 0," +
+            "\"devices\": [],\"networkObjects\": [],\"serviceObjects\": [],\"userObjects\": [],\"reportNetworkObjects\": [],\"reportServiceObjects\": [],\"reportUserObjects\": []," +
+            "\"deviceType\": {\"id\": 0,\"name\": \"\",\"version\": \"\",\"manufacturer\": \"\",\"isPureRoutingDevice\": false,\"isManagement\": false}," +
+            "\"import\": {\"aggregate\": {\"max\": {\"id\": null}}},\"RelevantImportId\": null,\"Ignore\": false,\"AwaitDevice\": false,\"Delete\": false,\"ActionId\": 0,\"ReportedRuleIds\": [],\"ReportedNetworkServiceIds\": [],\"objects_aggregate\": {\"aggregate\": {\"count\": 0}}," +
+            "\"services_aggregate\": {\"aggregate\": {\"count\": 0}},\"usrs_aggregate\": {\"aggregate\": {\"count\": 0}},\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}},\"local_rulebase_name\": null,\"global_rulebase_name\": null,\"package_name\": null,\"importDisabled\": false,\"hideInUi\": false,\"comment\": null," +
+            "\"rules\": [{\"rule_id\": 0,\"rule_uid\": \"uid1\",\"mgm_id\": 0,\"rule_num_numeric\": 0,\"rule_name\": \"TestRule1\",\"rule_comment\": \"comment1\",\"rule_disabled\": false," +
+            "\"rule_services\": [{\"service\": {\"svc_id\": 1,\"svc_name\": \"TestService1\",\"svc_uid\": \"\",\"svc_port\": 443,\"svc_port_end\": 443,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0," +
+            "\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0," +
+            "\"service_type\": {\"name\": \"\"},\"svc_comment\": \"\",\"svc_color_id\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 0,\"name\": \"TCP\"},\"svc_member_names\": \"\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": []}}]," +
+            "\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_src_neg\": false,\"rule_src\": \"\",\"src_zone\": {\"zone_id\": 0,\"zone_name\": \"srczn\"}," +
+            "\"rule_froms\": [{\"object\": {\"obj_id\": 1,\"obj_name\": \"TestIp1\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "\"usr\": {\"user_id\": 0,\"user_uid\": \"\",\"user_name\": \"\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}," +
+            "{\"object\": {\"obj_id\": 2,\"obj_name\": \"TestIp2\",\"obj_ip\": \"127.0.0.1/32\",\"obj_ip_end\": \"\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "\"usr\": {\"user_id\": 0,\"user_uid\": \"\",\"user_name\": \"\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
+            "\"rule_dst_neg\": false,\"rule_dst\": \"\",\"dst_zone\": {\"zone_id\": 0,\"zone_name\": \"dstzn\"}," +
+            "\"rule_tos\": [{\"object\": {\"obj_id\": 3,\"obj_name\": \"TestIpRange\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.5/32\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"ip_range\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "\"usr\": {\"user_id\": 0,\"user_uid\": \"\",\"user_name\": \"\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
+            "\"rule_action\": \"accept\",\"rule_track\": \"none\",\"section_header\": \"\"," +
+            "\"rule_metadatum\": {\"rule_metadata_id\": 0,\"rule_created\": null,\"rule_last_modified\": null,\"rule_first_hit\": null,\"rule_last_hit\": null,\"rule_last_certified\": null,\"rule_last_certifier_dn\": \"\",\"rule_to_be_removed\": false,\"rule_decert_date\": null,\"rule_recertification_comment\": \"\",\"recertification\": [],\"NextRecert\": \"0001-01-01T00:00:00\",\"LastCertifierName\": \"\",\"Recert\": false,\"Style\": \"\"}," +
+            "\"translate\": {\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_services\": [],\"rule_src_neg\": false,\"rule_src\": \"\",\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"rule_tos\": []},\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"DisplayOrderNumber\": 1,\"Certified\": false,\"DeviceId\": 0,\"DeviceName\": \"\"}," +
+            "{\"rule_id\": 0,\"rule_uid\": \"uid2:123\",\"mgm_id\": 0,\"rule_num_numeric\": 0,\"rule_name\": \"TestRule2\",\"rule_comment\": \"comment2\",\"rule_disabled\": false," +
+            "\"rule_services\": [{\"service\": {\"svc_id\": 2,\"svc_name\": \"TestService2\",\"svc_uid\": \"\",\"svc_port\": 6666,\"svc_port_end\": 7777,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0," +
+            "\"service_type\": {\"name\": \"\"},\"svc_comment\": \"\",\"svc_color_id\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 0,\"name\": \"UDP\"},\"svc_member_names\": \"\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": []}}]," +
+            "\"rule_svc_neg\": true,\"rule_svc\": \"\",\"rule_src_neg\": true,\"rule_src\": \"\",\"src_zone\": {\"zone_id\": 0,\"zone_name\": \"\"}," +
+            "\"rule_froms\": [{\"object\": {\"obj_id\": 1,\"obj_name\": \"TestIp1\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "\"usr\": {\"user_id\": 1,\"user_uid\": \"\",\"user_name\": \"TestUser1\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}," +
+            "{\"object\": {\"obj_id\": 2,\"obj_name\": \"TestIp2\",\"obj_ip\": \"127.0.0.1/32\",\"obj_ip_end\": \"\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "\"usr\": {\"user_id\": 1,\"user_uid\": \"\",\"user_name\": \"TestUser1\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
+            "\"rule_dst_neg\": true,\"rule_dst\": \"\",\"dst_zone\": {\"zone_id\": 0,\"zone_name\": \"\"}," +
+            "\"rule_tos\": [{\"object\": {\"obj_id\": 3,\"obj_name\": \"TestIpRange\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.5/32\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"ip_range\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "\"usr\": {\"user_id\": 2,\"user_uid\": \"\",\"user_name\": \"TestUser2\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"group\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
+            "\"rule_action\": \"deny\",\"rule_track\": \"none\",\"section_header\": \"\"," +
+            "\"rule_metadatum\": {\"rule_metadata_id\": 0,\"rule_created\": null,\"rule_last_modified\": null,\"rule_first_hit\": null,\"rule_last_hit\": null,\"rule_last_certified\": null,\"rule_last_certifier_dn\": \"\",\"rule_to_be_removed\": false,\"rule_decert_date\": null,\"rule_recertification_comment\": \"\",\"recertification\": [],\"NextRecert\": \"0001-01-01T00:00:00\",\"LastCertifierName\": \"\",\"Recert\": false,\"Style\": \"\"}," +
+            "\"translate\": {\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_services\": [],\"rule_src_neg\": false,\"rule_src\": \"\",\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"rule_tos\": []},\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"DisplayOrderNumber\": 2,\"Certified\": false,\"DeviceId\": 0,\"DeviceName\": \"\"}],\"changelog_rules\": null,\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}," +
+            "\"Selected\": false,\"Relevant\": false,\"AwaitMgmt\": false,\"Delete\": false,\"ActionId\": 0}],\"networkObjects\": [],\"serviceObjects\": [],\"userObjects\": []," +
+            "\"reportNetworkObjects\": [{\"obj_id\": 1,\"obj_name\": \"TestIp1\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "{\"obj_id\": 2,\"obj_name\": \"TestIp2\",\"obj_ip\": \"127.0.0.1/32\",\"obj_ip_end\": \"\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "{\"obj_id\": 3,\"obj_name\": \"TestIpRange\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.5/32\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"ip_range\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}]," +
+            "\"reportServiceObjects\": [{\"svc_id\": 1,\"svc_name\": \"TestService1\",\"svc_uid\": \"\",\"svc_port\": 443,\"svc_port_end\": 443,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0," +
+            "\"service_type\": {\"name\": \"\"},\"svc_comment\": \"\",\"svc_color_id\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 0,\"name\": \"TCP\"},\"svc_member_names\": \"\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": []}," +
+            "{\"svc_id\": 2,\"svc_name\": \"TestService2\",\"svc_uid\": \"\",\"svc_port\": 6666,\"svc_port_end\": 7777,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0," +
+            "\"service_type\": {\"name\": \"\"},\"svc_comment\": \"\",\"svc_color_id\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 0,\"name\": \"UDP\"},\"svc_member_names\": \"\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": []}]," +
+            "\"reportUserObjects\": [{\"user_id\": 1,\"user_uid\": \"\",\"user_name\": \"TestUser1\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}," +
+            "{\"user_id\": 2,\"user_uid\": \"\",\"user_name\": \"TestUser2\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"group\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}]," +
+            "\"deviceType\": {\"id\": 0,\"name\": \"\",\"version\": \"\",\"manufacturer\": \"\",\"isPureRoutingDevice\": false,\"isManagement\": false}," +
+            "\"import\": {\"aggregate\": {\"max\": {\"id\": null}}},\"RelevantImportId\": null,\"Ignore\": false,\"AwaitDevice\": false,\"Delete\": false,\"ActionId\": 0,\"ReportedRuleIds\": [],\"ReportedNetworkServiceIds\": []," +
+            "\"objects_aggregate\": {\"aggregate\": {\"count\": 0}},\"services_aggregate\": {\"aggregate\": {\"count\": 0}},\"usrs_aggregate\": {\"aggregate\": {\"count\": 0}},\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}}]";
+            // Log.WriteInfo("Test Log", removeLinebreaks((removeGenDate(reportRules.ExportToJson(), true, true))));
+            Assert.AreEqual(expectedJsonResult, removeLinebreaks((removeGenDate(reportRules.ExportToJson(), false, true))));
+        }
+
+        [Test]
+        public void ResolvedRulesGenerateJson()
+        {
+            Log.WriteInfo("Test Log", "starting resolved rules report json generation");
+            ReportRules reportRules = new ReportRules(query, userConfig, ReportType.ResolvedRules);
+            reportRules.Managements = ConstructRuleReport(true);
+
+            string expectedJsonResult = 
+            "{\"report type\": \"Rules Report (resolved)\",\"report generation date\": \"Z (UTC)\"," +
+            "\"date of configuration shown\": \"2023-04-20T15:50:04Z (UTC)\",\"device filter\": \"TestMgt [TestDev]\",\"other filters\": \"TestFilter\"," +
+            "\"report generator\": \"Firewall Orchestrator - https://fwo.cactus.de/en\",\"data protection level\": \"For internal use only\"," +
+            "\"managements\": [{\"TestMgt\": {\"gateways\": [{\"TestDev\": {" +
+            "\"rules\": [{\"number\": 1,\"name\": \"TestRule1\",\"source zone\": \"srczn\",\"source negated\": false," +
+            "\"source\": [\"TestIp1 (1.2.3.4/32)\",\"TestIp2 (127.0.0.1/32)\"],\"destination zone\": \"dstzn\",\"destination negated\": false," +
+            "\"destination\": [\"TestIpRange (1.2.3.4/32-1.2.3.5/32)\"],\"service negated\": false," +
+            "\"service\": [\"TestService1 (443/TCP)\"],\"action\": \"accept\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"uid1\",\"comment\": \"comment1\"}," +
+            "{\"number\": 2,\"name\": \"TestRule2\",\"source zone\": \"\",\"source negated\": true," +
+            "\"source\": [\"TestUser1@TestIp1 (1.2.3.4/32)\",\"TestUser1@TestIp2 (127.0.0.1/32)\"],\"destination zone\": \"\",\"destination negated\": true," +
+            "\"destination\": [\"TestUser2@TestIpRange (1.2.3.4/32-1.2.3.5/32)\"],\"service negated\": true," +
+            "\"service\": [\"TestService2 (6666-7777/UDP)\"],\"action\": \"deny\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"uid2:123\",\"comment\": \"comment2\"}]}}]}}]}";
+            Assert.AreEqual(expectedJsonResult, removeLinebreaks((removeGenDate(reportRules.ExportToJson(), false, true))));
+        }
+
+       [Test]
+        public void ResolvedRulesTechGenerateJson()
+        {
+            Log.WriteInfo("Test Log", "starting resolved rules report tech json generation");
+            ReportRules reportRules = new ReportRules(query, userConfig, ReportType.ResolvedRulesTech);
+            reportRules.Managements = ConstructRuleReport(true);
+
+            string expectedJsonResult = 
+            "{\"report type\": \"Rules Report (technical)\",\"report generation date\": \"Z (UTC)\"," +
+            "\"date of configuration shown\": \"2023-04-20T15:50:04Z (UTC)\"," +
+            "\"device filter\": \"TestMgt [TestDev]\",\"other filters\": \"TestFilter\"," +
+            "\"report generator\": \"Firewall Orchestrator - https://fwo.cactus.de/en\",\"data protection level\": \"For internal use only\"," +
+            "\"managements\": [{\"TestMgt\": {\"gateways\": [{\"TestDev\": {" +
+            "\"rules\": [{\"number\": 1,\"name\": \"TestRule1\",\"source zone\": \"srczn\",\"source negated\": false," +
+            "\"source\": [\"1.2.3.4/32\",\"127.0.0.1/32\"],\"destination zone\": \"dstzn\",\"destination negated\": false," +
+            "\"destination\": [\"1.2.3.4/32-1.2.3.5/32\"],\"service negated\": false," +
+            "\"service\": [\"443/TCP\"],\"action\": \"accept\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"uid1\",\"comment\": \"comment1\"}," +
+            "{\"number\": 2,\"name\": \"TestRule2\",\"source zone\": \"\",\"source negated\": true," +
+            "\"source\": [\"TestUser1@1.2.3.4/32\",\"TestUser1@127.0.0.1/32\"],\"destination zone\": \"\"," +
+            "\"destination negated\": true,\"destination\": [\"TestUser2@1.2.3.4/32-1.2.3.5/32\"],\"service negated\": true," +
+            "\"service\": [\"6666-7777/UDP\"],\"action\": \"deny\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"uid2:123\",\"comment\": \"comment2\"}]}}]}}]}";
+            Assert.AreEqual(expectedJsonResult, removeLinebreaks((removeGenDate(reportRules.ExportToJson(), false, true))));
+        }
+
+        [Test]
+        public void ChangesGenerateJson()
+        {
+            Log.WriteInfo("Test Log", "starting changes report json generation");
+            ReportChanges reportChanges = new ReportChanges(query, userConfig, ReportType.Changes);
+            reportChanges.Managements = ConstructChangeReport(false);
+
+            string expectedJsonResult = 
+            "[{\"id\": 0,\"name\": \"TestMgt\",\"hostname\": \"\"," +
+            "\"import_credential\": {\"id\": 0,\"credential_name\": \"\",\"is_key_pair\": false,\"user\": null,\"secret\": \"\",\"sshPublicKey\": null,\"cloud_client_id\": null,\"cloud_client_secret\": null}," +
+            "\"configPath\": \"\",\"domainUid\": \"\",\"cloudSubscriptionId\": \"\",\"cloudTenantId\": \"\",\"superManager\": null,\"importerHostname\": \"\",\"port\": 0,\"importDisabled\": false,\"forceInitialImport\": false,\"hideInUi\": false,\"comment\": null,\"debugLevel\": null,\"tenant_id\": 0," +
+            "\"devices\": [{\"id\": 0,\"name\": \"TestDev\",\"deviceType\": {\"id\": 0,\"name\": \"\",\"version\": \"\",\"manufacturer\": \"\",\"isPureRoutingDevice\": false,\"isManagement\": false}," +
+            "\"management\": {\"id\": 0,\"name\": \"\",\"hostname\": \"\"," +
+            "\"import_credential\": {\"id\": 0,\"credential_name\": \"\",\"is_key_pair\": false,\"user\": null,\"secret\": \"\",\"sshPublicKey\": null,\"cloud_client_id\": null,\"cloud_client_secret\": null}," +
+            "\"configPath\": \"\",\"domainUid\": \"\",\"cloudSubscriptionId\": \"\",\"cloudTenantId\": \"\",\"superManager\": null,\"importerHostname\": \"\",\"port\": 0,\"importDisabled\": false,\"forceInitialImport\": false,\"hideInUi\": false,\"comment\": null,\"debugLevel\": null,\"tenant_id\": 0," +
+            "\"devices\": [],\"networkObjects\": [],\"serviceObjects\": [],\"userObjects\": [],\"reportNetworkObjects\": [],\"reportServiceObjects\": [],\"reportUserObjects\": []," +
+            "\"deviceType\": {\"id\": 0,\"name\": \"\",\"version\": \"\",\"manufacturer\": \"\",\"isPureRoutingDevice\": false,\"isManagement\": false}," +
+            "\"import\": {\"aggregate\": {\"max\": {\"id\": null}}},\"RelevantImportId\": null,\"Ignore\": false,\"AwaitDevice\": false,\"Delete\": false,\"ActionId\": 0,\"ReportedRuleIds\": [],\"ReportedNetworkServiceIds\": [],\"objects_aggregate\": {\"aggregate\": {\"count\": 0}}," +
+            "\"services_aggregate\": {\"aggregate\": {\"count\": 0}},\"usrs_aggregate\": {\"aggregate\": {\"count\": 0}},\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}}," +
+            "\"local_rulebase_name\": null,\"global_rulebase_name\": null,\"package_name\": null,\"importDisabled\": false,\"hideInUi\": false,\"comment\": null,\"rules\": null," +
+            "\"changelog_rules\": [{\"import\": {\"time\": \"2023-04-05T12:00:00\"},\"change_action\": \"I\"," +
+            "\"old\": {\"rule_id\": 0,\"rule_uid\": \"\",\"mgm_id\": 0,\"rule_num_numeric\": 0,\"rule_name\": \"\",\"rule_comment\": \"\",\"rule_disabled\": false," +
+            "\"rule_services\": [],\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_src_neg\": false,\"rule_src\": \"\",\"src_zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"dst_zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"rule_tos\": [],\"rule_action\": \"\",\"rule_track\": \"\",\"section_header\": \"\"," +
+            "\"rule_metadatum\": {\"rule_metadata_id\": 0,\"rule_created\": null,\"rule_last_modified\": null,\"rule_first_hit\": null,\"rule_last_hit\": null,\"rule_last_certified\": null,\"rule_last_certifier_dn\": \"\",\"rule_to_be_removed\": false,\"rule_decert_date\": null,\"rule_recertification_comment\": \"\",\"recertification\": [],\"NextRecert\": \"0001-01-01T00:00:00\",\"LastCertifierName\": \"\",\"Recert\": false,\"Style\": \"\"}," +
+            "\"translate\": {\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_services\": [],\"rule_src_neg\": false,\"rule_src\": \"\",\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"rule_tos\": []}," +
+            "\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"DisplayOrderNumber\": 0,\"Certified\": false,\"DeviceId\": 0,\"DeviceName\": \"\"},\"new\": {\"rule_id\": 0,\"rule_uid\": \"uid1\",\"mgm_id\": 0,\"rule_num_numeric\": 0,\"rule_name\": \"TestRule1\",\"rule_comment\": \"comment1\",\"rule_disabled\": false," +
+            "\"rule_services\": [{\"service\": {\"svc_id\": 1,\"svc_name\": \"TestService1\",\"svc_uid\": \"\",\"svc_port\": 443,\"svc_port_end\": 443,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0,\"service_type\": {\"name\": \"\"},\"svc_comment\": \"\",\"svc_color_id\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 0,\"name\": \"TCP\"},\"svc_member_names\": \"\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": []}}]," +
+            "\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_src_neg\": false,\"rule_src\": \"\",\"src_zone\": {\"zone_id\": 0,\"zone_name\": \"srczn\"}," +
+            "\"rule_froms\": [{\"object\": {\"obj_id\": 1,\"obj_name\": \"TestIp1\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "\"usr\": {\"user_id\": 0,\"user_uid\": \"\",\"user_name\": \"\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}," +
+            "{\"object\": {\"obj_id\": 2,\"obj_name\": \"TestIp2\",\"obj_ip\": \"127.0.0.1/32\",\"obj_ip_end\": \"\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "\"usr\": {\"user_id\": 0,\"user_uid\": \"\",\"user_name\": \"\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
+            "\"rule_dst_neg\": false,\"rule_dst\": \"\",\"dst_zone\": {\"zone_id\": 0,\"zone_name\": \"dstzn\"},\"rule_tos\": [{\"object\": {\"obj_id\": 3,\"obj_name\": \"TestIpRange\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.5/32\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"ip_range\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "\"usr\": {\"user_id\": 0,\"user_uid\": \"\",\"user_name\": \"\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
+            "\"rule_action\": \"accept\",\"rule_track\": \"none\",\"section_header\": \"\",\"rule_metadatum\": {\"rule_metadata_id\": 0,\"rule_created\": null,\"rule_last_modified\": null,\"rule_first_hit\": null,\"rule_last_hit\": null,\"rule_last_certified\": null,\"rule_last_certifier_dn\": \"\",\"rule_to_be_removed\": false,\"rule_decert_date\": null,\"rule_recertification_comment\": \"\",\"recertification\": [],\"NextRecert\": \"0001-01-01T00:00:00\",\"LastCertifierName\": \"\",\"Recert\": false,\"Style\": \"\"}," +
+            "\"translate\": {\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_services\": [],\"rule_src_neg\": false,\"rule_src\": \"\",\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"rule_tos\": []}," +
+            "\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"DisplayOrderNumber\": 1,\"Certified\": false,\"DeviceId\": 0,\"DeviceName\": \"\"},\"DeviceName\": \"\"}," +
+            "{\"import\": {\"time\": \"2023-04-05T12:00:00\"},\"change_action\": \"C\",\"old\": {\"rule_id\": 0,\"rule_uid\": \"uid1\",\"mgm_id\": 0,\"rule_num_numeric\": 0,\"rule_name\": \"TestRule1\",\"rule_comment\": \"comment1\",\"rule_disabled\": false," +
+            "\"rule_services\": [{\"service\": {\"svc_id\": 1,\"svc_name\": \"TestService1\",\"svc_uid\": \"\",\"svc_port\": 443,\"svc_port_end\": 443,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0,\"service_type\": {\"name\": \"\"},\"svc_comment\": \"\",\"svc_color_id\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 0,\"name\": \"TCP\"},\"svc_member_names\": \"\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": []}}]," +
+            "\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_src_neg\": false,\"rule_src\": \"\",\"src_zone\": {\"zone_id\": 0,\"zone_name\": \"srczn\"}," +
+            "\"rule_froms\": [{\"object\": {\"obj_id\": 1,\"obj_name\": \"TestIp1\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "\"usr\": {\"user_id\": 0,\"user_uid\": \"\",\"user_name\": \"\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}},{\"object\": {\"obj_id\": 2,\"obj_name\": \"TestIp2\",\"obj_ip\": \"127.0.0.1/32\",\"obj_ip_end\": \"\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "\"usr\": {\"user_id\": 0,\"user_uid\": \"\",\"user_name\": \"\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
+            "\"rule_dst_neg\": false,\"rule_dst\": \"\",\"dst_zone\": {\"zone_id\": 0,\"zone_name\": \"dstzn\"},\"rule_tos\": [{\"object\": {\"obj_id\": 3,\"obj_name\": \"TestIpRange\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.5/32\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"ip_range\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "\"usr\": {\"user_id\": 0,\"user_uid\": \"\",\"user_name\": \"\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
+            "\"rule_action\": \"accept\",\"rule_track\": \"none\",\"section_header\": \"\",\"rule_metadatum\": {\"rule_metadata_id\": 0,\"rule_created\": null,\"rule_last_modified\": null,\"rule_first_hit\": null,\"rule_last_hit\": null,\"rule_last_certified\": null,\"rule_last_certifier_dn\": \"\",\"rule_to_be_removed\": false,\"rule_decert_date\": null,\"rule_recertification_comment\": \"\",\"recertification\": [],\"NextRecert\": \"0001-01-01T00:00:00\",\"LastCertifierName\": \"\",\"Recert\": false,\"Style\": \"\"}," +
+            "\"translate\": {\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_services\": [],\"rule_src_neg\": false,\"rule_src\": \"\",\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"rule_tos\": []}," +
+            "\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"DisplayOrderNumber\": 1,\"Certified\": false,\"DeviceId\": 0,\"DeviceName\": \"\"},\"new\": {\"rule_id\": 0,\"rule_uid\": \"\",\"mgm_id\": 0,\"rule_num_numeric\": 0,\"rule_name\": \"TestRule1\",\"rule_comment\": \"new comment\",\"rule_disabled\": false," +
+            "\"rule_services\": [{\"service\": {\"svc_id\": 1,\"svc_name\": \"TestService1\",\"svc_uid\": \"\",\"svc_port\": 443,\"svc_port_end\": 443,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0,\"service_type\": {\"name\": \"\"},\"svc_comment\": \"\",\"svc_color_id\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 0,\"name\": \"TCP\"},\"svc_member_names\": \"\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": []}}]," +
+            "\"rule_svc_neg\": true,\"rule_svc\": \"\",\"rule_src_neg\": false,\"rule_src\": \"\",\"src_zone\": {\"zone_id\": 0,\"zone_name\": \"srczn\"},\"rule_froms\": [{\"object\": {\"obj_id\": 5,\"obj_name\": \"TestIp1Changed\",\"obj_ip\": \"2.3.4.5/32\",\"obj_ip_end\": \"\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "\"usr\": {\"user_id\": 0,\"user_uid\": \"\",\"user_name\": \"\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}},{\"object\": {\"obj_id\": 2,\"obj_name\": \"TestIp2\",\"obj_ip\": \"127.0.0.1/32\",\"obj_ip_end\": \"\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "\"usr\": {\"user_id\": 0,\"user_uid\": \"\",\"user_name\": \"\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
+            "\"rule_dst_neg\": false,\"rule_dst\": \"\",\"dst_zone\": {\"zone_id\": 0,\"zone_name\": \"dstzn\"},\"rule_tos\": [{\"object\": {\"obj_id\": 3,\"obj_name\": \"TestIpRange\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.5/32\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"ip_range\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "\"usr\": {\"user_id\": 0,\"user_uid\": \"\",\"user_name\": \"\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}},{\"object\": {\"obj_id\": 4,\"obj_name\": \"TestIpNew\",\"obj_ip\": \"10.0.6.1/32\",\"obj_ip_end\": \"\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "\"usr\": {\"user_id\": 0,\"user_uid\": \"\",\"user_name\": \"\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
+            "\"rule_action\": \"accept\",\"rule_track\": \"none\",\"section_header\": \"\",\"rule_metadatum\": {\"rule_metadata_id\": 0,\"rule_created\": null,\"rule_last_modified\": null,\"rule_first_hit\": null,\"rule_last_hit\": null,\"rule_last_certified\": null,\"rule_last_certifier_dn\": \"\",\"rule_to_be_removed\": false,\"rule_decert_date\": null,\"rule_recertification_comment\": \"\",\"recertification\": [],\"NextRecert\": \"0001-01-01T00:00:00\",\"LastCertifierName\": \"\",\"Recert\": false,\"Style\": \"\"}," +
+            "\"translate\": {\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_services\": [],\"rule_src_neg\": false,\"rule_src\": \"\",\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"rule_tos\": []}," +
+            "\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"DisplayOrderNumber\": 1,\"Certified\": false,\"DeviceId\": 0,\"DeviceName\": \"\"},\"DeviceName\": \"\"}," +
+            "{\"import\": {\"time\": \"2023-04-05T12:00:00\"},\"change_action\": \"C\",\"old\": {\"rule_id\": 0,\"rule_uid\": \"uid2:123\",\"mgm_id\": 0,\"rule_num_numeric\": 0,\"rule_name\": \"TestRule2\",\"rule_comment\": \"comment2\",\"rule_disabled\": false," +
+            "\"rule_services\": [{\"service\": {\"svc_id\": 2,\"svc_name\": \"TestService2\",\"svc_uid\": \"\",\"svc_port\": 6666,\"svc_port_end\": 7777,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0,\"service_type\": {\"name\": \"\"},\"svc_comment\": \"\",\"svc_color_id\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 0,\"name\": \"UDP\"},\"svc_member_names\": \"\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": []}}]," +
+            "\"rule_svc_neg\": true,\"rule_svc\": \"\",\"rule_src_neg\": true,\"rule_src\": \"\",\"src_zone\": {\"zone_id\": 0,\"zone_name\": \"\"}," +
+            "\"rule_froms\": [{\"object\": {\"obj_id\": 1,\"obj_name\": \"TestIp1\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "\"usr\": {\"user_id\": 1,\"user_uid\": \"\",\"user_name\": \"TestUser1\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}},{\"object\": {\"obj_id\": 2,\"obj_name\": \"TestIp2\",\"obj_ip\": \"127.0.0.1/32\",\"obj_ip_end\": \"\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "\"usr\": {\"user_id\": 1,\"user_uid\": \"\",\"user_name\": \"TestUser1\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
+            "\"rule_dst_neg\": true,\"rule_dst\": \"\",\"dst_zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"rule_tos\": [{\"object\": {\"obj_id\": 3,\"obj_name\": \"TestIpRange\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.5/32\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"ip_range\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "\"usr\": {\"user_id\": 2,\"user_uid\": \"\",\"user_name\": \"TestUser2\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"group\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
+            "\"rule_action\": \"deny\",\"rule_track\": \"none\",\"section_header\": \"\",\"rule_metadatum\": {\"rule_metadata_id\": 0,\"rule_created\": null,\"rule_last_modified\": null,\"rule_first_hit\": null,\"rule_last_hit\": null,\"rule_last_certified\": null,\"rule_last_certifier_dn\": \"\",\"rule_to_be_removed\": false,\"rule_decert_date\": null,\"rule_recertification_comment\": \"\",\"recertification\": [],\"NextRecert\": \"0001-01-01T00:00:00\",\"LastCertifierName\": \"\",\"Recert\": false,\"Style\": \"\"}," +
+            "\"translate\": {\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_services\": [],\"rule_src_neg\": false,\"rule_src\": \"\",\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"rule_tos\": []}," +
+            "\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"DisplayOrderNumber\": 2,\"Certified\": false,\"DeviceId\": 0,\"DeviceName\": \"\"},\"new\": {\"rule_id\": 0,\"rule_uid\": \"uid2:123\",\"mgm_id\": 0,\"rule_num_numeric\": 0,\"rule_name\": \"TestRule2\",\"rule_comment\": \"comment2\",\"rule_disabled\": true," +
+            "\"rule_services\": [{\"service\": {\"svc_id\": 2,\"svc_name\": \"TestService2\",\"svc_uid\": \"\",\"svc_port\": 6666,\"svc_port_end\": 7777,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0,\"service_type\": {\"name\": \"\"},\"svc_comment\": \"\",\"svc_color_id\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 0,\"name\": \"UDP\"},\"svc_member_names\": \"\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": []}}]," +
+            "\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_src_neg\": true,\"rule_src\": \"\",\"src_zone\": {\"zone_id\": 0,\"zone_name\": \"\"}," +
+            "\"rule_froms\": [{\"object\": {\"obj_id\": 1,\"obj_name\": \"TestIp1\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "\"usr\": {\"user_id\": 1,\"user_uid\": \"\",\"user_name\": \"TestUser1\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}},{\"object\": {\"obj_id\": 2,\"obj_name\": \"TestIp2\",\"obj_ip\": \"127.0.0.1/32\",\"obj_ip_end\": \"\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "\"usr\": {\"user_id\": 1,\"user_uid\": \"\",\"user_name\": \"TestUser1\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
+            "\"rule_dst_neg\": false,\"rule_dst\": \"\",\"dst_zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"rule_tos\": [{\"object\": {\"obj_id\": 3,\"obj_name\": \"TestIpRange\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.5/32\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"ip_range\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "\"usr\": {\"user_id\": 2,\"user_uid\": \"\",\"user_name\": \"TestUser2\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"group\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
+            "\"rule_action\": \"deny\",\"rule_track\": \"none\",\"section_header\": \"\",\"rule_metadatum\": {\"rule_metadata_id\": 0,\"rule_created\": null,\"rule_last_modified\": null,\"rule_first_hit\": null,\"rule_last_hit\": null,\"rule_last_certified\": null,\"rule_last_certifier_dn\": \"\",\"rule_to_be_removed\": false,\"rule_decert_date\": null,\"rule_recertification_comment\": \"\",\"recertification\": [],\"NextRecert\": \"0001-01-01T00:00:00\",\"LastCertifierName\": \"\",\"Recert\": false,\"Style\": \"\"}," +
+            "\"translate\": {\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_services\": [],\"rule_src_neg\": false,\"rule_src\": \"\",\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"rule_tos\": []}," +
+            "\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"DisplayOrderNumber\": 2,\"Certified\": false,\"DeviceId\": 0,\"DeviceName\": \"\"},\"DeviceName\": \"\"}," +
+            "{\"import\": {\"time\": \"2023-04-05T12:00:00\"},\"change_action\": \"D\",\"old\": {\"rule_id\": 0,\"rule_uid\": \"uid2:123\",\"mgm_id\": 0,\"rule_num_numeric\": 0,\"rule_name\": \"TestRule2\",\"rule_comment\": \"comment2\",\"rule_disabled\": false," +
+            "\"rule_services\": [{\"service\": {\"svc_id\": 2,\"svc_name\": \"TestService2\",\"svc_uid\": \"\",\"svc_port\": 6666,\"svc_port_end\": 7777,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0,\"service_type\": {\"name\": \"\"},\"svc_comment\": \"\",\"svc_color_id\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 0,\"name\": \"UDP\"},\"svc_member_names\": \"\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": []}}]," +
+            "\"rule_svc_neg\": true,\"rule_svc\": \"\",\"rule_src_neg\": true,\"rule_src\": \"\",\"src_zone\": {\"zone_id\": 0,\"zone_name\": \"\"}," +
+            "\"rule_froms\": [{\"object\": {\"obj_id\": 1,\"obj_name\": \"TestIp1\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "\"usr\": {\"user_id\": 1,\"user_uid\": \"\",\"user_name\": \"TestUser1\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}},{\"object\": {\"obj_id\": 2,\"obj_name\": \"TestIp2\",\"obj_ip\": \"127.0.0.1/32\",\"obj_ip_end\": \"\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "\"usr\": {\"user_id\": 1,\"user_uid\": \"\",\"user_name\": \"TestUser1\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
+            "\"rule_dst_neg\": true,\"rule_dst\": \"\",\"dst_zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"rule_tos\": [{\"object\": {\"obj_id\": 3,\"obj_name\": \"TestIpRange\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.5/32\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"ip_range\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
+            "\"usr\": {\"user_id\": 2,\"user_uid\": \"\",\"user_name\": \"TestUser2\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"group\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
+            "\"rule_action\": \"deny\",\"rule_track\": \"none\",\"section_header\": \"\",\"rule_metadatum\": {\"rule_metadata_id\": 0,\"rule_created\": null,\"rule_last_modified\": null,\"rule_first_hit\": null,\"rule_last_hit\": null,\"rule_last_certified\": null,\"rule_last_certifier_dn\": \"\",\"rule_to_be_removed\": false,\"rule_decert_date\": null,\"rule_recertification_comment\": \"\",\"recertification\": [],\"NextRecert\": \"0001-01-01T00:00:00\",\"LastCertifierName\": \"\",\"Recert\": false,\"Style\": \"\"}," +
+            "\"translate\": {\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_services\": [],\"rule_src_neg\": false,\"rule_src\": \"\",\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"rule_tos\": []}," +
+            "\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"DisplayOrderNumber\": 2,\"Certified\": false,\"DeviceId\": 0,\"DeviceName\": \"\"},\"new\": {\"rule_id\": 0,\"rule_uid\": \"\",\"mgm_id\": 0,\"rule_num_numeric\": 0,\"rule_name\": \"\",\"rule_comment\": \"\",\"rule_disabled\": false," +
+            "\"rule_services\": [],\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_src_neg\": false,\"rule_src\": \"\",\"src_zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"dst_zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"rule_tos\": [],\"rule_action\": \"\",\"rule_track\": \"\",\"section_header\": \"\"," +
+            "\"rule_metadatum\": {\"rule_metadata_id\": 0,\"rule_created\": null,\"rule_last_modified\": null,\"rule_first_hit\": null,\"rule_last_hit\": null,\"rule_last_certified\": null,\"rule_last_certifier_dn\": \"\",\"rule_to_be_removed\": false,\"rule_decert_date\": null,\"rule_recertification_comment\": \"\",\"recertification\": [],\"NextRecert\": \"0001-01-01T00:00:00\",\"LastCertifierName\": \"\",\"Recert\": false,\"Style\": \"\"}," +
+            "\"translate\": {\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_services\": [],\"rule_src_neg\": false,\"rule_src\": \"\",\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"rule_tos\": []}," +
+            "\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"DisplayOrderNumber\": 0,\"Certified\": false,\"DeviceId\": 0,\"DeviceName\": \"\"},\"DeviceName\": \"\"}],\"rules_aggregate\": {\"aggregate\": {\"count\": 0}},\"Selected\": false,\"Relevant\": false,\"AwaitMgmt\": false,\"Delete\": false,\"ActionId\": 0}]," +
+            "\"networkObjects\": [],\"serviceObjects\": [],\"userObjects\": [],\"reportNetworkObjects\": [],\"reportServiceObjects\": [],\"reportUserObjects\": [],\"deviceType\": {\"id\": 0,\"name\": \"\",\"version\": \"\",\"manufacturer\": \"\",\"isPureRoutingDevice\": false,\"isManagement\": false}," +
+            "\"import\": {\"aggregate\": {\"max\": {\"id\": null}}},\"RelevantImportId\": null,\"Ignore\": false,\"AwaitDevice\": false,\"Delete\": false,\"ActionId\": 0,\"ReportedRuleIds\": [],\"ReportedNetworkServiceIds\": [],\"objects_aggregate\": {\"aggregate\": {\"count\": 0}},\"services_aggregate\": {\"aggregate\": {\"count\": 0}},\"usrs_aggregate\": {\"aggregate\": {\"count\": 0}},\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}}]";
+            Assert.AreEqual(expectedJsonResult, removeLinebreaks((removeGenDate(reportChanges.ExportToJson(), false, true))));
+        }
+
+        [Test]
+        public void ResolvedChangesGenerateJson()
+        {
+            Log.WriteInfo("Test Log", "starting resolved changes report json generation");
+            ReportChanges reportChanges = new ReportChanges(query, userConfig, ReportType.ResolvedChanges);
+            reportChanges.Managements = ConstructChangeReport(true);
+
+            string expectedJsonResult = 
+            "{\"report type\": \"Changes Report (resolved)\",\"report generation date\": \"Z (UTC)\",\"device filter\": \"TestMgt [TestDev]\",\"other filters\": \"TestFilter\",\"report generator\": \"Firewall Orchestrator - https://fwo.cactus.de/en\",\"data protection level\": \"For internal use only\"," +
+            "\"managements\": [{\"TestMgt\": {\"gateways\": [{\"TestDev\": {\"rule changes\": [" +
+            "{\"change time\": \"05.04.2023 12:00:00\",\"change action\": \"Rule added\",\"name\": \"TestRule1\"," +
+            "\"source zone\": \"srczn\",\"source negated\": false,\"source\": [\"TestIp1 (1.2.3.4/32)\",\"TestIp2 (127.0.0.1/32)\"]," +
+            "\"destination zone\": \"dstzn\",\"destination negated\": false,\"destination\": [\"TestIpRange (1.2.3.4/32-1.2.3.5/32)\"]," +
+            "\"service negated\": false,\"service\": [\"TestService1 (443/TCP)\"],\"action\": \"accept\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"uid1\",\"comment\": \"comment1\"}," +
+            "{\"change time\": \"05.04.2023 12:00:00\",\"change action\": \"Rule modified\",\"name\": \"TestRule1\"," +
+            "\"source zone\": \"srczn\",\"source negated\": false,\"source\": [\"TestIp2 (127.0.0.1/32)\",\"deleted: TestIp1 (1.2.3.4/32)\",\"added: TestIp1Changed (2.3.4.5/32)\"]," +
+            "\"destination zone\": \"dstzn\",\"destination negated\": false,\"destination\": [\"TestIpRange (1.2.3.4/32-1.2.3.5/32)\",\"added: TestIpNew (10.0.6.1/32)\"]," +
+            "\"service negated\": \"deleted: false, added: true\",\"service\": [\"TestService1 (443/TCP)\"],\"action\": \"accept\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"deleted: uid1\",\"comment\": \"deleted: comment1, added: new comment\"}," +
+            "{\"change time\": \"05.04.2023 12:00:00\",\"change action\": \"Rule modified\",\"name\": \"TestRule2\"," +
+            "\"source zone\": \"\",\"source negated\": true,\"source\": [\"TestUser1@TestIp1 (1.2.3.4/32)\",\"TestUser1@TestIp2 (127.0.0.1/32)\"]," +
+            "\"destination zone\": \"\",\"destination negated\": \"deleted: true, added: false\",\"destination\": [\"TestUser2@TestIpRange (1.2.3.4/32-1.2.3.5/32)\"]," +
+            "\"service negated\": \"deleted: true, added: false\",\"service\": [\"TestService2 (6666-7777/UDP)\"],\"action\": \"deny\",\"tracking\": \"none\",\"disabled\": \"deleted: false, added: true\",\"rule uid\": \"uid2:123\",\"comment\": \"comment2\"}," +
+            "{\"change time\": \"05.04.2023 12:00:00\",\"change action\": \"Rule deleted\",\"name\": \"TestRule2\"," +
+            "\"source zone\": \"\",\"source negated\": true,\"source\": [\"TestUser1@TestIp1 (1.2.3.4/32)\",\"TestUser1@TestIp2 (127.0.0.1/32)\"]," +
+            "\"destination zone\": \"\",\"destination negated\": true,\"destination\": [\"TestUser2@TestIpRange (1.2.3.4/32-1.2.3.5/32)\"]," +
+            "\"service negated\": true,\"service\": [\"TestService2 (6666-7777/UDP)\"],\"action\": \"deny\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"uid2:123\",\"comment\": \"comment2\"}]}}]}}]}";
+            // Log.WriteInfo("Test Log", removeLinebreaks((removeGenDate(reportChanges.ExportToJson(), false, true))));
+            Assert.AreEqual(expectedJsonResult, removeLinebreaks((removeGenDate(reportChanges.ExportToJson(), false, true))));
+        }
+
+        [Test]
+        public void ResolvedChangesTechGenerateJson()
+        {
+            Log.WriteInfo("Test Log", "starting resolved changes report json generation");
+            ReportChanges reportChanges = new ReportChanges(query, userConfig, ReportType.ResolvedChangesTech);
+            reportChanges.Managements = ConstructChangeReport(true);
+
+            string expectedJsonResult = 
+            "{\"report type\": \"Changes Report (technical)\",\"report generation date\": \"Z (UTC)\",\"device filter\": \"TestMgt [TestDev]\",\"other filters\": \"TestFilter\",\"report generator\": \"Firewall Orchestrator - https://fwo.cactus.de/en\",\"data protection level\": \"For internal use only\"," +
+            "\"managements\": [{\"TestMgt\": {\"gateways\": [{\"TestDev\": {\"rule changes\": [" +
+            "{\"change time\": \"05.04.2023 12:00:00\",\"change action\": \"Rule added\",\"name\": \"TestRule1\"," +
+            "\"source zone\": \"srczn\",\"source negated\": false,\"source\": [\"1.2.3.4/32\",\"127.0.0.1/32\"]," +
+            "\"destination zone\": \"dstzn\",\"destination negated\": false,\"destination\": [\"1.2.3.4/32-1.2.3.5/32\"]," +
+            "\"service negated\": false,\"service\": [\"443/TCP\"],\"action\": \"accept\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"uid1\",\"comment\": \"comment1\"}," +
+            "{\"change time\": \"05.04.2023 12:00:00\",\"change action\": \"Rule modified\",\"name\": \"TestRule1\"," +
+            "\"source zone\": \"srczn\",\"source negated\": false,\"source\": [\"127.0.0.1/32\",\"deleted: 1.2.3.4/32\",\"added: 2.3.4.5/32\"]," +
+            "\"destination zone\": \"dstzn\",\"destination negated\": false,\"destination\": [\"1.2.3.4/32-1.2.3.5/32\",\"added: 10.0.6.1/32\"]," +
+            "\"service negated\": \"deleted: false, added: true\",\"service\": [\"443/TCP\"],\"action\": \"accept\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"deleted: uid1\",\"comment\": \"deleted: comment1, added: new comment\"}," +
+            "{\"change time\": \"05.04.2023 12:00:00\",\"change action\": \"Rule modified\",\"name\": \"TestRule2\"," +
+            "\"source zone\": \"\",\"source negated\": true,\"source\": [\"TestUser1@1.2.3.4/32\",\"TestUser1@127.0.0.1/32\"]," +
+            "\"destination zone\": \"\",\"destination negated\": \"deleted: true, added: false\",\"destination\": [\"TestUser2@1.2.3.4/32-1.2.3.5/32\"]," +
+            "\"service negated\": \"deleted: true, added: false\",\"service\": [\"6666-7777/UDP\"],\"action\": \"deny\",\"tracking\": \"none\",\"disabled\": \"deleted: false, added: true\",\"rule uid\": \"uid2:123\",\"comment\": \"comment2\"}," +
+            "{\"change time\": \"05.04.2023 12:00:00\",\"change action\": \"Rule deleted\",\"name\": \"TestRule2\"," +
+            "\"source zone\": \"\",\"source negated\": true,\"source\": [\"TestUser1@1.2.3.4/32\",\"TestUser1@127.0.0.1/32\"]," +
+            "\"destination zone\": \"\",\"destination negated\": true,\"destination\": [\"TestUser2@1.2.3.4/32-1.2.3.5/32\"]," +
+            "\"service negated\": true,\"service\": [\"6666-7777/UDP\"],\"action\": \"deny\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"uid2:123\",\"comment\": \"comment2\"}]}}]}}]}";
+            Assert.AreEqual(expectedJsonResult, removeLinebreaks((removeGenDate(reportChanges.ExportToJson(), false, true))));
         }
 
 

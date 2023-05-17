@@ -180,30 +180,7 @@ namespace FWO.Ui.Display
                 }
                 else
                 {
-                    string[] separatingStrings = { "," };
-                    string[] oldAr = oldElement.Split(separatingStrings, System.StringSplitOptions.RemoveEmptyEntries);
-                    string[] newAr = newElement.Split(separatingStrings, System.StringSplitOptions.RemoveEmptyEntries);
-
-                    foreach (var item in oldAr)
-                    {
-                        if (newAr.Contains(item))
-                        {
-                            unchanged.Add(item);
-                        }
-                        else
-                        {
-                            string deletedItem = item;
-                            deleted.Add(deletedItem);
-                        }
-                    }
-                    foreach (var item in newAr)
-                    {
-                        if (!oldAr.Contains(item))
-                        {
-                            string newItem = item; 
-                            added.Add(newItem);
-                        }
-                    }
+                    AnalyzeElements(oldElement, newElement, ref unchanged, ref deleted, ref added);
                 }
 
                 return string.Join(" ", unchanged) 

@@ -5,11 +5,14 @@ using FWO.Report.Filter;
 using FWO.Ui.Display;
 using FWO.Config.Api;
 using FWO.Logging;
-
+using System.Text.Json;
+using Newtonsoft.Json;
 namespace FWO.Report
 {
     public class ReportChanges : ReportBase
     {
+        private const int ColumnCount = 13;
+
         public ReportChanges(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
 
         public override async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback)
@@ -24,7 +27,6 @@ namespace FWO.Report
         {
             throw new NotImplementedException();
         }
-
 
         public override async Task Generate(int changesPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)
         {
@@ -94,7 +96,7 @@ namespace FWO.Report
                                 report.Append(ruleChangeDisplayCsv.DisplaySource(ruleChange, ReportType));
                                 report.Append(ruleChangeDisplayCsv.DisplayDestinationZone(ruleChange));
                                 report.Append(ruleChangeDisplayCsv.DisplayDestination(ruleChange, ReportType));
-                                report.Append(ruleChangeDisplayCsv.DisplayService(ruleChange, ReportType));
+                                report.Append(ruleChangeDisplayCsv.DisplayServices(ruleChange, ReportType));
                                 report.Append(ruleChangeDisplayCsv.DisplayAction(ruleChange));
                                 report.Append(ruleChangeDisplayCsv.DisplayTrack(ruleChange));
                                 report.Append(ruleChangeDisplayCsv.DisplayEnabled(ruleChange));
@@ -113,8 +115,6 @@ namespace FWO.Report
                 throw new NotImplementedException();
             }
         }
-
-        private const int ColumnCount = 13;
 
         public override string ExportToHtml()
         {
@@ -161,7 +161,7 @@ namespace FWO.Report
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplaySource(ruleChange, OutputLocation.export, ReportType)}</td>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayDestinationZone(ruleChange)}</td>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayDestination(ruleChange, OutputLocation.export, ReportType)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayService(ruleChange, OutputLocation.export, ReportType)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayServices(ruleChange, OutputLocation.export, ReportType)}</td>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayAction(ruleChange)}</td>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayTrack(ruleChange)}</td>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayEnabled(ruleChange, OutputLocation.export)}</td>");
@@ -182,6 +182,81 @@ namespace FWO.Report
             }
 
             return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
+        }
+
+        public override string ExportToJson()
+        {
+            if (ReportType.IsResolvedReport())
+            {
+                return ExportResolvedChangesToJson();
+            }
+            else if (ReportType.IsChangeReport())
+            {
+                return System.Text.Json.JsonSerializer.Serialize(Managements.Where(mgt => !mgt.Ignore), new JsonSerializerOptions { WriteIndented = true });
+            }
+            else
+            {
+                return "";
+            }
+        }
+
+        private string ExportResolvedChangesToJson()
+        {
+            StringBuilder report = new StringBuilder("{");
+            report.Append(DisplayReportHeaderJson());
+            report.AppendLine("\"managements\": [");
+            RuleChangeDisplayJson ruleChangeDisplayJson = new RuleChangeDisplayJson(userConfig);
+            foreach (Management management in Managements.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+                    Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
+            {
+                report.AppendLine($"{{\"{management.Name}\": {{");
+                report.AppendLine($"\"gateways\": [");
+                foreach (Device gateway in management.Devices)
+                {
+                    if (gateway.RuleChanges != null && gateway.RuleChanges.Length > 0)
+                    {
+                        report.Append($"{{\"{gateway.Name}\": {{\n\"rule changes\": [");
+                        foreach (RuleChange ruleChange in gateway.RuleChanges)
+                        {
+                            report.Append("{");
+                            report.Append(ruleChangeDisplayJson.DisplayChangeTime(ruleChange));
+                            report.Append(ruleChangeDisplayJson.DisplayChangeAction(ruleChange));
+                            report.Append(ruleChangeDisplayJson.DisplayName(ruleChange));
+                            report.Append(ruleChangeDisplayJson.DisplaySourceZone(ruleChange));
+                            report.Append(ruleChangeDisplayJson.DisplaySourceNegated(ruleChange));
+                            report.Append(ruleChangeDisplayJson.DisplaySource(ruleChange, ReportType));
+                            report.Append(ruleChangeDisplayJson.DisplayDestinationZone(ruleChange));
+                            report.Append(ruleChangeDisplayJson.DisplayDestinationNegated(ruleChange));
+                            report.Append(ruleChangeDisplayJson.DisplayDestination(ruleChange, ReportType));
+                            report.Append(ruleChangeDisplayJson.DisplayServiceNegated(ruleChange));
+                            report.Append(ruleChangeDisplayJson.DisplayServices(ruleChange, ReportType));
+                            report.Append(ruleChangeDisplayJson.DisplayAction(ruleChange));
+                            report.Append(ruleChangeDisplayJson.DisplayTrack(ruleChange));
+                            report.Append(ruleChangeDisplayJson.DisplayEnabled(ruleChange));
+                            report.Append(ruleChangeDisplayJson.DisplayUid(ruleChange));
+                            report.Append(ruleChangeDisplayJson.DisplayComment(ruleChange));
+                            report = ruleChangeDisplayJson.RemoveLastChars(report, 1); // remove last chars (comma)
+                            report.Append("},");  // EO ruleChange
+                        } // rules
+                        report = ruleChangeDisplayJson.RemoveLastChars(report, 1); // remove last char (comma)
+                        report.Append("]"); // EO rules
+                        report.Append("}"); // EO gateway internal
+                        report.Append("},"); // EO gateway external
+                    }
+                } // gateways
+                report = ruleChangeDisplayJson.RemoveLastChars(report, 1); // remove last char (comma)
+                report.Append("]"); // EO gateways
+                report.Append("}"); // EO management internal
+                report.Append("},"); // EO management external
+            } // managements
+            report = ruleChangeDisplayJson.RemoveLastChars(report, 1); // remove last char (comma)
+            report.Append("]"); // EO managements
+            report.Append("}"); // EO top
+
+            dynamic? json = JsonConvert.DeserializeObject(report.ToString());
+            JsonSerializerSettings settings = new JsonSerializerSettings();
+            settings.Formatting = Formatting.Indented;
+            return Newtonsoft.Json.JsonConvert.SerializeObject(json, settings);            
         }
     }
 }

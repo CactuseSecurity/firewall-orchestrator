@@ -136,7 +136,7 @@
                             {
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("services"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                     <Template>
-                                        @((MarkupString)ruleDisplay.DisplayService(rule, getActLocation(), SelectedReportType))
+                                        @((MarkupString)ruleDisplay.DisplayServices(rule, getActLocation(), SelectedReportType))
                                     </Template>
                                 </Column>
                             }

@@ -151,6 +151,22 @@ namespace FWO.Report
             return $"{report.ToString()}";
         }
 
+        public string DisplayReportHeaderJson()
+        {
+            StringBuilder report = new StringBuilder();
+            report.AppendLine($"\"report type\": \"{userConfig.GetText(ReportType.ToString())}\",");
+            report.AppendLine($"\"report generation date\": \"{DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)\",");
+            if(!ReportType.IsChangeReport())
+            {
+                report.AppendLine($"\"date of configuration shown\": \"{DateTime.Parse(Query.ReportTimeString).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)\",");
+            }
+            report.AppendLine($"\"device filter\": \"{string.Join("; ", Array.ConvertAll(Managements, management => management.NameAndDeviceNames()))}\",");
+            report.AppendLine($"\"other filters\": \"{Query.RawFilter}\",");
+            report.AppendLine($"\"report generator\": \"Firewall Orchestrator - https://fwo.cactus.de/en\",");
+            report.AppendLine($"\"data protection level\": \"For internal use only\",");
+            return $"{report.ToString()}";
+        }
+
         public virtual byte[] ToPdf(PaperKind paperKind, int width = -1, int height = -1)
         {
             // HTML

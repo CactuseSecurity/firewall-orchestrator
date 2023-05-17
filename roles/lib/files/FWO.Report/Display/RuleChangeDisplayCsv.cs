@@ -80,13 +80,13 @@ namespace FWO.Ui.Display
             }
         }
 
-        public string DisplayService(RuleChange ruleChange, ReportType reportType)
+        public string DisplayServices(RuleChange ruleChange, ReportType reportType)
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return OutputCsv(DisplayService(ruleChange.OldRule, reportType));
-                case 'I': return OutputCsv(DisplayService(ruleChange.NewRule, reportType));
-                case 'C': return OutputCsv(DisplayArrayDiff(DisplayService(ruleChange.OldRule, reportType), DisplayService(ruleChange.NewRule, reportType), ruleChange.OldRule.ServiceNegated, ruleChange.NewRule.ServiceNegated));
+                case 'D': return OutputCsv(DisplayServices(ruleChange.OldRule, reportType));
+                case 'I': return OutputCsv(DisplayServices(ruleChange.NewRule, reportType));
+                case 'C': return OutputCsv(DisplayArrayDiff(DisplayServices(ruleChange.OldRule, reportType), DisplayServices(ruleChange.NewRule, reportType), ruleChange.OldRule.ServiceNegated, ruleChange.NewRule.ServiceNegated));
                 default: return ",";
             }
         }
@@ -180,30 +180,7 @@ namespace FWO.Ui.Display
                 }
                 else
                 {
-                    string[] separatingStrings = { "," };
-                    string[] oldAr = oldElement.Split(separatingStrings, System.StringSplitOptions.RemoveEmptyEntries);
-                    string[] newAr = newElement.Split(separatingStrings, System.StringSplitOptions.RemoveEmptyEntries);
-
-                    foreach (var item in oldAr)
-                    {
-                        if (newAr.Contains(item))
-                        {
-                            unchanged.Add(item);
-                        }
-                        else
-                        {
-                            string deletedItem = item;
-                            deleted.Add(deletedItem);
-                        }
-                    }
-                    foreach (var item in newAr)
-                    {
-                        if (!oldAr.Contains(item))
-                        {
-                            string newItem = item; 
-                            added.Add(newItem);
-                        }
-                    }
+                    AnalyzeElements(oldElement, newElement, ref unchanged, ref deleted, ref added);
                 }
 
                 return string.Join(" ", unchanged) 

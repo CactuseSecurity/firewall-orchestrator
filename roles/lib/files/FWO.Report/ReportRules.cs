@@ -219,7 +219,7 @@ namespace FWO.Report
                                     report.Append(ruleDisplayCsv.DisplaySourceCsv(rule, ReportType));
                                     report.Append(ruleDisplayCsv.DisplayDestinationZoneCsv(rule));
                                     report.Append(ruleDisplayCsv.DisplayDestinationCsv(rule, ReportType));
-                                    report.Append(ruleDisplayCsv.DisplayServiceCsv(rule, ReportType));
+                                    report.Append(ruleDisplayCsv.DisplayServicesCsv(rule, ReportType));
                                     report.Append(ruleDisplayCsv.DisplayActionCsv(rule));
                                     report.Append(ruleDisplayCsv.DisplayTrackCsv(rule));
                                     report.Append(ruleDisplayCsv.DisplayEnabledCsv(rule));
@@ -266,13 +266,7 @@ namespace FWO.Report
         private string ExportResolvedRulesToJson()
         {
             StringBuilder report = new StringBuilder("{");
-            report.AppendLine($"\"report type\": \"{userConfig.GetText(ReportType.ToString())}\",");
-            report.AppendLine($"\"report generation date\": \"{DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)\",");
-            report.AppendLine($"\"date of configuration shown\": \"{DateTime.Parse(Query.ReportTimeString).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)\",");
-            report.AppendLine($"\"device filter\": \"{string.Join("; ", Array.ConvertAll(Managements, management => management.NameAndDeviceNames()))}\",");
-            report.AppendLine($"\"other filters\": \"{Query.RawFilter}\",");
-            report.AppendLine($"\"report generator\": \"Firewall Orchestrator - https://fwo.cactus.de/en\",");
-            report.AppendLine($"\"data protection level\": \"For internal use only\",");
+            report.Append(DisplayReportHeaderJson());
             report.AppendLine("\"managements\": [");
             RuleDisplayJson ruleDisplayJson = new RuleDisplayJson(userConfig);
             foreach (Management management in Managements.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
@@ -291,17 +285,20 @@ namespace FWO.Report
                             if (string.IsNullOrEmpty(rule.SectionHeader))
                             {
                                 report.Append(ruleDisplayJson.DisplayNumber(rule));
-                                report.Append(ruleDisplayJson.DisplayName(rule));
-                                report.Append(ruleDisplayJson.DisplaySourceZone(rule));
+                                report.Append(ruleDisplayJson.DisplayName(rule.Name));
+                                report.Append(ruleDisplayJson.DisplaySourceZone(rule.SourceZone?.Name));
+                                report.Append(ruleDisplayJson.DisplaySourceNegated(rule.SourceNegated));
                                 report.Append(ruleDisplayJson.DisplaySource(rule, ReportType));
-                                report.Append(ruleDisplayJson.DisplayDestinationZone(rule));
+                                report.Append(ruleDisplayJson.DisplayDestinationZone(rule.DestinationZone?.Name));
+                                report.Append(ruleDisplayJson.DisplayDestinationNegated(rule.DestinationNegated));
                                 report.Append(ruleDisplayJson.DisplayDestination(rule, ReportType));
-                                report.Append(ruleDisplayJson.DisplayService(rule, ReportType));
-                                report.Append(ruleDisplayJson.DisplayAction(rule));
-                                report.Append(ruleDisplayJson.DisplayTrack(rule));
-                                report.Append(ruleDisplayJson.DisplayEnabled(rule));
-                                report.Append(ruleDisplayJson.DisplayUid(rule));
-                                report.Append(ruleDisplayJson.DisplayComment(rule));
+                                report.Append(ruleDisplayJson.DisplayServiceNegated(rule.ServiceNegated));
+                                report.Append(ruleDisplayJson.DisplayServices(rule, ReportType));
+                                report.Append(ruleDisplayJson.DisplayAction(rule.Action));
+                                report.Append(ruleDisplayJson.DisplayTrack(rule.Track));
+                                report.Append(ruleDisplayJson.DisplayEnabled(rule.Disabled));
+                                report.Append(ruleDisplayJson.DisplayUid(rule.Uid));
+                                report.Append(ruleDisplayJson.DisplayComment(rule.Comment));
                                 report = ruleDisplayJson.RemoveLastChars(report, 1); // remove last chars (comma)
                             }
                             else
@@ -325,8 +322,6 @@ namespace FWO.Report
             report.Append("]"); // EO managements
             report.Append("}"); // EO top
 
-            // Debug:
-            string repStr = report.ToString();
             dynamic? json = JsonConvert.DeserializeObject(report.ToString());
             JsonSerializerSettings settings = new JsonSerializerSettings();
             settings.Formatting = Formatting.Indented;
@@ -412,7 +407,7 @@ namespace FWO.Report
                         report.AppendLine($"<td>{ruleDisplayHtml.DisplaySource(rule, OutputLocation.export, ReportType)}</td>");
                         report.AppendLine($"<td>{ruleDisplayHtml.DisplayDestinationZone(rule)}</td>");
                         report.AppendLine($"<td>{ruleDisplayHtml.DisplayDestination(rule, OutputLocation.export, ReportType)}</td>");
-                        report.AppendLine($"<td>{ruleDisplayHtml.DisplayService(rule, OutputLocation.export, ReportType)}</td>");
+                        report.AppendLine($"<td>{ruleDisplayHtml.DisplayServices(rule, OutputLocation.export, ReportType)}</td>");
                         report.AppendLine($"<td>{ruleDisplayHtml.DisplayAction(rule)}</td>");
                         report.AppendLine($"<td>{ruleDisplayHtml.DisplayTrack(rule)}</td>");
                         report.AppendLine($"<td>{ruleDisplayHtml.DisplayEnabled(rule, OutputLocation.export)}</td>");

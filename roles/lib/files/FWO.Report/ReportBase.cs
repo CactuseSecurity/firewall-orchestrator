@@ -240,7 +240,7 @@ namespace FWO.Report
             return await apiConnection.SendQueryAsync<Management[]>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
         }
 
-        public static string GetIconClass(ObjCategory objCategory, string objType)
+        public static string GetIconClass(ObjCategory? objCategory, string? objType)
         {
             switch (objType)
             {

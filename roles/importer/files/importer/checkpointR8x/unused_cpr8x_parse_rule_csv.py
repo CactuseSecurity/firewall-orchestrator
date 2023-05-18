@@ -191,7 +191,7 @@ def csv_dump_rules(rulebase, layer_name, import_id, rule_num, section_header_uid
     else:
         if 'rulebase' in rulebase:
             if rulebase['type'] == 'access-section' and not rulebase['uid'] in section_header_uids: # add section header, but only if it does not exist yet (can happen by chunking a section)
-                section_name = ""
+                section_name = "section without name"
                 if 'name' in rulebase:
                     section_name = rulebase['name']
                 if 'parent_rule_uid' in rulebase:

@@ -35,7 +35,7 @@ namespace FWO.Ui.Display
             return (rule.DestinationZone != null ? rule.DestinationZone.Name : "");
         }
 
-        public string DisplayIpRange(string Ip, string IpEnd)
+        public string DisplayIpRange(string? Ip, string? IpEnd)
         {
             return (Ip != null && Ip != "" ? $"{Ip}{(IpEnd != null && IpEnd != "" && IpEnd != Ip ? $"-{IpEnd}" : "")}" : "");
         }

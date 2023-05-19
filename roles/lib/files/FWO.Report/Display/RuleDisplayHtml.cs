@@ -98,13 +98,13 @@ namespace FWO.Ui.Display
             return $"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{link}{type}{id}\" target=\"_top\" style=\"{style}\">{name}</a>";
         }
 
-        protected string NetworkLocationToHtml(NetworkLocation userNetworkObject, int mgmtId, OutputLocation location, string style, ReportType reportType)
+        protected string NetworkLocationToHtml(NetworkLocation networkLocation, int mgmtId, OutputLocation location, string style, ReportType reportType)
         {
-            return DisplayNetworkLocation(userNetworkObject, reportType, 
+            return DisplayNetworkLocation(networkLocation, reportType, 
+                reportType.IsResolvedReport() || networkLocation.User == null ? null :
+                constructLink("user", ReportBase.GetIconClass(ObjCategory.user, networkLocation.User?.Type.Name), networkLocation.User!.Id, networkLocation.User.Name, location, mgmtId, style),
                 reportType.IsResolvedReport() ? null :
-                constructLink("user", ReportBase.GetIconClass(ObjCategory.user, userNetworkObject.User.Type.Name), userNetworkObject.User.Id, userNetworkObject.User.Name, location, mgmtId, style),
-                reportType.IsResolvedReport() ? null :
-                constructLink("nwobj", ReportBase.GetIconClass(ObjCategory.nobj, userNetworkObject.Object.Type.Name), userNetworkObject.Object.Id, userNetworkObject.Object.Name, location, mgmtId, style)
+                constructLink("nwobj", ReportBase.GetIconClass(ObjCategory.nobj, networkLocation.Object.Type.Name), networkLocation.Object.Id, networkLocation.Object.Name, location, mgmtId, style)
                 ).ToString();
         }
 

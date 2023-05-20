@@ -3,7 +3,7 @@
 @implements IDisposable
 @code {
     [Parameter]
-    public TabSet? TabSet { get; set; }
+    public TabSet TabSet { get; set; } = default!;
 
     protected override void OnInitialized()
     {

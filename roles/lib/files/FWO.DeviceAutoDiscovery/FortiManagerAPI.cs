@@ -8,6 +8,7 @@ using System.Text.Encodings.Web;
 using Newtonsoft.Json;
 using FWO.Logging;
 using RestSharp.Serializers.NewtonsoftJson;
+using RestSharp.Serializers;
 
 namespace FWO.Rest.Client
 {
@@ -19,14 +20,16 @@ namespace FWO.Rest.Client
         {
             RestClientOptions restClientOptions = new RestClientOptions();
             restClientOptions.RemoteCertificateValidationCallback += (_, _, _, _) => true;
-            // restClientOptions.Encoding = Encoding.Latin1;
             restClientOptions.BaseUrl = new Uri("https://" + fortiManager.Hostname + ":" + fortiManager.Port + "/jsonrpc");
-            restClient = new RestClient(restClientOptions);
-
-            JsonNetSerializer serializer = new JsonNetSerializer(); // Case insensivitive is enabled by default
-            restClient.UseDefaultSerializers();
-            restClient.UseSerializer(() => serializer);
+            restClient = new RestClient(restClientOptions, null, ConfigureRestClientSerialization);
         }
+
+        private void ConfigureRestClientSerialization(SerializerConfig config)
+        {
+            JsonNetSerializer serializer = new JsonNetSerializer(); // Case insensivitive is enabled by default
+            config.UseSerializer(() => serializer);
+        }
+
 
         public async Task<RestResponse<SessionAuthInfo>> AuthenticateUser(string? user, string pwd)
         {

@@ -35,7 +35,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "files", "files", "{B39AEFDC
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.Mail", "lib\files\FWO.Mail\FWO.Mail.csproj", "{1E7CA417-C64A-4BD9-98D2-5A0A2DD94726}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FWO.Recert", "lib\files\FWO.Recert\FWO.Recert.csproj", "{520779B1-20EB-45D9-8A02-D0C4DFEC9302}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.Recert", "lib\files\FWO.Recert\FWO.Recert.csproj", "{520779B1-20EB-45D9-8A02-D0C4DFEC9302}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

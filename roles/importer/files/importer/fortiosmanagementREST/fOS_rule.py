@@ -5,7 +5,7 @@ from fwo_base import extend_string_list
 from fOS_service import create_svc_object
 from fOS_network import create_network_object, get_first_ip_of_destination
 import fOS_zone, fOS_getter
-from fOS_gw_networking import get_device_from_package
+#from fOS_gw_networking import get_device_from_package
 from fwo_log import getFwoLogger
 from fwo_data_networking import get_matching_route_obj, get_ip_of_interface_obj
 import ipaddress

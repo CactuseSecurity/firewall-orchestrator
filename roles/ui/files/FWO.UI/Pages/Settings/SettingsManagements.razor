@@ -485,13 +485,15 @@
 
     private bool CheckValues(Management mgm, string checkCause)
     {
-        if
-            (
-                mgm.Name == null || mgm.Name == "" || 
-                (mgm.DeviceType.Manufacturer != "DummyRouter" && (mgm.Hostname == null || mgm.Hostname == ""))
-            )
+        if(mgm.Name == null || mgm.Name == "" || 
+                (mgm.DeviceType.Manufacturer != "DummyRouter" && (mgm.Hostname == null || mgm.Hostname == "")))
         {
             DisplayMessageInUi(null, checkCause, userConfig.GetText("E5102"), true);
+            return false;
+        }
+        if(mgm.DeviceType.IsLegacyDevType() && mgm.Name.Contains(" "))
+        {
+            DisplayMessageInUi(null, checkCause, userConfig.GetText("E5109"), true);
             return false;
         }
         if (mgm.DeviceType.Manufacturer != "DummyRouter" && (mgm.Port < 1 || mgm.Port > 65535))

@@ -66,7 +66,6 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-
     [Parameter]
     public int Width { get; set; }
 
@@ -74,10 +73,10 @@
     public EventCallback<int> WidthChanged { get; set; }
 
     [Parameter]
-    public TabSet? Tabset { get; set; }
+    public FWO.Ui.Shared.TabSet Tabset { get; set; } = default!;
 
     [Parameter]
-    public AnchorNavToRSB? AnchorNavToRSB { get; set; }
+    public FWO.Ui.Shared.AnchorNavToRSB AnchorNavToRSB { get; set; } = default!;
 
     [Parameter]
     public ReportBase? CurrentReport { get; set; }
@@ -116,7 +115,7 @@
         });
     }
 
-    public async Task FetchContent(RsbTab rsbTab, RsbObjType objType, Func<Management[], Task> callback, long id = 0, bool nat = false)
+    public async Task FetchContent(RsbTab rsbTab, ObjCategory objType, Func<Management[], Task> callback, long id = 0, bool nat = false)
     {
         Log.WriteDebug("Fetching Content..", $"nat: {nat}");
 
@@ -139,16 +138,16 @@
                     };
                     switch (objType)
                     {
-                        case RsbObjType.all:
+                        case ObjCategory.all:
                             query = ObjectQueries.getAllObjectDetails;
                             break;
-                        case RsbObjType.nobj:
+                        case ObjCategory.nobj:
                             query = ObjectQueries.getNetworkObjectDetails;
                             break;
-                        case RsbObjType.nsrv:
+                        case ObjCategory.nsrv:
                             query = ObjectQueries.getNetworkServiceObjectDetails;
                             break;
-                        case RsbObjType.user:
+                        case ObjCategory.user:
                             query = ObjectQueries.getUserDetails;
                             break;
                     }
@@ -174,7 +173,7 @@
                         { "limit", userConfig.ElementsPerFetch },
                         { "offset", (int)0 }
                     };
-                    if(objType == RsbObjType.all)
+                    if(objType == ObjCategory.all)
                     {
                         if (nat)
                             query = RuleQueries.getNatRuleDetails;

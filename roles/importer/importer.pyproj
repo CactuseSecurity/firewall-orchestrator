@@ -29,13 +29,9 @@
     <Compile Include="files\importer\checkpointR8x\get_basic_config.py" />
     <Compile Include="files\importer\checkpointR8x\parse_config.py" />
     <Compile Include="files\importer\checkpointR8x\parse_network.py" />
-    <Compile Include="files\importer\checkpointR8x\parse_network_csv.py" />
     <Compile Include="files\importer\checkpointR8x\parse_rule.py" />
-    <Compile Include="files\importer\checkpointR8x\parse_rule_csv.py" />
     <Compile Include="files\importer\checkpointR8x\parse_service.py" />
-    <Compile Include="files\importer\checkpointR8x\parse_service_csv.py" />
     <Compile Include="files\importer\checkpointR8x\parse_user.py" />
-    <Compile Include="files\importer\checkpointR8x\parse_user_csv.py" />
     <Compile Include="files\importer\checkpointR8x\__init__.py" />
     <Compile Include="files\importer\common.py" />
     <Compile Include="files\importer\fortimanager5ff\fmgr_network.py" />

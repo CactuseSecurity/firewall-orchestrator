@@ -32,19 +32,19 @@
                             @if (ExportPdf)
                             {
                                 <div>
-                                    Paper Kind:
+                                    @(userConfig.GetText("page_format")):
                                     <Dropdown @bind-SelectedElement="SelectedPaperKind" Elements="Enum.GetValues<PaperKind>().Cast<PaperKind>()"></Dropdown>
                                     @if (SelectedPaperKind == PaperKind.Custom)
                                     {
                                         <div class="input-group input-group-sm mb-2 mt-2">
                                           <div class="input-group-prepend">
-                                            <span class="input-group-text">Width (mm)</span>
+                                            <span class="input-group-text">@(userConfig.GetText("width"))</span>
                                           </div>
                                           <input  @bind="PaperSizeWidth" min="1" max="1000000" type="number" class="form-control">
                                         </div>
                                         <div class="input-group input-group-sm mb-1">
                                           <div class="input-group-prepend">
-                                            <span class="input-group-text">Height (mm)</span>
+                                            <span class="input-group-text">@(userConfig.GetText("height"))</span>
                                           </div>
                                           <input @bind="PaperSizeHeight" min="1" max="1000000" type="number" class="form-control">
                                         </div>
@@ -83,7 +83,7 @@
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="reportExportArchive" @bind="ExportArchive">
                             <label class="form-check-label" for="reportExportArchive">
-                                @(userConfig.GetText("archive")) (includes JSON)
+                                @(userConfig.GetText("archive")) @(userConfig.GetText("includes_json"))
                             </label>
                         </div>
                     </li>

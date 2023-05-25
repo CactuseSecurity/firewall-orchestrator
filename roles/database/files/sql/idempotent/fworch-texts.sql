@@ -146,6 +146,7 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firew
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
     <li>Importer Modul Check Point R8x Unterst&uuml;tzung f&uuml;r Updatable Objects, Domain-Namen und Application Categories</li>
+    <li>Importer Modul f&uuml;r Stand-Alone FortiGate via REST API</li>
     <li>Neues Firewall-Regel-Rezertifizierungsmodul - beseitigen Sie ihre Altlasten und erf&uuml;llen Sie aktuelle regulatorische Anforderungen.</li>
     <li>Workflow-Modul zum Beantragen von &Auml;nderungen</li>
     <li>Neue Importmodule f&uuml;r Cisco FirePower und Microsoft Azure Firewall</li>
@@ -156,6 +157,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
     <li>Importer support for Check Point R8x updatable objects, domain name objects and application categories</li>
+    <li>New importer module for stand-alone FortiGate via REST API</li>
     <li>New Firewall rule recertification module - remove unnecessary rules and meet current regulatory requirements.</li>
     <li>Workflow module for requesting firewall changes</li>
     <li>New import modules for Cisco FirePower and Microsoft Azure Firewall</li>
@@ -302,6 +304,14 @@ INSERT INTO txt VALUES ('download_html',		'German', 	'als HTML herunterladen');
 INSERT INTO txt VALUES ('download_html',		'English', 	'Download HTML');
 INSERT INTO txt VALUES ('download_json',		'German', 	'als JSON herunterladen');
 INSERT INTO txt VALUES ('download_json',		'English', 	'Download JSON');
+INSERT INTO txt VALUES ('page_format',          'German', 	'Seitenformat');
+INSERT INTO txt VALUES ('page_format',          'English', 	'Page Format');
+INSERT INTO txt VALUES ('width',                'German', 	'Breite (mm)');
+INSERT INTO txt VALUES ('width',                'English', 	'Width (mm)');
+INSERT INTO txt VALUES ('height',               'German', 	'H&ouml;he (mm)');
+INSERT INTO txt VALUES ('height',               'English', 	'Height (mm)');
+INSERT INTO txt VALUES ('includes_json',        'German', 	'(beinhaltet JSON)');
+INSERT INTO txt VALUES ('includes_json',        'English', 	'(includes JSON)');
 INSERT INTO txt VALUES ('save_as_template',		'German', 	'Als Vorlage speichern');
 INSERT INTO txt VALUES ('save_as_template',		'English', 	'Save as Template');
 INSERT INTO txt VALUES ('no_device_selected',	'German', 	'Kein Device ausgew&auml;hlt.');
@@ -1845,6 +1855,8 @@ INSERT INTO txt VALUES ('E5107', 'German',  'Gateway wurde bereits angelegt: ');
 INSERT INTO txt VALUES ('E5107', 'English', 'Gateway has already been created: ');
 INSERT INTO txt VALUES ('E5108', 'German',  'Email-Adresse muss "@"-Zeichen enthalten.');
 INSERT INTO txt VALUES ('E5108', 'English', 'Email address must contain "@"-sign.');
+INSERT INTO txt VALUES ('E5109', 'German',  'Bitte keine Leerzeichen im Namen verwenden.');
+INSERT INTO txt VALUES ('E5109', 'English', 'Please do not use spaces in the name.');
 INSERT INTO txt VALUES ('E5111', 'German',  'Es gibt bereits ein Gateway mit derselben Konfiguration und Import aktiviert');
 INSERT INTO txt VALUES ('E5111', 'English', 'There is already a gateway in the same configuration with import enabled');
 INSERT INTO txt VALUES ('E5112', 'German',  'Gateway konnte nicht angelegt werden');
@@ -2266,13 +2278,15 @@ INSERT INTO txt VALUES ('H1215', 'German',  'Aktuelle NAT Regeln: Aktuell aktive
 INSERT INTO txt VALUES ('H1215', 'English', 'Current NAT Rules: Currently active NAT rules of all selected devices.');
 INSERT INTO txt VALUES ('H1301', 'German',  'Direkt nach der Erzeugung oder vom <a href="/help/archive">Archiv</a> aus k&ouml;nnen Reports in verschiedenen Ausgabeformaten exportiert werden:');
 INSERT INTO txt VALUES ('H1301', 'English', 'Directly after creation or from the <a href="/help/archive">archive</a> reports can be exported to different output formats:');
-INSERT INTO txt VALUES ('H1302', 'German',  '<li>pdf</li><li>html</li><li>csv (aktuell nur f&uuml;r aufgel&ouml;sten Regel-Report-Typ unterst&uuml;tzt)</li><li>json</li>');
-INSERT INTO txt VALUES ('H1302', 'English', '<li>pdf</li><li>html</li><li>csv (currently only supported for resolved rules report type)</li><li>json</li>');
+INSERT INTO txt VALUES ('H1302', 'German',  '<li>pdf</li><li>html</li><li>csv (aktuell nur f&uuml;r die aufgel&ouml;sten und technischen Report-Typen unterst&uuml;tzt)</li><li>json</li>');
+INSERT INTO txt VALUES ('H1302', 'English', '<li>pdf</li><li>html</li><li>csv (currently only supported for resolved and technical report types)</li><li>json</li>');
 INSERT INTO txt VALUES ('H1303', 'German',  'Nach bet&auml;tigen des "Report exportieren"-Auswahlfeldes kann eines oder mehrere dieser Formate ausgew&auml;hlt werden.
+    Bei Aktivierung der pdf-Ausgabe wird desweiteren das Seitenformat zur Auswahl angeboten.<br>
     Auch kann der Report mit einem Namen versehen und <a href="/help/archive">archiviert</a> werden.
     Ein weiteres Ausgabefenster erlaubt dann das separate Abholen der ausgew&auml;hlten Ausgabedateien.
 ');
 INSERT INTO txt VALUES ('H1303', 'English', 'After clicking the "Export Report" button one or more of them can be selected.
+    When selecting the pdf export, the page format is offered for selection.<br>
     Also the possibility to name and save the report in the <a href="/help/archive">archive</a> is given.
     Another Popup allows then to download the selected output files separately.    
 ');
@@ -2878,7 +2892,11 @@ INSERT INTO txt VALUES ('H5102', 'German',  'Folgende Firewallprodukte k&ouml;nn
             <ul>
                 <li>Check Point R8x - SmartCenter</li>
                 <li>Check Point R8x - Multi Domain Server (MDS)</li>
+                <li>FortiGate stand-alone (via REST API)</li>
                 <li>FortiManager 5ff - FortiManager. F&uuml;r diesen Management-Typ kann die komplette Struktur (ADOM, FortiGateway Devices) mittels AutoDiscovery automatisch ausgelesen werden.</li>
+                <li>Palo Alto Firewalls (nicht Panorama)</li>
+                <li>Azure Firewall</li>
+                <li>Cisco FirePower Management Center</li>
             </ul>
         </li>            
     </ul>
@@ -2899,27 +2917,35 @@ INSERT INTO txt VALUES ('H5102', 'English', 'The following firewall products can
             <ul>
                 <li>Check Point R8x - SmartCenter</li>
                 <li>Check Point R8x - MDS (Multi Domain Server)</li>
+                <li>FortiGate StandAlone (via REST API)</li>                
                 <li>FortiManager 5ff - FortiManager - for this management type the complete infrastructure (ADOM, FortiGateway devices) can be auto discovered.</li>
+                <li>Palo Alto Firewalls (not Panorama)</li>
+                <li>Azure Firewall</li>
+                <li>Cisco FirePower Management Center</li>
             </ul>
         </li>            
     </ul>
 ');
 INSERT INTO txt VALUES ('H5103', 'German',  'F&uuml;r Firewallgateways ohne separates Management oder im Falle, dass das zentrale Management nicht in den Firewall Orchestrator eingebunden werden kann,
-    werden die Details des Gateways als Management und gleichzeitig auch als Gateway eingetragen.
+    werden die Details des Gateways als Management und gleichzeitig auch als Gateway eingetragen.<br>
+    Im Falle Fortigate Legacy (via ssh): Um einen vollst&auml;ndigen Datenimport zu gew&auml;hrleisten, bitte in der Fortigate config den Seitenumbruch deaktivieren, damit beim Kommando "show full-configuration" die komplette Config ausgegeben wird.
 ');
 INSERT INTO txt VALUES ('H5103', 'English', 'For firewall gateways without a separate management or in case the central management cannot be integrated into Firewall Orchestrator 
-    you may enter the details of the gateway here as a management system as well and then add it again as a gateway.
+    you may enter the details of the gateway here as a management system as well and then add it again as a gateway.<br>
+    In the case of legacy Fortigate (via ssh): To get the entire data imported, disable pagination in the Fortigate config to allow get command "show full-configuration" to retrieve the complete config.
 ');
 INSERT INTO txt VALUES ('H5104', 'German',  'Wenn Beispieldaten (definiert durch die Endung "_demo" vom Namen) existieren, wird eine Schaltfl&auml;che angezeigt, um diese und alle verkn&uuml;pften <a href="/help/settings/gateways">Gateways</a> zu l&ouml;schen.');
 INSERT INTO txt VALUES ('H5104', 'English', 'If there are sample data (defined by the ending "_demo" of the name), a button is displayed to delete them and all related <a href="/help/settings/gateways">gateways</a>.');
 INSERT INTO txt VALUES ('H5111', 'German',  'Name*: Name des Managements. <br>
     F&uuml;r die meisten Firewalls ist dies ein willk&uuml;rlicher Name. Ausnahmen sind direkt verbundene Gateways von Fortigate, Netscreen und Juniper.
     Hier muss der Name des Firewallgateways eingetragen werden.<br>
+    Da es zu Problemen mit dem perl-Importer kommen kann, sollten Leerzeichen im Namen von Legacy-Systemen nicht verwendet werden.
     Ein Management dessen Name mit "_demo" endet, wird beim Bet&auml;tigen der "Beispieldaten l&ouml;schen"-Schaltfl&auml;che gel&ouml;scht.
 ');
 INSERT INTO txt VALUES ('H5111', 'English', 'Name*: Name of the mangement. <br>
     For most firewalls this is an arbitrary name. Exceptions are Fortigate, Netscreen and Juniper directly connected gateways.
     Here the name give needs to be the name of the firewall gateway.<br>
+    Do not use spaces in the management name of legacy systems as perl importer cannot cope with spaces here.
     A management whose name ends with "_demo" will be deleted when using the "Remove Sample Data" button.
 ');
 INSERT INTO txt VALUES ('H5112', 'German',  'Kommentar: Optionale Beschreibung des Managements.');
@@ -2928,11 +2954,11 @@ INSERT INTO txt VALUES ('H5113', 'German',  'Ger&auml;tetyp*: bitte das korrekte
 INSERT INTO txt VALUES ('H5113', 'English', 'Device Type*: Select correct product from a list of available types, see above.');
 INSERT INTO txt VALUES ('H5114', 'German',  'Hostname*: Adresse des Hosts (entweder IP-Addresse oder aufl&ouml;sbarer Name). 
     F&uuml;r Check Point R8x MDS Installationen die Addresse des MDS-Servers f&uuml;r alle Domains benutzen.<br>
-    F&uuml;r Fortinet, Barradua, Juniper muss die IP vom aufl&ouml;sbaren Namen des Firewallgateways spezifiziert werden.
+    F&uuml;r alle Firewall-Plattformen, die kein separates Management-System besitzen, muss die IP oder der aufl&ouml;sbare Name des Firewallgateways spezifiziert werden.
 ');
 INSERT INTO txt VALUES ('H5114', 'English', 'Hostname*: Address of the host (either IP address or resolvable name). 
     For Check Point R8x MDS installations use the address of the MDS server for all domains.<br>
-    For Fortinet, Barradua, Juniper you need to specify the IP or resolvable name of the firewall gateway.
+    For all firewall platforms which do not possess a separate management, use the IP address or the resolvable name of the firewall gateway.
 ');
 INSERT INTO txt VALUES ('H5115', 'German',  'Port*: Port-Nummer des Hosts.<br>
     Wenn das Ziel Check Point R8x, FortiManager, Azure oder Cisco FirePower ist, wird die Verbindung via API aufgebaut. Die Standard-Port-Nummer ist 443. Denken Sie daran, den API-Zugang auf Ihrem Firewall Managment zu aktivieren.<br>
@@ -2943,12 +2969,11 @@ INSERT INTO txt VALUES ('H5115', 'English', 'Port*: Port number of the host.<br>
     If the target any other platform Firewall Orchestrator needs ssh-based access. The default port number here is 22.
 ');
 INSERT INTO txt VALUES ('H5116', 'German',  'Login-Daten*: Zugangsdaten f&uuml;r den Import-Nutzer des Managements.<br>
-    Hier kann ein Satz Zugangsdaten ausgew&auml;hlt werden, der zum Login auf dem Management dient.
+    Hier kann ein Satz <a href="/help/settings/credentials">Zugangsdaten</a> ausgew&auml;hlt werden, der zum Login auf dem Management dient.
 ');
 INSERT INTO txt VALUES ('H5116', 'English', 'Import Credentials*: User/Password combination for logging into the management.<br>
-    Choose a set of credentials which will be used to get the management''s configuration.
+    Choose a set of <a href="/help/settings/credentials">credentials</a> which will be used to get the management''s configuration.
 ');
-
 INSERT INTO txt VALUES ('H5119', 'German',  'Domain: Firewall Domain Name <br>
     f&uuml;r Check Point R8x MDS / Fortimanager Installationen, andernfall leer lassen.
 ');
@@ -2968,13 +2993,27 @@ INSERT INTO txt VALUES ('H5122', 'English', 'Import Disabled: Flag if the data i
 INSERT INTO txt VALUES ('H5123', 'German',  'Nicht sichtbar: Wenn gesetzt ist dieses Management nicht mit Standard-Reporter-Rolle sichtbar.');
 INSERT INTO txt VALUES ('H5123', 'English', 'Hide in UI: If set, this management is not visible to the standard reporter role.');
 
-INSERT INTO txt VALUES ('H5130', 'German',  'Hier werden die Zugangsdaten f&uuml; den Import der Firewall-Konfigurationen verwaltet.
+INSERT INTO txt VALUES ('H5130', 'German',  'Hier werden die Zugangsdaten f&uuml;r den Import der Firewall-Konfigurationen verwaltet.
 Diese k&ouml;nnen auch f&uuml;r den Zugriff auf mehrere Firewall-Managements verwendet werden.
-Ein L&ouml;schen is erst m&ouml;glich, wenn die Zugangsdaten nirgends verwendet werden. 
+Ein L&ouml;schen ist erst m&ouml;glich, wenn die Zugangsdaten nirgends mehr verwendet werden.
+    <br>
+    F&uuml;r den FortiGate Stand-Alone Import via REST API: 
+    <ol>
+        <li>Im FortiGate Web Interface: Erstelle ein Read Only Admin Profile z.B. "ro_admin"</li>
+        <li>Im FortiGate Web Interface: Erstelle einen "REST API Admin" e.g. "fworch" mit "ro_admin" Profil und kopiere den API Schl&uuml;ssel</li>
+        <li>In der Firewall Orchestrator WebUI: erstelle neue Import Login-Daten mit username "fworch" und Passwort = API Schl&uuml;ssel</li>
+    </ol>
 ');
 INSERT INTO txt VALUES ('H5130', 'English', 'Manage credentials for importing firewall configuration data.
 Credentials can be used for logging in to one or multiple firewall managements.
 Credentials can only be deleted when they are not used for importing any management.
+    <br>
+    For FortiGate stand-alone import via REST API:
+    <ol>
+        <li>In FortiGate Web UI: Create Read Only Admin Profile e.g. "ro_admin"</li>
+        <li>In FortiGate Web UI: Create new "REST API Admin" e.g. "fworch" with "ro_admin" profile and copy API key</li>
+        <li>In Firewall Orchestrator UI create new credentials with username "fworch" and password = API key</li>
+    </ol>
 ');
 INSERT INTO txt VALUES ('H5131', 'German',  'Name*: Ein beliebiger Name, der diese Zugangsdaten eindeutig beschreibt.
 ');
@@ -2988,18 +3027,20 @@ INSERT INTO txt VALUES ('H5132', 'English', 'Username*: The user used to login t
     This user needs to be created on the firewall system in advance and needs full read access to the system.<br>
     On Check Point R8x we recommend using the predefined "Read Only All" profile (both global and domain management) for the user.
 ');
-INSERT INTO txt VALUES ('H5135', 'German',  'Schl&uuml;sselpaar*: Handelt es sich bei diesen Login-Daten um ein SSH Public-Key Paar oder um Standard ein Standard-Passwort.
+INSERT INTO txt VALUES ('H5133', 'German',  'Privater Schl&uuml;ssel* / Passwort*: F&uuml;r den ssh-Zugang hier den privaten ssh-Schl&uuml;ssel hinterlegen (Schl&uuml;ssel muss unverschl&uuml;sselt und ohne Passphrase sein).
+    Bitte f&uuml;r ssh-basierten legacy FortiGate Zugriff kein RSA benutzen, da es hier ein Problem mit RSA-Schl&uuml;sseln zu geben scheint.<br>
+    F&uuml;r den API-Zugang ist hier das Passwort des API-Nutzers einzutragen.
 ');
-INSERT INTO txt VALUES ('H5135', 'English', 'Key Pair*: Do these credentials consist of a private/public SSH key pair or do they contain a standard password.
-');
-INSERT INTO txt VALUES ('H5133', 'German',  'Privater Schl&uuml;ssel* / Passwort*: F&uuml;r den ssh-Zugang hier den privaten ssh-Schl&uuml;ssel hinterlegen (Schl&uuml;ssel muss unverschl&uuml;sselt und ohne Passphrase sein)<br>
-    F&uuml;r den API-Zugang ist dies das Passwort des API-Nutzers.
-');
-INSERT INTO txt VALUES ('H5133', 'English', 'Login Secret* / Password*: For ssh access enter the private ssh key (key needs to be unencrypted without passphrase)<br>
-    For API access this is the password of the API user.
+INSERT INTO txt VALUES ('H5133', 'English', 'Login Secret* / Password*: For ssh access enter the private ssh key (key needs to be unencrypted without passphrase).
+    For legacy ssh based FortiGate, do not use RSA as there seems to be a problem with RSA keys.<br>
+    For API access insert the password of the API user here.
 ');
 INSERT INTO txt VALUES ('H5134', 'German',  '&Ouml;ffentlicher Schl&uuml;ssel: Dieses Feld muss nur f&uuml;r Netscreen-Firewalls gef&uuml;llt werden - dieses System ben&ouml;tigt auch den &ouml;ffentlichen Schl&uuml;ssel zum Anmelden.');
 INSERT INTO txt VALUES ('H5134', 'English', 'Public Key: This field only needs to be filled for netscreen firewalls - this system also needs the public key for successful login.');
+INSERT INTO txt VALUES ('H5135', 'German',  'Schl&uuml;sselpaar*: Handelt es sich bei diesen Login-Daten um ein SSH Public-Key Paar oder um ein Standard-Passwort.
+');
+INSERT INTO txt VALUES ('H5135', 'English', 'Key Pair*: Do these credentials consist of a private/public SSH key pair or do they contain a standard password.
+');
 INSERT INTO txt VALUES ('H5136', 'German',  'Cloud Client ID: Nur f&uuml;r Cloud Instanzen (Azure) ben&ouml;tigt - f&uuml;r alle anderen Plattformen kann dieses Feld leer gelassen werden.
 ');
 INSERT INTO txt VALUES ('H5136', 'English', 'Cloud Client ID: If you have a cloud installation (e.g. Azure) - enter your Azure client ID here. For all other installations, leave this field empty.
@@ -3017,8 +3058,8 @@ INSERT INTO txt VALUES ('H5141', 'English', 'Admins can create and administrate 
     The clone button helps defining new gateways by copying the data from existing ones.
     Before saving at least one of the parameters Device Type, Management or Rulebase has to be different from the existing gateways if the Import Disabled flag is not set.
 ');
-INSERT INTO txt VALUES ('H5151', 'German',  'Name*: Name des Gateways. F&uuml;r Fortinet muss dies der reale Name des Firewallgateways sein wie in der Config definiert.');
-INSERT INTO txt VALUES ('H5151', 'English', 'Name*: Name of the Gateway. For Fortinet this must be the real name of the firewall gateway as defined in the config.');
+INSERT INTO txt VALUES ('H5151', 'German',  'Name*: Name des Gateways. F&uuml;r Legacy Fortinet (ssh) muss dies der reale Name des Firewallgateways sein wie in der Config definiert.');
+INSERT INTO txt VALUES ('H5151', 'English', 'Name*: Name of the Gateway. For legacy Fortinet (ssh) this must be the real name of the firewall gateway as defined in the config.');
 INSERT INTO txt VALUES ('H5152', 'German',  'Kommentar: Optionaler Kommentar zu diesem Gateway.');
 INSERT INTO txt VALUES ('H5152', 'English', 'Comment: Optional comment regarding this gateway.');
 INSERT INTO txt VALUES ('H5153', 'German',  'Ger&auml;tetyp*: Auswahlliste der verf&uuml;gbaren Typen. F&uuml;r die verf&uuml;gbaren Typen siehe
@@ -3033,18 +3074,18 @@ INSERT INTO txt VALUES ('H5155', 'German',  'Lokale Rulebase* / Lokales Package*
     <ul>
         <li>F&uuml;r Check Point R8x kommt hierhin der Name der top level Zugriffsschicht (default ist "Network").</li>
         <li>F&uuml;r Check Point R8x MDS wird hier der Name der global policy Schicht eingetragen, gefolgt vom Namen der domain policy, gertrennt durch "/", z.B. "global-policy-layer-name/domain-policy-layer-name".</li>
-        <li>F&uuml;r Fortinet-Systeme muss jedes Gateway (auch jede vdom) als separates Management mit einem einzelnen Gateway eingeragen werden.
-            Bei vdoms sind sowohl Management-Name, Gateway-Name als auch Regelwerksname wie folgt zu bilden: Systemname___vdom-Name (Trennzeichen: 3x Unterstrich) 
-        </li>
+        <li>F&uuml;r Legacy Fortinet-Systeme muss jedes Gateway (auch jede vdom) als separates Management mit einem einzelnen Gateway eingeragen werden.
+            Bei vdoms sind sowohl Management-Name, Gateway-Name als auch Regelwerksname wie folgt zu bilden: Systemname___vdom-Name (Trennzeichen: 3x Unterstrich)</li>
+        <li>Im Falle von FortiGate Stand-Alone (Import via REST API) wird dieses Feld automatisch ausgef&uuml;llt.</li>
     </ul>
 ');
 INSERT INTO txt VALUES ('H5155', 'English', 'Local Rulebase* / Local Package*: Enter the name of the rulebase here. 
     <ul>
         <li>For Check Point R8x the top level access layer name goes here (default is "Network").</li>
         <li>For Check Point R8x MDS enter the name of the global policy layer followed by the name of the domain policy separated by "/", e.g. "global-policy-layer-name/domain-policy-layer-name".</li>
-        <li>For Fortinet systems every gateway (and every vdom) must be defined as a separate management system with a single gateway.
-            When dealing with vdoms set management name, gateway name and rulebase name as follows: system name___vdom name (separator: 3x underscore) 
-            </li>
+        <li>For legacy Fortinet systems every gateway (and every vdom) must be defined as a separate management system with a single gateway.
+            When dealing with vdoms set management name, gateway name and rulebase name as follows: system name___vdom name (separator: 3x underscore)</li>
+        <li>For FortiGatte stand-alne (import via REST API) this field is filled-in automatically.</li>
     </ul>
 ');
 INSERT INTO txt VALUES ('H5156', 'German',  'Globale Rulebase / Globales Package: Hier wird der Name der Globalen Rulebase hinterlegt.');

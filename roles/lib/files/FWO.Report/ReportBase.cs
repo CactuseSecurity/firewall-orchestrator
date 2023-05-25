@@ -16,7 +16,7 @@ namespace FWO.Report
         rule = 30
     }
 
-    public enum RsbObjType
+    public enum ObjCategory
     {
         all = 0,
         nobj = 1, 
@@ -89,7 +89,7 @@ namespace FWO.Report
 
         public abstract Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback); // to be called when exporting
 
-        public abstract Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, RsbObjType objects, int maxFetchCycles, ApiConnection apiConnection, Func<Management[], Task> callback);
+        public abstract Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<Management[], Task> callback);
 
         public abstract string ExportToCsv();
 
@@ -148,6 +148,22 @@ namespace FWO.Report
             report.AppendLine($"# report generator: Firewall Orchestrator - https://fwo.cactus.de/en");
             report.AppendLine($"# data protection level: For internal use only");
             report.AppendLine($"#");
+            return $"{report.ToString()}";
+        }
+
+        public string DisplayReportHeaderJson()
+        {
+            StringBuilder report = new StringBuilder();
+            report.AppendLine($"\"report type\": \"{userConfig.GetText(ReportType.ToString())}\",");
+            report.AppendLine($"\"report generation date\": \"{DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)\",");
+            if(!ReportType.IsChangeReport())
+            {
+                report.AppendLine($"\"date of configuration shown\": \"{DateTime.Parse(Query.ReportTimeString).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)\",");
+            }
+            report.AppendLine($"\"device filter\": \"{string.Join("; ", Array.ConvertAll(Managements, management => management.NameAndDeviceNames()))}\",");
+            report.AppendLine($"\"other filters\": \"{Query.RawFilter}\",");
+            report.AppendLine($"\"report generator\": \"Firewall Orchestrator - https://fwo.cactus.de/en\",");
+            report.AppendLine($"\"data protection level\": \"For internal use only\",");
             return $"{report.ToString()}";
         }
 
@@ -222,6 +238,34 @@ namespace FWO.Report
             ImpIdQueryVariables["time"] = (Query.ReportTimeString != "" ? Query.ReportTimeString : DateTime.Now.ToString(DynGraphqlQuery.fullTimeFormat));
             ImpIdQueryVariables["mgmIds"] = Query.RelevantManagementIds;
             return await apiConnection.SendQueryAsync<Management[]>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
+        }
+
+        public static string GetIconClass(ObjCategory? objCategory, string? objType)
+        {
+            switch (objType)
+            {
+                case "group" when objCategory == ObjCategory.user:
+                    return "oi oi-people";
+                case "group":
+                    return "oi oi-list-rich";
+                case "host":
+                    return "oi oi-laptop";
+                case "network":
+                    return "oi oi-rss";
+                case "ip_range":
+                    return "oi oi-resize-width";
+                default:
+                    switch (objCategory)
+                    {
+                        case ObjCategory.nobj:
+                            return "oi oi-laptop";
+                        case ObjCategory.nsrv:
+                            return "oi oi-wrench";
+                        case ObjCategory.user:
+                            return "oi oi-person";
+                    }
+                    return "";
+            }
         }
     }
 }

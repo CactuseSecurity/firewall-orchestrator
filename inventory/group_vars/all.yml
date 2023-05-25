@@ -53,6 +53,8 @@ http_proxy_import_parameter: ""
 # use the following syntax for authenticated proxy access:
 # http_proxy=http://USERNAME:PASSWORD@1.2.3.4:8080/
 
+
+debian_testing_version: "11"
 arch: x86_64
 redhat_major_version: "8"
 redhat_arch: "{{ redhat_major_version }}-{{ arch }}"

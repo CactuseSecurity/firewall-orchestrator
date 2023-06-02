@@ -43,7 +43,7 @@ namespace FWO.Logging
                                 logOwned = true;
                             }
                             // Forcefully release lock after timeout
-                            else if (stopwatch.ElapsedMilliseconds > 120 * 1000)
+                            else if (stopwatch.ElapsedMilliseconds > 10 * 1000)
                             {
                                 using StreamWriter writer = new StreamWriter(file);
                                 await writer.WriteLineAsync("FORCEFULLY RELEASED");

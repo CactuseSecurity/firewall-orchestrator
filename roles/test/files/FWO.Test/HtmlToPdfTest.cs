@@ -10,6 +10,7 @@ using FWO.Logging;
 namespace FWO.Test
 {
     [TestFixture]
+    [Parallelizable]
     internal class HtmlToPdfTest
     {
         // Pdf converter
@@ -21,6 +22,7 @@ namespace FWO.Test
         }
 
         [Test]
+        [Parallelizable]
         public void GeneratePdf()
         {
             Log.WriteInfo("Test Log", "starting PDF generation");

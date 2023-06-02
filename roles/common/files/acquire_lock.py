@@ -21,7 +21,7 @@ while True:
                 print("Lock was granted.")
                 exit()
             # Check if timeout reached
-            if time() - start_time > 120:
+            if time() - start_time > 10:
                 lock_file.write("FORCEFULLY GRANTED\n")                
                 print("Forcefully granted lock after timeout was reached.")
                 exit()

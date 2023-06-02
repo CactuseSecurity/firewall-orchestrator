@@ -84,7 +84,7 @@ def normalize_svcobjects(full_config, config2import, import_id, scope):
                     addObject(svc_objects, 'simple', name, color, 1, None, None, None, import_id, full_config=full_config)
                     added_svc_obj += 1
                 else:
-                    logger.warning("Unknown service found: " + obj_orig['name'] +', proto: ' + obj_orig['protocol'])
+                    logger.warning("Unknown service protocol found: " + obj_orig['name'] +', proto: ' + obj_orig['protocol'])
             elif type == 'group':
                 addObject(svc_objects, type, name, color, 0, None, member_names, session_timeout, import_id, full_config=full_config)
             else:

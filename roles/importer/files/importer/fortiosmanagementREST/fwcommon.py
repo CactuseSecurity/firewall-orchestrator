@@ -18,7 +18,9 @@ from fwo_api import setAlert, create_data_issue
 
 
 nw_obj_types = ['firewall/address', 'firewall/address6', 'firewall/addrgrp',
-                'firewall/addrgrp6', 'firewall/ippool', 'firewall/vip']
+                'firewall/addrgrp6', 'firewall/ippool', 'firewall/vip', 
+                'firewall/internet-service', 'firewall/internet-service-group'] 
+                # internet-service is not a service as such but is used as dest (mainly)
 svc_obj_types = ['application/list', 'application/group',
                  # 'application/categories',
                  #'application/custom', 

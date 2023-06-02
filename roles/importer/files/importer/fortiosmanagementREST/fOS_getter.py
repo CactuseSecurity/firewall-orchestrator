@@ -50,14 +50,16 @@ def update_config_with_fortiOS_api_call(config_json, api_url, result_name, show_
     limit = int(limit)
     returned_new_objects = True
     full_result = []
-    while returned_new_objects:
-        range = [offset, limit]        
-        result = fortiOS_api_call(api_url)
-        full_result.extend(result)
-        offset += limit
-        if len(result)<limit:
-            returned_new_objects = False
-
+    result = fortiOS_api_call(api_url)
+    full_result.extend(result)
+    # removing loop for api gets (no limit option in FortiOS API)
+    # while returned_new_objects:
+    #     range = [offset, limit]        
+    # result = fortiOS_api_call(api_url)
+    # full_result.extend(result)
+    #     offset += limit
+    #     if len(result)<limit:
+    #         returned_new_objects = False
     if result_name in config_json:  # data already exists - extend
         config_json[result_name].extend(full_result)
     else:

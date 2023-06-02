@@ -120,9 +120,10 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt
     original_obj_uid = 'Original'
     orig_obj = create_network_object(import_id=import_id, name=original_obj_name, type='network', ip='0.0.0.0/0',\
         uid=original_obj_uid, zone='global', color='black', comment='"original" network object created by FWO importer for NAT purposes')
-
     full_config['nw_obj_lookup_dict'][original_obj_name] = original_obj_uid
     nw_objects.append(orig_obj)
+
+    resolve_nw_groups(nw_objects)
     config2import.update({'network_objects': nw_objects})
 
 
@@ -145,21 +146,37 @@ def resolve_nw_uid_to_name(uid, nw_objects):
     return 'ERROR: uid "' + uid + '" not found'
 
 
-def add_member_names_for_nw_group(idx, nw_objects):
-    group = nw_objects.pop(idx)
-    if group['obj_member_refs'] == '' or group['obj_member_refs'] == None:
-        #member_names = None
-        #obj_member_refs = None
-        group['obj_member_names'] = None
-        group['obj_member_refs'] = None
-    else:
-        member_names = ''
-        obj_member_refs = group['obj_member_refs'].split(list_delimiter)
-        for ref in obj_member_refs:
-            member_name = resolve_nw_uid_to_name(ref, nw_objects)
-            member_names += member_name + list_delimiter
-        group['obj_member_names'] = member_names[:-1]
-    nw_objects.insert(idx, group)
+def resolve_nw_groups(nw_objects):
+    # add uids (if possible)
+
+    # build helper dict with idx = name
+    helper_dict = {}
+    for obj in nw_objects:
+        helper_dict[obj['obj_name']] = obj['obj_uid']
+
+    for obj in nw_objects:
+        if obj['obj_typ'] == 'group':
+            member_ref_ar = []
+            for member_name in obj['obj_member_names'].split(list_delimiter):
+                member_ref_ar.append(helper_dict[member_name])
+            obj['obj_member_refs'] = list_delimiter.join(member_ref_ar)
+
+
+# def add_member_names_for_nw_group(idx, nw_objects):
+#     group = nw_objects.pop(idx)
+#     if group['obj_member_refs'] == '' or group['obj_member_refs'] == None:
+#         #member_names = None
+#         #obj_member_refs = None
+#         group['obj_member_names'] = None
+#         group['obj_member_refs'] = None
+#     else:
+#         member_names = ''
+#         obj_member_refs = group['obj_member_refs'].split(list_delimiter)
+#         for ref in obj_member_refs:
+#             member_name = resolve_nw_uid_to_name(ref, nw_objects)
+#             member_names += member_name + list_delimiter
+#         group['obj_member_names'] = member_names[:-1]
+#     nw_objects.insert(idx, group)
 
 
 def create_network_object(import_id, name, type, ip, uid, color, comment, zone):

@@ -14,6 +14,8 @@ import time
 
 
 rule_access_scope_v4 = ['rules']
+rule_access_scope_v6 = []
+
 rule_access_scope = ['rules']
 rule_nat_scope = ['rules_nat']
 rule_scope = rule_access_scope + rule_nat_scope
@@ -45,6 +47,7 @@ def getNatPolicy(sid, fm_api_url, raw_config, adom_name, device, limit):
 
 
 def normalize_access_rules(full_config, config2import, import_id, mgm_details={}, jwt=None):
+    logger = getFwoLogger()
     rules = []
     rule_number = 0
     # rule_number, first_v4, first_v6 = insert_headers(rule_table, first_v6, first_v4, full_config, rules, import_id, localPkgName,src_ref_all,dst_ref_all,rule_number)
@@ -90,10 +93,29 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
         rule['rule_dst'] = list_delimiter.join([d['name'] for d in rule_orig['dstaddr']])
         rule['rule_svc'] = list_delimiter.join([d['name'] for d in rule_orig['service']])
 
-        # TODO: add ipv6 addresses
-        # rule['rule_src'] = extend_string_list(rule['rule_src'], rule_orig, 'srcaddr6', list_delimiter, jwt=jwt, import_id=import_id)
-        # rule['rule_dst'] = extend_string_list(rule['rule_dst'], rule_orig, 'dstaddr6', list_delimiter, jwt=jwt, import_id=import_id)
+        # handling internet-service rules - no mixed mode between (src/dst) and internet service (src), so overwriting)
+        if 'internet-service-src-name' in rule_orig and len(rule_orig['internet-service-src-name'])>0:
+            rule['rule_src'] = list_delimiter.join([d['name'] for d in rule_orig['internet-service-src-name']])
+            set_service_field_internet_service(rule, config2import, import_id)
+        if 'internet-service-name' in rule_orig and len(rule_orig['internet-service-name'])>0:
+            rule['rule_dst'] = list_delimiter.join([d['name'] for d in rule_orig['internet-service-name']])
+            set_service_field_internet_service(rule, config2import, import_id)
 
+        # add ipv6 addresses
+        rule_src_v6 = [d['name'] for d in rule_orig['srcaddr6']]
+        rule_dst_v6 = [d['name'] for d in rule_orig['dstaddr6']]
+        if len(rule_src_v6)>0:
+            if len(rule['rule_src'])>0:
+                rule['rule_src'] = list_delimiter.join(rule['rule_src'].split(list_delimiter) + rule_src_v6)
+            else:
+                rule['rule_src'] = list_delimiter.join(rule_src_v6)
+        if len(rule_dst_v6)>0:
+            if len(rule['rule_dst'])>0:
+                rule['rule_dst'] = list_delimiter.join(rule['rule_dst'].split(list_delimiter) + rule_dst_v6)
+            else:
+                rule['rule_dst'] = list_delimiter.join(rule_dst_v6)
+
+        # add zone information
         if len(rule_orig['srcintf'])>0:
             src_obj_zone = fOS_zone.add_zone_if_missing (config2import, rule_orig['srcintf'][0]['name'], import_id)
             rule.update({ 'rule_from_zone': src_obj_zone }) # todo: currently only using the first zone
@@ -117,6 +139,18 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
         #     rules.append(xlate_rule)
         rule_number += 1    # nat rules have their own numbering
     config2import.update({'rules': rules})
+
+def set_service_field_internet_service(rule, config2import, import_id):
+    # check if dummy service "Internet Service" already exists and create if not
+    found_internet_service_obj = next((item for item in config2import['service_objects'] if item["svc_name"] == "Internet Service"), None)
+    if found_internet_service_obj is None:
+        config2import['service_objects'].append({
+            'svc_name': 'Internet Service', 'svc_typ': 'group', 'svc_uid': 'Internet Service', 'control_id': import_id
+            })
+
+    # set service to "Internet Service"
+    rule['rule_svc'] = 'Internet Service'
+    rule['rule_svc_refs'] = 'Internet Service'
 
 
 # pure nat rules 

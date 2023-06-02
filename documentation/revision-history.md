@@ -305,3 +305,9 @@ adding report template format fk and permissions
 - Reporting: new lean export format JSON for resolved and tech reports
 - hotfix FortiGate FortiOS REST importer: removing reference to gw_networking
 - hotfix CPR8x importer: handling of empty section headers
+
+### 6.4.1 02.06.2023 MAIN
+- FortiOS importer: add support for internet services
+
+### 6.4.2 xx.06.2023 DEVELOP
+- CPR8x importer: basic support for inline layers

@@ -7,7 +7,6 @@ namespace FWO.Ui.Display
 {
     public class RuleDisplayBase
     {
-        protected StringBuilder? result;
         protected UserConfig userConfig;
 
         public RuleDisplayBase(UserConfig userConfig)
@@ -142,7 +141,7 @@ namespace FWO.Ui.Display
             return userNwObjectList;
         }
 
-        public List<NetworkService> getNetworkServices(ServiceWrapper[] serviceArray)
+        public List<NetworkService> GetNetworkServices(ServiceWrapper[] serviceArray)
         {
             HashSet<NetworkService> collectedServices = new HashSet<NetworkService>();
             foreach (ServiceWrapper service in serviceArray)

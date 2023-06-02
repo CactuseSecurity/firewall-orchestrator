@@ -119,7 +119,7 @@ namespace FWO.Ui.Display
             if (reportType.IsResolvedReport())
             {
                 List<string> displayedServices = new List<string>();
-                foreach (NetworkService service in getNetworkServices(rule.Services))
+                foreach (NetworkService service in GetNetworkServices(rule.Services))
                 {
                     displayedServices.Add(Quote(DisplayService(service, reportType).ToString()));
                 }

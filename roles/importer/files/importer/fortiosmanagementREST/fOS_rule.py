@@ -96,8 +96,10 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
         # handling internet-service rules - no mixed mode between (src/dst) and internet service (src), so overwriting)
         if 'internet-service-src-name' in rule_orig and len(rule_orig['internet-service-src-name'])>0:
             rule['rule_src'] = list_delimiter.join([d['name'] for d in rule_orig['internet-service-src-name']])
+            set_service_field_internet_service(rule, config2import, import_id)
         if 'internet-service-name' in rule_orig and len(rule_orig['internet-service-name'])>0:
             rule['rule_dst'] = list_delimiter.join([d['name'] for d in rule_orig['internet-service-name']])
+            set_service_field_internet_service(rule, config2import, import_id)
 
         # add ipv6 addresses
         rule_src_v6 = [d['name'] for d in rule_orig['srcaddr6']]
@@ -137,6 +139,18 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
         #     rules.append(xlate_rule)
         rule_number += 1    # nat rules have their own numbering
     config2import.update({'rules': rules})
+
+def set_service_field_internet_service(rule, config2import, import_id):
+    # check if dummy service "Internet Service" already exists and create if not
+    found_internet_service_obj = next((item for item in config2import['service_objects'] if item["svc_name"] == "Internet Service"), None)
+    if found_internet_service_obj is None:
+        config2import['service_objects'].append({
+            'svc_name': 'Internet Service', 'svc_typ': 'group', 'svc_uid': 'Internet Service', 'control_id': import_id
+            })
+
+    # set service to "Internet Service"
+    rule['rule_svc'] = 'Internet Service'
+    rule['rule_svc_refs'] = 'Internet Service'
 
 
 # pure nat rules 

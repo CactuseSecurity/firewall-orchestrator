@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using FWO.Logging;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -15,6 +16,9 @@ namespace FWO.Ui
     {
         public static void Main(string[] args)
         {
+            // Implicitly call static constructor so backround lock process is started
+            // (static constructor is only called after class is used in any way)
+            Log.WriteInfo("Startup", "Starting FWO UI Server...");
             CreateHostBuilder(args).Build().Run();
         }
 

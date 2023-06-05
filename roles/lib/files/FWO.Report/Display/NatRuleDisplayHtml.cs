@@ -22,7 +22,7 @@ namespace FWO.Ui.Display
 
         public string DisplayTranslatedService(Rule rule, OutputLocation location, string style = "")
         {
-            result = new StringBuilder();
+            StringBuilder result = new StringBuilder();
             if (rule.NatData.TranslatedServiceNegated)
             {
                 result.AppendLine(userConfig.GetText("negated") + "<br>");
@@ -33,7 +33,7 @@ namespace FWO.Ui.Display
 
         private string DisplayTranslatedSourceOrDestination(Rule rule, OutputLocation location, string style, bool isSource)
         {
-            result = new StringBuilder();
+            StringBuilder result = new StringBuilder();
             if ((isSource && rule.NatData.TranslatedSourceNegated) ||(!isSource && rule.NatData.TranslatedDestinationNegated))
             {
                 result.AppendLine(userConfig.GetText("negated") + "<br>");

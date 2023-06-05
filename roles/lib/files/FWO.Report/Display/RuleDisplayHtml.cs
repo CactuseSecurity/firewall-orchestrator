@@ -30,7 +30,7 @@ namespace FWO.Ui.Display
 
         public string DisplayServices(Rule rule, OutputLocation location, ReportType reportType, string style = "")
         {
-            result = new StringBuilder();
+            StringBuilder result = new StringBuilder();
             if (rule.ServiceNegated)
             {
                 result.AppendLine(userConfig.GetText("negated") + "<br>");
@@ -38,7 +38,7 @@ namespace FWO.Ui.Display
 
             if(reportType.IsResolvedReport())
             {
-                NetworkService[] services = getNetworkServices(rule.Services).ToArray();
+                NetworkService[] services = GetNetworkServices(rule.Services).ToArray();
                 result.AppendJoin("<br>", Array.ConvertAll(services, service => ServiceToHtml(service, rule.MgmtId, location, style, reportType)));
             }
             else
@@ -116,7 +116,7 @@ namespace FWO.Ui.Display
 
         private string DisplaySourceOrDestination(Rule rule, OutputLocation location, ReportType reportType, string style, bool isSource)
         {
-            result = new StringBuilder();
+            StringBuilder result = new StringBuilder();
             if ((isSource && rule.SourceNegated) ||(!isSource && rule.DestinationNegated))
             {
                 result.AppendLine(userConfig.GetText("negated") + "<br>");

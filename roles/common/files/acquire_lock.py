@@ -1,63 +1,35 @@
 #!/usr/bin/python3
 
 import sys
-from time import sleep
+from time import sleep, time
 
 assert len(sys.argv) == 2
 lock_file_path = sys.argv[1]
 
-lock_file = None
-access_possible = False
-while not access_possible:
-    try:
-        lock_file = open(lock_file_path, "r")
-        lock_file_content_raw = lock_file.readlines()
-        if len(lock_file_content_raw) == 0:
-            # empty file
-            access_possible = True
-        else:
-            lock_file_content = lock_file_content_raw[-1].strip()
-            if lock_file_content == "":
-                access_possible = True
-            elif lock_file_content.endswith("ACKNOWLEDGED"):
-                access_possible = True
-            elif lock_file_content.endswith("RELEASED"):
-                print("Waiting for release acknowledge.")
-                sleep(0.5)
-    except Exception as e:
-        sleep(0.1)
-        print(e)
-    finally:
-        if lock_file != None:
-            lock_file.close()
-    sleep(0.1)
+last_line = ""
+start_time = time()
 
-access_requested = False
-while not access_requested:
-    try:
-        lock_file = open(lock_file_path, "w")
-        lock_file.writelines("REQUESTED\n")
-        access_requested = True
+while True:
+    try:            
+        with open(lock_file_path, "a+") as lock_file:
+            # Read the last line of the lock file
+            lock_file.seek(0)
+            lines = lock_file.readlines()
+            last_line = lines[-1].strip() if lines else "" 
+            # Exit if lock was granted
+            if last_line.endswith("GRANTED"):
+                print("Lock was granted.")
+                exit()
+            # Check if timeout reached
+            if time() - start_time > 10:
+                lock_file.write("FORCEFULLY GRANTED\n")                
+                print("Forcefully granted lock after timeout was reached.")
+                exit()
+            # Request lock if not already done
+            if not last_line.endswith("REQUESTED"):
+                lock_file.write("REQUESTED\n")
+                print("Lock was requested. Waiting until it is granted.")
     except Exception as e:
         sleep(0.1)
         print(e)
-    finally:
-        if lock_file != None:
-            lock_file.close()
-    sleep(0.1)
-
-access_granted = False
-while not access_granted:
-    try:
-        lock_file = open(lock_file_path, "a+")
-        # jump to beginning of file
-        lock_file.seek(0)
-        access_granted = lock_file.readlines(
-        )[-1].strip().endswith("GRANTED")
-    except Exception as e:
-        sleep(0.1)
-        print(e)
-    finally:
-        if lock_file != None:
-            lock_file.close()
     sleep(0.1)

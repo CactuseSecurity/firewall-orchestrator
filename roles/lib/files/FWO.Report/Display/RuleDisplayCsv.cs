@@ -104,11 +104,11 @@ namespace FWO.Ui.Display
 
         public string DisplayServices(Rule rule, ReportType reportType)
         {
-            result = new StringBuilder();
+            StringBuilder result = new StringBuilder();
             if (reportType.IsResolvedReport())
             {
                 List<string> displayedServices = new List<string>();
-                foreach (NetworkService service in getNetworkServices(rule.Services))
+                foreach (NetworkService service in GetNetworkServices(rule.Services))
                 {
                     displayedServices.Add(DisplayService(service, reportType).ToString());
                 }
@@ -135,7 +135,7 @@ namespace FWO.Ui.Display
 
         private string DisplaySourceOrDestination(Rule rule, ReportType reportType , bool isSource)
         {
-            result = new StringBuilder("");
+            StringBuilder result = new StringBuilder("");
 
             if (reportType.IsResolvedReport())
             {

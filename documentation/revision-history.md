@@ -312,5 +312,8 @@ adding report template format fk and permissions
 ### 6.4.2 05.06.2023 MAIN
 - Hotfix - log locking UI hangs on prod systems due to infrequent log entries
 
-### 6.4.3 xx.06.2023 DEVELOP
+### 6.4.3 05.06.2023 MAIN
+- Hotfix - global config subsription timout after 12h
+
+### 6.4.4 xx.06.2023 DEVELOP
 - CPR8x importer: basic support for inline layers

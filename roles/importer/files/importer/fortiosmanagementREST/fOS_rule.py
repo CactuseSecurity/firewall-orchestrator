@@ -140,12 +140,13 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
         rule_number += 1    # nat rules have their own numbering
     config2import.update({'rules': rules})
 
+
 def set_service_field_internet_service(rule, config2import, import_id):
     # check if dummy service "Internet Service" already exists and create if not
     found_internet_service_obj = next((item for item in config2import['service_objects'] if item["svc_name"] == "Internet Service"), None)
     if found_internet_service_obj is None:
         config2import['service_objects'].append({
-            'svc_name': 'Internet Service', 'svc_typ': 'group', 'svc_uid': 'Internet Service', 'control_id': import_id
+                'svc_name': 'Internet Service', 'svc_typ': 'group', 'svc_uid': 'Internet Service', 'control_id': import_id
             })
 
     # set service to "Internet Service"

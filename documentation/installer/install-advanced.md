@@ -134,7 +134,7 @@ rsyslog config
             compress
             maxage 7
             rotate 99
-            size=+4096k
+            maxsize 4096k
             missingok
             copytruncate
             sharedscripts

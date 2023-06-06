@@ -41,58 +41,57 @@ def call(url, jwt, query, query_variables="", role="reporter", show_progress=Fal
     full_query = {"query": query, "variables": query_variables}
     logger = getFwoLogger()
 
-    session = requests.Session()
-    if fwo_globals.verify_certs is None:    # only for first FWO API call (getting info on cert verification)
-        session.verify = False
-    else: 
-        session.verify = fwo_globals.verify_certs
-    session.headers = request_headers
+    with requests.Session() as session:
+        if fwo_globals.verify_certs is None:    # only for first FWO API call (getting info on cert verification)
+            session.verify = False
+        else: 
+            session.verify = fwo_globals.verify_certs
+        session.headers = request_headers
 
-    try:
-        r = session.post(url, data=json.dumps(full_query), timeout=int(fwo_api_http_import_timeout))
-        r.raise_for_status()
-    except requests.exceptions.RequestException:
-        logger.error(showApiCallInfo(url, full_query, request_headers, type='error') + ":\n" + str(traceback.format_exc()))
+        try:
+            r = session.post(url, data=json.dumps(full_query), timeout=int(fwo_api_http_import_timeout))
+            r.raise_for_status()
+        except requests.exceptions.RequestException:
+            logger.error(showApiCallInfo(url, full_query, request_headers, type='error') + ":\n" + str(traceback.format_exc()))
+            if r != None:
+                if r.status_code == 503:
+                    raise FwoApiTServiceUnavailable("FWO API HTTP error 503 (FWO API died?)" )
+                if r.status_code == 502:
+                    raise FwoApiTimeout("FWO API HTTP error 502 (might have reached timeout of " + str(int(fwo_api_http_import_timeout)/60) + " minutes)" )
+            else:
+                raise
+        if int(fwo_globals.debug_level) > 4:
+            logger.debug (showApiCallInfo(url, full_query, request_headers, type='debug'))
+        if show_progress:
+            print('.', end='', flush=True)
         if r != None:
-            if r.status_code == 503:
-                raise FwoApiTServiceUnavailable("FWO API HTTP error 503 (FWO API died?)" )
-            if r.status_code == 502:
-                raise FwoApiTimeout("FWO API HTTP error 502 (might have reached timeout of " + str(int(fwo_api_http_import_timeout)/60) + " minutes)" )
+            return r.json()
         else:
-            raise
-    if int(fwo_globals.debug_level) > 4:
-        logger.debug (showApiCallInfo(url, full_query, request_headers, type='debug'))
-    if show_progress:
-        print('.', end='', flush=True)
-
-    if r != None:
-        return r.json()
-    else:
-        return None
+            return None
 
 
 def login(user, password, user_management_api_base_url, method='api/AuthenticationToken/Get'):
     payload = {"Username": user, "Password": password}
 
-    session = requests.Session()
-    if fwo_globals.verify_certs is None:    # only for first FWO API call (getting info on cert verification)
-        session.verify = False
-    else: 
-        session.verify = fwo_globals.verify_certs
-    session.headers = {'Content-Type': 'application/json'}
+    with requests.Session() as session:
+        if fwo_globals.verify_certs is None:    # only for first FWO API call (getting info on cert verification)
+            session.verify = False
+        else: 
+            session.verify = fwo_globals.verify_certs
+        session.headers = {'Content-Type': 'application/json'}
 
-    try:
-        response = session.post(user_management_api_base_url + method, data=json.dumps(payload))
-    except requests.exceptions.RequestException:
-        raise FwoApiLoginFailed ("fwo_api: error during login to url: " + str(user_management_api_base_url) + " with user " + user) from None
+        try:
+            response = session.post(user_management_api_base_url + method, data=json.dumps(payload))
+        except requests.exceptions.RequestException:
+            raise FwoApiLoginFailed ("fwo_api: error during login to url: " + str(user_management_api_base_url) + " with user " + user) from None
 
-    if response.text is not None and response.status_code==200:
-        return response.text
-    else:
-        error_txt = "fwo_api: ERROR: did not receive a JWT during login" + \
-                        ", api_url: " + str(user_management_api_base_url) + \
-                        ", ssl_verification: " + str(fwo_globals.verify_certs)
-        raise FwoApiLoginFailed(error_txt)
+        if response.text is not None and response.status_code==200:
+            return response.text
+        else:
+            error_txt = "fwo_api: ERROR: did not receive a JWT during login" + \
+                            ", api_url: " + str(user_management_api_base_url) + \
+                            ", ssl_verification: " + str(fwo_globals.verify_certs)
+            raise FwoApiLoginFailed(error_txt)
 
 
 def set_api_url(base_url, testmode, api_supported, hostname):

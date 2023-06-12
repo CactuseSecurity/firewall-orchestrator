@@ -119,7 +119,7 @@
 
 - hosts: all
   roles:
-    - { role: test, when: "not installation_mode == 'uninstall'" }
+    - { role: test, when: not installation_mode == 'uninstall' }
   tags:
     - test
 

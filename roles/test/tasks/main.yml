@@ -42,7 +42,7 @@
     sample_checkpoint_name: "{{ test_checkpoint_name }}"
     sample_config_user: fworchtest
     sample_config_user_home: "/home/{{ sample_config_user }}"
-  when: "'sampleserver' in group_names"
+  when: "'sampleserver' in group_names and conduct_test|bool"
 
 - name: include test auth data
   include_role:
@@ -52,7 +52,7 @@
     sample_role_purpose: test
     sample_user1_pw: "{{ test_user1_pw }}"
     sample_user2_pw: "{{ test_user2_pw }}"
-  when: "'middlewareserver' in group_names"
+  when: "'middlewareserver' in group_names and conduct_test|bool"
 
 - name: database testing
   import_tasks: test-database.yml
@@ -71,7 +71,7 @@
 
 - name: imorter testing
   import_tasks: test-importer.yml
-  when: "'sampleserver' in group_names"
+  when: "'sampleserver' in group_names and conduct_test|bool"
 
 - name: testing all exposed web services
   import_tasks: test-web.yml

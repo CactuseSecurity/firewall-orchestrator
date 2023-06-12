@@ -97,6 +97,11 @@ namespace FWO.Api.Data
             Comment = Sanitizer.SanitizeCommentOpt(Comment, ref shortened);
             return shortened;
         }
+        
+        public bool ContainsRules()
+        {
+            return (Rules != null && Rules.Count()>0);
+        }
     }
 
 

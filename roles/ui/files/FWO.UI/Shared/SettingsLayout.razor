@@ -61,13 +61,28 @@
                         <span class="oi oi-tags"></span> @(userConfig.GetText("roles"))
                     </NavLink>
                 </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/owners">
+                        <span class="oi oi-flag"></span> @(userConfig.GetText("owners"))
+                    </NavLink>
+                </li>
                 <hr />
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5013"))">
                     <h5>@(userConfig.GetText("defaults"))</h5>
                 </li>
                 <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/email">
+                        <span class="oi oi-envelope-closed"></span> @(userConfig.GetText("email_settings"))
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/defaults">
                         <span class="oi oi-cog"></span> @(userConfig.GetText("standards"))
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/recertificationgeneral">
+                        <span class="oi oi-badge"></span> @(userConfig.GetText("recertification"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
@@ -99,11 +114,6 @@
                         <span class="oi oi-cog"></span> @(userConfig.GetText("customizing"))
                     </NavLink>
                 </li>
-                <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="settings/owners">
-                        <span class="oi oi-flag"></span> @(userConfig.GetText("owners"))
-                    </NavLink>
-                </li>
                 <hr />
             </AuthorizeView>
             <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5014"))">
@@ -124,7 +134,7 @@
             </li>
             <AuthorizeView Roles="admin, recertifier, auditor">
                 <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="settings/recertification">
+                    <NavLink class="nav-link" href="settings/recertificationpersonal">
                         <span class="oi oi-badge"></span> @(userConfig.GetText("recertification"))
                     </NavLink>
                 </li>

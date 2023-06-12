@@ -1,4 +1,5 @@
 ﻿@using FWO.Api.Data
+@using FWO.Report
 
 @typeparam InputDataType
 
@@ -16,13 +17,13 @@
 @code
 {
     [Parameter]
-    public Func<byte, Func<Management[], Task>, long, bool, Task>? FetchObjects { get; set; }
+    public Func<RsbTab, ObjCategory, Func<Management[], Task>, long, bool, Task>? FetchObjects { get; set; }
 
     [Parameter]
     public bool Recert { get; set; }
 
     [Parameter]
-    public byte Tab { get; set; }
+    public RsbTab Tab { get; set; }
 
     [Parameter]
     public int PageSize { get; set; }

@@ -10,7 +10,13 @@ namespace FWO.Api.Client.Queries
         public static readonly string newOwner;
         public static readonly string updateOwner;
         public static readonly string deleteOwner;
-        public static readonly string setDefaultOwner;
+        // public static readonly string setDefaultOwner;
+        public static readonly string setOwnerLastCheck;
+        public static readonly string getOwnerIdsFromGroups;
+        public static readonly string getOwnerIdsForUser;
+        public static readonly string getNetworkOwnerships;
+        public static readonly string newNetworkOwnership;
+        public static readonly string deleteNetworkOwnerships;
 
 
         static OwnerQueries()
@@ -23,7 +29,13 @@ namespace FWO.Api.Client.Queries
                 newOwner = File.ReadAllText(QueryPath + "owner/newOwner.graphql");
                 updateOwner = File.ReadAllText(QueryPath + "owner/updateOwner.graphql");
                 deleteOwner = File.ReadAllText(QueryPath + "owner/deleteOwner.graphql");
-                setDefaultOwner = File.ReadAllText(QueryPath + "owner/setDefaultOwner.graphql");
+                //setDefaultOwner = File.ReadAllText(QueryPath + "owner/setDefaultOwner.graphql");
+                setOwnerLastCheck = File.ReadAllText(QueryPath + "owner/setOwnerLastCheck.graphql");
+                getOwnerIdsFromGroups = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/getOwnerIdsFromGroups.graphql");
+                getOwnerIdsForUser = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/getOwnerIdsForUser.graphql");
+                getNetworkOwnerships = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/getNetworkOwnerships.graphql");
+                newNetworkOwnership = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/newNetworkOwnership.graphql");
+                deleteNetworkOwnerships = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/deleteNetworkOwnerships.graphql");
             }
             catch (Exception exception)
             {

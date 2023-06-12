@@ -9,6 +9,7 @@ After=network.target remote-fs.target nss-lookup.target {{ middleware_service_na
 {% else -%}
 After=network.target remote-fs.target nss-lookup.target
 {%- endif %}
+
 [Service]
 WorkingDirectory={{ ui_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_version }}
 # adding an extra 3 secs for docker api to come up?

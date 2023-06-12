@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using FWO.Api.Client;
 using Newtonsoft.Json.Linq;
 using FWO.Logging;
+using GraphQL.Client.Abstractions;
+using GraphQL.Client.Http;
 
 namespace FWO.Api.Client
 {
@@ -16,13 +18,41 @@ namespace FWO.Api.Client
         public delegate void SubscriptionUpdate(SubscriptionResponseType reponse);
         public event SubscriptionUpdate OnUpdate;
 
-        private readonly IObservable<GraphQLResponse<dynamic>> subscriptionStream;
-        private readonly IDisposable subscription;
+        private IObservable<GraphQLResponse<dynamic>> subscriptionStream;
+        private IDisposable subscription;
+        private readonly GraphQLHttpClient graphQlClient;
+        private readonly GraphQLRequest request;
+        private readonly Action<Exception> internalExceptionHandler;
 
-        public ApiSubscription(IObservable<GraphQLResponse<dynamic>> subscriptionStream, SubscriptionUpdate OnUpdate)
+        public ApiSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request, Action<Exception> exceptionHandler, SubscriptionUpdate OnUpdate)
         {
-            this.subscriptionStream = subscriptionStream;
             this.OnUpdate = OnUpdate;
+            this.graphQlClient = graphQlClient;
+            this.request = request;
+
+            // handle subscription terminating exceptions
+            internalExceptionHandler = (Exception exception) =>
+            {
+                // Case: Jwt expired
+                if (exception.Message.Contains("JWTExpired"))
+                {
+                    // Quit subscription by throwing exception.
+                    // This does NOT lead to a real thrown exception within the application but is instead handled by the graphql library
+                    throw exception;
+                }
+                exceptionHandler(exception);
+            };
+
+            CreateSubscription();
+
+            apiConnection.OnAuthHeaderChanged += ApiConnectionOnAuthHeaderChanged;
+        }
+
+        private void CreateSubscription()
+        {
+            Log.WriteDebug("API", $"Creating API subscription {request.OperationName}.");
+            subscriptionStream = graphQlClient.CreateSubscriptionStream<dynamic>(request, internalExceptionHandler);
+            Log.WriteDebug("API", "API subscription created.");
 
             subscription = subscriptionStream.Subscribe(response =>
             {
@@ -39,8 +69,13 @@ namespace FWO.Api.Client
                     try
                     {
                         // If repsonse.Data == null -> Jwt expired - connection was closed
-                        // Leads to this method getting called again (bug?)
-                        if (response.Data != null) 
+                        // Leads to this method getting called again
+                        if (response.Data == null)
+                        {
+                            // Terminate subscription
+                            subscription.Dispose();
+                        }
+                        else
                         {
                             JObject data = (JObject)response.Data;
                             JProperty prop = (JProperty)(data.First ?? throw new Exception($"Could not retrieve unique result attribute from Json.\nJson: {response.Data}"));
@@ -56,6 +91,12 @@ namespace FWO.Api.Client
                     }
                 }
             });
+        }
+
+        private void ApiConnectionOnAuthHeaderChanged(object? sender, string jwt)
+        {
+            subscription.Dispose();
+            CreateSubscription();
         }
 
         public void Dispose()

@@ -6,11 +6,13 @@
 @using FWO.Report.Filter
 @using FWO.Ui.Pages.Reporting.Reports
 @using FWO.Api.Data
+@using FWO.Middleware.Client
 
 @page "/certification"
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject MiddlewareClient middlewareClient
 
 @* ==== LEFT SIDEBAR ==== *@
 <Sidebar @ref="deviceSelectionSidebar" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth">
@@ -28,8 +30,34 @@
     </div>
     <div class="p-3">
         <h5 class="text-left">@(userConfig.GetText("due_within")):</h5>
-        <input  type="text" class="form-control form-control-sm" @bind="userConfig.RecertificationDisplayPeriod" />
+        <input  type="text" class="form-control form-control-sm" @bind="recertLookAheadDays" />
     </div>
+
+    <AuthorizeView Roles="admin, auditor">
+        <Authorized>
+            <div class="p-3">
+                <h7 class="text-left">@(userConfig.GetText("owner"))</h7>
+                <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="true"
+                    @bind-SelectedElement="selectedOwner" Elements="ownerList">
+                    <ElementTemplate Context="owner">
+                        @owner.Name
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </Authorized>
+        <NotAuthorized>
+            @if(collectedOwnerships.Count > 1)
+            {
+                <h7 class="text-left">@(userConfig.GetText("owner"))</h7>
+                <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="true"
+                    @bind-SelectedElement="selectedOwner" Elements="collectedOwnerships">
+                    <ElementTemplate Context="owner">
+                        @owner.Name
+                    </ElementTemplate>
+                </Dropdown>
+            }
+        </NotAuthorized>
+    </AuthorizeView>
 
     <DeviceSelection Environment="Cert" @bind-DeviceFilter="deviceFilter" @bind-CollapseAll="collapseDevices" @bind-FilterInput="filterInput" @bind-SelectAll="selectAll" ></DeviceSelection>
 </Sidebar>
@@ -39,24 +67,28 @@
 <div style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px");">
     <h3>@(userConfig.GetText("recertification"))</h3>
     <div class="btn-group sticky-marker-60">
-        <AuthorizeView Roles="admin, recertifier">
-            <Authorized>
-                @if(rulesFound)
-                {
-                    <button class="btn btn-sm btn-danger" @onclick="() => RequestExecuteSelected()">@(userConfig.GetText("execute_selected"))</button>
-                }
-                else
-                {
+        @if(!readonlyMode)
+        {
+            <AuthorizeView Roles="admin, recertifier">
+                <Authorized>
+                    @if(rulesFound)
+                    {
+                        <button class="btn btn-sm btn-danger" @onclick="() => RequestExecuteSelected()">@(userConfig.GetText("execute_selected"))</button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("execute_selected"))</button>
+                    }
+                </Authorized>
+                <NotAuthorized>
                     <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("execute_selected"))</button>
-                }
-            </Authorized>
-            <NotAuthorized>
-                <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("execute_selected"))</button>
-            </NotAuthorized>
-        </AuthorizeView>
+                </NotAuthorized>
+            </AuthorizeView>
+        }
     </div>
     <hr />
-    <RulesReport Recertification="true" Managements="managements" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedRules"></RulesReport>
+    <RulesReport Recertification="true" ReadonlyMode="readonlyMode" Managements="managements" RulesPerPage="rulesPerPage" 
+        ReportParams="reportParams" @bind-SelectedRules="selectedRules" SelectedReportType="ReportType.Recertification"/>
 </div>
 
 <PopUp Title="@(userConfig.GetText("add_comment"))" Show="@AddCommentMode" Large="true" OnClose="() => AddCommentMode = false">
@@ -82,54 +114,19 @@
 </PopUp>
 
 @*==== RIGHT SIDEBAR ====*@
-<Sidebar Collapsible="true" Resizeable="true" PositionLeft="false" @bind-Width="sidebarRightWidth">
-    <div class="p-3">
-        <h5 class="text-center">@(userConfig.GetText("objects"))</h5>
-
-        <CascadingValue Value="anchorNavToRSB">
-            <TabSet KeepPanelsAlive="true" @ref="rsbTabset">
-                <Tab Title="Report">
-                    <div class="d-md-flex justify-content-md-end sticky-marker-45 bg-white">
-                        <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseControlObjects.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
-                    </div>
-                    <div class="mt-2">
-                        <CascadingValue Value="collapseControlObjects">
-                            <ObjectGroupCollection FetchObjects="FetchContent" Recert="true" Tab="report" InputDataType="Management" Data="managements.Where(m => (m.Devices.Where(d => d.Rules != null && d.Rules.Count() > 0).Count() > 0))" NameExtractor="man => man.Name"
-                                                NetworkObjectExtractor="man => man.ReportObjects"
-                                                NetworkServiceExtractor="man => man.ReportServices"
-                                                NetworkUserExtractor="man => man.ReportUsers" />
-                        </CascadingValue>
-                    </div>
-                </Tab>
-                <Tab Title="@(userConfig.GetText("rule"))">
-                    <div class="d-md-flex justify-content-md-between sticky-marker-45 bg-white">
-                        <div class="btn btn-dark btn-sm w-50" @onclick="@(() => selectedRules.Clear())">@(userConfig.GetText("clear_all"))</div>
-                        <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseControlObjects.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
-                    </div>
-                    <div class="mt-2">
-                        <CascadingValue Value="collapseControlObjects">
-                            <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="rule" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule" Data="selectedRules"
-                                                NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
-                                                NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object).Union(rule.Tos.Select(nl => nl.Object)).Union(rule.NatData.TranslatedFroms.Select(nl => nl.Object)).Union(rule.NatData.TranslatedTos.Select(nl => nl.Object)).OrderBy(o => o.Name).ToArray()"
-                                                NetworkServiceExtractor="rule => rule.Services.Select(sw => sw.Content).Union(rule.NatData.TranslatedServices.Select(sw => sw.Content)).OrderBy(s => s.Name).ToArray()"
-                                                NetworkUserExtractor="rule => rule.Froms.Select(nl => nl.User).Distinct().Where(u => u != null).OrderBy(u => u.Name).ToArray()" />
-                        </CascadingValue>
-                    </div>
-                </Tab>
-            </TabSet>
-        </CascadingValue>
-    </div>
-</Sidebar>
-
+<RightSidebar @bind-Width="sidebarRightWidth" Tabset="rsbTabset" AnchorNavToRSB="anchorNavToRSB" CurrentReport="currentReport" @bind-SelectedRules="selectedRules"/>
 <AnchorNavToRSB @ref="anchorNavToRSB" TabSet="rsbTabset" />
 
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    private TabSet? rsbTabset;
-    private AnchorNavToRSB? anchorNavToRSB;
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    private FWO.Ui.Shared.TabSet rsbTabset;
+    private FWO.Ui.Shared.AnchorNavToRSB anchorNavToRSB;
 
     private const int rulesPerPage = 0;
 
@@ -137,57 +134,119 @@
     private int sidebarRightWidth = GlobalConfig.kSidebarRightWidth;
     private bool selectAll = true;
 
-    private string filterInput = "remove=false and recertdisplay=0";
+    private string filterInput = "remove=false and recertdisplay=30";
     private bool processing = false;
     private bool rulesFound = false;
     private CancellationTokenSource tokenSource = new CancellationTokenSource();
 
     private Management[] managements = new Management[0];
-    //    private Management[] managementsObjects = new Management[0];
-
+    
+    private bool readonlyMode = false;
+    public FwoOwner? selectedOwner = null;
+    private List<FwoOwner> ownerList = new List<FwoOwner>();
+    private List<FwoOwner> userOwnerships = new List<FwoOwner>();
+    private List<FwoOwner> groupOwnerships = new List<FwoOwner>();
+    private List<FwoOwner> collectedOwnerships = new List<FwoOwner>();
+    private Dictionary<int, int> recertInterval = new Dictionary<int, int>();
     private DeviceFilter deviceFilter = new DeviceFilter();
     private List<Rule> selectedRules = new List<Rule>();
     private bool collapseDevices = false;
-    private CollapseState collapseControlObjects = new CollapseState();
 
     private ReportBase? currentReport;
+    private ReportTemplate reportParams = new ReportTemplate();
 
     private Sidebar? deviceSelectionSidebar;
-    // private bool fullDeviceActionIsSelect = true;
     private bool AddCommentMode = false;
     private string actComment = "";
-    private bool anythingFound = false;
+    private bool recertShowAnyMatch = true;
+    private bool recertSingleLinePerRule = false;
+    private int recertLookAheadDays = 0;
 
-    protected override void OnInitialized()
+    private List<Rule> Certifications = new List<Rule>();
+    private Dictionary<int, List<string>> deleteList = new Dictionary<int, List<string>>();
+
+    private TicketCreator ticketCreator;
+
+    protected override async Task OnInitializedAsync()
     {
-        Task.Run(async () =>
-        {
-            try
-            {
-                rulesFound = false;
 
-                deviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
-                await InvokeAsync(StateHasChanged);
-                if (deviceFilter.NumberMgmtDev() > userConfig.MinCollapseAllDevices)
-                {
-                    collapseDevices = true;
-                    await InvokeAsync(StateHasChanged);
-                }
-                // PaginationVariables paginationVariables = new PaginationVariables() { Limit = 0, Offset = 0 };
-                // managementsObjects = await apiConnection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
-                // await InvokeAsync(StateHasChanged);
-            }
-            catch (Exception exception)
+        try
+        {
+            if(authenticationStateTask!.Result.User.IsInRole("recertifier"))
             {
-                DisplayMessageInUi!(exception, userConfig.GetText("object_fetch"), "", true);
+                apiConnection.SetRole("recertifier");
             }
-        });
+            else if(authenticationStateTask!.Result.User.IsInRole("admin"))
+            {
+                apiConnection.SetRole("admin");
+            }
+            else
+            {
+                apiConnection.SetRole("auditor");
+            }
+
+            rulesFound = false;
+            ticketCreator = new TicketCreator(apiConnection, userConfig);
+
+            ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+            await CollectOwnerships();
+
+            deviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
+            await InvokeAsync(StateHasChanged);
+            if (deviceFilter.NumberMgmtDev() > userConfig.MinCollapseAllDevices)
+            {
+                collapseDevices = true;
+                await InvokeAsync(StateHasChanged);
+            }
+            recertLookAheadDays = Convert.ToInt32(userConfig.RecertificationDisplayPeriod);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+        }
+    }
+
+    private async Task CollectOwnerships()
+    {
+        userOwnerships = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnerIdsForUser, new {userDn = userConfig.User.Dn});
+
+        List<UserGroup> ownerGroups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi, true);
+        List<string> ownerGrpDns = new List<string>();
+        foreach(var grp in ownerGroups)
+        {
+            if(grp.Users.FirstOrDefault(x => x.Dn == userConfig.User.Dn) != null)
+            {
+                ownerGrpDns.Add(grp.Dn);
+            }
+        }
+        if(ownerGrpDns.Count > 0)
+        {
+            groupOwnerships = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnerIdsFromGroups, new {groupDns = ownerGrpDns});
+        }
+
+        foreach(var owner in userOwnerships)
+        {
+            collectedOwnerships.Add(owner);
+            recertInterval.Add(owner.Id, owner.RecertInterval ?? userConfig.RecertificationPeriod);
+        }
+        foreach(var owner in groupOwnerships)
+        {
+            if(collectedOwnerships.FirstOrDefault(x => x.Id == owner.Id) == null)
+            {
+                collectedOwnerships.Add(owner);
+                recertInterval.Add(owner.Id, owner.RecertInterval ?? userConfig.RecertificationPeriod);
+            }
+        }
+        if(collectedOwnerships.Count == 1)
+        {
+            selectedOwner = collectedOwnerships[0];
+        }
     }
 
     private async Task GenerateRecertificationReport()
     {
         processing = true;
-        // clear selected rules
+        readonlyMode = !authenticationStateTask!.Result.User.IsInRole("recertifier") || selectedOwner == null;
         selectedRules.Clear();
 
         Management[] managementsOrig = managements;
@@ -198,37 +257,38 @@
 
             if (!deviceFilter.isAnyDeviceFilterSet())  // display pop-up with warning
             {
-                DisplayMessageInUi!(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
+                DisplayMessageInUi(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
                 processing = false;
                 return;
             }
 
-            SyncFilterToDisplay();
-            currentReport = ReportBase.ConstructReport(filterInput, deviceFilter, new TimeFilter(), ReportType.Rules, userConfig);
-
-            DateTime startTime = DateTime.Now;
+            prepareReport();
             managements = new Management[0]; // reset management data when switching between reports
 
             try
             {
-                await currentReport.Generate(userConfig.ElementsPerFetch, apiConnection,
-                managementsReportIntermediate =>
+                if(currentReport != null)
                 {
-                    managements = managementsReportIntermediate;
-                    return InvokeAsync(StateHasChanged);
-                }, token);
+                    await currentReport.Generate(userConfig.ElementsPerFetch, apiConnection,
+                    managementsReportIntermediate =>
+                    {
+                        managements = managementsReportIntermediate;
+                        return InvokeAsync(StateHasChanged);
+                    }, token);
+                }
             }
             catch (OperationCanceledException e)
             {
                 Log.WriteDebug("Generate Report", $"Cancelled: {e.Message}");
             }
 
-            PrepareMetadata();
+            postProcessReport();
             processing = false;
+            
             await InvokeAsync(StateHasChanged);
             if(!rulesFound)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
+                DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
             }
         }
         catch (Exception exception)
@@ -236,14 +296,34 @@
             processing = false;
             managements = managementsOrig;
             StateHasChanged();
-            DisplayMessageInUi!(exception, userConfig.GetText("generate_report"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("generate_report"), "", true);
         }
     }
 
     private void CancelGeneration()
     {
         tokenSource.Cancel();
-        DisplayMessageInUi!(null, userConfig.GetText("report_data_fetch"), userConfig.GetText("E1003"), true);
+        DisplayMessageInUi(null, userConfig.GetText("report_data_fetch"), userConfig.GetText("E1003"), true);
+    }
+
+    private void prepareReport()
+    {
+        SyncFilterToDisplay();
+        List<int> ownerList = new List<int>();
+        if (selectedOwner != null)
+        {
+            ownerList.Add(selectedOwner.Id);
+        }
+
+        RecertFilter recertFilter = new RecertFilter()
+        {
+            RecertOwnerList = ownerList,
+            RecertShowAnyMatch = recertShowAnyMatch,
+            RecertSingleLinePerRule = recertSingleLinePerRule,
+            RecertificationDisplayPeriod = recertLookAheadDays
+        };
+        reportParams = new ReportTemplate("", deviceFilter, (int) ReportType.Recertification, new TimeFilter(), recertFilter);
+        currentReport = ReportBase.ConstructReport(reportParams, userConfig);
     }
 
     private void SyncFilterToDisplay()
@@ -251,162 +331,22 @@
         filterInput = Regex.Replace(filterInput, "recertdisplay=" + @"-?\d+", $"recertdisplay={(userConfig.RecertificationPeriod-userConfig.RecertificationDisplayPeriod).ToString()}");
     }
 
-    private void PrepareMetadata()
+    private void postProcessReport()
     {
         rulesFound = false;
         foreach (Management management in managements)
         {
             foreach (Device device in management.Devices)
             {
-                if(device.Rules != null)
+                if (device.ContainsRules())
                 {
-                    foreach (Rule rule in device.Rules)
+                    rulesFound = true;
+                    foreach (Rule rule in device.Rules!)
                     {
-                        rulesFound = true;
-                        if (rule.Metadata.LastCertifierDn != null && rule.Metadata.LastCertifierDn != "")
-                        {
-                            rule.Metadata.LastCertifierName = (new FWO.Api.Data.DistName(rule.Metadata.LastCertifierDn)).UserName;
-                        }
-                        else
-                        {
-                            rule.Metadata.LastCertifierName = userConfig.GetText("unknown");
-                        }
-
-                        if (rule.Metadata.LastCertified != null)
-                        {
-                            rule.Metadata.NextRecert = ((DateTime)rule.Metadata.LastCertified).AddDays(userConfig.RecertificationPeriod);
-                        }
-                        else if (rule.Metadata.Created != null)
-                        {
-                            rule.Metadata.NextRecert = ((DateTime)rule.Metadata.Created).AddDays(userConfig.RecertificationPeriod);
-                        }
-                        else
-                        {
-                            rule.Metadata.NextRecert = DateTime.Now;
-                        }
-
-                        if(rule.Metadata.NextRecert <= DateTime.Now)
-                        {
-                            rule.Metadata.Style = "background-overdue";
-                        }
-                        else if(rule.Metadata.NextRecert <= DateTime.Now.AddDays(userConfig.RecertificationNoticePeriod))
-                        {
-                            rule.Metadata.Style = "background-upcoming";
-                        }
+                        rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
                     }
                 }
             }
-        }
-    }
-
-    const byte all = 10, report = 20, rule = 30, all_nobj = 11, all_nsrv = 12, all_user = 13, report_nobj = 21, report_nsrv = 22, report_user = 23;
-    public async Task FetchContent(byte contentType, Func<Management[], Task> callback, long id = 0, bool nat = false)
-    {
-        Log.WriteDebug("Fetching Content..", "");
-
-        Management[] managements = new Management[0];
-
-        try
-        {
-            string query = "";
-            Dictionary<String, object> queryVars = new Dictionary<string, object>();
-
-            bool newObjects = true;
-            int fetchCount = 0;
-
-            bool gotAllObjects = true;
-
-            switch (contentType)
-            {
-                case all:
-                    query = ObjectQueries.getAllObjectDetails;
-                    break;
-                case all_nobj:
-                    query = ObjectQueries.getNetworkObjectDetails;
-                    break;
-                case all_nsrv:
-                    query = ObjectQueries.getNetworkServiceObjectDetails;
-                    break;
-                case all_user:
-                    query = ObjectQueries.getUserDetails;
-                    break;
-                case rule:
-                    if (nat)
-                        query = RuleQueries.getNatRuleDetails;
-                    else
-                        query = RuleQueries.getRuleDetails;
-                    break;
-            }
-
-            switch (contentType)
-            {
-                case all or all_nobj or all_nsrv or all_user:
-
-                    queryVars = new Dictionary<string, object>()
-                    {
-                        { "limit", userConfig.ElementsPerFetch },
-                        { "offset", 0 },
-                        { "management_id", (int) id }
-                    };
-
-                    break;
-
-                case report or report_nobj or report_nsrv or report_user:
-
-                    queryVars = new Dictionary<string, object>()
-                    {
-                        { "limit", userConfig.ElementsPerFetch },
-                        { "offset", 0 },
-                        { "mgmIds", (int) id }
-                    };
-
-                    if (currentReport != null)
-                        gotAllObjects = await currentReport.GetObjectsForManagementInReport(queryVars, (byte)(contentType - report), userConfig.AutoFillRightSidebar ? int.MaxValue : userConfig.MaxInitialFetchesRightSidebar, apiConnection, callback);
-
-                    if (!gotAllObjects)
-                        DisplayMessageInUi!(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);
-
-                    return;
-
-                case rule:
-
-                    queryVars = new Dictionary<string, object>()
-                    {
-                        { "limit", userConfig.ElementsPerFetch },
-                        { "offset", (int)0 },
-                        { "rule_id", id }
-                    };
-
-                    break;
-            }
-
-            // lazy fetch all objects for right sidebar
-            while (newObjects && (++fetchCount <= userConfig.MaxInitialFetchesRightSidebar || userConfig.AutoFillRightSidebar))
-            {
-                Management[] managementsCurrentFetch = await apiConnection.SendQueryAsync<Management[]>(query, queryVars);
-                if (fetchCount == 1)
-                {
-                    managements = managementsCurrentFetch;
-                }
-                else
-                {
-                    newObjects = managements.Merge(managementsCurrentFetch);
-                }
-
-                if (queryVars.ContainsKey("offset"))
-                    queryVars["offset"] = (int)queryVars["offset"] + userConfig.ElementsPerFetch;
-                await callback(managements);
-            }
-
-            Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount - 1} cycle(s) ({userConfig.ElementsPerFetch} at a time)");
-
-            if (fetchCount > userConfig.MaxInitialFetchesRightSidebar && !userConfig.AutoFillRightSidebar)
-                DisplayMessageInUi!(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi!(exception, userConfig.GetText("object_fetch"), "", true);
-            // TODO: Error Interface for all Components, that enables displaying a message in the ui
         }
     }
 
@@ -426,76 +366,140 @@
         actComment = Sanitizer.SanitizeMand(actComment, ref shortened);
         if(shortened)
         {
-            DisplayMessageInUi!(null, userConfig.GetText("execute_selected"), userConfig.GetText("U0001"), true);
+            DisplayMessageInUi(null, userConfig.GetText("execute_selected"), userConfig.GetText("U0001"), true);
         }
         if(userConfig.CommentRequired && actComment == "")
         {
-            DisplayMessageInUi!(null, userConfig.GetText("execute_selected"), userConfig.GetText("E4001"), true);
+            DisplayMessageInUi(null, userConfig.GetText("execute_selected"), userConfig.GetText("E4001"), true);
             return;
         }
         AddCommentMode = false;
         try
         {
-            // collect selected recerts + decerts
-            List<long> RecertIds = new List<long>();
-            List<long> DecertIds = new List<long>();
+            AnalyzeSelected();
+            await DoRecerts();
 
-            foreach (Management management in managements)
+            // create delete tickets
+            foreach(var device in deleteList)
             {
-                foreach (Device device in management.Devices)
-                {
-                    if(device.Rules != null)
-                    {
-                        foreach (Rule rule in device.Rules)
-                        {
-                            if(rule.Metadata.Recert)
-                            {
-                                RecertIds.Add(rule.Metadata.Id);
-                            }
-                            else if(rule.Metadata.ToBeRemoved)
-                            {
-                                DecertIds.Add(rule.Metadata.Id);
-                            }
-                        }
-                    }
-                }
+                await ticketCreator.CreateRuleDeleteTicket(device.Key, device.Value, actComment, DateTime.Now.AddDays(userConfig.RuleRemovalGracePeriod));
             }
-
-            // execute recertifications
-            if (RecertIds.Count > 0)
-            {
-                var apiVariables = new 
-                { 
-                    ids = RecertIds.ToArray(), 
-                    certDate = DateTime.Now, 
-                    userDn = userConfig.User.Dn,
-                    comment = actComment
-                };
-                await apiConnection.SendQueryAsync<object>(RuleQueries.updateRuleMetadataRecert, apiVariables);
-            }
-
-            // execute decertifications
-            if (DecertIds.Count > 0)
-            {
-                var apiVariables = new 
-                { 
-                    ids = DecertIds.ToArray(),
-                    decertDate = DateTime.Now,
-                    comment = actComment
-                };
-                await apiConnection.SendQueryAsync<object>(RuleQueries.updateRuleMetadataDecert, apiVariables);
-            }
-
-            string txt = userConfig.GetText("recerts_executed") + RecertIds.Count.ToString() + ", " +
-                         userConfig.GetText("decerts_executed") + DecertIds.Count.ToString();
-            DisplayMessageInUi!(null, userConfig.GetText("execute_selected"), txt, false);
 
             // reload updated report
             await GenerateRecertificationReport();
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("execute_selected"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("execute_selected"), "", true);
+        }
+    }
+
+    private void AnalyzeSelected()
+    {
+        // collect selected recerts + decerts
+        Certifications = new List<Rule>();
+
+        foreach (Management management in managements)
+        {
+            foreach (Device device in management.Devices)
+            {
+                if(device.Rules != null)
+                {
+                    foreach (Rule rule in device.Rules)
+                    {
+                        // await InitRecert(rule); // just for test
+                        if(rule.Metadata.Recert || rule.Metadata.ToBeRemoved)
+                        {
+                            rule.DeviceId = device.Id;
+                            Certifications.Add(rule);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private async Task DoRecerts()
+    {
+        int recerts = 0;
+        int decerts = 0;
+        deleteList = new Dictionary<int, List<string>>();
+
+        if (Certifications.Count > 0)
+        {
+            foreach(var certRule in Certifications)
+            {
+                if(await Recertify(certRule))
+                {
+                    if(certRule.Metadata.Recert)
+                    {
+                        recerts++;
+                    }
+                    else
+                    {
+                        decerts++;
+                        if(await checkAllDecertified(certRule))
+                        {
+                            if(!deleteList.ContainsKey(certRule.DeviceId))
+                            {
+                                deleteList.Add(certRule.DeviceId, new List<string>());
+                            }
+                            deleteList[certRule.DeviceId].Add(certRule.Uid ?? "");
+                        }
+                    }
+                }
+            }
+        }
+        string txt = userConfig.GetText("recerts_executed") + recerts.ToString() + ", " +
+                        userConfig.GetText("decerts_executed") + decerts.ToString();
+        DisplayMessageInUi(null, userConfig.GetText("execute_selected"), txt, false);
+    }
+
+    private async Task<bool> checkAllDecertified(Rule rule)
+    {
+        var variables = new
+        {
+            ruleId = rule.Id,
+        };
+        return ((await apiConnection.SendQueryAsync<List<Recertification>>(RecertQueries.getOpenRecertsForRule, variables)).Count == 0);
+    }
+
+    private async Task<bool> Recertify(Rule rule)
+    {
+        var variables = new
+        {
+            ruleId = rule.Id,
+            ownerId = (selectedOwner ?? throw new Exception("Recertification without owner not allowed.")).Id,
+            userDn = userConfig.User.Dn,
+            recertified = rule.Metadata.Recert,
+            recertDate = DateTime.Now,
+            comment = actComment
+        };
+        bool recertOk = (await apiConnection.SendQueryAsync<ReturnId>(RecertQueries.recertify, variables)).AffectedRows > 0;
+        if(recertOk && rule.Metadata.Recert)
+        {
+            await InitRecert(rule);
+        }
+        return recertOk;
+    }
+
+    private async Task InitRecert(Rule rule)
+    {
+        if (recertInterval != null && selectedOwner != null && recertInterval.ContainsKey(selectedOwner.Id))
+        {
+            var prepvariables = new
+            {
+                ruleMetadataId = rule.Metadata.Id,
+                ruleId = rule.Id,
+                ipMatch = rule.IpMatch != "" ? rule.IpMatch : null,
+                ownerId = (selectedOwner ?? throw new Exception("Recertification without owner not allowed.")).Id,
+                nextRecertDate = DateTime.Now.AddDays(recertInterval[selectedOwner.Id])
+            };
+            await apiConnection.SendQueryAsync<object>(RecertQueries.prepareNextRecertification, prepvariables);
+        }
+        else
+        {
+            DisplayMessageInUi(null, userConfig.GetText("execute_selected"), userConfig.GetText("missing_owner_id"), true);
         }
     }
 }

@@ -2,6 +2,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using FWO.Api.Data;
+using FWO.Mail;
 
 namespace FWO.Config.Api.Data
 {
@@ -69,6 +70,48 @@ namespace FWO.Config.Api.Data
         [JsonProperty("commentRequired"), JsonPropertyName("commentRequired")]
         public bool CommentRequired { get; set; } = false;
 
+        [JsonProperty("recAutocreateDeleteTicket"), JsonPropertyName("recAutocreateDeleteTicket")]
+        public bool RecAutoCreateDeleteTicket { get; set; } = false;
+
+        [JsonProperty("recDeleteRuleTicketTitle"), JsonPropertyName("recDeleteRuleTicketTitle")]
+        public string RecDeleteRuleTicketTitle { get; set; } = "";
+
+        [JsonProperty("recDeleteRuleTicketReason"), JsonPropertyName("recDeleteRuleTicketReason")]
+        public string RecDeleteRuleTicketReason { get; set; } = "";
+
+        [JsonProperty("recDeleteRuleReqTaskTitle"), JsonPropertyName("recDeleteRuleReqTaskTitle")]
+        public string RecDeleteRuleReqTaskTitle { get; set; } = "";
+
+        [JsonProperty("recDeleteRuleReqTaskReason"), JsonPropertyName("recDeleteRuleReqTaskReason")]
+        public string RecDeleteRuleReqTaskReason { get; set; } = "";
+
+        [JsonProperty("recDeleteRuleTicketPriority"), JsonPropertyName("recDeleteRuleTicketPriority")]
+        public int RecDeleteRuleTicketPriority { get; set; } = 3;
+
+        [JsonProperty("recDeleteRuleInitState"), JsonPropertyName("recDeleteRuleInitState")]
+        public int RecDeleteRuleInitState { get; set; } = 0;
+
+        [JsonProperty("recCheckActive"), JsonPropertyName("recCheckActive")]
+        public bool RecCheckActive { get; set; } = false;
+
+        [JsonProperty("recCheckParams"), JsonPropertyName("recCheckParams")]
+        public string RecCheckParams { get; set; } = System.Text.Json.JsonSerializer.Serialize(new RecertCheckParams());
+
+        [JsonProperty("recCheckEmailSubject"), JsonPropertyName("recCheckEmailSubject")]
+        public string RecCheckEmailSubject { get; set; } = "";
+
+        [JsonProperty("recCheckEmailUpcomingText"), JsonPropertyName("recCheckEmailUpcomingText")]
+        public string RecCheckEmailUpcomingText { get; set; } = "";
+
+        [JsonProperty("recCheckEmailOverdueText"), JsonPropertyName("recCheckEmailOverdueText")]
+        public string RecCheckEmailOverdueText { get; set; } = "";
+
+        [JsonProperty("recRefreshStartup"), JsonPropertyName("recRefreshStartup")]
+        public bool RecRefreshStartup { get; set; } = false;
+
+        [JsonProperty("recRefreshDaily"), JsonPropertyName("recRefreshDaily")]
+        public bool RecRefreshDaily { get; set; } = false;
+
         [JsonProperty("pwMinLength"), JsonPropertyName("pwMinLength")]
         public int PwMinLength { get; set; } = 10;
 
@@ -83,6 +126,24 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("pwSpecialCharactersRequired"), JsonPropertyName("pwSpecialCharactersRequired")]
         public bool PwSpecialCharactersRequired { get; set; } = false;
+
+        [JsonProperty("emailServerAddress"), JsonPropertyName("emailServerAddress")]
+        public string EmailServerAddress { get; set; } = "";
+
+        [JsonProperty("emailPort"), JsonPropertyName("emailPort")]
+        public int EmailPort { get; set; } = 25;
+
+        [JsonProperty("emailTls"), JsonPropertyName("emailTls")]
+        public EmailEncryptionMethod EmailTls { get; set; } = EmailEncryptionMethod.None;
+
+        [JsonProperty("emailUser"), JsonPropertyName("emailUser")]
+        public string EmailUser { get; set; } = "";
+
+        [JsonProperty("emailPassword"), JsonPropertyName("emailPassword")]
+        public string EmailPassword { get; set; } = "";
+
+        [JsonProperty("emailSenderAddress"), JsonPropertyName("emailSenderAddress")]
+        public string EmailSenderAddress { get; set; } = "";
 
         [JsonProperty("minCollapseAllDevices"), JsonPropertyName("minCollapseAllDevices"), UserConfigData]
         public int MinCollapseAllDevices { get; set; } = 15;
@@ -106,7 +167,7 @@ namespace FWO.Config.Api.Data
         public bool ReqAllowObjectSearch { get; set; } = false;
 
         [JsonProperty("reqAllowManualOwnerAdmin"), JsonPropertyName("reqAllowManualOwnerAdmin")]
-        public bool ReqAllowManualOwnerAdmin { get; set; } = false;
+        public bool AllowManualOwnerAdmin { get; set; } = false;
 
         [JsonProperty("reqPriorities"), JsonPropertyName("reqPriorities")]
         public string ReqPriorities { get; set; } = "";

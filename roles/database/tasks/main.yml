@@ -17,7 +17,7 @@
         - postgresql-server
         - python3-psycopg2
       when: ansible_os_family == "RedHat"
-      # todo: check if we need and if yes, how to install libpq-dev(el)
+      # todo: check if we need and if true, how to install libpq-dev(el)
 
     - name: install package postgresql packages for debian n ubuntu
       package:
@@ -31,7 +31,7 @@
 
     - name: initdb as extra step for redhat
       shell: "LC_ALL=C.UTF-8 /usr/bin/postgresql-setup --initdb"
-      become: yes
+      become: true
       when: ansible_os_family == "RedHat"
 
     - name: find out installed postgres version
@@ -44,7 +44,7 @@
 
     - name: activate as_single_query if ansible_version is sufficient
       set_fact:
-        postgresql_query_as_single_query: yes
+        postgresql_query_as_single_query: true
       when: ansible_version.full is version('2.10', '>=')
 
     - name: pg_version to int when possible
@@ -68,83 +68,75 @@
         path: "{{ postgresql_config_file }}"
         line: log_destination = 'syslog'
         regexp: '\s*log_destination'
-        backup: yes
+        backup: true
 
     - name: edit postgresql.conf client_min_messages
       lineinfile:
         path: "{{ postgresql_config_file }}"
-        line: client_min_messages = log
+        line: client_min_messages = WARNING
         regexp: '\s*client_min_messages'
-        backup: yes
+        backup: true
           
     - name: edit postgresql.conf log_min_messages
       lineinfile:
         path: "{{ postgresql_config_file }}"
         line: log_min_messages = WARNING
         regexp: '\s*log_min_messages'
-        backup: yes
+        backup: true
           
     - name: edit postgresql.conf application_name
       lineinfile:
         path: "{{ postgresql_config_file }}"
         line: application_name = {{ product_name }}-database
         regexp: '\s*application_name'
-        backup: yes
+        backup: true
 
     - name: edit postgresql.conf log_error_verbosity
       lineinfile:
         path: "{{ postgresql_config_file }}"
         line: log_error_verbosity = DEFAULT
         regexp: '\s*log_error_verbosity'
-        backup: yes
+        backup: true
 
     - name: edit postgresql.conf log_min_error_statement
       lineinfile:
         path: "{{ postgresql_config_file }}"
-        line: log_min_error_statement = DEBUG2
+        line: log_min_error_statement = ERROR
         regexp: '\s*log_min_error_statement'
-        backup: yes
+        backup: true
 
     - name: edit postgresql.conf log_line_prefix
       lineinfile:
         path: "{{ postgresql_config_file }}"
         line: log_line_prefix = '%d '
         regexp: '\s*log_line_prefix'
-        backup: yes
+        backup: true
 
     - name: edit postgresql.conf listening IPs
       lineinfile:
         path: "{{ postgresql_config_file }}"
-        line: "listen_addresses = '{{ fworch_db_host }},127.0.0.1'"
+        line: "listen_addresses = '0.0.0.0'"
+        #line: "listen_addresses = '{{ api_network_listening_ip_address }},127.0.0.1'"
         regexp: listen_addresses
-        backup: yes
+        backup: true
 
     - name: edit pg_hba.conf
       blockinfile:
         path: "{{ postgresql_hba_file }}"
-        backup: yes
+        backup: true
         insertbefore: '# IPv4 local connections:'
         block: |
-          host    all         dbadmin             127.0.0.0/8            md5
-          # host  all         dbadmin             0.0.0.0/0              md5
-          # host  all         dbadmin             {{ ansible_host }}/32  md5
-          host    all         {{ fworch_user }}   127.0.0.0/8            trust
-          host    all         +dbbackupusers      127.0.0.0/8            trust
-          
-          # with only local import modules:
-          host    all         +configimporters    127.0.0.0/8            trust
-          host    all         confexporter        127.0.0.0/8            trust
-          
-          # with local web frontend:
-          host    all         +secuadmins         127.0.0.0/8            md5
-          host    all         +reporters          127.0.0.0/8            md5
-          
-          # with remote web frontend:
-          # host  all         +secuadmins         <webserver-ip>/32      md5
-          # host  all         +reporters          <webserver-ip>/32      md5
-          # with remote importer modules:
-          # host  all         +configimporters    <importer-ip>/32       trust
-      
+          #host  all         dbadmin             127.0.0.0/8                   md5
+          #host  all         dbadmin             api_network_listening_ip_address/32            md5
+          host  all         dbadmin             0.0.0.0/0            md5
+          host  all         {{ fworch_user }}   127.0.0.0/8                   trust
+          host  all         +dbbackupusers      127.0.0.0/8                   trust
+          host  all         confexporter        127.0.0.0/8                   trust
+          host  all         +configimporters    127.0.0.0/8                   trust
+          #host  all         +configimporters    api_network_listening_ip_address/32   trust
+          # TODO: we need a solution here to add the IP of a remote importer instead of the name:
+          #host  all         +configimporters    importer_server_ip/32   trust 
+  
     - name: reload postgres service
       service:
         name: "{{ postgresql_package }}"
@@ -165,14 +157,14 @@
         mode: "0755"
       when: table_space is defined
 
-  become: yes
+  become: true
 
 - name: check if database already exists
   postgresql_query:
     query: SELECT count(*) FROM pg_database WHERE datname='{{ fworch_db_name }}'
     db: postgres
   register: db_exists
-  become: yes
+  become: true
   become_user: postgres
 
 - name: create new database
@@ -197,7 +189,7 @@
   loop:
     - "{{ postgresql_test_package }}"
   tags: [ 'never', 'unittest' ]
-  become: yes
+  become: true
 
 - name: run unit tests
   include_tasks: run-unit-tests.yml
@@ -209,4 +201,4 @@
     state: absent
     path: "{{ fworch_home }}/database"
   when: installation_mode == "upgrade"
-  become: yes
+  become: true

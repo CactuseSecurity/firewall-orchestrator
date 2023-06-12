@@ -30,7 +30,7 @@ namespace FWO.Api.Client
     public class AggregateCount
     {
         [JsonProperty("aggregate"), JsonPropertyName("aggregate")]
-        public Aggregate Aggregate {get; set;}
+        public Aggregate Aggregate {get; set;} = new Aggregate();
     }
 
     public class Aggregate

@@ -7,6 +7,7 @@ fragment deviceDetails on device
     management {
       id: mgm_id
       name: mgm_name
+      deviceType: stm_dev_typ { ...deviceTypeDetails }
     }
     local_rulebase_name
     global_rulebase_name

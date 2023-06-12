@@ -250,6 +250,70 @@ adding report template format fk and permissions
 ### 6.0.1 - 10.11.2022
 - bugfix release with small issues (userconfig re-login, ldif upgrade bug, debian testing support)
 
+### 6.0.2 - 24.12.2022
+- bugfix release with hasura API upgrade due to security bug in hasura
+
 ### 6.1.0 - 16.11.2022 DEVELOP
 - interactive network analysis prototype in UI
 - integrate path analysis to workflow
+
+### 6.1.1 - 15.12.2022 DEVELOP
+- recertification on owner base
+- preparation of new task types
+
+### 6.1.2 - 20.12.2022 DEVELOP
+- start of Palo Alto import module
+
+### 6.1.3 - xx.01.2023 DEVELOP
+- enhance recertification
+
+### 6.1.4 - 27.01.2023 DEVELOP
+- prepare delete rule requests
+
+### 6.2 - 16.03.2023 MAIN
+- enhanced recertification module: adding ip-base recertification
+- adding import modules for Palo Alto and Azure Firewall
+- Workflow Module: adding delete rule request and integrated path analysis into workflow
+
+### 6.2.1 18.03.2023 MAIN
+- fix ldap issues - closes ldap bugs #2023
+- reduced logging in release mode
+- hasura v2.21.0 upgrade
+
+### 6.2.2 22.03.2023 DEVELOP
+- adding last hit of each rule for check point and FortiManager to recertification (report)
+
+### 6.3 24.04.2023 MAIN
+- adding CP R8X object types
+  - application categories
+  - updatable objects
+  - domain names
+
+### 6.3.1 27.04.2023 MAIN
+- hotfix adding CP R8X object type application site
+
+### 6.3.2 05.05.2023 MAIN
+- hotfix UI and fortigate importer credential handling
+- checkpoint R8X importer adding support for Internet object type
+- reporting - CSV export for change report
+
+### 6.3.3 09.05.2023 DEVELOP
+- new importer module for importing FortiGate directly via FortiOS REST API
+
+### 6.4 25.05.2023 MAIN
+- New importer module for importing FortiGate directly via FortiOS REST API
+- Reporting: new lean export format JSON for resolved and tech reports
+- hotfix FortiGate FortiOS REST importer: removing reference to gw_networking
+- hotfix CPR8x importer: handling of empty section headers
+
+### 6.4.1 02.06.2023 MAIN
+- FortiOS importer: add support for internet services
+
+### 6.4.2 05.06.2023 MAIN
+- Hotfix - log locking UI hangs on prod systems due to infrequent log entries
+
+### 6.4.3 05.06.2023 MAIN
+- Hotfix - global config subsription timout after 12h
+
+### 6.4.4 xx.06.2023 DEVELOP
+- CPR8x importer: basic support for inline layers

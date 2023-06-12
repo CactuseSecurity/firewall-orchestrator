@@ -96,7 +96,7 @@ def get_matching_route(destination_ip, routing_table):
         if route_matches(destination_ip, route['destination']):
             return route 
 
-    logger.error('src nat behind interface: found no matching route in routing table - no default route?!')
+    logger.warning('src nat behind interface: found no matching route in routing table - no default route?!')
     return None
 
 
@@ -290,7 +290,7 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
                         logger.warning("got empty " + ip_version + " routing table from device " + full_vdom_name + ", ignoring")
                         routing_table = []
             except:
-                logger.warning("error while getting routing table of device " + full_vdom_name + ", ignoring exception " + str(traceback.format_exc()))
+                logger.warning("could not get routing table for device " + full_vdom_name + ", ignoring") # exception " + str(traceback.format_exc()))
                 routing_table = []
 
             # now storing the routing table:

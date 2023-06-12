@@ -10,19 +10,6 @@ from fwo_log import getFwoLogger
 import fwo_globals
 
 
-details_level = "full"    # 'standard'
-use_object_dictionary = 'false'
-
-# all obj table names to look at:
-api_obj_types = [
-    'hosts', 'networks', 'groups', 'address-ranges', 'multicast-address-ranges', 'groups-with-exclusion', 'gateways-and-servers',
-    'security-zones', 'dynamic-objects', 'dns-domains', # 'trusted-clients',
-    'services-tcp', 'services-udp', 'services-sctp', 'services-other', 'service-groups', 'services-dce-rpc', 'services-rpc', 'services-icmp', 'services-icmp6' ]
-
-svc_obj_table_names = ['services-tcp', 'services-udp', 'service-groups', 'services-dce-rpc', 'services-rpc', 'services-other', 'services-icmp', 'services-icmp6']
-# usr_obj_table_names : do not exist yet - not fetchable via API
-
-
 def cp_api_call(url, command, json_payload, sid, show_progress=False):
     url += command
     request_headers = {'Content-Type' : 'application/json'}
@@ -231,8 +218,15 @@ def get_all_uids_of_a_type(object_table, obj_table_names):
 
     if object_table['object_type'] in obj_table_names:
         for chunk in object_table['object_chunks']:
-            for obj in chunk['objects']:
-                all_uids.append(obj['uid'])  # add non-group (simple) refs
+            if 'objects' in chunk:
+                for obj in chunk['objects']:
+                    if 'uid' in obj:
+                        all_uids.append(obj['uid'])  # add non-group (simple) refs
+                    elif 'uid-in-updatable-objects-repository' in obj:
+                        all_uids.append(obj['uid-in-updatable-objects-repository'])  # add updatable obj uid
+                    else:
+                        logger.warning ("found nw obj without UID: " + str(obj))
+
     all_uids = list(set(all_uids)) # remove duplicates
     return all_uids
 
@@ -267,7 +261,7 @@ def get_inline_layer_names_from_rulebase(rulebase, inline_layers):
                 # get_inline_layer_names_from_rulebase(rulebase, inline_layers)
 
 
-def get_layer_from_api_as_dict (api_host, api_port, api_v_url, sid, show_params_rules, layername):
+def get_layer_from_api_as_dict (api_v_url, sid, show_params_rules, layername):
     logger = getFwoLogger()
     current_layer_json = { "layername": layername, "layerchunks": [] }
     current=0

@@ -131,31 +131,6 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("delete_tenant"))" Show="@DeleteTenantMode" OnClose="() => DeleteTenantMode = false">
-    <Body>
-        @if (DeleteTenantMode)
-        {
-            <p>@(deleteTenantMessage)</p>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            @if (DeleteTenantAllowed)
-            {
-                <AuthorizeView Roles="admin">
-                    <Authorized>
-                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteTenant(actTenant)">@(userConfig.GetText("delete"))</button>
-                    </Authorized>
-                    <NotAuthorized>
-                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                    </NotAuthorized> 
-                </AuthorizeView>
-            }
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
-
 <PopUp Title="@(userConfig.GetText("add_device_to_tenant") + ": " + actTenant.Name)" Show="@AddDeviceMode" Large="true" OnClose="() => AddDeviceMode = false">
     <Body>
         @if (AddDeviceMode)
@@ -163,7 +138,7 @@
             <form class="form-inline">
                 <label for="tenantDevice" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("gateways")):</label>
                 <div class="col-sm-8">
-                    <Dropdown Id="tenantDevice" ElementType="Device" ElementToString="@(d => d?.Name ?? "")" Elements="remainingDevices" @bind-Value="selectedDevice">
+                    <Dropdown Id="tenantDevice" ElementType="Device" ElementToString="@(d => d?.Name ?? "")" Elements="remainingDevices" @bind-SelectedElement="selectedDevice">
                         <ElementTemplate Context="d">
                             @(d?.Name ?? "")
                         </ElementTemplate>
@@ -195,17 +170,11 @@
                 <div class="form-group row">
                     <label for="tenantDeviceDel" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("gateway")):</label>
                     <div class="col-sm-8">
-                        <Dropdown Id="tenantDeviceDel" ElementType="Device" ElementToString="@(d => d?.Name ?? "")" Elements="Array.ConvertAll(actTenant.TenantDevices, d => d.VisibleDevice)" @bind-Value="selectedDevice">
+                        <Dropdown Id="tenantDeviceDel" ElementType="Device" ElementToString="@(d => d?.Name ?? "")" Elements="Array.ConvertAll(actTenant.TenantDevices, d => d.VisibleDevice)" @bind-SelectedElement="selectedDevice">
                             <ElementTemplate Context="d">
                                 @(d?.Name ?? "")
                             </ElementTemplate>
                         </Dropdown>
-@*                        <select id="tenantDeviceDel" class="form-control form-control-sm" @bind="selectedDevice">
-                            @foreach (var device in actTenant.TenantDevices)
-                            {
-                                <option value="@device.VisibleDevice.Id">@(device.VisibleDevice.Name)</option>
-                            }
-                        </select>*@
                     </div>
                 </div>
             </form>
@@ -226,46 +195,15 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("remove_sample_data"))" Show="@SampleRemoveMode" OnClose="() => SampleRemoveMode = false">
-    <Body>
-        @if (SampleRemoveMode)
-        {
-            <p>@(sampleRemoveMessage)</p>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            @if (SampleRemoveAllowed)
-            {
-                <AuthorizeView Roles="admin">
-                    <Authorized>
-                        <button class="btn btn-sm btn-danger" @onclick="() => RemoveSampleData()">@(userConfig.GetText("delete"))</button>
-                    </Authorized>
-                    <NotAuthorized>
-                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
-                    </NotAuthorized> 
-                </AuthorizeView>
-            }
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
+<ConfirmDelete @bind-Display="DeleteTenantMode" PerformAction="DeleteTenant" Title="@userConfig.GetText("delete_tenant")" DeleteMessage="@deleteTenantMessage" DeleteAllowed="DeleteTenantAllowed"/>
+<ConfirmDelete @bind-Display="SampleRemoveMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@sampleRemoveMessage" DeleteAllowed="sampleRemoveAllowed"/>
+<InProgress Display="workInProgress"/>
 
-<PopUp Title="@(userConfig.GetText("in_progress"))" Small="true" Show="@workInProgress">
-    <Body>
-        @if (workInProgress)
-        {
-            <div class="row">
-                <div class="spinner-border mx-auto align-self-center" role="status"></div>
-            </div>
-        }
-    </Body>
-</PopUp>
 
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private List<Tenant> tenants = new List<Tenant>();
     private List<Tenant> sampleTenants = new List<Tenant>();
@@ -274,7 +212,7 @@
     private List<UiUser> uiUsers = new List<UiUser>();
 
     private Tenant actTenant = new Tenant();
-    private Device? selectedDevice;
+    private Device selectedDevice = new Device();
 
     private bool isTenant0 = false;
     private bool AddTenantMode = false;
@@ -286,7 +224,7 @@
     private bool DeleteDeviceMode = false;
     private bool SampleRemoveMode = false;
     private bool showCleanupButton = false;
-    private bool SampleRemoveAllowed = false;
+    private bool sampleRemoveAllowed = false;
     private string sampleRemoveMessage = "";
     private bool workInProgress = false;
 
@@ -297,22 +235,17 @@
             RestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("get_tenant_data"), userConfig.GetText("E5284"), true);
+                DisplayMessageInUi(null, userConfig.GetText("get_tenant_data"), userConfig.GetText("E5284"), true);
             }
             else
             {
                 tenants = new List<Tenant>();
                 foreach (TenantGetReturnParameters apiTenant in middlewareServerResponse.Data)
                 {
-                    Tenant tenant = new Tenant(apiTenant);
-                    tenants.Add(tenant);
-                    if (tenant.Name.EndsWith("_demo"))
-                    {
-                        sampleTenants.Add(tenant);
-                    }
+                     tenants.Add(new Tenant(apiTenant));
                 }
+                AnalyseSampleTenants();
             }
-            showCleanupButton = (sampleTenants.Count > 0);
 
             devices = await apiConnection.SendQueryAsync<List<Device>>(FWO.Api.Client.Queries.DeviceQueries.getDeviceDetails);
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers);
@@ -320,8 +253,21 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("get_tenant_data"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("get_tenant_data"), "", true);
         }
+    }
+
+    private void AnalyseSampleTenants()
+    {
+        sampleTenants = new List<Tenant>();
+        foreach (var tenant in tenants)
+        {
+            if (tenant.Name.EndsWith("_demo"))
+            {
+                sampleTenants.Add(tenant);
+            }
+        }
+        showCleanupButton = (sampleTenants.Count > 0);
     }
 
     private void EditTenant(Tenant tenant)
@@ -343,17 +289,17 @@
         {
             if (actTenant.Sanitize())
             {
-                DisplayMessageInUi!(null, userConfig.GetText("save_tenant"), userConfig.GetText("U0001"), true);
+                DisplayMessageInUi(null, userConfig.GetText("save_tenant"), userConfig.GetText("U0001"), true);
             }
             if (actTenant.Name == "")
             {
-                DisplayMessageInUi!(null, userConfig.GetText("save_tenant"), userConfig.GetText("E5234"), true);
+                DisplayMessageInUi(null, userConfig.GetText("save_tenant"), userConfig.GetText("E5234"), true);
             }
             else if (AddTenantMode)
             {
                 if(tenants.Exists(x => x.Name == actTenant.Name))
                 {
-                    DisplayMessageInUi!(null, userConfig.GetText("add_tenant"), userConfig.GetText("E5235"), true);
+                    DisplayMessageInUi(null, userConfig.GetText("add_tenant"), userConfig.GetText("E5235"), true);
                 }
                 else
                 {
@@ -361,7 +307,7 @@
                     RestResponse<int> middlewareServerResponse = await middlewareClient.AddTenant(actTenant.ToApiParams());
                     if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == 0)
                     {
-                        DisplayMessageInUi!(null, userConfig.GetText("add_tenant"), userConfig.GetText("E5281"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("add_tenant"), userConfig.GetText("E5281"), true);
                     }
                     else
                     {
@@ -378,17 +324,18 @@
                 RestResponse<bool> middlewareServerResponse = await middlewareClient.UpdateTenant(actTenant.ToApiUpdateParams());
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
                 {
-                    DisplayMessageInUi!(null, userConfig.GetText("edit_tenant"), userConfig.GetText("E5285"), true);
+                    DisplayMessageInUi(null, userConfig.GetText("edit_tenant"), userConfig.GetText("E5285"), true);
                 }
                 else
                 {
                     EditTenantMode = false;
                 }
             }
+            AnalyseSampleTenants();
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("save_tenant"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("save_tenant"), "", true);
         }
     }
 
@@ -412,31 +359,32 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_tenant"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_tenant"), "", true);
         }
     }
 
-    private async Task DeleteTenant(Tenant tenant)
+    private async Task DeleteTenant()
     {
         try
         {
             // delete tenant from Ldap
-            TenantDeleteParameters deleteTenantParameters = new TenantDeleteParameters { Name = tenant.Name, Id = tenant.Id};
+            TenantDeleteParameters deleteTenantParameters = new TenantDeleteParameters { Name = actTenant.Name, Id = actTenant.Id};
             RestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteTenant(deleteTenantParameters);
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("delete_tenant"), userConfig.GetText("E5282"), true);
+                DisplayMessageInUi(null, userConfig.GetText("delete_tenant"), userConfig.GetText("E5282"), true);
             }
             else
             {
-                tenants.Remove(tenant);
+                tenants.Remove(actTenant);
             }
             DeleteTenantMode = false;
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_tenant"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_tenant"), "", true);
         }
+        StateHasChanged();
     }
 
     private void RequestRemoveSampleData()
@@ -446,18 +394,18 @@
             if (sampleTenants.Exists(tenant => (uiUsers.Exists(user => (user.Tenant != null && user.Tenant.Name == tenant.Name)))))
             {
                 sampleRemoveMessage = userConfig.GetText("E5283");
-                SampleRemoveAllowed = false;
+                sampleRemoveAllowed = false;
             }
             else
             {
                 sampleRemoveMessage = userConfig.GetText("U5209");
-                SampleRemoveAllowed = true;
+                sampleRemoveAllowed = true;
             }
             SampleRemoveMode = true;
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("remove_sample_data"), "", false);
+            DisplayMessageInUi(exception, userConfig.GetText("remove_sample_data"), "", false);
         }
     }
 
@@ -469,15 +417,17 @@
         {
             foreach (var tenant in sampleTenants)
             {
-                await DeleteTenant(tenant);
+                actTenant = tenant;
+                await DeleteTenant();
             }
             showCleanupButton = false;
             workInProgress = false; 
+            StateHasChanged();
         }
         catch (System.Exception exception)
         {
             workInProgress = false; 
-            DisplayMessageInUi!(exception, userConfig.GetText("remove_sample_data"), "", false);
+            DisplayMessageInUi(exception, userConfig.GetText("remove_sample_data"), "", false);
         }
     }
 
@@ -490,17 +440,17 @@
             remainingDevices.Sort((a, b) => a.Name?.CompareTo(b.Name) ?? -1);
             if(remainingDevices.Count == 0)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("add_device_to_tenant"), userConfig.GetText("E5271"), true);
+                DisplayMessageInUi(null, userConfig.GetText("add_device_to_tenant"), userConfig.GetText("E5271"), true);
             }
             else
             {
-                selectedDevice = remainingDevices.FirstOrDefault();
+                selectedDevice = remainingDevices.FirstOrDefault() ?? new Device();
                 AddDeviceMode = true;
             }
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("add_device_to_tenant"), "", false);
+            DisplayMessageInUi(exception, userConfig.GetText("add_device_to_tenant"), "", false);
         }
     }
 
@@ -511,17 +461,17 @@
             actTenant = tenant;
             if(actTenant.TenantDevices.Length == 0)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("delete_device_from_tenant"), userConfig.GetText("E5272"), true);
+                DisplayMessageInUi(null, userConfig.GetText("delete_device_from_tenant"), userConfig.GetText("E5272"), true);
             }
             else
             {
-                selectedDevice = actTenant.TenantDevices.FirstOrDefault()?.VisibleDevice;
+                selectedDevice = actTenant.TenantDevices.FirstOrDefault()?.VisibleDevice ?? new Device();
                 DeleteDeviceMode = true;
             }
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_device_from_tenant"), "", false);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_device_from_tenant"), "", false);
         }
     }
 
@@ -540,7 +490,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("add_device_to_tenant"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("add_device_to_tenant"), "", true);
         }
     }
 
@@ -559,7 +509,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_device_from_tenant"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_device_from_tenant"), "", true);
         }
     }
 

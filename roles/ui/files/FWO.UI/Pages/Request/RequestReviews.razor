@@ -16,17 +16,22 @@
     <DisplayTicketTable Phase="WorkflowPhases.review" States="states" ReqHandler="reqHandler" 
         ResetParent="Reset" StartImplPhase="StartReviewTask"/>
 }
-
+else
+{
+    <div class="spinner-border" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+}
 
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
     
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
-    private RequestHandler reqHandler;
+    private RequestHandler reqHandler = new RequestHandler();
     private RequestStateDict states = new RequestStateDict();
     private bool InitComplete = false;
 
@@ -58,7 +63,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_requests"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_requests"), "", true);
         }
     }
 
@@ -71,7 +76,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("init_environment"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("init_environment"), "", true);
         }
 
     }
@@ -84,7 +89,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("start_work"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("start_work"), "", true);
         }
     }
 }

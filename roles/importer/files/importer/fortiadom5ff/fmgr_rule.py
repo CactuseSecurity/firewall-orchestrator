@@ -1,13 +1,16 @@
 import copy
 import jsonpickle
-from common import resolve_raw_objects, extend_string_list, list_delimiter, nat_postfix
+from fwo_const import list_delimiter, nat_postfix
+from fwo_base import extend_string_list
 from fmgr_service import create_svc_object
-from fmgr_network import resolve_objects, create_network_object, get_first_ip_of_destination
+from fmgr_network import create_network_object, get_first_ip_of_destination
 import fmgr_zone, fmgr_getter
 from fmgr_gw_networking import get_device_from_package
 from fwo_log import getFwoLogger
 from fwo_data_networking import get_matching_route_obj, get_ip_of_interface_obj
 import ipaddress
+from fmgr_network import resolve_objects, resolve_raw_objects
+import time
 
 rule_access_scope_v4 = ['rules_global_header_v4', 'rules_adom_v4', 'rules_global_footer_v4']
 rule_access_scope_v6 = ['rules_global_header_v6', 'rules_adom_v6', 'rules_global_footer_v6']
@@ -136,6 +139,11 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
                     else:
                         rule.update({ 'rule_track': 'Log'})
 
+                    if '_last_hit' not in rule_orig or rule_orig['_last_hit'] == 0:
+                        rule.update({ 'last_hit': None})
+                    else:                      	
+                        rule.update({ 'last_hit': time.strftime("%Y-%m-%d", time.localtime(rule_orig['_last_hit']))})
+
                     rule['rule_src'] = extend_string_list(rule['rule_src'], rule_orig, 'srcaddr', list_delimiter, jwt=jwt, import_id=import_id)
                     rule['rule_dst'] = extend_string_list(rule['rule_dst'], rule_orig, 'dstaddr', list_delimiter, jwt=jwt, import_id=import_id)
                     rule['rule_svc'] = extend_string_list(rule['rule_svc'], rule_orig, 'service', list_delimiter, jwt=jwt, import_id=import_id)
@@ -206,8 +214,8 @@ def normalize_nat_rules(full_config, config2import, import_id, jwt=None):
                         import_id=import_id, name=svc_name, proto=rule_orig['protocol'], port=rule_orig['orig-port'], comment='service created by FWO importer for NAT purposes'))
                     rule['rule_svc'] = svc_name
 
-                    #rule['rule_src'] = common.extend_string_list(rule['rule_src'], rule_orig, 'srcaddr6', list_delimiter, jwt=jwt, import_id=import_id)
-                    #rule['rule_dst'] = common.extend_string_list(rule['rule_dst'], rule_orig, 'dstaddr6', list_delimiter, jwt=jwt, import_id=import_id)
+                    #rule['rule_src'] = extend_string_list(rule['rule_src'], rule_orig, 'srcaddr6', list_delimiter, jwt=jwt, import_id=import_id)
+                    #rule['rule_dst'] = extend_string_list(rule['rule_dst'], rule_orig, 'dstaddr6', list_delimiter, jwt=jwt, import_id=import_id)
 
                     if len(rule_orig['srcintf'])>0:
                         rule.update({ 'rule_from_zone': rule_orig['srcintf'][0] }) # todo: currently only using the first zone

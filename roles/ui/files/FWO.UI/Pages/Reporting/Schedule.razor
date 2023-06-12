@@ -1,4 +1,5 @@
 ﻿@using FWO.Config.Api
+@using FWO.Report.Filter
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -23,7 +24,11 @@
     </Column>
     <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("id"))" Field="@(scheduledReport => scheduledReport.Id)" Sortable="true" Filterable="true"/>
     <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("name"))" Field="@(scheduledReport => scheduledReport.Name)" Sortable="true" Filterable="true"/>
-    <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("start_time"))" Field="@(scheduledReport => scheduledReport.StartTime)" Sortable="true" Filterable="true"/>
+    <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("start_time"))" Field="@(scheduledReport => scheduledReport.StartTime)" Sortable="true" Filterable="true">
+        <Template>
+            @(context.StartTime.ToString("yyyy-MM-dd HH:mm:ssK"))
+        </Template>
+    </Column>
     <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("repeat_interval"))" Field="@(scheduledReport => scheduledReport.RepeatOffset)">
         <Template>
             @(context.RepeatInterval != Interval.Never ? context.RepeatOffset : "") @(userConfig.GetText(context.RepeatInterval.ToString()))
@@ -49,9 +54,9 @@
         <div>
             <div class="form-group row">
                 <label for="scheduleId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
-                <div class="col-sm-8">
-                    <label class="col-sm-8">@scheduledReportInEdit.Id</label>
-                </div>
+                <label class="col-sm-8 col-form-label col-form-label-sm">@scheduledReportInEdit.Id</label>
+            </div>
+            <div class="form-group row">
                 <label for="scheduleName" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
                 <div class="col-sm-8">
                     <input id="scheduleName" type="text" class="form-control form-control-sm" @bind="scheduledReportInEdit.Name" />
@@ -72,24 +77,22 @@
                     <input id="scheduleRepeatEvery" type="number" min="1" class="form-control form-control-sm" @bind="scheduledReportInEdit.RepeatOffset" />
                 </div>
                 <div class="col-sm-4">
-                    <select class="form-control form-control-sm" @bind="scheduledReportInEdit.RepeatInterval">
-                        <option value="@Interval.Never" selected>@(userConfig.GetText("Never"))</option>
-                        <option value="@Interval.Days">@(userConfig.GetText("Days"))</option>
-                        <option value="@Interval.Weeks">@(userConfig.GetText("Weeks"))</option>
-                        <option value="@Interval.Months">@(userConfig.GetText("Months"))</option>
-                        <option value="@Interval.Years">@(userConfig.GetText("Years"))</option>
-                    </select>
+                    <Dropdown @bind-SelectedElement="scheduledReportInEdit.RepeatInterval" ElementToString="@(i => userConfig.GetText(i.ToString()))" Elements="Enum.GetValues(typeof(Interval)).Cast<Interval>()" >
+                        <ElementTemplate Context="interval">
+                            @(userConfig.GetText(interval.ToString()))
+                        </ElementTemplate>
+                    </Dropdown>
                 </div>
             </div>
             <div class="form-group row">
                 <label for="scheduleTemplate" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("template")):</label>
                 <div class="col-sm-8">
-                    <select class="form-control form-control-sm" @bind="scheduledReportInEdit.Template.Id">
-                        @foreach (ReportTemplate reportTemplate in reportTemplates)
-                        {
-                            <option value="@reportTemplate.Id">@reportTemplate.Name</option>
-                        }
-                    </select>
+                    <Dropdown ElementType="ReportTemplate" ElementToString="@(o => o.Name)" Nullable="false"
+                        @bind-SelectedElement="scheduledReportInEdit.Template" Elements="reportTemplates">
+                        <ElementTemplate Context="reportTemplate">
+                            @reportTemplate.Name
+                        </ElementTemplate>
+                    </Dropdown>
                 </div>
             </div>
             <div class="form-group row">
@@ -114,19 +117,26 @@
                                    @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove("json"))">
                             <label class="form-check-label" for="outputFormatJson">JSON</label>
                         </div>
-                        <div class="form-check">
-                            <input disabled class="form-check-input" type="checkbox" id="outputFormatCsv" value="Csv"
-                                   checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == "csv"))"
-                                   @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove("csv"))">
-                            <label class="form-check-label" for="outputFormatCsv">CSV @(userConfig.GetText("coming_soon"))</label>
-                        </div>
+                        @if (((ReportType)scheduledReportInEdit.Template.ReportParams?.ReportType).IsResolvedReport())
+                        {
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="outputFormatCsv" value="Csv"
+                                    checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == "csv"))"
+                                    @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove("csv"))">
+                                <label class="form-check-label" for="outputFormatCsv">CSV</label>
+                            </div>
+                        }
+                        else
+                        {
+                            scheduledReportInEdit.OutputFormat.Remove("csv");
+                        }
                     </div>
                 </div>
             </div>
             <div class="form-group row">
                 <label for="scheduleActive" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("active")):</label>
-                <div class="col-sm-8">
-                    <input id="scheduleActive" type="checkbox" class="form-control form-control-sm" @bind="scheduledReportInEdit.Active" />
+                <div class="col-sm-8" style="padding-top: calc(0.25rem + 1px);">
+                    <input id="scheduleActive" type="checkbox" class="form-control form-control-sm" style="max-height: 22px;" @bind="scheduledReportInEdit.Active" />
                 </div>
             </div>
         </div>
@@ -153,7 +163,6 @@
     ScheduledReport scheduledReportInEdit = new ScheduledReport();
     private DateTime actDate = DateTime.Today;
     private DateTime actTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
-
     private bool ShowSaveScheduledReportDialog = false;
     private bool ShowEditScheduledReportDialog = false;
     private bool ShowDeleteScheduledReportDialog = false;
@@ -163,7 +172,7 @@
     ReportTemplate[] reportTemplates = new ReportTemplate[0];
 
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
@@ -180,7 +189,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("schedule_fetch"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("schedule_fetch"), "", true);
         }
     }
 
@@ -199,7 +208,7 @@
             scheduledReportInEdit.StartTime = actDate.Date.Add(actTime.TimeOfDay);
             if (scheduledReportInEdit.Sanitize())
             {
-                DisplayMessageInUi!(null, userConfig.GetText("save_scheduled_report"), userConfig.GetText("U0001"), true);
+                DisplayMessageInUi(null, userConfig.GetText("save_scheduled_report"), userConfig.GetText("U0001"), true);
             }
             if (checkInput())
             {
@@ -239,7 +248,7 @@
         catch (Exception exception)
         {
             Log.WriteError("Save scheduled report", "Unclassified error.", exception);
-            DisplayMessageInUi!(exception, userConfig.GetText("save_scheduled_report"), "", false);
+            DisplayMessageInUi(exception, userConfig.GetText("save_scheduled_report"), "", false);
         }
     }
 
@@ -250,7 +259,7 @@
             scheduledReportInEdit.StartTime = actDate.Date.Add(actTime.TimeOfDay);
             if (scheduledReportInEdit.Sanitize())
             {
-                DisplayMessageInUi!(null, userConfig.GetText("edit_scheduled_report"), userConfig.GetText("U0001"), true);
+                DisplayMessageInUi(null, userConfig.GetText("edit_scheduled_report"), userConfig.GetText("U0001"), true);
             }
             if (checkInput())
             {
@@ -278,7 +287,7 @@
         catch (Exception exception)
         {
             Log.WriteError("Edit scheduled report", "Unclassified error.", exception);
-            DisplayMessageInUi!(exception, userConfig.GetText("edit_scheduled_report"), "", false);
+            DisplayMessageInUi(exception, userConfig.GetText("edit_scheduled_report"), "", false);
         }
     }
 
@@ -301,7 +310,7 @@
         catch (Exception exception)
         {
             Log.WriteError("Delete scheduled report", "Unclassified error.", exception);
-            DisplayMessageInUi!(exception, userConfig.GetText("delete_scheduled_report"), "", false);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_scheduled_report"), "", false);
         }
     }
 
@@ -309,7 +318,7 @@
         {
             if(scheduledReportInEdit.Template == null || scheduledReportInEdit.Template.Id == 0)
             {
-                DisplayMessageInUi!(null, userConfig.GetText("edit_scheduled_report"), userConfig.GetText("E2001"), true);
+                DisplayMessageInUi(null, userConfig.GetText("edit_scheduled_report"), userConfig.GetText("E2001"), true);
                 return false;
             }
             return true;

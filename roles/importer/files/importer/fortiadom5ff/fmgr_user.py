@@ -1,4 +1,4 @@
-import common
+from fwo_const import list_delimiter
 
 def normalize_users(full_config, config2import, import_id, user_scope):
     users = []
@@ -14,7 +14,7 @@ def normalize_users(full_config, config2import, import_id, user_scope):
                 type = 'group'
                 member_names = ''
                 for member in user_orig['member']:
-                    member_names += member + common.list_delimiter
+                    member_names += member + list_delimiter
                 member_names = member_names[:-1]
             if 'name' in user_orig:
                 name = str(user_orig['name'])

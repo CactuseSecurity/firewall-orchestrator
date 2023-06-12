@@ -139,3 +139,93 @@ CREATE TRIGGER import_config_insert
     BEFORE INSERT ON import_config
     FOR EACH ROW
     EXECUTE PROCEDURE import_config_from_json ();
+
+
+
+-------------------------
+-- recert refresh trigger
+
+create or replace function refresh_view_rule_with_owner()
+returns trigger language plpgsql
+as $$
+begin
+    refresh materialized view view_rule_with_owner;
+    return null;
+end $$;
+
+drop trigger IF exists refresh_view_rule_with_owner_delete_trigger ON recertification CASCADE;
+
+create trigger refresh_view_rule_with_owner_delete_trigger
+after delete on recertification for each statement 
+execute procedure refresh_view_rule_with_owner();
+
+-- -- function used during import of owner data
+-- CREATE OR REPLACE FUNCTION recert_refresh_per_owner(i_owner_id INTEGER) RETURNS VOID AS $$
+-- DECLARE
+-- 	r_mgm    RECORD;
+-- BEGIN
+-- 	BEGIN
+-- 		FOR r_mgm IN
+-- 			SELECT mgm_id, mgm_name FROM management
+-- 		LOOP
+-- 			PERFORM recert_refresh_one_owner_one_mgm (i_owner_id, r_mgm.mgm_id, NULL::TIMESTAMP);
+-- 		END LOOP;
+
+-- 	EXCEPTION WHEN OTHERS THEN
+-- 		RAISE EXCEPTION 'Exception caught in recert_refresh_per_owner while handling management %', r_mgm.mgm_name;
+-- 	END;
+-- 	RETURN;
+-- END;
+-- $$ LANGUAGE plpgsql;
+
+
+-- CREATE OR REPLACE FUNCTION owner_change_triggered ()
+--     RETURNS TRIGGER
+--     AS $BODY$
+-- BEGIN
+--     IF NOT NEW.id IS NULL THEN
+--         PERFORM recert_refresh_per_owner(NEW.id);
+--     END IF;
+--     RETURN NEW;
+-- END;
+-- $BODY$
+-- LANGUAGE plpgsql
+-- VOLATILE
+-- COST 100;
+-- ALTER FUNCTION public.owner_change_triggered () OWNER TO fworch;
+
+
+-- DROP TRIGGER IF EXISTS owner_change ON owner CASCADE;
+
+-- CREATE TRIGGER owner_change
+--     AFTER INSERT OR UPDATE OR DELETE ON owner
+--     FOR EACH ROW
+--     EXECUTE PROCEDURE owner_change_triggered ();
+
+
+-- CREATE OR REPLACE FUNCTION owner_network_change_triggered ()
+--     RETURNS TRIGGER
+--     AS $BODY$
+-- BEGIN
+--     IF NOT NEW.owner_id IS NULL THEN
+--         PERFORM recert_refresh_per_owner(NEW.owner_id);
+--     END IF;
+--     RETURN NEW;
+-- END;
+-- $BODY$
+-- LANGUAGE plpgsql
+-- VOLATILE
+-- COST 100;
+-- ALTER FUNCTION public.owner_network_change_triggered () OWNER TO fworch;
+
+-- DROP TRIGGER IF EXISTS owner_network_change ON owner_network CASCADE;
+
+-- CREATE TRIGGER owner_network_change
+--     AFTER INSERT OR UPDATE OR DELETE ON owner_network
+--     FOR EACH ROW
+--     EXECUTE PROCEDURE owner_network_change_triggered ();
+
+-- -- LargeOwnerChange: uncomment to disable triggers (e.g. for large installations without recert needs)
+-- -- ALTER TABLE owner DISABLE TRIGGER owner_change;
+-- -- ALTER TABLE owner_network DISABLE TRIGGER owner_network_change;
+

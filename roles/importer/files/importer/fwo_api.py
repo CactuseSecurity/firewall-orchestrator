@@ -9,12 +9,11 @@ import requests.packages
 import requests
 import json
 import datetime
-import common
 from fwo_log import getFwoLogger
 import fwo_globals
-
-details_level = "full"    # 'standard'
-use_object_dictionary = 'false'
+from fwo_const import fwo_api_http_import_timeout
+from fwo_exception import FwoApiTServiceUnavailable, FwoApiTimeout, FwoApiLoginFailed
+from fwo_base import writeAlertToLogFile
 
 
 def showApiCallInfo(url, query, headers, type='debug'):
@@ -42,55 +41,57 @@ def call(url, jwt, query, query_variables="", role="reporter", show_progress=Fal
     full_query = {"query": query, "variables": query_variables}
     logger = getFwoLogger()
 
-    session = requests.Session()
-    if fwo_globals.verify_certs is None:    # only for first FWO API call (getting info on cert verification)
-        session.verify = False
-    else: 
-        session.verify = fwo_globals.verify_certs
-    session.headers = request_headers
+    with requests.Session() as session:
+        if fwo_globals.verify_certs is None:    # only for first FWO API call (getting info on cert verification)
+            session.verify = False
+        else: 
+            session.verify = fwo_globals.verify_certs
+        session.headers = request_headers
 
-    try:
-        r = session.post(url, data=json.dumps(full_query), timeout=int(common.fwo_api_http_import_timeout))
-        r.raise_for_status()
-    except requests.exceptions.RequestException:
-        logger.error(showApiCallInfo(url, full_query, request_headers, type='error') + ":\n" + str(traceback.format_exc()))
-
-        if r.status_code == 503:
-            raise common.FwoApiTServiceUnavailable("FWO API HTTP error 503 (FWO API died?)" )
-        if r.status_code == 502:
-            raise common.FwoApiTimeout("FWO API HTTP error 502 (might have reached timeout of " + str(int(common.fwo_api_http_import_timeout)/60) + " minutes)" )
+        try:
+            r = session.post(url, data=json.dumps(full_query), timeout=int(fwo_api_http_import_timeout))
+            r.raise_for_status()
+        except requests.exceptions.RequestException:
+            logger.error(showApiCallInfo(url, full_query, request_headers, type='error') + ":\n" + str(traceback.format_exc()))
+            if r != None:
+                if r.status_code == 503:
+                    raise FwoApiTServiceUnavailable("FWO API HTTP error 503 (FWO API died?)" )
+                if r.status_code == 502:
+                    raise FwoApiTimeout("FWO API HTTP error 502 (might have reached timeout of " + str(int(fwo_api_http_import_timeout)/60) + " minutes)" )
+            else:
+                raise
+        if int(fwo_globals.debug_level) > 4:
+            logger.debug (showApiCallInfo(url, full_query, request_headers, type='debug'))
+        if show_progress:
+            print('.', end='', flush=True)
+        if r != None:
+            return r.json()
         else:
-            raise
-    if int(fwo_globals.debug_level) > 4:
-        logger.debug (showApiCallInfo(url, full_query, request_headers, type='debug'))
-    if show_progress:
-        print('.', end='', flush=True)
-    return r.json()
+            return None
 
 
 def login(user, password, user_management_api_base_url, method='api/AuthenticationToken/Get'):
     payload = {"Username": user, "Password": password}
-    request_headers = {'Content-Type': 'application/json'}
 
-    session = requests.Session()
-    if fwo_globals.verify_certs is None:    # only for first FWO API call (getting info on cert verification)
-        session.verify = False
-    else: 
-        session.verify = fwo_globals.verify_certs
-    session.headers = request_headers
+    with requests.Session() as session:
+        if fwo_globals.verify_certs is None:    # only for first FWO API call (getting info on cert verification)
+            session.verify = False
+        else: 
+            session.verify = fwo_globals.verify_certs
+        session.headers = {'Content-Type': 'application/json'}
 
-    try:
-        response = session.post(user_management_api_base_url + method, data=json.dumps(payload))
-    except requests.exceptions.RequestException:
-        raise common.FwoApiLoginFailed ("fwo_api: error during login to url: " + str(user_management_api_base_url) + " with user " + user) from None
+        try:
+            response = session.post(user_management_api_base_url + method, data=json.dumps(payload))
+        except requests.exceptions.RequestException:
+            raise FwoApiLoginFailed ("fwo_api: error during login to url: " + str(user_management_api_base_url) + " with user " + user) from None
 
-    if response.text is not None and response.status_code==200:
-        return response.text
-    else:
-        error_txt = "fwo_api: ERROR: did not receive a JWT during login" + \
-                        ", api_url: " + str(user_management_api_base_url) + \
-                        ", ssl_verification: " + str(fwo_globals.verify_certs)
-        raise common.FwoApiLoginFailed(error_txt)
+        if response.text is not None and response.status_code==200:
+            return response.text
+        else:
+            error_txt = "fwo_api: ERROR: did not receive a JWT during login" + \
+                            ", api_url: " + str(user_management_api_base_url) + \
+                            ", ssl_verification: " + str(fwo_globals.verify_certs)
+            raise FwoApiLoginFailed(error_txt)
 
 
 def set_api_url(base_url, testmode, api_supported, hostname):
@@ -147,6 +148,8 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables, debug_level=0):
                     user: username
                     secret
                     sshPublicKey: public_key
+                    cloudClientId: cloud_client_id
+                    cloudClientSecret: cloud_client_secret
                 }
                 deviceType: stm_dev_typ {
                     id: dev_typ_id
@@ -155,6 +158,8 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables, debug_level=0):
                 }
                 configPath: config_path
                 domainUid: domain_uid
+                cloudSubscriptionId: cloud_subscription_id
+                cloudTenantId: cloud_tenant_id
                 importDisabled: do_not_import
                 forceInitialImport: force_initial_import
                 importerHostname: importer_hostname
@@ -209,8 +214,7 @@ def count_changes_per_import(fwo_api_base_url, jwt, import_id):
             changelog_rule_aggregate(where: {control_id: {_eq: $importId}}) { aggregate { count } }
         }"""
     try:
-        count_result = call(fwo_api_base_url, jwt, change_count_query, query_variables={
-                            'importId': import_id}, role='importer')
+        count_result = call(fwo_api_base_url, jwt, change_count_query, query_variables={'importId': import_id}, role='importer')
         changes_in_import = int(count_result['data']['changelog_object_aggregate']['aggregate']['count']) + \
             int(count_result['data']['changelog_service_aggregate']['aggregate']['count']) + \
             int(count_result['data']['changelog_user_aggregate']['aggregate']['count']) + \
@@ -295,6 +299,52 @@ def import_json_config(fwo_api_base_url, jwt, mgm_id, query_variables):
     if changes_in_import_control==1:
         return 0
     else:
+        return 1
+
+
+def update_hit_counter(fwo_api_base_url, jwt, mgm_id, query_variables):
+    logger = getFwoLogger()
+    # currently only data for check point firewalls is collected!
+
+    if 'config' in query_variables and 'rules' in query_variables['config']:
+        queryVariablesLocal = {"mgmId": mgm_id}
+        # prerequesite: rule_uids are unique across a management
+        # this is guaranteed for the newer devices
+        # older devices like netscreen or FortiGate (via ssh) need to be checked
+        # when hits information should be gathered here in the future
+
+        found_hits = False
+        last_hit_update_mutation = """
+            mutation updateRuleLastHit($mgmId:Int!) {
+                update_rule_metadata_many(updates: [
+        """
+
+        for rule in query_variables['config']['rules']:
+            if 'last_hit' in rule and rule['last_hit'] is not None:
+                found_hits = True
+                update_expr = '{{ where: {{ device: {{ mgm_id:{{_eq:$mgmId}} }} rule_uid: {{ _eq: "{rule_uid}" }} }}, _set: {{ rule_last_hit: "{last_hit}" }} }}, '.format(rule_uid=rule["rule_uid"], last_hit=rule['last_hit'])
+                last_hit_update_mutation += update_expr
+
+        last_hit_update_mutation += " ]) { affected_rows } }"
+
+        if found_hits:
+            try:
+                update_result = call(fwo_api_base_url, jwt, last_hit_update_mutation,
+                                    query_variables=queryVariablesLocal, role='importer')
+                if 'errors' in update_result:
+                    logger.exception("fwo_api:update_hit_counter - error while updating hit counters for mgm id " +
+                                    str(mgm_id) + ": " + str(update_result['errors']))
+                update_counter = len(update_result['data']['update_rule_metadata_many'])
+            except:
+                logger.exception("failed to update hit counter for mgm id " + str(mgm_id))
+                return 1 # error
+            
+            return 0
+        else:
+            logger.debug("found no rules with hit information for mgm_id " + str(mgm_id))
+            return 1
+    else:
+        logger.debug("no rules found for mgm_id " + str(mgm_id))
         return 1
 
 
@@ -431,7 +481,7 @@ def create_data_issue(fwo_api_base_url, jwt, import_id=None, obj_name=None, mgm_
 
         # write data issue to alert.log file as well
         # if severity>0:
-        #     common.writeAlertToLogFile(query_variables)
+        #     writeAlertToLogFile(query_variables)
         
         try:
             import_result = call(fwo_api_base_url, jwt, create_data_issue_mutation, query_variables=query_variables, role=role)
@@ -526,7 +576,7 @@ def setAlert(fwo_api_base_url, jwt, import_id=None, title=None, mgm_id=None, dev
 
     # write data issue to alert.log file as well
     if severity>0:
-        common.writeAlertToLogFile(query_variables)
+        writeAlertToLogFile(query_variables)
     
     try:
         import_result = call(fwo_api_base_url, jwt, addAlert_mutation, query_variables=query_variables, role=role)

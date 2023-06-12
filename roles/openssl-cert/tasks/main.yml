@@ -50,10 +50,10 @@
     src: "{{ openssl_cert }}"
     dest: /usr/local/share/ca-certificates/{{ product_name }}-server.crt
     state: link
-  become: yes
+  become: true
     
 # sudo dpkg-reconfigure ca-certificates -f noninteractive
 - name: reconfigure ca-certificates package
   debconf:
     name: ca-certificates
-  become: yes
+  become: true

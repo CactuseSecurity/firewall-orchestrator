@@ -1,4 +1,5 @@
 ﻿using FWO.Api.Data;
+using FWO.Config.Api;
 
 namespace FWO.Ui.Services
 {
@@ -8,7 +9,11 @@ namespace FWO.Ui.Services
 
         public static event EventHandler<string>? OnJwtAboutToExpire;
 
-        private static readonly Dictionary<string, Timer> jwtExpiryTimers = new Dictionary<string, Timer>();
+        public static event EventHandler<string>? OnJwtExpired;
+
+        private static readonly Dictionary<string, Timer> jwtAboutToExpireTimers = new Dictionary<string, Timer>();
+
+        private static readonly Dictionary<string, Timer> jwtExpiredTimers = new Dictionary<string, Timer>();
 
         public static void PermissionsChanged(string userDn)
         {
@@ -20,14 +25,31 @@ namespace FWO.Ui.Services
             OnJwtAboutToExpire?.Invoke(null, userDn);
         }
 
-        public static void AddJwtTimer(string userDn, int time)
+        public static void JwtExpired(string userDn)
+        {
+            OnJwtExpired?.Invoke(null, userDn);
+        }
+
+        public static void AddJwtTimers(string userDn, int timeUntilyExpiry, int notificationTime)
         {
             // Dispose old timer (if existing)
-            if (jwtExpiryTimers.ContainsKey(userDn))
+            if (jwtAboutToExpireTimers.ContainsKey(userDn))
             {
-                jwtExpiryTimers[userDn].Dispose();
+                jwtAboutToExpireTimers[userDn].Dispose();
             }
-            jwtExpiryTimers[userDn] = new Timer(_ => JwtAboutToExpire(userDn), null, time, time);
+            if (jwtExpiredTimers.ContainsKey(userDn))
+            {
+                jwtExpiredTimers[userDn].Dispose();
+            }
+            // Create new timers
+            if (timeUntilyExpiry - notificationTime > 0)
+            {
+                jwtAboutToExpireTimers[userDn] = new Timer(_ => JwtAboutToExpire(userDn), null, timeUntilyExpiry - notificationTime, int.MaxValue);
+            }
+            if (timeUntilyExpiry > 0)
+            {
+                jwtExpiredTimers[userDn] = new Timer(_ => JwtExpired(userDn), null, timeUntilyExpiry, int.MaxValue);
+            }
         }
     }
 }

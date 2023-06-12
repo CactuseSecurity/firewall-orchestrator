@@ -1,6 +1,8 @@
 ﻿@using BlazorTable
 @using FWO.Config.Api
 @using FWO.Api.Data
+@using FWO.Report
+
 
 @inject UserConfig userConfig
 @inject IJSRuntime jsRuntime
@@ -10,7 +12,7 @@
 
 @if(Content != null)
 {
-    <Collapse Title="@(NameExtractor != null ? NameExtractor(Content) : "")" UseHtmlTitle="@(Tab == ruleTab)" Style="@("primary")" StartToggled="StartCollapsed">
+    <Collapse Title="@(NameExtractor != null ? NameExtractor(Content) : "")" UseHtmlTitle="@(Tab == RsbTab.rule)" Style="@("primary")" StartToggled="StartCollapsed">
         <TitleWithHtml>
             @if (Content.GetType() == typeof(Rule))
             {
@@ -34,12 +36,12 @@
         <ChildContent>
             @if(NetworkObjectExtractor != null)
             {
-                <Collapse Title="@(userConfig.GetText("network_objects"))" StartToggled="StartCollapsed"  OnOpen="() => HandleUncollapse(nobj)">
+                <Collapse Title="@(userConfig.GetText("network_objects"))" StartToggled="StartCollapsed"  OnOpen="() => HandleUncollapse(ObjCategory.nobj)">
                     <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkObject" Items="@NetworkObjectExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                         <Column TableItem="NetworkObject" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
-                                <span class="@GetIconClass(nobj, context.Type.Name)">&nbsp;</span>
-                                <b id="@(GetID(nobj, context.Id))">@(context.Name)</b>
+                                <span class="@ReportBase.GetIconClass(ObjCategory.nobj, context.Type.Name)">&nbsp;</span>
+                                <b id="@(GetID(ObjCategory.nobj, context.Id))">@(context.Name)</b>
                             </Template>
                         </Column>
                         <DetailTemplate TableItem="NetworkObject">
@@ -55,7 +57,7 @@
                                         {
                                             if(member.Object != null)
                                             {
-                                                @AddLinkToObject(nobj, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                @AddLinkToObject(ObjCategory.nobj, member.Object.Id, member.Object.Type.Name, member.Object.Name)
                                                 <br>
                                             }
                                         }
@@ -70,7 +72,7 @@
                                                     continue;
                                                 shownMemberIds.Add(member.Object.Id);
 
-                                                @AddLinkToObject(nobj, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                @AddLinkToObject(ObjCategory.nobj, member.Object.Id, member.Object.Type.Name, member.Object.Name)
                                                 <br>
                                             }
                                         }
@@ -85,22 +87,25 @@
             }
             @if(NetworkServiceExtractor != null)
             {
-                <Collapse Title="@(userConfig.GetText("services"))" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(nsrv)">
+                <Collapse Title="@(userConfig.GetText("services"))" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(ObjCategory.nsrv)">
                     <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkService" Items="@NetworkServiceExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                         <Column TableItem="NetworkService" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
-                                <span class="@GetIconClass(nsrv, context.Type.Name)">&nbsp;</span>
-                                <b id="@(GetID(nsrv, context.Id))">@(context.Name)</b>
+                                <span class="@ReportBase.GetIconClass(ObjCategory.nsrv, context.Type.Name)">&nbsp;</span>
+                                <b id="@(GetID(ObjCategory.nsrv, context.Id))">@(context.Name)</b>
                             </Template>
                         </Column>
                         <DetailTemplate TableItem="NetworkService">
                             <Detail Title="@(userConfig.GetText("type"))" Data=@context.Type.Name />
                             <Detail Title="@(userConfig.GetText("uid"))" Data=@context.Uid />
-                            <Detail Title="@(userConfig.GetText("source_port"))" Data=@(context.SourcePort == context.SourcePortEnd ? context.SourcePort.ToString() : $"{context.SourcePort.ToString()}-{context.SourcePortEnd.ToString()}") />
-                            <Detail Title="@(userConfig.GetText("destination_port"))" Data=@(context.DestinationPort == context.DestinationPortEnd ? context.DestinationPort.ToString() : $"{context.DestinationPort.ToString()}-{context.DestinationPortEnd.ToString()}") />
-                            <Detail Title="@(userConfig.GetText("protocol"))" Data=@context.Protocol?.Name />
-                            <Detail Title="@(userConfig.GetText("code"))" Data=@context.Code />
-                            <Detail Title="@(userConfig.GetText("timeout"))" Data=@context.Timeout.ToString() />
+                            @if (context.Type.Name != "group")
+                            {
+                                <Detail Title="@(userConfig.GetText("source_port"))" Data=@(context.SourcePort == context.SourcePortEnd ? context.SourcePort.ToString() : $"{context.SourcePort.ToString()}-{context.SourcePortEnd.ToString()}") />
+                                <Detail Title="@(userConfig.GetText("destination_port"))" Data=@(context.DestinationPort == context.DestinationPortEnd ? context.DestinationPort.ToString() : $"{context.DestinationPort.ToString()}-{context.DestinationPortEnd.ToString()}") />
+                                <Detail Title="@(userConfig.GetText("protocol"))" Data=@context.Protocol?.Name />
+                                <Detail Title="@(userConfig.GetText("code"))" Data=@context.Code />
+                                <Detail Title="@(userConfig.GetText("timeout"))" Data=@context.Timeout.ToString() />
+                            }
                             @if (context.Type.Name == "group" && context.ServiceGroups != null && context.ServiceGroupFlats != null)
                             {
                                 <ContentSwap Title1="@(userConfig.GetText("group_members"))" Title2="@(userConfig.GetText("group_members_flat"))">
@@ -109,7 +114,7 @@
                                         {
                                             if(member.Object != null)
                                             {
-                                                @AddLinkToObject(nsrv, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                @AddLinkToObject(ObjCategory.nsrv, member.Object.Id, member.Object.Type.Name, member.Object.Name)
                                                 <br>
                                             }
                                         }
@@ -124,7 +129,7 @@
                                                     continue;
                                                 shownMemberIds.Add(member.Object.Id);
 
-                                                @AddLinkToObject(nsrv, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                @AddLinkToObject(ObjCategory.nsrv, member.Object.Id, member.Object.Type.Name, member.Object.Name)
                                                 <br>
                                             }
                                         }
@@ -139,12 +144,12 @@
             }
             @if(NetworkUserExtractor != null)
             {
-                <Collapse Title="@(userConfig.GetText("users"))" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(user)">
+                <Collapse Title="@(userConfig.GetText("users"))" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(ObjCategory.user)">
                     <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkUser" Items="@NetworkUserExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                         <Column TableItem="NetworkUser" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
-                                <span class="@GetIconClass(user, context.Type.Name)">&nbsp;</span>
-                                <b id="@(GetID(user, context.Id))">@(context.Name)</b>
+                                <span class="@ReportBase.GetIconClass(ObjCategory.user, context.Type.Name)">&nbsp;</span>
+                                <b id="@(GetID(ObjCategory.user, context.Id))">@(context.Name)</b>
                             </Template>
                         </Column>
                         <DetailTemplate TableItem="NetworkUser">
@@ -159,7 +164,7 @@
                                         {
                                             if(member.Object != null)
                                             {
-                                                @AddLinkToObject(user, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                @AddLinkToObject(ObjCategory.user, member.Object.Id, member.Object.Type.Name, member.Object.Name)
                                                 <br>
                                             }
                                         }
@@ -174,7 +179,7 @@
                                                     continue;
                                                 shownMemberIds.Add(member.Object.Id);
 
-                                                @AddLinkToObject(user, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                @AddLinkToObject(ObjCategory.user, member.Object.Id, member.Object.Type.Name, member.Object.Name)
                                                 <br>
                                             }
                                         }
@@ -194,19 +199,19 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [CascadingParameter]
     AnchorNavToRSB? anchorNavToRSB { get; set; }
 
     [Parameter]
-    public Func<byte, Func<Management[], Task>, long, bool, Task>? FetchObjects { get; set; }
+    public Func<RsbTab, ObjCategory, Func<Management[], Task>, long, bool, Task>? FetchObjects { get; set; }
 
     [Parameter]
     public bool Recert { get; set; }
 
     [Parameter]
-    public byte Tab { get; set; }
+    public RsbTab Tab { get; set; }
 
     [Parameter]
     public int PageSize { get; set; }
@@ -234,8 +239,6 @@
 
     // Parameter Variables are being overwritten, because something happens with the component on StateHasChanged (but the Initialize Task does not get called)
     public InputDataType? Content { get; set; }
-    private const byte allTab = 10, reportTab = 20, ruleTab = 30;
-    private const byte all = 0, nobj = 1, nsrv = 2, user = 3;
     public bool ContentIsDetailed => nobjDetailed && nsrvDetailed && userDetailed;
     private bool nobjDetailed = false;
     private bool nsrvDetailed = false;
@@ -245,21 +248,21 @@
     {
         Content = InitialContent;
         if (StartContentDetailed)
-            await FetchContent(all);
+            await FetchContent(ObjCategory.all);
     }
 
-    private string GetIDPrefix(byte objCategory, byte? tab = null, bool toMgmtObj = false)
+    private string GetIDPrefix(ObjCategory objCategory, RsbTab? tab = null, bool toMgmtObj = false)
     {
         string idPref = "";
         switch (tab ?? Tab)
         {
-            case allTab:
+            case RsbTab.all:
                 idPref += "all-";
                 break;
-            case reportTab:
+            case RsbTab.report:
                 idPref += "report-";
                 break;
-            case ruleTab:
+            case RsbTab.rule:
                 idPref += "rule-";
                 break;
         }
@@ -277,29 +280,29 @@
         }
         switch (objCategory)
         {
-            case nobj:
+            case ObjCategory.nobj:
                 idPref += "nwobj";
                 break;
-            case nsrv:
+            case ObjCategory.nsrv:
                 idPref += "svc";
                 break;
-            case user:
+            case ObjCategory.user:
                 idPref += "user";
                 break;
         }
 
         return idPref;
     }
-    private string GetID(byte objCategory, long objId)
+    private string GetID(ObjCategory objCategory, long objId)
     {
         return GetIDPrefix(objCategory) + objId;
     }
 
-    private string GetIconClass(byte objCategory, string type)
+    @* private string GetIconClass(ObjCategory objCategory, string type)
     {
         switch (type)
         {
-            case "group" when objCategory == user:
+            case "group" when objCategory == ObjCategory.user:
                 return "oi oi-people";
             case "group":
                 return "oi oi-list-rich";
@@ -312,49 +315,49 @@
             default:
                 switch (objCategory)
                 {
-                    case nobj:
+                    case ObjCategory.nobj:
                         return "oi oi-laptop";
-                    case nsrv:
+                    case ObjCategory.nsrv:
                         return "oi oi-wrench";
-                    case user:
+                    case ObjCategory.user:
                         return "oi oi-person";
                 }
                 return "";
         }
-    }
+    } *@
 
-    RenderFragment AddLinkToObject(byte objCategory, long objId, string type, string name)
+    RenderFragment AddLinkToObject(ObjCategory objCategory, long objId, string type, string name)
     {
-        byte targetTab = Tab == allTab ? allTab : reportTab;
+        RsbTab targetTab = Tab == RsbTab.all ? RsbTab.all : RsbTab.report;
         string htmlObjRefPrefix = GetIDPrefix(objCategory, targetTab, true);
 
         string page = Recert ? "certification" : "report";
         
-        return @<a href="@(page)#goto-@(htmlObjRefPrefix + objId)" target="_top"><span class="@GetIconClass(objCategory, type)">&nbsp;</span>@(name)</a>;
+        return @<a href="@(page)#goto-@(htmlObjRefPrefix + objId)" target="_top"><span class="@ReportBase.GetIconClass(objCategory, type)">&nbsp;</span>@(name)</a>;
     }
 
-    private async Task HandleUncollapse(byte objCategory)
+    private async Task HandleUncollapse(ObjCategory objCategory)
     {
-        if (Tab != ruleTab)
+        if (Tab != RsbTab.rule)
             await FetchContent(objCategory);
         anchorNavToRSB?.ScrollToFragmentIfMatch(GetIDPrefix(objCategory));
     }
 
-    private async Task FetchContent(byte objCategory)
+    private async Task FetchContent(ObjCategory objCategory)
     {
         try
         {
-            if (Tab == ruleTab && objCategory != 0)
+            if (Tab == RsbTab.rule && objCategory != ObjCategory.all)
                 return;
 
-            if (objCategory == all && !ContentIsDetailed || objCategory == nobj && !nobjDetailed || objCategory == nsrv && !nsrvDetailed || objCategory == user && !userDetailed)
+            if (objCategory == ObjCategory.all && !ContentIsDetailed || objCategory == ObjCategory.nobj && !nobjDetailed || objCategory == ObjCategory.nsrv && !nsrvDetailed || objCategory == ObjCategory.user && !userDetailed)
             {
                 if(FetchObjects != null)
                 {
                     switch (Content)
                     {
                         case Management m:
-                            await FetchObjects((byte)(Tab + objCategory),
+                            await FetchObjects(Tab, objCategory,
                                 managementsUpdate =>
                                 {
                                     int id = m.Id;
@@ -363,13 +366,13 @@
                                     {
                                         switch (objCategory)
                                         {
-                                            case all:
+                                            case ObjCategory.all:
                                                 m = m_updated; break;
-                                            case nobj:
+                                            case ObjCategory.nobj:
                                                 m.Objects = m_updated.Objects; break;
-                                            case nsrv:
+                                            case ObjCategory.nsrv:
                                                 m.Services = m_updated.Services; break;
-                                            case user:
+                                            case ObjCategory.user:
                                                 m.Users = m_updated.Users; break;
                                         }
 
@@ -381,7 +384,7 @@
                             break;
 
                         case Rule r:
-                            await FetchObjects((byte)(Tab + objCategory),
+                            await FetchObjects(Tab, objCategory,
                                 managementsUpdate =>
                                 {
                                     Rule? r_updated = managementsUpdate.SelectMany(m => m.Devices).SelectMany(d => d.Rules ?? new Rule[0]).FirstOrDefault();
@@ -397,16 +400,16 @@
                     }
                 }
 
-                nobjDetailed = nobjDetailed || objCategory == 0 || objCategory == 1;
-                nsrvDetailed = nsrvDetailed || objCategory == 0 || objCategory == 2;
-                userDetailed = userDetailed || objCategory == 0 || objCategory == 3;
+                nobjDetailed = nobjDetailed || objCategory == ObjCategory.all || objCategory == ObjCategory.nobj;
+                nsrvDetailed = nsrvDetailed || objCategory == ObjCategory.all || objCategory == ObjCategory.nsrv;
+                userDetailed = userDetailed || objCategory == ObjCategory.all || objCategory == ObjCategory.user;
 
                 await InvokeAsync(StateHasChanged);
             }
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("object_fetch"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
         }
     }
 }

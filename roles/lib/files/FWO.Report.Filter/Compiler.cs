@@ -18,11 +18,10 @@ namespace FWO.Report.Filter
             else return null;
         }
 
-        public static DynGraphqlQuery Compile(string input, ReportType? reportType = null, DeviceFilter? deviceFilter = null, TimeFilter? timeFilter = null, bool detailed = false)
+        public static DynGraphqlQuery Compile(ReportTemplate filter)
         {
-            bool detailedCalc = detailed || reportType == ReportType.ResolvedRules || reportType == ReportType.ResolvedRulesTech;
-            Log.WriteDebug("Filter", $"Input: \"{input}\", Report Type: \"${reportType}\", Device Filter: \"{deviceFilter}\"");
-            return DynGraphqlQuery.GenerateQuery(input, CompileToAst(input), deviceFilter, timeFilter, reportType, detailedCalc);
+            Log.WriteDebug("Filter", $"Input: \"{filter.Filter}\", Report Type: \"${filter.ReportParams.ReportType}\", Device Filter: \"{filter.ReportParams.DeviceFilter}\"");
+            return DynGraphqlQuery.GenerateQuery(filter, CompileToAst(filter.Filter));
         }
     }
 }

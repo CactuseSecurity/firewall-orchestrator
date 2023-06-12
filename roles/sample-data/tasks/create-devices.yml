@@ -4,12 +4,17 @@
   slurp:
     src: "{{ sample_config_user_home }}/.ssh/id_rsa.{{ sample_config_user }}"
   register: sample_ssh_priv_key_dict
-  become: yes
+  become: true
 
 - name: decode key
   set_fact:
     sample_ssh_priv_key: "{{ sample_ssh_priv_key_dict['content'] | b64decode }}"
- 
+
+- name: change importer hostname when it is localhost
+  set_fact:
+    importer_hostname: "{{ hostvars[inventory_hostname].ansible_hostname }}"
+  when: importer_hostname == 'localhost'
+
 - block:
 
     - name: insert demo import credentials
@@ -100,5 +105,5 @@
           END IF; END $do$ 
       when: sample_role_purpose is match('test')
 
-  become: yes
+  become: true
   become_user: postgres

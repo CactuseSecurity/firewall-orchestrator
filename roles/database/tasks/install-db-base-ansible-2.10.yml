@@ -15,5 +15,5 @@
       - fworch-fill-stm.sql
     when: installation_mode == "new"
 
-  become: yes
+  become: true
   become_user: postgres

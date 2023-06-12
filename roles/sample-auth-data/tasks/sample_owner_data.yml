@@ -1,0 +1,33 @@
+- name: adding demo owner data
+
+  postgresql_query:
+    db: "{{ fworch_db_name }}"
+    query: >
+      DO $do$ BEGIN
+        INSERT INTO owner (name, dn, group_dn, is_default, tenant_id, recert_interval, app_id_external) 
+            VALUES    ('ownerF_demo', 'uid=user1_demo,ou=tenant1_demo,ou=operator,ou=user,dc=fworch,dc=internal', 'cn=ownergroup_F_demo,ou=group,dc=fworch,dc=internal', false, 2, 30, '123')
+            ON CONFLICT DO NOTHING; 
+        INSERT INTO owner (name, dn, group_dn, is_default, tenant_id, recert_interval, app_id_external) 
+            VALUES    ('ownerD_demo', 'uid=user2_demo,ou=tenant2_demo,ou=operator,ou=user,dc=fworch,dc=internal', 'cn=ownergroup_D_demo,ou=group,dc=fworch,dc=internal', false, 3, 30, '234')
+            ON CONFLICT DO NOTHING; 
+
+        INSERT INTO owner_network (owner_id, ip) 
+            VALUES    ((SELECT id FROM owner WHERE name='ownerF_demo'), '10.222.0.0/27')
+            ON CONFLICT DO NOTHING; 
+
+        INSERT INTO owner_network (owner_id, ip) 
+            VALUES    ((SELECT id FROM owner WHERE name='ownerD_demo'), '10.222.0.32/27')
+            ON CONFLICT DO NOTHING; 
+
+        INSERT INTO owner_network (owner_id, ip) 
+            VALUES    ((SELECT id FROM owner WHERE name='ownerF_demo'), '10.0.0.0/27')
+            ON CONFLICT DO NOTHING; 
+
+        INSERT INTO owner_network (owner_id, ip) 
+            VALUES    ((SELECT id FROM owner WHERE name='ownerD_demo'), '10.0.0.32/27')
+            ON CONFLICT DO NOTHING; 
+      END $do$
+
+  when: sample_role_purpose is not match('test') and add_demo_data|bool
+  become: true
+  become_user: postgres

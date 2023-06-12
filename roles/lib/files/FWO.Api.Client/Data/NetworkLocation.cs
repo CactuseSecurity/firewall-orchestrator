@@ -25,7 +25,7 @@ namespace FWO.Api.Data
                 if (this.User != null && secondNetworkLocation.User != null)
                 {
                     if (this.User?.Name.CompareTo(secondNetworkLocation.User?.Name) != 0)
-                        return this.User.Name.CompareTo(secondNetworkLocation.User.Name);
+                        return this.User!.Name.CompareTo(secondNetworkLocation.User!.Name);
                     else
                         return this.Object.Name.CompareTo(secondNetworkLocation.Object.Name);
                 }

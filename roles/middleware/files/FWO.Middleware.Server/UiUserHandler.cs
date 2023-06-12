@@ -8,23 +8,39 @@ using Newtonsoft.Json;
 
 namespace FWO.Middleware.Server
 {
+	/// <summary>
+	/// Helper class to read config value for expiration time
+	/// </summary>
     public class ConfExpirationTime
     {
+        /// <summary>
+        /// config value for expiration time
+        /// </summary>
         [JsonProperty("config_value"), JsonPropertyName("config_value")]
         public int ExpirationValue { get; set; }
     }
 
+	/// <summary>
+	/// Handler class for local Ui user
+	/// </summary>
     public class UiUserHandler
     {
         private readonly string jwtToken;
         private ApiConnection apiConn;
 
+		/// <summary>
+		/// Constructor needing the jwt token
+		/// </summary>
         public UiUserHandler(string jwtToken)
         {
             this.jwtToken = jwtToken;
             apiConn = new GraphQlApiConnection(ConfigFile.ApiServerUri, jwtToken);
         }
 
+		/// <summary>
+		/// Get the configurated value for the session timeout.
+		/// </summary>
+		/// <returns>session timeout value in minutes</returns>
         public async Task<int> GetExpirationTime()
         {
             int expirationTime = 60 * 12;
@@ -55,17 +71,17 @@ namespace FWO.Middleware.Server
             bool userSetInDb = false;
             try
             {
-                UiUser[] existingUserFound = await apiConn.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = user.Dn });
+                UiUser[] existingUsers = await apiConn.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = user.Dn });
 
-                if (existingUserFound.Length == 1)
+                if (existingUsers.Length > 0)
                 {
-                    user.DbId = existingUserFound[0].DbId;
+                    user.DbId = existingUsers[0].DbId;
                     user.PasswordMustBeChanged = await UpdateLastLogin(apiConn, user.DbId);
                     userSetInDb = true;
                 }
                 else
                 {
-                    Log.WriteError("User not found", $"Couldn't find {user.Name} exactly once!");
+                    Log.WriteDebug("User not found", $"Couldn't find {user.Name} in internal database");
                 }
             }
             catch(Exception exeption)
@@ -75,7 +91,7 @@ namespace FWO.Middleware.Server
 
             if(!userSetInDb)
             {
-                Log.WriteInfo("New User", $"User {user.Name} first time log in - adding to database.");
+                Log.WriteInfo("New User", $"User {user.Name} first time log in - adding to internal database.");
                 await AddUiUserToDb(apiConn, user);
             }
             return user;
@@ -126,6 +142,9 @@ namespace FWO.Middleware.Server
             return true;
         }
 
+		/// <summary>
+		/// Update the passwordMustBeChanged flag.
+		/// </summary>
         public static async Task UpdateUserPasswordChanged(ApiConnection apiConn, string userDn, bool passwordMustBeChanged = false)
         {
             try

@@ -66,7 +66,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
     
     [Parameter]
     public bool Display { get; set; } = false;
@@ -75,10 +75,10 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
     [Parameter]
-    public RequestHandler ReqHandler { get; set; }
+    public RequestHandler ReqHandler { get; set; } = new RequestHandler();
 
     [Parameter]
-    public Func<Task> ResetParent { get; set; }
+    public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
     public List<RequestApproval> Approvals { get; set; } = new List<RequestApproval>();
@@ -87,6 +87,7 @@
     public RequestStateDict States { get; set; } = new RequestStateDict();
 
     static List<string> validRoles = new List<string>(){"approver"};
+
 
     private async Task Close()
     {

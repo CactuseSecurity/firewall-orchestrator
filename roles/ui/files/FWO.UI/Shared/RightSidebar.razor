@@ -1,0 +1,229 @@
+﻿@using System
+@using FWO.Config.Api
+@using FWO.Api.Data
+@using FWO.Api.Client
+@using FWO.Api.Client.Queries
+@using FWO.Report
+@using FWO.Ui.Data
+
+@inject ApiConnection Connection
+@inject UserConfig userConfig
+
+<Sidebar Collapsible="true" Resizeable="true" PositionLeft="false" @bind-Width="intWidth">
+    <div class="p-3">
+        <h5 class="text-center">@(userConfig.GetText("objects"))</h5>
+        <CascadingValue Value="AnchorNavToRSB">
+            <TabSet KeepPanelsAlive="true" @ref="Tabset">
+                <Tab Title="@(userConfig.GetText("all"))">
+                    <div class="d-md-flex justify-content-md-end sticky-marker-45 bg-white">
+                        <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseSidebarAll.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
+                    </div>
+                    <div class="mt-2">
+                        <CascadingValue Value="collapseSidebarAll">
+                            <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="RsbTab.all" InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
+                                                NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
+                        </CascadingValue>
+                    </div>
+                </Tab>
+                @if(ManagementsReport != null)
+                {
+                    <Tab Title="Report">
+                        <div class="d-md-flex justify-content-md-end sticky-marker-45 bg-white">
+                            <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseSidebarReport.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
+                        </div>
+                        <div class="mt-2">
+                            <CascadingValue Value="collapseSidebarReport">
+                                <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="RsbTab.report" InputDataType="Management" Data="ManagementsReport.Where(m => (m.Devices.Where(d => d.Rules != null && d.Rules.Count() > 0).Count() > 0))" NameExtractor="man => man.Name"
+                                                    NetworkObjectExtractor="man => man.ReportObjects"
+                                                    NetworkServiceExtractor="man => man.ReportServices"
+                                                    NetworkUserExtractor="man => man.ReportUsers" />
+                            </CascadingValue>
+                        </div>
+                    </Tab>
+                }
+                <Tab Title="@(userConfig.GetText("rule"))">
+                    <div class="d-md-flex justify-content-md-between sticky-marker-45 bg-white">
+                        <div class="btn btn-dark btn-sm w-50" @onclick="@(async () => {SelectedRules.Clear(); await SelectedRulesChanged.InvokeAsync(SelectedRules);})">@(userConfig.GetText("clear_all"))</div>
+                        <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseSidebarRule.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
+                    </div>
+                    <div class="mt-2">
+                        <CascadingValue Value="collapseSidebarRule">
+                            <ObjectGroupCollection FetchObjects="FetchContent" Recert="false" Tab="RsbTab.rule" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule" Data="SelectedRules"
+                                                NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
+                                                NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object).Union(rule.Tos.Select(nl => nl.Object)).Union(rule.NatData.TranslatedFroms.Select(nl => nl.Object)).Union(rule.NatData.TranslatedTos.Select(nl => nl.Object)).OrderBy(o => o.Name).ToArray()"
+                                                NetworkServiceExtractor="rule => rule.Services.Select(sw => sw.Content).Union(rule.NatData.TranslatedServices.Select(sw => sw.Content)).OrderBy(s => s.Name).ToArray()"
+                                                NetworkUserExtractor="rule => rule.Froms.Select(nl => nl.User).Distinct().Where(u => u != null).OrderBy(u => u.Name).ToArray()" />
+                        </CascadingValue>
+                    </div>
+                </Tab>
+            </TabSet>
+        </CascadingValue>
+    </div>
+</Sidebar>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public int Width { get; set; }
+
+    [Parameter]
+    public EventCallback<int> WidthChanged { get; set; }
+
+    [Parameter]
+    public FWO.Ui.Shared.TabSet Tabset { get; set; } = default!;
+
+    [Parameter]
+    public FWO.Ui.Shared.AnchorNavToRSB AnchorNavToRSB { get; set; } = default!;
+
+    [Parameter]
+    public ReportBase? CurrentReport { get; set; }
+
+    [Parameter]
+    public List<Rule> SelectedRules { get; set; } = new List<Rule>();
+
+    [Parameter]
+    public EventCallback<List<Rule>> SelectedRulesChanged { get; set; }
+
+    [Parameter]
+    public Management[]? ManagementsReport { get; set; }
+
+    private CollapseState collapseSidebarAll = new CollapseState();
+    private CollapseState collapseSidebarReport = new CollapseState();
+    private CollapseState collapseSidebarRule = new CollapseState();
+    private Management[] managementsAllObjects = new Management[0];
+
+    private int intWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width);}}
+
+
+    protected override void OnInitialized()
+    {
+        Task.Run(async () =>
+        {
+            try
+            {
+                PaginationVariables paginationVariables = new PaginationVariables() { Limit = 0, Offset = 0 };
+                managementsAllObjects = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
+                await InvokeAsync(StateHasChanged);
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+            }
+        });
+    }
+
+    public async Task FetchContent(RsbTab rsbTab, ObjCategory objType, Func<Management[], Task> callback, long id = 0, bool nat = false)
+    {
+        Log.WriteDebug("Fetching Content..", $"nat: {nat}");
+
+        Management[] managements = new Management[0];
+
+        try
+        {
+            string query = "";
+            Dictionary<String, object> queryVars = new Dictionary<string, object>();
+            bool gotAllObjects = true;
+
+            switch (rsbTab)
+            {
+                case RsbTab.all:
+                    queryVars = new Dictionary<string, object>()
+                    {
+                        { "management_id", (int) id },
+                        { "limit", userConfig.ElementsPerFetch },
+                        { "offset", 0 }
+                    };
+                    switch (objType)
+                    {
+                        case ObjCategory.all:
+                            query = ObjectQueries.getAllObjectDetails;
+                            break;
+                        case ObjCategory.nobj:
+                            query = ObjectQueries.getNetworkObjectDetails;
+                            break;
+                        case ObjCategory.nsrv:
+                            query = ObjectQueries.getNetworkServiceObjectDetails;
+                            break;
+                        case ObjCategory.user:
+                            query = ObjectQueries.getUserDetails;
+                            break;
+                    }
+                    await FetchObjects(query, queryVars, callback);
+                    break;
+                case RsbTab.report:
+                    queryVars = new Dictionary<string, object>()
+                    {
+                        { "mgmIds", (int) id },
+                        { "limit", userConfig.ElementsPerFetch },
+                        { "offset", 0 }
+                    };
+                    if (CurrentReport != null)
+                        gotAllObjects = await CurrentReport.GetObjectsForManagementInReport(queryVars, objType, userConfig.AutoFillRightSidebar ? int.MaxValue : userConfig.MaxInitialFetchesRightSidebar, Connection, callback);
+
+                    if (!gotAllObjects)
+                        DisplayMessageInUi(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);
+                    break;
+                case RsbTab.rule:
+                    queryVars = new Dictionary<string, object>()
+                    {
+                        { "rule_id", id },
+                        { "limit", userConfig.ElementsPerFetch },
+                        { "offset", (int)0 }
+                    };
+                    if(objType == ObjCategory.all)
+                    {
+                        if (nat)
+                            query = RuleQueries.getNatRuleDetails;
+                        else
+                            query = RuleQueries.getRuleDetails;
+                    }
+                    await FetchObjects(query, queryVars, callback);
+                    break;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+        }
+    }
+
+    private async Task FetchObjects(string query, Dictionary<string, object> queryVars, Func<Management[], Task> callback)
+    {
+        // lazy fetch all objects for right sidebar
+        try
+        {
+            Management[] managements = new Management[0];
+            bool newObjects = true;
+            int fetchCount = 0;
+
+            while (newObjects && (++fetchCount <= userConfig.MaxInitialFetchesRightSidebar || userConfig.AutoFillRightSidebar))
+            {
+                Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(query, queryVars);
+                if (fetchCount == 1)
+                {
+                    managements = managementsCurrentFetch;
+                }
+                else
+                {
+                    newObjects = managements.Merge(managementsCurrentFetch);
+                }
+
+                if (queryVars.ContainsKey("offset"))
+                    queryVars["offset"] = (int)queryVars["offset"] + userConfig.ElementsPerFetch;
+                await callback(managements);
+            }
+
+            Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount - 1} cycle(s) ({userConfig.ElementsPerFetch} at a time)");
+
+            if (fetchCount > userConfig.MaxInitialFetchesRightSidebar && !userConfig.AutoFillRightSidebar)
+                DisplayMessageInUi(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+        }
+    }
+}

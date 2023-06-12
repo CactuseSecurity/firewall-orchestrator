@@ -6,7 +6,9 @@ Follow the [installation instructions](installer/README.MD).
 
 ## Initial login web ui
 
-- use your local browser to connect to [https://localhost/](https://localhost)
+- use a local browser to connect to [https://localhost/](https://localhost)
+- alternatively you can also use a browser on a remote system for all your access to FWORCH, simply specifying the firewall orchestrator system's IP address or name
+- accept the certificate warning
 - login with username admin, the password can be found in /etc/fworch/secrets/ui_admin_pwd, it will also displayed at the end of the installation routine
 - create additional users and assign roles (see help pages) 
 

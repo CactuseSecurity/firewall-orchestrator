@@ -4,11 +4,11 @@
 
 # - name: backup docker repo file
 #   copy: remote_src=True src=/etc/apt/sources.list.d/docker.list dest=/tmp/docker.list
-#   become: yes
+#   become: true
 
 # - name: remove docker repo file temporarily
 #   file: path=/etc/apt/sources.list.d/docker.list state=absent
-#   become: yes
+#   become: true
 
 # - name: remove old apt-key signing key for docker
 #   apt_key:
@@ -16,20 +16,20 @@
 #     state: absent
 #     keyring: /etc/apt/trusted.gpg
 #   environment: "{{ proxy_env }}"
-#   become: yes
+#   become: true
 
 - name: remove old apt-key signing key for docker using command as it does not work via apt_key module
   command: apt-key del "9DC8 5822 9FC7 DD38 854A  E2D8 8D81 803C 0EBF CD88"
-  become: yes
+  become: true
 
 - name: adding docker apt signing key
   get_url:
     url: https://download.docker.com/linux/ubuntu/gpg
     dest: /etc/apt/trusted.gpg.d/docker.asc
-    force: yes
+    force: true
     mode: "0644"
   environment: "{{ proxy_env }}"
 
 # - name: restore docker repo file
 #   copy: remote_src=True dest=/etc/apt/sources.list.d/docker.list src=/tmp/docker.list
-#   become: yes
+#   become: true

@@ -59,7 +59,6 @@ namespace FWO.Report.Filter.Ast
             return query;
         }
 
-
         private static string SanitizeIp(string cidr_str)
         {
             IPAddress? ip;

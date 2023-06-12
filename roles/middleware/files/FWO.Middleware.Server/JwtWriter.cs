@@ -7,16 +7,26 @@ using FWO.Api.Data;
 
 namespace FWO.Middleware.Server
 {
+	/// <summary>
+	/// Class for jwt creation
+	/// </summary>
     public class JwtWriter
     {
         private readonly RsaSecurityKey jwtPrivateKey;
 
+		/// <summary>
+		/// Constructor needing the private key
+		/// </summary>
         public JwtWriter(RsaSecurityKey jwtPrivateKey)
         {
             this.jwtPrivateKey = jwtPrivateKey;
             JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
         }
 
+		/// <summary>
+		/// create jwt for given user
+		/// </summary>
+		/// <returns>generated token</returns>
         public async Task<string> CreateJWT(UiUser? user = null, TimeSpan? lifetime = null)
         {
             if (user != null)
@@ -45,15 +55,16 @@ namespace FWO.Middleware.Server
                 subject: subject,
                 notBefore: DateTime.UtcNow.AddMinutes(-1), // we currently allow for some deviation in timing of the systems
                 issuedAt: DateTime.UtcNow.AddMinutes(-1),
-                expires: DateTime.UtcNow.AddMinutes(jwtMinutesValid),
+                // Anonymous jwt is valid for ten years (does not violate security)
+                expires: DateTime.UtcNow.AddMinutes(user != null ? jwtMinutesValid : 60 * 24 * 365 * 10),
                 signingCredentials: new SigningCredentials(jwtPrivateKey, SecurityAlgorithms.RsaSha256)
             );
 
             string GeneratedToken = tokenHandler.WriteToken(token);
             if (user != null)
-                Log.WriteInfo("Jwt generation", $"Generated JWT {GeneratedToken} for User {user.Name}");
+                Log.WriteDebug("Jwt generation", $"Generated JWT {GeneratedToken} for User {user.Name}");
             else
-                Log.WriteInfo("Jwt generation", $"Generated JWT {GeneratedToken}");
+                Log.WriteDebug("Jwt generation", $"Generated JWT {GeneratedToken}");
             return GeneratedToken;
         }
 
@@ -64,11 +75,26 @@ namespace FWO.Middleware.Server
         /// <returns>JWT for middleware-server role.</returns>
         public string CreateJWTMiddlewareServer()
         {
+            return CreateJWTInternal("middleware-server");
+        }
+
+        /// <summary>
+        /// Jwt creator function used within middlewareserver that does not need: user, getClaims
+        /// necessary because this JWT needs to be used within getClaims
+        /// </summary>
+        /// <returns>JWT for reporter-viewall role.</returns>
+        public string CreateJWTReporterViewall()
+        {
+            return CreateJWTInternal("reporter-viewall");
+        }
+
+        private string CreateJWTInternal(string role)
+        {
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
             ClaimsIdentity subject = new ClaimsIdentity();
-            subject.AddClaim(new Claim("unique_name", "middleware-server"));
-            subject.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(new string[] { "middleware-server" }), JsonClaimValueTypes.JsonArray));
-            subject.AddClaim(new Claim("x-hasura-default-role", "middleware-server"));
+            subject.AddClaim(new Claim("unique_name", role));
+            subject.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(new string[] { role }), JsonClaimValueTypes.JsonArray));
+            subject.AddClaim(new Claim("x-hasura-default-role", role));
 
             JwtSecurityToken token = tokenHandler.CreateJwtSecurityToken
             (
@@ -81,7 +107,7 @@ namespace FWO.Middleware.Server
                 signingCredentials: new SigningCredentials(jwtPrivateKey, SecurityAlgorithms.RsaSha256)
             );
             string GeneratedToken = tokenHandler.WriteToken(token);
-            Log.WriteInfo("Jwt generation", $"Generated JWT {GeneratedToken} for middleware-server.");
+            Log.WriteDebug("Jwt generation", $"Generated JWT {GeneratedToken} for {role}.");
             return GeneratedToken;
         }
 
@@ -136,7 +162,6 @@ namespace FWO.Middleware.Server
             }
 
             claimsIdentity.AddClaim(new Claim("x-hasura-default-role", defaultRole));
-            // Log.WriteDebug("Default role assignment", $"User {user.Name} was assigned default-role {defaultRole}");
             return claimsIdentity;
         }
     }

@@ -42,6 +42,8 @@ fragment reqTaskDetails on request_reqtask {
     field
     user_id
     original_nat_id
+    device_id
+    rule_uid
   }
   implementation_tasks: impltasks {
     ...implTaskDetails

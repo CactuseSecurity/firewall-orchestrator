@@ -5,7 +5,7 @@
 [![Open Source Love svg1](https://github.com/ellerbrock/open-source-badges/blob/master/badges/open-source-v1/open-source.svg)](https://github.com/ellerbrock/open-source-badges/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
 
-- Import firewall configurations (rules) of various brands (Check Point, Fortinet, Cisco, Juniper, Barracuda, Netscreen)
+- Import firewall configurations (rules) of various brands (Check Point, Fortinet, Cisco, Azure, Palo  Alto, Juniper, Barracuda, Netscreen)
 - Request changes on your firewall configuration using the new workflow module in v6.0
 - Display reports on firewall configuration and changes
 - Regularly re-certify firewall rules to clean up your rulebase
@@ -15,9 +15,9 @@
 
 ## Installation instructions
 
-See [installation instructions](documentation/installer/basic-installation.md).
-
-If your system is positioned behind a proxy or you have other specific installation needs like in a distributed installation, see [advanced server installation instructions](documentation/installer/install-advanced.md). Here you can also find information on upgrading and uninstalling the product.
+- See [installation instructions](documentation/installer/basic-installation.md) for simple initial installation.
+- For upgrading an existing system see [upgrade instructions](documentation/installer/server-upgrade.md).
+- If your system is positioned behind a proxy or you have other specific installation needs like in a distributed installation, see [advanced server installation instructions](documentation/installer/install-advanced.md). Here you can also find information on upgrading and uninstalling the product.
 
 ## Further documentation
 

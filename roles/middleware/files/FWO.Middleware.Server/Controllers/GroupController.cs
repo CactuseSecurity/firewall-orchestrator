@@ -7,6 +7,9 @@ using System.Collections.Concurrent;
 
 namespace FWO.Middleware.Controllers
 {
+    /// <summary>
+	/// Controller class for tenant api
+	/// </summary>
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
@@ -14,13 +17,20 @@ namespace FWO.Middleware.Controllers
     {
         private readonly List<Ldap> ldaps;
 
+		/// <summary>
+		/// Constructor needing ldap list
+		/// </summary>
         public GroupController(List<Ldap> ldaps)
         {
             this.ldaps = ldaps;
         }
 
+        /// <summary>
+        /// Get all groups
+        /// </summary>
+        /// <returns>List of groups</returns>
         [HttpGet]
-        [Authorize(Roles = "admin, auditor")]
+        [Authorize(Roles = "admin, auditor, recertifier")]
         public async Task<ActionResult<List<GroupGetReturnParameters>>> Get()
         {
             bool admin = User.IsInRole("admin");
@@ -54,6 +64,15 @@ namespace FWO.Middleware.Controllers
         }
 
         // GET: GroupController/Create
+        /// <summary>
+        /// Add group to internal Ldap
+        /// </summary>
+        /// <remarks>
+        /// GroupName (required) &#xA;
+        /// OwnerGroup (optional) &#xA;
+        /// </remarks>
+        /// <param name="parameters">GroupAddDeleteParameters</param>
+        /// <returns>Dn of new group, empty string if no group could be created</returns>
         [HttpPost]
         [Authorize(Roles = "admin")]
         public async Task<string> Create([FromBody] GroupAddDeleteParameters parameters)
@@ -68,7 +87,7 @@ namespace FWO.Middleware.Controllers
                 {
                     workers.Add(Task.Run(() =>
                     {
-                        string actDn = currentLdap.AddGroup(parameters.GroupName);
+                        string actDn = currentLdap.AddGroup(parameters.GroupName, parameters.OwnerGroup);
                         if(actDn != "")
                         {
                             groupDn = actDn;
@@ -84,6 +103,15 @@ namespace FWO.Middleware.Controllers
         }
 
         // POST: GroupController/Delete/5
+        /// <summary>
+        /// Delete group in internal Ldap
+        /// </summary>
+        /// <remarks>
+        /// GroupName (required) &#xA;
+        /// OwnerGroup (optional) &#xA;
+        /// </remarks>
+        /// <param name="parameters">GroupAddDeleteParameters</param>
+        /// <returns>true if group deleted</returns>
         [HttpDelete]
         [Authorize(Roles = "admin")]
         public async Task<bool> Delete([FromBody] GroupAddDeleteParameters parameters)
@@ -113,6 +141,15 @@ namespace FWO.Middleware.Controllers
         }
 
         // POST: GroupController/Edit/5
+        /// <summary>
+        /// Update group (name) in internal Ldap
+        /// </summary>
+        /// <remarks>
+        /// OldGroupName (required) &#xA;
+        /// NewGroupName (required) &#xA;
+        /// </remarks>
+        /// <param name="parameters">GroupEditParameters</param>
+        /// <returns>Dn of updated group</returns>
         [HttpPut]
         [Authorize(Roles = "admin")]
         public async Task<string> Edit([FromBody] GroupEditParameters parameters)
@@ -142,6 +179,15 @@ namespace FWO.Middleware.Controllers
             return groupUpdatedDn;
         }
 
+        /// <summary>
+        /// Search group in specified Ldap
+        /// </summary>
+        /// <remarks>
+        /// LdapId (required) &#xA;
+        /// SearchPattern (optional) &#xA;
+        /// </remarks>
+        /// <param name="parameters">GroupGetParameters</param>
+        /// <returns>List of groups</returns>
         [HttpPost("Get")]
         [Authorize(Roles = "admin, auditor")]
         public async Task<List<string>> Get([FromBody] GroupGetParameters parameters)
@@ -165,6 +211,15 @@ namespace FWO.Middleware.Controllers
         }
 
         // GET: GroupController/
+        /// <summary>
+        /// Add user to group
+        /// </summary>
+        /// <remarks>
+        /// UserDn (required) &#xA;
+        /// GroupDn (required) &#xA;
+        /// </remarks>
+        /// <param name="parameters">GroupAddDeleteUserParameters</param>
+        /// <returns>true if user could be added to group</returns>
         [HttpPost("User")]
         [Authorize(Roles = "admin")]
         public async Task<bool> AddUser([FromBody] GroupAddDeleteUserParameters parameters)
@@ -194,6 +249,15 @@ namespace FWO.Middleware.Controllers
         }
 
         // GET: GroupController/Details/5
+        /// <summary>
+        /// Remove user from group
+        /// </summary>
+        /// <remarks>
+        /// UserDn (required) &#xA;
+        /// GroupDn (required) &#xA;
+        /// </remarks>
+        /// <param name="parameters">GroupAddDeleteUserParameters</param>
+        /// <returns>true if user could be removed from group</returns>        [HttpDelete("User")]
         [HttpDelete("User")]
         [Authorize(Roles = "admin")]
         public async Task<bool> RemoveUser([FromBody] GroupAddDeleteUserParameters parameters)

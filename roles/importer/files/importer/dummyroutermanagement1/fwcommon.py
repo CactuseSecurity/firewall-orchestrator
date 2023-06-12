@@ -1,5 +1,7 @@
 import sys
-from common import importer_base_dir, ConfigFileNotFound, complete_import
+from common import importer_base_dir, complete_import
+from fwo_exception import ConfigFileNotFound
+
 sys.path.append(importer_base_dir + '/dummyrouter')
 from curses import raw
 from fwo_log import getFwoLogger

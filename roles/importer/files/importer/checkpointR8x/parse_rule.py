@@ -1,28 +1,30 @@
 from asyncio.log import logger
 from fwo_log import getFwoLogger
 import json
-import common
-import cpcommon
+import cp_const, cpcommon
 import fwo_const
+from fwo_const import list_delimiter
+from fwo_base import sanitize
+from fwo_exception import ImportRecursionLimitReached
 
 
 def add_section_header_rule_in_json(rulebase, section_name, layer_name, import_id, rule_uid, rule_num, section_header_uids, parent_uid):
-    section_header_uids.append(common.sanitize(rule_uid))
+    section_header_uids.append(sanitize(rule_uid))
     rule = {
         "control_id":       int(import_id),
         "rule_num":         int(rule_num),
-        "rulebase_name":    common.sanitize(layer_name),
+        "rulebase_name":    sanitize(layer_name),
         # rule_ruleid
         "rule_disabled":    False,
         "rule_src_neg":     False,
         "rule_src":         "Any",
-        "rule_src_refs":    common.sanitize(cpcommon.any_obj_uid),
+        "rule_src_refs":    sanitize(cp_const.any_obj_uid),
         "rule_dst_neg":     False,
         "rule_dst":         "Any",
-        "rule_dst_refs":    common.sanitize(cpcommon.any_obj_uid),
+        "rule_dst_refs":    sanitize(cp_const.any_obj_uid),
         "rule_svc_neg":     False,
         "rule_svc":         "Any",
-        "rule_svc_refs":    common.sanitize(cpcommon.any_obj_uid),
+        "rule_svc_refs":    sanitize(cp_const.any_obj_uid),
         "rule_action":      "Accept",
         "rule_track":       "Log",
         "rule_installon":   "Policy Targets",
@@ -30,12 +32,12 @@ def add_section_header_rule_in_json(rulebase, section_name, layer_name, import_i
         "rule_implied":      False,
         # "rule_comment":     None,
         # rule_name
-        "rule_uid":         common.sanitize(rule_uid),
-        "rule_head_text":   common.sanitize(section_name),
+        "rule_uid":         sanitize(rule_uid),
+        "rule_head_text":   sanitize(section_name),
         # rule_from_zone
         # rule_to_zone
         # rule_last_change_admin
-        "parent_rule_uid":  common.sanitize(parent_uid)
+        "parent_rule_uid":  sanitize(parent_uid)
     }
     rulebase.append(rule)
 
@@ -45,7 +47,14 @@ def add_domain_rule_header_rule_in_json(rulebase, section_name, layer_name, impo
                                     import_id, rule_uid, rule_num, section_header_uids, parent_uid)
 
 
-def parse_single_rule_to_json(src_rule, rulebase, layer_name, import_id, rule_num, parent_uid, debug_level=0):
+def resolve_uid_to_name(nw, config2import):
+    for nw_obj in config2import['network_objects']:
+        if nw_obj['obj_uid']==nw:
+            return nw_obj['obj_name']
+    return nw
+
+
+def parse_single_rule_to_json(src_rule, rulebase, layer_name, import_id, rule_num, parent_uid, config2import, debug_level=0):
     logger = getFwoLogger()
     # reference to domain rule layer, filling up basic fields
     if 'type' in src_rule and src_rule['type'] != 'place-holder':
@@ -55,25 +64,24 @@ def parse_single_rule_to_json(src_rule, rulebase, layer_name, import_id, rule_nu
             for src in src_rule["source"]:
                 if 'type' in src:
                     if src['type'] == 'LegacyUserAtLocation':
-                        rule_src_name += src['name'] + common.list_delimiter
+                        rule_src_name += src['name'] + list_delimiter
                     elif src['type'] == 'access-role':
                         if isinstance(src['networks'], str):  # just a single source
                             if src['networks'] == 'any':
                                 rule_src_name += src["name"] + \
-                                    '@' + 'Any' + common.list_delimiter
+                                    '@' + 'Any' + list_delimiter
                             else:
                                 rule_src_name += src["name"] + '@' + \
-                                    src['networks'] + common.list_delimiter
+                                    src['networks'] + list_delimiter
                         else:  # more than one source
                             for nw in src['networks']:
-                                rule_src_name += src[
-                                    # TODO: this is not correct --> need to reverse resolve name from given UID
-                                    "name"] + '@' + nw + common.list_delimiter
+                                nw_resolved = resolve_uid_to_name(nw, config2import)
+                                rule_src_name += src["name"] + '@' + nw_resolved + list_delimiter
                     else:  # standard network objects as source
-                        rule_src_name += src["name"] + common.list_delimiter
+                        rule_src_name += src["name"] + list_delimiter
                 else:
                     # assuming standard network object as source (interface) with missing type
-                    rule_src_name += src["name"] + common.list_delimiter
+                    rule_src_name += src["name"] + list_delimiter
 
             rule_src_name = rule_src_name[:-1]  # removing last list_delimiter
 
@@ -83,24 +91,24 @@ def parse_single_rule_to_json(src_rule, rulebase, layer_name, import_id, rule_nu
                 if 'type' in src:
                     if src['type'] == 'LegacyUserAtLocation':
                         rule_src_ref += src["userGroup"] + '@' + \
-                            src["location"] + common.list_delimiter
+                            src["location"] + list_delimiter
                     elif src['type'] == 'access-role':
                         if isinstance(src['networks'], str):  # just a single source
                             if src['networks'] == 'any':
                                 rule_src_ref += src['uid'] + '@' + \
-                                    cpcommon.any_obj_uid + common.list_delimiter
+                                    cp_const.any_obj_uid + list_delimiter
                             else:
                                 rule_src_ref += src['uid'] + '@' + \
-                                    src['networks'] + common.list_delimiter
+                                    src['networks'] + list_delimiter
                         else:  # more than one source
                             for nw in src['networks']:
                                 rule_src_ref += src['uid'] + \
-                                    '@' + nw + common.list_delimiter
+                                    '@' + nw + list_delimiter
                     else:  # standard network objects as source
-                        rule_src_ref += src["uid"] + common.list_delimiter
+                        rule_src_ref += src["uid"] + list_delimiter
                 else:
                     # assuming standard network object as source (interface) with missing type
-                    rule_src_ref += src["uid"] + common.list_delimiter
+                    rule_src_ref += src["uid"] + list_delimiter
             rule_src_ref = rule_src_ref[:-1]  # removing last list_delimiter
 
             # rule_dst...
@@ -108,25 +116,25 @@ def parse_single_rule_to_json(src_rule, rulebase, layer_name, import_id, rule_nu
             for dst in src_rule["destination"]:
                 if 'type' in dst:
                     if dst['type'] == 'LegacyUserAtLocation':
-                        rule_dst_name += dst['name'] + common.list_delimiter
+                        rule_dst_name += dst['name'] + list_delimiter
                     elif dst['type'] == 'access-role':
                         if isinstance(dst['networks'], str):  # just a single destination
                             if dst['networks'] == 'any':
                                 rule_dst_name += dst["name"] + \
-                                    '@' + 'Any' + common.list_delimiter
+                                    '@' + 'Any' + list_delimiter
                             else:
                                 rule_dst_name += dst["name"] + '@' + \
-                                    dst['networks'] + common.list_delimiter
+                                    dst['networks'] + list_delimiter
                         else:  # more than one source
                             for nw in dst['networks']:
                                 rule_dst_name += dst[
                                     # TODO: this is not correct --> need to reverse resolve name from given UID
-                                    "name"] + '@' + nw + common.list_delimiter
+                                    "name"] + '@' + nw + list_delimiter
                     else:  # standard network objects as destination
-                        rule_dst_name += dst["name"] + common.list_delimiter
+                        rule_dst_name += dst["name"] + list_delimiter
                 else:
                     # assuming standard network object as destination (interface) with missing type
-                        rule_dst_name += dst["name"] + common.list_delimiter
+                        rule_dst_name += dst["name"] + list_delimiter
 
             rule_dst_name = rule_dst_name[:-1]
 
@@ -135,37 +143,37 @@ def parse_single_rule_to_json(src_rule, rulebase, layer_name, import_id, rule_nu
                 if 'type' in dst:
                     if dst['type'] == 'LegacyUserAtLocation':
                         rule_dst_ref += dst["userGroup"] + '@' + \
-                            dst["location"] + common.list_delimiter
+                            dst["location"] + list_delimiter
                     elif dst['type'] == 'access-role':
                         if isinstance(dst['networks'], str):  # just a single destination
                             if dst['networks'] == 'any':
                                 rule_dst_ref += dst['uid'] + '@' + \
-                                    cpcommon.any_obj_uid + common.list_delimiter
+                                    cp_const.any_obj_uid + list_delimiter
                             else:
                                 rule_dst_ref += dst['uid'] + '@' + \
-                                    dst['networks'] + common.list_delimiter
+                                    dst['networks'] + list_delimiter
                         else:  # more than one source
                             for nw in dst['networks']:
                                 rule_dst_ref += dst['uid'] + \
-                                    '@' + nw + common.list_delimiter
+                                    '@' + nw + list_delimiter
                     else:  # standard network objects as destination
-                        rule_dst_ref += dst["uid"] + common.list_delimiter
+                        rule_dst_ref += dst["uid"] + list_delimiter
 
                 else:
                     # assuming standard network object as destination (interface) with missing type
-                        rule_dst_ref += dst["uid"] + common.list_delimiter
+                        rule_dst_ref += dst["uid"] + list_delimiter
                     
             rule_dst_ref = rule_dst_ref[:-1]
 
             # rule_svc...
             rule_svc_name = ''
             for svc in src_rule["service"]:
-                rule_svc_name += svc["name"] + common.list_delimiter
+                rule_svc_name += svc["name"] + list_delimiter
             rule_svc_name = rule_svc_name[:-1]
 
             rule_svc_ref = ''
             for svc in src_rule["service"]:
-                rule_svc_ref += svc["uid"] + common.list_delimiter
+                rule_svc_ref += svc["uid"] + list_delimiter
             rule_svc_ref = rule_svc_ref[:-1]
 
             if 'name' in src_rule and src_rule['name'] != '':
@@ -202,43 +210,49 @@ def parse_single_rule_to_json(src_rule, rulebase, layer_name, import_id, rule_nu
             else:
                 comments = None
 
+            if 'hits' in src_rule and 'last-date' in src_rule['hits'] and 'iso-8601' in src_rule['hits']['last-date']:
+                last_hit = src_rule['hits']['last-date']['iso-8601']
+            else:
+                last_hit = None
+
             rule = {
                 "control_id":       int(import_id),
                 "rule_num":         int(rule_num),
-                "rulebase_name":    common.sanitize(layer_name),
+                "rulebase_name":    sanitize(layer_name),
                 # rule_ruleid
                 "rule_disabled": not bool(src_rule['enabled']),
                 "rule_src_neg":     bool(src_rule['source-negate']),
-                "rule_src":         common.sanitize(rule_src_name),
-                "rule_src_refs":    common.sanitize(rule_src_ref),
+                "rule_src":         sanitize(rule_src_name),
+                "rule_src_refs":    sanitize(rule_src_ref),
                 "rule_dst_neg":     bool(src_rule['destination-negate']),
-                "rule_dst":         common.sanitize(rule_dst_name),
-                "rule_dst_refs":    common.sanitize(rule_dst_ref),
+                "rule_dst":         sanitize(rule_dst_name),
+                "rule_dst_refs":    sanitize(rule_dst_ref),
                 "rule_svc_neg":     bool(src_rule['service-negate']),
-                "rule_svc":         common.sanitize(rule_svc_name),
-                "rule_svc_refs":    common.sanitize(rule_svc_ref),
-                "rule_action":      common.sanitize(src_rule['action']['name']),
-                "rule_track":       common.sanitize(src_rule['track']['type']['name']),
-                "rule_installon":   common.sanitize(src_rule['install-on'][0]['name']),
-                "rule_time":        common.sanitize(src_rule['time'][0]['name']),
-                "rule_comment":     common.sanitize(comments),
-                "rule_name":        common.sanitize(rule_name),
-                "rule_uid":         common.sanitize(src_rule['uid']),
+                "rule_svc":         sanitize(rule_svc_name),
+                "rule_svc_refs":    sanitize(rule_svc_ref),
+                "rule_action":      sanitize(src_rule['action']['name']),
+                "rule_track":       sanitize(src_rule['track']['type']['name']),
+                "rule_installon":   sanitize(src_rule['install-on'][0]['name']),
+                "rule_time":        sanitize(src_rule['time'][0]['name']),
+                "rule_comment":     sanitize(comments),
+                "rule_name":        sanitize(rule_name),
+                "rule_uid":         sanitize(src_rule['uid']),
                 "rule_implied":     False,
-                "rule_type":        common.sanitize(rule_type),
-                # "rule_head_text": common.sanitize(section_name),
+                "rule_type":        sanitize(rule_type),
+                # "rule_head_text": sanitize(section_name),
                 # rule_from_zone
                 # rule_to_zone
-                "rule_last_change_admin": common.sanitize(rule_last_change_admin),
-                "parent_rule_uid":  common.sanitize(parent_rule_uid)
+                "rule_last_change_admin": sanitize(rule_last_change_admin),
+                "parent_rule_uid":  sanitize(parent_rule_uid),
+                "last_hit":         sanitize(last_hit)
             }
             rulebase.append(rule)
 
 
-def parse_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, debug_level=0, recursion_level=1):
+def parse_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, config2import, debug_level=0, recursion_level=1):
 
     if (recursion_level > fwo_const.max_recursion_level):
-        raise common.ImportRecursionLimitReached(
+        raise ImportRecursionLimitReached(
             "parse_rulebase_json") from None
 
     logger = getFwoLogger()
@@ -247,7 +261,7 @@ def parse_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, ru
             if 'rulebase' in chunk:
                 for rules_chunk in chunk['rulebase']:
                     rule_num = parse_rulebase_json(rules_chunk, target_rulebase, layer_name, import_id, rule_num,
-                                                   section_header_uids, parent_uid, debug_level=debug_level, recursion_level=recursion_level+1)
+                                                   section_header_uids, parent_uid, config2import, debug_level=debug_level, recursion_level=recursion_level+1)
             else:
                 logger.warning("found no rulebase in chunk:\n" +
                                json.dumps(chunk, indent=2))
@@ -255,7 +269,7 @@ def parse_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, ru
         if 'rulebase' in src_rulebase:
             # add section header, but only if it does not exist yet (can happen by chunking a section)
             if src_rulebase['type'] == 'access-section' and not src_rulebase['uid'] in section_header_uids:
-                section_name = ""
+                section_name = "section without name"
                 if 'name' in src_rulebase:
                     section_name = src_rulebase['name']
                 if 'parent_rule_uid' in src_rulebase:
@@ -275,7 +289,7 @@ def parse_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, ru
                         target_rulebase, section_name, layer_name, import_id, rule['uid'], rule_num, section_header_uids, parent_uid)
                 else:  # parse standard sections
                     parse_single_rule_to_json(
-                        rule, target_rulebase, layer_name, import_id, rule_num, parent_uid, debug_level=debug_level)
+                        rule, target_rulebase, layer_name, import_id, rule_num, parent_uid, config2import, debug_level=debug_level)
                     rule_num += 1
 
         if src_rulebase['type'] == 'place-holder':  # add domain rules
@@ -288,15 +302,15 @@ def parse_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, ru
             rule_num += 1
         if 'rule-number' in src_rulebase:   # rulebase is just a single rule
             parse_single_rule_to_json(
-                src_rulebase, target_rulebase, layer_name, import_id, rule_num, parent_uid)
+                src_rulebase, target_rulebase, layer_name, import_id, rule_num, parent_uid, config2import)
             rule_num += 1
     return rule_num
 
 
-def parse_nat_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, debug_level=0, recursion_level=1):
+def parse_nat_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, config2import, debug_level=0, recursion_level=1):
 
     if (recursion_level > fwo_const.max_recursion_level):
-        raise common.ImportRecursionLimitReached(
+        raise ImportRecursionLimitReached(
             "parse_nat_rulebase_json") from None
 
     logger = getFwoLogger()
@@ -305,7 +319,7 @@ def parse_nat_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id
             if 'rulebase' in chunk:
                 for rules_chunk in chunk['rulebase']:
                     rule_num = parse_nat_rulebase_json(rules_chunk, target_rulebase, layer_name, import_id, rule_num,
-                                                       section_header_uids, parent_uid, debug_level=debug_level, recursion_level=recursion_level+1)
+                                                       section_header_uids, parent_uid, config2import, debug_level=debug_level, recursion_level=recursion_level+1)
             else:
                 logger.warning(
                     "parse_rule: found no rulebase in chunk:\n" + json.dumps(chunk, indent=2))
@@ -324,18 +338,18 @@ def parse_nat_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id
             for rule in src_rulebase['rulebase']:
                 (rule_match, rule_xlate) = parse_nat_rule_transform(rule, rule_num)
                 parse_single_rule_to_json(
-                    rule_match, target_rulebase, layer_name, import_id, rule_num, parent_uid)
+                    rule_match, target_rulebase, layer_name, import_id, rule_num, parent_uid, config2import)
                 parse_single_rule_to_json(
-                    rule_xlate, target_rulebase, layer_name, import_id, rule_num, parent_uid)
+                    rule_xlate, target_rulebase, layer_name, import_id, rule_num, parent_uid, config2import)
                 rule_num += 1
 
         if 'rule-number' in src_rulebase:   # rulebase is just a single rule
             (rule_match, rule_xlate) = parse_nat_rule_transform(
                 src_rulebase, rule_num)
             parse_single_rule_to_json(
-                rule_match, target_rulebase, layer_name, import_id, rule_num, parent_uid)
+                rule_match, target_rulebase, layer_name, import_id, rule_num, parent_uid, config2import)
             parse_single_rule_to_json(
-                rule_xlate, target_rulebase, layer_name, import_id, rule_num, parent_uid)
+                rule_xlate, target_rulebase, layer_name, import_id, rule_num, parent_uid, config2import)
             rule_num += 1
     return rule_num
 

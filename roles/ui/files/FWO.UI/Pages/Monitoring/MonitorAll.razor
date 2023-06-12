@@ -32,7 +32,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private List<LogEntry> logEntrys = new List<LogEntry>();
 
@@ -44,7 +44,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_log_entrys"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_log_entrys"), "", true);
         }
     }
 

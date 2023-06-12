@@ -17,6 +17,9 @@
                 "action": "openExternally",
                 "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
                 "uriFormat": "%s/swagger"
+            },
+            "logging": {
+                "moduleLoad": false
             }
         },
         {
@@ -38,6 +41,9 @@
             },
             "sourceFileMap": {
                 "/Views": "${workspaceFolder}/Views"
+            },
+            "logging": {
+                "moduleLoad": false
             }
         },
         {
@@ -50,36 +56,18 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m8",
-                "-d9",
+                "-m68",
+                "-d6",
                 "-f",
                 "-s",
-                //"-xhttp://10.6.5.10:3128",
+                //"-c"
+                //"-l250"
+                //  41 - lab fortimanager
+                //"-nhttps://fwodemodata.cactus.de/demo07_dummyGw1.json"
                 //"-ihttps://fwodemodata.cactus.de/demo04_cpr8x.json",
                 //"-ihttps://fwodemodata.cactus.de/demo01_fortiMgrLab.json"
                 //"-ihttps://fwodemodata.cactus.de/demo05_fortiMgr2.json"
-                "-ihttps://fwodemodata.cactus.de/big/XXX.json",
-                // "-c"
-                //  41 - lab fortimanager
-                //"-i/home/tim/Downloads/mgm_id_9_config_native.json.anon"
-                //"-i/home/tim/tmp/configs/mgm_id_56_config_native.json.anon", // all rules, all objs local mgm_id 4
-                // "-i/home/tim/tmp/configs/mgm_id_56_config_native.json.anon", // 30k rules, local mgm_id 45
-                //"-i/home/tim/tmp/configs/mgm_id_52_config_native.json.anon", // many gateways, local mgm_id 49
-                //"-i/home/tim/tmp/configs/mgm_id_53_config_native.json.anon", // 1500 rules, 450 NAT rules, local mgm_id 4
-                //"-i/home/tim/tmp/configs/mgm_id_12_config_native.json",
-                // "-i/home/tim/tmp/configs/m56-single-broken-rule.json", // 3 rules, very few objs local mgm_id 45
-                //"-i/home/tim/tmp/configs/m56-single-rule.json", // 3 rules, local mgm_id 45
-                //"-i/home/tim/tmp/configs/mgm_id_45_config_native.json.anon", // 3 rules, local mgm_id 45
-                // "-i/home/tim/tmp/configs/mgm_id_44_config_native.json.anon", // multi gw mgmt, local mgm_id 44
-                //"-i/home/tim/tmp/configs/mgm_id_12_config_native.json",
-                // "-i/home/tim/tmp/configs/m56_1sthalf.json", // half of 30k rules, local mgm_id 45
-                //"-i/home/tim/tmp/configs/mgm_id_1176_config_native.json.anon_error_in_fprs100-s999-rz99-xxx-PolicyNetwork.anon",
-                //"-i/home/tim/tmp/configs/mgm_id_60_config_native.json.anon",
-                //"-i/home/tim/tmp/configs/mgm_id_60_config_native-with-error.json.anon",
-                //"-i/home/tim/tmp/configs/mgm_id_54_config_native.json.anon",
-                //"-i/home/tim/tmp/configs/mgm_id_56_config_native.json.anon", // local id 55
-                //"-i/home/tim/tmp/configs/mgm_id_1176_config_native.json.anon_error_in_fprs100-s999-rz99-xxx-PolicyNetwork.anon-with-broken-svc",
-                //"-l250"
+                //"-ihttps://fwodemodata.cactus.de/big/xxx.json",
             ]
         },
         {

@@ -15,16 +15,19 @@ namespace FWO.Api.Data
         public string Hostname { get; set; } = "";
 
         [JsonProperty("import_credential"), JsonPropertyName("import_credential")]
-        public ImportCredential ImportCredential { get; set; }
-
-        // [JsonProperty("import_credential_id"), JsonPropertyName("import_credential_id")]
-        // public int ImportCredentialId { get; set; }
+        public ImportCredential ImportCredential { get; set; } = new ImportCredential();
 
         [JsonProperty("configPath"), JsonPropertyName("configPath")]
         public string ConfigPath { get; set; } = "";
 
         [JsonProperty("domainUid"), JsonPropertyName("domainUid")]
-        public string DomainUid { get; set; } = "";
+        public string? DomainUid { get; set; } = "";
+
+        [JsonProperty("cloudSubscriptionId"), JsonPropertyName("cloudSubscriptionId")]
+        public string? CloudSubscriptionId { get; set; } = "";
+
+        [JsonProperty("cloudTenantId"), JsonPropertyName("cloudTenantId")]
+        public string? CloudTenantId { get; set; } = "";
 
         [JsonProperty("superManager"), JsonPropertyName("superManager")]
         public int? SuperManagerId { get; set; }
@@ -103,9 +106,7 @@ namespace FWO.Api.Data
         public ObjectStatistics RuleStatistics { get; set; } = new ObjectStatistics();
 
         public Management()
-        {
-            // ImportCredential= new ImportCredential();
-        }
+        {}
 
         public Management(Management management)
         {
@@ -118,6 +119,8 @@ namespace FWO.Api.Data
                 ImportCredential = new ImportCredential();
             ConfigPath = management.ConfigPath;
             DomainUid = management.DomainUid;
+            CloudSubscriptionId = management.CloudSubscriptionId;
+            CloudTenantId = management.CloudTenantId;
             ImporterHostname = management.ImporterHostname;
             Port = management.Port;
             ImportDisabled = management.ImportDisabled;
@@ -174,6 +177,8 @@ namespace FWO.Api.Data
             DomainUid = Sanitizer.SanitizeOpt(DomainUid, ref shortened);
             ImporterHostname = Sanitizer.SanitizeMand(ImporterHostname, ref shortened);
             Comment = Sanitizer.SanitizeCommentOpt(Comment, ref shortened);
+            CloudSubscriptionId = Sanitizer.SanitizeOpt(CloudSubscriptionId, ref shortened);
+            CloudTenantId = Sanitizer.SanitizeOpt(CloudTenantId, ref shortened);
             return shortened;
         }
     }
@@ -252,9 +257,9 @@ namespace FWO.Api.Data
             return newObjects;
         }
 
-        public static string NameAndDeviceNames(this Management management)
+        public static string NameAndDeviceNames(this Management management, string separator = ", ")
         {
-            return $"{management.Name} [{string.Join(", ", Array.ConvertAll(management.Devices, device => device.Name))}]";
+            return $"{management.Name} [{string.Join(separator, Array.ConvertAll(management.Devices, device => device.Name))}]";
         }
     }
 }

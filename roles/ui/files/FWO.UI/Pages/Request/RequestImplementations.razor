@@ -17,14 +17,11 @@
     <div class="form-group row">
         <label for="taskDevId" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("view")):</label>
         <div class="col-sm-2">
-            <select id="taskDevId" class="form-control form-control-sm" @bind="DeviceId">
-                <option value="-1">@(userConfig.GetText("tickets"))</option>
-                <option value="0">@(userConfig.GetText("all_gateways"))</option>
-                @foreach (Device device in reqHandler.Devices)
-                {
-                    <option value="@device.Id">@(device.Name)</option>
-                }
-            </select>
+            <Dropdown ElementType="Device" @bind-SelectedElement="selectedDeviceOpt" ElementToString="@(d => d.Name)" Elements="deviceOptions" >
+                <ElementTemplate Context="device">
+                    @device.Name
+                </ElementTemplate>
+            </Dropdown>
         </div>
         <button class="btn btn-sm btn-primary" @onclick="SelectDevice">@(userConfig.GetText("select"))</button>
     </div>
@@ -41,22 +38,31 @@
             StartImplPhase="StartImplementTask"/>
     }
 }
+else
+{
+    <div class="spinner-border" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+}
 
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
     
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
-    private RequestHandler reqHandler;
+    private RequestHandler reqHandler = new RequestHandler();
     private RequestStateDict states = new RequestStateDict();
     private bool InitComplete = false;
 
     private bool DisplayTickets = true;
-    private int DeviceId = -1;
     private List<RequestImplTask> allImplTasks = new List<RequestImplTask>();
+    private List<Device> deviceOptions = new List<Device>();
+    private Device optTicket = new Device();
+    private Device allDev = new Device();
+    private Device selectedDeviceOpt = new Device();
 
 
     protected override async Task OnInitializedAsync()
@@ -85,19 +91,24 @@
             reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, apiConnection, WorkflowPhases.implementation){};
             await Reset();
             reqHandler.SetContinueEnv(ObjAction.implement);
-    
+            optTicket = new Device(){ Id = -1, Name = userConfig.GetText("tickets")};
+            allDev = new Device(){ Id = 0, Name = userConfig.GetText("all_gateways")};
+            deviceOptions = new List<Device>(reqHandler.Devices);
+            deviceOptions.Add(optTicket);
+            deviceOptions.Add(allDev);
+            selectedDeviceOpt = optTicket;
             InitComplete = true;
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("fetch_requests"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_requests"), "", true);
         }
     }
 
     private async Task SelectDevice()
     {
         allImplTasks = new List<RequestImplTask>();
-        if(DeviceId != -1)
+        if(selectedDeviceOpt.Id != -1)
         {
             foreach(var ticket in reqHandler.TicketList)
             {
@@ -105,7 +116,7 @@
                 {
                     foreach(var implTask in reqTask.ImplementationTasks)
                     {
-                        if (DeviceId == 0 || implTask.DeviceId == DeviceId)
+                        if (selectedDeviceOpt.Id == 0 || implTask.DeviceId == selectedDeviceOpt.Id)
                         {
                             implTask.TicketId = ticket.Id;
                             implTask.ReqTaskId = reqTask.Id;
@@ -115,7 +126,7 @@
                 }
             }
         }
-        DisplayTickets = (DeviceId == -1);
+        DisplayTickets = (selectedDeviceOpt.Id == -1);
         await Reset();
         StateHasChanged();
     }
@@ -129,7 +140,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("init_environment"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("init_environment"), "", true);
         }
     }
     
@@ -143,7 +154,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("start_work"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("start_work"), "", true);
         }
     }
 }

@@ -24,11 +24,11 @@
 - name: edit central conf file - set new version
   lineinfile:
     path: "{{ fworch_conf_file }}"
-    create: yes
+    create: true
     regexp: "product_version"
     line: "    \"product_version\": \"{{ product_version }}\""
   when: installation_mode == "upgrade"
-  become: yes
+  become: true
 
 - name: include upgrade script
   import_tasks: run-upgrades.yml
@@ -40,14 +40,14 @@
   file:
     path: "{{  middleware_ldif_dir }}"
     state: absent
-  become: yes
+  become: true
   when: "'middlewareserver' in group_names"
 
 - name: restart UI to display new product version
   ansible.builtin.systemd:
     name: "{{ product_name }}-ui"
     state: restarted
-  become: yes
+  become: true
   when: "'frontends' in group_names"
   
 - name: test whether demo data is present
@@ -56,7 +56,7 @@
     query: >
       SELECT * FROM device WHERE dev_name='{{ sample_fortigate_name }}'
   register: demo_data_present
-  become: yes
+  become: true
   become_user: postgres
 
 - name: find cron jobs in case of missing demo data
@@ -65,7 +65,7 @@
     patterns: "{{ product_name }}_sample_data_*"
   register: files_to_delete
   when: demo_data_present.query_result == []
-  become: yes
+  become: true
 
 - name: delete cron jobs in case of missing demo data
   file:
@@ -73,29 +73,23 @@
     state: absent
   with_items: "{{ files_to_delete.files }}"
   when: demo_data_present.query_result == []
-  become: yes
+  become: true
+
+- name: remove temp importer_password from install host
+  file:
+    path: "{{ importer_password_file_on_installer }}"
+    state: absent
+  become: true
+  delegate_to: localhost
 
 - name: start importer service
   systemd:
     name: "{{ item }}"
     state: started
-    daemon_reload: yes
-    enabled: yes
-  become: yes
+    daemon_reload: true
+    enabled: true
+  become: true
   when: "'importers' in group_names"
   loop:
     - "{{ product_name }}-importer-legacy"
     - "{{ product_name }}-importer-api"
-
-- name: show listener status
-  import_tasks: scripts/show-fworch-listeners.yml
-  become: yes
-
-- name: display secrets for this installation
-  debug:
-    msg:
-      - "Your initial UI admin password is '{{ admin_password }}'"
-      - "Your api hasura admin secret is '{{ api_hasura_admin_secret }}'"
-  when: |
-    admin_password is defined and 
-    api_hasura_admin_secret is defined

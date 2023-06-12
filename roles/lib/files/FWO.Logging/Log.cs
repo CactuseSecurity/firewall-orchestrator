@@ -12,63 +12,74 @@ namespace FWO.Logging
         private static string lockFilePath = $"/var/fworch/lock/{Assembly.GetEntryAssembly()?.GetName().Name}_log.lock";
         private static Random random = new Random();
 
-        static Log() 
+        static Log()
         {
             Task.Factory.StartNew(async () =>
             {
                 // log switch - log file locking
-                DateTime lastLockFileRead = new DateTime(0);
                 bool logOwned = false;
+                Stopwatch stopwatch = new Stopwatch();
 
                 while (true)
                 {
                     try
                     {
-                        DateTime lastLockFileChange = File.GetLastWriteTime(lockFilePath);
+                        using FileStream file = await GetFile(lockFilePath);
+                        // read file content
+                        using StreamReader reader = new StreamReader(file);
+                        string lockFileContent = (await reader.ReadToEndAsync()).Trim();
 
-                        if (lastLockFileRead != lastLockFileChange)
+                        // REQUESTED - lock was requested by log swap process
+                        // GRANTED - lock was granted by us
+                        // RELEASED - lock was released by log swap process
+                        if (lockFileContent.EndsWith("GRANTED"))
                         {
-                            using FileStream file = await GetFile(lockFilePath);
-                            // read file content
-                            using StreamReader reader = new StreamReader(file);
-                            string lockFileContent = (await reader.ReadToEndAsync()).Trim();
-
-                            // REQUESTED - lock was requested by log swap process
-                            // GRANTED - lock was granted by us
-                            // RELEASED - lock was released by log swap process
-                            // ACKNOWLEDGED - lock release was acknowledged by us
-                            if (lockFileContent.EndsWith("REQUESTED"))
+                            // Request lock if it is not already requested by us
+                            // (in case of restart with log already granted)
+                            if (!logOwned)
                             {
-                                // only request lock if it is not already requested by us
-                                if (!logOwned)
-                                {
-                                    semaphore.Wait();
-                                    logOwned = true;
-                                }
-                                using StreamWriter writer = new StreamWriter(file);
-                                await writer.WriteLineAsync("GRANTED");
+                                semaphore.Wait();
+                                stopwatch.Restart();
+                                logOwned = true;
                             }
-                            if (lockFileContent.EndsWith("RELEASED"))
+                            // Forcefully release lock after timeout
+                            else if (stopwatch.ElapsedMilliseconds > 10 * 1000)
                             {
-                                // only release lock if it was formerly requested by us
-                                if (logOwned) 
-                                { 
-                                    semaphore.Release();
-                                    logOwned = false;
-                                }
                                 using StreamWriter writer = new StreamWriter(file);
-                                await writer.WriteLineAsync("ACKNOWLEDGED");
+                                await writer.WriteLineAsync("FORCEFULLY RELEASED");
+                                stopwatch.Reset();
+                                semaphore.Release();
+                                logOwned = false;
                             }
-
-                            lastLockFileRead = lastLockFileChange;
                         }
-
-                        await Task.Delay(1000);
+                        if (lockFileContent.EndsWith("REQUESTED"))
+                        {
+                            // only request lock if it is not already requested by us
+                            if (!logOwned)
+                            {
+                                semaphore.Wait();
+                                stopwatch.Restart();
+                                logOwned = true;
+                            }
+                            using StreamWriter writer = new StreamWriter(file);
+                            await writer.WriteLineAsync("GRANTED");
+                        }
+                        if (lockFileContent.EndsWith("RELEASED"))
+                        {
+                            // only release lock if it was formerly requested by us
+                            if (logOwned) 
+                            {
+                                stopwatch.Reset();
+                                semaphore.Release();
+                                logOwned = false;
+                            }
+                        }
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         //WriteError("Log file locking", "Error while accessing log lock file.", e);
                     }
+                    await Task.Delay(1000);
                 }
             }, TaskCreationOptions.LongRunning);
         }
@@ -81,7 +92,7 @@ namespace FWO.Logging
                 {
                     return File.Open(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
                 }
-                catch (Exception e) 
+                catch (Exception) 
                 { 
                     //WriteDebug("Log file locking", $"Could not access log lock file: {e.Message}.");
                 }

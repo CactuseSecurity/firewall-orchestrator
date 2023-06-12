@@ -8,15 +8,24 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace FWO.Middleware.Server
 {
+    /// <summary>
+	/// Class handling the ldap transactions
+	/// </summary>
     public class Ldap : LdapConnectionBase
     {
         // The following properties are retrieved from the database api:
         // ldap_server ldap_port ldap_search_user ldap_tls ldap_tenant_level ldap_connection_id ldap_search_user_pwd ldap_searchpath_for_users ldap_searchpath_for_roles    
         private const int timeOutInMs = 3000;
 
+		/// <summary>
+		/// Default constructor
+		/// </summary>
         public Ldap()
         {}
 
+		/// <summary>
+		/// Constructor from parameter struct
+		/// </summary>
         public Ldap(LdapGetUpdateParameters ldapGetUpdateParameters) : base(ldapGetUpdateParameters)
         {}
 
@@ -43,6 +52,10 @@ namespace FWO.Middleware.Server
             }
         }
 
+        /// <summary>
+        /// Test a connection to the specified Ldap server.
+        /// Throws exception if not successful
+        /// </summary>
         public void TestConnection()
         {
             using (LdapConnection connection = Connect())
@@ -104,9 +117,13 @@ namespace FWO.Middleware.Server
             return ((searchPattern == null || searchPattern == "") ? groupFilter : $"(&{groupFilter}{searchFilter})");
         }
 
+        /// <summary>
+        /// Get the LdapEntry for the given user with option to validate credentials
+        /// </summary>
+        /// <returns>LdapEntry for the given user if found</returns>
         public LdapEntry? GetLdapEntry(UiUser user, bool validateCredentials)
         {
-            Log.WriteInfo("User Validation", $"Validating User: \"{user.Name}\" ...");
+            Log.WriteDebug("User Validation", $"Validating User: \"{user.Name}\" ...");
             try         
             {
                 // Connecting to Ldap
@@ -114,6 +131,10 @@ namespace FWO.Middleware.Server
                 {
                     // Authenticate as search user
                     connection.Bind(SearchUser, SearchUserPwd);
+
+                    LdapSearchConstraints cons = connection.SearchConstraints;
+                    cons.ReferralFollowing = true;
+                    connection.Constraints = cons;
 
                     List<LdapEntry> possibleUserEntries = new List<LdapEntry>();
 
@@ -127,17 +148,16 @@ namespace FWO.Middleware.Server
                             possibleUserEntries.Add(userEntry);
                         }
                     }
-                    // Dn was not provided, search for user name
-                    else
+                    else // Dn was not provided, search for user name
                     {
                         string[] attrList = new string[] { "*", "memberof" };
+                        string userSearchFilter = getUserSearchFilter(user.Name);
 
                         // Search for users in ldap with same name as user to validate
                         possibleUserEntries = ((LdapSearchResults)connection.Search(
                             UserSearchPath,             // top-level path under which to search for user
                             LdapConnection.ScopeSub,    // search all levels beneath
-                            getUserSearchFilter(user.Name),
-                            // $"(|(&(sAMAccountName={user.Name})(objectClass=person))(&(objectClass=inetOrgPerson)(uid:dn:={user.Name})))", // matching both AD and openldap filter
+                            userSearchFilter,
                             attrList,
                             typesOnly: false
                         )).ToList();
@@ -169,7 +189,7 @@ namespace FWO.Middleware.Server
                 Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to validate user", exception);
             }
 
-            Log.WriteInfo("Invalid Credentials", $"Invalid login credentials - could not authenticate user \"{ user.Name}\" on {Address}:{Port}.");
+            Log.WriteDebug("Invalid Credentials", $"Invalid login credentials - could not authenticate user \"{ user.Name}\" on {Address}:{Port}.");
             return null;
         }
 
@@ -206,16 +226,24 @@ namespace FWO.Middleware.Server
             return false;
         }
 
+        /// <summary>
+        /// Get the EmailAddress for the given user
+        /// </summary>
+        /// <returns>EmailAddress of the given user</returns>
         public string GetEmail(LdapEntry user)
         {
             return user.GetAttributeSet().ContainsKey("mail") ? user.GetAttribute("mail").StringValue : "";
         }
 
+        /// <summary>
+        /// Get the groups for the given user
+        /// </summary>
+        /// <returns>list of groups for the given user</returns>
         public List<string> GetGroups(LdapEntry user)
         {
             // Simplest way as most ldap types should provide the memberof attribute.
             // - Probably this doesn't work for nested groups.
-            // - Some systtems may only save the "primaryGroupID", then we would have to resolve the name.
+            // - Some systems may only save the "primaryGroupID", then we would have to resolve the name.
             // - Some others may force us to look into all groups to find the membership.
             List<string> groups = new List<string>();
             foreach (var attribute in user.GetAttributeSet())
@@ -234,6 +262,10 @@ namespace FWO.Middleware.Server
             return groups;
         }
 
+        /// <summary>
+        /// Change the password of the given user
+        /// </summary>
+        /// <returns>error message if not successful</returns>
         public string ChangePassword(string userDn, string oldPassword, string newPassword)
         {
             try         
@@ -266,6 +298,10 @@ namespace FWO.Middleware.Server
             return "";
         }
 
+        /// <summary>
+        /// Set the password of the given user
+        /// </summary>
+        /// <returns>error message if not successful</returns>
         public string SetPassword(string userDn, string newPassword)
         {
             try         
@@ -297,17 +333,25 @@ namespace FWO.Middleware.Server
             return "";
         }
 
+        /// <summary>
+        /// Get the roles for the given DN list
+        /// </summary>
+        /// <returns>list of roles for the given DN list</returns>
         public List<string> GetRoles(List<string> dnList)
         {
             return GetMemberships(dnList, RoleSearchPath);
         }
 
+        /// <summary>
+        /// Get the groups for the given DN list
+        /// </summary>
+        /// <returns>list of groups for the given DN list</returns>
         public List<string> GetGroups(List<string> dnList)
         {
             return GetMemberships(dnList, GroupSearchPath);
         }
 
-        public List<string> GetMemberships(List<string> dnList, string? searchPath)
+        private List<string> GetMemberships(List<string> dnList, string? searchPath)
         {
             List<string> userMemberships = new List<string>();
 
@@ -366,6 +410,10 @@ namespace FWO.Middleware.Server
             return userMemberships;
         }
 
+        /// <summary>
+        /// Get all roles
+        /// </summary>
+        /// <returns>list of roles</returns>
         public List<RoleGetReturnParameters> GetAllRoles()
         {
             List<RoleGetReturnParameters> roleUsers = new List<RoleGetReturnParameters>();
@@ -413,6 +461,10 @@ namespace FWO.Middleware.Server
             return roleUsers;
         }
 
+        /// <summary>
+        /// Search all groups with search pattern
+        /// </summary>
+        /// <returns>list of groups</returns>
         public List<string> GetAllGroups(string searchPattern)
         {
             List<string> allGroups = new List<string>();
@@ -441,6 +493,10 @@ namespace FWO.Middleware.Server
             return allGroups;
         }
 
+        /// <summary>
+        /// Get all internal groups
+        /// </summary>
+        /// <returns>list of groups</returns>
         public List<GroupGetReturnParameters> GetAllInternalGroups()
         {
             List<GroupGetReturnParameters> allGroups = new List<GroupGetReturnParameters>();
@@ -468,7 +524,12 @@ namespace FWO.Middleware.Server
                                 members.Add(currentDn);
                             }
                         }
-                        allGroups.Add(new GroupGetReturnParameters(){GroupDn = entry.Dn, Members = members});
+                        allGroups.Add(new GroupGetReturnParameters()
+                        {
+                            GroupDn = entry.Dn, 
+                            Members = members, 
+                            OwnerGroup = (entry.GetAttributeSet().ContainsKey("businessCategory") ? (entry.GetAttribute("businessCategory").StringValue.ToLower() == "ownergroup") : false)
+                        });
                     }
                 }
             }
@@ -479,6 +540,10 @@ namespace FWO.Middleware.Server
             return allGroups;
         }
 
+        /// <summary>
+        /// Search all users with search pattern
+        /// </summary>
+        /// <returns>list of users</returns>
         public List<LdapUserGetReturnParameters> GetAllUsers(string searchPattern)
         {
             Log.WriteDebug("GetAllUsers", $"Looking for users with pattern {searchPattern} in {Address}:{Port}");
@@ -518,6 +583,10 @@ namespace FWO.Middleware.Server
             return allUsers;
         }
 
+        /// <summary>
+        /// Add new user
+        /// </summary>
+        /// <returns>true if user added</returns>
         public bool AddUser(string userDn , string password, string email)
         {
             Log.WriteInfo("Add User", $"Trying to add User: \"{userDn}\"");
@@ -563,6 +632,10 @@ namespace FWO.Middleware.Server
             return userAdded;
         }
 
+        /// <summary>
+        /// Update user
+        /// </summary>
+        /// <returns>true if user updated</returns>
         public bool UpdateUser(string userDn, string email)
         {
             Log.WriteInfo("Update User", $"Trying to update User: \"{userDn}\"");
@@ -598,6 +671,10 @@ namespace FWO.Middleware.Server
             return userUpdated;
         }
 
+        /// <summary>
+        /// Delete user
+        /// </summary>
+        /// <returns>true if user deleted</returns>
         public bool DeleteUser(string userDn)
         {
             Log.WriteInfo("Delete User", $"Trying to delete User: \"{userDn}\"");
@@ -630,7 +707,11 @@ namespace FWO.Middleware.Server
             return userDeleted;
         }
 
-        public string AddGroup(string groupName)
+        /// <summary>
+        /// Add new group
+        /// </summary>
+        /// <returns>group DN if user added</returns>
+        public string AddGroup(string groupName, bool ownerGroup)
         {
             Log.WriteInfo("Add Group", $"Trying to add Group: \"{groupName}\"");
             bool groupAdded = false;
@@ -647,6 +728,10 @@ namespace FWO.Middleware.Server
                     LdapAttributeSet attributeSet = new LdapAttributeSet();
                     attributeSet.Add( new LdapAttribute("objectclass", "groupofuniquenames"));
                     attributeSet.Add( new LdapAttribute("uniqueMember", ""));
+                    if (ownerGroup)
+                    {
+                        attributeSet.Add( new LdapAttribute("businessCategory", "ownergroup"));
+                    }
 
                     LdapEntry newEntry = new LdapEntry( groupDn, attributeSet );
 
@@ -670,6 +755,10 @@ namespace FWO.Middleware.Server
             return (groupAdded ? groupDn : "");
         }
 
+        /// <summary>
+        /// Update group name
+        /// </summary>
+        /// <returns>new group DN if group updated</returns>
         public string UpdateGroup(string oldName, string newName)
         {
             Log.WriteInfo("Update Group", $"Trying to update Group: \"{oldName}\"");
@@ -705,6 +794,10 @@ namespace FWO.Middleware.Server
             return (groupUpdated ? $"{newGroupRdn},{GroupSearchPath}" : "");
         }
 
+        /// <summary>
+        /// Delete group
+        /// </summary>
+        /// <returns>true if group deleted</returns>
         public bool DeleteGroup(string groupName)
         {
             Log.WriteInfo("Delete Group", $"Trying to delete Group: \"{groupName}\"");
@@ -738,18 +831,30 @@ namespace FWO.Middleware.Server
             return groupDeleted;
         }
 
+        /// <summary>
+        /// Add user to entry
+        /// </summary>
+        /// <returns>true if user added</returns>
         public bool AddUserToEntry(string userDn, string entry)
         {
             Log.WriteInfo("Add User to Entry", $"Trying to add User: \"{userDn}\" to Entry: \"{entry}\"");
             return ModifyUserInEntry(userDn, entry, LdapModification.Add);
         }
         
+        /// <summary>
+        /// Remove user from entry
+        /// </summary>
+        /// <returns>true if user removed</returns>
         public bool RemoveUserFromEntry(string userDn, string entry)
         {
             Log.WriteInfo("Remove User from Entry", $"Trying to remove User: \"{userDn}\" from Entry: \"{entry}\"");
             return ModifyUserInEntry(userDn, entry, LdapModification.Delete);
         }
 
+        /// <summary>
+        /// Remove user from all entries
+        /// </summary>
+        /// <returns>true if user removed from all entries</returns>
         public bool RemoveUserFromAllEntries(string userDn)
         {
             List<string> dnList = new List<string>();
@@ -768,7 +873,7 @@ namespace FWO.Middleware.Server
             return allRemoved;
         }
 
-        public bool ModifyUserInEntry(string userDn, string entry, int LdapModification)
+        private bool ModifyUserInEntry(string userDn, string entry, int LdapModification)
         {
             bool userModified = false;
             try         
@@ -803,6 +908,10 @@ namespace FWO.Middleware.Server
             return userModified;
         }
 
+        /// <summary>
+        /// Add new tenant
+        /// </summary>
+        /// <returns>true if tenant added</returns>
         public bool AddTenant(string tenantName)
         {
             Log.WriteInfo("Add Tenant", $"Trying to add Tenant: \"{tenantName}\"");
@@ -842,6 +951,10 @@ namespace FWO.Middleware.Server
             return tenantAdded;
         }
 
+        /// <summary>
+        /// Delete tenant
+        /// </summary>
+        /// <returns>true if tenant deleted</returns>
         public bool DeleteTenant(string tenantName)
         {
             Log.WriteDebug("Delete Tenant", $"Trying to delete Tenant: \"{tenantName}\" from Ldap");

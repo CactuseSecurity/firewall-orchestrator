@@ -1,0 +1,72 @@
+﻿@using FWO.Api.Client
+@using FWO.Config.Api
+@using FWO.Config.Api.Data
+@using FWO.Ui.Services
+
+@page "/settings/recertificationpersonal"
+@attribute [Authorize(Roles = "admin, recertifier, auditor")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+<h3>@(userConfig.GetText("recert_settings"))</h3>
+@(userConfig.GetText("U5414"))
+<hr />
+
+@if (configData != null)
+{
+     <form class="form-inline" onsubmit="return false">
+        <label for="recertificationDisplayPeriod" class="col-form-label mr-2">@(userConfig.GetText("recertificationDisplayPeriod")):</label>
+        <div class="col-sm-2">
+            <input id="recertificationDisplayPeriod" type="number" class="form-control form-control-sm" @bind="configData!.RecertificationDisplayPeriod" />
+        </div>
+    </form>
+    <hr />
+    <button class="btn btn-sm btn-primary" @onclick="SaveRecertificationDisplayPeriod">@(userConfig.GetText("save"))</button>  
+}
+else
+{
+    <div class="spinner-border" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+}
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    ConfigData? configData;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            configData = await userConfig.GetEditableConfig();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("recert_settings"), userConfig.GetText("E5421"), false);
+        }
+    }
+
+    private async Task SaveRecertificationDisplayPeriod()
+    {       
+        try
+        {
+            if (configData != null)
+            {
+                await userConfig.WriteToDatabase(configData, apiConnection);
+                DisplayMessageInUi(null, userConfig.GetText("recert_settings"), userConfig.GetText("U5301"), false);             
+            }
+            else
+            {
+                throw new Exception("Data saved before loaded. This should be impossible.");
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("recert_settings"), "", true);
+        }
+    }
+}

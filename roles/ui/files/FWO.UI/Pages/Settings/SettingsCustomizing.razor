@@ -62,12 +62,6 @@
         </div>
     </form>
     <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAllowManualOwnerAdmin")):</label>
-        <div class="col-sm-2">
-            <input type="checkbox" @bind="configData!.ReqAllowManualOwnerAdmin">
-        </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-3">@(userConfig.GetText("reqActivatePathAnalysis")):</label>
         <div class="col-sm-2">
             <input type="checkbox" @bind="configData!.ReqActivatePathAnalysis">
@@ -76,12 +70,11 @@
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAutoCreateImplTasks")):</label>
         <div class="col-sm-2">
-            <select class="form-control form-control-sm" @bind="configData!.ReqAutoCreateImplTasks">
-                @foreach (AutoCreateImplTaskOptions acitOption in Enum.GetValues(typeof(AutoCreateImplTaskOptions)))
-                {
-                    <option value="@acitOption">@(userConfig.GetText(acitOption.ToString()))</option>
-                }
-            </select>
+            <Dropdown @bind-SelectedElement="configData!.ReqAutoCreateImplTasks" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues(typeof(AutoCreateImplTaskOptions)).Cast<AutoCreateImplTaskOptions>()" >
+                <ElementTemplate Context="opt">
+                    @(userConfig.GetText(opt.ToString()))
+                </ElementTemplate>
+            </Dropdown>
         </div>
     </form>
 
@@ -108,7 +101,7 @@ else
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private ConfigData? configData;
     private bool InitComplete = false;
@@ -134,7 +127,7 @@ else
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
         }
     }
 
@@ -155,7 +148,7 @@ else
                 configData.ReqAvailableTaskTypes = JsonSerializer.Serialize(availableTaskTypes);
                 configData.ReqPriorities = JsonSerializer.Serialize(prioList);
                 await globalConfig.WriteToDatabase(configData, apiConnection);
-                DisplayMessageInUi!(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
+                DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
             }
             else
             {
@@ -164,7 +157,7 @@ else
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("change_default"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
         }
     }
 }

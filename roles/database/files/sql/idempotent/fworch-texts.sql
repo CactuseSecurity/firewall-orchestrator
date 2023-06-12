@@ -81,10 +81,14 @@ INSERT INTO txt VALUES ('old_password', 		'German',	'Altes Passwort');
 INSERT INTO txt VALUES ('old_password', 		'English',	'Old Password');
 INSERT INTO txt VALUES ('new_password', 		'German',	'Neues Passwort');
 INSERT INTO txt VALUES ('new_password', 		'English',	'New Password');
-INSERT INTO txt VALUES ('jwt_expiry_title',     'German', 	'JWT abgelaufen');
-INSERT INTO txt VALUES ('jwt_expiry_title',     'English', 	'JWT expired');
+INSERT INTO txt VALUES ('jwt_expiry_title',     'German', 	'JWT l&auml;uft bald ab');
+INSERT INTO txt VALUES ('jwt_expiry_title',     'English', 	'JWT about to expire');
 INSERT INTO txt VALUES ('jwt_expiry_text',		'German', 	'Ihr Jwt (Session Token) ist kurz davor abzulaufen. Bitte geben Sie ihr Passwort ein, um einen neuen Jwt zu erzeugen.');
-INSERT INTO txt VALUES ('jwt_expiry_text',		'English', 	'Your jwt (session token) is about to expire. Re-login to create a new jwt.');
+INSERT INTO txt VALUES ('jwt_expiry_text',		'English', 	'Your jwt (session token) is about to expire. Please enter your password to generate a new jwt.');
+INSERT INTO txt VALUES ('jwt_expired_title',     'German', 	'JWT abgelaufen');
+INSERT INTO txt VALUES ('jwt_expired_title',     'English', 'JWT expired');
+INSERT INTO txt VALUES ('jwt_expired_text',		'German', 	'Ihr Jwt (Session Token) ist abgelaufen, wodurch es zu einem Fehler kam. Bitte geben Sie ihr Passwort ein, um einen neuen Jwt zu erzeugen.');
+INSERT INTO txt VALUES ('jwt_expired_text',		'English', 	'Your jwt (session token) is expired. This lead to an error. Please enter your password to create a new jwt.');
 INSERT INTO txt VALUES ('permissions_title',	'German', 	'Berechtigungen');
 INSERT INTO txt VALUES ('permissions_title',	'English', 	'Permissions');
 INSERT INTO txt VALUES ('permissions_text',		'German', 	'Ihre Berechtigungen wurden ge&auml;ndert. Bitte geben Sie Ihr Passwort ein, um Ihre Berechtigungen zu aktualisieren!');
@@ -141,30 +145,22 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
-    <li>100% Open Source - passen Sie Firewall Orchestrator an Ihre Bed&uuml;rfnisse an. Machen Sie mit.
-        Der Quellcode kann auf <a href="https://github.com/CactuseSecurity/firewall-orchestrator" target="_blank">GitHub</a> eingesehen und heruntergeladen werden.</li>
-    <li>GraphQL API f&uuml;r Automatisierungen</li>
-    <li>Firewall-Regel Rezertifizierungsworkflow - beseitigen Sie ihre Altlasten und erf&uuml;llen Sie aktuelle regulatorische Anforderungen.</li>
-    <li>F&uuml;r FortiManager und CheckPoint (Stand-Alone & MDS Manager) Auto Discovery</li>
-    <li>Monitoring und Alerting Modul</li>
-    <li>Neues Workflow module zum Beantragen von &Auml;nderungen</li>
-    <li>Cisco FirePower Import-Module</li>
-    <li>Unterst&uuml;tzung f&uuml;r Debian Testing Betriebssystem</li>
+    <li>Importer Modul Check Point R8x Unterst&uuml;tzung f&uuml;r Updatable Objects, Domain-Namen und Application Categories</li>
+    <li>Importer Modul f&uuml;r Stand-Alone FortiGate via REST API</li>
+    <li>Neues Firewall-Regel-Rezertifizierungsmodul - beseitigen Sie ihre Altlasten und erf&uuml;llen Sie aktuelle regulatorische Anforderungen.</li>
+    <li>Workflow-Modul zum Beantragen von &Auml;nderungen</li>
+    <li>Neue Importmodule f&uuml;r Cisco FirePower und Microsoft Azure Firewall</li>
     <li>Beginn Routing/Interface Pfad Analyse (zun&auml;chst nur Fortinet)</li>
     <li>Neue Report-Typen: Regeln (aufgel&ouml;st), Regeln technisch (alle Gruppe werden in Bestandteile aufgel&ouml;st; Report-Export als "Single Table")</li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
-    <li>100% Open Source - adjust Firewall Orchestrator to your needs. Join the community and contribute.
-        The code can be viewed/downloaded from <a href="https://github.com/CactuseSecurity/firewall-orchestrator" target="_blank">GitHub</a></li>
-    <li>GraphQL API for automation</li>
-    <li>Firewall rule recertification workflow - remove unnecessary rules and meet current regulatory requirements.</li>
-    <li>Device Auto Discovery functionality</li>
-    <li>Introduction of Monitoring and Alerting module</li>
-    <li>Introduction of workflow module for requesting changes</li>
-    <li>New Cisco FirePower import module </li>
-    <li>Support for new operating system Debian testing</li>
+    <li>Importer support for Check Point R8x updatable objects, domain name objects and application categories</li>
+    <li>New importer module for stand-alone FortiGate via REST API</li>
+    <li>New Firewall rule recertification module - remove unnecessary rules and meet current regulatory requirements.</li>
+    <li>Workflow module for requesting firewall changes</li>
+    <li>New import modules for Cisco FirePower and Microsoft Azure Firewall</li>
     <li>Start routing/interface (currently implemented for fortinet only) import and path analysis</li>
     <li>New report types: resolved rules, technical rules (report without group objects, exporting into pure rule tables without additional object tables)</li>
 </ul>
@@ -180,7 +176,7 @@ Die folgenden Hauptmen&uuml;punkte stehen (je nach Rollenzugeh&ouml;rigkeit) zur
     <li><a href="/certification">Rezertifizierung</a>: Workflow zur Bereinigung des Regelwerks um nicht mehr ben&ouml;tigte Regeln</li>
     <li><a href="/help" target="_blank">Hilfeseiten</a>: Benutzerhandbuch</li>
     <li><a href="/settings">Einstellungen</a>: Alle Einstellungen wie z.B. Sprache der Benutzeroberfl&auml;che oder
-        das Einbinden <a href="/settings/managements">Ihrer eigenen Firewall-Systeme.</a>
+        das Einbinden <a href="/settings/managements">Ihrer eigenen Firewall-Systeme</a>.<br>
         N.B. Stellen Sie sicher, dass Sie alle Demo-Daten (insbesondere die Demo-User) l&ouml;schen (mit Hilfe der "Beispieldaten l&ouml;schen" Option in den Einstellungen), 
         bevor Sie in den produktiven Betrieb &uuml;bergehen, da andernfalls ggf. Ihre Daten mit Default-Logins angezeigt werden k&ouml;nnten.</li>
     <li><a href="/logout">Abmelden</a>: Firewall Orchestrator verlassen</li>
@@ -195,7 +191,7 @@ The following top-level menu items are available (depending on role memberships)
     <li><a href="/certification">Recertification</a>: Workflow for removing unnecessary rules from your rulebases</li>
     <li><a href="/help" target="_blank">Help</a>: Manual pages</li>
     <li><a href="/settings">Settings</a>: All settings like e.g. language of the user interface or 
-        integration of <a href="/settings/managements">your own firewalls</a>.
+        integration of <a href="/settings/managements">your own firewalls</a>.<br>
         N.B. Please make sure to delete all demo data (using the "Remove sample data" option under settings) 
         before using Firewall Orchestrator with production data.
         Otherwise you might expose your data by providing default accounts.</li>
@@ -308,6 +304,14 @@ INSERT INTO txt VALUES ('download_html',		'German', 	'als HTML herunterladen');
 INSERT INTO txt VALUES ('download_html',		'English', 	'Download HTML');
 INSERT INTO txt VALUES ('download_json',		'German', 	'als JSON herunterladen');
 INSERT INTO txt VALUES ('download_json',		'English', 	'Download JSON');
+INSERT INTO txt VALUES ('page_format',          'German', 	'Seitenformat');
+INSERT INTO txt VALUES ('page_format',          'English', 	'Page Format');
+INSERT INTO txt VALUES ('width',                'German', 	'Breite (mm)');
+INSERT INTO txt VALUES ('width',                'English', 	'Width (mm)');
+INSERT INTO txt VALUES ('height',               'German', 	'H&ouml;he (mm)');
+INSERT INTO txt VALUES ('height',               'English', 	'Height (mm)');
+INSERT INTO txt VALUES ('includes_json',        'German', 	'(beinhaltet JSON)');
+INSERT INTO txt VALUES ('includes_json',        'English', 	'(includes JSON)');
 INSERT INTO txt VALUES ('save_as_template',		'German', 	'Als Vorlage speichern');
 INSERT INTO txt VALUES ('save_as_template',		'English', 	'Save as Template');
 INSERT INTO txt VALUES ('no_device_selected',	'German', 	'Kein Device ausgew&auml;hlt.');
@@ -340,6 +344,8 @@ INSERT INTO txt VALUES ('comment',				'German', 	'Kommentar');
 INSERT INTO txt VALUES ('comment',				'English', 	'Comment');
 INSERT INTO txt VALUES ('ip_address',		    'German', 	'IP-Adresse');
 INSERT INTO txt VALUES ('ip_address',		    'English', 	'IP Address');
+INSERT INTO txt VALUES ('ip_addresses',		    'German', 	'IP-Adressen');
+INSERT INTO txt VALUES ('ip_addresses',		    'English', 	'IP Addresses');
 INSERT INTO txt VALUES ('members',		        'German', 	'Mitglieder');
 INSERT INTO txt VALUES ('members',		        'English', 	'Members');
 INSERT INTO txt VALUES ('templates',			'German', 	'Vorlagen');
@@ -356,8 +362,8 @@ INSERT INTO txt VALUES ('total_no_obj_mgt',		'German', 	'Gesamtzahl der Objekte 
 INSERT INTO txt VALUES ('total_no_obj_mgt',		'English', 	'Total number of Objects per Management');
 INSERT INTO txt VALUES ('no_rules_gtw',		    'German', 	'Anzahl Regeln pro Gateway');
 INSERT INTO txt VALUES ('no_rules_gtw',		    'English', 	'Number of Rules per Gateway');
-INSERT INTO txt VALUES ('negated',		        'German', 	'negated');
-INSERT INTO txt VALUES ('negated',		        'English', 	'negiert');
+INSERT INTO txt VALUES ('negated',		        'German', 	'nicht');
+INSERT INTO txt VALUES ('negated',		        'English', 	'not');
 INSERT INTO txt VALUES ('network_objects',		'German', 	'Netzwerkobjekte');
 INSERT INTO txt VALUES ('network_objects',		'English', 	'Network Objects');
 INSERT INTO txt VALUES ('network_services',		'German', 	'Netzwerkdienste');
@@ -368,12 +374,14 @@ INSERT INTO txt VALUES ('user_objects',		    'German', 	'Nutzerobjekte');
 INSERT INTO txt VALUES ('user_objects',		    'English', 	'User objects');
 INSERT INTO txt VALUES ('rules',		        'German', 	'Regeln');
 INSERT INTO txt VALUES ('rules',		        'English', 	'Rules');
-INSERT INTO txt VALUES ('resolvedrules',        'German', 	'Regeln (aufgel&ouml;st)');
-INSERT INTO txt VALUES ('resolvedrules',        'English', 	'Rules (resolved)');
-INSERT INTO txt VALUES ('resolvedrulestech',    'German', 	'Regeln (technisch)');
-INSERT INTO txt VALUES ('resolvedrulestech',    'English', 	'Rules (technical)');
 INSERT INTO txt VALUES ('changes',		        'German', 	'&Auml;nderungen');
 INSERT INTO txt VALUES ('changes',		        'English', 	'Changes');
+INSERT INTO txt VALUES ('rule_deleted',         'German', 	'Regel gel&ouml;scht');
+INSERT INTO txt VALUES ('rule_deleted',         'English', 	'Rule deleted');
+INSERT INTO txt VALUES ('rule_added',           'German', 	'Regel hinzugef&uuml;gt');
+INSERT INTO txt VALUES ('rule_added',           'English', 	'Rule added');
+INSERT INTO txt VALUES ('rule_modified',        'German', 	'Regel modifiziert');
+INSERT INTO txt VALUES ('rule_modified',        'English', 	'Rule modified');
 INSERT INTO txt VALUES ('statistics',		    'German', 	'Statistik');
 INSERT INTO txt VALUES ('statistics',		    'English', 	'Statistics');
 INSERT INTO txt VALUES ('natrules',		        'German', 	'NAT-Regeln');
@@ -404,8 +412,6 @@ INSERT INTO txt VALUES ('source_zone',		    'German', 	'Quellzone');
 INSERT INTO txt VALUES ('source_zone',		    'English', 	'Source Zone');
 INSERT INTO txt VALUES ('destination_zone',		'German', 	'Zielzone');
 INSERT INTO txt VALUES ('destination_zone',		'English', 	'Destination Zone');
-INSERT INTO txt VALUES ('anything_but',		    'German', 	'alles ausser');
-INSERT INTO txt VALUES ('anything_but',		    'English', 	'anything but');
 INSERT INTO txt VALUES ('enabled',		        'German', 	'Aktiviert');
 INSERT INTO txt VALUES ('enabled',		        'English', 	'Enabled');
 INSERT INTO txt VALUES ('uid',		            'German', 	'UID');
@@ -454,16 +460,6 @@ INSERT INTO txt VALUES ('delete_template',      'German', 	'L&ouml;schen der Vor
 INSERT INTO txt VALUES ('delete_template',      'English', 	'Delete Report Template');
 INSERT INTO txt VALUES ('no_changes_found',	    'German', 	'Keine Changes gefunden!');
 INSERT INTO txt VALUES ('no_changes_found',	    'English', 	'No changes found!');
-INSERT INTO txt VALUES ('rules_report',	        'German', 	'Regel-Report');
-INSERT INTO txt VALUES ('rules_report',	        'English', 	'Rules Report');
-INSERT INTO txt VALUES ('natrules_report',	    'German', 	'NAT-Regel-Report');
-INSERT INTO txt VALUES ('natrules_report',	    'English', 	'NAT Rules Report');
-INSERT INTO txt VALUES ('changes_report',	    'German', 	'Changes-Report');
-INSERT INTO txt VALUES ('changes_report',	    'English', 	'Changes Report');
-INSERT INTO txt VALUES ('statistics_report',	'German', 	'Statistik-Report');
-INSERT INTO txt VALUES ('statistics_report',	'English', 	'Statistics Report');
-INSERT INTO txt VALUES ('resolved_rules_report','German', 	'Regel-Report (aufgel&ouml;st)');
-INSERT INTO txt VALUES ('resolved_rules_report','English', 	'Rules Report (resolved)');
 INSERT INTO txt VALUES ('generated_on',	        'German', 	'Erstellt am');
 INSERT INTO txt VALUES ('generated_on',	        'English', 	'Generated on');
 INSERT INTO txt VALUES ('date_of_config',	    'German', 	'Zeit der Konfiguration');
@@ -560,8 +556,6 @@ INSERT INTO txt VALUES ('svc_group', 			'German', 	'Dienstgruppe');
 INSERT INTO txt VALUES ('svc_group', 			'English', 	'Service group');
 INSERT INTO txt VALUES ('obj_group', 			'German', 	'Objektgruppe');
 INSERT INTO txt VALUES ('obj_group', 			'English', 	'Object group');
-INSERT INTO txt VALUES ('rule_modify', 			'German', 	'Regel &auml;ndern');
-INSERT INTO txt VALUES ('rule_modify', 		    'English', 	'Modify Rule');
 INSERT INTO txt VALUES ('add_new_request',      'German', 	'Neuen Antrag hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_new_request',      'English', 	'Add new request');
 INSERT INTO txt VALUES ('fetch_requests',       'German', 	'Antr&auml;ge holen');
@@ -576,6 +570,8 @@ INSERT INTO txt VALUES ('state',                'German', 	'Status');
 INSERT INTO txt VALUES ('state',                'English', 	'State');
 INSERT INTO txt VALUES ('tasks',                'German', 	'Aufgaben');
 INSERT INTO txt VALUES ('tasks',                'English', 	'Tasks');
+INSERT INTO txt VALUES ('display_task',         'German', 	'Aufgabe darstellen');
+INSERT INTO txt VALUES ('display_task',         'English', 	'Display task');
 INSERT INTO txt VALUES ('add_task',             'German', 	'Aufgabe hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_task',             'English', 	'Add task');
 INSERT INTO txt VALUES ('save_task',            'German', 	'Aufgabe speichern');
@@ -742,6 +738,10 @@ INSERT INTO txt VALUES ('access', 			    'German', 	'Zugriff');
 INSERT INTO txt VALUES ('access', 			    'English', 	'Access');
 INSERT INTO txt VALUES ('generic',              'German', 	'Generisch');
 INSERT INTO txt VALUES ('generic',              'English', 	'Generic');
+INSERT INTO txt VALUES ('rule_modify',          'German',   'Regel &auml;ndern');
+INSERT INTO txt VALUES ('rule_modify',          'English',  'Modify Rule');
+INSERT INTO txt VALUES ('rule_delete',          'German',   'Regel l&ouml;schen');
+INSERT INTO txt VALUES ('rule_delete',          'English',  'Delete Rule');
 INSERT INTO txt VALUES ('group_create',         'German',   'Gruppe anlegen');
 INSERT INTO txt VALUES ('group_create',         'English',  'Create Group');
 INSERT INTO txt VALUES ('group_modify',         'German',   'Gruppe &auml;ndern');
@@ -790,6 +790,38 @@ INSERT INTO txt VALUES ('WriteToDeviceList',    'German', 	'In Ger&auml;teliste 
 INSERT INTO txt VALUES ('WriteToDeviceList',    'English', 	'Write to device list');
 INSERT INTO txt VALUES ('DisplayFoundDevices',  'German', 	'Gefundene Ger&auml;te darstellen');
 INSERT INTO txt VALUES ('DisplayFoundDevices',  'English', 	'Display found devices');
+INSERT INTO txt VALUES ('Sunday',               'German', 	'Sonntag');
+INSERT INTO txt VALUES ('Sunday',               'English', 	'Sunday');
+INSERT INTO txt VALUES ('Monday',               'German', 	'Montag');
+INSERT INTO txt VALUES ('Monday',               'English', 	'Monday');
+INSERT INTO txt VALUES ('Tuesday',              'German', 	'Dienstag');
+INSERT INTO txt VALUES ('Tuesday',              'English', 	'Tuesday');
+INSERT INTO txt VALUES ('Wednesday',            'German', 	'Mittwoch');
+INSERT INTO txt VALUES ('Wednesday',            'English', 	'Wednesday');
+INSERT INTO txt VALUES ('Thursday',             'German', 	'Donnerstag');
+INSERT INTO txt VALUES ('Thursday',             'English', 	'Thursday');
+INSERT INTO txt VALUES ('Friday',               'German', 	'Freitag');
+INSERT INTO txt VALUES ('Friday',               'English', 	'Friday');
+INSERT INTO txt VALUES ('Saturday',             'German', 	'Samstag');
+INSERT INTO txt VALUES ('Saturday',             'English', 	'Saturday');
+INSERT INTO txt VALUES ('Rules', 			    'German', 	'Regel-Report');
+INSERT INTO txt VALUES ('Rules', 			    'English', 	'Rules Report');
+INSERT INTO txt VALUES ('Changes', 			    'German', 	'Changes-Report');
+INSERT INTO txt VALUES ('Changes', 			    'English', 	'Changes Report');
+INSERT INTO txt VALUES ('Statistics', 			'German', 	'Statistik-Report');
+INSERT INTO txt VALUES ('Statistics', 			'English', 	'Statistics Report');
+INSERT INTO txt VALUES ('NatRules', 			'German', 	'NAT-Regel-Report');
+INSERT INTO txt VALUES ('NatRules', 			'English', 	'NAT Rules Report');
+INSERT INTO txt VALUES ('ResolvedRules', 	    'German', 	'Regel-Report (aufgel&ouml;st)');
+INSERT INTO txt VALUES ('ResolvedRules', 		'English', 	'Rules Report (resolved)');
+INSERT INTO txt VALUES ('ResolvedRulesTech', 	'German', 	'Regel-Report (technisch)');
+INSERT INTO txt VALUES ('ResolvedRulesTech', 	'English', 	'Rules Report (technical)');
+INSERT INTO txt VALUES ('Recertification', 	    'German', 	'Rezertifizierungs-Report');
+INSERT INTO txt VALUES ('Recertification', 		'English', 	'Recertification Report');
+INSERT INTO txt VALUES ('ResolvedChanges', 		'German', 	'Changes-Report (aufgel&ouml;st)');
+INSERT INTO txt VALUES ('ResolvedChanges', 		'English', 	'Changes Report (resolved)');
+INSERT INTO txt VALUES ('ResolvedChangesTech', 	'German', 	'Changes-Report (technisch)');
+INSERT INTO txt VALUES ('ResolvedChangesTech', 	'English', 	'Changes Report (technical)');
 
 -- network analysis
 INSERT INTO txt VALUES ('network_analysis', 	'German',	'Netzanalyse');
@@ -820,6 +852,8 @@ INSERT INTO txt VALUES ('load_rules',		    'German', 	'Regeln anzeigen');
 INSERT INTO txt VALUES ('load_rules',		    'English', 	'Show Rules');
 INSERT INTO txt VALUES ('execute_selected',		'German', 	'Ausgew&auml;hlte Aktionen ausf&uuml;hren');
 INSERT INTO txt VALUES ('execute_selected',		'English', 	'Execute Selected Actions');
+INSERT INTO txt VALUES ('missing_owner_id',		'German', 	'Fehlende Eigent&uuml;mer ID');
+INSERT INTO txt VALUES ('missing_owner_id',		'English', 	'missing owner id');
 INSERT INTO txt VALUES ('next_recert',		    'German', 	'Datum n&auml;chste Rezertifizierung');
 INSERT INTO txt VALUES ('next_recert',		    'English', 	'Next Recertification Date');
 INSERT INTO txt VALUES ('last_recertifier',		'German', 	'Letzter Rezertifizierer');
@@ -838,9 +872,28 @@ INSERT INTO txt VALUES ('marked_to_be_removed', 'German',   'Als zu l&ouml;schen
 INSERT INTO txt VALUES ('marked_to_be_removed', 'English',  'Marked to be removed');
 INSERT INTO txt VALUES ('decert_date',          'German',   'Dezertifizierungsdatum');
 INSERT INTO txt VALUES ('decert_date',          'English',  'Decertification date');
-INSERT INTO txt VALUES ('recert_comment',       'German',   'Zertifzierungskommentar');
+INSERT INTO txt VALUES ('recert_comment',       'German',   'Zertifizierungskommentar');
 INSERT INTO txt VALUES ('recert_comment',       'English',  'Certification comment');
-
+INSERT INTO txt VALUES ('ip_matches',           'German',   'IP-Adress-&Uuml;bereinstimmung');
+INSERT INTO txt VALUES ('ip_matches',           'English',  'IP address match');
+INSERT INTO txt VALUES ('overdue_recert',       'German',   'nur&nbsp;&uuml;berf&auml;llige&nbsp;Regeln');
+INSERT INTO txt VALUES ('overdue_recert',       'English',  'only&nbsp;overdue&nbsp;rules');
+INSERT INTO txt VALUES ('recert_parameter',     'German',   'Rezertifizierungsparameter');
+INSERT INTO txt VALUES ('recert_parameter',     'English',  'Recertification Parameters');
+INSERT INTO txt VALUES ('without_owner',        'German',   'nur Regeln ohne Eigent&uuml;mer');
+INSERT INTO txt VALUES ('without_owner',        'English',  'only ownerless rules');
+INSERT INTO txt VALUES ('show_any_match',       'German',   'Any-Regeln anzeigen');
+INSERT INTO txt VALUES ('show_any_match',       'English',  'show any rules');
+INSERT INTO txt VALUES ('single_line_per_rule', 'German',   'eine Zeile pro Regel');
+INSERT INTO txt VALUES ('single_line_per_rule', 'English',  'one line per rule');
+INSERT INTO txt VALUES ('recalc_recerts',       'German',   'Neuberechnung offene Rezertifizierungen');
+INSERT INTO txt VALUES ('recalc_recerts',       'English',  'Recalculate open recertifications');
+INSERT INTO txt VALUES ('recalc_now',           'German',   'Jetzt neu berechnen');
+INSERT INTO txt VALUES ('recalc_now',           'English',  'Recalculate now');
+INSERT INTO txt VALUES ('at_startup',           'German',   'Beim Hochfahren');
+INSERT INTO txt VALUES ('at_startup',           'English',  'At startup');
+INSERT INTO txt VALUES ('daily',                'German',   'T&auml;glich');
+INSERT INTO txt VALUES ('daily',                'English',  'Daily');
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');
 INSERT INTO txt VALUES ('devices',				'English', 	'Devices');
@@ -860,12 +913,24 @@ INSERT INTO txt VALUES ('groups',		        'German', 	'Interne Gruppen');
 INSERT INTO txt VALUES ('groups',		        'English', 	'Internal Groups');
 INSERT INTO txt VALUES ('roles',		        'German', 	'Rollen');
 INSERT INTO txt VALUES ('roles',		        'English', 	'Roles');
-INSERT INTO txt VALUES ('defaults',		        'German', 	'Voreinstellungen');
-INSERT INTO txt VALUES ('defaults',		        'English', 	'Defaults');
+INSERT INTO txt VALUES ('defaults',		        'German', 	'Weitere Einstellungen');
+INSERT INTO txt VALUES ('defaults',		        'English', 	'Further settings');
 INSERT INTO txt VALUES ('standards',		    'German', 	'Standardeinstellungen');
 INSERT INTO txt VALUES ('standards',		    'English', 	'Defaults');
 INSERT INTO txt VALUES ('password_policy',      'German', 	'Passworteinstellungen');
 INSERT INTO txt VALUES ('password_policy',      'English', 	'Password Policy');
+INSERT INTO txt VALUES ('email_settings',       'German', 	'Email-Einstellungen');
+INSERT INTO txt VALUES ('email_settings',       'English', 	'Email settings');
+INSERT INTO txt VALUES ('edit_email',           'German', 	'Email-Einstellungen editieren');
+INSERT INTO txt VALUES ('edit_email',           'English', 	'Edit email settings');
+INSERT INTO txt VALUES ('email_sender',         'German', 	'Email-Absendeadresse');
+INSERT INTO txt VALUES ('email_sender',         'English', 	'Email sender address');
+INSERT INTO txt VALUES ('email_auth_user',      'German', 	'Email-Nutzer');
+INSERT INTO txt VALUES ('email_auth_user',      'English', 	'Email auth user');
+INSERT INTO txt VALUES ('email_auth_pwd',       'German', 	'Email-Nutzer Passwort');
+INSERT INTO txt VALUES ('email_auth_pwd',       'English', 	'Email user password');
+INSERT INTO txt VALUES ('email_enc_method',     'German', 	'Email-Verschl&uuml;sselung');
+INSERT INTO txt VALUES ('email_enc_method',     'English', 	'Email encryption');
 INSERT INTO txt VALUES ('state_definitions',	'German', 	'Statusdefinitionen');
 INSERT INTO txt VALUES ('state_definitions',	'English', 	'State Definitions');
 INSERT INTO txt VALUES ('state_matrix',	        'German', 	'Statusmatrix');
@@ -894,12 +959,20 @@ INSERT INTO txt VALUES ('port',                 'German', 	'Port');
 INSERT INTO txt VALUES ('port',                 'English', 	'Port');
 INSERT INTO txt VALUES ('config_path',          'German', 	'Domain');
 INSERT INTO txt VALUES ('config_path',          'English', 	'Domain');
+INSERT INTO txt VALUES ('cloud_client_id',      'German', 	'Cloud Client ID');
+INSERT INTO txt VALUES ('cloud_client_id',      'English', 	'Cloud Client ID');
+INSERT INTO txt VALUES ('cloud_client_secret',  'German', 	'Cloud Client Secret');
+INSERT INTO txt VALUES ('cloud_client_secret',  'English', 	'Cloud Client Secret');
+INSERT INTO txt VALUES ('cloud_sub_id',         'German', 	'Cloud Subscription ID');
+INSERT INTO txt VALUES ('cloud_sub_id',         'English', 	'Cloud Subscription ID');
+INSERT INTO txt VALUES ('cloud_tenant_id',      'German', 	'Cloud Tenant ID');
+INSERT INTO txt VALUES ('cloud_tenant_id',      'English', 	'Cloud Tenant ID');
+INSERT INTO txt VALUES ('unused',               'German', 	'ungenutzt');
+INSERT INTO txt VALUES ('unused',               'English', 	'unused');
 INSERT INTO txt VALUES ('domain_uid',           'German', 	'Domain UID');
 INSERT INTO txt VALUES ('domain_uid',           'English', 	'Domain UID');
 INSERT INTO txt VALUES ('super_manager',        'German', 	'Multi Domain Manager');
 INSERT INTO txt VALUES ('super_manager',        'English', 	'Multi Domain Manager');
-INSERT INTO txt VALUES ('no_super_manager',     'German', 	'kein Multi Domain Manager');
-INSERT INTO txt VALUES ('no_super_manager',     'English', 	'no Multi Domain Manager');
 INSERT INTO txt VALUES ('importer_host',        'German', 	'Importer Host');
 INSERT INTO txt VALUES ('importer_host',        'English', 	'Importer Host');
 INSERT INTO txt VALUES ('import_disabled',      'German', 	'Import Deaktiviert');
@@ -972,7 +1045,7 @@ INSERT INTO txt VALUES ('err_since_last_succ',  'German', 	'Fehler seit letztem 
 INSERT INTO txt VALUES ('err_since_last_succ',  'English', 	'Errors since last successful import');
 INSERT INTO txt VALUES ('remove_sample_data',   'German', 	'Beispieldaten l&ouml;schen');
 INSERT INTO txt VALUES ('remove_sample_data',	'English', 	'Remove Sample Data');
-INSERT INTO txt VALUES ('refresh', 				'German',	'Neu anzeigen');
+INSERT INTO txt VALUES ('refresh', 				'German',	'Aktualisieren');
 INSERT INTO txt VALUES ('refresh', 				'English',	'Refresh');
 INSERT INTO txt VALUES ('add_new_user',			'German',	'Neuen Nutzer hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_new_user',			'English',	'Add new user');
@@ -990,7 +1063,7 @@ INSERT INTO txt VALUES ('assign_user_to_group',	'German',	'Nutzer zu Gruppe zuor
 INSERT INTO txt VALUES ('assign_user_to_group',	'English',	'Assign user to group');
 INSERT INTO txt VALUES ('remove_user_from_group','German',	'Nutzer von Gruppe entfernen');
 INSERT INTO txt VALUES ('remove_user_from_group','English',	'Remove user from group');
-INSERT INTO txt VALUES ('assign_user_group_to_role','German','Nutzer/Gruppe zu Rolle zuordnenen');
+INSERT INTO txt VALUES ('assign_user_group_to_role','German','Nutzer/Gruppe zu Rolle zuordnen');
 INSERT INTO txt VALUES ('assign_user_group_to_role','English','Assign user/group to role');
 INSERT INTO txt VALUES ('remove_user_group_from_role','German','Nutzer/Gruppe von Rolle entfernen');
 INSERT INTO txt VALUES ('remove_user_group_from_role','English','Remove user/group from role');
@@ -1016,6 +1089,8 @@ INSERT INTO txt VALUES ('user',                 'German', 	'Nutzer');
 INSERT INTO txt VALUES ('user',                 'English', 	'User');
 INSERT INTO txt VALUES ('group',                'German', 	'Gruppe');
 INSERT INTO txt VALUES ('group',                'English', 	'Group');
+INSERT INTO txt VALUES ('owner_group',          'German', 	'Eigent&uuml;mergruppe');
+INSERT INTO txt VALUES ('owner_group',          'English', 	'Owner group');
 INSERT INTO txt VALUES ('into_ldap',            'German', 	'in LDAP');
 INSERT INTO txt VALUES ('into_ldap',            'English', 	'into LDAP');
 INSERT INTO txt VALUES ('from_ldap',            'German', 	'von LDAP');
@@ -1038,6 +1113,8 @@ INSERT INTO txt VALUES ('edit_ldap',            'German', 	'LDAP-Verbindung bear
 INSERT INTO txt VALUES ('edit_ldap',            'English', 	'Edit LDAP connection');
 INSERT INTO txt VALUES ('test_connection',      'German', 	'Verbindung testen');
 INSERT INTO txt VALUES ('test_connection',      'English', 	'Test connection');
+INSERT INTO txt VALUES ('test_email_connection','German', 	'Email-Verbindung testen');
+INSERT INTO txt VALUES ('test_email_connection','English', 	'Test email connection');
 INSERT INTO txt VALUES ('address',              'German', 	'Adresse');
 INSERT INTO txt VALUES ('address',              'English', 	'Address');
 INSERT INTO txt VALUES ('tenant_level',         'German', 	'Mandantenebene');
@@ -1122,6 +1199,34 @@ INSERT INTO txt VALUES ('ruleRemovalGracePeriod','German', 	'Frist zum L&ouml;sc
 INSERT INTO txt VALUES ('ruleRemovalGracePeriod','English', 'Rule Removal Grace Period (in days)');
 INSERT INTO txt VALUES ('commentRequired',      'German', 	'Kommentar Pflichtfeld');
 INSERT INTO txt VALUES ('commentRequired',      'English',  'Comment Required');
+INSERT INTO txt VALUES ('recAutocreateDeleteTicket','German','Autom. Anlegen L&ouml;schantrag');
+INSERT INTO txt VALUES ('recAutocreateDeleteTicket','English','Autocreate delete rule ticket');
+INSERT INTO txt VALUES ('recDeleteRuleTicketTitle','German','Titel f&uuml;r L&ouml;schantrag');
+INSERT INTO txt VALUES ('recDeleteRuleTicketTitle','English','Title for delete rule ticket');
+INSERT INTO txt VALUES ('recDeleteRuleTicketReason','German','Grund f&uuml;r L&ouml;schantrag');
+INSERT INTO txt VALUES ('recDeleteRuleTicketReason','English','Reason for delete rule ticket');
+INSERT INTO txt VALUES ('recDeleteRuleReqTaskTitle','German','Titel f&uuml;r L&ouml;schauftrag');
+INSERT INTO txt VALUES ('recDeleteRuleReqTaskTitle','English','Title for delete rule task');
+INSERT INTO txt VALUES ('recDeleteRuleReqTaskReason','German','Grund f&uuml;r L&ouml;schauftrag');
+INSERT INTO txt VALUES ('recDeleteRuleReqTaskReason','English','Reason for delete rule task');
+INSERT INTO txt VALUES ('recDeleteRuleTicketPriority','German','Priorit&auml;t f&uuml;r L&ouml;schantrag');
+INSERT INTO txt VALUES ('recDeleteRuleTicketPriority','English','Priority for delete rule ticket');
+INSERT INTO txt VALUES ('recDeleteRuleInitState','German',  'Initialer Status f&uuml;r L&ouml;schantrag');
+INSERT INTO txt VALUES ('recDeleteRuleInitState','English', 'Initial state for delete rule ticket');
+INSERT INTO txt VALUES ('recCheckActive',       'German','Rezert Check - aktiv');
+INSERT INTO txt VALUES ('recCheckActive',       'English','Recert Check - active');
+INSERT INTO txt VALUES ('recCheckEmailSubject', 'German','Rezert Check - Email Betreff');
+INSERT INTO txt VALUES ('recCheckEmailSubject', 'English','Recert Check - Email subject');
+INSERT INTO txt VALUES ('recCheckEmailUpcomingText','German','Rezert Check - Text anstehend');
+INSERT INTO txt VALUES ('recCheckEmailUpcomingText','English','Recert Check - text upcoming');
+INSERT INTO txt VALUES ('recCheckEmailOverdueText','German','Rezert Check - Text &uuml;berf&auml;llig');
+INSERT INTO txt VALUES ('recCheckEmailOverdueText','English','Recert Check - text overdue');
+INSERT INTO txt VALUES ('recert_check_every',   'German', 	'Rezert Check alle');
+INSERT INTO txt VALUES ('recert_check_every',   'English', 	'Recert Check every');
+INSERT INTO txt VALUES ('each_on',              'German', 	'jeweils am');
+INSERT INTO txt VALUES ('each_on',              'English', 	'each on');
+INSERT INTO txt VALUES ('undefined',		    'German', 	'nicht definiert');
+INSERT INTO txt VALUES ('undefined',		    'English', 	'undefined');
 INSERT INTO txt VALUES ('reqAvailableTaskTypes','German', 	'Verf&uuml;gbare Auftragstypen');
 INSERT INTO txt VALUES ('reqAvailableTaskTypes','English', 	'Available Task Types');
 INSERT INTO txt VALUES ('reqAllowObjectSearch', 'German', 	'Objektsuche erlauben');
@@ -1284,6 +1389,8 @@ INSERT INTO txt VALUES ('lowest_end_state',     'German',   'Niedrigster Ausgang
 INSERT INTO txt VALUES ('lowest_end_state',     'English',  'Lowest exit state');
 INSERT INTO txt VALUES ('derived_state',        'German',   'Abgeleiteter Status');
 INSERT INTO txt VALUES ('derived_state',        'English',  'Derived state');
+INSERT INTO txt VALUES ('select_action',        'German',   'Aktion ausw&auml;hlen');
+INSERT INTO txt VALUES ('select_action',        'English',  'Select action');
 INSERT INTO txt VALUES ('owners',               'German',   'Eigent&uuml;mer');
 INSERT INTO txt VALUES ('owners',               'English',  'Owners');
 INSERT INTO txt VALUES ('add_owner',            'German',   'Eigent&uuml;mer hinzuf&uuml;gen');
@@ -1292,8 +1399,8 @@ INSERT INTO txt VALUES ('edit_owner',           'German',   'Eigent&uuml;mer bea
 INSERT INTO txt VALUES ('edit_owner',           'English',  'Edit owner');
 INSERT INTO txt VALUES ('delete_owner',         'German',   'Eigent&uuml;mer l&ouml;schen');
 INSERT INTO txt VALUES ('delete_owner',         'English',  'Delete owner');
-INSERT INTO txt VALUES ('recert_interval',      'German',   'Rezertifzierungsintervall (in Tagen)');
-INSERT INTO txt VALUES ('recert_interval',      'English',  'Recertification interval (in days)');
+INSERT INTO txt VALUES ('recert_interval',      'German',   'Rezertintervall (in Tagen)');
+INSERT INTO txt VALUES ('recert_interval',      'English',  'Recert Interval (in days)');
 INSERT INTO txt VALUES ('ext_app_id',           'German',   'Externe Anwendungs-Id');
 INSERT INTO txt VALUES ('ext_app_id',           'English',  'External Application Id');
 INSERT INTO txt VALUES ('dn',                   'German',   'Vollst&auml;ndiger Name');
@@ -1304,7 +1411,6 @@ INSERT INTO txt VALUES ('reset_to_default',     'German',   'auf Vorgabewerte zu
 INSERT INTO txt VALUES ('reset_to_default',     'English',  'Reset to Default');
 INSERT INTO txt VALUES ('option',		        'German', 	'Option');
 INSERT INTO txt VALUES ('option',		        'English', 	'Option');
-
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
@@ -1409,6 +1515,10 @@ INSERT INTO txt VALUES ('daily_sample_data_check','German', 'T&auml;glicher Chec
 INSERT INTO txt VALUES ('daily_sample_data_check','English','Scheduled Daily Sample Data Check');
 INSERT INTO txt VALUES ('daily_importer_check', 'German',   'T&auml;glicher Check der Importer');
 INSERT INTO txt VALUES ('daily_importer_check', 'English',  'Scheduled Daily Importer Check');
+INSERT INTO txt VALUES ('daily_recert_check',   'German',   'T&auml;glicher Rezertifizierungs-Check');
+INSERT INTO txt VALUES ('daily_recert_check',   'English',  'Scheduled Daily Recertification Check');
+INSERT INTO txt VALUES ('emails_sent',          'German',   ' Emails versendet');
+INSERT INTO txt VALUES ('emails_sent',          'English',  ' emails sent');
 INSERT INTO txt VALUES ('scheduled_autodiscovery','German', 'Termingesteuerte Autodiscovery');
 INSERT INTO txt VALUES ('scheduled_autodiscovery','English','Scheduled Autodiscovery');
 INSERT INTO txt VALUES ('manual_autodiscovery', 'German', 	'Manuelle Autodiscovery');
@@ -1491,7 +1601,16 @@ INSERT INTO txt VALUES ('task_types', 			'English', 	'Task Types');
 INSERT INTO txt VALUES ('state_handling', 		'German', 	'Status-Verwaltung');
 INSERT INTO txt VALUES ('state_handling', 		'English', 	'State Handling');
 INSERT INTO txt VALUES ('checklist', 		    'German', 	'Checkliste');
-INSERT INTO txt VALUES ('checklist', 		    'English', 	'Checklist');
+INSERT INTO txt VALUES ('checklist',            'English', 	'Checklist');
+INSERT INTO txt VALUES ('requirements',         'German', 	'Voraussetzungen');
+INSERT INTO txt VALUES ('requirements',         'English', 	'Requirements');
+INSERT INTO txt VALUES ('recert_logic',         'German', 	'Logik und Konfiguration');
+INSERT INTO txt VALUES ('recert_logic', 		'English', 	'Logic and Configuration');
+INSERT INTO txt VALUES ('configuration',        'German', 	'Konfiguration');
+INSERT INTO txt VALUES ('configuration',        'English', 	'Configuration');
+INSERT INTO txt VALUES ('owner_import',         'German', 	'Eigent&uuml;mer-Import');
+INSERT INTO txt VALUES ('owner_import',         'English', 	'Owner Import');
+ 
 
 -- text codes (roughly) categorized: 
 -- U: user texts (explanation or confirmation texts)
@@ -1510,6 +1629,7 @@ INSERT INTO txt VALUES ('checklist', 		    'English', 	'Checklist');
 --            5200-5299: authorization
 --            5300-5399: defaults
 --            5400-5499: personal settings
+--            5500-5599: workflow module
 -- 6000-6999: API
 -- 7000-7999: Monitoring
 -- 8000-8999: Workflow
@@ -1605,6 +1725,8 @@ INSERT INTO txt VALUES ('U5216', 'German',  'Anzeige und Verwaltung aller Eigent
 INSERT INTO txt VALUES ('U5216', 'English', 'Show and administrate all owners');
 INSERT INTO txt VALUES ('U5217', 'German',  'Sind sie sicher, dass sie folgenden Eigent&uuml;mer l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5217', 'English', 'Are you sure you want to delete owner: ');
+INSERT INTO txt VALUES ('U5218', 'German',  'L&ouml;scht alle Beispiel-Eigent&uuml;mer (auf "_demo" endend)');
+INSERT INTO txt VALUES ('U5218', 'English', 'Deletes all sample owners (ending with "_demo")');
 
 INSERT INTO txt VALUES ('U5301', 'German',  'Einstellungen ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5301', 'English', 'Settings changed.');
@@ -1612,6 +1734,8 @@ INSERT INTO txt VALUES ('U5302', 'German',  'Einstellungen ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5302', 'English', 'Policy changed.');
 INSERT INTO txt VALUES ('U5303', 'German',  '* Einstellungen k&ouml;nnen vom Nutzer in den pers&ouml;nlichen Einstellungen &uuml;berschrieben werden.');
 INSERT INTO txt VALUES ('U5303', 'English', '* Settings can be overwritten by user in personal settings.');
+INSERT INTO txt VALUES ('U5304', 'German',  '* Einstellungen k&ouml;nnen vom Nutzer in den pers&ouml;nlichen Einstellungen oder in den Eigent&uuml;mer-Einstellungen &uuml;berschrieben werden.');
+INSERT INTO txt VALUES ('U5304', 'English', '* Settings can be overwritten by user in personal settings or by the owner settings.');
 INSERT INTO txt VALUES ('U5311', 'German',  'Verwaltung der Standard-Voreinstellungen f&uuml;r alle Nutzer und einige technische Parameter');
 INSERT INTO txt VALUES ('U5311', 'English', 'Set default values for all users and some technical parameters');
 INSERT INTO txt VALUES ('U5312', 'German',  'Verwaltung der Passwortregeln');
@@ -1628,9 +1752,13 @@ INSERT INTO txt VALUES ('U5317', 'German',  'Verwaltung der Aktionsdefinitionen 
 INSERT INTO txt VALUES ('U5317', 'English', 'Set the action definitions of the workflows. Be careful when changing workflow already in use!');
 INSERT INTO txt VALUES ('U5318', 'German',  'Sind sie sicher, dass sie die Einstellungen zur&uuml;cksetzen wollen? &Auml;nderungen an den Workflows gehen verloren.');
 INSERT INTO txt VALUES ('U5318', 'English', 'Are you sure you want to reset the settings? Changes on workflows get lost.');
+INSERT INTO txt VALUES ('U5319', 'German',  'Server f&uuml;r ausgehende Emails zur Benachrichtigung verwalten.');
+INSERT INTO txt VALUES ('U5319', 'English', 'Manage email server for outgoing user notifications.');
 
 INSERT INTO txt VALUES ('U5401', 'German',  'Passwort ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5401', 'English', 'Password changed.');
+INSERT INTO txt VALUES ('U5402', 'German',  'Test-Email gesendet.');
+INSERT INTO txt VALUES ('U5402', 'English', 'Test email sent.');
 INSERT INTO txt VALUES ('U5411', 'German',  '&Auml;nderung des pers&ouml;nlichen Anmeldepassworts');
 INSERT INTO txt VALUES ('U5411', 'English', 'Change your personal login password');
 INSERT INTO txt VALUES ('U5412', 'German',  'Einstellung der bevorzugten Sprache');
@@ -1649,8 +1777,8 @@ INSERT INTO txt VALUES ('U7001', 'German',  '&Uuml;berblick der Ereignisse im Fi
 INSERT INTO txt VALUES ('U7001', 'English', 'Alerts and events inside Firewall Orchestrator');
 INSERT INTO txt VALUES ('U7002', 'German',  'Daten sind dann verloren. Erw&auml;gen Sie eine Deaktivierung.');
 INSERT INTO txt VALUES ('U7002', 'English', 'Data will be lost. Consider deactivation.');
-INSERT INTO txt VALUES ('U7003', 'German',  'L&ouml;scht alle Beispieldaten (auf "_demo" endend): Managements, Login-Daten, Gateways, Nutzer, Mandanten, Gruppen');
-INSERT INTO txt VALUES ('U7003', 'English', 'Deletes all sample data (ending with "_demo"): managements, credentials, gateways, users, tenants, groups');
+INSERT INTO txt VALUES ('U7003', 'German',  'L&ouml;scht alle Beispieldaten (auf "_demo" endend): Managements, Login-Daten, Gateways, Nutzer, Mandanten, Gruppen, Eigent&uuml;mer');
+INSERT INTO txt VALUES ('U7003', 'English', 'Deletes all sample data (ending with "_demo"): managements, credentials, gateways, users, tenants, groups, owners');
 INSERT INTO txt VALUES ('U7101', 'German',  'Archiv der Alarme mit Best&auml;tigungen');
 INSERT INTO txt VALUES ('U7101', 'English', 'View the past alerts with acknowledgements');
 INSERT INTO txt VALUES ('U7201', 'German',  'Archiv der Importer-Nachrichten');
@@ -1725,6 +1853,10 @@ INSERT INTO txt VALUES ('E5106', 'German',  'Management wurde bereits angelegt: 
 INSERT INTO txt VALUES ('E5106', 'English', 'Management has already been created: ');
 INSERT INTO txt VALUES ('E5107', 'German',  'Gateway wurde bereits angelegt: ');
 INSERT INTO txt VALUES ('E5107', 'English', 'Gateway has already been created: ');
+INSERT INTO txt VALUES ('E5108', 'German',  'Email-Adresse muss "@"-Zeichen enthalten.');
+INSERT INTO txt VALUES ('E5108', 'English', 'Email address must contain "@"-sign.');
+INSERT INTO txt VALUES ('E5109', 'German',  'Bitte keine Leerzeichen im Namen verwenden.');
+INSERT INTO txt VALUES ('E5109', 'English', 'Please do not use spaces in the name.');
 INSERT INTO txt VALUES ('E5111', 'German',  'Es gibt bereits ein Gateway mit derselben Konfiguration und Import aktiviert');
 INSERT INTO txt VALUES ('E5111', 'English', 'There is already a gateway in the same configuration with import enabled');
 INSERT INTO txt VALUES ('E5112', 'German',  'Gateway konnte nicht angelegt werden');
@@ -1748,8 +1880,8 @@ INSERT INTO txt VALUES ('E5209', 'German',  'Nutzer konnten nicht geholt werden'
 INSERT INTO txt VALUES ('E5209', 'English', 'Users could not be fetched');
 INSERT INTO txt VALUES ('E5210', 'German',  'Nutzer (Dn) existiert bereits');
 INSERT INTO txt VALUES ('E5210', 'English', 'User (Dn) is already existing');
-INSERT INTO txt VALUES ('E5211', 'German',  'Name und Passwort m&uuml;ssen gef&uuml;llt sein');
-INSERT INTO txt VALUES ('E5211', 'English', 'Name and Password have to be filled');
+INSERT INTO txt VALUES ('E5211', 'German',  'Name, Passwort und initiale Rolle m&uuml;ssen gef&uuml;llt sein');
+INSERT INTO txt VALUES ('E5211', 'English', 'Name, password and initial role have to be filled');
 INSERT INTO txt VALUES ('E5212', 'German',  'Unbekannter Mandant');
 INSERT INTO txt VALUES ('E5212', 'English', 'Unknown tenant');
 INSERT INTO txt VALUES ('E5213', 'German',  'Nutzer konnte nicht hinzugef&uuml;gt werden');
@@ -1850,6 +1982,8 @@ INSERT INTO txt VALUES ('E5285', 'German',  'Mandant konnte nicht ge&auml;ndert 
 INSERT INTO txt VALUES ('E5285', 'English', 'Tenant could not be updated');
 INSERT INTO txt VALUES ('E5291', 'German',  'Eigent&uuml;mer konnte nicht gespeichert werden');
 INSERT INTO txt VALUES ('E5291', 'English', 'Owner could not be saved');
+INSERT INTO txt VALUES ('E5292', 'German',  'Dn oder Gruppe muss gef&uuml;llt sein');
+INSERT INTO txt VALUES ('E5292', 'English', 'Dn or group has to be filled');
 
 INSERT INTO txt VALUES ('E5301', 'German',  'Konfiguration f&uuml;r Standardsprache konnte nicht gelesen werden: Wert auf Englisch gesetzt');
 INSERT INTO txt VALUES ('E5301', 'English', 'Error reading Config for default language: taking default English');
@@ -1917,6 +2051,14 @@ INSERT INTO txt VALUES ('E8011', 'German',  'Aktion konnte nicht angelegt werden
 INSERT INTO txt VALUES ('E8011', 'English', 'Action could not be created');
 INSERT INTO txt VALUES ('E8012', 'German',  'Kommentar konnte nicht angelegt werden');
 INSERT INTO txt VALUES ('E8012', 'English', 'Comment could not be created');
+INSERT INTO txt VALUES ('E8013', 'German',  'Regel-Uid ist auf diesem Ger&auml;t nicht vorhanden: ');
+INSERT INTO txt VALUES ('E8013', 'English', 'Rule Uid does not exist on this device: ');
+INSERT INTO txt VALUES ('E8014', 'German',  'Die Verarbeitung dieses Auftragstyps ist nicht aktiviert. Bitte Administrator kontaktieren.');
+INSERT INTO txt VALUES ('E8014', 'English', 'The handling of this Task Type is not activated. Please contact administrator.');
+
+INSERT INTO txt VALUES ('E8101', 'German',  'Email-Versand kann nicht getestet werden, da der aktuell angemeldete Nutzer keine Email-Adresse hinterlegt hat.');
+INSERT INTO txt VALUES ('E8101', 'English', 'Sending of emails cannot be tested because the logged-in user does not have an email address.');
+
 
 
 -- errors from Api
@@ -1944,8 +2086,8 @@ INSERT INTO txt VALUES ('T0008', 'German',  '(f&uuml;r zuk&uuml;nftige Anwendung
 INSERT INTO txt VALUES ('T0008', 'English', '(for future use) users who can request firewall changes');
 INSERT INTO txt VALUES ('T0009', 'German',  '(f&uuml;r zuk&uuml;nftige Anwendung) Nutzer zum Anlegen von change request workflows');
 INSERT INTO txt VALUES ('T0009', 'English', '(for future use) users who can create change request workflows');
-INSERT INTO txt VALUES ('T0010', 'German',  'wie reporter-viewall, aber mit Erlaubnis, Devices anzulegen und zu &auml;ndern');
-INSERT INTO txt VALUES ('T0010', 'English', 'like reporter-viewall, but allowed to create and update devices');
+INSERT INTO txt VALUES ('T0010', 'German',  'wie reporter-viewall, aber mit Erlaubnis, Devices anzulegen und zu &auml;ndern; desweiteren Berechtigungen als Planer und Implementer');
+INSERT INTO txt VALUES ('T0010', 'English', 'like reporter-viewall, but allowed to create and update devices; furthermore permissions as planner and implementer');
 INSERT INTO txt VALUES ('T0011', 'German',  'Nutzer mit vollem Zugriff auf den Firewall Orchestrator');
 INSERT INTO txt VALUES ('T0011', 'English', 'users with full access rights to firewall orchestrator');
 INSERT INTO txt VALUES ('T0012', 'German',  'Nutzer mit Berechtigung zum Rezertifizieren von Regeln');
@@ -2056,6 +2198,7 @@ INSERT INTO txt VALUES ('H1111', 'German',  '<li>gateway (gw, firewall, fw, devi
     <li>action (act, enforce)</li>
     <li>remove: M&ouml;gliche Werte: true/false. Wenn "true", werden nur dezertifizierte Regeln gesucht</li>
     <li>recertdisplay (recertdisp): Definiert den Zeitraum f&uuml;r die Vorausschau (in Tagen) f&uuml;r die n&auml;chste Rezertifizierung. Nur Regeln in diesem Zeitfenster werden gesucht.</li>
+    <li>lasthit (last-hit, last-used, last-usage, last-use): Filtern nach Regel-Nutzung - aktuell unterst&uuml;tzt f&uuml;r FortiManager und Check Point >=R80.</li>
     <li>fulltext (full, fulltextsearch, fts, text, textsearch)</li>
 ');
 INSERT INTO txt VALUES ('H1111', 'English', '<li>gateway (gw, firewall, fw, device, dev): Additionally to the specific device selection in the <a href="/help/reporting/leftside">left sidebar</a>
@@ -2070,6 +2213,7 @@ INSERT INTO txt VALUES ('H1111', 'English', '<li>gateway (gw, firewall, fw, devi
     <li>action (act, enforce)</li>
     <li>remove: Possible Values: true/false. If "true", only decertified rules are searched</li>
     <li>recertdisplay (recertdisp): Defines the lookahead period (in days) for next recertification. Only rules in this time range are searched.</li>
+    <li>lasthit (last-hit, last-used, last-usage, last-use): filter by rule usage - supported for FortiManager and Check Point >=R80 only.</li>
     <li>fulltext (full, fulltextsearch, fts, text, textsearch)</li>
 ');
 INSERT INTO txt VALUES ('H1131', 'German',  '<li>and (&)</li><li>or (|)</li><li>not (!)</li><li>eq (=, :)</li><li>neq</li><li>(</li><li>)</li>');
@@ -2093,6 +2237,14 @@ INSERT INTO txt VALUES ('H1144', 'German',  '<li> Filtern nach Gateways oder Man
 ');
 INSERT INTO txt VALUES ('H1144', 'English', '<li> filter for gateways or managements</li><ul>
     <li>gateway=forti and src=cactus</li><li>gateway=forti or gateway=check</li><li>not gateway=check</li></ul>
+');
+INSERT INTO txt VALUES ('H1145', 'German',  '<li> Filtern nach letzter Verwendung der Regeln</li><ul>
+    <li>lasthit<2023-01-01 - zeigt nur Regeln, die vor dem Jahr 2023 verwendet wurden sowie auch alle Regeln, die noch nie verwendet wurden</li>
+    <li>lasthit>2022-12-31 - zeigt nur Regeln, die in 2023 (oder sp&auml;ter) verwendet wurden. Regeln ohne jegliche Verwendung werden nicht angezeigt.</li></ul>
+');
+INSERT INTO txt VALUES ('H1145', 'English', '<li> filter for last hit of rules</li><ul>
+    <li>lasthit<2023-01-01 - only shows rules with hits before the year 2023 including those rules which have no hits at all</li>
+    <li>lasthit>2022-12-31 - only shows rules which have hits in 2023 (or later). Rules without any hits are not shown.</li></ul>
 ');
 INSERT INTO txt VALUES ('H1201', 'German',  'Vorlagen k&ouml;nnen genutzt werden, um wiederkehrende Reports zu definieren. Diese werden f&uuml;r das Scheduling ben&ouml;tigt.
     Jeder Nutzer kann seine eigenen Vorlagen definieren und sie mit anderen teilen.<br>
@@ -2126,13 +2278,15 @@ INSERT INTO txt VALUES ('H1215', 'German',  'Aktuelle NAT Regeln: Aktuell aktive
 INSERT INTO txt VALUES ('H1215', 'English', 'Current NAT Rules: Currently active NAT rules of all selected devices.');
 INSERT INTO txt VALUES ('H1301', 'German',  'Direkt nach der Erzeugung oder vom <a href="/help/archive">Archiv</a> aus k&ouml;nnen Reports in verschiedenen Ausgabeformaten exportiert werden:');
 INSERT INTO txt VALUES ('H1301', 'English', 'Directly after creation or from the <a href="/help/archive">archive</a> reports can be exported to different output formats:');
-INSERT INTO txt VALUES ('H1302', 'German',  '<li>pdf</li><li>html</li><li>csv (noch nicht unterst&uuml;tzt)</li><li>json</li>');
-INSERT INTO txt VALUES ('H1302', 'English', '<li>pdf</li><li>html</li><li>csv (currently not supported)</li><li>json</li>');
+INSERT INTO txt VALUES ('H1302', 'German',  '<li>pdf</li><li>html</li><li>csv (aktuell nur f&uuml;r die aufgel&ouml;sten und technischen Report-Typen unterst&uuml;tzt)</li><li>json</li>');
+INSERT INTO txt VALUES ('H1302', 'English', '<li>pdf</li><li>html</li><li>csv (currently only supported for resolved and technical report types)</li><li>json</li>');
 INSERT INTO txt VALUES ('H1303', 'German',  'Nach bet&auml;tigen des "Report exportieren"-Auswahlfeldes kann eines oder mehrere dieser Formate ausgew&auml;hlt werden.
+    Bei Aktivierung der pdf-Ausgabe wird desweiteren das Seitenformat zur Auswahl angeboten.<br>
     Auch kann der Report mit einem Namen versehen und <a href="/help/archive">archiviert</a> werden.
     Ein weiteres Ausgabefenster erlaubt dann das separate Abholen der ausgew&auml;hlten Ausgabedateien.
 ');
 INSERT INTO txt VALUES ('H1303', 'English', 'After clicking the "Export Report" button one or more of them can be selected.
+    When selecting the pdf export, the page format is offered for selection.<br>
     Also the possibility to name and save the report in the <a href="/help/archive">archive</a> is given.
     Another Popup allows then to download the selected output files separately.    
 ');
@@ -2253,42 +2407,40 @@ INSERT INTO txt VALUES ('H3001', 'English', 'Here the archived reports can be fo
     It is possible to download or delete these archived reports.
 ');
 
-INSERT INTO txt VALUES ('H4001', 'German',  'In diesem Abschnitt k&ouml;nnen Regeln re- oder dezertifiziert werden. Daf&uuml;r wird die Rolle "recertifier" (oder "admin") ben&ouml;tigt.');
-INSERT INTO txt VALUES ('H4001', 'English', 'In this part rules can be re- or decertified. For this the role "recertifier" (or "admin") is necessary.');
 INSERT INTO txt VALUES ('H4011', 'German',  'Im ersten Schritt muss ein Report mit den demn&auml;chst zu rezertifizierenden Regeln geladen werden.
     Der Zeitraum f&uuml;r die Vorausschau kann im Feld "F&auml;llig in" gew&auml;hlt werden.
-    Diese wird im "Rezertifizierungsanzeigeintervall" in den <a href="/help/settings/recertification">Rezertifizierungseinstellungen</a> bzw. 
-    in den <a href="/help/settings/defaults">Standardeinstellungen</a> initialisiert.
+    Diese wird im "Rezertifizierungsanzeigeintervall" in den <a href="/help/settings/recertificationpersonal">pers&ouml;nlichen</a> bzw. 
+    in den <a href="/help/settings/recertificationgeneral">allgemeinen</a> Rezertifizierungseinstellungen initialisiert.
     Desweiteren m&uuml;ssen die zu betrachtenden Ger&auml;te in der linken Randleiste ausgew&auml;hlt werden.
 ');
 INSERT INTO txt VALUES ('H4011', 'English', 'In the first step a report of upcoming rules to be certified has to be loaded. 
     The lookahead period for this can be chosen in the "Due within" field. 
     It is initialized by the settings value "Recertification Display Period" in the 
-    <a href="/help/settings/recertification">Recertification Settings</a> resp. <a href="/help/settings/defaults">Default Settings</a>.
+    <a href="/help/settings/recertificationpersonal">personal</a> resp. <a href="/help/settings/recertificationgeneral">general</a> Recertification Settings.
     Also the regarded devices have to be chosen in the left sidebar.
 ');
 INSERT INTO txt VALUES ('H4012', 'German',  'Der Report zeigt nun alle Regeln, die im gew&auml;hlten Zeitraum zertifiziert werden m&uuml;ssen.
     Das Rezertifizierungsdatum wird errechnet aus dem letzten Rezertifizierungsdatum (falls unbekannt, wird das Erzeugungsdatum der Regel genommen)
-    und dem Rezertifizierungsintervall, welches in den <a href="/help/settings/defaults">Standardeinstellungen</a> definiert wurde.
+    und dem Rezertifizierungsintervall, welches in den <a href="/help/settings/recertificationgeneral">Rezertifizierungseinstellungen</a> definiert wurde.
     Rezertifizierungen, die in den n&auml;chsten Tagen (definiert im Rezertifizierungserinnerungsintervall in den Standardeinstellungen) f&auml;llig sind, 
     werden in gelb, &uuml;berf&auml;llige Rezertifizierungen in rot unterlegt.
     Zus&auml;tzlich wird der letzte Rezertifizierer dargestellt ("unbekannt" zeigt an, dass noch keine Rezertifizierung stattgefunden hat).
 ');
 INSERT INTO txt VALUES ('H4012', 'English', 'The report shows all rules that are upcoming for recertification within the selected interval.
     The recertification date is computed from the last recertification date (if unknown the rule creation date is taken)
-    and the Recertification Period, defined in the <a href="/help/settings/defaults">Default Settings</a>.
+    and the Recertification Period, defined in the <a href="/help/settings/recertificationgeneral">Recertification Settings</a>.
     Recertifications upcoming in the next days (defined in the Recertification Notice Period in the Default Settings) are marked in yellow, overdue recertifications in red.
     Additionally the last recertifier is mentioned ("unknown" indicates that there has been no recertification so far).
 ');
 INSERT INTO txt VALUES ('H4013', 'German',  'Der Rezertifizierer hat nun die M&ouml;glichkeit alle zu re- oder dezertifizierenden Regeln zu markieren.
     Durch klicken der "Ausgew&auml;hlte Aktionen ausf&uuml;hren"-Schaltfl&auml;che wird zun&auml;chst ein Kommentar abgefragt.
-    Dieser ist ein Pflichtfeld, wenn "Kommentar Pflichtfeld" in den <a href="/help/settings/defaults">Standardeinstellungen</a> gesetzt wurde.
+    Dieser ist ein Pflichtfeld, wenn "Kommentar Pflichtfeld" in den <a href="/help/settings/recertificationgeneral">Rezertifizierungseinstellungen</a> gesetzt wurde.
     Nach der Best&auml;tigung werden alle markierten Re- und Dezertifizierungen in einem Schritt ausgef&uuml;hrt.
     Danach werden nur noch die verbleibenden anstehenden Rezertifizierungen angezeigt.
 ');
 INSERT INTO txt VALUES ('H4013', 'English', 'The recertifier has now the possibility to mark each of the displayed rules for recertification or decertification.
     After clicking the "Execute Selected Actions" button a comment is requested. 
-    This has to be filled, if the setting "Comment Required" in <a href="/help/settings/defaults">Default Settings</a> is activated.
+    This has to be filled, if the setting "Comment Required" in <a href="/help/settings/recertificationgeneral">Recertification Settings</a> is activated.
     When confirmed all selected re- and decertifications are executed in on step. 
     After that only the remaining open certifications are displayed.
 ');
@@ -2296,6 +2448,376 @@ INSERT INTO txt VALUES ('H4014', 'German',  'Dezertifizierte Regel k&ouml;nnen i
 INSERT INTO txt VALUES ('H4014', 'English', 'Decertified rules can be displayed in the <a href="/help/reporting">Reporting</a> part with the filter parameter "remove=true".');
 INSERT INTO txt VALUES ('H4021', 'German',  'Dieses Rezertifizierungsszenario ist als Basis f&uuml;r weitere angepasste Abl&auml;ufe vorgesehen.');
 INSERT INTO txt VALUES ('H4021', 'English', 'This recertification scenario is intended to be a base for further customized workflows.');
+
+INSERT INTO txt VALUES ('H4031', 'German',  'In diesem Modul k&ouml;nnen Nutzer Firewall-Regeln re- oder dezertifizieren.
+Daf&uuml;r wird die Rolle "recertifier" ben&ouml;tigt. Auditor- und Admin-Nutzer k&ouml;nnen hier nur lesend auf die anstehenden Rezertifizierungen zugreifen.
+<br>
+Aktuell gibt es zwei verschiedene Optionen:
+<ol>
+    <li> In der einfachen Variante kann ein Nutzer mit recertifier Rolle jede beliebige Regel rezertifizieren. 
+        Diese Option eignet sich &uuml;blicherweise nur f&uuml;r kleine Installationen mit wenigen Firewall-Regeln.
+    </li>
+    <li> In gr&ouml;&szlig;eren Umgebungen ist es sinnvoll, die Rezertifizierung dezentral zu organisieren. 
+        Daf&uuml;r wird eine Eigent&uuml;merstruktur unterst&uuml;tzt, die einer Liste von Eigent&uuml;mern die Verantwortlichkeit f&uuml;r jeweils einen Teil des Netzwerks in Form von IP-Adressen bzw. IP-Subnetzen zuweist. 
+        Dies kann z.B. eine Aufteilung auf Applikationsbasis sein, es ist aber genauso auch eine Unterteilung nach Subnetzen auf Basis von Betriebseinheiten denkbar.
+        Je nach Quelle und Ziel sind alle Eigent&uuml;mer, die f&uuml;r einen Teil der Regel in Form von IP-Adressen verantwortlich sind, auch f&uuml;r die Rezertifizierung der Regel verantwortlich.
+        Es ist also im Allgemeinen eine Gruppe von Eigent&uuml;mern f&uuml;r die Rezertifizierung einer Regel verantwortlich.
+    </li>
+</ol>
+Eine Regel gilt erst dann als vollst&auml;ndig rezertifiziert, wenn alle Eigent&uuml;mer die Regel rezertifiziert haben.
+<br>
+Im Reporting-Modul steht au&szlig;erdem ein Rezertifizierungs-Report zur Verf&uuml;gung.
+');
+INSERT INTO txt VALUES ('H4031', 'English', '
+In this module, users can recertify or decertify firewall rules.
+
+The "recertifier" role is required for this. Auditor and admin users have read-only access to the pending recertifications here.
+<br>
+Currently there are two different options:
+<ol>
+    <li> In the simple variant, a user with recertifier role can recertify any rule. 
+        This option is usually suitable only for small installations with few firewall rules.
+    </li>
+    <li> In larger environments, it makes sense to organize recertification in a decentralized manner. 
+        For this purpose, an ownership structure is supported that assigns responsibility for a part of the network in the form of IP addresses or IP subnets to a list of owners. 
+        This can, for example, be a division on an application basis, but a subdivision by subnets based on operating units is just as conceivable.
+        Depending on the source and destination, all owners who are responsible for a part of the rule in the form of IP addresses are also responsible for recertifying the rule.
+        Thus, in general, a group of owners is responsible for the recertification of a rule.
+    </li>
+</ol>
+A rule is not considered fully recertified until all owners have recertified the rule.
+<br>
+A recertification report is also available in the reporting module.
+');
+
+INSERT INTO txt VALUES ('H4032', 'German',  '
+F&uuml;r das ordnungsgem&auml;&szlig;e Funktionieren des Rezertifzierungsprozesses sind die folgenden Konfigurationen einmalig zu Beginn vorzunehmen.
+<br><br>
+<H4>Berechtigungen</H4>
+<ul>
+    <li>Angemeldete Nutzer m&uuml;ssen die Rolle "Recertifier" besitzen</li>
+    <li>Angemeldete Nutzer m&uuml;ssen Mitglied eines Eigent&uuml;mers sein (entweder direkt unter "Vollst&auml;ndiger Name*:" oder als Mitglieder einer Eigent&uuml;mergruppe)</li>
+</ul>
+<H4>Konfiguration der Eigent&uuml;mer</H4>
+    M&ouml;chte man keine Verteilung der Zust&auml;ndigkeit auf mehrere Eigent&uuml;mer vornehmen, so ist es ausreichend, dem Eigent&uuml;mer "Super-Owner" eine Gruppe von Rezertifizierern zuzuordnen,
+    die f&uuml;r die Rezertifizierung aller Firewall-Regeln verantwortlich sind.
+    Um den Super-Owner editieren zu k&ouml;nnen, 
+    ist im Men&uuml; "Einstellungen" - "Weitere Einstellungen" - "Standardeinstellungen" die Option "Manuelle Eigent&uuml;merverwaltung erlauben" zu aktivieren.
+    <br><br>
+    Soll hingegen eine dezentrale Struktur aufgebaut werden, so k&ouml;nnen die Eigent&uuml;mer entweder im Firewall Orchestrator selbst definiert werden (nicht empfohlen) 
+    oder aber man importiert eine im Unternehmen vorhandene Eigent&uuml;merliste, wodurch der Pflegeaufwand zum Aktuell-Halten dieser Zuordnung nicht dem Betreiber der Firewall-Infrastruktur zuf&auml;llt.
+    <br>
+    Es wird hierbei empfohlen, im Men&uuml; "Einstellungen" - "Weitere Einstellungen" - "Standardeinstellungen" die Option "Manuelle Eigent&uuml;merverwaltung erlauben" zu deaktivieren,
+    um sicherzustellen, dass keine lokalen &Auml;nderungen vorgenommen werden, sondern die Eigent&uuml;mer-Pflege ausschlie&szlig;lich im externen Tool stattfindet.
+    <br>
+    F&uuml;r die Verwaltung in einem externen System ist der Import der Eigent&uuml;mer und deren IP-Adressen via 
+    <a href="/help/API">Firewall Orchestrator API</a> vorzunehmen.
+    <br><br>
+    Die Definition der Eigent&uuml;mer im Firewall Orchestrator selbst ist recht simpel. 
+    Hierzu muss lediglich im Men&uuml; "Einstellungen" - "Weitere Einstellungen" - "Standardeinstellungen" die Option "Manuelle Eigent&uuml;merverwaltung erlauben" aktiviert werden.
+    <br>
+    Anschlie&szlig;end ist es im Men&uuml; "Einstellungen" - "Eigent&uuml;mer" m&ouml;glich, Eigent&uuml;mer manuell hinzuzuf&uuml;gen, zu bearbeiten oder zu l&ouml;schen.
+</ul>
+');
+INSERT INTO txt VALUES ('H4032', 'English', '
+For the proper functioning of the recertification process, the following configurations must be made once at the beginning.
+<br><br>
+<H4>Permissions</H4>
+<ul>
+    <li>Logged in users must have the role "Recertier"</li>
+    <li>Logged in users must be members of an owner (either directly under "Full name*:" or as members of an owner group)</li>
+</ul>
+<H4>Owner configuration</H4>
+    If one does not want to distribute responsibility among several owners, it is sufficient to assign a group of recertifiers to the "Super-Owner" owner,
+    who are responsible for the recertification of all firewall rules.
+    To be able to edit the super-owner 
+    the "Allow manual owner management" option must be enabled in the "Settings" - "Additional settings" - "Default settings" menu.
+    <br><br>
+    If, on the other hand, a decentralized structure is to be set up, the owners can either be defined in the Firewall Orchestrator itself (not recommended) 
+    or you can import an existing list of owners in the company, which means that the maintenance effort for keeping this assignment up to date does not fall to the operator of the firewall infrastructure.
+    <br>
+  In this case, it is recommended to deactivate the "Allow manual owner administration" option in the "Settings" - "Additional settings" - "Default settings" menu,
+    to ensure that no local changes are made, but that owner maintenance takes place exclusively in the external tool.
+    <br>
+    For management in an external system, importing owners and their IP addresses should be done via the
+    <a href="/help/API">Firewall Orchestrator API</a>.
+    <br><br>
+    Defining the owners in Firewall Orchestrator itself is quite simple. 
+    All that is required is to activate the "Allow manual owner administration" option in the "Settings" - "Additional settings" - "Default settings" menu.
+    <br>
+    After that, in the "Settings" - "Owners" menu it is possible to add, edit or delete owners manually.
+</ul>
+');
+
+INSERT INTO txt VALUES ('H4033', 'German',  '
+Zum Testen der Rezertifizierungsfunktionalit&auml;t werden standardm&auml;&szlig;ig einige Demo-Daten zur Verf&uuml;gung gestellt.
+<br>
+Das sind sowohl Nutzer (userX_demo) als auch Eigent&uuml;mer (ownerX_demo).
+<br>
+Login erfolgt mit user1_demo (Passwort cactus1) oder user2_demo (Passwort cactus2)
+<br><br>
+<ol>
+    <li>
+        Im ersten Schritt kann in der linken Randleiste eine Filterung vorgenommen werden (F&auml;lligkeit der Rezertifizierung, Eigent&uuml;mer, Firewall-Ger&auml;te) 
+        und anschlie&szlig;end mit der Schaltfl&auml;che "Regeln anzeigen" eine Liste der zu rezertifizierenden Regeln generiert werden.
+    </li>
+    <li> 
+        Der Zeitraum f&uuml;r die Vorausschau kann im Feld "F&auml;llig in" gew&auml;hlt werden. 
+        Der Default-Wert kann &uuml;ber Ver&auml;ndern des "Rezertifizierungsanzeigeintervalls" in den pers&ouml;nlichen bzw. in den allgemeinen Rezertifizierungseinstellungen gesetzt werden. 
+    </li>
+    <li>
+        Bei Rezertifizierungen, die &uuml;berf&auml;llig sind, wird das Datum in rot angezeigt.<br>
+        Der Rezertifizierer hat nun die M&ouml;glichkeit, beliebige zu re- oder dezertifizierenden Regeln zu markieren. <br>
+        Durch klicken der "Ausgew&auml;hlte Aktionen ausf&uuml;hren"-Schaltfl&auml;che wird zun&auml;chst ein (optionaler - konfigurierbar) Kommentar abgefragt, und 
+        nach Best&auml;tigung werden alle markierten Re- und Dezertifizierungen in einem Schritt ausgef&uuml;hrt.<br>
+        Anschlie&szlig;end werden nur noch die verbliebenen anstehenden Rezertifizierungen angezeigt.
+    </li>
+    <li>
+        Sollte die Option zum Re- bzw. Dezertifizierung nicht angezeigt werden, 
+        sollten die <a href="/help/settings/roles">Berechtigungen</a> &uuml;berpr&uuml;ft werden bzw. wenn der Nutzer Mitglied mehrerer Eigent&uuml;mergruppen ist, 
+        muss zun&auml;chst einer der Eigent&uuml;mer ausgew&auml;hlt werden, um speziell f&uuml;r diesen rezertifizieren zu k&ouml;nnen. <br>
+        In diesem Fall empfiehlt es sich f&uuml;r einen Eigent&uuml;mer nach dem anderen zu rezertifizieren.
+    </li>
+</ol>
+');
+INSERT INTO txt VALUES ('H4033', 'English', '
+To test the recertification functionality, some demo data is provided by default.
+<br>
+These are both users (userX_demo) and owners (ownerX_demo).
+<br>
+Login with user1_demo (password cactus1) or user2_demo (password cactus2)
+<br><br>
+<ol>
+    <li>
+        In the first step, a filtering can be made in the left sidebar (recertification due date, owner, firewall devices). 
+        and then a list of rules to be recertified can be generated using the "Show rules" button.
+    </li>
+    <li> 
+       The period for the preview can be selected in the "Due within" field. 
+       The default value can be set by changing the "Recertification display interval" in the personal or in the general recertification settings. 
+    </li>
+    <li>
+        For recertifications that are overdue, the date is displayed in red.<br>
+        The recertifier now has the option to mark any rules to be re- or decertified.<br>
+        By clicking the "Execute selected actions" button, a (optional - configurable) comment will be requested first, and 
+        after confirmation all marked recertifications and decertifications are executed in one step.<br>
+        Afterwards, only the remaining pending recertifications are displayed.
+    </li>
+    <li>
+        If the option to recertify or decertify is not displayed, the <a href="/help/settings/roles">permissions</a>  should be checked or if the user is a member of several owner groups, 
+        one of the owners must be selected first in order to be able to recertify specifically for this owner.<br>
+        In this case, it is recommended for one owner at a time to recertify.
+    </li>
+</ol>
+');
+
+INSERT INTO txt VALUES ('H4034', 'German',  '
+<H4>IP-Adress-Matching</H4>
+ 	Jede Regel (Quelle und Ziel) wird mit den f&uuml;r einen Eigent&uuml;mer definierten IP-Adressen auf &Uuml;berlappung gepr&uuml;ft.<br>
+ 	Bei einer &Uuml;berlappung ist der Eigent&uuml;mer f&uuml;r die Rezertifizierung der Regel verantwortlich und ein entsprechender Eintrag wird
+ 	abh&auml;ngig vom Rezertifizierungsintervall des Eigent&uuml;mers erzeugt.
+ 	<br><br>
+ 	Alle Regeln, die Netzwerkobjekte enthalten, die keinem Eigent&uuml;mer zugeordnet werden k&ouml;nnen, sind automatisch dem Super-Owner zugewiesen.
+ 	<br>
+    Dieser ist somit f&uuml;r deren Rezertifzierung verantwortlich.
+<br><br>
+<H4>F&auml;lligkeitsdatum</H4>
+    Das Rezertifizierungsdatum wird errechnet aus dem letzten Rezertifizierungsdatum (falls unbekannt, wird das Erzeugungsdatum der Regel genommen)
+    und dem Rezertifizierungsintervall des jeweiligen Eigent&uuml;mers.
+<br><br>
+<H4>Konfiguration</H4>
+    Siehe auch <a href="/help/settings/recertificationgeneral">Rezertifizierungseinstellungen</a>.
+	<br><br>
+    Es ist m&ouml;glich, die einmal n&auml;chtliche laufende Neuberechnung der anstehenden Rezertifizierungen manuell anzusto&szlig;en. 
+    <br>
+	Hierzu dient die Schaltfl&auml;che Einstellungen - Weitere Einstellungen - Rezertifizierung - "Neuberechnung offene Rezertifizierungen".
+');
+INSERT INTO txt VALUES ('H4034', 'English', '
+<H4>IP Adress Matching</H4>
+ 	Each rule (source and destination) is checked for overlap with the IP addresses defined for an owner.<br>
+ 	In case of an overlap, the owner is responsible for the recertification of the rule and a corresponding entry will be
+ 	generated depending on the recertification interval of the owner.
+ 	<br><br>
+        All rules that contain network objects that cannot be assigned to an owner are automatically assigned to the super-owner.
+ 	<br>
+    The latter is thus responsible for their recertification.
+<br><br>
+<H4>Due Date</H4>
+   The recertification date is calculated from the last recertification date (if unknown, the creation date of the rule is taken)
+    and the recertification interval defined for the respective owner. 
+<br><br>
+<H4CKonfiguration</H4>
+    Also see <a href="/help/settings/recertificationgeneral">Recertification Settings</a>.
+	<br><br>
+   It is possible to manually trigger the once-a-night running recalculation of pending recertifications. 
+    <br>
+	The button Settings - Further settings - Recertification - "Recalculation of open recertifications" is used for this purpose.
+');
+
+INSERT INTO txt VALUES ('H4035', 'German',  '
+Der initiale Owner-Import via API kann mit folgendem beispielhaften API-Befehl mit admin-Berechtigungen erfolgen:
+<br><br>
+<pre>
+mutation addOwners($owners:[owner_insert_input!]!) {
+  insert_owner(
+    objects: $owners
+  ) {
+    returning {
+      id
+    }
+  }
+}
+</pre>
+<br>
+Variablen
+<br>
+<pre>
+{
+  "owners": [
+      {
+        "name": "5",
+        "recert_interval": 365,
+        "dn":"x",
+        "group_dn":"x",
+        "app_id_external": "app-5",
+        "owner_networks": {"data": [{"ip": "10.5.0.0/16"},{"ip": "10.9.0.0/16"}]}
+      },
+      {
+        "name": "6",
+        "recert_interval": 30,
+        "dn":"x",
+        "group_dn":"x",
+        "app_id_external": "app-6",
+        "owner_networks": {"data": [{"ip": "10.6.0.0/16"}]}
+      },
+      {
+        "name": "7",
+        "recert_interval": 90,
+        "dn":"x",
+        "group_dn":"x",
+        "app_id_external": "app-7",
+        "owner_networks": {"data": [{"ip": "10.7.0.0/16"}]}
+      }
+  ]
+}
+</pre>
+<br><br>
+
+Einzelne Owner k&ouml;nnen auch beispielsweise mit folgendem API-Befehl aktualisiert werden:
+<br><br>
+<pre>
+mutation addSingleOwner {
+  insert_owner(
+    objects: [
+      {
+        name: "sechs"
+        recert_interval: 222
+        dn: "a"
+        group_dn: "b"
+        app_id_external: "app-sechs"
+        owner_networks: {
+          data: [{ ip: "10.69.0.0/16" }, { ip: "10.9.0.0/16" }]
+          on_conflict: {
+            constraint: owner_network_ip_unique
+            update_columns: [ip]
+          }
+        }
+      }
+    ]
+    on_conflict: {
+      constraint: owner_name_unique
+      update_columns: [recert_interval, dn, group_dn]
+    }
+  ) {
+    returning {
+      id
+    }
+  }
+}
+</pre>
+');
+INSERT INTO txt VALUES ('H4035', 'English', '
+The initial owner import via API can be done using the following examplary API command (with admin permissions):
+<br><br>
+<pre>
+mutation addOwners($owners:[owner_insert_input!]!) {
+  insert_owner(
+    objects: $owners
+  ) {
+    returning {
+      id
+    }
+  }
+}
+</pre>
+<br>
+Variables
+<br>
+<pre>
+{
+  "owners": [
+      {
+        "name": "5",
+        "recert_interval": 365,
+        "dn":"x",
+        "group_dn":"x",
+        "app_id_external": "app-5",
+        "owner_networks": {"data": [{"ip": "10.5.0.0/16"},{"ip": "10.9.0.0/16"}]}
+      },
+      {
+        "name": "6",
+        "recert_interval": 30,
+        "dn":"x",
+        "group_dn":"x",
+        "app_id_external": "app-6",
+        "owner_networks": {"data": [{"ip": "10.6.0.0/16"}]}
+      },
+      {
+        "name": "7",
+        "recert_interval": 90,
+        "dn":"x",
+        "group_dn":"x",
+        "app_id_external": "app-7",
+        "owner_networks": {"data": [{"ip": "10.7.0.0/16"}]}
+      }
+  ]
+}
+</pre>
+<br><br>
+
+Single owners can be updated using the following API command:
+<br><br>
+<pre>
+mutation addSingleOwner {
+  insert_owner(
+    objects: [
+      {
+        name: "sechs"
+        recert_interval: 222
+        dn: "a"
+        group_dn: "b"
+        app_id_external: "app-sechs"
+        owner_networks: {
+          data: [{ ip: "10.69.0.0/16" }, { ip: "10.9.0.0/16" }]
+          on_conflict: {
+            constraint: owner_network_ip_unique
+            update_columns: [ip]
+          }
+        }
+      }
+    ]
+    on_conflict: {
+      constraint: owner_name_unique
+      update_columns: [recert_interval, dn, group_dn]
+    }
+  ) {
+    returning {
+      id
+    }
+  }
+}
+</pre>
+');
 
 INSERT INTO txt VALUES ('H5001', 'German',  'In diesem Abschnitt werden die Setup- und Verwaltungseinstellungen behandelt.
     Die meisten Einstellungen k&ouml;nnen nur von Nutzern mit der Administrator-Rolle gesehen und ge&auml;ndert werden.
@@ -2315,13 +2837,13 @@ INSERT INTO txt VALUES ('H5012', 'German',  'Das Kapitel "Berechtigungen" bietet
     In <a href="/help/settings/ldap">LDAP-Verbindungen</a> k&ouml;nnen externe Verbindungen zus&auml;tzlich zum internen LDAP definiert werden.
     <a href="/help/settings/tenants">Mandanten</a> k&ouml;nnen definiert und mit spezifischen Gateways verkn&uuml;pft werden.
     Interne oder externe <a href="/help/settings/users">Nutzer</a> k&ouml;nnen zu <a href="/help/settings/groups">Gruppen</a> zusammengefasst
-    und zu <a href="/help/settings/roles">Rollen</a> zugeordnet werden.
+    und zu <a href="/help/settings/roles">Rollen</a> zugeordnet werden, ausserdem gibt es eine &Uuml;bersicht der vorhandenen <a href="/help/settings/owners">Eigent&uuml;mer</a>.
 ');
 INSERT INTO txt VALUES ('H5012', 'English', 'The chapter "Authorization" offers the functionality for the user administration:
     In <a href="/help/settings/ldap">LDAP Connections</a> external connections besides the internal LDAP can be defined.
     <a href="/help/settings/tenants">Tenants</a> can be defined and associated with specific gateways.
     Internal or external <a href="/help/settings/users">Users</a> can be assigned to <a href="/help/settings/groups">User Groups</a>
-    and <a href="/help/settings/roles">Roles</a>
+    and <a href="/help/settings/roles">Roles</a>, additionally there is an overview of the <a href="/help/settings/owners">owners</a>.
 ');
 INSERT INTO txt VALUES ('H5013', 'German',  'Im Kapitel "Voreinstellungen" kann der Administrator <a href="/help/settings/defaults">Standardeinstellungen</a> vornehmen,
     die f&uuml;r alle Nutzer gelten, sowie die <a href="/help/settings/passwordpolicy">Passworteinstellungen</a> definieren, welche f&uuml;r alle Passwort&auml;nderungen g&uuml;ltig sind.
@@ -2331,19 +2853,19 @@ INSERT INTO txt VALUES ('H5013', 'English', 'In the "Defaults" chapter the admin
 ');
 INSERT INTO txt VALUES ('H5014', 'German',  'Das Kapitel "Pers&ouml;nlich" ist f&uuml;r alle Nutzer zug&auml;nglich. Hier k&ouml;nnen das individuelle <a href="/help/settings/password">Password</a>,
     die bevorzugte <a href="/help/settings/language">Sprache</a> und <a href="/help/settings/report">Reporting</a>-Einstellungen gesetzt werden.
-    Nutzer mit Rezertifizierer-Rolle k&ouml;nnen auch ihre <a href="/help/settings/recertification">Rezertifizierungseinstellungen</a> anpassen.
+    Nutzer mit Rezertifizierer-Rolle k&ouml;nnen auch ihre <a href="/help/settings/recertificationpersonal">Rezertifizierungseinstellungen</a> anpassen.
 ');
 INSERT INTO txt VALUES ('H5014', 'English', 'The "Personal" chapter is accessible by all users, where they can set their individual <a href="/help/settings/password">Password</a>,
     <a href="/help/settings/language">Language</a> and <a href="/help/settings/report">Reporting</a> preferences. 
-    Users with recertifier role have also the possibility to adjust their <a href="/help/settings/recertification">Recertification Setting</a>.
+    Users with recertifier role have also the possibility to adjust their <a href="/help/settings/recertificationpersonal">Recertification Setting</a>.
 ');
 INSERT INTO txt VALUES ('H5015', 'German',  'Das Kapitel "Workflow" dient dem Administrator, einen Workflow aufzusetzen. Dazu geh&ouml;rt die Definition der angebotenen <a href="/help/settings/stateactions">Aktionen</a>,
     der verwendeten <a href="/help/settings/statedefinitions">Stati</a> und den Status&uuml;berg&auml;ngen in den zentralen <a href="/help/settings/statematrix">Status-Matrizen</a>.
-    In den <a href="/help/settings/workflowcustomizing">Einstellungen</a> k&ouml;nnen allgemeine Voreinstellungen zu den Workflows vorgenommen werden, ausserdem gibt es eine &Uuml;bersicht der vorhandenen <a href="/help/settings/owners">Eigent&uuml;mer</a>.
+    In den <a href="/help/settings/workflowcustomizing">Einstellungen</a> k&ouml;nnen allgemeine Voreinstellungen zu den Workflows vorgenommen werden.
 ');
 INSERT INTO txt VALUES ('H5015', 'English', 'The "Workflow" chapter helps the administrator to set up a workflow. This includes the definition of the offered <a href="/help/settings/stateactions">actions</a>,
     the used <a href="/help/settings/statedefinitions">states</a>, and the state transitions in the central <a href="/help/settings/statematrix">state matrices</a>. 
-    In <a href="/help/settings/workflowcustomizing">customizing</a> general workflow settings can be done, additionally there is an overview of the <a href="/help/settings/owners">owners</a>.
+    In <a href="/help/settings/workflowcustomizing">customizing</a> general workflow settings can be done.
 ');
 
 INSERT INTO txt VALUES ('H5101', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Managements einrichten und verwalten.<br>
@@ -2370,7 +2892,11 @@ INSERT INTO txt VALUES ('H5102', 'German',  'Folgende Firewallprodukte k&ouml;nn
             <ul>
                 <li>Check Point R8x - SmartCenter</li>
                 <li>Check Point R8x - Multi Domain Server (MDS)</li>
+                <li>FortiGate stand-alone (via REST API)</li>
                 <li>FortiManager 5ff - FortiManager. F&uuml;r diesen Management-Typ kann die komplette Struktur (ADOM, FortiGateway Devices) mittels AutoDiscovery automatisch ausgelesen werden.</li>
+                <li>Palo Alto Firewalls (nicht Panorama)</li>
+                <li>Azure Firewall</li>
+                <li>Cisco FirePower Management Center</li>
             </ul>
         </li>            
     </ul>
@@ -2391,27 +2917,35 @@ INSERT INTO txt VALUES ('H5102', 'English', 'The following firewall products can
             <ul>
                 <li>Check Point R8x - SmartCenter</li>
                 <li>Check Point R8x - MDS (Multi Domain Server)</li>
+                <li>FortiGate StandAlone (via REST API)</li>                
                 <li>FortiManager 5ff - FortiManager - for this management type the complete infrastructure (ADOM, FortiGateway devices) can be auto discovered.</li>
+                <li>Palo Alto Firewalls (not Panorama)</li>
+                <li>Azure Firewall</li>
+                <li>Cisco FirePower Management Center</li>
             </ul>
         </li>            
     </ul>
 ');
 INSERT INTO txt VALUES ('H5103', 'German',  'F&uuml;r Firewallgateways ohne separates Management oder im Falle, dass das zentrale Management nicht in den Firewall Orchestrator eingebunden werden kann,
-    werden die Details des Gateways als Management und gleichzeitig auch als Gateway eingetragen.
+    werden die Details des Gateways als Management und gleichzeitig auch als Gateway eingetragen.<br>
+    Im Falle Fortigate Legacy (via ssh): Um einen vollst&auml;ndigen Datenimport zu gew&auml;hrleisten, bitte in der Fortigate config den Seitenumbruch deaktivieren, damit beim Kommando "show full-configuration" die komplette Config ausgegeben wird.
 ');
 INSERT INTO txt VALUES ('H5103', 'English', 'For firewall gateways without a separate management or in case the central management cannot be integrated into Firewall Orchestrator 
-    you may enter the details of the gateway here as a management system as well and then add it again as a gateway.
+    you may enter the details of the gateway here as a management system as well and then add it again as a gateway.<br>
+    In the case of legacy Fortigate (via ssh): To get the entire data imported, disable pagination in the Fortigate config to allow get command "show full-configuration" to retrieve the complete config.
 ');
 INSERT INTO txt VALUES ('H5104', 'German',  'Wenn Beispieldaten (definiert durch die Endung "_demo" vom Namen) existieren, wird eine Schaltfl&auml;che angezeigt, um diese und alle verkn&uuml;pften <a href="/help/settings/gateways">Gateways</a> zu l&ouml;schen.');
 INSERT INTO txt VALUES ('H5104', 'English', 'If there are sample data (defined by the ending "_demo" of the name), a button is displayed to delete them and all related <a href="/help/settings/gateways">gateways</a>.');
 INSERT INTO txt VALUES ('H5111', 'German',  'Name*: Name des Managements. <br>
     F&uuml;r die meisten Firewalls ist dies ein willk&uuml;rlicher Name. Ausnahmen sind direkt verbundene Gateways von Fortigate, Netscreen und Juniper.
     Hier muss der Name des Firewallgateways eingetragen werden.<br>
+    Da es zu Problemen mit dem perl-Importer kommen kann, sollten Leerzeichen im Namen von Legacy-Systemen nicht verwendet werden.
     Ein Management dessen Name mit "_demo" endet, wird beim Bet&auml;tigen der "Beispieldaten l&ouml;schen"-Schaltfl&auml;che gel&ouml;scht.
 ');
 INSERT INTO txt VALUES ('H5111', 'English', 'Name*: Name of the mangement. <br>
     For most firewalls this is an arbitrary name. Exceptions are Fortigate, Netscreen and Juniper directly connected gateways.
     Here the name give needs to be the name of the firewall gateway.<br>
+    Do not use spaces in the management name of legacy systems as perl importer cannot cope with spaces here.
     A management whose name ends with "_demo" will be deleted when using the "Remove Sample Data" button.
 ');
 INSERT INTO txt VALUES ('H5112', 'German',  'Kommentar: Optionale Beschreibung des Managements.');
@@ -2420,27 +2954,26 @@ INSERT INTO txt VALUES ('H5113', 'German',  'Ger&auml;tetyp*: bitte das korrekte
 INSERT INTO txt VALUES ('H5113', 'English', 'Device Type*: Select correct product from a list of available types, see above.');
 INSERT INTO txt VALUES ('H5114', 'German',  'Hostname*: Adresse des Hosts (entweder IP-Addresse oder aufl&ouml;sbarer Name). 
     F&uuml;r Check Point R8x MDS Installationen die Addresse des MDS-Servers f&uuml;r alle Domains benutzen.<br>
-    F&uuml;r Fortinet, Barradua, Juniper muss die IP vom aufl&ouml;sbaren Namen des Firewallgateways spezifiziert werden.
+    F&uuml;r alle Firewall-Plattformen, die kein separates Management-System besitzen, muss die IP oder der aufl&ouml;sbare Name des Firewallgateways spezifiziert werden.
 ');
 INSERT INTO txt VALUES ('H5114', 'English', 'Hostname*: Address of the host (either IP address or resolvable name). 
     For Check Point R8x MDS installations use the address of the MDS server for all domains.<br>
-    For Fortinet, Barradua, Juniper you need to specify the IP of resolvable name of the firewall gateway.
+    For all firewall platforms which do not possess a separate management, use the IP address or the resolvable name of the firewall gateway.
 ');
 INSERT INTO txt VALUES ('H5115', 'German',  'Port*: Port-Nummer des Hosts.<br>
-    Wenn das Ziel Check Point R8x ist, wird die Verbindung via API aufgebaut. Die Standard-Port-Nummer ist 443. Denken Sie daran, den API-Zugang auf Ihrem Check Point Managment zu aktivieren.<br>
-    Wenn das Ziel nicht Check Point R8x ist, braucht Firewall Orchestrator einen ssh-basierten Zugang. Die Standard-Port-Nummer ist 22.
+    Wenn das Ziel Check Point R8x, FortiManager, Azure oder Cisco FirePower ist, wird die Verbindung via API aufgebaut. Die Standard-Port-Nummer ist 443. Denken Sie daran, den API-Zugang auf Ihrem Firewall Managment zu aktivieren.<br>
+    Wenn das Ziel eine andere Plattform ist, braucht Firewall Orchestrator einen ssh-basierten Zugang. Die Standard-Port-Nummer ist in diesem Fall 22.
 ');
 INSERT INTO txt VALUES ('H5115', 'English', 'Port*: Port number of the host.<br>
-    If the target is Check Point R8x the connection is established via API. The default port number is 443. Remember to enable API access on your Check Point managment.<br>
-    If the target is not Check Point R8x Firewall Orchestrator needs ssh-based access. The default port number is 22.
+    If the target is Check Point R8x, FortiManager, Azure or Cisco FirePower the connection is established via API. The default port number is 443. Remember to enable API access on your firewall managment.<br>
+    If the target any other platform Firewall Orchestrator needs ssh-based access. The default port number here is 22.
 ');
 INSERT INTO txt VALUES ('H5116', 'German',  'Login-Daten*: Zugangsdaten f&uuml;r den Import-Nutzer des Managements.<br>
-    Hier kann ein Satz Zugangsdaten ausgew&auml;hlt werden, der zum Login auf dem Management dient.
+    Hier kann ein Satz <a href="/help/settings/credentials">Zugangsdaten</a> ausgew&auml;hlt werden, der zum Login auf dem Management dient.
 ');
 INSERT INTO txt VALUES ('H5116', 'English', 'Import Credentials*: User/Password combination for logging into the management.<br>
-    Choose a set of credentials which will be used to get the management''s configuration.
+    Choose a set of <a href="/help/settings/credentials">credentials</a> which will be used to get the management''s configuration.
 ');
-
 INSERT INTO txt VALUES ('H5119', 'German',  'Domain: Firewall Domain Name <br>
     f&uuml;r Check Point R8x MDS / Fortimanager Installationen, andernfall leer lassen.
 ');
@@ -2460,33 +2993,61 @@ INSERT INTO txt VALUES ('H5122', 'English', 'Import Disabled: Flag if the data i
 INSERT INTO txt VALUES ('H5123', 'German',  'Nicht sichtbar: Wenn gesetzt ist dieses Management nicht mit Standard-Reporter-Rolle sichtbar.');
 INSERT INTO txt VALUES ('H5123', 'English', 'Hide in UI: If set, this management is not visible to the standard reporter role.');
 
-INSERT INTO txt VALUES ('H5130', 'German',  'Hier werden die Zugangsdaten f&uuml; den Import der Firewall-Konfigurationen verwaltet.
+INSERT INTO txt VALUES ('H5130', 'German',  'Hier werden die Zugangsdaten f&uuml;r den Import der Firewall-Konfigurationen verwaltet.
 Diese k&ouml;nnen auch f&uuml;r den Zugriff auf mehrere Firewall-Managements verwendet werden.
-Ein L&ouml;schen is erst m&ouml;glich, wenn die Zugangsdaten nirgends verwendet werden. 
+Ein L&ouml;schen ist erst m&ouml;glich, wenn die Zugangsdaten nirgends mehr verwendet werden.
+    <br>
+    F&uuml;r den FortiGate Stand-Alone Import via REST API: 
+    <ol>
+        <li>Im FortiGate Web Interface: Erstelle ein Read Only Admin Profile z.B. "ro_admin"</li>
+        <li>Im FortiGate Web Interface: Erstelle einen "REST API Admin" e.g. "fworch" mit "ro_admin" Profil und kopiere den API Schl&uuml;ssel</li>
+        <li>In der Firewall Orchestrator WebUI: erstelle neue Import Login-Daten mit username "fworch" und Passwort = API Schl&uuml;ssel</li>
+    </ol>
 ');
-INSERT INTO txt VALUES ('H5130', 'English', 'Import credentials*: Manage credentials for importing firewall configuration data.
+INSERT INTO txt VALUES ('H5130', 'English', 'Manage credentials for importing firewall configuration data.
 Credentials can be used for logging in to one or multiple firewall managements.
 Credentials can only be deleted when they are not used for importing any management.
+    <br>
+    For FortiGate stand-alone import via REST API:
+    <ol>
+        <li>In FortiGate Web UI: Create Read Only Admin Profile e.g. "ro_admin"</li>
+        <li>In FortiGate Web UI: Create new "REST API Admin" e.g. "fworch" with "ro_admin" profile and copy API key</li>
+        <li>In Firewall Orchestrator UI create new credentials with username "fworch" and password = API key</li>
+    </ol>
+');
+INSERT INTO txt VALUES ('H5131', 'German',  'Name*: Ein beliebiger Name, der diese Zugangsdaten eindeutig beschreibt.
+');
+INSERT INTO txt VALUES ('H5131', 'English', 'Name*: An arbitrary name you can assign to your credetials.
 ');
 INSERT INTO txt VALUES ('H5132', 'German',  'Import Nutzer*: Der Nutzer, der zum Anmelden am Firewall Management benutzt wird.
     Er muss vorher auf dem Firewallsystem angelegt sein und vollen Lesezugriff auf das System besitzen.<br>
     Auf Check Point R8x wird empfohlen, das vordefinierte "Read Only All"-Profil (sowohl globales als auch Domainmanagement) zu verwenden.
 ');
-INSERT INTO txt VALUES ('H5132', 'English', 'Import User*: The user used to login to the firewall management. 
+INSERT INTO txt VALUES ('H5132', 'English', 'Username*: The user used to login to the firewall management. 
     This user needs to be created on the firewall system in advance and needs full read access to the system.<br>
     On Check Point R8x we recommend using the predefined "Read Only All" profile (both global and domain management) for the user.
 ');
-INSERT INTO txt VALUES ('H5133', 'German',  'Privater Schl&uuml;ssel* / Passwort*: F&uuml;r den ssh-Zugang hier den privaten ssh-Schl&uuml;ssel hinterlegen (Schl&uuml;ssel muss unverschl&uuml;sselt und ohne Passphrase sein)<br>
-    F&uuml;r den API-Zugang ist dies das Passwort des API-Nutzers.
+INSERT INTO txt VALUES ('H5133', 'German',  'Privater Schl&uuml;ssel* / Passwort*: F&uuml;r den ssh-Zugang hier den privaten ssh-Schl&uuml;ssel hinterlegen (Schl&uuml;ssel muss unverschl&uuml;sselt und ohne Passphrase sein).
+    Bitte f&uuml;r ssh-basierten legacy FortiGate Zugriff kein RSA benutzen, da es hier ein Problem mit RSA-Schl&uuml;sseln zu geben scheint.<br>
+    F&uuml;r den API-Zugang ist hier das Passwort des API-Nutzers einzutragen.
 ');
-INSERT INTO txt VALUES ('H5133', 'English', 'Login Secret* / Password*: For ssh access enter the private ssh key (key needs to be unencrypted without passphrase)<br>
-    For API access this is the password of the API user.
+INSERT INTO txt VALUES ('H5133', 'English', 'Login Secret* / Password*: For ssh access enter the private ssh key (key needs to be unencrypted without passphrase).
+    For legacy ssh based FortiGate, do not use RSA as there seems to be a problem with RSA keys.<br>
+    For API access insert the password of the API user here.
 ');
 INSERT INTO txt VALUES ('H5134', 'German',  '&Ouml;ffentlicher Schl&uuml;ssel: Dieses Feld muss nur f&uuml;r Netscreen-Firewalls gef&uuml;llt werden - dieses System ben&ouml;tigt auch den &ouml;ffentlichen Schl&uuml;ssel zum Anmelden.');
 INSERT INTO txt VALUES ('H5134', 'English', 'Public Key: This field only needs to be filled for netscreen firewalls - this system also needs the public key for successful login.');
-INSERT INTO txt VALUES ('H5135', 'German',  'Schl&uuml;sselpaar*: Handelt es sich bei diesen Login-Daten um ein SSH Public-Key Paar oder um Standard ein Standard-Passwort.
+INSERT INTO txt VALUES ('H5135', 'German',  'Schl&uuml;sselpaar*: Handelt es sich bei diesen Login-Daten um ein SSH Public-Key Paar oder um ein Standard-Passwort.
 ');
 INSERT INTO txt VALUES ('H5135', 'English', 'Key Pair*: Do these credentials consist of a private/public SSH key pair or do they contain a standard password.
+');
+INSERT INTO txt VALUES ('H5136', 'German',  'Cloud Client ID: Nur f&uuml;r Cloud Instanzen (Azure) ben&ouml;tigt - f&uuml;r alle anderen Plattformen kann dieses Feld leer gelassen werden.
+');
+INSERT INTO txt VALUES ('H5136', 'English', 'Cloud Client ID: If you have a cloud installation (e.g. Azure) - enter your Azure client ID here. For all other installations, leave this field empty.
+');
+INSERT INTO txt VALUES ('H5137', 'German',  'Cloud Client Secret: Nur f&uuml;r Cloud Instanzen (Azure) ben&ouml;tigt - f&uuml;r alle anderen Plattformen kann dieses Feld leer gelassen werden.
+');
+INSERT INTO txt VALUES ('H5137', 'English', 'Cloud Client Secret: If you have a cloud installation (e.g. Azure) - enter your Azure client secret here. For all other installations, leave this field empty.
 ');
 
 INSERT INTO txt VALUES ('H5141', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Gateways einrichten und verwalten.<br>
@@ -2497,8 +3058,8 @@ INSERT INTO txt VALUES ('H5141', 'English', 'Admins can create and administrate 
     The clone button helps defining new gateways by copying the data from existing ones.
     Before saving at least one of the parameters Device Type, Management or Rulebase has to be different from the existing gateways if the Import Disabled flag is not set.
 ');
-INSERT INTO txt VALUES ('H5151', 'German',  'Name*: Name des Gateways. F&uuml;r Fortinet muss dies der reale Name des Firewallgateways sein wie in der Config definiert.');
-INSERT INTO txt VALUES ('H5151', 'English', 'Name*: Name of the Gateway. For Fortinet this must be the real name of the firewall gateway as defined in the config.');
+INSERT INTO txt VALUES ('H5151', 'German',  'Name*: Name des Gateways. F&uuml;r Legacy Fortinet (ssh) muss dies der reale Name des Firewallgateways sein wie in der Config definiert.');
+INSERT INTO txt VALUES ('H5151', 'English', 'Name*: Name of the Gateway. For legacy Fortinet (ssh) this must be the real name of the firewall gateway as defined in the config.');
 INSERT INTO txt VALUES ('H5152', 'German',  'Kommentar: Optionaler Kommentar zu diesem Gateway.');
 INSERT INTO txt VALUES ('H5152', 'English', 'Comment: Optional comment regarding this gateway.');
 INSERT INTO txt VALUES ('H5153', 'German',  'Ger&auml;tetyp*: Auswahlliste der verf&uuml;gbaren Typen. F&uuml;r die verf&uuml;gbaren Typen siehe
@@ -2513,18 +3074,18 @@ INSERT INTO txt VALUES ('H5155', 'German',  'Lokale Rulebase* / Lokales Package*
     <ul>
         <li>F&uuml;r Check Point R8x kommt hierhin der Name der top level Zugriffsschicht (default ist "Network").</li>
         <li>F&uuml;r Check Point R8x MDS wird hier der Name der global policy Schicht eingetragen, gefolgt vom Namen der domain policy, gertrennt durch "/", z.B. "global-policy-layer-name/domain-policy-layer-name".</li>
-        <li>F&uuml;r Fortinet-Systeme muss jedes Gateway (auch jede vdom) als separates Management mit einem einzelnen Gateway eingeragen werden.
-            Bei vdoms sind sowohl Management-Name, Gateway-Name als auch Regelwerksname wie folgt zu bilden: Systemname___vdom-Name (Trennzeichen: 3x Unterstrich) 
-        </li>
+        <li>F&uuml;r Legacy Fortinet-Systeme muss jedes Gateway (auch jede vdom) als separates Management mit einem einzelnen Gateway eingeragen werden.
+            Bei vdoms sind sowohl Management-Name, Gateway-Name als auch Regelwerksname wie folgt zu bilden: Systemname___vdom-Name (Trennzeichen: 3x Unterstrich)</li>
+        <li>Im Falle von FortiGate Stand-Alone (Import via REST API) wird dieses Feld automatisch ausgef&uuml;llt.</li>
     </ul>
 ');
 INSERT INTO txt VALUES ('H5155', 'English', 'Local Rulebase* / Local Package*: Enter the name of the rulebase here. 
     <ul>
         <li>For Check Point R8x the top level access layer name goes here (default is "Network").</li>
         <li>For Check Point R8x MDS enter the name of the global policy layer followed by the name of the domain policy separated by "/", e.g. "global-policy-layer-name/domain-policy-layer-name".</li>
-        <li>For Fortinet systems every gateway (and every vdom) must be defined as a separate management system with a single gateway.
-            When dealing with vdoms set management name, gateway name and rulebase name as follows: system name___vdom name (separator: 3x underscore) 
-            </li>
+        <li>For legacy Fortinet systems every gateway (and every vdom) must be defined as a separate management system with a single gateway.
+            When dealing with vdoms set management name, gateway name and rulebase name as follows: system name___vdom name (separator: 3x underscore)</li>
+        <li>For FortiGatte stand-alne (import via REST API) this field is filled-in automatically.</li>
     </ul>
 ');
 INSERT INTO txt VALUES ('H5156', 'German',  'Globale Rulebase / Globales Package: Hier wird der Name der Globalen Rulebase hinterlegt.');
@@ -2543,7 +3104,7 @@ INSERT INTO txt VALUES ('H5171', 'English', 'The status of the import jobs for t
     Managements which show anomalies (which would also lead to alerts in the <a href="/help/monitoring/daily_checks">Daily Check</a>) are highlighted in red and listed first,
     followed by running imports highlighted in yellow, finally the remaining managements.
 ');
-INSERT INTO txt VALUES ('H5181', 'German',  'Neu anzeigen: Aktualisiert die dargestellten Daten.');
+INSERT INTO txt VALUES ('H5181', 'German',  'Aktualisieren: Aktualisiert die dargestellten Daten.');
 INSERT INTO txt VALUES ('H5181', 'English', 'Refresh: Updates the displayed data.');
 INSERT INTO txt VALUES ('H5182', 'German',  'Details: F&uuml;r das ausgew&auml;hlte Management wird hier eine genauere &Uuml;bersicht &uuml;ber die Import-Ids, Start/Stop-Zeiten, 
     Dauer und Fehler des ersten, letzten erfolgreichen und letzten Imports gegeben, sowie die Anzahl der Fehler seit dem letzten erfolgreichen Import.
@@ -2802,6 +3363,35 @@ INSERT INTO txt VALUES ('H5420', 'German',  'Frist zum L&ouml;schen der Regeln (
 INSERT INTO txt VALUES ('H5420', 'English', 'Rule Removal Grace Period (in days): Maximum time the fwadmin has to remove the decertified rules.');
 INSERT INTO txt VALUES ('H5421', 'German',  'Kommentar Pflichtfeld: Legt fest, dass das Kommentarfeld f&uuml;r Re- und Dezertifizierungen gef&uuml;llt sein muss.');
 INSERT INTO txt VALUES ('H5421', 'English', 'Comment Required: A non-empty comment for the re- or decertification is required.');
+
+INSERT INTO txt VALUES ('H5428', 'German',  'Rezert Check - aktiv: aktviere bzw. deaktiviere regelm&auml;&szlig;ige Pr&uuml;fungen zur Versendung von Benachrichtigungs- oder Eskalations-Emails an die Eigent&uuml;mer.');
+INSERT INTO txt VALUES ('H5428', 'English', 'Recert Check - active: enable or disable recurring recertification checks to send out notification or escalation emails to owners.');
+INSERT INTO txt VALUES ('H5429', 'German',  'Rezert Check alle: Abstand der Pr&uuml;fungen f&uuml;r den Versand von Benachrichtigungs- oder Eskalations-Emails an die Eigent&uuml;mer.');
+INSERT INTO txt VALUES ('H5429', 'English', 'Recert Check every: Interval between checks for recertification notifications.');
+INSERT INTO txt VALUES ('H5430', 'German',  'Rezert Check - Email Titel: Titel der Benachrichtigungs-Email.');
+INSERT INTO txt VALUES ('H5430', 'English', 'Recert Check - Email subject: Subject line of the notification email.');
+INSERT INTO txt VALUES ('H5446', 'German',  'Rezert Check - Text anstehend: Textinhalt der Benachrichtigungsmail bei demn&auml;chst anstehenden Rezertifizierungen.');
+INSERT INTO txt VALUES ('H5446', 'English', 'Recert Check - text upcoming: Email body of the notification email for upcoming recertifications.');
+INSERT INTO txt VALUES ('H5432', 'German',  'Rezert Check - Text &uuml;berf&auml;llig: Textinhalt der Benachrichtigungsmail bei &uuml;berf&auml;lligen Rezertifizierungen (Eskalation).');
+INSERT INTO txt VALUES ('H5432', 'English', 'Recert Check - text overdue: Email body of the notification email for overdue recertifications (escalation).');
+
+INSERT INTO txt VALUES ('H5433', 'German',  'Autom. Anlegen L&ouml;schantrag: Soll automatisch ein L&ouml;sch-Ticket erzeugt werden, wenn eine Regel vollst&auml;ndig dezertifiziert wurde?');
+INSERT INTO txt VALUES ('H5433', 'English', 'Autocreate delete rule ticket: When a rule has been fully de-certified, should a delete ticket be automatically generated?');
+INSERT INTO txt VALUES ('H5434', 'German',  'Titel f&uuml;r L&ouml;schantrag: Titel des zu erzeugenden L&ouml;sch-Tickets.');
+INSERT INTO txt VALUES ('H5434', 'English', 'Title delete ticket: Subject line of the delete ticket to be generated.');
+INSERT INTO txt VALUES ('H5435', 'German',  'Grund f&uuml;r L&ouml;sch-Antrag: Text f&uuml;r den Grund des zu erzeugenden L&ouml;sch-Tickets.');
+INSERT INTO txt VALUES ('H5435', 'English', 'Reason delete ticket: Text for the reason of the delete ticket to be generated.');
+INSERT INTO txt VALUES ('H5436', 'German',  'Titel f&uuml;r L&ouml;sch Auftrag: Titel der zu erzeugenden L&ouml;schaufgabe.');
+INSERT INTO txt VALUES ('H5436', 'English', 'Title delete rule task: Title of the delete task to be generated.');
+INSERT INTO txt VALUES ('H5437', 'German',  'Grund f&uuml;r L&ouml;schauftrag: Begr&uuml;ndungstext f&uuml;r die zu erzeugende L&ouml;schaufgabe.');
+INSERT INTO txt VALUES ('H5437', 'English', 'Reason for delete rule task: Text for the reason of the delete task to be generated.');
+INSERT INTO txt VALUES ('H5438', 'German',  'Priorit&auml;t f&uuml;r L&ouml;schantrag: Auswahl zwischen den Prio-Bezeichnungen wie in den <a href="/help/settings/workflowcustomizing">Workflow-Einstellungen</a> definiert (Vorgabe: Lowest, Low, Medium, High, Highest).');
+INSERT INTO txt VALUES ('H5438', 'English', 'Priority for delete rule ticket: Choose between existing priority labels as defined in <a href="/help/settings/workflowcustomizing">workflow customizing</a>(default: Lowest, Low, Medium, High, Highest).');
+INSERT INTO txt VALUES ('H5439', 'German',  'Initialer Status f&uuml;r L&ouml;schantrag: Standard="Draft"');
+INSERT INTO txt VALUES ('H5439', 'English', 'Initial state for delete rule ticket: default="Draft"');
+INSERT INTO txt VALUES ('H5440', 'German',  'Neuberechnen offene Rezertifizierungen: Auswahl, wann die Neuberechnung durchgef&uuml;hrt werden soll - beim Hochfahren, t&auml;glich via Scheduler oder jetzt (kann mehrere Minuten dauern).');
+INSERT INTO txt VALUES ('H5440', 'English', 'Recalculate open recertifications: Choose, when to do this: at startup, daily via scheduler or now (this may take several minutes).');
+
 INSERT INTO txt VALUES ('H5422', 'German',  'Devices zu Beginn eingeklappt ab: Legt fest, ab wievielen Devices (Managements + Gateways) diese in der linken Randleiste zun&auml;chst eingeklappt dargestellt werden.');
 INSERT INTO txt VALUES ('H5422', 'English', 'Devices collapsed at beginning from: defines from which number of devices (managements + gateways) they are displayed collapsed in the left sidebar at beginning.');
 INSERT INTO txt VALUES ('H5423', 'German',  'Nachrichten-Anzeigedauer (in Sekunden): legt fest, wie lange Erfolgs-Nachrichten dargestellt werden, bis sie automatisch ausgeblendet werden.

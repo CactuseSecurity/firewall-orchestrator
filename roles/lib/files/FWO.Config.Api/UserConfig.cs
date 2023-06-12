@@ -48,6 +48,10 @@ namespace FWO.Config.Api
             globalConfig.OnChange += GlobalConfigOnChange;
         }
 
+        // only for unit tests
+        protected UserConfig() : base()
+        {}
+        
         private void GlobalConfigOnChange(Config config, ConfigItem[] changedItems)
         {
             // Get properties that belong to the user config 

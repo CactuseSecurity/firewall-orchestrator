@@ -22,12 +22,6 @@ namespace FWO.Api.Data
             } 
         }
 
-        public string TenantIdAsString
-        {
-            get => TenantId?.ToString()?? "null";
-            set => TenantId = value == "null" ? null : int.Parse(value);
-        }
-
         public UiLdapConnection()
         {}
 

@@ -4,10 +4,11 @@ from common import importer_base_dir
 from fwo_log import getFwoLogger
 sys.path.append(importer_base_dir + '/checkpointR8x')
 import copy, time
-import parse_network, parse_rule, parse_service, parse_user
-import common, getter
+import cp_const, parse_network, parse_rule, parse_service, parse_user
+import getter
 from cpcommon import get_basic_config, enrich_config
 import fwo_globals
+from fwo_exception import FwLoginFailed
 
 
 def has_config_changed (full_config, mgm_details, force=False):
@@ -23,7 +24,7 @@ def has_config_changed (full_config, mgm_details, force=False):
     try: # top level dict start, sid contains the domain information, so only sending domain during login
         session_id = getter.login(mgm_details['import_credential']['user'], mgm_details['import_credential']['secret'], mgm_details['hostname'], str(mgm_details['port']), domain)
     except:
-        raise common.FwLoginFailed     # maybe 2Temporary failure in name resolution"
+        raise FwLoginFailed     # maybe 2Temporary failure in name resolution"
 
     last_change_time = ''
     if 'import_controls' in mgm_details:
@@ -57,12 +58,12 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
 
         sid = getter.login(mgm_details['import_credential']['user'], mgm_details['import_credential']['secret'], mgm_details['hostname'], str(mgm_details['port']), domain)
 
-        result_get_basic_config = get_basic_config (full_config, mgm_details, force=force, sid=sid, limit=str(limit), details_level='full', test_version='off')
+        result_get_basic_config = get_basic_config (full_config, mgm_details, force=force, sid=sid, limit=str(limit), details_level=cp_const.details_level, test_version='off')
 
         if result_get_basic_config>0:
             return result_get_basic_config
 
-        result_enrich_config = enrich_config (full_config, mgm_details, limit=str(limit), details_level='full', sid=sid)
+        result_enrich_config = enrich_config (full_config, mgm_details, limit=str(limit), details_level=cp_const.details_level, sid=sid)
 
         if result_enrich_config>0:
             return result_enrich_config
@@ -92,7 +93,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
             # parse access rules
             rule_num = parse_rule.parse_rulebase_json(
                 full_config['rulebases'][rb_id], target_rulebase, full_config['rulebases'][rb_id]['layername'], 
-                current_import_id, rule_num, section_header_uids, parent_uid)
+                current_import_id, rule_num, section_header_uids, parent_uid, config2import)
             # now parse the nat rulebase
 
             # parse nat rules
@@ -103,7 +104,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
                 else:
                     rule_num = parse_rule.parse_nat_rulebase_json(
                         full_config['nat_rulebases'][rb_id], target_rulebase, full_config['rulebases'][rb_id]['layername'], 
-                        current_import_id, rule_num, section_header_uids, parent_uid)
+                        current_import_id, rule_num, section_header_uids, parent_uid, config2import)
         config2import.update({'rules': target_rulebase})
 
         # copy users from full_config to config2import

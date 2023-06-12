@@ -7,6 +7,7 @@ using FWO.Logging;
 using RestSharp.Serializers.NewtonsoftJson;
 using System.Text.Encodings.Web;
 using System.Text;
+using RestSharp.Serializers;
 
 namespace FWO.Rest.Client
 {
@@ -18,22 +19,22 @@ namespace FWO.Rest.Client
         {
             RestClientOptions restClientOptions = new RestClientOptions();
             restClientOptions.RemoteCertificateValidationCallback += (_, _, _, _) => true;
-            // restClientOptions.Encoding = Encoding.Latin1;
             restClientOptions.BaseUrl = new Uri("https://" + manager.Hostname + ":" + manager.Port + "/web_api/");
-            restClient = new RestClient(restClientOptions);
-            // restClient.AddDefaultHeader("Content-Type", "application/json");
-
-            JsonNetSerializer serializer = new JsonNetSerializer(); // Case insensivitive is enabled by default
-            restClient.UseDefaultSerializers();
-            restClient.UseSerializer(() => serializer);
+            restClient = new RestClient(restClientOptions, null, ConfigureRestClientSerialization);
         }
+
+        private void ConfigureRestClientSerialization(SerializerConfig config)
+        {
+            JsonNetSerializer serializer = new JsonNetSerializer(); // Case insensivitive is enabled by default
+            config.UseSerializer(() => serializer);
+        } 
 
         public async Task<RestResponse<CpSessionAuthInfo>> AuthenticateUser(string? user, string? pwd, string? domain)
         {
             if (user == null || user == "")
             {
                 Log.WriteWarning("Autodiscovery", $"GetDomains got empty user string, aborting");
-                return new RestResponse<CpSessionAuthInfo>();
+                return new RestResponse<CpSessionAuthInfo>(new RestRequest());
             }
             if (pwd == null)
                 pwd = "";
@@ -94,36 +95,40 @@ namespace FWO.Rest.Client
 
             // getting all gateways of this management 
             RestResponse<CpDeviceHelper> devices = await restClient.ExecuteAsync<CpDeviceHelper>(request);
-            foreach (CpDevice dev in devices?.Data?.DeviceList)
+            if(devices.Data != null)
             {
-                if (gwTypes.Contains(dev.CpDevType))
+                foreach (CpDevice dev in devices.Data.DeviceList)
                 {
-                    if (dev.Policy.AccessPolicyInstalled)   // get package info
+                    if (gwTypes.Contains(dev.CpDevType))
                     {
-                        Log.WriteDebug("Autodiscovery", $"found gateway '{dev.Name}' with access policy '{dev.Policy.AccessPolicyName}'");
-                        RestRequest requestPackage = new RestRequest("show-package", Method.Post);
-                        requestPackage.AddHeader("X-chkp-sid", session);
-                        requestPackage.AddHeader("Content-Type", "application/json");
-                        Dictionary<string, string> packageBody = new Dictionary<string, string>();
-                        packageBody.Add("name", dev.Policy.AccessPolicyName);
-                        packageBody.Add("details-level", "full");
-                        requestPackage.AddJsonBody(packageBody);
-                        RestResponse<CpPackage> package = await restClient.ExecuteAsync<CpPackage>(requestPackage);
-                        if (dev != null && package != null && package.Data != null)
+                        if (dev.Policy.AccessPolicyInstalled)   // get package info
                         {
-                            dev.Package = package.Data;
-                            Log.WriteDebug("Autodiscovery", $"for gateway '{dev.Name}' we found a package '{dev?.Package?.Name}' with {dev?.Package?.CpAccessLayers.Count} layers");
+                            Log.WriteDebug("Autodiscovery", $"found gateway '{dev.Name}' with access policy '{dev.Policy.AccessPolicyName}'");
+                            RestRequest requestPackage = new RestRequest("show-package", Method.Post);
+                            requestPackage.AddHeader("X-chkp-sid", session);
+                            requestPackage.AddHeader("Content-Type", "application/json");
+                            Dictionary<string, string> packageBody = new Dictionary<string, string>();
+                            packageBody.Add("name", dev.Policy.AccessPolicyName);
+                            packageBody.Add("details-level", "full");
+                            requestPackage.AddJsonBody(packageBody);
+                            RestResponse<CpPackage> package = await restClient.ExecuteAsync<CpPackage>(requestPackage);
+                            if (dev != null && package != null && package.Data != null)
+                            {
+                                dev.Package = package.Data;
+                                Log.WriteDebug("Autodiscovery", $"for gateway '{dev.Name}' we found a package '{dev?.Package?.Name}' with {dev?.Package?.CpAccessLayers.Count} layers");
 
-                            extractLayerNames(dev.Package, dev.Name, ManagementType, out string localLayerName, out string globalLayerName);
-                            dev.LocalLayerName = localLayerName;
-                            dev.GlobalLayerName = globalLayerName;
+                                extractLayerNames(dev!.Package, dev.Name, ManagementType, out string localLayerName, out string globalLayerName);
+                                dev.LocalLayerName = localLayerName;
+                                dev.GlobalLayerName = globalLayerName;
+                            }
                         }
+                        else
+                            Log.WriteWarning("Autodiscovery", $"found gateway '{dev.Name}' without access policy");
                     }
-                    else
-                        Log.WriteWarning("Autodiscovery", $"found gateway '{dev.Name}' without access policy");
                 }
+                return devices.Data.DeviceList;
             }
-            return devices.Data.DeviceList;
+            return new List<CpDevice>();
         }
 
         private void extractLayerNames(CpPackage package, string devName, string managementType, out string localLayerName, out string globalLayerName)
@@ -201,7 +206,7 @@ namespace FWO.Rest.Client
     public class CpDomainHelper
     {
         [JsonProperty("objects"), JsonPropertyName("objects")]
-        public List<Domain> DomainList { get; set; }
+        public List<Domain> DomainList { get; set; } = new List<Domain>();
 
         [JsonProperty("total"), JsonPropertyName("total")]
         public int Total { get; set; }

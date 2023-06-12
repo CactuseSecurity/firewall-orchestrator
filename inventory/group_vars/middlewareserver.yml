@@ -17,6 +17,7 @@ middleware_server_base_dir: "{{ fworch_home }}/middleware/files"
 middleware_server_start_dir: "{{ middleware_server_base_dir }}/FWO.Middleware.Server"
 middleware_ldif_dir: "{{ fworch_home }}/etc/ldif"
 
+importer_password: not4production
 apache_mw_timeout: 14400
 
 # sample-auth-data vars

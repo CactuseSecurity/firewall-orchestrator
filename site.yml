@@ -16,8 +16,6 @@
   tags:
     - frontend
     - importer
-    - api
-
 
 - hosts: all
   tasks:
@@ -128,6 +126,16 @@
 - hosts: all
   roles:
     - { role: cleanup, when: "not installation_mode == 'uninstall'" }
+  tags:
+    - cleanup
+    - backend
+    - frontend
+    - importer
+    - ui
+
+- hosts: all
+  roles:
+    - { role: final-display, when: "not installation_mode == 'uninstall'" }
   tags:
     - cleanup
     - backend

@@ -7,7 +7,6 @@
     connect_timeout: 1
     delay: 10
     timeout: 25
-  when: "not run_on_github|bool"
 
 - name: middleware test get jwt valid creds
   uri:

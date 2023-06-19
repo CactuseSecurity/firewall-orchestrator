@@ -184,9 +184,13 @@ namespace FWO.Middleware.Server
                     }
                 }
             }
+            catch (LdapException ldapException)
+            {
+                Log.WriteInfo("Ldap entry excpetion", $"Ldap entry search at \"{Address}:{Port}\" lead to exception: {ldapException.Message}");
+            }
             catch (Exception exception)
             {
-                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to validate user", exception);
+                Log.WriteError($"Non-LDAP exception \"{Address}:{Port}\"", "Unexpected error while trying to validate user", exception);
             }
 
             Log.WriteDebug("Invalid Credentials", $"Invalid login credentials - could not authenticate user \"{ user.Name}\" on {Address}:{Port}.");

@@ -231,6 +231,7 @@
     private void Edit(Device device)
     {
         actDevice = new Device(device);
+        setMatchingDevTypes(actDevice.Management);
         EditMode = true;
     }
 

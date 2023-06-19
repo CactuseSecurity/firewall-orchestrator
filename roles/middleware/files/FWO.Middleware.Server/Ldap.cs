@@ -186,7 +186,7 @@ namespace FWO.Middleware.Server
             }
             catch (LdapException ldapException)
             {
-                Log.WriteInfo("Ldap entry excpetion", $"Ldap entry search at \"{Address}:{Port}\" lead to exception: {ldapException.Message}");
+                Log.WriteInfo("Ldap entry exception", $"Ldap entry search at \"{Address}:{Port}\" lead to exception: {ldapException.Message}");
             }
             catch (Exception exception)
             {

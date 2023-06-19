@@ -315,5 +315,5 @@ adding report template format fk and permissions
 ### 6.4.3 05.06.2023 MAIN
 - Hotfix - global config subsription timout after 12h
 
-### 6.4.4 xx.06.2023 DEVELOP
+### 6.4.4 19.06.2023 DEVELOP
 - CPR8x importer: basic support for inline layers

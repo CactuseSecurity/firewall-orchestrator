@@ -6,6 +6,7 @@ import time
 import cp_getter
 import fwo_globals
 import cp_const
+import cp_network
 
 
 ################# enrich #######################
@@ -86,7 +87,7 @@ def enrich_config (config, mgm_details, limit=150, details_level=cp_const.detail
                     json_obj = {"object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
                         'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
-                        'comments': obj['comments'], 'type': 'host', 'ipv4-address': get_ip_of_obj(obj),
+                        'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),
                         } ] } ] }
                     config['object_tables'].append(json_obj)
                 elif obj['type'] == 'multicast-address-range':
@@ -94,14 +95,14 @@ def enrich_config (config, mgm_details, limit=150, details_level=cp_const.detail
                     json_obj = {"object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
                         'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
-                        'comments': obj['comments'], 'type': 'host', 'ipv4-address': get_ip_of_obj(obj),
+                        'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),
                         } ] } ] }
                     config['object_tables'].append(json_obj)
                 elif (obj['type'] == 'CpmiVsClusterMember' or obj['type'] == 'CpmiVsxClusterMember'):
                     json_obj = {"object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
                         'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
-                        'comments': obj['comments'], 'type': 'host', 'ipv4-address': get_ip_of_obj(obj),
+                        'comments': obj['comments'], 'type': 'host', 'ipv4-address': cp_network.get_ip_of_obj(obj),
                         } ] } ] }
                     config['object_tables'].append(json_obj)
                     logger.debug ('missing obj: ' + obj['name'] + obj['type'])

@@ -7,8 +7,8 @@ WorkingDirectory={{ importer_home }}
 ExecStartPre=/bin/sleep 10
 ExecStart={{ importer_home }}/fworch-importer-main.pl
 ExecStop={{ importer_home }}/import-stop-helper
-StandardOutput=syslog
-StandardError=syslog
+StandardOutput=journal
+StandardError=journal
 SyslogIdentifier={{ product_name }}-importer-legacy
 User={{ fworch_user }}
 Environment="PERL5LIB={{ importer_home }}"

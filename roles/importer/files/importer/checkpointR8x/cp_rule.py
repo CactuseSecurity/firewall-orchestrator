@@ -20,7 +20,7 @@ def normalize_rulebases_top_level (full_config, current_import_id, config2import
 
     # fill uid_to_name_map:
     for nw_obj in config2import['network_objects']:
-        uid_to_name_map['obj_uid'] = nw_obj['obj_name']
+        uid_to_name_map[nw_obj['obj_uid']] = nw_obj['obj_name']
 
     rb_range = range(len(full_config['rulebases']))
     for rb_id in rb_range:

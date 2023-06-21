@@ -4,7 +4,7 @@ import json
 import cp_const
 import fwo_const
 import fwo_globals
-from fwo_const import list_delimiter
+from fwo_const import list_delimiter, default_section_header_text
 from fwo_base import sanitize
 from fwo_exception import ImportRecursionLimitReached
 
@@ -298,7 +298,7 @@ def add_domain_rule_header_rule(rulebase, section_name, layer_name, import_id, r
 def check_and_add_section_header(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, config2import, debug_level=0, recursion_level=1):
     # if current rulebase starts a new section, add section header, but only if it does not exist yet (can happen by chunking a section)
     if 'type' in src_rulebase and src_rulebase['type'] == 'access-section' and 'uid' in src_rulebase: # and not src_rulebase['uid'] in section_header_uids:
-        section_name = "section without name"
+        section_name = default_section_header_text
         if 'name' in src_rulebase:
             section_name = src_rulebase['name']
         if 'parent_rule_uid' in src_rulebase:

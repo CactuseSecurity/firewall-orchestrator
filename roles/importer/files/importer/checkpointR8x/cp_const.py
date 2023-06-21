@@ -1,8 +1,6 @@
 details_level = "full"    # 'standard'
 use_object_dictionary = 'false'
 
-default_section_header_text = "section without name"
-
 # the following is the static across all installations unique any obj uid 
 # cannot fetch the Any object via API (<=1.7) at the moment
 # therefore we have a workaround adding the object manually (as svc and nw)

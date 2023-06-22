@@ -310,7 +310,8 @@ def check_and_add_section_header(src_rulebase, target_rulebase, layer_name, impo
     return rule_num
 
 
-def parse_rulebase(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, config2import, debug_level=0, recursion_level=1):
+def parse_rulebase(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, config2import, 
+                    debug_level=0, recursion_level=1, layer_disabled=False):
     logger = getFwoLogger()
     if (recursion_level > fwo_const.max_recursion_level):
         raise ImportRecursionLimitReached("parse_rulebase") from None
@@ -324,15 +325,12 @@ def parse_rulebase(src_rulebase, target_rulebase, layer_name, import_id, rule_nu
                                                     section_header_uids, parent_uid, config2import, debug_level=debug_level, recursion_level=recursion_level+1)
             else:
                 rule_num = parse_rulebase(chunk, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, config2import, debug_level=debug_level, recursion_level=recursion_level+1)
-    
-    # # parse rulebase in array (section in layer)
-    # if not 'type' in src_rulebase and len(src_rulebase)==1: # and 0 in src_rulebase:
-    #     rule_num = parse_rulebase(src_rulebase[0], target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, config2import, debug_level=debug_level, recursion_level=recursion_level)
-        
+      
     check_and_add_section_header(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, config2import, debug_level=debug_level, recursion_level=recursion_level+1)
 
     # parse layered rulebase
     if 'rulebase' in src_rulebase:
+        # layer_disabled = not src_rulebase['enabled']
         for rule in src_rulebase['rulebase']:
             if 'type' in rule:
                 if rule['type'] == 'place-holder':  # add domain rules

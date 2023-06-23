@@ -10,9 +10,8 @@ import cp_rule
 import cp_const, cp_network, cp_service
 import cp_getter
 from cp_enrich import enrich_config
-from fwo_exception import FwLoginFailed
+from fwo_exception import FwLoginFailed, FwLogoutFailed
 from cp_user import parse_user_objects_from_rulebase
-
 
 
 def has_config_changed (full_config, mgm_details, force=False):
@@ -23,7 +22,7 @@ def has_config_changed (full_config, mgm_details, force=False):
     domain, _ = prepare_get_vars(mgm_details)
 
     try: # top level dict start, sid contains the domain information, so only sending domain during login
-        session_id = cp_getter.login(mgm_details['import_credential']['user'], mgm_details['import_credential']['secret'], mgm_details['hostname'], str(mgm_details['port']), domain)
+        session_id = login_cp(mgm_details, domain)
     except:
         raise FwLoginFailed     # maybe 2Temporary failure in name resolution"
 
@@ -35,10 +34,15 @@ def has_config_changed (full_config, mgm_details, force=False):
 
     if last_change_time==None or last_change_time=='' or force:
         # if no last import time found or given or if force flag is set, do full import
-        return 1
-    else:
-        # otherwise search for any changes since last import
-        return (cp_getter.get_changes(session_id, mgm_details['hostname'], str(mgm_details['port']),last_change_time) != 0)
+        result = 1
+    else: # otherwise search for any changes since last import
+        result = (cp_getter.get_changes(session_id, mgm_details['hostname'], str(mgm_details['port']),last_change_time) != 0)
+
+    try: # top level dict start, sid contains the domain information, so only sending domain during login
+        logout_result = cp_getter.cp_api_call("https://" + mgm_details['hostname'] + ":" + str(mgm_details['port']) + "/web_api/", 'logout', {}, session_id)
+    except:
+        raise FwLogoutFailed     # maybe temporary failure in name resolution"
+    return result
 
 
 def get_config(config2import, full_config, current_import_id, mgm_details, limit=150, force=False, jwt=None):
@@ -78,6 +82,11 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
     cp_service.normalize_service_objects(full_config, config2import, current_import_id)
     parse_users_from_rulebases(full_config, full_config['rulebases'], full_config['users'], config2import, current_import_id)
     config2import.update({'rules':  cp_rule.normalize_rulebases_top_level(full_config, current_import_id, config2import) })
+    try: # top level dict start, sid contains the domain information, so only sending domain during login
+        logout_result = cp_getter.cp_api_call("https://" + mgm_details['hostname'] + ":" + str(mgm_details['port']) + "/web_api/", 'logout', {}, sid)
+    except:
+        raise FwLogoutFailed     # maybe 2Temporary failure in name resolution"
+
     return 0
 
 
@@ -192,7 +201,7 @@ def get_objects(config_json, mgm_details, v_url, sid, force=False, config_filena
                 if debug_level>5:
                     logger.debug ( obj_type +" total:"+ str(total) )
         config_json["object_tables"].append(object_table)
-    logout_result = cp_getter.cp_api_call(v_url, 'logout', {}, sid)
+    # logout_result = cp_getter.cp_api_call(v_url, 'logout', {}, sid)
 
     # only write config to file if config_filename is given
     if config_filename != None and len(config_filename)>1:

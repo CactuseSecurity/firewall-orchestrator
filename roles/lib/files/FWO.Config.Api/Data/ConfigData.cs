@@ -55,6 +55,19 @@ namespace FWO.Config.Api.Data
         [JsonProperty("fwApiElementsPerFetch"), JsonPropertyName("fwApiElementsPerFetch")]
         public int FwApiElementsPerFetch { get; set; } = 150;
 
+        [JsonProperty("impChangeNotifyRecipients"), JsonPropertyName("impChangeNotifyRecipients")]
+        public string ImpChangeNotifyRecipients { get; set; } = "";
+
+        [JsonProperty("impChangeNotifySubject"), JsonPropertyName("impChangeNotifySubject")]
+        public string ImpChangeNotifySubject { get; set; } = "";
+
+        [JsonProperty("impChangeNotifyBody"), JsonPropertyName("impChangeNotifyBody")]
+        public string ImpChangeNotifyBody { get; set; } = "";
+
+        [JsonProperty("impChangeNotifyActive"), JsonPropertyName("impChangeNotifyActive")]
+        public bool ImpChangeNotifyActive { get; set; } = false;
+
+
         [JsonProperty("recertificationPeriod"), JsonPropertyName("recertificationPeriod")]
         public int RecertificationPeriod { get; set; } = 365;
 

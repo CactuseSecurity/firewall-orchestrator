@@ -1,11 +1,12 @@
 from fwo_log import getFwoLogger
 import json
 import cp_const
-from cpcommon import get_ip_of_obj
 from fwo_const import list_delimiter
+import fwo_alert, fwo_api
+import ipaddress 
 
 
-def parse_network_objects_to_json(full_config, config2import, import_id, mgm_id=0, debug_level=0):
+def normalize_network_objects(full_config, config2import, import_id, mgm_id=0, debug_level=0):
     nw_objects = []
 
     for obj_table in full_config['object_tables']:
@@ -114,3 +115,44 @@ def add_member_names_for_nw_group(idx, nw_objects):
             member_names += member_name + list_delimiter
         group['obj_member_names'] = member_names[:-1]
     nw_objects.insert(idx, group)
+
+
+def validate_ip_address(address):
+    try:
+        # ipaddress.ip_address(address)
+        ipaddress.ip_network(address)
+        return True
+        # print("IP address {} is valid. The object returned is {}".format(address, ip))
+    except ValueError:
+        return False
+        # print("IP address {} is not valid".format(address)) 
+
+
+def get_ip_of_obj(obj, mgm_id=None):
+    if 'ipv4-address' in obj:
+        ip_addr = obj['ipv4-address']
+    elif 'ipv6-address' in obj:
+        ip_addr = obj['ipv6-address']
+    elif 'subnet4' in obj:
+        ip_addr = obj['subnet4'] + '/' + str(obj['mask-length4'])
+    elif 'subnet6' in obj:
+        ip_addr = obj['subnet6'] + '/' + str(obj['mask-length6'])
+    elif 'ipv4-address-first' in obj and 'ipv4-address-last' in obj:
+        ip_addr = obj['ipv4-address-first'] + '-' + str(obj['ipv4-address-last'])
+    elif 'ipv6-address-first' in obj and 'ipv6-address-last' in obj:
+        ip_addr = obj['ipv6-address-first'] + '-' + str(obj['ipv6-address-last'])
+    else:
+        ip_addr = None
+
+    ## fix malformed ip addresses (should not regularly occur and constitutes a data issue in CP database)
+    if ip_addr is None or ('type' in obj and (obj['type'] == 'address-range' or obj['type'] == 'multicast-address-range')):
+        pass   # ignore None and ranges here
+    elif not validate_ip_address(ip_addr):
+        alerter = fwo_alert.getFwoAlerter()
+        alert_description = "object is not a valid ip address (" + str(ip_addr) + ")"
+        fwo_api.create_data_issue(alerter['fwo_api_base_url'], alerter['jwt'], severity=2, obj_name=obj['name'], object_type=obj['type'], description=alert_description, mgm_id=mgm_id) 
+        alert_description = "object '" + obj['name'] + "' (type=" + obj['type'] + ") is not a valid ip address (" + str(ip_addr) + ")"
+        fwo_api.setAlert(alerter['fwo_api_base_url'], alerter['jwt'], title="import error", severity=2, role='importer', \
+            description=alert_description, source='import', alertCode=17, mgm_id=mgm_id)
+        ip_addr = '0.0.0.0/32'  # setting syntactically correct dummy ip
+    return ip_addr

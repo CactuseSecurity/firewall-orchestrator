@@ -90,31 +90,6 @@
     </form>
     <hr />
     <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("importSleepTime")):</label>
-        <div class="col-sm-2">
-            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.ImportSleepTime" />
-        </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("importCheckCertificates")):</label>
-        <div class="col-sm-2">
-            <input type="checkbox" class="w-100" @bind="configData!.ImportCheckCertificates" />
-        </div>
-    </form>
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("importSuppressCertificateWarnings")):</label>
-        <div class="col-sm-2">
-            <input type="checkbox" class="w-100" @bind="configData!.ImportSuppressCertificateWarnings" />
-        </div>
-    </form> 
-    <form class="form-inline" onsubmit="return false">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("fwApiElementsPerFetch")):</label>
-        <div class="col-sm-2">
-            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.FwApiElementsPerFetch" />
-        </div>
-    </form>
-    <hr />
-    <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("autoDiscoverSleepTime")):</label>
         <div class="col-sm-2">
             <input type="number" class="form-control form-control-sm w-100" @bind="configData!.AutoDiscoverSleepTime" />

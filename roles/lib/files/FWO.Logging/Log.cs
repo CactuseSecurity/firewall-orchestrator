@@ -15,7 +15,7 @@ namespace FWO.Logging
             Task.Factory.StartNew(async () =>
             {
                 // log switch - log file locking
-                bool logOwned = false;
+                bool logOwnedByExternal = false;
                 Stopwatch stopwatch = new Stopwatch();
 
                 while (true)
@@ -29,35 +29,35 @@ namespace FWO.Logging
                         string lockFileContent = (await reader.ReadToEndAsync()).Trim();
 
                         // Forcefully release lock after timeout
-                        if (logOwned && stopwatch.ElapsedMilliseconds > 10_000)
+                        if (logOwnedByExternal && stopwatch.ElapsedMilliseconds > 10_000)
                         {
                             using StreamWriter writer = new StreamWriter(file);
                             await writer.WriteLineAsync("FORCEFULLY RELEASED");
                             stopwatch.Reset();
                             semaphore.Release();
-                            logOwned = false;
+                            logOwnedByExternal = false;
                         }
                         // GRANTED - lock was granted by us
                         else if (lockFileContent.EndsWith("GRANTED"))
                         {
                             // Request lock if it is not already requested by us
                             // (in case of restart with log already granted)
-                            if (!logOwned)
+                            if (!logOwnedByExternal)
                             {
                                 semaphore.Wait();
                                 stopwatch.Restart();
-                                logOwned = true;
+                                logOwnedByExternal = true;
                             }
                         }
                         // REQUESTED - lock was requested by log swap process
                         else if (lockFileContent.EndsWith("REQUESTED"))
                         {
                             // only request lock if it is not already requested by us
-                            if (!logOwned)
+                            if (!logOwnedByExternal)
                             {
                                 semaphore.Wait();
                                 stopwatch.Restart();
-                                logOwned = true;
+                                logOwnedByExternal = true;
                             }
                             using StreamWriter writer = new StreamWriter(file);
                             await writer.WriteLineAsync("GRANTED");
@@ -66,11 +66,11 @@ namespace FWO.Logging
                         else if (lockFileContent.EndsWith("RELEASED"))
                         {
                             // only release lock if it was formerly requested by us
-                            if (logOwned) 
+                            if (logOwnedByExternal) 
                             {
                                 stopwatch.Reset();
                                 semaphore.Release();
-                                logOwned = false;
+                                logOwnedByExternal = false;
                             }
                         }
                     }

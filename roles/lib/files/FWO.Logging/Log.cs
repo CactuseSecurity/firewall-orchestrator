@@ -1,6 +1,4 @@
-﻿using System;
-using System.Diagnostics;
-using System.Linq;
+﻿using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -17,61 +15,62 @@ namespace FWO.Logging
             Task.Factory.StartNew(async () =>
             {
                 // log switch - log file locking
-                bool logOwned = false;
+                bool logOwnedByExternal = false;
                 Stopwatch stopwatch = new Stopwatch();
 
                 while (true)
                 {
                     try
                     {
+                        // Open file
                         using FileStream file = await GetFile(lockFilePath);
-                        // read file content
+                        // Read file content
                         using StreamReader reader = new StreamReader(file);
                         string lockFileContent = (await reader.ReadToEndAsync()).Trim();
 
-                        // REQUESTED - lock was requested by log swap process
+                        // Forcefully release lock after timeout
+                        if (logOwnedByExternal && stopwatch.ElapsedMilliseconds > 10_000)
+                        {
+                            using StreamWriter writer = new StreamWriter(file);
+                            await writer.WriteLineAsync("FORCEFULLY RELEASED");
+                            stopwatch.Reset();
+                            semaphore.Release();
+                            logOwnedByExternal = false;
+                        }
                         // GRANTED - lock was granted by us
-                        // RELEASED - lock was released by log swap process
-                        if (lockFileContent.EndsWith("GRANTED"))
+                        else if (lockFileContent.EndsWith("GRANTED"))
                         {
                             // Request lock if it is not already requested by us
                             // (in case of restart with log already granted)
-                            if (!logOwned)
+                            if (!logOwnedByExternal)
                             {
                                 semaphore.Wait();
                                 stopwatch.Restart();
-                                logOwned = true;
-                            }
-                            // Forcefully release lock after timeout
-                            else if (stopwatch.ElapsedMilliseconds > 10 * 1000)
-                            {
-                                using StreamWriter writer = new StreamWriter(file);
-                                await writer.WriteLineAsync("FORCEFULLY RELEASED");
-                                stopwatch.Reset();
-                                semaphore.Release();
-                                logOwned = false;
+                                logOwnedByExternal = true;
                             }
                         }
-                        if (lockFileContent.EndsWith("REQUESTED"))
+                        // REQUESTED - lock was requested by log swap process
+                        else if (lockFileContent.EndsWith("REQUESTED"))
                         {
                             // only request lock if it is not already requested by us
-                            if (!logOwned)
+                            if (!logOwnedByExternal)
                             {
                                 semaphore.Wait();
                                 stopwatch.Restart();
-                                logOwned = true;
+                                logOwnedByExternal = true;
                             }
                             using StreamWriter writer = new StreamWriter(file);
                             await writer.WriteLineAsync("GRANTED");
                         }
-                        if (lockFileContent.EndsWith("RELEASED"))
+                        // RELEASED - lock was released by log swap process
+                        else if (lockFileContent.EndsWith("RELEASED"))
                         {
                             // only release lock if it was formerly requested by us
-                            if (logOwned) 
+                            if (logOwnedByExternal) 
                             {
                                 stopwatch.Reset();
                                 semaphore.Release();
-                                logOwned = false;
+                                logOwnedByExternal = false;
                             }
                         }
                     }

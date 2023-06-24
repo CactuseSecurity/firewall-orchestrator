@@ -42,8 +42,7 @@ namespace FWO.Test
         }
 
         [Test]
-        [Parallelizable]
-        public async Task LogLockUi()
+        public async Task LogLock()
         {
             // Request lock
             await ExecuteFileAction(async () =>
@@ -54,7 +53,7 @@ namespace FWO.Test
                 }
             });
 
-			await Task.Delay(1200);
+			await Task.Delay(2000);
 
 			// Assure lock is granted after request
 			await ExecuteFileAction(async () =>
@@ -65,15 +64,15 @@ namespace FWO.Test
 				}
 			});
 
-            // Assure write is NOT possible after lock was granted
-            Task logWriter = Task.Run(() =>
-            {
-                Log.WriteDebug("TEST_TITLE", "TEST_TEXT");
-            });
+			// Assure write is NOT possible after lock was granted
+			Task logWriter = Task.Run(() =>
+			{
+				Log.WriteDebug("TEST_TITLE", "TEST_TEXT");
+			});
 
-            await Task.Delay(500);
+			await Task.Delay(500);
 
-            Assert.That(logWriter.IsCompleted, Is.False);
+			Assert.That(logWriter.IsCompleted, Is.False);
 
 			// Release lock
 			await ExecuteFileAction(async () =>
@@ -84,10 +83,10 @@ namespace FWO.Test
 				}
 			});
 
-            await Task.Delay(1200);
+			await Task.Delay(2000);
 
-            // Assure write IS possible after lock was released
-            Assert.That(logWriter.IsCompleted, Is.True);
+			// Assure write IS possible after lock was released
+			Assert.That(logWriter.IsCompletedSuccessfully, Is.True);
 
 			// Request lock
 			await ExecuteFileAction(async () =>
@@ -98,7 +97,7 @@ namespace FWO.Test
 				}
 			});
 
-            await Task.Delay(11_200);
+			await Task.Delay(12_000);
 
 			// If not release in time make sure that the lock will be forcefully released
 			await ExecuteFileAction(async () =>
@@ -108,7 +107,7 @@ namespace FWO.Test
 					Assert.That((await reader.ReadToEndAsync()).Trim().EndsWith("FORCEFULLY RELEASED"));
 				}
 			});
-        }
+		}
 
 		private static async Task ExecuteFileAction(Func<Task> action)
 		{

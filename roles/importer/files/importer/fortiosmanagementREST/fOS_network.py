@@ -80,7 +80,7 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt
                         obj.update({ 'obj_nat_ip_end': nat_obj['obj_ip_end'] }) # save nat ip in vip obj
                         nat_obj.update({'obj_name': nat_obj['obj_ip'] + '-' + nat_obj['obj_ip_end'] + nat_postfix})
                     else:
-                        nat_obj.update({'obj_name': nat_obj['obj_ip'] + nat_postfix})
+                        nat_obj.update({'obj_name': str(nat_obj['obj_ip']) + nat_postfix})
                     nat_obj.update({'obj_uid': nat_obj['obj_name']})                    
                     ###### range handling
 

@@ -8,6 +8,7 @@ using FWO.Api.Data;
 namespace FWO.Test
 {
     [TestFixture]
+    [Parallelizable]
     internal class ExportTest
     {
         static NetworkObject TestIp1 = new NetworkObject(){ Id = 1, Name = "TestIp1", IP = "1.2.3.4/32", IpEnd = "", Type = new NetworkObjectType(){ Name = "network" }};

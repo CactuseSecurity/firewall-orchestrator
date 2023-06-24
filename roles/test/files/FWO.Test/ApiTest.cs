@@ -12,6 +12,7 @@ using FWO.Logging;
 namespace FWO.Test
 {
     [TestFixture]
+    [Parallelizable]
     public class ApiTest
     {
         ApiConnection apiConnection;

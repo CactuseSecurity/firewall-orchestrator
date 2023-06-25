@@ -2,7 +2,7 @@
 - name: install upgrades as_single_query
   community.postgresql.postgresql_query:
     db: "{{ fworch_db_name }}"
-    postgresql_script: "{{ database_install_dir }}/upgrade/{{ item }}.sql"
+    path_to_script: "{{ database_install_dir }}/upgrade/{{ item }}.sql"
     as_single_query: "{{ postgresql_query_as_single_query }}"
   # register: res
   # when: not (res.changed|d(false))

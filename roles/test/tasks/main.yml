@@ -62,6 +62,7 @@
 
 - name: auth testing
   import_tasks: test-auth.yml
+  when: "not run_on_github|bool"
 
 - name: api testing
   import_tasks: test-api.yml

@@ -82,11 +82,11 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
     cp_service.normalize_service_objects(full_config, config2import, current_import_id)
     parse_users_from_rulebases(full_config, full_config['rulebases'], full_config['users'], config2import, current_import_id)
     config2import.update({'rules':  cp_rule.normalize_rulebases_top_level(full_config, current_import_id, config2import) })
-    try: # top level dict start, sid contains the domain information, so only sending domain during login
-        logout_result = cp_getter.cp_api_call("https://" + mgm_details['hostname'] + ":" + str(mgm_details['port']) + "/web_api/", 'logout', {}, sid)
-    except:
-        raise FwLogoutFailed     # maybe 2Temporary failure in name resolution"
-
+    if not parsing_config_only: # get config from cp fw mgr
+        try: # logout
+            logout_result = cp_getter.cp_api_call("https://" + mgm_details['hostname'] + ":" + str(mgm_details['port']) + "/web_api/", 'logout', {}, sid)
+        except:
+            raise FwLogoutFailed     # maybe 2Temporary failure in name resolution"
     return 0
 
 

@@ -4,7 +4,7 @@
   - name: creating {{ fworch_db_name }}-db-model
     postgresql_query:
       db: "{{ fworch_db_name }}"
-      path_to_script: "{{ database_install_dir }}/sql/creation/{{ item }}"
+      postgresql_script: "{{ database_install_dir }}/sql/creation/{{ item }}"
     loop:
       - fworch-create-tables.sql
       - fworch-create-constraints.sql

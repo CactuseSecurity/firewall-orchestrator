@@ -2,7 +2,7 @@
 - name: (re)defines functions and views (idempotent) from ansible 2.10
   community.postgresql.postgresql_query:
     db: "{{ fworch_db_name }}"
-    path_to_script: "{{ database_install_dir }}/sql/idempotent/{{ item }}"
+    postgresql_script: "{{ database_install_dir }}/sql/idempotent/{{ item }}"
     as_single_query: "{{ postgresql_query_as_single_query }}"
   become: true
   become_user: postgres

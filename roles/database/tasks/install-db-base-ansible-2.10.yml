@@ -4,7 +4,7 @@
   - name: creating {{ fworch_db_name }}-db-model
     community.postgresql.postgresql_query:
       db: "{{ fworch_db_name }}"
-      postgresql_script: "{{ database_install_dir }}/sql/creation/{{ item }}"
+      path_to_script: "{{ database_install_dir }}/sql/creation/{{ item }}"
       as_single_query: "{{ postgresql_query_as_single_query }}"
     loop:
       - fworch-create-tables.sql

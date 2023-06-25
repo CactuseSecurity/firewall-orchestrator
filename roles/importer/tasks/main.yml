@@ -50,6 +50,7 @@
       owner: "{{ fworch_user }}"
       group: "{{ fworch_group }}"
       mode: "0755"
+    tags: [ 'test' ]
 
   - name: set x-flag for importer executables (top level only)
     file:

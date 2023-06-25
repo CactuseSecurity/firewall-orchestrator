@@ -147,6 +147,7 @@
       loop:
         - csv
         - sql        
+      tags: [ 'test' ]
 
     - name: create tablespace directory 
       file:

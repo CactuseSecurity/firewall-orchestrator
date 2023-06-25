@@ -58,6 +58,7 @@
         - FWO.Report.Filter
         - FWO.DeviceAutoDiscovery
         - FWO.Mail
+      tags: [ 'test' ]
 
     - name: finalize handler for datarecovery
       set_fact:

@@ -41,6 +41,7 @@
         group: "{{ fworch_group }}"
       loop:
         - FWO.UI
+      tags: [ 'test' ]
 
   become: true
 

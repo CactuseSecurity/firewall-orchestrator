@@ -15,6 +15,7 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt
         for obj_orig in full_config[obj_type]:
             obj_zone = 'global'
             obj = {}
+            ipa = "<undefined>"
             obj.update({'obj_name': obj_orig['name']})
             if 'subnet' in obj_orig: # ipv4 object
                 if isinstance(obj_orig['subnet'], str) and ' ' in obj_orig['subnet']:
@@ -57,9 +58,7 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt
                 if 'extip' not in obj_orig or len(obj_orig['extip'])==0:
                     logger.error("vip (extip): found empty extip field for " + obj_orig['name'])
                 else:
-                    if len(obj_orig['extip'])>1:
-                        logger.warning("vip (extip): found more than one extip, just using the first one for " + obj_orig['name'])
-                    set_ip_in_obj(obj, obj_orig['extip'][0])   # resolving nat range if there is one
+                    set_ip_in_obj(obj, obj_orig['extip'])   # resolving nat range if there is one
                     nat_obj = {}
                     nat_obj.update({'obj_typ': 'host' })
                     nat_obj.update({'obj_color': 'black'})
@@ -73,7 +72,7 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt
                 else:
                     if len(obj_orig['mappedip'])>1:
                         logger.warning("vip (extip): found more than one mappedip, just using the first one for " + obj_orig['name'])
-                    nat_ip = obj_orig['mappedip'][0]
+                    nat_ip = obj_orig['mappedip'][0]['range']
                     set_ip_in_obj(nat_obj, nat_ip)
                     obj.update({ 'obj_nat_ip': nat_obj['obj_ip'] }) # save nat ip in vip obj
                     if 'obj_ip_end' in nat_obj: # this nat obj is a range - include the end ip in name and uid as well to avoid akey conflicts

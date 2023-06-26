@@ -26,14 +26,14 @@
                 <div class="btn-group">
                     @if (context.Name != "middleware-server" && context.Name != "anonymous")
                     {
-                        <button class="btn btn-sm btn-success" @onclick="() => AddToRole(context)">@(userConfig.GetText("assign_user_group"))</button>
+                        <button type="button" class="btn btn-sm btn-success" @onclick="() => AddToRole(context)">@(userConfig.GetText("assign_user_group"))</button>
                         @if(context.Users.Count > 0)
                         {
-                            <button class="btn btn-sm btn-danger" @onclick="() => RemoveFromRole(context)">@(userConfig.GetText("remove_user_group"))</button>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoveFromRole(context)">@(userConfig.GetText("remove_user_group"))</button>
                         }
                         else
                         {
-                            <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("remove_user_group"))</button>
+                            <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("remove_user_group"))</button>
                         }
                     }
                     else
@@ -76,7 +76,7 @@
                         <input class="form-control-sm col-sm" type="text" @bind="searchPattern" />
                     </div>
                     <div class="col-sm-2">
-                        <button class="btn btn-sm btn-success" @onclick="async() => await SearchUser()" @onclick:preventDefault>@(userConfig.GetText("search"))</button>
+                        <button type="button" class="btn btn-sm btn-success" @onclick="async() => await SearchUser()" @onclick:preventDefault>@(userConfig.GetText("search"))</button>
                     </div>
                 </form>
                 <form class="form-group row">
@@ -91,10 +91,10 @@
                     <div class="col-sm-2">
                         <AuthorizeView Roles="admin">
                             <Authorized>
-                                <button class="btn btn-sm btn-success" @onclick="() => AddUserFromUiUsers()" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                                <button type="button" class="btn btn-sm btn-success" @onclick="() => AddUserFromUiUsers()" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                             </Authorized>
                             <NotAuthorized>
-                                <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
+                                <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
                             </NotAuthorized> 
                         </AuthorizeView>
                     </div>
@@ -107,10 +107,10 @@
                     <div class="col-sm-2">
                         <AuthorizeView Roles="admin">
                             <Authorized>
-                                <button class="btn btn-sm btn-success" @onclick="() => AddGroupFromLdap()" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                                <button type="button" class="btn btn-sm btn-success" @onclick="() => AddGroupFromLdap()" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                             </Authorized>
                             <NotAuthorized>
-                                <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
+                                <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
                             </NotAuthorized> 
                         </AuthorizeView>
                     </div>
@@ -120,7 +120,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -147,13 +147,13 @@
         <div class="btn-group">
             <AuthorizeView Roles="admin">
                 <Authorized>
-                    <button class="btn btn-sm btn-danger" @onclick="async () => await DeleteUser()" @onclick:preventDefault>@(userConfig.GetText("remove"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="async () => await DeleteUser()" @onclick:preventDefault>@(userConfig.GetText("remove"))</button>
                 </Authorized>
                 <NotAuthorized>
-                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("remove"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("remove"))</button>
                 </NotAuthorized> 
             </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -174,10 +174,10 @@
                     </div>
                     <AuthorizeView Roles="admin">
                         <Authorized>
-                            <button class="btn btn-sm btn-success" @onclick="() => AddUserFromLdap()" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                            <button type="button" class="btn btn-sm btn-success" @onclick="() => AddUserFromLdap()" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                         </Authorized>
                         <NotAuthorized>
-                            <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
+                            <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
                         </NotAuthorized> 
                     </AuthorizeView>
                 </div>
@@ -188,10 +188,10 @@
                     </div>
                     <AuthorizeView Roles="admin">
                         <Authorized>
-                            <button class="btn btn-sm btn-success" @onclick="() => AddGroupFromLdap()" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                            <button type="button" class="btn btn-sm btn-success" @onclick="() => AddGroupFromLdap()" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                         </Authorized>
                         <NotAuthorized>
-                            <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
+                            <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
                         </NotAuthorized> 
                     </AuthorizeView>
                 </div>
@@ -200,7 +200,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button class="btn btn-sm btn-secondary" @onclick="CancelSearch">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelSearch">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>

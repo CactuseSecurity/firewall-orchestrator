@@ -20,11 +20,11 @@
     <div class="btn-group sticky-marker pl-3 pr-3 w-100">
         @if (processing == false)
         {
-            <button class="btn btn-sm btn-primary" @onclick="() => GenerateRecertificationReport()">@(userConfig.GetText("load_rules"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="() => GenerateRecertificationReport()">@(userConfig.GetText("load_rules"))</button>
         }
         else
         {
-            <button class="btn btn-sm btn-danger" @onclick="() => CancelGeneration()">@(userConfig.GetText("stop_fetching"))</button>
+            <button type="button" class="btn btn-sm btn-danger" @onclick="() => CancelGeneration()">@(userConfig.GetText("stop_fetching"))</button>
         }
         <br>
     </div>
@@ -73,15 +73,15 @@
                 <Authorized>
                     @if(rulesFound)
                     {
-                        <button class="btn btn-sm btn-danger" @onclick="() => RequestExecuteSelected()">@(userConfig.GetText("execute_selected"))</button>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestExecuteSelected()">@(userConfig.GetText("execute_selected"))</button>
                     }
                     else
                     {
-                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("execute_selected"))</button>
+                        <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("execute_selected"))</button>
                     }
                 </Authorized>
                 <NotAuthorized>
-                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("execute_selected"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("execute_selected"))</button>
                 </NotAuthorized>
             </AuthorizeView>
         }
@@ -107,8 +107,8 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button class="btn btn-sm btn-primary" @onclick="() => ExecuteSelected()">@(userConfig.GetText("ok"))</button>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="() => ExecuteSelected()">@(userConfig.GetText("ok"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>

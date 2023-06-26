@@ -73,7 +73,7 @@
             <div class="input-group">
                 <input type="text" class="form-control form-control-sm" value="@displayedTimeSelection" />
                 <div class="input-group-append">
-                    <button class="btn btn-sm btn-outline-info" @onclick="SelectTime">@(userConfig.GetText("change"))</button>
+                    <button type="button" class="btn btn-sm btn-outline-info" @onclick="SelectTime">@(userConfig.GetText("change"))</button>
                 </div>
             </div>
         </div>
@@ -98,14 +98,14 @@
     <div class="btn-group m-1 sticky-marker-60" style="z-index: 16;">
         @if (processing == false)
         {
-            <button class="btn btn-sm btn-primary" @onclick="GenerateReport">@(userConfig.GetText("generate_report"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="GenerateReport">@(userConfig.GetText("generate_report"))</button>
         }
         else
         {
-            <button class="btn btn-sm btn-danger" @onclick="() => CancelGeneration()">@(userConfig.GetText("stop_fetching"))</button>
+            <button type="button" class="btn btn-sm btn-danger" @onclick="() => CancelGeneration()">@(userConfig.GetText("stop_fetching"))</button>
         }
         <ReportExport ReportToExport="currentReport"></ReportExport>
-        <button class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(filterInput, deviceFilter, selectedReportType, savedTimeFilter); }">@(userConfig.GetText("save_as_template"))</button>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(filterInput, deviceFilter, selectedReportType, savedTimeFilter); }">@(userConfig.GetText("save_as_template"))</button>
     </div>
 
     <hr />
@@ -339,8 +339,8 @@
         </div>
     </Body>
     <Footer>
-        <button class="btn btn-sm btn-primary" @onclick="SetTimeSelection">@(userConfig.GetText("ok"))</button>
-        <button class="btn btn-sm btn-secondary" @onclick="() => ShowSelectTimeDialog = false">@(userConfig.GetText("cancel"))</button>
+        <button type="button" class="btn btn-sm btn-primary" @onclick="SetTimeSelection">@(userConfig.GetText("ok"))</button>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ShowSelectTimeDialog = false">@(userConfig.GetText("cancel"))</button>
     </Footer>
 </PopUp>
 

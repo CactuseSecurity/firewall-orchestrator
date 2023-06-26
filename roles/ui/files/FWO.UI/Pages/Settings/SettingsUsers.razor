@@ -21,18 +21,18 @@
 <hr />
 
 <div class="form-group row">
-    <button class="btn btn-success m-2" @onclick="AddUser">@(userConfig.GetText("add_new_user"))</button>
+    <button type="button" class="btn btn-success m-2" @onclick="AddUser">@(userConfig.GetText("add_new_user"))</button>
     <AuthorizeView Roles="admin">
         <Authorized>
-            <button class="btn btn-info m-2" @onclick="Resynchronize">@(userConfig.GetText("synchronize"))</button>
+            <button type="button" class="btn btn-info m-2" @onclick="Resynchronize">@(userConfig.GetText("synchronize"))</button>
         </Authorized>
         <NotAuthorized>
-            <button class="btn btn-info m-2" disabled>@(userConfig.GetText("synchronize"))</button>
+            <button type="button" class="btn btn-info m-2" disabled>@(userConfig.GetText("synchronize"))</button>
         </NotAuthorized> 
     </AuthorizeView>
     @if (showSampleRemoveButton)
     {
-        <button class="btn btn-danger m-2" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
+        <button type="button" class="btn btn-danger m-2" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
     }
 </div>
 
@@ -41,15 +41,15 @@
         <Column TableItem="UiUser" Title="@(userConfig.GetText("actions"))" Field="(x => x.DbId)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
-                    <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">@(userConfig.GetText("clone"))</button>
+                    <button type="button" class="btn btn-sm btn-success" @onclick="() => Clone(context)">@(userConfig.GetText("clone"))</button>
                     @if(context.isInternal())
                     {
-                        <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">@(userConfig.GetText("edit"))</button>
+                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => Edit(context)">@(userConfig.GetText("edit"))</button>
                     }
-                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
                     @if(context.isInternal())
                     {
-                        <button class="btn btn-sm btn-info" @onclick="() => RequestResetPassword(context)">@(userConfig.GetText("reset_password"))</button>
+                        <button type="button" class="btn btn-sm btn-info" @onclick="() => RequestResetPassword(context)">@(userConfig.GetText("reset_password"))</button>
                     }
                 </div>
             </Template>
@@ -189,13 +189,13 @@
         <div class="btn-group">
             <AuthorizeView Roles="admin">
                 <Authorized>
-                    <button class="btn btn-sm btn-primary" @onclick="() => Save()">@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="() => Save()">@(userConfig.GetText("save"))</button>
                 </Authorized>
                 <NotAuthorized>
-                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                 </NotAuthorized> 
             </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -222,13 +222,13 @@
         <div class="btn-group">
             <AuthorizeView Roles="admin">
                 <Authorized>
-                    <button class="btn btn-sm btn-primary" @onclick="() => ResetPassword()">@(userConfig.GetText("set"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="() => ResetPassword()">@(userConfig.GetText("set"))</button>
                 </Authorized>
                 <NotAuthorized>
-                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("set"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("set"))</button>
                 </NotAuthorized> 
             </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>

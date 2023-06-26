@@ -265,10 +265,10 @@
             {
                 <AuthorizeView Roles="admin, requester, fw-admin">
                     <Authorized>
-                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveReqTask">@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveReqTask">@(userConfig.GetText("save"))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
             }
@@ -276,10 +276,10 @@
             {
                 <AuthorizeView Roles="admin, planner, fw-admin">
                     <Authorized>
-                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteReqTask">@(userConfig.GetText("change_state"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteReqTask">@(userConfig.GetText("change_state"))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("change_state"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("change_state"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
             }
@@ -290,12 +290,12 @@
                         <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitApproveTask">@(userConfig.GetText("approve"))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("approve"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("approve"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
             }
 
-            <button class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>

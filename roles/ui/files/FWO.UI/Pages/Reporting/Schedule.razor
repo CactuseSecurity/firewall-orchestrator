@@ -8,7 +8,7 @@
 
 <h3>@(userConfig.GetText("schedule"))</h3>
 
-<button class="btn btn-sm btn-success mb-1" @onclick="() => { scheduledReportInEdit = new ScheduledReport() { RepeatInterval = Interval.Never }; ShowSaveScheduledReportDialog = true; }">@(userConfig.GetText("add"))</button>
+<button type="button" class="btn btn-sm btn-success mb-1" @onclick="() => { scheduledReportInEdit = new ScheduledReport() { RepeatInterval = Interval.Never }; ShowSaveScheduledReportDialog = true; }">@(userConfig.GetText("add"))</button>
 
 <Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="ScheduledReport" Items="scheduledReports" PageSize="0">
     <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("actions"))">
@@ -16,8 +16,8 @@
             @if (context.Owner.DbId == uiUserDbId || authenticationState!.User.IsInRole("admin"))
             {
                 <div class="btn-group">
-                    <button class="btn btn-sm btn-warning" @onclick="() => { scheduledReportInEdit = context; actDate = actTime = context.StartTime; ShowEditScheduledReportDialog = true; }">@(userConfig.GetText("edit"))</button>
-                    <button class="btn btn-sm btn-danger" @onclick="() => { scheduledReportInEdit = context; ShowDeleteScheduledReportDialog = true; }">@(userConfig.GetText("delete"))</button>
+                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => { scheduledReportInEdit = context; actDate = actTime = context.StartTime; ShowEditScheduledReportDialog = true; }">@(userConfig.GetText("edit"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => { scheduledReportInEdit = context; ShowDeleteScheduledReportDialog = true; }">@(userConfig.GetText("delete"))</button>
                 </div>
             }
         </Template>
@@ -142,8 +142,8 @@
         </div>
     </Body>
     <Footer>
-        <button class="btn btn-sm btn-primary" @onclick="async () => await (ShowSaveScheduledReportDialog ? SaveScheduledReport() : EditScheduledReport())">@(userConfig.GetText("save"))</button>
-        <button class="btn btn-sm btn-secondary" @onclick="() => ShowEditScheduledReportDialog = ShowSaveScheduledReportDialog = false">@(userConfig.GetText("cancel"))</button>
+        <button type="button" class="btn btn-sm btn-primary" @onclick="async () => await (ShowSaveScheduledReportDialog ? SaveScheduledReport() : EditScheduledReport())">@(userConfig.GetText("save"))</button>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ShowEditScheduledReportDialog = ShowSaveScheduledReportDialog = false">@(userConfig.GetText("cancel"))</button>
     </Footer>
 </PopUp>
 
@@ -152,8 +152,8 @@
         <p>@(userConfig.GetText("U2002")) "@scheduledReportInEdit.Name" ?</p>
     </Body>
     <Footer>
-        <button class="btn btn-sm btn-danger" @onclick="DeleteScheduledReport">@(userConfig.GetText("delete"))</button>
-        <button class="btn btn-sm btn-secondary" @onclick="() => ShowDeleteScheduledReportDialog = false">@(userConfig.GetText("cancel"))</button>
+        <button type="button" class="btn btn-sm btn-danger" @onclick="DeleteScheduledReport">@(userConfig.GetText("delete"))</button>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ShowDeleteScheduledReportDialog = false">@(userConfig.GetText("cancel"))</button>
     </Footer>
 </PopUp>
 

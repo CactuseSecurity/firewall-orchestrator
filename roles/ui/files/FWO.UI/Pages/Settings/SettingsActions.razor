@@ -18,15 +18,15 @@
     <h3>@(userConfig.GetText("state_actions"))</h3>
     @(userConfig.GetText("U5317"))
     <hr />
-    <button class="btn btn-sm btn-success" @onclick="AddAction">@(userConfig.GetText("add_action"))</button>
+    <button type="button" class="btn btn-sm btn-success" @onclick="AddAction">@(userConfig.GetText("add_action"))</button>
     <br><br>
     <div class="m-2">
         <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="RequestStateAction" Items="actions" PageSize="0" ColumnReorder="true">
             <Column TableItem="RequestStateAction" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                 <Template>
                     <div class="btn-group">
-                        <button class="btn btn-sm btn-warning" @onclick="() => EditAction(context)">@(userConfig.GetText("edit"))</button>
-                        <button class="btn btn-sm btn-danger" @onclick="() => RequestDeleteAction(context)">@(userConfig.GetText("delete"))</button>
+                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditAction(context)">@(userConfig.GetText("edit"))</button>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteAction(context)">@(userConfig.GetText("delete"))</button>
                     </div>
                 </Template>
             </Column>
@@ -227,13 +227,13 @@
             <div class="btn-group">
                 <AuthorizeView Roles="admin, fw-admin">
                     <Authorized>
-                        <button class="btn btn-sm btn-primary" @onclick="SaveAction">@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="SaveAction">@(userConfig.GetText("save"))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
-                <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+                <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
             </div>
         </Footer>
     </PopUp>

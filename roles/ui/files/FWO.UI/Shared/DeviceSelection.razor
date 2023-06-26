@@ -9,7 +9,7 @@
     <div class="p-3">
         <h5 class="text-left">@(userConfig.GetText("select_device"))</h5>
         <div class="@cssClass">
-            <button class="btn btn-sm btn-dark"
+            <button type="button" class="btn btn-sm btn-dark"
                     @onclick="@((async () => {
                         DeviceFilter.applyFullDeviceSelection(SelectAll);
                         SelectAll = !SelectAll;
@@ -17,7 +17,7 @@
                     }))">
                 @(SelectAll ? selectAllText : clearAllText)
             </button>
-            <button class="btn btn-sm btn-secondary"
+            <button type="button" class="btn btn-sm btn-secondary"
                     @onclick="@((async () => {
                         CollapseAll = !CollapseAll;
                         if(CollapseAll)

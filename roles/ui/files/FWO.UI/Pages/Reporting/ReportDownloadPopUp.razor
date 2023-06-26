@@ -49,7 +49,7 @@
     <Footer>
         @if(!Downloading)
         {
-            <button class="btn btn-sm btn-danger" @onclick="() => Close()">@(userConfig.GetText("close"))</button>
+            <button type="button" class="btn btn-sm btn-danger" @onclick="() => Close()">@(userConfig.GetText("close"))</button>
         }
     </Footer>
 </PopUp>

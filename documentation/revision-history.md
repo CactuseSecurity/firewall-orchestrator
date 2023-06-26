@@ -324,3 +324,9 @@ adding report template format fk and permissions
 
 ### 6.4.6 23.06.2023 DEVELOP
 - new email notification on import changes
+
+### 6.4.7 26.06.2023 DEVELOP
+- hotfix fortiOS importer NAT IP addresses
+- fixing issue during ubuntu OS upgrade with ldap 
+- unifying all buttons in UI
+

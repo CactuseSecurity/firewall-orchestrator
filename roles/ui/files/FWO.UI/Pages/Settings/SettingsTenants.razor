@@ -20,10 +20,10 @@
 <hr />
 
 <div class="form-group row m-0">
-    <button class="btn btn-sm btn-success mr-2 mb-2 mt-2" @onclick="NewTenant">@(userConfig.GetText("add_tenant"))</button>
+    <button type="button" class="btn btn-sm btn-success mr-2 mb-2 mt-2" @onclick="NewTenant">@(userConfig.GetText("add_tenant"))</button>
     @if (showCleanupButton)
     {
-        <button class="btn btn-sm btn-danger m-2" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
+        <button type="button" class="btn btn-sm btn-danger m-2" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
     }
 </div>
 
@@ -32,14 +32,14 @@
         <Column TableItem="Tenant" Title="@(userConfig.GetText("tenant_action"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
-                    <button class="btn btn-sm btn-warning" @onclick="() => EditTenant(context)">@(userConfig.GetText("edit_tenant"))</button>
+                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditTenant(context)">@(userConfig.GetText("edit_tenant"))</button>
                     @if (context.Id != 1)
                     {
-                        <button class="btn btn-sm btn-danger" @onclick="() => RequestDeleteTenant(context)">@(userConfig.GetText("delete_tenant"))</button>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteTenant(context)">@(userConfig.GetText("delete_tenant"))</button>
                     }
                     else
                     {
-                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("U5207"))</button>
+                        <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("U5207"))</button>
                     }
                 </div>
             </Template>
@@ -49,8 +49,8 @@
                 @if (context.Id != 1)
                 {
                     <div class="btn-group">
-                        <button class="btn btn-sm btn-success" @onclick="() => AddDeviceToTenant(context)">@(userConfig.GetText("add_gateway"))</button>
-                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteDeviceFromTenant(context)">@(userConfig.GetText("delete_gateway"))</button>
+                        <button type="button" class="btn btn-sm btn-success" @onclick="() => AddDeviceToTenant(context)">@(userConfig.GetText("add_gateway"))</button>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => DeleteDeviceFromTenant(context)">@(userConfig.GetText("delete_gateway"))</button>
                     </div>
                 }
                 else
@@ -120,13 +120,13 @@
         <div class="btn-group">
             <AuthorizeView Roles="admin">
                 <Authorized>
-                    <button class="btn btn-sm btn-primary" @onclick="SaveTenant">@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="SaveTenant">@(userConfig.GetText("save"))</button>
                 </Authorized>
                 <NotAuthorized>
-                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                 </NotAuthorized> 
             </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -151,13 +151,13 @@
         <div class="btn-group">
             <AuthorizeView Roles="admin">
                 <Authorized>
-                    <button class="btn btn-sm btn-success" @onclick="() => AddDevice(selectedDevice)" @onclick:preventDefault>@(userConfig.GetText("add"))</button>
+                    <button type="button" class="btn btn-sm btn-success" @onclick="() => AddDevice(selectedDevice)" @onclick:preventDefault>@(userConfig.GetText("add"))</button>
                 </Authorized>
                 <NotAuthorized>
-                    <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("add"))</button>
+                    <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("add"))</button>
                 </NotAuthorized> 
             </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -184,13 +184,13 @@
         <div class="btn-group">
             <AuthorizeView Roles="admin">
                 <Authorized>
-                    <button class="btn btn-sm btn-danger" @onclick="async () => await DeleteDevice(selectedDevice)" @onclick:preventDefault>@(userConfig.GetText("delete"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="async () => await DeleteDevice(selectedDevice)" @onclick:preventDefault>@(userConfig.GetText("delete"))</button>
                 </Authorized>
                 <NotAuthorized>
-                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
                 </NotAuthorized> 
             </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>

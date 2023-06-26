@@ -166,7 +166,7 @@
                         <label class="col-form-label col-form-label-sm">@(userConfig.GetText("comments")):</label>
                         @if(ReqHandler.ImplementImplTaskMode)
                         {
-                            <button class="btn btn-sm btn-success" @onclick:preventDefault @onclick="InitAddComment">@(userConfig.GetText("add_comment"))</button>
+                            <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="InitAddComment">@(userConfig.GetText("add_comment"))</button>
                         }
                     </div>
                     <div class="col-sm-11">
@@ -179,7 +179,7 @@
                         <div class="form-group row justify-content-center">
                             @foreach(var action in offeredActions)
                             {
-                                <button class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
+                                <button type="button" class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
                             }
                         </div>
                     </div>
@@ -193,10 +193,10 @@
             {
                 <AuthorizeView Roles="admin, planner, fw-admin">
                     <Authorized>
-                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveImplTask">@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveImplTask">@(userConfig.GetText("save"))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
             }
@@ -204,14 +204,14 @@
             {
                 <AuthorizeView Roles="admin, implementer, reviewer, fw-admin">
                     <Authorized>
-                        <button class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteImplTask">@(userConfig.GetText("change_state"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteImplTask">@(userConfig.GetText("change_state"))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("change_state"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("change_state"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
             }
-            <button class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>

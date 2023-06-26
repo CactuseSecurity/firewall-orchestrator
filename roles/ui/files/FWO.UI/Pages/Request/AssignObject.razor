@@ -29,10 +29,10 @@
                         <div class="col-sm-2">
                             <AuthorizeView Roles="admin, fw-admin, requester, approver, planner, implementer, reviewer">
                                 <Authorized>
-                                    <button class="btn btn-sm btn-success" @onclick="async () => { PrepAssign(); await Assign(StatefulObject); await Close();}" @onclick:preventDefault>@(userConfig.GetText("assign1"))</button>
+                                    <button type="button" class="btn btn-sm btn-success" @onclick="async () => { PrepAssign(); await Assign(StatefulObject); await Close();}" @onclick:preventDefault>@(userConfig.GetText("assign1"))</button>
                                 </Authorized>
                                 <NotAuthorized>
-                                    <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign1"))</button>
+                                    <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign1"))</button>
                                 </NotAuthorized> 
                             </AuthorizeView>
                         </div>
@@ -47,10 +47,10 @@
                         <label id="backAssignedGroup" class="col-sm-8">@StatefulObject.RecentHandler.Name</label>
                         <AuthorizeView Roles="admin, fw-admin, requester, approver, planner, implementer, reviewer">
                             <Authorized>
-                                <button class="btn btn-sm btn-success" @onclick="async () => { await AssignBack(); await Close();}" @onclick:preventDefault>@(userConfig.GetText("assign1"))</button>
+                                <button type="button" class="btn btn-sm btn-success" @onclick="async () => { await AssignBack(); await Close();}" @onclick:preventDefault>@(userConfig.GetText("assign1"))</button>
                             </Authorized>
                             <NotAuthorized>
-                                <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign1"))</button>
+                                <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign1"))</button>
                             </NotAuthorized> 
                         </AuthorizeView>
                     </form>
@@ -60,7 +60,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>

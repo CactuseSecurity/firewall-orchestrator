@@ -31,31 +31,31 @@
                 <Template>
                     @if(alert.Source == GlobalConfig.kAutodiscovery && alert.AlertCode != AlertCode.AutoDiscoveryErrorUnspecific)
                     {
-                        <button class="btn btn-sm btn-primary" @onclick="() => ShowAutodiscDetails(alert)">@(userConfig.GetText("details"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowAutodiscDetails(alert)">@(userConfig.GetText("details"))</button>
                     }
                     else if(alert.AlertCode == AlertCode.NoImport || alert.AlertCode == AlertCode.SuccessfulImportOverdue)
                     {
-                        <button class="btn btn-sm btn-primary" @onclick="() => ShowImportDetails(alert)">@(userConfig.GetText("details"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowImportDetails(alert)">@(userConfig.GetText("details"))</button>
                     }
                     else if(alert.AlertCode == AlertCode.ImportRunningTooLong)
                     {
-                        <button class="btn btn-sm btn-primary" @onclick="() => ShowImportRollback(alert)">@(userConfig.GetText("details"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowImportRollback(alert)">@(userConfig.GetText("details"))</button>
                     }
                     else if(alert.AlertCode == AlertCode.SampleDataExisting)
                     {
-                        <button class="btn btn-sm btn-primary" @onclick="() => ShowRemoveSampleData(alert)">@(userConfig.GetText("details"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowRemoveSampleData(alert)">@(userConfig.GetText("details"))</button>
                     }
                     else
                     {
-                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("details"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("details"))</button>
                     }
                     
                     <AuthorizeView Roles="admin, fw-admin">
                         <Authorized Context="ctx">
-                            <button class="btn btn-sm btn-secondary" @onclick="() => Acknowledge(alert)">@(userConfig.GetText("acknowledge"))</button>
+                            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Acknowledge(alert)">@(userConfig.GetText("acknowledge"))</button>
                         </Authorized>
                         <NotAuthorized Context="ctx">
-                            <button class="btn btn-sm btn-secondary" disabled>@(userConfig.GetText("acknowledge"))</button>
+                            <button type="button" class="btn btn-sm btn-secondary" disabled>@(userConfig.GetText("acknowledge"))</button>
                         </NotAuthorized> 
                     </AuthorizeView>
                 </Template>

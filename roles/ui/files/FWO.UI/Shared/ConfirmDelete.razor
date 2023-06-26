@@ -18,14 +18,14 @@
             {
                 <AuthorizeView Roles="admin">
                     <Authorized>
-                        <button class="btn btn-sm btn-danger" @onclick="() => {PerformAction(); Display = false;}">@(userConfig.GetText("delete"))</button>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => {PerformAction(); Display = false;}">@(userConfig.GetText("delete"))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                        <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
             }
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>

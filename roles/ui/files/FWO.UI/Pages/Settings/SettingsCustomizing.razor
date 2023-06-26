@@ -81,10 +81,10 @@
     <hr />
     <AuthorizeView Roles="admin">
         <Authorized>
-            <button class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
         </Authorized>
         <NotAuthorized>
-            <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
         </NotAuthorized> 
     </AuthorizeView>
     <br><br>

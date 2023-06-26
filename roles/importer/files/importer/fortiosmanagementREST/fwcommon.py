@@ -69,30 +69,30 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
                 fOS_rule.getAccessPolicy(sid, fm_api_url, full_config, limit)
                 # fOS_rule.getNatPolicy(sid, fm_api_url, full_config, limit)
 
-        # now we normalize relevant parts of the raw config and write the results to config2import dict
-        # currently reading zone from objects for backward compat with FortiManager 6.x
-        # fmgr_zone.normalize_zones(full_config, config2import, current_import_id)
+    # now we normalize relevant parts of the raw config and write the results to config2import dict
+    # currently reading zone from objects for backward compat with FortiManager 6.x
+    # fmgr_zone.normalize_zones(full_config, config2import, current_import_id)
 
-        # write normalized networking data to config2import 
-        # this is currently not written to the database but only used for natting decisions
-        # later we will probably store the networking info in the database as well as a basis
-        # for path analysis
+    # write normalized networking data to config2import 
+    # this is currently not written to the database but only used for natting decisions
+    # later we will probably store the networking info in the database as well as a basis
+    # for path analysis
 
-        # normalize_network_data(full_config, config2import, mgm_details)
+    # normalize_network_data(full_config, config2import, mgm_details)
 
-        fOS_user.normalize_users(
-            full_config, config2import, current_import_id, user_scope)
-        fOS_network.normalize_nwobjects(
-            full_config, config2import, current_import_id, nw_obj_scope, jwt=jwt, mgm_id=mgm_details['id'])
-        fOS_service.normalize_svcobjects(
-            full_config, config2import, current_import_id, svc_obj_scope)
-        fOS_user.normalize_users(
-            full_config, config2import, current_import_id, user_scope)
-        fOS_rule.normalize_access_rules(
-            full_config, config2import, current_import_id, mgm_details=mgm_details, jwt=jwt)
-        # fOS_rule.normalize_nat_rules(
-        #     full_config, config2import, current_import_id, jwt=jwt)
-        # fOS_network.remove_nat_ip_entries(config2import)
+    fOS_user.normalize_users(
+        full_config, config2import, current_import_id, user_scope)
+    fOS_network.normalize_nwobjects(
+        full_config, config2import, current_import_id, nw_obj_scope, jwt=jwt, mgm_id=mgm_details['id'])
+    fOS_service.normalize_svcobjects(
+        full_config, config2import, current_import_id, svc_obj_scope)
+    fOS_zone.add_zone_if_missing (config2import, 'global', current_import_id)
+
+    fOS_rule.normalize_access_rules(
+        full_config, config2import, current_import_id, mgm_details=mgm_details, jwt=jwt)
+    # fOS_rule.normalize_nat_rules(
+    #     full_config, config2import, current_import_id, jwt=jwt)
+    # fOS_network.remove_nat_ip_entries(config2import)
     return 0
 
 

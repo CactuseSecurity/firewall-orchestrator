@@ -193,7 +193,10 @@ def collect_uids_from_rulebase(rulebase, nw_uids_found, svc_uids_found, debug_te
         chunk_name = 'nat_rule_chunks'
     else:
         for rule in rulebase:
-            collect_uids_from_rule(rule, nw_uids_found, svc_uids_found)
+            if 'rulebase' in rule:
+                collect_uids_from_rulebase(rule['rulebase'], nw_uids_found, svc_uids_found, debug_text + '.')
+            else:
+                collect_uids_from_rule(rule, nw_uids_found, svc_uids_found)
         return
     for layer_chunk in rulebase[chunk_name]:
         if 'rulebase' in layer_chunk:

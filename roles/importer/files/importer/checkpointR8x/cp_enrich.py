@@ -58,14 +58,13 @@ def enrich_config (config, mgm_details, limit=150, details_level=cp_const.detail
     if noapi == False:
         # if sid is None:
         # TODO: why is the re-genereation of a new sid necessary here?
-
-        if mgm_details['domainUid'] != None:
-            api_domain = mgm_details['domainUid']
-        else:
-            api_domain = mgm_details['configPath']
+        # if mgm_details['domainUid'] != None:
+        #     api_domain = mgm_details['domainUid']
+        # else:
+        #     api_domain = mgm_details['configPath']
         
-        sid = cp_getter.login(mgm_details['import_credential']['user'],mgm_details['import_credential']['secret'],mgm_details['hostname'],mgm_details['port'],api_domain)
-        logger.debug ( "re-logged into api" )
+        # sid = cp_getter.login(mgm_details['import_credential']['user'],mgm_details['import_credential']['secret'],mgm_details['hostname'],mgm_details['port'],api_domain)
+        # logger.debug ( "re-logged into api" )
 
         # if an object is not there:
         #   make api call: show object details-level full uid "<uid>" and add object to respective json
@@ -140,28 +139,29 @@ def enrich_config (config, mgm_details, limit=150, details_level=cp_const.detail
         for missing_obj in missing_svc_object_uids:
             show_params_host = {'details-level':cp_const.details_level,'uid':missing_obj}
             obj = cp_getter.cp_api_call(base_url, 'show-object', show_params_host, sid)
-            obj = obj['object']
-            if (obj['type'] == 'CpmiAnyObject'):
-                json_obj = {"object_type": "services-other", "object_chunks": [ {
-                        "objects": [ {
-                            'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
-                            'comments': 'any svc object checkpoint (hard coded)',
-                            'type': 'service-other', 'ip-protocol': '0'
-                            } ] } ] }
-                config['object_tables'].append(json_obj)
-            elif (obj['type'] == 'Global'):
-                json_obj = {"object_type": "services-other", "object_chunks": [ {
-                        "objects": [ {
-                            'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
-                            'comments': 'Original svc object checkpoint (hard coded)',
-                            'type': 'service-other', 'ip-protocol': '0'
-                            } ] } ] }
-                config['object_tables'].append(json_obj)
-            else:
-                logger.warning ( "missing svc obj (uid=" + missing_obj + ") of unexpected type \"" + obj['type'] +"\"" )
-            logger.debug ( "missing svc obj: " + missing_obj + " added")
+            if 'object' in obj:
+                obj = obj['object']
+                if (obj['type'] == 'CpmiAnyObject'):
+                    json_obj = {"object_type": "services-other", "object_chunks": [ {
+                            "objects": [ {
+                                'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                                'comments': 'any svc object checkpoint (hard coded)',
+                                'type': 'service-other', 'ip-protocol': '0'
+                                } ] } ] }
+                    config['object_tables'].append(json_obj)
+                elif (obj['type'] == 'Global'):
+                    json_obj = {"object_type": "services-other", "object_chunks": [ {
+                            "objects": [ {
+                                'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                                'comments': 'Original svc object checkpoint (hard coded)',
+                                'type': 'service-other', 'ip-protocol': '0'
+                                } ] } ] }
+                    config['object_tables'].append(json_obj)
+                else:
+                    logger.warning ( "missing svc obj (uid=" + missing_obj + ") of unexpected type \"" + obj['type'] +"\"" )
+                logger.debug ( "missing svc obj: " + missing_obj + " added")
 
-        logout_result = cp_getter.cp_api_call(base_url, 'logout', {}, sid)
+        # logout_result = cp_getter.cp_api_call(base_url, 'logout', {}, sid)
     
     logger.debug ( "checkpointR8x/enrich_config - duration: " + str(int(time.time()) - starttime) + "s" )
 

@@ -229,7 +229,6 @@ def parse_single_rule(src_rule, rulebase, layer_name, import_id, rule_num, paren
                 "rule_track":       sanitize(src_rule['track']['type']['name']),
                 "rule_installon":   sanitize(src_rule['install-on'][0]['name']),
                 "rule_time":        sanitize(src_rule['time'][0]['name']),
-                "rule_comment":     sanitize(comments),
                 "rule_name":        sanitize(rule_name),
                 "rule_uid":         sanitize(src_rule['uid']),
                 "rule_implied":     False,
@@ -241,6 +240,8 @@ def parse_single_rule(src_rule, rulebase, layer_name, import_id, rule_num, paren
                 "parent_rule_uid":  sanitize(parent_rule_uid),
                 "last_hit":         sanitize(last_hit)
             }
+            if comments is not None:
+                rule['rule_comment'] = sanitize(comments)
             rulebase.append(rule)
             return rule_num + 1
     return rule_num

@@ -86,7 +86,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
         try: # logout
             logout_result = cp_getter.cp_api_call("https://" + mgm_details['hostname'] + ":" + str(mgm_details['port']) + "/web_api/", 'logout', {}, sid)
         except:
-            raise FwLogoutFailed     # maybe 2Temporary failure in name resolution"
+            raise FwLogoutFailed     # maybe emporary failure in name resolution"
     return 0
 
 

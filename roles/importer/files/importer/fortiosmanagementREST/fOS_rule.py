@@ -9,7 +9,7 @@ import fOS_zone, fOS_getter
 from fwo_log import getFwoLogger
 from fwo_data_networking import get_matching_route_obj, get_ip_of_interface_obj
 import ipaddress
-from fwcommon import resolve_objects
+from fOS_common import resolve_objects
 import time
 
 

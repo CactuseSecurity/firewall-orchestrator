@@ -15,47 +15,23 @@ namespace FWO.Report
     {
         public ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
 
-        public bool GotReportedRuleIds { get; protected set; } = false;
         private const int ColumnCount = 12;
 
-        public async Task GetReportedRuleIds(ApiConnection apiConnection)
-        {
-            List<int> relevantDevIds = DeviceFilter.ExtractSelectedDevIds(Managements);
-            if (relevantDevIds.Count == 0)
-                relevantDevIds = DeviceFilter.ExtractAllDevIds(Managements);
-
-            for (int i = 0; i < Managements.Length; i++)
-            {
-                Dictionary<string, object> ruleQueryVariables = new Dictionary<string, object>();
-                if (Managements[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId != null)
-                {
-                    ruleQueryVariables["importId"] = Managements[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId!;
-                    ruleQueryVariables["devIds"] = relevantDevIds;
-                    Rule[] rules = await apiConnection.SendQueryAsync<Rule[]>(RuleQueries.getRuleIdsOfImport, ruleQueryVariables);
-                    Managements[i].ReportedRuleIds = rules.Select(x => x.Id).Distinct().ToList();
-                }
-            }
-            GotReportedRuleIds = true;
-        }
 
         public override async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<Management[], Task> callback) // to be called when exporting
         {
-            // get rule ids per import (= management)
-            if (!GotReportedRuleIds)
-                await GetReportedRuleIds(apiConnection);
-
             bool gotAllObjects = true; //whether the fetch count limit was reached during fetching
 
             if (!GotObjectsInReport)
             {
-                for (int i = 0; i < Managements.Length; i++)
+                foreach (Management management in Managements)
                 {
-                    if (Managements[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId is not null)
+                    if (management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId is not null)
                     {
                         // set query variables for object query
                         var objQueryVariables = new Dictionary<string, object>
                         {
-                            { "mgmIds", Managements[i].Id },
+                            { "mgmIds", management.Id },
                             { "limit", objectsPerFetch },
                             { "offset", 0 },
                         };
@@ -77,9 +53,6 @@ namespace FWO.Report
 
             int mid = (int)objQueryVariables.GetValueOrDefault("mgmIds")!;
             Management management = Managements.FirstOrDefault(m => m.Id == mid) ?? throw new ArgumentException("Given management id does not exist for this report");
-
-            if (!GotReportedRuleIds)
-                await GetReportedRuleIds(apiConnection);
 
             objQueryVariables.Add("ruleIds", "{" + string.Join(", ", management.ReportedRuleIds) + "}");
             objQueryVariables.Add("importId", management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId!);
@@ -170,6 +143,7 @@ namespace FWO.Report
                 }
                 await callback(Managements);
             }
+            SetReportedRuleIds();
         }
 
         public override string SetDescription()
@@ -188,6 +162,21 @@ namespace FWO.Report
                 }
             }
             return $"{managementCounter} {userConfig.GetText("managements")}, {deviceCounter} {userConfig.GetText("gateways")}, {ruleCounter} {userConfig.GetText("rules")}";
+        }
+
+        private void SetReportedRuleIds()
+        {
+            foreach (Management mgt in Managements)
+            {
+                foreach (Device dev in mgt.Devices.Where(d => (d.Rules != null && d.Rules.Length > 0)))
+                {
+                    foreach (Rule rule in dev.Rules)
+                    {
+                        mgt.ReportedRuleIds.Add(rule.Id);
+                    }
+                }
+                mgt.ReportedRuleIds = mgt.ReportedRuleIds.Distinct().ToList();
+            }
         }
 
         public override string ExportToCsv()

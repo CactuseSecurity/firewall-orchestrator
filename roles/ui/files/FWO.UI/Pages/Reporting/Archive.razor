@@ -4,9 +4,9 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-@page "/archive"
+@page "/report/archive"
 
-<h3>@(userConfig.GetText("archive"))</h3>
+<ReportTabset></ReportTabset>
 
 <Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="ReportFile" Items="archivedReports" PageSize="0">
     <Column TableItem="ReportFile" Title="@(userConfig.GetText("actions"))">
@@ -66,6 +66,7 @@ Show="ShowDownloadReportFileDialog" ShowJson="true" OnClose="() => ShowDownloadR
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
+    private ApiSubscription<ReportFile[]>? archivedReportsSubscription;
     private List<ReportFile> archivedReports = new List<ReportFile>();
 
     private ReportFile reportFileContext = new ReportFile();
@@ -78,12 +79,26 @@ Show="ShowDownloadReportFileDialog" ShowJson="true" OnClose="() => ShowDownloadR
     {
         try
         {
+            // Initial fetch to speed up loading before subscription is established
             archivedReports = (await apiConnection.SendQueryAsync<ReportFile[]>(ReportQueries.getGeneratedReports)).ToList();
+            archivedReportsSubscription = apiConnection.GetSubscription<ReportFile[]>(HandleSubscriptionError, OnReportArchiveUpdate, ReportQueries.subscribeGeneratedReportsChanges);
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("archive_fetch"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("archive_fetch"), userConfig.GetText("archive_upd_err_msg"), true);
         }
+    }
+
+    private async void HandleSubscriptionError(Exception exception)
+    {
+        await InvokeAsync(() => DisplayMessageInUi(exception, userConfig.GetText("archive_tile"), userConfig.GetText("archive_upd_err_msg"), true));
+    }
+
+    private async void OnReportArchiveUpdate(ReportFile[] newArchivedReports)
+    {
+        Log.WriteDebug("Report Archiving", "Received report archive update.");
+        archivedReports = newArchivedReports.ToList();
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task GetGeneratedReportContent(int reportId)

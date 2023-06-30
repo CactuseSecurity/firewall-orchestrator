@@ -10,7 +10,7 @@
 @using FWO.Ui.Pages.Reporting.Reports
 @using System.Diagnostics
 
-@page "/report"
+@page "/report/generation"
 
 @inject ApiConnection Connection
 @inject UserConfig userConfig
@@ -83,32 +83,32 @@
 
 @* ==== Middle div ==== *@
 <div style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px");">
-<h3>@(userConfig.GetText("reporting"))</h3>
+<ReportTabset></ReportTabset>
 
 @* ==== Filter line ==== *@
-    <form class="m-1 position-relative" @onsubmit="GenerateReport">
-        <input style="position:relative; z-index:1; background-color:rgba(0,0,0,0);" translate="no" autocapitalize="off"
-               class="form-control" spellcheck="false" placeholder="Filter" @oninput="TryFilter" @bind="filterInput" />
-        <div style="left:0px; top:0px; color:rgba(0,0,0,0); user-select:none;" translate="no" autocapitalize="off"
-             class="form-control position-absolute whitespace-div" spellcheck="false">
-            <span>@filterFeedbackStart</span><span class="error-underline">@filterFeedbackError</span><span>@filterFeedbackEnd</span>
-        </div>
-    </form>
-
-    <div class="btn-group m-1 sticky-marker-60" style="z-index: 16;">
-        @if (processing == false)
-        {
-            <button type="button" class="btn btn-sm btn-primary" @onclick="GenerateReport">@(userConfig.GetText("generate_report"))</button>
-        }
-        else
-        {
-            <button type="button" class="btn btn-sm btn-danger" @onclick="() => CancelGeneration()">@(userConfig.GetText("stop_fetching"))</button>
-        }
-        <ReportExport ReportToExport="currentReport"></ReportExport>
-        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(filterInput, deviceFilter, selectedReportType, savedTimeFilter); }">@(userConfig.GetText("save_as_template"))</button>
+<form class="m-1 position-relative" @onsubmit="GenerateReport">
+    <input style="position:relative; z-index:1; background-color:rgba(0,0,0,0);" translate="no" autocapitalize="off"
+            class="form-control" spellcheck="false" placeholder="Filter" @oninput="TryFilter" @bind="filterInput" />
+    <div style="left:0px; top:0px; color:rgba(0,0,0,0); user-select:none;" translate="no" autocapitalize="off"
+            class="form-control position-absolute whitespace-div" spellcheck="false">
+        <span>@filterFeedbackStart</span><span class="error-underline">@filterFeedbackError</span><span>@filterFeedbackEnd</span>
     </div>
+</form>
 
-    <hr />
+<div class="btn-group m-1 sticky-marker-60" style="z-index: 16;">
+    @if (processing == false)
+    {
+        <button type="button" class="btn btn-sm btn-primary" @onclick="GenerateReport">@(userConfig.GetText("generate_report"))</button>
+    }
+    else
+    {
+        <button type="button" class="btn btn-sm btn-danger" @onclick="() => CancelGeneration()">@(userConfig.GetText("stop_fetching"))</button>
+    }
+    <ReportExport ReportToExport="currentReport"></ReportExport>
+    <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(filterInput, deviceFilter, selectedReportType, savedTimeFilter); }">@(userConfig.GetText("save_as_template"))</button>
+</div>
+
+<hr />
 
 @* ==== Templates ==== *@
     <ReportTemplateComponent OnTemplateLoad="

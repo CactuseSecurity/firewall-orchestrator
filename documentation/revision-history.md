@@ -330,3 +330,6 @@ adding report template format fk and permissions
 - fixing issue during ubuntu OS upgrade with ldap 
 - unifying all buttons in UI
 
+### 6.4.8 29.06.2023 DEVELOP
+- hotfix fortiOS importer: replacing ambiguous import statement
+

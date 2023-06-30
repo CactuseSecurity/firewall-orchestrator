@@ -35,10 +35,10 @@ def send_mail(recipient_list, subject, body, fwo_config):
 
 
 def send_change_notification_mail(fwo_config, number_of_changes, mgm_name, mgm_id):
-    if 'impChangeNotifyActive' in fwo_config and bool(fwo_config['impChangeNotifyActive']):
+    if 'impChangeNotifyActive' in fwo_config and bool(fwo_config['impChangeNotifyActive']) and 'impChangeNotifyRecipients' in fwo_config:
         send_mail(
             fwo_config['impChangeNotifyRecipients'].split(','),
-            fwo_config['impChangeNotifySubject'],
-            fwo_config['impChangeNotifyBody'] + ": " + str(number_of_changes) + ", Management: " + mgm_name + " (id=" + mgm_id + ")",
+            fwo_config['impChangeNotifySubject'] if 'impChangeNotifySubject' in fwo_config else "firewall orchestrator change notification",
+            fwo_config['impChangeNotifyBody'] + ": " if 'impChangeNotifyBody' in fwo_config else  str(number_of_changes) + ", Management: " + mgm_name + " (id=" + mgm_id + ")",
             fwo_config
         )

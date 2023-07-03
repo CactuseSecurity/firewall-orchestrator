@@ -333,3 +333,5 @@ adding report template format fk and permissions
 ### 6.4.8 29.06.2023 DEVELOP
 - hotfix fortiOS importer: replacing ambiguous import statement
 
+### 6.4.9 03.07.2023 DEVELOP
+- fix sample group role path

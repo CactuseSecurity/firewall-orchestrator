@@ -4300,7 +4300,17 @@
                   "permission": {
                     "columns": [
                       "ldap_connection_id",
-                      "ldap_tenant_level"
+                      "ldap_server",
+                      "ldap_port",
+                      "ldap_tls",
+                      "ldap_searchpath_for_users",
+                      "ldap_searchpath_for_roles",
+                      "ldap_tenant_level",
+                      "tenant_id",
+                      "ldap_type",
+                      "ldap_name",
+                      "ldap_global_tenant_name",
+                      "active"
                     ],
                     "filter": {}
                   }
@@ -12569,6 +12579,23 @@
                       "tenant_create"
                     ],
                     "filter": {}
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "tenant_id",
+                      "tenant_name",
+                      "tenant_projekt",
+                      "tenant_comment",
+                      "tenant_report",
+                      "tenant_can_view_all_devices",
+                      "tenant_is_superadmin",
+                      "tenant_create"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 },
                 {

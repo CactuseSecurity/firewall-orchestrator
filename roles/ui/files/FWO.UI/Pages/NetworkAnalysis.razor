@@ -9,6 +9,7 @@
 @inject UserConfig userConfig
 
 @page "/network_analysis"
+@attribute [Authorize(Roles = "admin, fw-admin, planner, auditor")]
 
 <h3>@(userConfig.GetText("network_analysis"))</h3>
 

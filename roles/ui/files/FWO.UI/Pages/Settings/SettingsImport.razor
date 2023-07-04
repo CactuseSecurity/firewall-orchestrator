@@ -48,7 +48,7 @@
     </form>
     <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyRecipients")):</label>
-        <div class="col-sm-2">
+        <div class="col-sm-2" data-toggle="tooltip" title="@(userConfig.GetText("U5320"))">
             <input type="text" class="form-control form-control-sm w-1000" @bind="configData!.ImpChangeNotifyRecipients" />
         </div>
     </form>

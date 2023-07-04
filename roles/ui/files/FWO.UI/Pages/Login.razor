@@ -57,13 +57,13 @@
             <div class="shadow-sm card p-3" style="width: 250px;">
                 <form class="d-flex flex-column">
                     <div class="form-group">
-                        <input type="password" class="form-control @InputClass" id="OldPasswordInput" placeholder="@(userConfig.GetText("old_password"))" @bind="oldPassword" @bind:event="oninput" @onkeypress="ClearInputClass">
+                        <input type="password" class="form-control @InputClass" id="OldPasswordInput" placeholder="@(userConfig.GetText("old_password"))" @bind="oldPassword" @bind:event="oninput" @onkeypress="KeyHandler">
                     </div>
                     <div class="form-group">
-                        <input type="password" class="form-control @InputClass" id="NewPasswordInput1" placeholder="@(userConfig.GetText("new_password"))" @bind="newPassword1" @bind:event="oninput" @onkeypress="ClearInputClass">
+                        <input type="password" class="form-control @InputClass" id="NewPasswordInput1" placeholder="@(userConfig.GetText("new_password"))" @bind="newPassword1" @bind:event="oninput" @onkeypress="KeyHandler">
                     </div>
                     <div class="form-group">
-                        <input type="password" class="form-control @InputClass" id="NewPasswordInput2" placeholder="@(userConfig.GetText("new_password"))" @bind="newPassword2" @bind:event="oninput" @onkeypress="ClearInputClass">
+                        <input type="password" class="form-control @InputClass" id="NewPasswordInput2" placeholder="@(userConfig.GetText("new_password"))" @bind="newPassword2" @bind:event="oninput" @onkeypress="KeyHandler">
                     </div>
                     @if (passwordChangeInProgress == false)
                     {
@@ -129,17 +129,13 @@
         }
     }
 
-    private void ClearInputClass(KeyboardEventArgs e)
-    {
-        InputClass = "";
-    }
-
     private async Task KeyHandler(KeyboardEventArgs ev)
     {
         if (ev.Code == "Enter")
         {
             await LoginSubmit();
         }
+        InputClass = "";         // clearing InputClass
     }
 
     private async Task LoginSubmit()

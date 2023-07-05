@@ -136,7 +136,7 @@ def get_config_value(fwo_api_base_url, jwt, key='limit'):
 
 def get_config_values(fwo_api_base_url, jwt, keyFilter='limit'):
     query_variables = {'keyFilter': keyFilter+"%"}
-    config_query = "query getConf($keyFilter: String) {  config(where: {config_key: {_ilike: $keyFilter}}) { config_key config_value } }"
+    config_query = "query getConf($keyFilter: String) { config(where: {config_key: {_ilike: $keyFilter}}) { config_key config_value } }"
     result = call(fwo_api_base_url, jwt, config_query, query_variables=query_variables, role='importer')
     if 'data' in result and 'config' in result['data']:
         resultArray = result['data']['config']

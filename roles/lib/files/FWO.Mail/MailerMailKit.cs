@@ -28,7 +28,17 @@ namespace FWO.Mail
 
         public string? Body { get; }
 
-        public MailData(List<string> to, string subject, string? body = null, string? from = null, string? displayName = null, string? replyTo = null, string? replyToName = null, List<string>? bcc = null, List<string>? cc = null)
+        public MailData(
+            List<string> to,
+            string subject,
+            string? body = null,
+            string? from = null,
+            string? displayName = null,
+            string? replyTo = null,
+            string? replyToName = null,
+            List<string>? bcc = null,
+            List<string>? cc = null
+        )
         {
             // Receiver
             To = to;
@@ -40,7 +50,7 @@ namespace FWO.Mail
             DisplayName = displayName;
             ReplyTo = replyTo;
             ReplyToName = replyToName;
-            
+
             // Content
             Subject = subject;
             Body = body;
@@ -61,7 +71,12 @@ namespace FWO.Mail
             EmailConn = emailConn;
         }
 
-        public async Task<bool> SendAsync(MailData mailData, EmailConnection emailConn, CancellationToken ct = default, bool mailFormatHtml = false)
+        public async Task<bool> SendAsync(
+            MailData mailData,
+            EmailConnection emailConn,
+            CancellationToken ct = default,
+            bool mailFormatHtml = false
+        )
         {
             try
             {
@@ -83,7 +98,7 @@ namespace FWO.Mail
                     mail.To.Add(MailboxAddress.Parse(mailAddress));
 
                 // Set Reply to if specified in mail data
-                if(!string.IsNullOrEmpty(mailData.ReplyTo))
+                if (!string.IsNullOrEmpty(mailData.ReplyTo))
                     mail.ReplyTo.Add(new MailboxAddress(mailData.ReplyToName, mailData.ReplyTo));
 
                 // BCC
@@ -91,7 +106,9 @@ namespace FWO.Mail
                 if (mailData.Bcc != null)
                 {
                     // Get only addresses where value is not null or with whitespace. x = value of address
-                    foreach (string mailAddress in mailData.Bcc.Where(x => !string.IsNullOrWhiteSpace(x)))
+                    foreach (
+                        string mailAddress in mailData.Bcc.Where(x => !string.IsNullOrWhiteSpace(x))
+                    )
                         mail.Bcc.Add(MailboxAddress.Parse(mailAddress.Trim()));
                 }
 
@@ -99,7 +116,9 @@ namespace FWO.Mail
                 // Check if a CC address was supplied in the request
                 if (mailData.Cc != null)
                 {
-                    foreach (string mailAddress in mailData.Cc.Where(x => !string.IsNullOrWhiteSpace(x)))
+                    foreach (
+                        string mailAddress in mailData.Cc.Where(x => !string.IsNullOrWhiteSpace(x))
+                    )
                         mail.Cc.Add(MailboxAddress.Parse(mailAddress.Trim()));
                 }
                 #endregion
@@ -125,13 +144,30 @@ namespace FWO.Mail
                 switch (emailConn.Encryption)
                 {
                     case EmailEncryptionMethod.None:
-                        await smtp.ConnectAsync(emailConn.ServerAddress, emailConn.Port, SecureSocketOptions.None, ct);
+                        await smtp.ConnectAsync(
+                            emailConn.ServerAddress,
+                            emailConn.Port,
+                            SecureSocketOptions.None,
+                            ct
+                        );
                         break;
                     case EmailEncryptionMethod.StartTls:
-                        await smtp.ConnectAsync(emailConn.ServerAddress, emailConn.Port, SecureSocketOptions.StartTls, ct);
+                        smtp.ServerCertificateValidationCallback = (s, c, h, e) => true; //accept all SSL certificates
+                        await smtp.ConnectAsync(
+                            emailConn.ServerAddress,
+                            emailConn.Port,
+                            SecureSocketOptions.StartTls,
+                            ct
+                        );
                         break;
                     case EmailEncryptionMethod.Tls:
-                        await smtp.ConnectAsync(emailConn.ServerAddress, emailConn.Port, SecureSocketOptions.SslOnConnect, ct);
+                        smtp.ServerCertificateValidationCallback = (s, c, h, e) => true; //accept all SSL certificates
+                        await smtp.ConnectAsync(
+                            emailConn.ServerAddress,
+                            emailConn.Port,
+                            SecureSocketOptions.SslOnConnect,
+                            ct
+                        );
                         break;
                 }
                 if (emailConn.User != null && emailConn.User != "")
@@ -140,11 +176,10 @@ namespace FWO.Mail
                 }
                 await smtp.SendAsync(mail, ct);
                 await smtp.DisconnectAsync(true, ct);
-                
+
                 #endregion
 
                 return true;
-
             }
             catch (Exception)
             {

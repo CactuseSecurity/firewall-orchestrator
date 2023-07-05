@@ -238,6 +238,8 @@ INSERT INTO txt VALUES ('report_type',		    'German', 	'Report-Typ');
 INSERT INTO txt VALUES ('report_type',		    'English', 	'Report Type');
 INSERT INTO txt VALUES ('report_time',		    'German', 	'Report-Zeit');
 INSERT INTO txt VALUES ('report_time',		    'English', 	'Report Time');
+INSERT INTO txt VALUES ('generation',		    'German', 	'Generierung');
+INSERT INTO txt VALUES ('generation',		    'English', 	'Generation');
 INSERT INTO txt VALUES ('change',		        'German', 	'&Auml;ndern');
 INSERT INTO txt VALUES ('change',		        'English', 	'Change');
 INSERT INTO txt VALUES ('shortcut',		        'German', 	'Abk&uuml;rzung');
@@ -496,7 +498,7 @@ INSERT INTO txt VALUES ('Months', 		        'German',	'Monat(e)');
 INSERT INTO txt VALUES ('Months', 		        'English',	'Month(s)');
 INSERT INTO txt VALUES ('Years', 		        'German',	'Jahr(e)');
 INSERT INTO txt VALUES ('Years', 		        'English',	'Year(s)');
-INSERT INTO txt VALUES ('schedule_fetch',       'German', 	'Abholen der Termine');
+INSERT INTO txt VALUES ('schedule_fetch',       'German', 	'Laden der Termine');
 INSERT INTO txt VALUES ('schedule_fetch',       'English', 	'Report Schedule Fetch');
 INSERT INTO txt VALUES ('save_scheduled_report','German',	'Termin speichern');
 INSERT INTO txt VALUES ('save_scheduled_report','English',	'Save scheduled report');
@@ -504,6 +506,10 @@ INSERT INTO txt VALUES ('edit_scheduled_report','German',	'Termin bearbeiten');
 INSERT INTO txt VALUES ('edit_scheduled_report','English',	'Edit scheduled report');
 INSERT INTO txt VALUES ('delete_scheduled_report','German',	'Termin l&ouml;schen');
 INSERT INTO txt VALUES ('delete_scheduled_report','English','Delete scheduled report');
+INSERT INTO txt VALUES ('schedule_tile',		'German',	'Terminplan');
+INSERT INTO txt VALUES ('schedule_tile',		'English',	'Report schedule');
+INSERT INTO txt VALUES ('schedule_upd_err_msg',	'German',	'Das Laden der terminierten Reports f&uuml;hrte zu einem Fehler.');
+INSERT INTO txt VALUES ('schedule_upd_err_msg',	'English',	'Loading the scheduled reports resulted in an error.');
 
 -- archive
 INSERT INTO txt VALUES ('download',				'German', 	'Herunterladen');
@@ -526,6 +532,10 @@ INSERT INTO txt VALUES ('fetch_report',		    'German', 	'Erstellten Report holen
 INSERT INTO txt VALUES ('fetch_report',		    'English', 	'Fetch downloads of generated report');
 INSERT INTO txt VALUES ('delete_report',		'German', 	'Erstellten Report l&ouml;schen');
 INSERT INTO txt VALUES ('delete_report',		'English', 	'Delete generated report');
+INSERT INTO txt VALUES ('archive_tile',			'German',	'Report Archivierung');
+INSERT INTO txt VALUES ('archive_tile',			'English',	'Report archiving');
+INSERT INTO txt VALUES ('archive_upd_err_msg',	'German',	'Das Laden der archivierten Reports f&uuml;hrte zu einem Fehler.');
+INSERT INTO txt VALUES ('archive_upd_err_msg',	'English',	'Loading the archived reports resulted in an error.');
 
 -- workflow
 INSERT INTO txt VALUES ('request',              'German', 	'Antrag');
@@ -921,6 +931,8 @@ INSERT INTO txt VALUES ('password_policy',      'German', 	'Passworteinstellunge
 INSERT INTO txt VALUES ('password_policy',      'English', 	'Password Policy');
 INSERT INTO txt VALUES ('email_settings',       'German', 	'Email-Einstellungen');
 INSERT INTO txt VALUES ('email_settings',       'English', 	'Email settings');
+INSERT INTO txt VALUES ('importer_settings',    'German', 	'Importer-Einstellungen');
+INSERT INTO txt VALUES ('importer_settings',    'English', 	'Importer settings');
 INSERT INTO txt VALUES ('edit_email',           'German', 	'Email-Einstellungen editieren');
 INSERT INTO txt VALUES ('edit_email',           'English', 	'Edit email settings');
 INSERT INTO txt VALUES ('email_sender',         'German', 	'Email-Absendeadresse');
@@ -1185,6 +1197,14 @@ INSERT INTO txt VALUES ('importSuppressCertificateWarnings',      'German', 	'Ze
 INSERT INTO txt VALUES ('importSuppressCertificateWarnings',      'English', 	'Suppress certificate warnings');
 INSERT INTO txt VALUES ('fwApiElementsPerFetch','German', 	'FW API - Pro Abruf geholte Elemente');
 INSERT INTO txt VALUES ('fwApiElementsPerFetch','English', 	'FW API - Elements per fetch');
+INSERT INTO txt VALUES ('impChangeNotifyRecipients','German', 	'Empf&auml;nger-Email-Adressen f&uuml;r &Auml;nderungen');
+INSERT INTO txt VALUES ('impChangeNotifyRecipients','English', 	'Recipient email addresses for change notifications');
+INSERT INTO txt VALUES ('impChangeNotifySubject',   'German', 	'Titel der &Auml;nderungsbenachrichtigung');
+INSERT INTO txt VALUES ('impChangeNotifySubject',   'English',  'Subject of change notification emails');
+INSERT INTO txt VALUES ('impChangeNotifyBody',      'German', 	'Text der &Auml;nderungsbenachrichtigung');
+INSERT INTO txt VALUES ('impChangeNotifyBody',      'English', 	'Body of change notification emails');
+INSERT INTO txt VALUES ('impChangeNotifyActive',    'German', 	'&Auml;nderungsbenachrichtigung aktiv?');
+INSERT INTO txt VALUES ('impChangeNotifyActive',    'English', 	'Change notification active?');
 INSERT INTO txt VALUES ('autoDiscoverSleepTime','German', 	'Autodiscover-Intervall (in Stunden)');
 INSERT INTO txt VALUES ('autoDiscoverSleepTime','English', 	'Auto-discovery sleep time (in hours)');
 INSERT INTO txt VALUES ('autoDiscoverStartAt',  'German', 	'Autodiscover-Start');

@@ -4,8 +4,8 @@
 
 <div class="w-100 card @Class">
     <div class="btn-group w-100">
-        <button class="btn btn-sm btn-@Style" @onclick="ToggleCollapse"> <span class="oi oi-@(show ? "collapse-up" : "collapse-down")"></span> </button>
-        <button class="btn btn-sm btn-block btn-@Style disabled text-left" @ondblclick="ToggleCollapse">
+        <button type="button" class="btn btn-sm btn-@Style" @onclick="ToggleCollapse"> <span class="oi oi-@(show ? "collapse-up" : "collapse-down")"></span> </button>
+        <button type="button" class="btn btn-sm btn-block btn-@Style disabled text-left" @ondblclick="ToggleCollapse">
             @if (UseHtmlTitle)
                 @TitleWithHtml
              else

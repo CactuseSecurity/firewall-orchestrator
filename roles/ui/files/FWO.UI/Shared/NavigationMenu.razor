@@ -4,6 +4,7 @@
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 @inject IJSRuntime jsRuntime
+@inject NavigationManager navigationManager
 
 <nav class="navbar navbar-expand-xl navbar-dark bg-dark shadow w-100">
     <a class="navbar-brand" href="#">
@@ -19,11 +20,11 @@
         <ul class="navbar-nav mr-auto">
             <AuthorizeView Roles="admin, fw-admin, reporter, reporter-viewall, auditor">
                 <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="/report">
+                    <a href="/report/generation" class="nav-link @(navigationManager.Uri.Contains("/report/") ? "active" : "")">
                         <span class="oi oi-spreadsheet"></span> @(userConfig.GetText("reporting"))
-                    </NavLink>
+                    </a>
                 </li>
-                <li class="nav-item px-2">
+@*                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="/schedule">
                         <span class="oi oi-calendar"></span> @(userConfig.GetText("scheduling"))
                     </NavLink>
@@ -32,7 +33,7 @@
                     <NavLink class="nav-link" href="/archive">
                         <span class="oi oi-box"></span> @(userConfig.GetText("archive"))
                     </NavLink>
-                </li>
+                </li> *@
             </AuthorizeView>
             <AuthorizeView Roles="admin, requester, fw-admin, auditor, approver, planner, implementer, reviewer">
                 <li class="nav-item px-2">
@@ -100,7 +101,7 @@
 
     [Parameter]
     public bool ShowAlert { get; set; }
-    
+
     [Parameter]
     public EventCallback<bool> ShowAlertChanged { get; set; }
 

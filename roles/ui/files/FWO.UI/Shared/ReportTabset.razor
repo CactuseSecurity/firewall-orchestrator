@@ -1,0 +1,13 @@
+﻿@inject UserConfig userConfig
+
+<ul class="nav nav-tabs nav-fill sticky-marker mb-3">
+	<li class="nav-item">
+		<NavLink href="/report/generation" class="nav-link text-dark">@userConfig.GetText("generation")</NavLink>
+	</li>
+	<li class="nav-item">
+		<NavLink href="/report/schedule" class="nav-link text-dark">@userConfig.GetText("scheduling")</NavLink>
+	</li>
+	<li class="nav-item">
+		<NavLink href="/report/archive" class="nav-link text-dark">@userConfig.GetText("archive")</NavLink>
+	</li>
+</ul>

@@ -28,7 +28,7 @@ svc_obj_table_names = group_svc_obj_types + simple_svc_obj_types + [ 'CpmiAnyObj
 api_obj_types = nw_obj_table_names + svc_obj_table_names  # all obj table names to look at during import
 
 cp_specific_object_types = [    # used for fetching enrichment data via "get object" separately (no specific API call)
-    'simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiVsxClusterNetobj', 'CpmiVsxClusterMember', 
+    'simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiVsxClusterNetobj', 'CpmiVsxClusterMember', 'CpmiVsNetobj',
     'CpmiAnyObject', 'CpmiClusterMember', 'CpmiGatewayPlain', 'CpmiHostCkp', 'CpmiGatewayCluster', 'checkpoint-host', 
     'cluster-member'
 ]

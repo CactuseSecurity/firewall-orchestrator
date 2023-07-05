@@ -39,6 +39,7 @@
       dest: "{{ middleware_server_base_dir }}"
       owner: "{{ fworch_user }}"
       group: "{{ fworch_group }}"
+    tags: [ 'test' ]
 
   - name: install python3-openssl for openssl key generation and unprivileged user
     package:

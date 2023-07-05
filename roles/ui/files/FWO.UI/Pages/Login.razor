@@ -28,15 +28,15 @@
             <div class="shadow-sm card p-3" style="width: 250px;">
                 <form class="d-flex flex-column">
                     <div class="form-group">
-                        <input type="text" class="form-control @InputClass" id="UsernameInput" placeholder="@(globalConfig.GetText("username"))" @bind="Username" @bind:event="oninput" @onkeypress="ClearInputClass" @ref="usernameInput">
+                        <input type="text" class="form-control @InputClass" id="UsernameInput" placeholder="@(globalConfig.GetText("username"))" @bind="Username" @bind:event="oninput" @onkeypress="@KeyHandler" @ref="usernameInput">
                     </div>
                     <div class="form-group">
-                        <input type="password" class="form-control @InputClass" id="PasswordInput" placeholder="@(globalConfig.GetText("password"))" @bind="Password" @bind:event="oninput" @onkeypress="ClearInputClass">
+                        <input type="password" class="form-control @InputClass" id="PasswordInput" placeholder="@(globalConfig.GetText("password"))" @bind="Password" @bind:event="oninput" @onkeypress="@KeyHandler">
                     </div>
                     @if (loginInProgress == false)
                     {
-                        <button class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit">@(globalConfig.GetText("login"))</button>
-                        @* <button class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit"><div class="oi oi-account-login"></div></button> *@
+                        <button type="button" class="btn btn-block btn-primary" @onclick:preventDefault="true" @onkeypress="@KeyHandler" @onclick="LoginSubmit">@(globalConfig.GetText("login"))</button>
+                        @* <button type="button" class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit"><div class="oi oi-account-login"></div></button> *@
                     }
                     else
                     {
@@ -57,17 +57,17 @@
             <div class="shadow-sm card p-3" style="width: 250px;">
                 <form class="d-flex flex-column">
                     <div class="form-group">
-                        <input type="password" class="form-control @InputClass" id="OldPasswordInput" placeholder="@(userConfig.GetText("old_password"))" @bind="oldPassword" @bind:event="oninput" @onkeypress="ClearInputClass">
+                        <input type="password" class="form-control @InputClass" id="OldPasswordInput" placeholder="@(userConfig.GetText("old_password"))" @bind="oldPassword" @bind:event="oninput" @onkeypress="KeyHandler">
                     </div>
                     <div class="form-group">
-                        <input type="password" class="form-control @InputClass" id="NewPasswordInput1" placeholder="@(userConfig.GetText("new_password"))" @bind="newPassword1" @bind:event="oninput" @onkeypress="ClearInputClass">
+                        <input type="password" class="form-control @InputClass" id="NewPasswordInput1" placeholder="@(userConfig.GetText("new_password"))" @bind="newPassword1" @bind:event="oninput" @onkeypress="KeyHandler">
                     </div>
                     <div class="form-group">
-                        <input type="password" class="form-control @InputClass" id="NewPasswordInput2" placeholder="@(userConfig.GetText("new_password"))" @bind="newPassword2" @bind:event="oninput" @onkeypress="ClearInputClass">
+                        <input type="password" class="form-control @InputClass" id="NewPasswordInput2" placeholder="@(userConfig.GetText("new_password"))" @bind="newPassword2" @bind:event="oninput" @onkeypress="KeyHandler">
                     </div>
                     @if (passwordChangeInProgress == false)
                     {
-                        <button class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="ChangePassword"><div class="oi oi-account-login"></div></button>
+                        <button type="button" class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="ChangePassword"><div class="oi oi-account-login"></div></button>
                     }
                     else
                     {
@@ -129,9 +129,13 @@
         }
     }
 
-    private void ClearInputClass(KeyboardEventArgs e)
+    private async Task KeyHandler(KeyboardEventArgs ev)
     {
-        InputClass = "";
+        if (ev.Code == "Enter")
+        {
+            await LoginSubmit();
+        }
+        InputClass = "";         // clearing InputClass
     }
 
     private async Task LoginSubmit()

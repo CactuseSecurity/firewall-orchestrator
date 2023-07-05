@@ -173,7 +173,7 @@
                 <Authorized>
                     @if (!recertCalcInProgress)
                     {
-                        <button class="btn btn-sm btn-info" @onclick:preventDefault="true" @onclick="@( async () => { 
+                        <button type="button" class="btn btn-sm btn-info" @onclick:preventDefault="true" @onclick="@( async () => { 
                             recertCalcInProgress = true; 
                             if (await recertRefresh.RecalcRecerts())
                             {
@@ -189,7 +189,7 @@
                     <br>
                 </Authorized>
                 <NotAuthorized>
-                    <button class="btn btn-sm btn-info" disabled>@(userConfig.GetText("recalc_now"))</button>
+                    <button type="button" class="btn btn-sm btn-info" disabled>@(userConfig.GetText("recalc_now"))</button>
                 </NotAuthorized>
             </AuthorizeView>
         </div>
@@ -197,10 +197,10 @@
     <hr />
     <AuthorizeView Roles="admin">
         <Authorized>
-            <button class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
         </Authorized>
         <NotAuthorized>
-            <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
         </NotAuthorized>
     </AuthorizeView>
     <br><br>

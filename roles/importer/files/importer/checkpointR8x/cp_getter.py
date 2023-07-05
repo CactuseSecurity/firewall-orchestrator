@@ -193,7 +193,10 @@ def collect_uids_from_rulebase(rulebase, nw_uids_found, svc_uids_found, debug_te
         chunk_name = 'nat_rule_chunks'
     else:
         for rule in rulebase:
-            collect_uids_from_rule(rule, nw_uids_found, svc_uids_found)
+            if 'rulebase' in rule:
+                collect_uids_from_rulebase(rule['rulebase'], nw_uids_found, svc_uids_found, debug_text + '.')
+            else:
+                collect_uids_from_rule(rule, nw_uids_found, svc_uids_found)
         return
     for layer_chunk in rulebase[chunk_name]:
         if 'rulebase' in layer_chunk:
@@ -239,37 +242,21 @@ def get_broken_object_uids(all_uids_from_obj_tables, all_uids_from_rules):
     return list(set(broken_uids))
 
 
-def get_inline_layer_names_from_rulebase(rulebase, inline_layers):
-    logger = getFwoLogger()
-    if 'layerchunks' in rulebase:
-        for chunk in rulebase['layerchunks']:
-            if 'rulebase' in chunk:
-                for rules_chunk in chunk['rulebase']:
-                    get_inline_layer_names_from_rulebase(rules_chunk, inline_layers)
-    else:
-        if 'rulebase' in rulebase:
-            # add section header, but only if it does not exist yet (can happen by chunking a section)
-            for rule in rulebase['rulebase']:
-                if 'inline-layer' in rule:
-                    inline_layers.append(rule['inline-layer']['name'])
-                if 'name' in rule and rule['name'] == "Placeholder for domain rules":
-                    logger.debug ("getter - found domain rules reference with uid " + rule["uid"])
-
-        if 'rule-number' in rulebase:   # not a rulebase but a single rule
-            if 'inline-layer' in rulebase:
-                inline_layers.append(rulebase['inline-layer']['name'])
-                # get_inline_layer_names_from_rulebase(rulebase, inline_layers)
-
-
-def get_layer_from_api_as_dict (api_v_url, sid, show_params_rules, layername):
+def get_layer_from_api_as_dict (api_v_url, sid, show_params_rules, layername, access_type='access', collection_type='rulebase'):
+    # access_type: access / nat
+    # collection_type: rulebase / layer
     logger = getFwoLogger()
     current_layer_json = { "layername": layername, "layerchunks": [] }
     current=0
     total=current+1
     while (current<total) :
+
         show_params_rules['offset']=current
+        if collection_type=='layer':
+            show_params_rules['name']=layername
+
         try:
-            rulebase = cp_api_call(api_v_url, 'show-access-rulebase', show_params_rules, sid)
+            rulebase = cp_api_call(api_v_url, 'show-' + access_type + '-rulebase', show_params_rules, sid)
             current_layer_json['layerchunks'].append(rulebase)
         except:
             logger.error("could not find layer " + layername)
@@ -291,12 +278,39 @@ def get_layer_from_api_as_dict (api_v_url, sid, show_params_rules, layername):
                 current=rulebase['to']
             else:
                 raise Exception ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(rulebase))
-        if fwo_globals.debug_level>6:
-            logger.debug ( "get_layer_from_api_as_dict current offset: "+ str(current) )
+
+    #################################################################################
+    # adding inline and domain layers (if they exist)
+    add_inline_layers (current_layer_json, api_v_url, sid, show_params_rules)    
+
     return current_layer_json
 
 
-def get_nat_rules_from_api_as_dict (api_host, api_port, api_v_url, sid, show_params_rules):
+def add_inline_layers (rulebase, api_v_url, sid, show_params_rules, access_type='access', collection_type='layer'):
+
+    if 'layerchunks' in rulebase:
+        for chunk in rulebase['layerchunks']:
+            if 'rulebase' in chunk:
+                for rules_chunk in chunk['rulebase']:
+                    add_inline_layers(rules_chunk, api_v_url, sid, show_params_rules)
+    else:
+        if 'rulebase' in rulebase:
+            rulebase_idx = 0
+            for rule in rulebase['rulebase']:
+                if 'inline-layer' in rule:
+                    inline_layer_name = rule['inline-layer']['name']
+                    if fwo_globals.debug_level>5:
+                        logger.debug ( "found inline layer " + inline_layer_name )
+                    inline_layer = get_layer_from_api_as_dict (api_v_url, sid, show_params_rules, inline_layer_name, access_type=access_type, collection_type=collection_type)
+                    rulebase['rulebase'][rulebase_idx+1:rulebase_idx+1] = inline_layer['layerchunks']  #### insert inline layer here
+                    rulebase_idx += len(inline_layer['layerchunks'])
+
+                if 'name' in rule and rule['name'] == "Placeholder for domain rules":
+                    logger.debug ("getter - found domain rules reference with uid " + rule["uid"])
+                rulebase_idx += 1
+
+
+def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules):
     logger = getFwoLogger()
     nat_rules = { "nat_rule_chunks": [] }
     current=0

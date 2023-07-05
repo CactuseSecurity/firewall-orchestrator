@@ -52,9 +52,8 @@ def collect_users_from_rulebase(rulebase, users):
         for rule in rulebase:
             collect_users_from_rule(rule, users)
 
+
 # the following is only used within new python-only importer:
-
-
 def parse_user_objects_from_rulebase(rulebase, users, import_id):
     collect_users_from_rulebase(rulebase, users)
     for user_name in users.keys():

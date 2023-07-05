@@ -11,6 +11,7 @@
 @using System.Diagnostics
 
 @page "/report/generation"
+@attribute [Authorize(Roles = "admin, fw-admin, reporter, reporter-viewall, auditor")]
 
 @inject ApiConnection Connection
 @inject UserConfig userConfig

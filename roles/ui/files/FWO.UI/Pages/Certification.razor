@@ -9,6 +9,7 @@
 @using FWO.Middleware.Client
 
 @page "/certification"
+@attribute [Authorize(Roles = "admin, recertifier, auditor")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig

@@ -153,7 +153,7 @@ namespace FWO.Config.Api
                 while (cont)
                 {
                     begin = plainText.IndexOf(startLink, index);
-                    if (begin > 0)
+                    if (begin >= 0)
                     {
                         end = plainText.IndexOf("\"", begin + startLink.Length);
                         if (end > 0)

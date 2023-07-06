@@ -350,6 +350,9 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationStateTask { get; set; } = null!;
+
     public double reportGenerationDuration;
     private bool processing = false;
     private CancellationTokenSource tokenSource = new CancellationTokenSource();
@@ -609,7 +612,8 @@
                 RecertShowAnyMatch = recertShowAnyMatch,
                 RecertificationDisplayPeriod = recertLookAheadDays
             };
-            reportParams = new ReportTemplate(filterInput, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter);
+            var tenant_filtering = AuthenticationStateTask!.Result.User.IsInRole("reporter") || AuthenticationStateTask!.Result.User.IsInRole("recertifier");
+            reportParams = new ReportTemplate(filterInput, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter, tenant_filtering);
             currentReport = ReportBase.ConstructReport(reportParams, userConfig);
 
             // save selected managements before resetting
@@ -746,7 +750,8 @@
                 RecertShowAnyMatch = recertShowAnyMatch, 
                 RecertSingleLinePerRule = recertSingleLinePerRule
             };
-            reportParams = new ReportTemplate(input, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter);
+            var tenant_filtering = AuthenticationStateTask!.Result.User.IsInRole("reporter") || AuthenticationStateTask!.Result.User.IsInRole("recertifier");
+            reportParams = new ReportTemplate(input, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter, tenant_filtering);
 
             DynGraphqlQuery query = Compiler.Compile(reportParams);
 

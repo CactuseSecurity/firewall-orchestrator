@@ -1,0 +1,41 @@
+query listNatRulesDetails(
+  $management_id: [Int!]
+  $device_id: [Int!]
+  $rule_id: [bigint!]
+  $rule_uid: [String!]
+  $ruleSrcName: [String!]
+  $ruleSrcIp: [cidr!]
+  $limit: Int
+  $offset: Int
+) {
+  management(
+    where: { mgm_id: { _in: $management_id } }
+    order_by: { mgm_name: asc }
+  ) {
+    id: mgm_id
+    name: mgm_name
+    devices(
+      where: { dev_id: { _in: $device_id } }
+      order_by: { dev_name: asc }
+    ) {
+      dev_id
+      dev_name
+      rules(
+        limit: $limit
+        offset: $offset
+        where: {
+          rule_id: { _in: $rule_id }
+          rule_uid: { _in: $rule_uid }
+          active: { _eq: true }
+          rule_src: { _in: $ruleSrcName }
+          nat_rule: { _eq: true }
+          get_rule_froms_for_tenant: { object: { obj_ip: { _in: $ruleSrcIp } } }
+        }
+        order_by: { rule_num_numeric: asc }
+      ) {
+        mgm_id: mgm_id
+        ...natRuleDetails
+      }
+    }
+  }
+}

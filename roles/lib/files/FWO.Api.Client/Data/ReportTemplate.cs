@@ -28,11 +28,13 @@ namespace FWO.Api.Data
 
         public bool Detailed = false;
 
+        public bool TenantFiltering = false;
+
    
         public ReportTemplate()
         {}
 
-        public ReportTemplate(string filter, DeviceFilter deviceFilter, int? reportType, TimeFilter timeFilter, RecertFilter recertFilter)
+        public ReportTemplate(string filter, DeviceFilter deviceFilter, int? reportType, TimeFilter timeFilter, RecertFilter recertFilter, bool tenantFiltering = false)
         {
             Filter = filter;
             ReportParams.DeviceFilter = deviceFilter;
@@ -40,6 +42,7 @@ namespace FWO.Api.Data
             ReportParams.TimeFilter = timeFilter;
             ReportParams.RecertFilter = recertFilter;
             Detailed = false;
+            TenantFiltering = tenantFiltering;
         }
 
         public bool Sanitize()

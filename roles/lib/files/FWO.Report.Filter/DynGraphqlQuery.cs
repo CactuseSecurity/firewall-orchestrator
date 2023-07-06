@@ -313,7 +313,8 @@ namespace FWO.Report.Filter
                 case ReportType.ResolvedRules:
                 case ReportType.ResolvedRulesTech:
                     query.FullQuery = Queries.compact($@"
-                    {(filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
+                    {(filter.TenantFiltering ? filter.Detailed ? RuleQueries.tenantRuleDetailsForReportFragments : RuleQueries.tenantRuleOverviewFragments
+                                             : filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
 
                     query rulesReport ({paramString}) 
                     {{ 
@@ -393,7 +394,8 @@ namespace FWO.Report.Filter
                 case ReportType.ResolvedChanges:
                 case ReportType.ResolvedChangesTech:
                     query.FullQuery = Queries.compact($@"
-                    {(filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
+                    {(filter.TenantFiltering ? filter.Detailed ? RuleQueries.tenantRuleDetailsForReportFragments : RuleQueries.tenantRuleOverviewFragments
+                                             : filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
 
                     query changeReport({paramString}) {{
                         management(where: {{ hide_in_gui: {{_eq: false }} stm_dev_typ: {{dev_typ_is_multi_mgmt: {{_eq: false}} is_pure_routing_device: {{_eq: false}} }} }} order_by: {{mgm_name: asc}}) 
@@ -437,7 +439,8 @@ namespace FWO.Report.Filter
 
                 case ReportType.NatRules:
                     query.FullQuery = Queries.compact($@"
-                    {(filter.Detailed ? RuleQueries.natRuleDetailsForReportFragments : RuleQueries.natRuleOverviewFragments)}
+                    {(filter.TenantFiltering ? filter.Detailed ? RuleQueries.tenantNatRuleDetailsForReportFragments : RuleQueries.tenantNatRuleOverviewFragments
+                                             : filter.Detailed ? RuleQueries.natRuleDetailsForReportFragments : RuleQueries.natRuleOverviewFragments)}
 
                     query natRulesReport ({paramString}) 
                     {{ 

@@ -1,0 +1,35 @@
+fragment natRuleOverview on rule {
+  ...ruleOverview
+  translate: ruleByXlateRule {
+    rule_src
+    rule_src_refs
+    rule_src_neg
+    rule_dst
+    rule_dst_refs
+    rule_dst_neg
+    rule_svc
+    rule_svc_refs
+    rule_svc_neg
+    rule_froms: get_rule_froms_for_tenant(where: {object:{obj_create:{_lte:$relevantImportId}, obj_last_seen:{_gte:$relevantImportId}}}) {
+      usr {
+        ...userOverview
+      }
+      object {
+        ...networkObjectOverview
+      }
+    }
+    rule_tos: get_rule_tos_for_tenant(where: {object:{obj_create:{_lte:$relevantImportId}, obj_last_seen:{_gte:$relevantImportId}}}) {
+      usr {
+        ...userOverview
+      }
+      object {
+        ...networkObjectOverview
+      }
+    }
+    rule_services(where: {service:{svc_create:{_lte:$relevantImportId}, svc_last_seen:{_gte:$relevantImportId}}}) {
+      service {
+        ...networkServiceOverview
+      }
+    }
+  }
+}

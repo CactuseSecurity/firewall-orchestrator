@@ -335,3 +335,12 @@ adding report template format fk and permissions
 
 ### 6.4.9 03.07.2023 DEVELOP
 - fix sample group role path
+
+### 6.4.10 07.07.2023 DEVELOP
+- fixes in importer change mail notification for encrypted mails
+- fixes for report links to objects
+- fix template name display issue
+- fix UI visibility for fw-admin role (multiple pages)
+- UI login page: allow enter as submit
+- UI reporting: filter objects in rule report
+- adding demo video in github README.MD

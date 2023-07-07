@@ -1,5 +1,5 @@
 ### general settings
-product_version: "6.4.9"
+product_version: "6.4.10"
 ansible_user: "{{ lookup('env', 'USER') }}"
 ansible_become_method: sudo
 ansible_python_interpreter: /usr/bin/python3
@@ -53,8 +53,9 @@ http_proxy_import_parameter: ""
 # use the following syntax for authenticated proxy access:
 # http_proxy=http://USERNAME:PASSWORD@1.2.3.4:8080/
 
-
-debian_testing_version: "11"
+# OS 
+debian_testing_version: "12"
+debian_testing_release_name: trixie
 arch: x86_64
 redhat_major_version: "8"
 redhat_arch: "{{ redhat_major_version }}-{{ arch }}"

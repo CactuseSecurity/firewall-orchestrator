@@ -334,7 +334,7 @@ namespace FWO.Report.Filter
                                         rules(
                                             limit: $limit 
                                             offset: $offset
-                                            where: {{  access_rule: {{_eq: true}} {query.ruleWhereStatement} }} 
+                                            where: {{  access_rule: {{_eq: true}} {(filter.TenantFiltering ? "get_rule_froms_for_tenant: {}" : "")} {query.ruleWhereStatement} }} 
                                             order_by: {{ rule_num_numeric: asc }} )
                                             {{
                                                 mgm_id: mgm_id
@@ -415,6 +415,7 @@ namespace FWO.Report.Filter
                                                 {{_and: [{{change_action:{{_eq:""D""}}}}, {{ruleByOldRuleId: {{access_rule:{{_eq:true}}}}}}]}},
                                                 {{_and: [{{change_action:{{_eq:""C""}}}}, {{rule: {{access_rule:{{_eq:true}}}}}}, {{ruleByOldRuleId: {{access_rule:{{_eq:true}}}}}}]}}
                                             ]                                        
+                                        {(filter.TenantFiltering ? "ruleByOldRuleId: { get_rule_froms_for_tenant: {} }" : "")}
                                         {query.ruleWhereStatement} 
                                     }}
                                     order_by: {{ control_id: asc }}
@@ -455,7 +456,7 @@ namespace FWO.Report.Filter
                                         rules(
                                             limit: $limit 
                                             offset: $offset
-                                            where: {{  nat_rule: {{_eq: true}}, ruleByXlateRule: {{}} {query.ruleWhereStatement} }} 
+                                            where: {{  nat_rule: {{_eq: true}}, ruleByXlateRule: {{}} {(filter.TenantFiltering ? "get_rule_froms_for_tenant: {}" : "")} {query.ruleWhereStatement} }} 
                                             order_by: {{ rule_num_numeric: asc }} )
                                             {{
                                                 mgm_id: mgm_id

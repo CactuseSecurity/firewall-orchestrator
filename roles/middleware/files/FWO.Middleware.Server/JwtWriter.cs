@@ -42,9 +42,9 @@ namespace FWO.Middleware.Server
 
             ClaimsIdentity subject;
             if (user != null)
-                subject = GetClaims(await uiUserHandler.HandleUiUserAtLogin(user));
+                subject = SetClaims(await uiUserHandler.HandleUiUserAtLogin(user));
             else
-                subject = GetClaims(new UiUser() { Name = "", Password = "", Dn = "anonymous", Roles = new List<string> { "anonymous" } });
+                subject = SetClaims(new UiUser() { Name = "", Password = "", Dn = "anonymous", Roles = new List<string> { "anonymous" } });
             // adding uiuser.uiuser_id as x-hasura-user-id to JWT
 
             // Create JWToken
@@ -111,7 +111,7 @@ namespace FWO.Middleware.Server
             return GeneratedToken;
         }
 
-        private ClaimsIdentity GetClaims(UiUser user)
+        private ClaimsIdentity SetClaims(UiUser user)
         {
             ClaimsIdentity claimsIdentity = new ClaimsIdentity();
             claimsIdentity.AddClaim(new Claim(ClaimTypes.Name, user.Name));
@@ -127,7 +127,7 @@ namespace FWO.Middleware.Server
                 claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", $"{{ {string.Join(",", user.Tenant.VisibleDevices)} }}"));
             }
 
-            // we need to create an extra list beacause hasura only accepts an array of roles even if there is only one
+            // we need to create an extra list because hasura only accepts an array of roles even if there is only one
             List<string> hasuraRolesList = new List<string>();
 
             foreach (string role in user.Roles)
@@ -153,6 +153,8 @@ namespace FWO.Middleware.Server
                     defaultRole = "reporter-viewall";
                 else if (hasuraRolesList.Contains("reporter"))
                     defaultRole = "reporter";
+                else if (hasuraRolesList.Contains("recertifier"))
+                    defaultRole = "recertifier";
                 else
                     defaultRole = user.Roles[0]; // pick first role at random (todo: might need to be changed)
             }

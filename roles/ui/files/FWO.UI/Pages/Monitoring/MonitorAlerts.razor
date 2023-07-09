@@ -7,6 +7,7 @@
 @inject UserConfig userConfig
 
 @page "/monitoring/alerts"
+@attribute [Authorize(Roles = "admin, fw-admin, auditor")]
 
 <h3>@(userConfig.GetText("all_alerts"))</h3>
 @(userConfig.GetText("U7101"))

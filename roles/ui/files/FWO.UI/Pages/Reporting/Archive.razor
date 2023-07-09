@@ -5,6 +5,7 @@
 @inject UserConfig userConfig
 
 @page "/report/archive"
+@attribute [Authorize(Roles = "admin, fw-admin, reporter, reporter-viewall, auditor")]
 
 <ReportTabset></ReportTabset>
 

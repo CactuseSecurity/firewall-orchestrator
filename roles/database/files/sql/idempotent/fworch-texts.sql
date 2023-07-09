@@ -1774,6 +1774,8 @@ INSERT INTO txt VALUES ('U5318', 'German',  'Sind sie sicher, dass sie die Einst
 INSERT INTO txt VALUES ('U5318', 'English', 'Are you sure you want to reset the settings? Changes on workflows get lost.');
 INSERT INTO txt VALUES ('U5319', 'German',  'Server f&uuml;r ausgehende Emails zur Benachrichtigung verwalten.');
 INSERT INTO txt VALUES ('U5319', 'English', 'Manage email server for outgoing user notifications.');
+INSERT INTO txt VALUES ('U5320', 'German',  'Mehrere Email-Adressen mit Komma trennen');
+INSERT INTO txt VALUES ('U5320', 'English', 'Multiple email addresses can be separated by using commas');
 
 INSERT INTO txt VALUES ('U5401', 'German',  'Passwort ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5401', 'English', 'Password changed.');
@@ -2031,8 +2033,8 @@ INSERT INTO txt VALUES ('E5415', 'English', 'Password must contain at least one 
 INSERT INTO txt VALUES ('E5421', 'German',  'Schl&uuml;ssel nicht gefunden oder Wert nicht konvertierbar: Wert wird gesetzt auf: ');
 INSERT INTO txt VALUES ('E5421', 'English', 'Key not found or could not convert value to int: taking value: ');
 
-INSERT INTO txt VALUES ('E6001', 'German', 	'Der Relogin war nicht erfolgreich. Haben Sie ein falsches Passwort eingegeben? Schauen Sie f&uuml;r Details bitte in die Logs.');
-INSERT INTO txt VALUES ('E6001', 'English', 'Re-login unsuccessful. Did you enter a wrong password? See log for details!');
+INSERT INTO txt VALUES ('E6001', 'German', 	'Der Re-Login war nicht erfolgreich. Haben Sie ein falsches Passwort eingegeben? Schauen Sie f&uuml;r Details bitte in die Logs.');
+INSERT INTO txt VALUES ('E6001', 'English', 'Re-login failed. Did you enter a wrong password? See log for details.');
 
 INSERT INTO txt VALUES ('E7001', 'German',  'Aktion wurde bereits durchgef&uuml;hrt');
 INSERT INTO txt VALUES ('E7001', 'English', 'Action has already been processed');

@@ -7,7 +7,7 @@
 @inject UserConfig userConfig
 
 <Sidebar PositionLeft="true" Collapsible="false" Resizeable="false" SidebarCssClass="navbar-dark bg-dark" @bind-Width="sidebarWidth">
-    <div class="m-2 mt-4">
+    <div class="mr-2 ml-2 mt-4 mb-4">
         <ul class="navbar-nav flex-column">
             <AuthorizeView Roles="admin, auditor, fw-admin">
                 <li class="nav-item px-2">
@@ -51,7 +51,7 @@
                         <span class="oi oi-data-transfer-download"></span> @(userConfig.GetText("import_logs"))
                     </NavLink>
                 </li>
-            <hr />
+                <hr />
             </AuthorizeView>
             <AuthorizeView Roles="admin, reporter, reporter-viewall, recertifier, auditor, fw-admin">
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5014"))">
@@ -63,8 +63,6 @@
                     </NavLink>
                 </li>
             </AuthorizeView>
-            <hr />
-            <hr />
             <AuthorizeView Roles="admin, auditor">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="monitoring/monitor_all">
@@ -74,8 +72,6 @@
             </AuthorizeView>
         </ul>
     </div>
-    <hr />
-    <hr />
 </Sidebar>
 
     

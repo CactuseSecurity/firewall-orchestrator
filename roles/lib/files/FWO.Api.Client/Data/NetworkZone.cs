@@ -1,4 +1,6 @@
-using System.Text.Json.Serialization; 
+using System.Net;
+using System.Text.Json.Serialization;
+using NetTools;
 using Newtonsoft.Json;
 
 namespace FWO.Api.Data
@@ -6,9 +8,10 @@ namespace FWO.Api.Data
     public class NetworkZone
     {
         [JsonProperty("zone_id"), JsonPropertyName("zone_id")]
-        public int Id { get; set; }
+        public int Id { get; set; } = -1;
 
         [JsonProperty("zone_name"), JsonPropertyName("zone_name")]
         public string Name { get; set; } = "";
+
     }
 }

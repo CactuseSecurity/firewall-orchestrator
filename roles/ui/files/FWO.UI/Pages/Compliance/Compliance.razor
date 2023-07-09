@@ -1,0 +1,12 @@
+﻿@using NetTools;
+@using System.Net;
+
+@page "/compliance"
+
+@layout ComplianceLayout
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+<h3>@(userConfig.GetText("compliance"))</h3>
+

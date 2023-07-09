@@ -1,0 +1,215 @@
+﻿@using NetTools;
+@using System.Diagnostics;
+
+@page "/compliance/zones/configuration"
+
+@layout ComplianceLayout
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+@inject NetworkZoneService networkZoneService
+
+<ZoneTable NetworkZones="networkZoneService.NetworkZones" />
+
+@if (networkZoneInEdit != null)
+{
+	<PopUp Title="@userConfig.GetText("edit_zone_title")" Show="editMode" Large="true" OnClose="() => editMode = false">
+		<Body>
+			<form>
+				<div class="row mb-3">
+					<div class="col-6">
+						<label for="id" class="form-label">@(userConfig.GetText("id"))</label>
+						<input type="text" class="form-control" id="id" readonly value="@(networkZoneInEdit.Id == -1 ? "-" : networkZoneInEdit.Id)">
+					</div>
+					<div class="col-6">
+						<label for="name" class="form-label">@(userConfig.GetText("name"))</label>
+						<input type="text" @bind="networkZoneInEdit.Name" class="form-control" id="name" placeholder="@(userConfig.GetText("name"))">
+					</div>
+				</div>
+				<div class="row mb-2">
+					<div class="col-6">
+						<label>@userConfig.GetText("ip_addresses")</label>
+						<div class="input-group mb-2">
+							<IpAddressInput @bind-IpRange="ipRangeToAdd" />
+							<button @onclick="AddIpRange" type="button" class="btn btn-success" id="addIpAddress">@userConfig.GetText("add")</button>
+						</div>
+						<EditList ElementType="IPAddressRange" Elements="networkZoneInEdit.IPRanges" ElementsToAdd="ipRangesToAdd" ElementsToDelete="ipRangesToDelete">
+							<Display>
+								@DisplayIpRange(context)
+							</Display>
+						</EditList>
+					</div>
+					<div class="col-6">
+						<label>@userConfig.GetText("ip_addresses")</label>
+						<div class="input-group mb-2">
+							<Dropdown Nullable="true" Small="false" ElementToString="@(e => e?.Name ?? "")" InputClass="@communicationZoneInputClass"
+									  Elements="networkZoneService.NetworkZones" @bind-SelectedElement="communicationZoneToAdd">
+								<ElementTemplate>
+									@(context?.Name ?? "")
+								</ElementTemplate>
+							</Dropdown>
+							<button @onclick="AddCommunicationZone" type="button" class="btn btn-success" id="addCommunicationZone">@userConfig.GetText("add")</button>
+						</div>
+						<EditList ElementType="ComplianceNetworkZone" Elements="networkZoneInEdit.AllowedCommunicationDestinations"
+								  ElementsToAdd="communicationZonesToAdd" ElementsToDelete="communicationZonesToDelete">
+							<Display>
+								@context.Name
+							</Display>
+						</EditList>
+					</div>
+				</div>
+			</form>
+		</Body>
+		<Footer>
+			<div class="btn-group">
+				<button type="button" class="btn btn-primary" @onclick="ExecuteNetworkZoneModifications">@(userConfig.GetText("ok"))</button>
+				<button type="button" class="btn btn-secondary" @onclick="CancelModifications">@(userConfig.GetText("cancel"))</button>
+			</div>
+		</Footer>
+	</PopUp>
+}
+
+@if (networkZoneInEdit != null)
+{
+	<PopUp Title="@userConfig.GetText("delete_zone_title")" Show="deleteMode" OnClose="() => deleteMode = false">
+		<Body>
+			@(userConfig.GetText("delete_zone_text").Replace("%", $"\"{networkZoneInEdit.Name}\""))
+		</Body>
+		<Footer>
+			<div class="btn-group">
+				<button type="button" class="btn btn-sm btn-danger" @onclick="ExecuteNetworkZoneDeletion">@(userConfig.GetText("delete"))</button>
+				<button type="button" class="btn btn-sm btn-secondary" @onclick="CancelModifications">@(userConfig.GetText("cancel"))</button>
+			</div>
+		</Footer>
+	</PopUp>
+}
+
+@code
+{
+	bool editMode = false;
+	bool deleteMode = false;
+	ComplianceNetworkZone? networkZoneInEdit = default!;
+
+	List<ComplianceNetworkZone> communicationZonesToDelete = new List<ComplianceNetworkZone>();
+	List<ComplianceNetworkZone> communicationZonesToAdd = new List<ComplianceNetworkZone>();
+	ComplianceNetworkZone? communicationZoneToAdd;
+	string communicationZoneInputClass = "";
+
+	List<IPAddressRange> ipRangesToDelete = new List<IPAddressRange>();
+	List<IPAddressRange> ipRangesToAdd = new List<IPAddressRange>();
+	IPAddressRange? ipRangeToAdd;
+
+	protected override async Task OnInitializedAsync()
+	{
+		await base.OnInitializedAsync();
+		networkZoneService.OnAddZone += OnAddZone;
+		networkZoneService.OnEditZone += OnEditZone;
+		networkZoneService.OnDeleteZone += OnDeleteZone;
+
+		// TODO: remove mockup
+		networkZoneService.NetworkZones[0].AllowedCommunicationDestinations = new ComplianceNetworkZone[] { networkZoneService.NetworkZones[1] };
+		networkZoneService.NetworkZones[1].AllowedCommunicationDestinations = new ComplianceNetworkZone[] { networkZoneService.NetworkZones[2] };
+	}
+
+	private async void OnAddZone()
+	{
+		networkZoneInEdit = new ComplianceNetworkZone();
+		await OpenClearEditForm();
+	}
+
+	private async void OnEditZone(ComplianceNetworkZone networkZone)
+	{
+		networkZoneInEdit = (ComplianceNetworkZone)networkZone.Clone();
+		await OpenClearEditForm();
+	}
+
+	private async Task OpenClearEditForm()
+	{
+		editMode = true;
+		ipRangeToAdd = null;
+		ipRangesToDelete = new List<IPAddressRange>();
+		ipRangesToAdd = new List<IPAddressRange>();
+		communicationZoneToAdd = null;
+		await InvokeAsync(StateHasChanged);
+	}
+
+	private async void OnDeleteZone(ComplianceNetworkZone networkZone)
+	{
+		deleteMode = true;
+		networkZoneInEdit = networkZone;
+		await InvokeAsync(StateHasChanged);
+	}
+
+	private async Task ExecuteNetworkZoneModifications()
+	{
+		Debug.Assert(networkZoneInEdit != null);
+		if (networkZoneInEdit.Id == -1)
+		{
+			// Add case
+		}
+		else
+		{
+			// Edit case
+		}
+
+		editMode = false;
+		StateHasChanged();
+	}
+
+	private async Task ExecuteNetworkZoneDeletion()
+	{
+		deleteMode = false;
+		StateHasChanged();
+	}
+
+	private void CancelModifications()
+	{
+		editMode = false;
+		deleteMode = false;
+		StateHasChanged();
+	}
+
+	private void AddIpRange()
+	{
+		if (ipRangeToAdd != null)
+		{
+			// Insert at the beginning so that the newest ip range is always displayed at the top
+			ipRangesToAdd.Insert(0, ipRangeToAdd);
+		}
+	}
+
+	private void AddCommunicationZone()
+	{
+		if (communicationZoneToAdd != null && !networkZoneInEdit!.AllowedCommunicationDestinations.Contains(communicationZoneToAdd))
+		{
+			// Insert at the beginning so that the newest zone is always displayed at the top
+			communicationZonesToAdd.Insert(0, communicationZoneToAdd);
+			communicationZoneToAdd = null;
+			communicationZoneInputClass = "is-valid";
+		}
+		else
+		{
+			communicationZoneInputClass = "is-invalid";
+		}
+	}
+
+	/// <summary>
+	/// Display the IP address range in CIDR notation if possible and it is not a single IP address
+	/// otherwise display it in the format "first_ip-last_ip".
+	/// </summary>
+	/// <param name="ipAddressRange"></param>
+	/// <returns>IP address range in CIDR / first-last notation</returns>
+	private string DisplayIpRange(IPAddressRange ipAddressRange)
+	{
+		try
+		{
+			int prefixLength = ipAddressRange.GetPrefixLength();
+			if (prefixLength != 32)
+			{
+				return ipAddressRange.ToCidrString();
+			}
+		}
+		catch (FormatException) { }
+		return ipAddressRange.ToString();
+	}
+}

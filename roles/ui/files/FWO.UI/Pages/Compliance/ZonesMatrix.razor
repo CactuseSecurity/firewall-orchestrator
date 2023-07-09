@@ -1,0 +1,51 @@
+﻿@page "/compliance/zones/matrix"
+
+@layout ComplianceLayout
+
+@inject ApiConnection apiConnection
+
+<h3>Network Zone Communication Matrix</h3>
+
+<table class="communication-matrix">
+    <thead>
+        <tr>
+            <th></th>
+            @foreach (var destinationZone in zones)
+            {
+                <th class="zone-header-rotated">
+                    <div class="zone-name-rotated">@(destinationZone.Name)</div>
+                </th>
+            }
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var sourceZone in zones)
+        {
+            <tr>
+                <th class="zone-header">
+                    <div class="zone-name">@(sourceZone.Name)</div>
+                </th>
+                @foreach (var destinationZone in zones)
+                {
+                    var allowed = sourceZone.CommunicationAllowedTo(destinationZone);
+                    <td @onclick="() => JumpToCommunication(sourceZone, destinationZone)" class="communication-cell @(allowed ? "allowed" : "disallowed")" />
+                }
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code 
+{
+    private ComplianceNetworkZone[] zones = new ComplianceNetworkZone[0];
+
+    protected async override Task OnInitializedAsync()
+    {
+        zones = await apiConnection.SendQueryAsync<ComplianceNetworkZone[]>(ComplianceQueries.getNetworkZones);
+    }
+
+    private void JumpToCommunication(ComplianceNetworkZone sourceZone, ComplianceNetworkZone targetZone)
+    {
+        //Log.WriteDebug($"Jumping to communication: {sourceZone} -> {targetZone}");
+    }
+}

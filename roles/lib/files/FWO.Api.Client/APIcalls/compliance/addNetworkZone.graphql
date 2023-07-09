@@ -1,0 +1,17 @@
+mutation insert_compliance_network_zone ($name: String!, $description: String!,
+$ip_ranges: [compliance_ip_range_insert_input!]!, $network_zone_communication: [compliance_network_zone_communication_insert_input!]!) {
+  insert_compliance_network_zone_one (
+    object: {
+      name: $name,
+      description: $description,    
+      ip_ranges: {
+        data: $ip_ranges
+      },
+      network_zone_communication_destinations: {
+        data: $network_zone_communication
+      }
+    }
+  ) {
+    id
+  }
+}

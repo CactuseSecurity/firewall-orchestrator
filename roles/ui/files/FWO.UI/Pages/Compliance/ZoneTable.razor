@@ -1,0 +1,99 @@
+﻿@using NetTools;
+
+@inject UserConfig userConfig
+@inject NetworkZoneService networkZoneService
+
+<button type="button" class="btn btn-sm btn-success mb-1" @onclick="() => networkZoneService.InvokeOnAddZone()">@(userConfig.GetText("add"))</button>
+
+<Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="ComplianceNetworkZone" Items="NetworkZones" PageSize="20">
+	<Column TableItem="ComplianceNetworkZone" Title="@(userConfig.GetText("id"))" Field="@(networkZone => networkZone.Id)" Sortable="true" Filterable="true" />
+	<Column TableItem="ComplianceNetworkZone" Title="@(userConfig.GetText("name"))" Field="@(networkZone => networkZone.Name)" Sortable="true" Filterable="true" />
+	<Column TableItem="ComplianceNetworkZone" Title="@(userConfig.GetText("ip_addresses"))" Context="networkZone">
+		<Template>
+			@if (networkZone.IPRanges.Length == 0)
+			{
+				@(userConfig.GetText("None"))
+			}
+			else if (networkZone.IPRanges.Length == 1)
+			{
+				@(networkZone.IPRanges[0].ToCidrString())
+			}
+			else
+			{
+				<div>
+					<details>
+						<summary class="mb-1 text-truncate">
+							@(networkZone.IPRanges[0].ToCidrString()) ...
+						</summary>
+						<ul>
+							@foreach (IPAddressRange ipAddressRange in networkZone.IPRanges)
+							{
+								<li>@(ipAddressRange.ToCidrString())</li>
+							}
+						</ul>
+					</details>
+				</div>
+			}
+		</Template>
+	</Column>
+	<Column TableItem="ComplianceNetworkZone" Title="@(userConfig.GetText("allowed_communication"))" Context="networkZone">
+		<Template>
+			@if (networkZone.AllowedCommunicationDestinations.Length == 0)
+			{
+				@(userConfig.GetText("None"))
+			}
+			else if (networkZone.AllowedCommunicationDestinations.Length == 1)
+			{
+				@(networkZone.AllowedCommunicationDestinations[0].Name)
+			}
+			else
+			{
+				<div>
+					<details>
+						<summary class="mb-1 text-truncate">
+							@(networkZone.AllowedCommunicationDestinations[0].Name) ...
+						</summary>
+						<ul>
+							@foreach (ComplianceNetworkZone networkZone in networkZone.AllowedCommunicationDestinations)
+							{
+								<li>@(networkZone.Name)</li>
+							}
+						</ul>
+					</details>
+				</div>
+			}
+		</Template>
+	</Column>
+	<AuthorizeView Roles="admin" Context="authContext">
+		<Column TableItem="ComplianceNetworkZone" Title="@(userConfig.GetText("actions"))" Context="networkZone">
+			<Template>
+				<div class="btn-group">
+					<button type="button" class="btn btn-sm btn-warning" @onclick="() => networkZoneService.InvokeOnEditZone(networkZone)">@(userConfig.GetText("edit"))</button>
+					<button type="button" class="btn btn-sm btn-danger" @onclick="() => networkZoneService.InvokeOnDeleteZone(networkZone)">@(userConfig.GetText("delete"))</button>
+				</div>
+			</Template>
+		</Column>
+	</AuthorizeView>
+	<DetailTemplate TableItem="ComplianceNetworkZone" Context="networkZone">
+		<div class="mb-1">@(userConfig.GetText("subzones")):</div>
+		@if (networkZone.Subzones.Length > 0)
+		{
+			<ZoneTable NetworkZones="networkZone.Subzones" />
+		}
+		else
+		{
+			@(userConfig.GetText("None"))
+		}
+	</DetailTemplate>
+</Table>
+
+@code
+{
+	[Parameter]
+	public ComplianceNetworkZone[] NetworkZones { get; set; } = new ComplianceNetworkZone[0];
+
+	protected async override Task OnInitializedAsync()
+	{
+		await base.OnInitializedAsync();
+	}
+}

@@ -24,16 +24,6 @@
                         <span class="oi oi-spreadsheet"></span> @(userConfig.GetText("reporting"))
                     </a>
                 </li>
-@*                 <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="/schedule">
-                        <span class="oi oi-calendar"></span> @(userConfig.GetText("scheduling"))
-                    </NavLink>
-                </li>
-                <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="/archive">
-                        <span class="oi oi-box"></span> @(userConfig.GetText("archive"))
-                    </NavLink>
-                </li> *@
             </AuthorizeView>
             <AuthorizeView Roles="admin, requester, fw-admin, auditor, approver, planner, implementer, reviewer">
                 <li class="nav-item px-2">
@@ -56,11 +46,13 @@
                     </NavLink>
                 </li>
             </AuthorizeView>
-            @* <li class="nav-item px-2">
-            <NavLink class="nav-link" href="#">
-                <span class="oi oi-book"></span> @(userConfig.GetText("documentation"))
-            </NavLink>
-            </li> *@
+            <AuthorizeView Roles="admin, requester, fw-admin, auditor, approver, planner, implementer, reviewer">
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="/compliance">
+                        <span class="oi oi-dashboard"></span> @(userConfig.GetText("compliance"))
+                    </NavLink>
+                </li>
+            </AuthorizeView>
         </ul>
 
         <ul class="navbar-nav">

@@ -1,0 +1,132 @@
+﻿@using NetTools;
+
+@page "/compliance/zones/checks"
+
+@layout ComplianceLayout
+
+@inject UserConfig userConfig
+@inject NetworkZoneService networkZoneService
+
+<div class="mt-2">
+	<div class="d-flex mb-1">
+		<label>@userConfig.GetText("from")</label>
+		<IpAddressInput @bind-IpRange="sourceIpRange" />
+	</div>
+	<div class="d-flex">
+		<label>@userConfig.GetText("to")</label>
+		<IpAddressInput @bind-IpRange="destinationIpRange" />
+	</div>
+	<button @onclick="CheckIpRangeInputCompliance" type="button" class="btn btn-primary">@userConfig.GetText("check")</button>
+	<label>@output</label>
+</div>
+
+@code 
+{
+	IPAddressRange? sourceIpRange;
+	IPAddressRange? destinationIpRange;
+	string output = "";
+
+	private void CheckIpRangeInputCompliance()
+	{
+		if (sourceIpRange != null && destinationIpRange != null)
+		{
+			bool compliant = CheckCompliance
+			(
+				new List<IPAddressRange>() { sourceIpRange },
+				new List<IPAddressRange>() { destinationIpRange },
+				out List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunication
+			);
+
+			output = $"Compliant: {compliant}. ";
+			if (!compliant)
+			{
+				output += $"Violations: {string.Join(", ", forbiddenCommunication.ConvertAll(x => $"{x.Item1.Name} to {x.Item2.Name}"))}";
+			}
+		}
+	}
+
+	private bool CheckRuleCompliance(Rule rule, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunication)
+	{
+		List<IPAddressRange> froms = new List<IPAddressRange>();
+		List<IPAddressRange> tos = new List<IPAddressRange>();
+
+		foreach (NetworkLocation networkLocation in rule.Froms)
+		{
+			// Determine all source ip ranges
+			froms.AddRange(ParseIpRange(networkLocation.Object));
+		}
+		foreach (NetworkLocation networkLocation in rule.Tos)
+		{
+			// Determine all destination ip ranges
+			tos.AddRange(ParseIpRange(networkLocation.Object));
+		}
+
+		return CheckCompliance(froms, tos, out forbiddenCommunication);
+	}
+
+	private bool CheckCompliance(List<IPAddressRange> source, List<IPAddressRange> destination, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunication)
+	{
+		// Determine all matching source zones
+		List<ComplianceNetworkZone> sourceZones = DetermineZones(source);
+
+		// Determine all macthing destination zones
+		List<ComplianceNetworkZone> destinationZones = DetermineZones(destination);
+
+		forbiddenCommunication = new List<(ComplianceNetworkZone, ComplianceNetworkZone)>();
+
+		foreach (ComplianceNetworkZone sourceZone in sourceZones)
+		{
+			foreach (ComplianceNetworkZone destinationZone in destinationZones)
+			{
+				if (!sourceZone.CommunicationAllowedTo(destinationZone))
+				{
+					forbiddenCommunication.Add((sourceZone, destinationZone));
+				}
+			}
+		}
+
+		return forbiddenCommunication.Count == 0;
+	}
+
+
+	private List<ComplianceNetworkZone> DetermineZones(List<IPAddressRange> ranges)
+	{
+		List<ComplianceNetworkZone> result = new List<ComplianceNetworkZone>();
+
+		foreach (ComplianceNetworkZone zone in networkZoneService.NetworkZones)
+		{
+			if (zone.OverlapExists(ranges))
+			{
+				result.Add(zone);
+			}
+		}
+		return result;
+	}
+
+	private List<IPAddressRange> ParseIpRange(NetworkObject networkObject)
+	{
+		List<IPAddressRange> ranges = new List<IPAddressRange>();
+
+		if (networkObject.Type == new NetworkObjectType() { Name = "range" })
+		{
+			ranges.Add(IPAddressRange.Parse($"{networkObject.IP}-{networkObject.IpEnd}"));
+		}
+		else if (networkObject.Type != new NetworkObjectType() { Name = "group" })
+		{
+			for (int j = 0; j < networkObject.ObjectGroupFlats.Length; j++)
+			{
+				if (networkObject.ObjectGroupFlats[j].Object != null)
+				{
+					ranges.AddRange(ParseIpRange(networkObject.ObjectGroupFlats[j].Object!));
+				}
+			}
+		}
+		else
+		{
+			// CIDR notation or single (host) IP can be parsed directly
+			ranges.Add(IPAddressRange.Parse(networkObject.IP));
+		}
+
+		return ranges;
+	}
+}

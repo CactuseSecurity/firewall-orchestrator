@@ -12,50 +12,17 @@ using System.Net;
 using FWO.Logging;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using System.Security.Authentication;
+using System.Security.Principal;
 
 namespace FWO.Ui.Auth
 {
     public class AuthStateProvider : AuthenticationStateProvider
     {
-        private ClaimsPrincipal? authenticatedUser;
+        private ClaimsPrincipal user = new ClaimsPrincipal(new ClaimsIdentity());
 
         public override Task<AuthenticationState> GetAuthenticationStateAsync()
         {
-            var identity = new ClaimsIdentity();
-            var user = new ClaimsPrincipal(identity);
             return Task.FromResult(new AuthenticationState(user));
-        }
-
-        public async Task AuthenticateUser(string jwtString, UserConfig userConfig, ApiConnection apiConnection, CircuitHandlerService circuitHandler)
-        {
-            JwtReader jwt = new JwtReader(jwtString);
-
-            if (jwt.Validate())
-            {
-                ClaimsIdentity identity = new ClaimsIdentity
-                (
-                    claims: jwt.GetClaims(),
-                    authenticationType: "ldap",
-                    nameType: JwtRegisteredClaimNames.UniqueName,
-                    roleType: "role"
-                );
-
-                authenticatedUser = new ClaimsPrincipal(identity);
-
-                await userConfig.SetUserInformation(authenticatedUser.FindFirstValue("x-hasura-uuid"), apiConnection);
-                circuitHandler.User = userConfig.User;
-                userConfig.User.Jwt = jwtString;
-
-                if(!userConfig.User.PasswordMustBeChanged)
-                {
-                    NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(authenticatedUser)));
-                }
-            }
-
-            else
-            {
-                Deauthenticate();
-            }           
         }
 
         public async Task<RestResponse<string>> Login(string username, string password, ApiConnection apiConnection, MiddlewareClient middlewareClient,
@@ -93,27 +60,51 @@ namespace FWO.Ui.Auth
 
         public void Deauthenticate()
         {           
-            ClaimsIdentity identity = new ClaimsIdentity();
-            ClaimsPrincipal emptyUser = new ClaimsPrincipal(identity);
-
-            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(emptyUser)));
+            user = new ClaimsPrincipal(new ClaimsIdentity());
+            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
         }
 
-        public async Task CreateUserContext(string jwt, ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig, CircuitHandlerService circuitHandler)
+        public async Task CreateUserContext(string jwtString, ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig, CircuitHandlerService circuitHandler)
         {
-            // Tell api connection to use jwt as authentication
-            apiConnection.SetAuthHeader(jwt);
-
-            // Tell middleware connection to use jwt as authentication
-            middlewareClient.SetAuthenticationToken(jwt);
-
             // Try to auth with jwt (validates it and creates user context on UI side).
-            await AuthenticateUser(jwt, userConfig, apiConnection, circuitHandler);
+            JwtReader jwt = new JwtReader(jwtString);
+
+            if (jwt.Validate())
+            {
+                // Tell api connection to use jwt as authentication
+                apiConnection.SetAuthHeader(jwtString);
+
+                // Tell middleware connection to use jwt as authentication
+                middlewareClient.SetAuthenticationToken(jwtString);
+
+                ClaimsIdentity identity = new ClaimsIdentity
+                (
+                    claims: jwt.GetClaims(),
+                    authenticationType: "ldap",
+                    nameType: JwtRegisteredClaimNames.UniqueName,
+                    roleType: "role"
+                );
+
+                user = new ClaimsPrincipal(identity);
+
+                await userConfig.SetUserInformation(user.FindFirstValue("x-hasura-uuid"), apiConnection);
+                circuitHandler.User = userConfig.User;
+                userConfig.User.Jwt = jwtString;
+
+                if (!userConfig.User.PasswordMustBeChanged)
+                {
+                    NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
+                }
+            }
+            else
+            {
+                Deauthenticate();
+            }
         }
 
         public void ConfirmPasswordChanged()
         {           
-            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(authenticatedUser ?? throw new Exception("Password cannot be changed because user was not authenticated"))));
+            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user ?? throw new Exception("Password cannot be changed because user was not authenticated"))));
         }
     }
 }

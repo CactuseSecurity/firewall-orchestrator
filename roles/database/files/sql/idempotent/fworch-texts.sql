@@ -1630,7 +1630,33 @@ INSERT INTO txt VALUES ('configuration',        'German', 	'Konfiguration');
 INSERT INTO txt VALUES ('configuration',        'English', 	'Configuration');
 INSERT INTO txt VALUES ('owner_import',         'German', 	'Eigent&uuml;mer-Import');
 INSERT INTO txt VALUES ('owner_import',         'English', 	'Owner Import');
- 
+
+
+-- compliance
+INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
+INSERT INTO txt VALUES ('compliance',			'English', 	'Compliance');
+INSERT INTO txt VALUES ('network_zones',		'German', 	'Netzwerkzonen');
+INSERT INTO txt VALUES ('network_zones',		'English', 	'Network zones');
+INSERT INTO txt VALUES ('matrix',				'German', 	'Matrix');
+INSERT INTO txt VALUES ('matrix',				'English', 	'Matrix');
+INSERT INTO txt VALUES ('checks',				'German', 	'&Uuml;berpr&uuml;fung');
+INSERT INTO txt VALUES ('checks',				'English', 	'Checks');
+INSERT INTO txt VALUES ('check',				'German', 	'&Uuml;berpr&uuml;fen');
+INSERT INTO txt VALUES ('check',				'English', 	'Check');
+INSERT INTO txt VALUES ('allowed_communication','German', 	'Erlaubte Kommunikation');
+INSERT INTO txt VALUES ('allowed_communication','English', 	'Allowed communication');
+INSERT INTO txt VALUES ('subzones',				'German', 	'Subzonen');
+INSERT INTO txt VALUES ('subzones',				'English', 	'subzones');
+INSERT INTO txt VALUES ('edit_zone_title',		'German', 	'Netzwerkzone editieren');
+INSERT INTO txt VALUES ('edit_zone_title',		'English', 	'Edit network zone');
+INSERT INTO txt VALUES ('add_ip_addresses',		'German', 	'IP Adresse(n) hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_ip_addresses',		'English', 	'Add IP Addresses');
+INSERT INTO txt VALUES ('delete_zone_title',	'German', 	'Netzwerkzone l&ouml;schen');
+INSERT INTO txt VALUES ('delete_zone_title',	'English', 	'Delete network zone');
+INSERT INTO txt VALUES ('delete_zone_text',		'German', 	'Sind Sie sich sicher, dass sie die Netzwerkzone % l&ouml;schen wollen?');
+INSERT INTO txt VALUES ('delete_zone_text',		'English', 	'Are you sure you want to delete the network zone %?');
+INSERT INTO txt VALUES ('to',					'German', 	'Nach');
+INSERT INTO txt VALUES ('to',					'English', 	'To');
 
 -- text codes (roughly) categorized: 
 -- U: user texts (explanation or confirmation texts)

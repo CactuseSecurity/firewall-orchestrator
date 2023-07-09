@@ -1,0 +1,43 @@
+mutation update_compliance_network_zone ($network_zone_id: bigint!, $name: String!, $description: String!,
+  $add_ip_ranges: [compliance_ip_range_insert_input!]!, $delete_ip_ranges_exp: [compliance_ip_range_bool_exp!]!,
+	$add_zone_communication: [compliance_network_zone_communication_insert_input!]!, $delete_zone_communication_exp: [compliance_network_zone_communication_bool_exp!]!) {
+    
+  update_compliance_network_zone (
+    where: {id: {_eq: $network_zone_id}}
+    _set: {
+      name: $name,
+      description: $description,    
+    }
+  ) {
+    affected_rows
+  }
+  
+  delete_compliance_ip_range (
+    where: {
+      network_zone_id: {_eq: $network_zone_id},
+      _or: $delete_ip_ranges_exp
+    }
+  ) {
+    affected_rows
+  }
+  
+  insert_compliance_ip_range (
+    objects: $add_ip_ranges
+  ) {
+    affected_rows
+  }
+  
+  delete_compliance_network_zone_communication (
+    where: {
+      _or: $delete_zone_communication_exp
+    }
+  ) {
+    affected_rows
+  }
+  
+  insert_compliance_network_zone_communication (
+    objects: $add_zone_communication
+  ) {
+    affected_rows
+  }
+}

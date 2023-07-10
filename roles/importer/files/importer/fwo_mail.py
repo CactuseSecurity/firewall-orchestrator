@@ -53,6 +53,10 @@ def send_mail(recipient_list, subject, body, fwo_config):
             logger.error("Missing email server address. Double-check your emailServer configuration")
         elif len(fwo_config['emailServer'])==0:
             logger.error("Empty email server address. Double-check your emailServer configuration")
+        elif recipient_list is None:
+            logger.error("Undefined email recipient list. Double-check your email recipient list")
+        elif len(recipient_list)==0:
+            logger.error("Empty email recipient list. Double-check your email recipient list")
         else:
             logger.error("error while sending import change notification email: " +
                                 "emailServer: " + fwo_config['emailServerAddress'] + ", " +
@@ -62,7 +66,6 @@ def send_mail(recipient_list, subject, body, fwo_config):
                                 "impChangeNotifyRecipients: " + str(recipient_list) + ", " +
                                 "error: " + str(e)
             )
-
 
 
 def send_change_notification_mail(fwo_config, number_of_changes, mgm_name, mgm_id):

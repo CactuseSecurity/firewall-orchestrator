@@ -66,6 +66,9 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationStateTask { get; set; } = null!;
+
     [Parameter]
     public int Width { get; set; }
 
@@ -127,6 +130,8 @@
             Dictionary<String, object> queryVars = new Dictionary<string, object>();
             bool gotAllObjects = true;
 
+            var tenant_filtering = AuthenticationStateTask!.Result.User.IsInRole("reporter") || AuthenticationStateTask!.Result.User.IsInRole("recertifier");
+
             switch (rsbTab)
             {
                 case RsbTab.all:
@@ -139,10 +144,16 @@
                     switch (objType)
                     {
                         case ObjCategory.all:
-                            query = ObjectQueries.getAllObjectDetails;
+                            if (tenant_filtering)
+                                query = ObjectQueries.getTenantAllObjectDetails;
+                            else
+                                query = ObjectQueries.getAllObjectDetails;
                             break;
                         case ObjCategory.nobj:
-                            query = ObjectQueries.getNetworkObjectDetails;
+                            if (tenant_filtering)
+                                query = ObjectQueries.getTenantNetworkObjectDetails;
+                            else
+                                query = ObjectQueries.getNetworkObjectDetails;
                             break;
                         case ObjCategory.nsrv:
                             query = ObjectQueries.getNetworkServiceObjectDetails;

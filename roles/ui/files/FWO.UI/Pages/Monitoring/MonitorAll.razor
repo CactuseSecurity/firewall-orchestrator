@@ -5,6 +5,7 @@
 @inject UserConfig userConfig
 
 @page "/monitoring/monitor_all"
+@attribute [Authorize(Roles = "admin, fw-admin, auditor")]
 
 <h3>@(userConfig.GetText("monitoring"))</h3>
 

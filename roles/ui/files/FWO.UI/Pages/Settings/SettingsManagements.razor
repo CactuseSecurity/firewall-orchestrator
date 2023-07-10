@@ -35,7 +35,7 @@
                     <button type="button" class="btn btn-sm btn-success" @onclick="() => Clone(context)">@(userConfig.GetText("clone"))</button>
                     <button type="button" class="btn btn-sm btn-warning" @onclick="() => Edit(context)">@(userConfig.GetText("edit"))</button>
                     @* <AuthorizeView Roles="admin, auditor, fw-admin" Context="ctx"> *@
-                    <AuthorizeView Roles="admin, auditor" Context="ctx">
+                    <AuthorizeView Roles="admin, auditor, fw-admin" Context="ctx">
                         <Authorized>
                             <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
                             @if (context.DeviceType.CanBeSupermanager() || context.DeviceType.CanBeAutodiscovered(context))

@@ -14,10 +14,10 @@ uniquemember: uid=user1{{ sample_postfix }},ou=tenant1{{ sample_postfix }},ou=op
 dn: cn=recertifier,ou=role,{{ openldap_path }}
 changetype: modify
 add: uniquemember
-uniquemember: uid=ownergroup_F{{ sample_postfix }},ou=group,{{ openldap_path }}
+uniquemember: cn=ownergroup_F{{ sample_postfix }},ou=group,{{ openldap_path }}
 
 
 dn: cn=recertifier,ou=role,{{ openldap_path }}
 changetype: modify
 add: uniquemember
-uniquemember: uid=ownergroup_D{{ sample_postfix }},ou=group,{{ openldap_path }}
+uniquemember: cn=ownergroup_D{{ sample_postfix }},ou=group,{{ openldap_path }}

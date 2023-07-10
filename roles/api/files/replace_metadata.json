@@ -4318,7 +4318,17 @@
                   "permission": {
                     "columns": [
                       "ldap_connection_id",
-                      "ldap_tenant_level"
+                      "ldap_server",
+                      "ldap_port",
+                      "ldap_tls",
+                      "ldap_searchpath_for_users",
+                      "ldap_searchpath_for_roles",
+                      "ldap_tenant_level",
+                      "tenant_id",
+                      "ldap_type",
+                      "ldap_name",
+                      "ldap_global_tenant_name",
+                      "active"
                     ],
                     "filter": {}
                   }
@@ -5354,28 +5364,30 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "clearing_import_ran",
-                      "do_not_import",
-                      "force_initial_import",
-                      "hide_in_gui",
+                      "mgm_id",
+                      "dev_typ_id",
+                      "mgm_name",
+                      "mgm_comment",
+                      "tenant_id",
+                      "cloud_tenant_id",
+                      "cloud_subscription_id",
+                      "mgm_create",
+                      "mgm_update",
+                      "import_credential_id",
+                      "ssh_hostname",
+                      "ssh_port",
+                      "last_import_md5_complete_config",
+                      "last_import_attempt",
                       "last_import_attempt_successful",
+                      "do_not_import",
+                      "clearing_import_ran",
+                      "force_initial_import",
                       "config_path",
                       "domain_uid",
+                      "hide_in_gui",
                       "importer_hostname",
-                      "last_import_md5_complete_config",
-                      "mgm_name",
-                      "ssh_hostname",
                       "debug_level",
-                      "dev_typ_id",
-                      "import_credential_id",
-                      "mgm_id",
-                      "multi_device_manager_id",
-                      "ssh_port",
-                      "tenant_id",
-                      "mgm_comment",
-                      "last_import_attempt",
-                      "mgm_create",
-                      "mgm_update"
+                      "multi_device_manager_id"
                     ]
                   }
                 }
@@ -5703,28 +5715,30 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
-                      "clearing_import_ran",
-                      "do_not_import",
-                      "force_initial_import",
-                      "hide_in_gui",
+                      "mgm_id",
+                      "dev_typ_id",
+                      "mgm_name",
+                      "mgm_comment",
+                      "tenant_id",
+                      "cloud_tenant_id",
+                      "cloud_subscription_id",
+                      "mgm_create",
+                      "mgm_update",
+                      "import_credential_id",
+                      "ssh_hostname",
+                      "ssh_port",
+                      "last_import_md5_complete_config",
+                      "last_import_attempt",
                       "last_import_attempt_successful",
+                      "do_not_import",
+                      "clearing_import_ran",
+                      "force_initial_import",
                       "config_path",
                       "domain_uid",
+                      "hide_in_gui",
                       "importer_hostname",
-                      "last_import_md5_complete_config",
-                      "mgm_name",
-                      "ssh_hostname",
                       "debug_level",
-                      "dev_typ_id",
-                      "import_credential_id",
-                      "mgm_id",
-                      "multi_device_manager_id",
-                      "ssh_port",
-                      "tenant_id",
-                      "mgm_comment",
-                      "last_import_attempt",
-                      "mgm_create",
-                      "mgm_update"
+                      "multi_device_manager_id"
                     ],
                     "filter": {},
                     "check": {}
@@ -12619,6 +12633,23 @@
                       "tenant_create"
                     ],
                     "filter": {}
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "tenant_id",
+                      "tenant_name",
+                      "tenant_projekt",
+                      "tenant_comment",
+                      "tenant_report",
+                      "tenant_can_view_all_devices",
+                      "tenant_is_superadmin",
+                      "tenant_create"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 },
                 {

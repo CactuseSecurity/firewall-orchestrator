@@ -45,20 +45,28 @@ def send_mail(recipient_list, subject, body, fwo_config):
         smtp_server.send_message(msg)
         smtp_server.quit() #terminating the server
     except Exception as e:
-        logger.error("error while sending import change notification email: " +
-                            "emailServer: " + fwo_config['emailServerAddress'] + ", " +
-                            "emailSenderAddress: " + senderAddress + ", " +
-                            "emailPort: " + fwo_config['emailPort'] + ", " +
-                            "emailTls: " + str(tlsSetting) + ", " +
-                            "impChangeNotifyRecipients: " + str(recipient_list) + ", " +
-                            "error: " + str(e)
-        )
+        if 'emailPort' not in fwo_config:
+            logger.error("Missing email server port config. Double-check your emailPort configuration")
+        elif int(fwo_config['emailPort'])<1 or int(fwo_config['emailPort'])>65535: 
+            logger.error("Email server port configuration out of bounds: " + str(fwo_config['emailPort']) + ". Double-check your emailPort configuration")
+        elif 'emailServer' not in fwo_config:
+            logger.error("Missing email server address. Double-check your emailServer configuration")
+        elif len(fwo_config['emailServer'])==0:
+            logger.error("Empty email server address. Double-check your emailServer configuration")
+        else:
+            logger.error("error while sending import change notification email: " +
+                                "emailServer: " + fwo_config['emailServerAddress'] + ", " +
+                                "emailSenderAddress: " + senderAddress + ", " +
+                                "emailPort: " + fwo_config['emailPort'] + ", " +
+                                "emailTls: " + str(tlsSetting) + ", " +
+                                "impChangeNotifyRecipients: " + str(recipient_list) + ", " +
+                                "error: " + str(e)
+            )
+
+
 
 def send_change_notification_mail(fwo_config, number_of_changes, mgm_name, mgm_id):
     if 'impChangeNotifyActive' in fwo_config and bool(fwo_config['impChangeNotifyActive']) and 'impChangeNotifyRecipients' in fwo_config:
-        if 'emailPort' in fwo_config and int(fwo_config['emailPort'])>0 and int(fwo_config['emailPort'])<65536 and \
-            'emailServer' in fwo_config and len(fwo_config['emailServer'])>0:
-
             body = ""
             if 'impChangeNotifyBody' in fwo_config:
                 body += fwo_config['impChangeNotifyBody'] + ": "
@@ -69,6 +77,3 @@ def send_change_notification_mail(fwo_config, number_of_changes, mgm_name, mgm_i
                 body,
                 fwo_config
             )
-        else:
-            logger = getFwoLogger()
-            logger.error("error with email server config. Double-check your emailServer and emailPort configuration")

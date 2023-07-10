@@ -344,3 +344,6 @@ adding report template format fk and permissions
 - UI login page: allow enter as submit
 - UI reporting: filter objects in rule report
 - adding demo video in github README.MD
+
+### 6.4.11 10.07.2023 DEVELOP
+- bugfix in importer change mail notification for missing mail server config

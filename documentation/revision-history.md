@@ -345,5 +345,5 @@ adding report template format fk and permissions
 - UI reporting: filter objects in rule report
 - adding demo video in github README.MD
 
-### 6.4.11 07.07.2023 DEVELOP
+### 6.4.11 10.07.2023 DEVELOP
 - bugfix in importer change mail notification for missing mail server config

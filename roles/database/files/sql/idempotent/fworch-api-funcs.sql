@@ -218,3 +218,53 @@ RETURNS SETOF rule_to AS $$
         END IF;
     END;
 $$ LANGUAGE 'plpgsql' STABLE;
+
+
+CREATE OR REPLACE FUNCTION has_relevant_change(cl_rule changelog_rule, hasura_session json)
+RETURNS boolean AS $$
+    DECLARE t_id integer;
+    show boolean DEFAULT false;
+    
+    BEGIN
+        t_id := (hasura_session ->> 'x-hasura-tenant-id')::integer;
+
+        IF t_id IS NULL THEN
+            RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
+        ELSIF t_id = 1 THEN
+            show := true;
+        ELSE
+            IF EXISTS (
+                SELECT diff.obj_id FROM ( -- set of difference between rule_from of old and new rule
+                    SELECT obj_id FROM rule_from WHERE rule_id = cl_rule.old_rule_id EXCEPT SELECT obj_id FROM rule_from WHERE rule_id = cl_rule.new_rule_id
+                    UNION
+                    (SELECT obj_id FROM rule_from WHERE rule_id = cl_rule.new_rule_id EXCEPT SELECT obj_id FROM rule_from WHERE rule_id = cl_rule.old_rule_id)
+                ) AS diff
+                JOIN objgrp_flat ON (obj_id=objgrp_flat_id)
+                JOIN object ON (objgrp_flat_member_id=object.obj_id)
+                JOIN tenant_network ON
+                    (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip)
+                WHERE tenant_id = t_id
+            ) THEN
+                show := true;
+            END IF;
+
+            IF EXISTS (
+                SELECT diff.obj_id FROM ( -- set of difference between rule_to of old and new rule
+                    SELECT obj_id FROM rule_to WHERE rule_id = cl_rule.old_rule_id EXCEPT SELECT obj_id FROM rule_to WHERE rule_id = cl_rule.new_rule_id
+                    UNION
+                    (SELECT obj_id FROM rule_to WHERE rule_id = cl_rule.new_rule_id EXCEPT SELECT obj_id FROM rule_to WHERE rule_id = cl_rule.old_rule_id)
+                ) AS diff
+                JOIN objgrp_flat ON (obj_id=objgrp_flat_id)
+                JOIN object ON (objgrp_flat_member_id=object.obj_id)
+                JOIN tenant_network ON
+                    (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip)
+                WHERE tenant_id = t_id
+            ) THEN
+                show := true;
+            END IF;
+
+        END IF;
+
+        RETURN show;
+    END;
+$$ LANGUAGE 'plpgsql' STABLE;

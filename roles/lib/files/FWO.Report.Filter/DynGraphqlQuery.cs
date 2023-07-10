@@ -415,7 +415,7 @@ namespace FWO.Report.Filter
                                                 {{_and: [{{change_action:{{_eq:""D""}}}}, {{ruleByOldRuleId: {{access_rule:{{_eq:true}}}}}}]}},
                                                 {{_and: [{{change_action:{{_eq:""C""}}}}, {{rule: {{access_rule:{{_eq:true}}}}}}, {{ruleByOldRuleId: {{access_rule:{{_eq:true}}}}}}]}}
                                             ]                                        
-                                        {(filter.TenantFiltering ? "ruleByOldRuleId: { get_rule_froms_for_tenant: {} }" : "")}
+                                        {(filter.TenantFiltering ? "has_relevant_change: {_eq: true}" : "")}
                                         {query.ruleWhereStatement} 
                                     }}
                                     order_by: {{ control_id: asc }}

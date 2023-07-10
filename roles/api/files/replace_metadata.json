@@ -794,6 +794,18 @@
                   }
                 }
               ],
+              "computed_fields": [
+                {
+                  "name": "has_relevant_change",
+                  "definition": {
+                    "function": {
+                      "name": "has_relevant_change",
+                      "schema": "public"
+                    },
+                    "session_argument": "hasura_session"
+                  }
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "auditor",
@@ -902,6 +914,9 @@
                       "change_time",
                       "unique_name"
                     ],
+                    "computed_fields": [
+                      "has_relevant_change"
+                    ],
                     "filter": {
                       "dev_id": {
                         "_in": "x-hasura-visible-devices"
@@ -933,6 +948,9 @@
                       "change_request_info",
                       "change_time",
                       "unique_name"
+                    ],
+                    "computed_fields": [
+                      "has_relevant_change"
                     ],
                     "filter": {
                       "dev_id": {

@@ -56,13 +56,19 @@ def send_mail(recipient_list, subject, body, fwo_config):
 
 def send_change_notification_mail(fwo_config, number_of_changes, mgm_name, mgm_id):
     if 'impChangeNotifyActive' in fwo_config and bool(fwo_config['impChangeNotifyActive']) and 'impChangeNotifyRecipients' in fwo_config:
-        body = ""
-        if 'impChangeNotifyBody' in fwo_config:
-            body += fwo_config['impChangeNotifyBody'] + ": "
-        body += str(number_of_changes) + ", Management: " + mgm_name + " (id=" + mgm_id + ")"
-        send_mail(
-            fwo_config['impChangeNotifyRecipients'].split(','),
-            fwo_config['impChangeNotifySubject'] if 'impChangeNotifySubject' in fwo_config else "firewall orchestrator change notification",
-            body,
-            fwo_config
-        )
+        if 'emailPort' in fwo_config and int(fwo_config['emailPort'])>0 and int(fwo_config['emailPort'])<65536 and \
+            'emailServer' in fwo_config and len(fwo_config['emailServer'])>0:
+
+            body = ""
+            if 'impChangeNotifyBody' in fwo_config:
+                body += fwo_config['impChangeNotifyBody'] + ": "
+            body += str(number_of_changes) + ", Management: " + mgm_name + " (id=" + mgm_id + ")"
+            send_mail(
+                fwo_config['impChangeNotifyRecipients'].split(','),
+                fwo_config['impChangeNotifySubject'] if 'impChangeNotifySubject' in fwo_config else "firewall orchestrator change notification",
+                body,
+                fwo_config
+            )
+        else:
+            logger = getFwoLogger()
+            logger.error("error with email server config. Double-check your emailServer and emailPort configuration")

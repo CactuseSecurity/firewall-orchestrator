@@ -109,6 +109,8 @@
       HTTPS_PROXY:                     "{{ https_proxy }}"
       http_proxy:                      "{{ http_proxy }}"
       https_proxy:                     "{{ https_proxy }}"
+      no_proxy:                        "{{ no_proxy }}"
+      NO_PROXY:                        "{{ no_proxy }}"
 
 - name: show hasura env for debugging
   debug:
@@ -221,6 +223,12 @@
       x-hasura-admin-secret: "{{ api_hasura_admin_secret }}"
       x-hasura-role: "admin"
     body: "{{ lookup('file','replace_metadata.json') | from_json }}"
+  register: web_call_result
+  # changed_when: false
+  # failed_when: false
+  until: web_call_result.status == 200
+  retries: 20 # 20 * 5 seconds
+  delay: 10 # Every 5 seconds
   when: not api_rollback_is_running | bool
   # do not install latest metadata in case of rollback
   environment:

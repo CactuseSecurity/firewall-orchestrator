@@ -1,4 +1,4 @@
-﻿@using BlazorTable
+@using BlazorTable
 @using FWO.Config.Api
 @using FWO.Api.Data
 @using FWO.Report
@@ -12,6 +12,11 @@
 
 @if(Content != null)
 {
+    // InitialContent may be overwritten with data of different rule when rerendering RSB Rule tab objgroups after unselecting a rule
+    if (typeof(InputDataType) == typeof(Rule) && InitialContent != null)
+    {
+        Content = InitialContent;
+    }
     <Collapse Title="@(NameExtractor != null ? NameExtractor(Content) : "")" UseHtmlTitle="@(Tab == RsbTab.rule)" Style="@("primary")" StartToggled="StartCollapsed">
         <TitleWithHtml>
             @if (Content.GetType() == typeof(Rule))

@@ -122,5 +122,12 @@ namespace FWO.Middleware.Client
 
             return jwt.ValidTo - DateTime.UtcNow;
         }
+
+        public string GetRole()
+        {
+            if (jwt == null)
+                throw new ArgumentNullException(nameof(jwt), "Jwt was not validated yet.");
+            return jwt.Claims.FirstOrDefault(claim => claim.Type == "role")?.Value ?? "";
+        }
     }
 }

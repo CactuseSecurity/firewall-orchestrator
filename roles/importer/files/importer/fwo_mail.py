@@ -45,24 +45,38 @@ def send_mail(recipient_list, subject, body, fwo_config):
         smtp_server.send_message(msg)
         smtp_server.quit() #terminating the server
     except Exception as e:
-        logger.error("error while sending import change notification email: " +
-                            "emailServer: " + fwo_config['emailServerAddress'] + ", " +
-                            "emailSenderAddress: " + senderAddress + ", " +
-                            "emailPort: " + fwo_config['emailPort'] + ", " +
-                            "emailTls: " + str(tlsSetting) + ", " +
-                            "impChangeNotifyRecipients: " + str(recipient_list) + ", " +
-                            "error: " + str(e)
-        )
+        if 'emailPort' not in fwo_config:
+            logger.error("Missing email server port config. Double-check your emailPort configuration")
+        elif int(fwo_config['emailPort'])<1 or int(fwo_config['emailPort'])>65535: 
+            logger.error("Email server port configuration out of bounds: " + str(fwo_config['emailPort']) + ". Double-check your emailPort configuration")
+        elif 'emailServer' not in fwo_config:
+            logger.error("Missing email server address. Double-check your emailServer configuration")
+        elif len(fwo_config['emailServer'])==0:
+            logger.error("Empty email server address. Double-check your emailServer configuration")
+        elif recipient_list is None:
+            logger.error("Undefined email recipient list. Double-check your email recipient list")
+        elif len(recipient_list)==0:
+            logger.error("Empty email recipient list. Double-check your email recipient list")
+        else:
+            logger.error("error while sending import change notification email: " +
+                                "emailServer: " + fwo_config['emailServerAddress'] + ", " +
+                                "emailSenderAddress: " + senderAddress + ", " +
+                                "emailPort: " + fwo_config['emailPort'] + ", " +
+                                "emailTls: " + str(tlsSetting) + ", " +
+                                "impChangeNotifyRecipients: " + str(recipient_list) + ", " +
+                                "error: " + str(e)
+            )
+
 
 def send_change_notification_mail(fwo_config, number_of_changes, mgm_name, mgm_id):
     if 'impChangeNotifyActive' in fwo_config and bool(fwo_config['impChangeNotifyActive']) and 'impChangeNotifyRecipients' in fwo_config:
-        body = ""
-        if 'impChangeNotifyBody' in fwo_config:
-            body += fwo_config['impChangeNotifyBody'] + ": "
-        body += str(number_of_changes) + ", Management: " + mgm_name + " (id=" + mgm_id + ")"
-        send_mail(
-            fwo_config['impChangeNotifyRecipients'].split(','),
-            fwo_config['impChangeNotifySubject'] if 'impChangeNotifySubject' in fwo_config else "firewall orchestrator change notification",
-            body,
-            fwo_config
-        )
+            body = ""
+            if 'impChangeNotifyBody' in fwo_config:
+                body += fwo_config['impChangeNotifyBody'] + ": "
+            body += str(number_of_changes) + ", Management: " + mgm_name + " (id=" + mgm_id + ")"
+            send_mail(
+                fwo_config['impChangeNotifyRecipients'].split(','),
+                fwo_config['impChangeNotifySubject'] if 'impChangeNotifySubject' in fwo_config else "firewall orchestrator change notification",
+                body,
+                fwo_config
+            )

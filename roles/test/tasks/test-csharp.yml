@@ -20,3 +20,5 @@
 - name: show test results
   debug:
     var: csharp_tests
+  when: csharp_tests.rc != 0
+  

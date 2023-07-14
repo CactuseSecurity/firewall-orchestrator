@@ -347,3 +347,6 @@ adding report template format fk and permissions
 
 ### 6.4.11 10.07.2023 DEVELOP
 - bugfix in importer change mail notification for missing mail server config
+
+### 6.4.12 14.07.2023 DEVELOP
+- hotfix email port (default 25) was not written to config before

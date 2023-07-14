@@ -1,0 +1,84 @@
+---
+## before running the script make sure to set the correct azure subscription id
+## export AZURE_SUBSCRIPTION_ID="xxx"
+
+- name: Create an Azure VM
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    - name: Create a resource group
+      azure_rm_resourcegroup:
+        name: "{{ cloud_resource_group }}"
+        location: "{{ cloud_location }}"
+        tags:
+          Environment: PROD
+      register: rg
+
+    - debug:
+        var: rg
+
+    - name: Create a virtual network
+      azure_rm_virtualnetwork:
+        resource_group:  "{{ cloud_resource_group }}"
+        name: fworch_network
+        address_prefixes: "{{ cloud_network }}"
+                 
+    - name: Create a subnet
+      azure_rm_subnet:
+        resource_group:  "{{ cloud_resource_group }}"
+        virtual_network: fworch_network
+        name: hosts
+        address_prefix: "{{ cloud_subnet }}"
+
+    - name: Create a public IP address
+      azure_rm_publicipaddress:
+       resource_group:  "{{ cloud_resource_group }}"
+       allocation_method: Static
+       name: fworch_ubuntulinux_pub_ip
+
+    - name: Create a Network Security Group and Open SSH port
+      azure_rm_securitygroup:
+        resource_group:  "{{ cloud_resource_group }}"
+        name: fworch_nsg
+        rules:
+          - name: ssh
+            protocol: Tcp
+            destination_port_range: 22
+            access: Allow
+            priority: 100
+            direction: Inbound 
+          - name: https
+            protocol: Tcp
+            destination_port_range: 443
+            access: Allow
+            priority: 2222
+            direction: Inbound 
+
+    - name: Create a virtual network interface card
+      azure_rm_networkinterface:
+        resource_group: "{{ cloud_resource_group }}"
+        name: fworch_nic
+        virtual_network: fworch_network
+        subnet: hosts
+        public_ip_name: fworch_ubuntulinux_pub_ip
+        security_group: fworch_nsg            
+
+    - name: Create a VM with a managed disk 
+      azure_rm_virtualmachine:
+        resource_group: "{{ cloud_resource_group }}"
+        name: "{{ cloud_vm_name }}"
+        os_type: Linux
+        ssh_password_enabled: false
+        admin_username: "{{ cloud_admin_name }}"
+        ssh_public_keys:
+          - path: /home/{{ cloud_admin_name }}/.ssh/authorized_keys
+            key_data: "{{ cloud_admin_ssh_public_key }}"
+        managed_disk_type: Standard_LRS
+        image:
+          offer: 0001-com-ubuntu-server-focal
+          publisher: "{{ cloud_image_publisher }}"
+          sku: "{{ cloud_image_sku }}"
+          version: latest
+        vm_size: "{{ cloud_vm_size }}"
+        network_interfaces: fworch_nic

@@ -408,7 +408,6 @@
                 {
                     foreach (Rule rule in device.Rules)
                     {
-                        // await InitRecert(rule); // just for test
                         if(rule.Metadata.Recert || rule.Metadata.ToBeRemoved)
                         {
                             rule.DeviceId = device.Id;

@@ -17,8 +17,7 @@
   ignore_errors: false
   environment: "{{ proxy_env }}"
 
-- name: show test results
+- name: show csharp test results in case of errors
   debug:
     var: csharp_tests
   when: csharp_tests.rc != 0
-  

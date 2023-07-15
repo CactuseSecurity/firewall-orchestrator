@@ -60,4 +60,6 @@ In 2020 we decided to re-launch a new
 - bugfix in importer change mail notification for missing mail server config
 
 ### 6.4.12 14.07.2023 DEVELOP
-- hotfix email port (default 25) was not written to config before
+- UI settings: hotfix email port (default 25) was not written to config before
+- splitting revision history into develop and main
+- installer: supress csharp test results on success

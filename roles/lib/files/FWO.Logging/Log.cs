@@ -115,12 +115,12 @@ namespace FWO.Logging
             WriteLog("Warning", Title, Text, callerName, callerFile, callerLineNumber, ConsoleColor.DarkYellow);
         }
 
-        public static void WriteError(string Title, string? Text = null, Exception? Error = null, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
+        public static void WriteError(string Title, string? Text = null, Exception? Error = null, string? User = null, string? Role = null, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
         {
             string DisplayText =
-                (Text != null ?
-                $"{Text}"
-                : "") +
+                (User != null ? $"User: {User}, " : "") +
+                (Role != null ? $"Role: {Role}, " : "") +
+                (Text != null ? $"{Text}" : "") +
                 (Error != null ?
                 "\n ---\n" +
                 $"Exception thrown: \n {Error?.GetType().Name} \n" +

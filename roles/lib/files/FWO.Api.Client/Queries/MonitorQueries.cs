@@ -8,6 +8,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getLogEntrys;
         public static readonly string addUiLogEntry;
         public static readonly string getUiLogEntrys;
+        public static readonly string getAllUiLogEntrys;
         public static readonly string getImportLogEntrys;
         public static readonly string addAlert;
         public static readonly string getOpenAlerts;
@@ -29,6 +30,7 @@ namespace FWO.Api.Client.Queries
 
                 addUiLogEntry = File.ReadAllText(QueryPath + "monitor/addUiLogEntry.graphql");
                 getUiLogEntrys = File.ReadAllText(QueryPath + "monitor/getUiLogEntrys.graphql");
+                getAllUiLogEntrys = File.ReadAllText(QueryPath + "monitor/getAllUiLogEntrys.graphql");
 
                 getImportLogEntrys = File.ReadAllText(QueryPath + "monitor/getImportLogEntrys.graphql");
 

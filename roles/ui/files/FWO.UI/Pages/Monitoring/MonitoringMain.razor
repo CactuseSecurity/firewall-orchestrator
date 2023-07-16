@@ -117,8 +117,8 @@
                 {
                     managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
                 }
+                await Refresh();
             }
-            await Refresh();
         }
         catch (Exception exception)
         {

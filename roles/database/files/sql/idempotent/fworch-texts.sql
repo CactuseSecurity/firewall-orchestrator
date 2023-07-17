@@ -880,6 +880,14 @@ INSERT INTO txt VALUES ('last_certify_date',    'German',   'Datum der letzten R
 INSERT INTO txt VALUES ('last_certify_date',    'English',  'Last recertification date');
 INSERT INTO txt VALUES ('marked_to_be_removed', 'German',   'Als zu l&ouml;schen markiert');
 INSERT INTO txt VALUES ('marked_to_be_removed', 'English',  'Marked to be removed');
+INSERT INTO txt VALUES ('recert_history',       'German',   'Rezertifizierungshistorie');
+INSERT INTO txt VALUES ('recert_history',       'English',  'Recertification history');
+INSERT INTO txt VALUES ('recertified_by',       'German',   'rezertifiziert von');
+INSERT INTO txt VALUES ('recertified_by',       'English',  'recertified by');
+INSERT INTO txt VALUES ('decertified_by',       'German',   'dezertifiziert von');
+INSERT INTO txt VALUES ('decertified_by',       'English',  'decertified by');
+INSERT INTO txt VALUES ('as_owner',             'German',   'als Eigent&uuml;mer');
+INSERT INTO txt VALUES ('as_owner',             'English',  'as Owner');
 INSERT INTO txt VALUES ('decert_date',          'German',   'Dezertifizierungsdatum');
 INSERT INTO txt VALUES ('decert_date',          'English',  'Decertification date');
 INSERT INTO txt VALUES ('recert_comment',       'German',   'Zertifizierungskommentar');

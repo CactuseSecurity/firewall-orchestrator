@@ -194,6 +194,11 @@
                                     // TODO: not able to get this syntactically working, but implicit info is there: ToBeRemoved == NOT DecertificationDate IS NULL *@
                                 <Detail Title="@(userConfig.GetText("decert_date"))" Data="@context.Metadata?.DecertificationDate?.ToString()" />
                                 <Detail Title="@(userConfig.GetText("recert_comment"))" Data="@context.Metadata?.Comment?.ToString()" />
+                                <Detail Title="@(userConfig.GetText("recert_history"))" Data="@(context.Metadata?.RecertHistory.Count > 0 ? ":" : "")" />
+                                @foreach(var recert in context.Metadata?.RecertHistory)
+                                {
+                                    <Detail Title="@(recert.RecertDate.ToString())" Data="@(getHistoryString(recert))" />
+                                }
                             </DetailTemplate>
 
                             <CustomRow TableItem="Rule" IsActiveForItem="(rule => !String.IsNullOrEmpty(rule.SectionHeader))">
@@ -276,5 +281,12 @@
     private OutputLocation getActLocation()
     {
         return Recertification ? OutputLocation.certification : OutputLocation.report;
+    }
+
+    private string getHistoryString(Recertification recert)
+    {
+        string username = new DistName(recert.UserDn).UserName;
+        return $"{userConfig.GetText(recert.Recertified ? "recertified_by" : "decertified_by")} {username} " +
+            $"{userConfig.GetText("as_owner")} {recert.FwoOwner?.Name} {userConfig.GetText("comment")}: {recert.Comment}";
     }
 }

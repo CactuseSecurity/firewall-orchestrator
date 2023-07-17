@@ -41,9 +41,9 @@
         @if (showReloginInput)
         {
             <div class="input-group">
-              <input class="form-control form-control-sm @reloginCssClass" @bind="password" type="password" placeholder="Password" @onkeypress="@(() => reloginCssClass = "")">
+              <input class="form-control form-control-sm @reloginCssClass" @bind="password" type="password" placeholder="Password" @onkeypress="@KeyHandler">
               <div class="input-group-append">
-                <button type="button" class="btn btn-sm btn-primary" @onclick="Relogin">Re-login</button>
+                <button type="button" class="btn btn-sm btn-primary" @onclick="Relogin">Re-login</button> 
               </div>
             </div>
             @if (!string.IsNullOrEmpty(reloginErrorMessage))
@@ -93,6 +93,15 @@
         JwtEventService.OnJwtExpired += OnJwtExpired;
 
         alertSubscription = apiConnection.GetSubscription<List<Alert>>(ApiExceptionHandler, OnAlertUpdate, MonitorQueries.subscribeAlertChanges);
+    }
+
+    private async Task KeyHandler(KeyboardEventArgs ev)
+    {
+        if (ev.Code == "Enter")
+        {
+            reloginCssClass = "";
+            await Relogin();
+        }
     }
 
     private void OnPermissionsChanged(object? sender, string userDn)

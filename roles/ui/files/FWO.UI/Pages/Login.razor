@@ -36,7 +36,6 @@
                     @if (loginInProgress == false)
                     {
                         <button type="button" class="btn btn-block btn-primary" @onclick:preventDefault="true" @onkeypress="@KeyHandler" @onclick="LoginSubmit">@(globalConfig.GetText("login"))</button>
-                        @* <button type="button" class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit"><div class="oi oi-account-login"></div></button> *@
                     }
                     else
                     {

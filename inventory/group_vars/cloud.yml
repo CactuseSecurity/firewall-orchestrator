@@ -1,0 +1,12 @@
+################## cloud ###########################
+
+cloud_vm_name: fworch-vm1
+cloud_admin_name: cadmin
+# cloud_admin_ssh_public_key: ""
+cloud_network: "10.5.0.0/16"
+cloud_subnet: "10.5.1.0/24"
+cloud_location: northcentral
+cloud_image_publisher: canonical
+cloud_image_sku: "20_04-lts"
+cloud_vm_size: "Standard_B2s"
+cloud_resource_group: "fworch_rg"

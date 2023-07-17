@@ -46,19 +46,19 @@ def send_mail(recipient_list, subject, body, fwo_config):
         smtp_server.quit() #terminating the server
     except Exception as e:
         if 'emailPort' not in fwo_config:
-            logger.error("Missing email server port config. Double-check your emailPort configuration")
+            logger.warning("Missing email server port config. Double-check your emailPort configuration")
         elif int(fwo_config['emailPort'])<1 or int(fwo_config['emailPort'])>65535: 
-            logger.error("Email server port configuration out of bounds: " + str(fwo_config['emailPort']) + ". Double-check your emailPort configuration")
+            logger.warning("Email server port configuration out of bounds: " + str(fwo_config['emailPort']) + ". Double-check your emailPort configuration")
         elif 'emailServer' not in fwo_config:
-            logger.error("Missing email server address. Double-check your emailServer configuration")
+            logger.warning("Missing email server address. Double-check your emailServer configuration")
         elif len(fwo_config['emailServer'])==0:
-            logger.error("Empty email server address. Double-check your emailServer configuration")
+            logger.warning("Empty email server address. Double-check your emailServer configuration")
         elif recipient_list is None:
-            logger.error("Undefined email recipient list. Double-check your email recipient list")
+            logger.warning("Undefined email recipient list. Double-check your email recipient list")
         elif len(recipient_list)==0:
-            logger.error("Empty email recipient list. Double-check your email recipient list")
+            logger.warning("Empty email recipient list. Double-check your email recipient list")
         else:
-            logger.error("error while sending import change notification email: " +
+            logger.warning("error while sending import change notification email: " +
                                 "emailServer: " + fwo_config['emailServerAddress'] + ", " +
                                 "emailSenderAddress: " + senderAddress + ", " +
                                 "emailPort: " + fwo_config['emailPort'] + ", " +

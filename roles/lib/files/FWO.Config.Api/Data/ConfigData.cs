@@ -144,7 +144,7 @@ namespace FWO.Config.Api.Data
         public string EmailServerAddress { get; set; } = "";
 
         [JsonProperty("emailPort"), JsonPropertyName("emailPort")]
-        public int EmailPort { get; set; } = 25;
+        public int EmailPort { get; set; }
 
         [JsonProperty("emailTls"), JsonPropertyName("emailTls")]
         public EmailEncryptionMethod EmailTls { get; set; } = EmailEncryptionMethod.None;

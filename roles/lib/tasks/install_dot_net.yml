@@ -7,7 +7,7 @@
       when: ansible_facts['distribution']|lower == 'ubuntu'
 
     - set_fact: distribution_version="{{ debian_testing_version }}"    
-      when: ansible_facts['distribution_release']|lower == 'bookworm'
+      when: ansible_facts['distribution_release']|lower == debian_testing_release_name
 
     # for all distros except ubuntu >=22.04 we need to include a package source
     - block:

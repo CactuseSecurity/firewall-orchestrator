@@ -32,15 +32,17 @@
     text-overflow: ellipsis;
 }
 
-.zone-name-rotated {
-    cursor: pointer;
-    font-size: 15px;
+.direction-info {
+    text-align: center;
+    font-size: 12px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.text-rotated {
     writing-mode: vertical-lr;
     transform: rotate(-180deg);
-    /*         text-orientation: revert; */
 }
 
 .communication-cell {
@@ -64,3 +66,12 @@
 .disallowed {
     background-color: red;
 }
+
+.allowed-in-edit {
+    background-color: lightgreen;
+}
+
+.disallowed-in-edit {
+    background-color: lightcoral;
+}
+

@@ -92,25 +92,38 @@ namespace FWO.Api.Data
                 ipRangesClone[i] = new IPAddressRange(IPRanges[i].Begin, IPRanges[i].End);
             }
 
-            ComplianceNetworkZone[] subZonesClone = new ComplianceNetworkZone[Subzones.Length];
-            for (int i = 0; i < Subzones.Length; i++)
-            {
-                subZonesClone[i] = (ComplianceNetworkZone)Subzones[i].Clone();
-            }
-
-            return new ComplianceNetworkZone()
+			return new ComplianceNetworkZone()
             {
                 Id = Id,
-                Name = (string)Name.Clone(),
+                Superzone = (ComplianceNetworkZone?)Superzone?.Clone(),
+                Name = Name,
+                Description = Description,
                 IPRanges = ipRangesClone,
-                Subzones = subZonesClone
+                Subzones = CloneArray(Subzones),
+				AllowedCommunicationSources = CloneArray(AllowedCommunicationSources),
+				AllowedCommunicationDestinations = CloneArray(AllowedCommunicationDestinations)
             };
         }
+
+        private static ComplianceNetworkZone[] CloneArray(ComplianceNetworkZone[] array)
+        {
+			ComplianceNetworkZone[] arrayClone = new ComplianceNetworkZone[array.Length];
+			for (int i = 0; i < array.Length; i++)
+			{
+				arrayClone[i] = (ComplianceNetworkZone)array[i].Clone();
+			}
+            return arrayClone;
+		}
 
         public override bool Equals(object? obj)
         {
             if (obj == null) return false;
             return ((ComplianceNetworkZone)obj).Id == Id;
         }
-    }
+
+		public override int GetHashCode()
+		{
+			return HashCode.Combine(Id);
+		}
+	}
 }

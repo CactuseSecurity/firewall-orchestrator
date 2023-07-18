@@ -35,8 +35,8 @@
                     </div>
                     @if (loginInProgress == false)
                     {
-                        <button type="button" class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit">@(globalConfig.GetText("login"))</button>
-                        @* <button type="button" class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit"><div class="oi oi-account-login"></div></button> *@
+                        <button type="submit" class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit">@(globalConfig.GetText("login"))</button>
+                        @* <button type="submit" class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit"><div class="oi oi-account-login"></div></button> *@
                     }
                     else
                     {
@@ -115,8 +115,8 @@
             {
                 try
                 {
-                    await ((AuthStateProvider)AuthService).CreateUserContext(jwtLoadRequest.Value ?? throw new AccessViolationException("Jwt from protected storage is null"),
-                    ApiConnection, middlewareClient, userConfig, circuitHandler);
+                    await ((AuthStateProvider)AuthService).Authenticate(jwtLoadRequest.Value ?? throw new AccessViolationException("Jwt from protected storage is null"),
+                    ApiConnection, middlewareClient, userConfig, circuitHandler, sessionStorage);
                     return;
                 }
                 catch (Exception ex) { Log.WriteError("Session Restore", "Session restore unsuccessful.", ex); }
@@ -169,7 +169,7 @@
             try
             {
                 RestResponse<string> authResponse = await ((AuthStateProvider)AuthService)
-                .Login(Username, Password, ApiConnection, middlewareClient, userConfig, sessionStorage, circuitHandler);
+                .Authenticate(Username, Password, ApiConnection, middlewareClient, userConfig, sessionStorage, circuitHandler);
 
                 if (authResponse.StatusCode == HttpStatusCode.OK)
                 {

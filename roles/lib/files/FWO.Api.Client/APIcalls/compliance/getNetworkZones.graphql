@@ -1,36 +1,28 @@
 query get_compliance_network_zones {
-  compliance_network_zone (
-    order_by: {name: asc}
-  ) {
+  compliance_network_zone (order_by: {name: asc}) {
     id
     name
-    description    
+    description
     ip_ranges {
       ip_range_start
       ip_range_end
     }
-    super_network_zone
-    {
-      id,
-      name
-    }
-    sub_network_zones 
-    {
+    super_network_zone {
       id
       name
     }
-    network_zone_communication_destinations
-    { 
-      to_network_zone
-      {
-      	id
-        name      
+    sub_network_zones {
+      id
+      name
+    }
+    network_zone_communication_destinations {
+      to_network_zone {
+        id
+        name
       }
     }
-    network_zone_communication_sources
-    {
-      from_network_zone
-      {
+    network_zone_communication_sources {
+      from_network_zone {
         id
         name
       }

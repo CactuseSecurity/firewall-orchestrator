@@ -11,6 +11,12 @@
 			<span id="@($"dropdown-input-prepend-icon-{Id}")" class="input-group-text"><span class="oi oi-magnifying-glass"></span></span>
 		</div>
 		<input id="@($"dropdown-input-{Id}")" class="custom-select d-block @InputClass" @onclick="Toggle" @onfocus="ClearFilter" @oninput="Filter" @bind="searchValue" />
+		@if (Append != null)
+		{
+			<div class="input-group-append">
+				@Append
+			</div>
+		}
 	</div>
 	<ul id="@($"dropdown-menu-{Id}")" class="dropdown-menu" style="@($"position: fixed; top: {yPositionDropdown}px; left: {xPositionDropdown}px; max-height: calc(100vh - {yPositionDropdown}px - 10px); overflow: auto;" + (Toggled ? "" : " display: inline;"))">
 		@if (!Toggled)
@@ -57,6 +63,9 @@
 
 	[Parameter]
 	public string InputClass { get; set; } = "";
+
+	[Parameter]
+	public RenderFragment? Append { get; set; }
 
 	private Func<ElementType, string> _elementToString = (o => o.ToString() ?? "");
 

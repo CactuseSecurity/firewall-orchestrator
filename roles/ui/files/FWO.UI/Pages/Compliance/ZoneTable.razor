@@ -3,68 +3,38 @@
 @inject UserConfig userConfig
 @inject NetworkZoneService networkZoneService
 
-<button type="button" class="btn btn-sm btn-success mb-1" @onclick="() => networkZoneService.InvokeOnAddZone()">@(userConfig.GetText("add"))</button>
-
-<Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="ComplianceNetworkZone" Items="NetworkZones" PageSize="20">
+<Table TableClass="table table-bordered table-sm table-responsive overflow-auto sticky-header" TableItem="ComplianceNetworkZone" Items="NetworkZones.Where(zone => object.Equals(zone.Superzone, Superzone))">
 	<Column TableItem="ComplianceNetworkZone" Title="@(userConfig.GetText("id"))" Field="@(networkZone => networkZone.Id)" Sortable="true" Filterable="true" />
 	<Column TableItem="ComplianceNetworkZone" Title="@(userConfig.GetText("name"))" Field="@(networkZone => networkZone.Name)" Sortable="true" Filterable="true" />
+	<Column TableItem="ComplianceNetworkZone" Title="@(userConfig.GetText("description"))" Field="@(networkZone => networkZone.Description)" Sortable="true" Filterable="true" />
 	<Column TableItem="ComplianceNetworkZone" Title="@(userConfig.GetText("ip_addresses"))" Context="networkZone">
 		<Template>
-			@if (networkZone.IPRanges.Length == 0)
-			{
-				@(userConfig.GetText("None"))
-			}
-			else if (networkZone.IPRanges.Length == 1)
-			{
-				@(networkZone.IPRanges[0].ToCidrString())
-			}
-			else
-			{
-				<div>
-					<details>
-						<summary class="mb-1 text-truncate">
-							@(networkZone.IPRanges[0].ToCidrString()) ...
-						</summary>
-						<ul>
-							@foreach (IPAddressRange ipAddressRange in networkZone.IPRanges)
-							{
-								<li>@(ipAddressRange.ToCidrString())</li>
-							}
-						</ul>
-					</details>
-				</div>
-			}
+			<ExpandableList Elements="networkZone.IPRanges" Context="ipRange">
+				<ElementTemplate>
+					@(NetworkZoneService.DisplayIpRange(ipRange))
+				</ElementTemplate>
+			</ExpandableList>
 		</Template>
 	</Column>
-	<Column TableItem="ComplianceNetworkZone" Title="@(userConfig.GetText("allowed_communication"))" Context="networkZone">
+	<Column TableItem="ComplianceNetworkZone" Title="@(userConfig.GetText("allowed_comm_srcs"))" Context="networkZone">
 		<Template>
-			@if (networkZone.AllowedCommunicationDestinations.Length == 0)
-			{
-				@(userConfig.GetText("None"))
-			}
-			else if (networkZone.AllowedCommunicationDestinations.Length == 1)
-			{
-				@(networkZone.AllowedCommunicationDestinations[0].Name)
-			}
-			else
-			{
-				<div>
-					<details>
-						<summary class="mb-1 text-truncate">
-							@(networkZone.AllowedCommunicationDestinations[0].Name) ...
-						</summary>
-						<ul>
-							@foreach (ComplianceNetworkZone networkZone in networkZone.AllowedCommunicationDestinations)
-							{
-								<li>@(networkZone.Name)</li>
-							}
-						</ul>
-					</details>
-				</div>
-			}
+			<ExpandableList Elements="networkZone.AllowedCommunicationSources" Context="sourceZone">
+				<ElementTemplate>
+					@(sourceZone.Name)
+				</ElementTemplate>
+			</ExpandableList>
 		</Template>
 	</Column>
-	<AuthorizeView Roles="admin" Context="authContext">
+	<Column TableItem="ComplianceNetworkZone" Title="@(userConfig.GetText("allowed_comm_dests"))" Context="networkZone">
+		<Template>
+			<ExpandableList Elements="networkZone.AllowedCommunicationDestinations" Context="destinationZone">
+				<ElementTemplate>
+					@(destinationZone.Name)
+				</ElementTemplate>
+			</ExpandableList>
+		</Template>
+	</Column>
+	<AuthorizeView Roles="admin, fw-admin" Context="authContext">
 		<Column TableItem="ComplianceNetworkZone" Title="@(userConfig.GetText("actions"))" Context="networkZone">
 			<Template>
 				<div class="btn-group">
@@ -78,7 +48,8 @@
 		<div class="mb-1">@(userConfig.GetText("subzones")):</div>
 		@if (networkZone.Subzones.Length > 0)
 		{
-			<ZoneTable NetworkZones="networkZone.Subzones" />
+			ComplianceNetworkZone zone = networkZone;
+			<ZoneTable Superzone="zone" NetworkZones="NetworkZones" />
 		}
 		else
 		{
@@ -90,10 +61,8 @@
 @code
 {
 	[Parameter]
-	public ComplianceNetworkZone[] NetworkZones { get; set; } = new ComplianceNetworkZone[0];
+	public ComplianceNetworkZone? Superzone { get; set; } = null;
 
-	protected async override Task OnInitializedAsync()
-	{
-		await base.OnInitializedAsync();
-	}
+	[Parameter]
+	public ComplianceNetworkZone[] NetworkZones { get; set; } = new ComplianceNetworkZone[0];
 }

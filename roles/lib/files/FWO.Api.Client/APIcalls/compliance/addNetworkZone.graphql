@@ -1,14 +1,22 @@
-mutation insert_compliance_network_zone ($name: String!, $description: String!,
-$ip_ranges: [compliance_ip_range_insert_input!]!, $network_zone_communication: [compliance_network_zone_communication_insert_input!]!) {
+mutation insert_compliance_network_zone ($name: String!, $description: String!, $ip_ranges: [compliance_ip_range_insert_input!]!, $super_network_zone_id: bigint,
+$communication_sources: [compliance_network_zone_communication_insert_input!]!, $communication_destinations: [compliance_network_zone_communication_insert_input!]!, 
+$sub_network_zones: [compliance_network_zone_insert_input!]!) {
   insert_compliance_network_zone_one (
     object: {
+      super_network_zone_id: $super_network_zone_id,
       name: $name,
       description: $description,    
       ip_ranges: {
         data: $ip_ranges
       },
       network_zone_communication_destinations: {
-        data: $network_zone_communication
+        data: $communication_destinations
+      },
+      network_zone_communication_sources: {
+        data: $communication_sources
+      },
+      sub_network_zones: {
+        data: $sub_network_zones
       }
     }
   ) {

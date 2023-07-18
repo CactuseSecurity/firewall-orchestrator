@@ -130,7 +130,7 @@
         }
         try
         {
-            RestResponse<string> authResponse = await ((AuthStateProvider)authenticationProvider).Login(userConfig.User.Name,
+            RestResponse<string> authResponse = await ((AuthStateProvider)authenticationProvider).Authenticate(userConfig.User.Name,
             password, apiConnection, middlewareClient, userConfig, sessionStorage, circuitHandler);
             if (authResponse.StatusCode == System.Net.HttpStatusCode.OK) 
             { 

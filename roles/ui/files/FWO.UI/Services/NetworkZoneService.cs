@@ -5,33 +5,8 @@ namespace FWO.Ui.Services
 {
 	public class NetworkZoneService
 	{
-		// TODO: remove mockup zones
 		public ComplianceNetworkZone[] NetworkZones { get; set; } = new ComplianceNetworkZone[]
 		{
-			// new ComplianceNetworkZone()
-			// {
-			// 	Id = 1,
-			// 	Name = "Test",
-			// 	IPRanges = new IPAddressRange[]
-			// 	{
-			// 		IPAddressRange.Parse("192.169.0.1"),
-			// 		IPAddressRange.Parse("197.167.3.4/32"),
-			// 		IPAddressRange.Parse("192.166.7.0/24"),
-			// 		IPAddressRange.Parse("192.168.0.0/16"),
-			// 	},
-			// 	Subzones = new ComplianceNetworkZone[]
-			// 	{
-			// 		new ComplianceNetworkZone()
-			// 		{
-			// 			Id = 2,
-			// 			Name = "Test_Subzones",
-			// 			IPRanges = new IPAddressRange[]
-			// 			{
-			// 				IPAddressRange.Parse("192.168.0.0/18"),
-			// 			}
-			// 		}
-			// 	}
-			// },
 			new ComplianceNetworkZone()
 			{
 				Id = 1,
@@ -63,14 +38,8 @@ namespace FWO.Ui.Services
 
 		public delegate void ZoneAddEventArgs();
 		public delegate void ZoneModificationEventArgs(ComplianceNetworkZone networkZone);
-		public event ZoneAddEventArgs? OnAddZone;
 		public event ZoneModificationEventArgs? OnEditZone;
 		public event ZoneModificationEventArgs? OnDeleteZone;
-
-		public void InvokeOnAddZone()
-		{
-			OnAddZone?.Invoke();
-		}
 
 		public void InvokeOnEditZone(ComplianceNetworkZone networkZone)
 		{
@@ -80,6 +49,26 @@ namespace FWO.Ui.Services
 		public void InvokeOnDeleteZone(ComplianceNetworkZone networkZone)
 		{
 			OnDeleteZone?.Invoke(networkZone);
+		}
+
+		/// <summary>
+		/// Display the IP address range in CIDR notation if possible and it is not a single IP address
+		/// otherwise display it in the format "first_ip-last_ip".
+		/// </summary>
+		/// <param name="ipAddressRange"></param>
+		/// <returns>IP address range in CIDR / first-last notation</returns>
+		public static string DisplayIpRange(IPAddressRange ipAddressRange)
+		{
+			try
+			{
+				int prefixLength = ipAddressRange.GetPrefixLength();
+				if (prefixLength != 32)
+				{
+					return ipAddressRange.ToCidrString();
+				}
+			}
+			catch (FormatException) { }
+			return ipAddressRange.ToString();
 		}
 	}
 }

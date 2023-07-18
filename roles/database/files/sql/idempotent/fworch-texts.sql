@@ -1638,6 +1638,10 @@ INSERT INTO txt VALUES ('configuration',        'German', 	'Konfiguration');
 INSERT INTO txt VALUES ('configuration',        'English', 	'Configuration');
 INSERT INTO txt VALUES ('owner_import',         'German', 	'Eigent&uuml;mer-Import');
 INSERT INTO txt VALUES ('owner_import',         'English', 	'Owner Import');
+INSERT INTO txt VALUES ('relogin',              'German', 	'Erneut anmelden');
+INSERT INTO txt VALUES ('relogin',              'English', 	'Re-Login');
+INSERT INTO txt VALUES ('relogin_error',        'German', 	'Fehler bei der erneuten Anmeldung');
+INSERT INTO txt VALUES ('relogin_error',        'English', 	'Re-Login error');
  
 
 -- text codes (roughly) categorized: 

@@ -173,19 +173,7 @@
 
         try
         {
-            if(authenticationStateTask!.Result.User.IsInRole("recertifier"))
-            {
-                apiConnection.SetRole("recertifier");
-            }
-            else if(authenticationStateTask!.Result.User.IsInRole("admin"))
-            {
-                apiConnection.SetRole("admin");
-            }
-            else
-            {
-                apiConnection.SetRole("auditor");
-            }
-
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { "recertifier", "admin", "auditor"});
             rulesFound = false;
             ticketCreator = new TicketCreator(apiConnection, userConfig);
 

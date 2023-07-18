@@ -72,6 +72,28 @@ namespace FWO.Api.Client
             graphQlClient.HttpClient.DefaultRequestHeaders.Add("x-hasura-role", role);
         }
 
+        public override void SetProperRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
+        {
+            // first look if user is already in one of the target roles 
+            foreach(string role in targetRoleList)
+            {
+                if (user.IsInRole(role))
+                {
+                    SetRole(role);
+                    return;
+                }
+            }
+            // now look if user has a target role as allowed role
+            foreach(string role in targetRoleList)
+            {
+                if(user.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-allowed-roles" && claim.Value == role) != null)
+                {
+                    SetRole(role);
+                    return;
+                }
+            }
+        }
+
         /// <summary>
         /// Sends an APICall (query, mutation)
         /// NB: SendQueryAsync always returns an array of objects (even if the result is a single element)

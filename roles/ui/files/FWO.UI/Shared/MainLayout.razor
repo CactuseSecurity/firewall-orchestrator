@@ -41,9 +41,9 @@
         @if (showReloginInput)
         {
             <div class="input-group">
-              <input class="form-control form-control-sm @reloginCssClass" @bind="password" type="password" placeholder="Password" @onkeypress="@KeyHandler">
+              <input type="password" class="form-control form-control-sm @reloginCssClass" @bind="password" placeholder="@(userConfig.GetText("password"))" @bind:event="oninput" @onkeypress="@KeyHandler">
               <div class="input-group-append">
-                <button type="button" class="btn btn-sm btn-primary" @onclick="Relogin">Re-login</button> 
+                <button type="button" class="btn btn-sm btn-primary" @onclick="Relogin">@(userConfig.GetText("relogin"))</button> 
               </div>
             </div>
             @if (!string.IsNullOrEmpty(reloginErrorMessage))
@@ -100,8 +100,8 @@
         if (ev.Code == "Enter")
         {
             await Relogin();
-            reloginCssClass = "";
         }
+        reloginCssClass = "";
     }
 
     private void OnPermissionsChanged(object? sender, string userDn)
@@ -134,7 +134,6 @@
     private async Task Relogin()
     {
         string errorMessage = userConfig.GetText("relogin_error");
-
         if (password == null)
         {
             password = "";

@@ -1,11 +1,11 @@
-﻿@page "/help/scheduling"
+﻿@page "/help/reporting/scheduling"
 @model FWO.Ui.Pages.Help.MainModel
 @{
     Layout = "HelpLayout";
 }
 @section sidebar{
     @{ 
-        await Html.RenderPartialAsync("HelpEmptySidebar.cshtml"); 
+        await Html.RenderPartialAsync("HelpReportingSidebar.cshtml"); 
     }
 }
 @using FWO.Config.Api

@@ -63,3 +63,7 @@ In 2020 we decided to re-launch a new
 - UI settings: hotfix email port (default 25) was not written to config before
 - splitting revision history into develop and main
 - installer: supress csharp test results on success
+
+### 6.4.13 20.07.2023 DEVELOP
+- re-login now also with enter key
+- fixing help pages (email & importer settings, archive, scheduling) [#2162](https://github.com/CactuseSecurity/firewall-orchestrator/issues/2162)

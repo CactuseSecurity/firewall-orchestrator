@@ -1638,6 +1638,10 @@ INSERT INTO txt VALUES ('configuration',        'German', 	'Konfiguration');
 INSERT INTO txt VALUES ('configuration',        'English', 	'Configuration');
 INSERT INTO txt VALUES ('owner_import',         'German', 	'Eigent&uuml;mer-Import');
 INSERT INTO txt VALUES ('owner_import',         'English', 	'Owner Import');
+INSERT INTO txt VALUES ('relogin',              'German', 	'Erneut anmelden');
+INSERT INTO txt VALUES ('relogin',              'English', 	'Re-Login');
+INSERT INTO txt VALUES ('relogin_error',        'German', 	'Fehler bei der erneuten Anmeldung');
+INSERT INTO txt VALUES ('relogin_error',        'English', 	'Re-Login error');
  
 
 -- text codes (roughly) categorized: 
@@ -2164,6 +2168,7 @@ INSERT INTO txt VALUES ('H1001', 'German',  'Die erste Eingabezeile ist die Filt
     Nach klicken der "Report erstellen" Schaltfl&auml;che werden die <a href="/help/reporting/output">Reportdaten</a> im unteren Teil des Fensters dargestellt.
     In der <a href="/help/reporting/rightside">Rechten Randleiste</a> werden Details zu den markierten Objekten gezeigt.<br>
     Der Report kann in verschiedenen Ausgabeformaten <a href="/help/reporting/export">exportiert</a> werden.
+    Mit Hilfe der Tabs am oberen Bildschirmrand kann zwischen der Report-Generierung, dem Report-Scheduling und dem Report-Archiv umgeschaltet werden.
 ');
 INSERT INTO txt VALUES ('H1001', 'English', 'The first input line is the filter line, where the parameters for the report creation are defined.
     It is subject to a special <a href="/help/reporting/filter">Filter Syntax</a>. 
@@ -2172,6 +2177,7 @@ INSERT INTO txt VALUES ('H1001', 'English', 'The first input line is the filter 
     After selecting the "Generate Report" button the <a href="/help/reporting/output">Report Data</a> is shown in the lower part of the window.
     In the <a href="/help/reporting/rightside">Right Sidebar</a> details about the selected objects are given.<br>
     The report can be <a href="/help/reporting/export">exported</a> to different output formats.
+    Using the tabs at the top of the screen you may switch between report generation, report scheduling and the report archive.
 ');
 INSERT INTO txt VALUES ('H1101', 'German',  '<li> Alle Filter sind schreibungsunabh&auml;ngig.</li>
     <li> Es gibt verschiedene Varianten f&uuml;r die meisten Schl&uuml;sselw&ouml;rter, z.B. k&ouml;nnen DestinationPort-Filter geschrieben werden als:
@@ -2306,18 +2312,18 @@ INSERT INTO txt VALUES ('H1214', 'German',  'Regel&auml;nderungen des aktuellen 
 INSERT INTO txt VALUES ('H1214', 'English', 'This year&apos;s Rule Changes: All rule change performed in the current year in the selected devices.');
 INSERT INTO txt VALUES ('H1215', 'German',  'Aktuelle NAT Regeln: Aktuell aktive NAT-Regeln aller ausgew&auml;hlten Devices.');
 INSERT INTO txt VALUES ('H1215', 'English', 'Current NAT Rules: Currently active NAT rules of all selected devices.');
-INSERT INTO txt VALUES ('H1301', 'German',  'Direkt nach der Erzeugung oder vom <a href="/help/archive">Archiv</a> aus k&ouml;nnen Reports in verschiedenen Ausgabeformaten exportiert werden:');
-INSERT INTO txt VALUES ('H1301', 'English', 'Directly after creation or from the <a href="/help/archive">archive</a> reports can be exported to different output formats:');
+INSERT INTO txt VALUES ('H1301', 'German',  'Direkt nach der Erzeugung oder vom <a href="/help/reporting/archive">Archiv</a> aus k&ouml;nnen Reports in verschiedenen Ausgabeformaten exportiert werden:');
+INSERT INTO txt VALUES ('H1301', 'English', 'Directly after creation or from the <a href="/help/reporting/archive">archive</a> reports can be exported to different output formats:');
 INSERT INTO txt VALUES ('H1302', 'German',  '<li>pdf</li><li>html</li><li>csv (aktuell nur f&uuml;r die aufgel&ouml;sten und technischen Report-Typen unterst&uuml;tzt)</li><li>json</li>');
 INSERT INTO txt VALUES ('H1302', 'English', '<li>pdf</li><li>html</li><li>csv (currently only supported for resolved and technical report types)</li><li>json</li>');
 INSERT INTO txt VALUES ('H1303', 'German',  'Nach bet&auml;tigen des "Report exportieren"-Auswahlfeldes kann eines oder mehrere dieser Formate ausgew&auml;hlt werden.
     Bei Aktivierung der pdf-Ausgabe wird desweiteren das Seitenformat zur Auswahl angeboten.<br>
-    Auch kann der Report mit einem Namen versehen und <a href="/help/archive">archiviert</a> werden.
+    Auch kann der Report mit einem Namen versehen und <a href="/help/reporting/archive">archiviert</a> werden.
     Ein weiteres Ausgabefenster erlaubt dann das separate Abholen der ausgew&auml;hlten Ausgabedateien.
 ');
 INSERT INTO txt VALUES ('H1303', 'English', 'After clicking the "Export Report" button one or more of them can be selected.
     When selecting the pdf export, the page format is offered for selection.<br>
-    Also the possibility to name and save the report in the <a href="/help/archive">archive</a> is given.
+    Also the possibility to name and save the report in the <a href="/help/reporting/archive">archive</a> is given.
     Another Popup allows then to download the selected output files separately.    
 ');
 INSERT INTO txt VALUES ('H1401', 'German',  'Im unteren Teil der Hauptseite werden die Ausgabedaten des generierten Reports dargestellt.
@@ -2391,8 +2397,8 @@ INSERT INTO txt VALUES ('H2001', 'German',  'Es k&ouml;nnen Reports f&uuml;r ein
 INSERT INTO txt VALUES ('H2001', 'English', 'Reports can be scheduled for a given time or as recurring tasks.
     Every user can administrate his own report schedules.
 ');
-INSERT INTO txt VALUES ('H2011', 'German',  'Name: Der Reportname, der im <a href="/help/archive">Archiv</a> wiederzufinden ist.');
-INSERT INTO txt VALUES ('H2011', 'English', 'Name: The report name to be found in the <a href="/help/archive">Archive</a>.');
+INSERT INTO txt VALUES ('H2011', 'German',  'Name: Der Reportname, der im <a href="/help/reporting/archive">Archiv</a> wiederzufinden ist.');
+INSERT INTO txt VALUES ('H2011', 'English', 'Name: The report name to be found in the <a href="/help/reporting/archive">Archive</a>.');
 INSERT INTO txt VALUES ('H2012', 'German',  'Startdatum und -zeit: Erste Ausf&uuml;hrung des Terminauftrags.
     Bitte einige Minuten im voraus w&auml;hlen, wenn die Ausf&uuml;hrung noch heute erfolgen soll, da es einen Zeitverzug von einigen Minuten durch den Timer geben kann. 
 ');
@@ -2427,13 +2433,13 @@ INSERT INTO txt VALUES ('H2018', 'English', 'Count: Counts how many reports have
 INSERT INTO txt VALUES ('H3001', 'German',  'Hier sind die archivierten Reports mit Name sowie Informationen zu Erzeugungsdatum, Typ, Vorlage (nur bei termingesteuerten Reports), 
     Eigent&uuml;mer sowie eine kurze Beschreibung des Inhalts zu finden.
     Sie k&ouml;nnen zum einen durch Export manuell erzeugter Reports durch Setzen des "Archiv"-Kennzeichens in <a href="/help/reporting/export">Export Report</a> erzeugt werden.
-    Zum anderen finden sich hier auch die durch das <a href="/help/scheduling">Scheduling</a> erzeugten Reports.
+    Zum anderen finden sich hier auch die durch das <a href="/help/reporting/scheduling">Scheduling</a> erzeugten Reports.
     Die archivierten Reports k&ouml;nnen von hier heruntergeladen oder gel&ouml;scht werden.
 ');
 INSERT INTO txt VALUES ('H3001', 'English', 'Here the archived reports can be found with name and information about creation date, type, template (only at scheduled reports),
     owner and a short description about the content. 
     They may be created on the one hand by exporting manually created reports with setting the flag "Archive" in <a href="/help/reporting/export">Export Report</a>.
-    On the other hand here also the reports created by the <a href="/help/scheduling">Scheduling</a> can be found.
+    On the other hand here also the reports created by the <a href="/help/reporting/scheduling">Scheduling</a> can be found.
     It is possible to download or delete these archived reports.
 ');
 
@@ -2876,10 +2882,11 @@ INSERT INTO txt VALUES ('H5012', 'English', 'The chapter "Authorization" offers 
     and <a href="/help/settings/roles">Roles</a>, additionally there is an overview of the <a href="/help/settings/owners">owners</a>.
 ');
 INSERT INTO txt VALUES ('H5013', 'German',  'Im Kapitel "Voreinstellungen" kann der Administrator <a href="/help/settings/defaults">Standardeinstellungen</a> vornehmen,
-    die f&uuml;r alle Nutzer gelten, sowie die <a href="/help/settings/passwordpolicy">Passworteinstellungen</a> definieren, welche f&uuml;r alle Passwort&auml;nderungen g&uuml;ltig sind.
+    die f&uuml;r alle Nutzer gelten, sowie die <a href="/help/settings/email">Email-</a>, <a href="/help/settings/importer">Importer-</a> und
+    <a href="/help/settings/passwordpolicy">Passworteinstellungen</a> definieren.
 ');
 INSERT INTO txt VALUES ('H5013', 'English', 'In the "Defaults" chapter the administrator can define <a href="/help/settings/defaults">Default Values</a> applicable to all users
-    and set a <a href="/help/settings/passwordpolicy">Password Policy</a> valid for all password changes.
+    and define <a href="/help/settings/email">email-</a>, <a href="/help/settings/importer">importer-</a> and  <a href="/help/settings/passwordpolicy">Password Policy</a> settings.
 ');
 INSERT INTO txt VALUES ('H5014', 'German',  'Das Kapitel "Pers&ouml;nlich" ist f&uuml;r alle Nutzer zug&auml;nglich. Hier k&ouml;nnen das individuelle <a href="/help/settings/password">Password</a>,
     die bevorzugte <a href="/help/settings/language">Sprache</a> und <a href="/help/settings/report">Reporting</a>-Einstellungen gesetzt werden.
@@ -3381,8 +3388,49 @@ INSERT INTO txt VALUES ('H5414', 'English', 'Completely auto-fill right sidebar:
 ');
 INSERT INTO txt VALUES ('H5415', 'German',  'Datenaufbewahrungszeit (in Tagen): Legt fest, wie lange die Daten in der Datenbank gehalten werden (wird noch nicht unterst&uuml;tzt).');
 INSERT INTO txt VALUES ('H5415', 'English', 'Data retention time (in days): Defines how long the data is kept in the database (currently not supported).');
-INSERT INTO txt VALUES ('H5416', 'German',  'Importintervall (in Sekunden): Zeitintervall zwischen zwei Imports (wird noch nicht unterst&uuml;tzt)');
-INSERT INTO txt VALUES ('H5416', 'English', 'Import sleep time (in seconds): Time between import loops (currently not supported).');
+INSERT INTO txt VALUES ('H5416', 'German',  '
+    <ul>
+        <li>Importintervall (in Sekunden): Zeitintervall zwischen zwei Import-L&auml;fen. Default-Wert = 40.</li>
+        <li>Zertifikate beim Import prüfen: Sollen bei den API-Calls in Richtung der Firewalls nur gültige Zertifikate akzeptiert werden?. 
+            Sollte nur auf "aktiv" gesetzt werden, wenn alle Firewalls offiziell signierte Zertifikate besitzen, 
+            andernfalls ist ein Import nicht m&ouml;glich. Default-Wert = "inaktiv".</li>
+        <li>Zertifikatswarnungen unterdrücken: Sollen im Log Warnungen bei selbstsignierten oder ung&uuml;ltigen Zertifkaten auf zu importierenden
+            Firewalls ausgegeben werden? Default-Wert = "inaktiv".</li>
+        <li>FW API - Pro Abruf geholte Elemente: Wie viele Objekte sollen beim Import per Firewall-API Call auf einmal geholt werden? Default-Wert = 150.</li>
+        <li>&Auml;nderungsbenachrichtigung via Email
+            <ul>
+                <li>&Auml;nderungsbenachrichtigung aktiv: Sollen Emails bei festgestellten &Auml;nderungen versendet werden, ist diese 
+                    Einstellung zu aktivieren. Default-Wert = "inaktiv".</li>
+                <li>Empf&auml;nger-Email-Adressen für &Auml;nderungen: Komma-separierte Liste von Email-Adressen, die bei festgestellter
+                    sicherheitsrelevanter &Auml;nderung auf einem importierten Management benachrichtigt werden. Default-Wert = "leer".</li>
+                <li>Titel der &Auml;nderungsbenachrichtigung: Betreffzeile der Benachrichtigungs-Email. Default-Wert = "leer".</li>
+                <li>Text der &Auml;nderungsbenachrichtigung: Start des Email-Textes. Die Email enth&auml;lt stets den Namen und die ID des 
+                    ge&auml;nderten Managements sowie die Anuahl der festgestellten &Auml;nderungen. Default-Wert = "leer".</li>
+            </ul>
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H5416', 'English', '
+    <ul>
+        <li>Import sleep time (in seconds): Time between import loops; default value=40.</li>
+        <li>Check certificates during import: During API calls towards Firewalls shall only valid certificates be accepted?. 
+            This should only be set to "active" if all firewall API certificates are valid, otherwise an import will not be possible.
+            Default value = "inactive".</li>
+        <li>Suppress certificate warnings: Shall warnings about invalid certificates be written to import log? Default value = "inactive".</li>
+        <li>FW API - Elements per fetch: How many objects/rules shall be fetched per API call from a firewall management? Default value = 150.</li>
+        <li>Change notification via email:
+            <ul>
+                <li>Change notification active?: When an import finds security relevant changes, should an email be sent out?
+                Default value = "inactive".</li>
+                <li>Recipient email addresses for change notifications: A comma-separated list of email addresses, which will get information in the case of 
+                    security relevant changes found during import of a firewall management. Default value = "empty".</li>
+                <li>Subject of change notification emails: Subject line for notification emails. Default value = "empty".</li>
+                <li>Body of change notification emails: Start of the email text. The email will always contain name and ID of the changed 
+                    firewall management as well as the number of changes. Default value = "empty".</li>
+            </ul>
+        </li>
+    </ul>
+');
 INSERT INTO txt VALUES ('H5417', 'German',  'Rezertifizierungsintervall (in Tagen): Maximale Zeit, nach der eine Regel rezertifiziert werden soll.');
 INSERT INTO txt VALUES ('H5417', 'English', 'Recertification Period (in days): Maximum time, after when a rule should be recertified.');
 INSERT INTO txt VALUES ('H5418', 'German',  'Rezertifizierungserinnerungsintervall (in Tagen): Zeit vor dem F&auml;lligkeitsdatum, ab der eine Regel als f&auml;llig hervorgehoben werden soll.');
@@ -3486,7 +3534,27 @@ INSERT INTO txt VALUES ('H5481', 'German',  'Ein Rezertifizierer kann einige per
 INSERT INTO txt VALUES ('H5481', 'English', 'A recertifier can overwrite some personal settings for the recertification report. 
     The default value is set by the admin in the <a href="/help/settings/defaults">Default Settings</a>.
 ');
-
+INSERT INTO txt VALUES ('H5491', 'German',  'Firewall Orchestrator kann Benachrichtigungen versenden, z.B. f&uuml;r anstehende Rezertifizierungen oder wenn beim Import 
+    &Auml;nderungen festgestellt wurden.
+    <ul>
+        <li>Der Name oder die IP-Adresse des SMTP-Servers f&uuml;r ausgehende Emails wird im Feld "Adresse" eingetragen.</li>
+        <li>Der TCP-Port des SMTP-Servers (meist 25, 587 oder 465, abh&auml;ngig von der verwendeten Verschl&uumlsselung) wird im "Port"-Feld eingetragen.</li>
+        <li>Anschlie&szlig;end wird die gew&uuml;nschte Art der Verschl&uuml;sselung eingestellt (None=unverschl&uuml;sselt / StartTls / Tls)</li>
+        <li>Verlangt der SMTP-Server eine Authentisierung, so sind Email-Nutzer und Email-Nutzer-Passwort in den beiden folgenden Feldern einzutragen. Anderfalls k&ouml;nnen diese Felder leer gelassen werden.</li>
+        <li>Schlie&szlig;kann nach eine individuelle Absendeadresse im Feld "Email-Absendeadresse" konfiguriert werden.</li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H5491', 'English', 'Firewall Orchestrator is able to send out notifications, e.g. for upcoming recertifications or when an import found changes in the firewall configuration.<br>
+    <ul>
+        <li>Enter the name of IP address of your outgoing SMTP server in the field Feld "Adress".</li>
+        <li>The TCP port of the SMTP server (usually 25, 587 or 465, depending on the encryption method used) is entered in the "Port" field.</li>
+        <li>Choose the desired encryption type (None=clear-text / StartTls / Tls)</li>
+        <li>If the SMTP server requires authentication, enter Email User name and password in the following two fields. Otherwise leave empty.</li>
+        <li>Finally an individual sender address can be configured using the field "Email sender address".</li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H5495', 'German',  'Die folgenden Einstellungen wirken sich auf das Import-Modul (python) aus.');
+INSERT INTO txt VALUES ('H5495', 'English', 'The following settings apply to the Import Module (python)');
 INSERT INTO txt VALUES ('H5501', 'German',  'Aktionen m&uuml;ssen zuerst in den Einstellungen definiert werden und k&ouml;nnen dann den jeweiligen Stati zugeordnet werden.
     Die Aktion wird dann bei Eintreffen der hier definierten Bedingungen angeboten bzw. ausgef&uuml;hrt.
 ');

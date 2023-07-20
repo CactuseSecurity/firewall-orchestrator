@@ -36,6 +36,12 @@
                     <span class="oi oi-flag"></span> @(userConfig.GetText("owners"))
                 </a>
                 <h5>@(userConfig.GetText("defaults"))</h5>
+                <a class="nav-link" href="/help/settings/email/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-envelope-open"></span> @(userConfig.GetText("email_settings"))
+                </a>
+                <a class="nav-link" href="/help/settings/importer/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="oi oi-arrow-right"></span> @(userConfig.GetText("importer_settings"))
+                </a>
                 <a class="nav-link" href="/help/settings/defaults/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="oi oi-cog"></span> @(userConfig.GetText("standards"))
                 </a>

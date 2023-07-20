@@ -30,7 +30,12 @@ namespace FWO.Api.Data
         // [JsonProperty("predefinedObjects"), JsonPropertyName("predefinedObjects")]
         // public ??? PredefinedObjects { get; set; }
 
-        public static List<int> LegacyDevTypeList = new List<int> 
+        public static bool UsageDataAvailable(int id)
+        {
+            return UsageDataAvailableList.Contains(id);
+        }
+
+        private static List<int> LegacyDevTypeList = new List<int> 
         {
             2, // Netscreen 5.x-6.x
             4, // FortiGateStandalone 5ff
@@ -40,13 +45,13 @@ namespace FWO.Api.Data
             8  // JUNOS 10-21
         };
 
-        public static Dictionary<int, int> SupermanagerMap = new Dictionary<int, int>
+        private static Dictionary<int, int> SupermanagerMap = new Dictionary<int, int>
         {  
             // Mgmt -> Supermgmt
             { 11, 12 }, // FortiADOM 5ff -> FortiManager 5ff
             { 9, 13 }  // Check Point R8x -> Check Point MDS R8x
         };
-        public static Dictionary<int, int> SupermanagerGatewayMap = new Dictionary<int, int>
+        private static Dictionary<int, int> SupermanagerGatewayMap = new Dictionary<int, int>
         {  
             // Supermgmt -> Gateway
             { 12, 10},  // FortiManager 5ff-> FortiGate 5ff
@@ -55,15 +60,21 @@ namespace FWO.Api.Data
             { 14, 16}   // Cisco Firepower
         };
 
-        public static List<int> CheckPointManagers = new List<int>
+        private static List<int> CheckPointManagers = new List<int>
         {  
             13, 9   // Check Point MDS R8x and Check Point R8x
         };
 
-        public static List<int> FortiManagers = new List<int>
+        private static List<int> FortiManagers = new List<int>
         {  
             12   // FortiManager 5ff
         };
+
+        private static List<int> UsageDataAvailableList = new List<int> 
+        {
+            7, 9, 13  // Check Point
+        };
+
 
         public DeviceType()
         {}

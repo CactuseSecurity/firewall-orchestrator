@@ -604,7 +604,7 @@
 
             try
             {
-                if(currentReport.ReportType == ReportType.Statistics)
+                if(currentReport!.ReportType == ReportType.Statistics)
                 {
                     globalStats = new Management();
                     await currentReport.Generate(0, Connection,
@@ -679,6 +679,17 @@
         // collapse report templates
         reportTemplateControl.Collapse();
 
+        // check for disclaimer
+        if(selectedReportType == ReportType.UnusedRules)
+        {
+            List<string> unsupportedList = deviceFilter.GetUnsupportedDevices();
+            if(unsupportedList.Count > 0)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4004") + string.Join(", ", unsupportedList), true);
+            }
+        }
+
+        // set filters
         List<int> ownerList = new List<int>();
         if (selectedOwner != null)
         {

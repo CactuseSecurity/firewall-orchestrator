@@ -20,6 +20,7 @@ query getDevicesByManagement {
     ) {
       id: dev_id
       name: dev_name
+      dev_typ_id
     }
   }
 }

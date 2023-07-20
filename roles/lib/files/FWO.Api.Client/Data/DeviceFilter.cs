@@ -29,6 +29,9 @@ namespace FWO.Api.Data
         [JsonProperty("name"), JsonPropertyName("name")]
         public string? Name { get; set; }
 
+        [JsonProperty("dev_typ_id"), JsonPropertyName("dev_typ_id")]
+        public int DevTypeId { get; set; }
+
         public bool Selected { get; set; } = false;
     }
 
@@ -133,6 +136,22 @@ namespace FWO.Api.Data
                     if (dev.Selected)
                         selectedDevs.Add(dev.Id);
             return selectedDevs;
+        }
+
+        public List<string> GetUnsupportedDevices()
+        {
+            List<string> unsupportedList = new List<string>();
+            foreach (ManagementSelect management in Managements)
+            {
+                foreach (DeviceSelect device in management.Devices)
+                {
+                    if (device.Selected && !DeviceType.UsageDataAvailable(device.DevTypeId))
+                    {
+                        unsupportedList.Add(device.Name ?? "?");
+                    }
+                }
+            }
+            return unsupportedList;
         }
 
         public void SynchronizeDevFilter(DeviceFilter incomingDevFilter)

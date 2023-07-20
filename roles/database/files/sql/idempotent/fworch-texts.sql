@@ -3395,21 +3395,21 @@ INSERT INTO txt VALUES ('H5415', 'English', 'Data retention time (in days): Defi
 INSERT INTO txt VALUES ('H5416', 'German',  '
     <ul>
         <li>Importintervall (in Sekunden): Zeitintervall zwischen zwei Import-L&auml;fen. Default-Wert = 40.</li>
-        <li>Zertifikate beim Import prüfen: Sollen bei den API-Calls in Richtung der Firewalls nur gültige Zertifikate akzeptiert werden?. 
+        <li>Zertifikate beim Import pr&uuml;fen: Sollen bei den API-Calls in Richtung der Firewalls nur g&uuml;ltige Zertifikate akzeptiert werden?. 
             Sollte nur auf "aktiv" gesetzt werden, wenn alle Firewalls offiziell signierte Zertifikate besitzen, 
             andernfalls ist ein Import nicht m&ouml;glich. Default-Wert = "inaktiv".</li>
-        <li>Zertifikatswarnungen unterdrücken: Sollen im Log Warnungen bei selbstsignierten oder ung&uuml;ltigen Zertifkaten auf zu importierenden
+        <li>Zertifikatswarnungen unterdr&uuml;cken: Sollen im Log Warnungen bei selbstsignierten oder ung&uuml;ltigen Zertifkaten auf zu importierenden
             Firewalls ausgegeben werden? Default-Wert = "inaktiv".</li>
         <li>FW API - Pro Abruf geholte Elemente: Wie viele Objekte sollen beim Import per Firewall-API Call auf einmal geholt werden? Default-Wert = 150.</li>
         <li>&Auml;nderungsbenachrichtigung via Email
             <ul>
                 <li>&Auml;nderungsbenachrichtigung aktiv: Sollen Emails bei festgestellten &Auml;nderungen versendet werden, ist diese 
                     Einstellung zu aktivieren. Default-Wert = "inaktiv".</li>
-                <li>Empf&auml;nger-Email-Adressen für &Auml;nderungen: Komma-separierte Liste von Email-Adressen, die bei festgestellter
+                <li>Empf&auml;nger-Email-Adressen f&uuml;r &Auml;nderungen: Komma-separierte Liste von Email-Adressen, die bei festgestellter
                     sicherheitsrelevanter &Auml;nderung auf einem importierten Management benachrichtigt werden. Default-Wert = "leer".</li>
                 <li>Titel der &Auml;nderungsbenachrichtigung: Betreffzeile der Benachrichtigungs-Email. Default-Wert = "leer".</li>
                 <li>Text der &Auml;nderungsbenachrichtigung: Start des Email-Textes. Die Email enth&auml;lt stets den Namen und die ID des 
-                    ge&auml;nderten Managements sowie die Anuahl der festgestellten &Auml;nderungen. Default-Wert = "leer".</li>
+                    ge&auml;nderten Managements sowie die Anzahl der festgestellten &Auml;nderungen. Default-Wert = "leer".</li>
             </ul>
         </li>
     </ul>

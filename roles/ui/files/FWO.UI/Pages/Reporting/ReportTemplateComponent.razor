@@ -157,7 +157,7 @@
 
     public void NewTemplate(string filterInput, DeviceFilter deviceFilter, ReportType reportType, TimeFilter timeFilter)
     {
-        reportTemplateInEdit = new ReportTemplate (filterInput, deviceFilter, (int?)reportType, timeFilter, new RecertFilter());
+        reportTemplateInEdit = new ReportTemplate (filterInput, deviceFilter, (int?)reportType, timeFilter, new RecertFilter(), null);
         reportTypeInEdit = reportType;
         ShowSaveTemplateDialog = true;
     }

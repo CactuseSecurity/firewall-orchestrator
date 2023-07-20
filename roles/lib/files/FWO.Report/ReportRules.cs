@@ -356,6 +356,10 @@ namespace FWO.Report
                 report.AppendLine($"<th>{userConfig.GetText("ip_matches")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("last_hit")}</th>");
             }
+            if(ReportType == ReportType.UnusedRules)
+            {
+                report.AppendLine($"<th>{userConfig.GetText("last_hit")}</th>");
+            }
             report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("source_zone")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("source")}</th>");
@@ -389,6 +393,10 @@ namespace FWO.Report
                             report.AppendLine($"<td>{ruleDisplayHtml.DisplayNextRecert(rule)}</td>");
                             report.AppendLine($"<td>{ruleDisplayHtml.DisplayOwner(rule)}</td>");
                             report.AppendLine($"<td>{ruleDisplayHtml.DisplayRecertIpMatches(rule)}</td>");
+                            report.AppendLine($"<td>{ruleDisplayHtml.DisplayLastHit(rule)}</td>");
+                        }
+                        if(ReportType == ReportType.UnusedRules)
+                        {
                             report.AppendLine($"<td>{ruleDisplayHtml.DisplayLastHit(rule)}</td>");
                         }
                         report.AppendLine($"<td>{ruleDisplayHtml.DisplayName(rule)}</td>");

@@ -238,6 +238,8 @@ INSERT INTO txt VALUES ('report_type',		    'German', 	'Report-Typ');
 INSERT INTO txt VALUES ('report_type',		    'English', 	'Report Type');
 INSERT INTO txt VALUES ('report_time',		    'German', 	'Report-Zeit');
 INSERT INTO txt VALUES ('report_time',		    'English', 	'Report Time');
+INSERT INTO txt VALUES ('unused_days',		    'German', 	'Unbenutzt seit (in Tagen)');
+INSERT INTO txt VALUES ('unused_days',		    'English', 	'Unused since (in days)');
 INSERT INTO txt VALUES ('generation',		    'German', 	'Generierung');
 INSERT INTO txt VALUES ('generation',		    'English', 	'Generation');
 INSERT INTO txt VALUES ('change',		        'German', 	'&Auml;ndern');
@@ -832,6 +834,8 @@ INSERT INTO txt VALUES ('ResolvedChanges', 		'German', 	'Changes-Report (aufgel&
 INSERT INTO txt VALUES ('ResolvedChanges', 		'English', 	'Changes Report (resolved)');
 INSERT INTO txt VALUES ('ResolvedChangesTech', 	'German', 	'Changes-Report (technisch)');
 INSERT INTO txt VALUES ('ResolvedChangesTech', 	'English', 	'Changes Report (technical)');
+INSERT INTO txt VALUES ('UnusedRules', 	        'German', 	'Unbenutzte-Regel-Report');
+INSERT INTO txt VALUES ('UnusedRules', 	        'English', 	'Unused Rules Report');
 
 -- network analysis
 INSERT INTO txt VALUES ('network_analysis', 	'German',	'Netzanalyse');

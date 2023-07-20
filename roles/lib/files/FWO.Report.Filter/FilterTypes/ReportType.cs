@@ -10,7 +10,8 @@ namespace FWO.Report.Filter
         ResolvedRulesTech = 6,
         Recertification = 7,
         ResolvedChanges = 8,
-        ResolvedChangesTech = 9
+        ResolvedChangesTech = 9,
+        UnusedRules = 10
     }
 
     public static class ReportTypeGroups
@@ -24,6 +25,7 @@ namespace FWO.Report.Filter
                 case ReportType.ResolvedRulesTech:
                 case ReportType.NatRules:
                 case ReportType.Recertification:
+                case ReportType.UnusedRules:
                     return true;
                 default: 
                     return false;

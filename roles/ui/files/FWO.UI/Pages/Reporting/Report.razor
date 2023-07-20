@@ -67,6 +67,13 @@
             </div>
         </div>
     }
+    else if(selectedReportType==ReportType.UnusedRules)
+    {
+        <div class="p-3">
+            <h5 class="text-left">@(userConfig.GetText("unused_days"))</h5>
+            <input type="number" min="1" max="5000" step="1" class="form-control form-control-sm" @bind="unusedDays" />
+        </div>
+    }
     else
     {
         <div class="p-3">
@@ -138,19 +145,12 @@
             {
                 @switch (currentReport.ReportType)
                 {
-                    case ReportType.Recertification:
-                        <RulesReport Managements="managementsReport" SelectedReportType="selectedReportType" RulesPerPage="rulesPerPage"
-                            ReportParams="reportParams" @bind-SelectedRules="selectedItemsRuleReportTable" />
-                        break;
-
-                    case ReportType.NatRules:
-                        <RulesReport NatRules="true" Managements="managementsReport" SelectedReportType="selectedReportType" 
-                            RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable" />
-                        break;
-
                     case ReportType.Rules:
                     case ReportType.ResolvedRules:
                     case ReportType.ResolvedRulesTech:
+                    case ReportType.Recertification:
+                    case ReportType.UnusedRules:
+                    case ReportType.NatRules:
                         <RulesReport Managements="managementsReport" SelectedReportType="selectedReportType" RulesPerPage="rulesPerPage" 
                             @bind-SelectedRules="selectedItemsRuleReportTable" />
                         break;
@@ -380,6 +380,7 @@
     private bool ShowSelectTimeDialog = false;
     private bool recertShowAnyMatch = true;
     private int recertLookAheadDays = 0;
+    private int unusedDays = 367;
     private bool recertSingleLinePerRule = true;
 
     private int rulesPerPage = 0;   // todo: remove - no pagination implemented?
@@ -593,25 +594,7 @@
             }
             processing = true;
 
-            // collapse report templates
-            reportTemplateControl.Collapse();
-            List<int> ownerList = new List<int>();
-            if (selectedOwner != null)
-            {
-                ownerList.Add(selectedOwner.Id);
-            }
-
-            List<int> ownerIdList = ((selectedOwner!=null)? new List<int>() { selectedOwner.Id } : new List<int>());
-
-
-            RecertFilter recertFilter = new RecertFilter()
-            {
-                RecertOwnerList = ownerList,
-                RecertShowAnyMatch = recertShowAnyMatch,
-                RecertificationDisplayPeriod = recertLookAheadDays
-            };
-            reportParams = new ReportTemplate(filterInput, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter);
-            currentReport = ReportBase.ConstructReport(reportParams, userConfig);
+            PrepareReportGeneration();
 
             // save selected managements before resetting
             List<int> relevantManagements = deviceFilter.getSelectedManagements();
@@ -621,49 +604,40 @@
 
             try
             {
-                switch (currentReport.ReportType)
+                if(currentReport.ReportType == ReportType.Statistics)
                 {
-                    case ReportType.NatRules:
-                    case ReportType.Rules:
-                    case ReportType.Changes:
-                    case ReportType.ResolvedChanges:
-                    case ReportType.ResolvedChangesTech:
-                    case ReportType.ResolvedRules:
-                    case ReportType.ResolvedRulesTech:
-                    case ReportType.Recertification:
-                        await currentReport.Generate(userConfig.ElementsPerFetch, Connection,
+                    globalStats = new Management();
+                    await currentReport.Generate(0, Connection,
                         managementsReportIntermediate =>
                         {
                             managementsReport = managementsReportIntermediate;
                             setRelevantManagements(relevantManagements);
-                            return InvokeAsync(StateHasChanged);
-                        }, token);
-                        if (currentReport.ReportType == ReportType.Recertification)
-                        {
-                            PrepareMetadata(managementsReport);
-                        }
-                        break;
-
-                    case ReportType.Statistics:
-                        globalStats = new Management();
-                        await currentReport.Generate(0, Connection,
-                            managementsReportIntermediate =>
+                            return InvokeAsync(() =>
                             {
-                                managementsReport = managementsReportIntermediate;
-                                setRelevantManagements(relevantManagements);
-                                return InvokeAsync(() =>
+                                foreach (Management mgm in managementsReport.Where(mgt => !mgt.Ignore))
                                 {
-                                    foreach (Management mgm in managementsReport.Where(mgt => !mgt.Ignore))
-                                    {
-                                        globalStats.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
-                                        globalStats.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
-                                        globalStats.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
-                                        globalStats.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
-                                    }
-                                    StateHasChanged();
-                                });
-                            }, token);
-                        break;
+                                    globalStats.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
+                                    globalStats.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
+                                    globalStats.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
+                                    globalStats.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
+                                }
+                                StateHasChanged();
+                            });
+                        }, token);
+                }
+                else
+                {
+                    await currentReport.Generate(userConfig.ElementsPerFetch, Connection,
+                    managementsReportIntermediate =>
+                    {
+                        managementsReport = managementsReportIntermediate;
+                        setRelevantManagements(relevantManagements);
+                        return InvokeAsync(StateHasChanged);
+                    }, token);
+                    if (currentReport.ReportType == ReportType.Recertification)
+                    {
+                        PrepareMetadata(managementsReport);
+                    }
                 }
             }
             catch (OperationCanceledException e)
@@ -698,6 +672,27 @@
         }
         watch.Stop();
         reportGenerationDuration = watch.ElapsedMilliseconds/1000.0;
+    }
+
+    private void PrepareReportGeneration()
+    {
+        // collapse report templates
+        reportTemplateControl.Collapse();
+
+        List<int> ownerList = new List<int>();
+        if (selectedOwner != null)
+        {
+            ownerList.Add(selectedOwner.Id);
+        }
+        RecertFilter recertFilter = new RecertFilter()
+        {
+            RecertOwnerList = ownerList,
+            RecertShowAnyMatch = recertShowAnyMatch,
+            RecertificationDisplayPeriod = recertLookAheadDays
+        };
+        UnusedFilter unusedFilter = new UnusedFilter() { UnusedForDays = unusedDays };
+        reportParams = new ReportTemplate(filterInput, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter, unusedFilter);
+        currentReport = ReportBase.ConstructReport(reportParams, userConfig);
     }
 
     private bool PrepareMetadata(Management[] Managements)
@@ -747,7 +742,8 @@
                 RecertShowAnyMatch = recertShowAnyMatch, 
                 RecertSingleLinePerRule = recertSingleLinePerRule
             };
-            reportParams = new ReportTemplate(input, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter);
+            UnusedFilter unusedFilter = new UnusedFilter() { UnusedForDays = unusedDays };
+            reportParams = new ReportTemplate(input, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter, unusedFilter);
 
             DynGraphqlQuery query = Compiler.Compile(reportParams);
 
@@ -799,7 +795,7 @@
         List<ReportType> ListOut = new List<ReportType>();
         List<ReportType> orderedReportTypeList = new List<ReportType>()
         {
-            ReportType.Rules, ReportType.ResolvedRules, ReportType.ResolvedRulesTech, ReportType.NatRules, 
+            ReportType.Rules, ReportType.ResolvedRules, ReportType.ResolvedRulesTech, ReportType.UnusedRules, ReportType.NatRules,
             ReportType.Recertification,
             ReportType.Changes, ReportType.ResolvedChanges, ReportType.ResolvedChangesTech, 
             ReportType.Statistics

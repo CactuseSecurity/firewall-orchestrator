@@ -1,0 +1,17 @@
+﻿@page "/help/settings/email"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@(userConfig.GetText("email_settings"))</h3>
+    @(Html.Raw(userConfig.GetText("H5491")))
+</div>

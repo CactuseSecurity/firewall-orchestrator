@@ -5,6 +5,7 @@
 @inject UserConfig userConfig
 
 @page "/report/archive"
+@attribute [Authorize(Roles = "admin, fw-admin, reporter, reporter-viewall, auditor")]
 
 <ReportTabset></ReportTabset>
 
@@ -32,7 +33,7 @@
     <Column TableItem="ReportFile" Title="@(userConfig.GetText("name"))" Field="@(reportFile => reportFile.Name)" Sortable="true" Filterable="true"/>
     <Column TableItem="ReportFile" Title="@(userConfig.GetText("report_type"))" Field="@(reportFile => reportFile.Type)" Sortable="true">
         <Template>
-            @(userConfig.GetText(((FWO.Report.Filter.ReportType)((int)(context.Type ?? 0))).ToString()?.ToLower() ?? "none"))
+            @(userConfig.GetText(((FWO.Report.Filter.ReportType)((int)(context.Type ?? 0))).ToString() ?? "none"))
         </Template>
     </Column>
     <Column TableItem="ReportFile" Title="@(userConfig.GetText("template"))" Field="@(reportFile => reportFile.Template.Name)" Filterable="true"/>

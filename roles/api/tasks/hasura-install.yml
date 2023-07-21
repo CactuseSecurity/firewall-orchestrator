@@ -109,6 +109,8 @@
       HTTPS_PROXY:                     "{{ https_proxy }}"
       http_proxy:                      "{{ http_proxy }}"
       https_proxy:                     "{{ https_proxy }}"
+      no_proxy:                        "{{ no_proxy }}"
+      NO_PROXY:                        "{{ no_proxy }}"
 
 - name: show hasura env for debugging
   debug:

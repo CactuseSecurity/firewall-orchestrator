@@ -13,7 +13,8 @@
 
 <div class="p-2">
     <h3>@userConfig.GetText("workflow")</h3>
-    @(Html.Raw(userConfig.GetText("H8001")))
+    @userConfig.GetText("H8001")
+    <br><br>
     <ul>
         <li>
             @(Html.Raw(userConfig.GetText("H8011")))

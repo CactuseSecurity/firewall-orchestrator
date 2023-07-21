@@ -53,16 +53,14 @@
                 </li>
                 <hr />
             </AuthorizeView>
-            <AuthorizeView Roles="admin, reporter, reporter-viewall, recertifier, auditor, fw-admin">
-                <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5014"))">
-                    <h5>@(userConfig.GetText("personal"))</h5>
-                </li>
-                <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="monitoring/ui_messages">
-                        <span class="oi oi-monitor"></span> @(userConfig.GetText("ui_messages"))
-                    </NavLink>
-                </li>
-            </AuthorizeView>
+            <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5014"))">
+                <h5>@(userConfig.GetText("personal"))</h5>
+            </li>
+            <li class="nav-item px-2">
+                <NavLink class="nav-link" href="monitoring/ui_messages">
+                    <span class="oi oi-monitor"></span> @(userConfig.GetText("ui_messages"))
+                </NavLink>
+            </li>
             <AuthorizeView Roles="admin, auditor">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="monitoring/monitor_all">

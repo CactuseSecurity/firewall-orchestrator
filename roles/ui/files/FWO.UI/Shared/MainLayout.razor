@@ -7,6 +7,7 @@
 @using FWO.Ui.Auth
 @using FWO.Ui.Services
 @using System.Timers
+@using System.Security.Claims;
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @using RestSharp
 
@@ -40,9 +41,9 @@
         @if (showReloginInput)
         {
             <div class="input-group">
-              <input class="form-control form-control-sm @reloginCssClass" @bind="password" type="password" placeholder="Password" @onkeypress="@(() => reloginCssClass = "")">
+              <input type="password" class="form-control form-control-sm @reloginCssClass" @bind="password" placeholder="@(userConfig.GetText("password"))" @bind:event="oninput" @onkeypress="@KeyHandler">
               <div class="input-group-append">
-                <button type="button" class="btn btn-sm btn-primary" @onclick="Relogin">Re-login</button>
+                <button type="button" class="btn btn-sm btn-primary" @onclick="Relogin">@(userConfig.GetText("relogin"))</button> 
               </div>
             </div>
             @if (!string.IsNullOrEmpty(reloginErrorMessage))
@@ -72,6 +73,7 @@
     private string reloginCssClass = "";
     private bool showReloginInput;
     private string? password;
+    private ClaimsPrincipal? user;
 
     public enum MessageType
     {
@@ -83,7 +85,7 @@
 
     protected override void OnInitialized()
     {
-        var user = authenticationStateTask!.Result.User;
+        user = authenticationStateTask!.Result.User;
         DisplayMessageInUiFunction = DisplayMessageInUi;
 
         JwtEventService.OnPermissionChanged += OnPermissionsChanged;
@@ -91,6 +93,15 @@
         JwtEventService.OnJwtExpired += OnJwtExpired;
 
         alertSubscription = apiConnection.GetSubscription<List<Alert>>(ApiExceptionHandler, OnAlertUpdate, MonitorQueries.subscribeAlertChanges);
+    }
+
+    private async Task KeyHandler(KeyboardEventArgs ev)
+    {
+        if (ev.Code == "Enter")
+        {
+            await Relogin();
+        }
+        reloginCssClass = "";
     }
 
     private void OnPermissionsChanged(object? sender, string userDn)
@@ -123,7 +134,6 @@
     private async Task Relogin()
     {
         string errorMessage = userConfig.GetText("relogin_error");
-
         if (password == null)
         {
             password = "";
@@ -147,8 +157,8 @@
             }
         }
         catch (Exception ex)
-        { 
-            Log.WriteError("Re-login", "Re-login unsuccessful.", ex);
+        {
+            Log.WriteError("Re-login", "Re-login unsuccessful.", ex, userConfig.User.Name);
         }
 
         reloginErrorMessage = errorMessage;
@@ -157,7 +167,8 @@
 
     private void OnAlertUpdate(List<Alert> alerts)
     {
-        showAlert = alerts.Count() > 0;
+        user = authenticationStateTask!.Result.User;
+        showAlert = (user.IsInRole("admin") || user.IsInRole("fw-admin") || user.IsInRole("auditor")) && alerts.Count() > 0;
         InvokeAsync(StateHasChanged);
     }
 
@@ -258,21 +269,20 @@
                 cause = userConfig.GetText("api_access");
                 description = userConfig.GetText("E0004");
             }
-            else if (ErrorFlag)
-            {
-                // the exception message is shown to the user
-                Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception);
-                severity = 2;
-                cause = (title != "" ? title : userConfig.GetText("unspecified_error"));
-                description = $"{(message != "" ? message : userConfig.GetText("E0001"))}: {exception.Message} . " + userConfig.GetText("E0002");
-            }
             else
             {
-                // only title and message (if given) or unspecific error message is shown to the user
-                Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception);
+                string role = "";
+                try
+                {
+                    JwtReader jwtReader = new JwtReader(userConfig.User.Jwt);
+                    jwtReader.Validate();
+                    role = jwtReader.GetRole();
+                }
+                catch(Exception){}
+                Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception, userConfig.User.Name, role);
                 severity = 2;
                 cause = (title != "" ? title : userConfig.GetText("unspecified_error"));
-                description = $"{(message != "" ? message : userConfig.GetText("E0001"))} . " + userConfig.GetText("E0002");
+                description = $"{(message != "" ? message : userConfig.GetText("E0001"))}" + (ErrorFlag ? $": {exception.Message}" : "") + " . " + userConfig.GetText("E0002");
             }
         }
         ShowMessage(cause, description, messageType);

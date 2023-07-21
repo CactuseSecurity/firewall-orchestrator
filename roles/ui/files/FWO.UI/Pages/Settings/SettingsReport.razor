@@ -40,6 +40,19 @@
         </div>
     </form>
     <hr />
+    <form class="form-inline" onsubmit="return false">
+        <label for="unusedTolerance" class="col-form-label col-sm-4">@(userConfig.GetText("unusedTolerance")):</label>
+        <div class="col-sm-2">
+            <input id="unusedTolerance" type="number" class="form-control form-control-sm" @bind="configData!.UnusedTolerance" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label for="creationTolerance" class="col-form-label col-sm-4">@(userConfig.GetText("creationTolerance")):</label>
+        <div class="col-sm-2">
+            <input id="creationTolerance" type="number" class="form-control form-control-sm" @bind="configData!.CreationTolerance" />
+        </div>
+    </form>
+    <hr />
     <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
 }
 else

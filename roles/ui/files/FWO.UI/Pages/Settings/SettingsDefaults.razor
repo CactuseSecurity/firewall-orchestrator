@@ -83,6 +83,19 @@
     </form>
     <hr />
     <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("unusedTolerance"))*:</label>
+        <div class="col-sm-2">
+            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.UnusedTolerance" />
+        </div>
+    </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("creationTolerance"))*:</label>
+        <div class="col-sm-2">
+            <input type="number" class="form-control form-control-sm w-100" @bind="configData!.CreationTolerance" />
+        </div>
+    </form>
+    <hr />
+    <form class="form-inline" onsubmit="return false">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("dataRetentionTime")):</label>
         <div class="col-sm-2">
             <input type="number" class="form-control form-control-sm w-100" @bind="configData!.DataRetentionTime" />

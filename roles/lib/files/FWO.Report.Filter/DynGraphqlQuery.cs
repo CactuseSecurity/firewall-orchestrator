@@ -228,8 +228,13 @@ namespace FWO.Report.Filter
             if (unusedFilter != null)
             {
                 query.QueryParameters.Add("$cut: timestamp");
+                query.QueryParameters.Add("$tolerance: timestamp");
                 query.QueryVariables["cut"] = DateTime.Now.AddDays(-unusedFilter.UnusedForDays);
-                query.ruleWhereStatement += $@"{{rule_metadatum: {{_and: [{{rule_last_hit: {{_is_null: false}} }}, {{rule_last_hit: {{_lte: $cut}} }} ] }} }} ";
+                query.QueryVariables["tolerance"] = DateTime.Now.AddDays(-unusedFilter.CreationTolerance);
+                query.ruleWhereStatement += $@"{{rule_metadatum: {{_or: [
+                    {{_and: [{{rule_last_hit: {{_is_null: false}} }}, {{rule_last_hit: {{_lte: $cut}} }} ] }},
+                    {{_and: [{{rule_last_hit: {{_is_null: true}} }}, {{rule_created: {{_lte: $tolerance}} }} ] }} 
+                ]}} }}";
             }
         }
 

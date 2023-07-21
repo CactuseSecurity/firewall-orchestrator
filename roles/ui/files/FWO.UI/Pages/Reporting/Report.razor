@@ -367,6 +367,8 @@
 
     private DeviceFilter deviceFilter = new DeviceFilter();
     private bool selectAll = true;
+    private List<string> unsupportedList = new List<string>();
+    private DeviceFilter reducedDeviceFilter = new DeviceFilter();
 
     private DateTime actDate = DateTime.Now;
     private DateTime actTime = DateTime.Now;
@@ -380,7 +382,7 @@
     private bool ShowSelectTimeDialog = false;
     private bool recertShowAnyMatch = true;
     private int recertLookAheadDays = 0;
-    private int unusedDays = 367;
+    private int unusedDays = 0;
     private bool recertSingleLinePerRule = true;
 
     private int rulesPerPage = 0;   // todo: remove - no pagination implemented?
@@ -411,6 +413,7 @@
             try
             {
                 displayedTimeSelection = userConfig.GetText("now");
+                unusedDays = userConfig.UnusedTolerance;
 
                 deviceFilter.Managements = await Connection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
                 ownerList = await Connection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
@@ -594,7 +597,7 @@
             }
             processing = true;
 
-            PrepareReportGeneration();
+            await PrepareReportGeneration();
 
             // save selected managements before resetting
             List<int> relevantManagements = deviceFilter.getSelectedManagements();
@@ -674,15 +677,15 @@
         reportGenerationDuration = watch.ElapsedMilliseconds/1000.0;
     }
 
-    private void PrepareReportGeneration()
+    private async Task PrepareReportGeneration()
     {
         // collapse report templates
         reportTemplateControl.Collapse();
 
-        // check for disclaimer
+        // check for unsupported devices
         if(selectedReportType == ReportType.UnusedRules)
         {
-            List<string> unsupportedList = deviceFilter.GetUnsupportedDevices();
+            await GetUnsupportedDevices();
             if(unsupportedList.Count > 0)
             {
                 DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4004") + string.Join(", ", unsupportedList), true);
@@ -701,9 +704,42 @@
             RecertShowAnyMatch = recertShowAnyMatch,
             RecertificationDisplayPeriod = recertLookAheadDays
         };
-        UnusedFilter unusedFilter = new UnusedFilter() { UnusedForDays = unusedDays };
-        reportParams = new ReportTemplate(filterInput, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter, unusedFilter);
+        UnusedFilter unusedFilter = new UnusedFilter() { UnusedForDays = unusedDays, CreationTolerance = userConfig.CreationTolerance };
+        reportParams = new ReportTemplate(filterInput, selectedReportType == ReportType.UnusedRules ? reducedDeviceFilter : deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter, unusedFilter);
         currentReport = ReportBase.ConstructReport(reportParams, userConfig);
+    }
+
+    private async Task GetUnsupportedDevices()
+    {
+        unsupportedList.Clear();
+        reducedDeviceFilter = new DeviceFilter(deviceFilter);
+        foreach (ManagementSelect management in reducedDeviceFilter.Managements)
+        {
+            foreach (DeviceSelect device in management.Devices)
+            {
+                if (device.Selected && !(await UsageDataAvailable(device.Id)))
+                {
+                    unsupportedList.Add(device.Name ?? "?");
+                    device.Selected = false;
+                }
+            }
+            if(!DeviceFilter.IsSelectedManagement(management))
+            {
+                management.Selected = false;
+            }
+        }
+    }
+    
+    private async Task<bool> UsageDataAvailable(int devId)
+    {
+        try
+        {
+            return (await Connection.SendQueryAsync<AggregateCount>(FWO.Api.Client.Queries.ReportQueries.getUsageDataCount, new {devId = devId})).Aggregate.Count > 0;
+        }
+        catch(Exception)
+        {
+            return false;
+        }
     }
 
     private bool PrepareMetadata(Management[] Managements)
@@ -753,7 +789,7 @@
                 RecertShowAnyMatch = recertShowAnyMatch, 
                 RecertSingleLinePerRule = recertSingleLinePerRule
             };
-            UnusedFilter unusedFilter = new UnusedFilter() { UnusedForDays = unusedDays };
+            UnusedFilter unusedFilter = new UnusedFilter() { UnusedForDays = unusedDays, CreationTolerance = userConfig.CreationTolerance };
             reportParams = new ReportTemplate(input, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter, unusedFilter);
 
             DynGraphqlQuery query = Compiler.Compile(reportParams);

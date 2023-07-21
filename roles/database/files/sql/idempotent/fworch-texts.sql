@@ -1193,6 +1193,10 @@ INSERT INTO txt VALUES ('maxMessages',          'German', 	'Max Anzahl Nachricht
 INSERT INTO txt VALUES ('maxMessages',          'English', 	'Max number of messages');
 INSERT INTO txt VALUES ('messageViewTime',      'German', 	'Nachrichten-Anzeigedauer (in Sekunden)');
 INSERT INTO txt VALUES ('messageViewTime',      'English', 	'Message view time (in seconds)');
+INSERT INTO txt VALUES ('unusedTolerance',      'German', 	'Als unbenutzt gewertet nach (in Tagen)');
+INSERT INTO txt VALUES ('unusedTolerance',      'English', 	'Regarded as unused from (in days)');
+INSERT INTO txt VALUES ('creationTolerance',    'German', 	'Toleranz ab Erzeugungsdatum (in Tagen)');
+INSERT INTO txt VALUES ('creationTolerance',    'English', 	'Tolerance from creation date (in days)');
 INSERT INTO txt VALUES ('dataRetentionTime',    'German', 	'Datenaufbewahrungszeit (in Tagen)');
 INSERT INTO txt VALUES ('dataRetentionTime',    'English', 	'Data retention time (in days)');
 INSERT INTO txt VALUES ('dailyCheckStartAt',    'German', 	'Startzeit t&auml;glicher Check');

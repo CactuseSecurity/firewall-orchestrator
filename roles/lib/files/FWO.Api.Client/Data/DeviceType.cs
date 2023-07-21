@@ -30,10 +30,6 @@ namespace FWO.Api.Data
         // [JsonProperty("predefinedObjects"), JsonPropertyName("predefinedObjects")]
         // public ??? PredefinedObjects { get; set; }
 
-        public static bool UsageDataAvailable(int id)
-        {
-            return UsageDataAvailableList.Contains(id);
-        }
 
         private static List<int> LegacyDevTypeList = new List<int> 
         {
@@ -70,10 +66,6 @@ namespace FWO.Api.Data
             12   // FortiManager 5ff
         };
 
-        private static List<int> UsageDataAvailableList = new List<int> 
-        {
-            7, 9, 13  // Check Point
-        };
 
 
         public DeviceType()

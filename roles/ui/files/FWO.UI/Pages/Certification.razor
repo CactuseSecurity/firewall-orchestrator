@@ -323,8 +323,8 @@
             RecertSingleLinePerRule = recertSingleLinePerRule,
             RecertificationDisplayPeriod = recertLookAheadDays
         };
-        var tenant_filtering = authenticationStateTask!.Result.User.IsInRole("reporter") || authenticationStateTask!.Result.User.IsInRole("recertifier");
-        reportParams = new ReportTemplate("", deviceFilter, (int) ReportType.Recertification, new TimeFilter(), recertFilter, tenant_filtering);
+        bool tenantFiltering = authenticationStateTask!.Result.User.IsInRole("reporter") || authenticationStateTask!.Result.User.IsInRole("recertifier");
+        reportParams = new ReportTemplate("", deviceFilter, (int) ReportType.Recertification, new TimeFilter(), recertFilter, tenantFiltering);
         currentReport = ReportBase.ConstructReport(reportParams, userConfig);
     }
 

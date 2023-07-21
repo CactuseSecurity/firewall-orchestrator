@@ -268,3 +268,140 @@ RETURNS boolean AS $$
         RETURN show;
     END;
 $$ LANGUAGE 'plpgsql' STABLE;
+
+
+CREATE OR REPLACE FUNCTION rule_relevant_for_tenant(rule rule, hasura_session json)
+RETURNS boolean AS $$
+    DECLARE t_id integer;
+    show boolean DEFAULT false;
+    
+    BEGIN
+        t_id := (hasura_session ->> 'x-hasura-tenant-id')::integer;
+
+        IF t_id IS NULL THEN
+            RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
+        ELSIF t_id = 1 THEN
+            show := true;
+        ELSE
+            IF EXISTS (
+                SELECT rule_from.obj_id FROM rule_from
+                    LEFT JOIN objgrp_flat ON (rule_from.obj_id=objgrp_flat.objgrp_flat_id)
+                    LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
+                    LEFT JOIN tenant_network ON
+                        (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip)
+                WHERE rule_from.rule_id = rule.rule_id AND tenant_id = t_id
+            ) THEN
+                show := true;
+            END IF;
+
+            IF EXISTS (
+                SELECT rule_to.obj_id FROM rule_to
+                    LEFT JOIN objgrp_flat ON (rule_to.obj_id=objgrp_flat.objgrp_flat_id)
+                    LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
+                    LEFT JOIN tenant_network ON
+                        (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip)
+                WHERE rule_to.rule_id = rule.rule_id AND tenant_id = t_id
+            ) THEN
+                show := true;
+            END IF;
+
+        END IF;
+
+        RETURN show;
+    END;
+$$ LANGUAGE 'plpgsql' STABLE;
+
+
+
+CREATE OR REPLACE FUNCTION rule_from_relevant_for_tenant(rule_from rule_from, hasura_session json)
+RETURNS boolean AS $$
+    DECLARE t_id integer;
+    show boolean DEFAULT false;
+    rule_to_obj RECORD;
+    
+    BEGIN
+        t_id := (hasura_session ->> 'x-hasura-tenant-id')::integer;
+
+        IF t_id IS NULL THEN
+            RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
+        ELSIF t_id = 1 THEN
+            show := true;
+        ELSE
+            IF EXISTS ( -- ip of rule_from object is in tenant_network of tenant
+                SELECT rf.obj_id FROM rule_from rf
+                    LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat.objgrp_flat_id)
+                    LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
+                    LEFT JOIN tenant_network ON
+                        (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip)
+                WHERE rule_from_id = rule_from.rule_from_id AND tenant_id = t_id --> this better be efficient (rule_from_id checked before join) (!TODO: check this)
+            ) THEN
+                show := true;
+            ELSE -- check if all rule_from objects visible since relevant rule_to exists
+                FOR rule_to_obj IN
+                    SELECT rt.*, tenant_network.tenant_id
+                    FROM rule_to rt
+                        LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat_id)
+                        LEFT JOIN object ON (objgrp_flat_member_id=object.obj_id)
+                        LEFT JOIN tenant_network ON
+                            (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip)
+                    WHERE rule_id = rule_from.rule_id
+                LOOP
+                    IF rule_to_obj.tenant_id = t_id THEN
+                        show := true;
+                        EXIT;
+                    END IF;
+                END LOOP;
+            END IF;
+
+        END IF;
+
+        RETURN show;
+    END;
+$$ LANGUAGE 'plpgsql' STABLE;
+
+
+CREATE OR REPLACE FUNCTION rule_to_relevant_for_tenant(rule_to rule_to, hasura_session json)
+RETURNS boolean AS $$
+    DECLARE t_id integer;
+    show boolean DEFAULT false;
+    rule_from_obj RECORD;
+    
+    BEGIN
+        t_id := (hasura_session ->> 'x-hasura-tenant-id')::integer;
+
+        IF t_id IS NULL THEN
+            RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
+        ELSIF t_id = 1 THEN
+            show := true;
+        ELSE
+            IF EXISTS ( -- ip of rule_to object is in tenant_network of tenant
+                SELECT rt.obj_id FROM rule_to rt
+                    LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat.objgrp_flat_id)
+                    LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
+                    LEFT JOIN tenant_network ON
+                        (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip)
+                WHERE rule_to_id = rule_to.rule_to_id AND tenant_id = t_id --> this better be efficient (rule_to_id checked before join) (!TODO: check this)
+            ) THEN
+                show := true;
+            ELSE -- check if all rule_to objects visible since relevant rule_from exists
+                FOR rule_from_obj IN
+                    SELECT rf.*, tenant_network.tenant_id
+                    FROM rule_from rf
+                        LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat_id)
+                        LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
+                        LEFT JOIN tenant_network ON
+                            (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip)
+                    WHERE rule_id = rule_to.rule_id
+                LOOP
+                    IF rule_from_obj.tenant_id = t_id THEN
+                        show := true;
+                        EXIT;
+                    END IF;
+                END LOOP;
+            END IF;
+
+        END IF;
+
+        RETURN show;
+    END;
+$$ LANGUAGE 'plpgsql' STABLE;

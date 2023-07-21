@@ -130,7 +130,7 @@
             Dictionary<String, object> queryVars = new Dictionary<string, object>();
             bool gotAllObjects = true;
 
-            var tenant_filtering = AuthenticationStateTask!.Result.User.IsInRole("reporter") || AuthenticationStateTask!.Result.User.IsInRole("recertifier");
+            var tenantFiltering = AuthenticationStateTask!.Result.User.IsInRole("reporter") || AuthenticationStateTask!.Result.User.IsInRole("recertifier");
 
             switch (rsbTab)
             {
@@ -144,13 +144,13 @@
                     switch (objType)
                     {
                         case ObjCategory.all:
-                            if (tenant_filtering)
+                            if (tenantFiltering)
                                 query = ObjectQueries.getTenantAllObjectDetails;
                             else
                                 query = ObjectQueries.getAllObjectDetails;
                             break;
                         case ObjCategory.nobj:
-                            if (tenant_filtering)
+                            if (tenantFiltering)
                                 query = ObjectQueries.getTenantNetworkObjectDetails;
                             else
                                 query = ObjectQueries.getNetworkObjectDetails;

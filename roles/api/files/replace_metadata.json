@@ -918,9 +918,23 @@
                       "has_relevant_change"
                     ],
                     "filter": {
-                      "dev_id": {
-                        "_in": "x-hasura-visible-devices"
-                      }
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "dev_id": {
+                            "_in": "x-hasura-visible-devices"
+                          }
+                        },
+                        {
+                          "has_relevant_change": {
+                            "_eq": "true"
+                          }
+                        }
+                      ]
                     },
                     "allow_aggregations": true
                   }
@@ -953,9 +967,23 @@
                       "has_relevant_change"
                     ],
                     "filter": {
-                      "dev_id": {
-                        "_in": "x-hasura-visible-devices"
-                      }
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "dev_id": {
+                            "_in": "x-hasura-visible-devices"
+                          }
+                        },
+                        {
+                          "has_relevant_change": {
+                            "_eq": "true"
+                          }
+                        }
+                      ]
                     },
                     "allow_aggregations": true
                   }
@@ -5346,16 +5374,6 @@
                       "schema": "public"
                     }
                   }
-                },
-                {
-                  "name": "get_objects_for_tenant",
-                  "definition": {
-                    "function": {
-                      "name": "get_objects_for_tenant",
-                      "schema": "public"
-                    },
-                    "session_argument": "hasura_session"
-                  }
                 }
               ],
               "insert_permissions": [
@@ -6066,6 +6084,18 @@
                   }
                 }
               ],
+              "computed_fields": [
+                {
+                  "name": "object_relevant_for_tenant",
+                  "definition": {
+                    "function": {
+                      "name": "object_relevant_for_tenant",
+                      "schema": "public"
+                    },
+                    "session_argument": "hasura_session"
+                  }
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "auditor",
@@ -6181,9 +6211,18 @@
                       "obj_last_seen"
                     ],
                     "filter": {
-                      "mgm_id": {
-                        "_in": "x-hasura-visible-managements"
-                      }
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "object_relevant_for_tenant": {
+                            "_eq": "true"
+                          }
+                        }
+                      ]
                     },
                     "allow_aggregations": true
                   }
@@ -6224,9 +6263,18 @@
                       "obj_last_seen"
                     ],
                     "filter": {
-                      "mgm_id": {
-                        "_in": "x-hasura-visible-managements"
-                      }
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "object_relevant_for_tenant": {
+                            "_eq": "true"
+                          }
+                        }
+                      ]
                     },
                     "allow_aggregations": true
                   }
@@ -9234,26 +9282,6 @@
               ],
               "computed_fields": [
                 {
-                  "name": "get_rule_froms_for_tenant",
-                  "definition": {
-                    "function": {
-                      "name": "get_rule_froms_for_tenant",
-                      "schema": "public"
-                    },
-                    "session_argument": "hasura_session"
-                  }
-                },
-                {
-                  "name": "get_rule_tos_for_tenant",
-                  "definition": {
-                    "function": {
-                      "name": "get_rule_tos_for_tenant",
-                      "schema": "public"
-                    },
-                    "session_argument": "hasura_session"
-                  }
-                },
-                {
                   "name": "rule_relevant_for_tenant",
                   "definition": {
                     "function": {
@@ -9477,6 +9505,11 @@
                         {
                           "dev_id": {
                             "_in": "x-hasura-visible-devices"
+                          }
+                        },
+                        {
+                          "rule_relevant_for_tenant": {
+                            "_eq": "true"
                           }
                         }
                       ]
@@ -10511,7 +10544,32 @@
                       "rule_to_id",
                       "user_id"
                     ],
-                    "filter": {},
+                    "computed_fields": [
+                      "rule_to_relevant_for_tenant"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "rule": {
+                            "mgm_id": {
+                              "_in": "x-hasura-visible-managements"
+                            }
+                          }
+                        },
+                        {
+                          "rule": {
+                            "dev_id": {
+                              "_in": "x-hasura-visible-devices"
+                            }
+                          }
+                        },
+                        {
+                          "rule_to_relevant_for_tenant": {
+                            "_eq": "true"
+                          }
+                        }
+                      ]
+                    },
                     "allow_aggregations": true
                   }
                 },

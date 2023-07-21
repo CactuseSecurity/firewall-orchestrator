@@ -313,8 +313,7 @@ namespace FWO.Report.Filter
                 case ReportType.ResolvedRules:
                 case ReportType.ResolvedRulesTech:
                     query.FullQuery = Queries.compact($@"
-                    {(filter.TenantFiltering ? filter.Detailed ? RuleQueries.tenantRuleDetailsForReportFragments : RuleQueries.tenantRuleOverviewFragments
-                                             : filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
+                    {(filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
 
                     query rulesReport ({paramString}) 
                     {{ 
@@ -334,7 +333,7 @@ namespace FWO.Report.Filter
                                         rules(
                                             limit: $limit 
                                             offset: $offset
-                                            where: {{  access_rule: {{_eq: true}} {(filter.TenantFiltering ? "get_rule_froms_for_tenant: {}" : "")} {query.ruleWhereStatement} }} 
+                                            where: {{  access_rule: {{_eq: true}} {query.ruleWhereStatement} }} 
                                             order_by: {{ rule_num_numeric: asc }} )
                                             {{
                                                 mgm_id: mgm_id
@@ -394,8 +393,7 @@ namespace FWO.Report.Filter
                 case ReportType.ResolvedChanges:
                 case ReportType.ResolvedChangesTech:
                     query.FullQuery = Queries.compact($@"
-                    {(filter.TenantFiltering ? filter.Detailed ? RuleQueries.tenantRuleDetailsForReportFragments : RuleQueries.tenantRuleOverviewFragments
-                                             : filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
+                    {(filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
 
                     query changeReport({paramString}) {{
                         management(where: {{ hide_in_gui: {{_eq: false }} stm_dev_typ: {{dev_typ_is_multi_mgmt: {{_eq: false}} is_pure_routing_device: {{_eq: false}} }} }} order_by: {{mgm_name: asc}}) 
@@ -415,7 +413,6 @@ namespace FWO.Report.Filter
                                                 {{_and: [{{change_action:{{_eq:""D""}}}}, {{ruleByOldRuleId: {{access_rule:{{_eq:true}}}}}}]}},
                                                 {{_and: [{{change_action:{{_eq:""C""}}}}, {{rule: {{access_rule:{{_eq:true}}}}}}, {{ruleByOldRuleId: {{access_rule:{{_eq:true}}}}}}]}}
                                             ]                                        
-                                        {(filter.TenantFiltering ? "has_relevant_change: {_eq: true}" : "")}
                                         {query.ruleWhereStatement} 
                                     }}
                                     order_by: {{ control_id: asc }}
@@ -440,8 +437,7 @@ namespace FWO.Report.Filter
 
                 case ReportType.NatRules:
                     query.FullQuery = Queries.compact($@"
-                    {(filter.TenantFiltering ? filter.Detailed ? RuleQueries.tenantNatRuleDetailsForReportFragments : RuleQueries.tenantNatRuleOverviewFragments
-                                             : filter.Detailed ? RuleQueries.natRuleDetailsForReportFragments : RuleQueries.natRuleOverviewFragments)}
+                    {(filter.Detailed ? RuleQueries.natRuleDetailsForReportFragments : RuleQueries.natRuleOverviewFragments)}
 
                     query natRulesReport ({paramString}) 
                     {{ 
@@ -456,7 +452,7 @@ namespace FWO.Report.Filter
                                         rules(
                                             limit: $limit 
                                             offset: $offset
-                                            where: {{  nat_rule: {{_eq: true}}, ruleByXlateRule: {{}} {(filter.TenantFiltering ? "get_rule_froms_for_tenant: {}" : "")} {query.ruleWhereStatement} }} 
+                                            where: {{  nat_rule: {{_eq: true}}, ruleByXlateRule: {{}} {query.ruleWhereStatement} }} 
                                             order_by: {{ rule_num_numeric: asc }} )
                                             {{
                                                 mgm_id: mgm_id

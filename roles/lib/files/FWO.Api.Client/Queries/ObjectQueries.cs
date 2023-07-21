@@ -5,12 +5,12 @@ namespace FWO.Api.Client.Queries
     public class ObjectQueries : Queries
     {
         public static readonly string networkObjectDetailsFragment;
-        public static readonly string getNetworkObjectDetails, getTenantNetworkObjectDetails;
+        public static readonly string getNetworkObjectDetails;
         public static readonly string networkServiceObjectDetailsFragment;
         public static readonly string getNetworkServiceObjectDetails;
         public static readonly string userDetailsFragment;
         public static readonly string getUserDetails;
-        public static readonly string getAllObjectDetails, getTenantAllObjectDetails;
+        public static readonly string getAllObjectDetails;
         public static readonly string getReportFilteredObjectDetails;
         public static readonly string getReportFilteredNetworkObjectDetails;
         public static readonly string getReportFilteredNetworkServiceObjectDetails;
@@ -26,10 +26,6 @@ namespace FWO.Api.Client.Queries
                 getNetworkObjectDetails =
                     networkObjectDetailsFragment +
                     File.ReadAllText(QueryPath + "networkObject/getNetworkObjectDetails.graphql");
-
-                getTenantNetworkObjectDetails =
-                    networkObjectDetailsFragment +
-                    File.ReadAllText(QueryPath + "networkObject/getTenantNetworkObjectDetails.graphql");
 
                 networkServiceObjectDetailsFragment =
                     File.ReadAllText(QueryPath + "networkService/fragments/networkServiceDetails.graphql");
@@ -50,12 +46,6 @@ namespace FWO.Api.Client.Queries
                     networkServiceObjectDetailsFragment +
                     networkObjectDetailsFragment +
                     File.ReadAllText(QueryPath + "allObjects/getAllObjectDetails.graphql");
-
-                getTenantAllObjectDetails =
-                    userDetailsFragment +
-                    networkServiceObjectDetailsFragment +
-                    networkObjectDetailsFragment +
-                    File.ReadAllText(QueryPath + "allObjects/getTenantAllObjectDetails.graphql");
 
                 // for rule export and RSB obj filtering per report
                 getReportFilteredObjectDetails = 

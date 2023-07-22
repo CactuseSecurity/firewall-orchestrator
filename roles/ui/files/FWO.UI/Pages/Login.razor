@@ -1,3 +1,4 @@
+@using FWO.Config.File;
 @using FWO.Middleware.RequestParameters
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @using System.Net
@@ -106,6 +107,9 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        //ApiConnection.Dispose();
+        ApiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri);
+
         if (firstRender)
         {      
             // This might be a reconnect. Check if there is a jwt in session storage.

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace FWO.Api.Client
 {
-    public abstract class ApiConnection
+    public abstract class ApiConnection : IDisposable
     {
         public event EventHandler<string>? OnAuthHeaderChanged;
 
@@ -24,5 +24,10 @@ namespace FWO.Api.Client
         public abstract Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null);
 
         public abstract ApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, ApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null);
+
+        public virtual void Dispose()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

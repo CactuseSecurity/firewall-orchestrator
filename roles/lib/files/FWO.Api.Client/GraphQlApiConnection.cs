@@ -176,5 +176,10 @@ namespace FWO.Api.Client
                 throw;
             }
         }
+
+        public override void Dispose()
+        {
+            graphQlClient.Dispose();
+        }
     }
 }

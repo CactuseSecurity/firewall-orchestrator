@@ -35,6 +35,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.Mail", "lib\files\FWO.M
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.Recert", "lib\files\FWO.Recert\FWO.Recert.csproj", "{520779B1-20EB-45D9-8A02-D0C4DFEC9302}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test", "TestProject\Test\Test.csproj", "{01F2CF3F-AA25-465A-B05A-9E70BCDCB453}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -99,6 +101,10 @@ Global
 		{520779B1-20EB-45D9-8A02-D0C4DFEC9302}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{520779B1-20EB-45D9-8A02-D0C4DFEC9302}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{520779B1-20EB-45D9-8A02-D0C4DFEC9302}.Release|Any CPU.Build.0 = Release|Any CPU
+		{01F2CF3F-AA25-465A-B05A-9E70BCDCB453}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{01F2CF3F-AA25-465A-B05A-9E70BCDCB453}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{01F2CF3F-AA25-465A-B05A-9E70BCDCB453}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{01F2CF3F-AA25-465A-B05A-9E70BCDCB453}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

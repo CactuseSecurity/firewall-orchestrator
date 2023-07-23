@@ -15,7 +15,7 @@ else
 	<div>
 		<details>
 			<summary class="mb-1 text-truncate">
-				@(ElementTemplate(Elements.First())) ...
+				@(ElementTemplate(Elements.First())) @* (+@(Elements.Count() - 1)) *@ ...
 			</summary>
 			<ul>
 				@foreach (ElementType element in Elements)

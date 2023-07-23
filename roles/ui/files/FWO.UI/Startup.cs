@@ -27,7 +27,7 @@ namespace FWO.Ui
             services.AddRazorPages();
             services.AddServerSideBlazor();
 
-            services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
+			services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
             services.AddScoped<CircuitHandlerService, CircuitHandlerService>();
 
             string ApiUri = ConfigFile.ApiServerUri;
@@ -64,6 +64,7 @@ namespace FWO.Ui
             services.AddSingleton<GlobalConfig>(_ => globalConfig);    
             services.AddScoped<UserConfig>(_ => new UserConfig(globalConfig));
 
+            services.AddScoped(_ => new NetworkZoneService());
             services.AddScoped(_ => new DomEventService());
 
             services.AddBlazorTable();

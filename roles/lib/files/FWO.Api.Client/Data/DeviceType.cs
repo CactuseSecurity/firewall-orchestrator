@@ -5,8 +5,6 @@ using FWO.Api.Client;
 using Newtonsoft.Json;
 namespace FWO.Api.Data
 {
-    [Newtonsoft.Json.JsonConverter(typeof(NoTypeConverterJsonConverter<DeviceType>))]
-    [TypeConverter(typeof(JsonStringConverter<DeviceType>))]
     public class DeviceType
     {
         [JsonProperty("id"), JsonPropertyName("id")]
@@ -22,10 +20,10 @@ namespace FWO.Api.Data
         public string Manufacturer { get; set; } = "";
 
         [JsonProperty("isPureRoutingDevice"), JsonPropertyName("isPureRoutingDevice")]
-        public Boolean IsPureRoutingDevice { get; set; }
+        public bool IsPureRoutingDevice { get; set; }
 
         [JsonProperty("isManagement"), JsonPropertyName("isManagement")]
-        public Boolean IsManagement { get; set; }
+        public bool IsManagement { get; set; }
 
         // [JsonProperty("predefinedObjects"), JsonPropertyName("predefinedObjects")]
         // public ??? PredefinedObjects { get; set; }

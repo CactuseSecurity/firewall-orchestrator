@@ -29,6 +29,8 @@ INSERT INTO txt VALUES ('set', 				    'German',	'Setzen');
 INSERT INTO txt VALUES ('set', 				    'English',	'Set');
 INSERT INTO txt VALUES ('add', 				    'German',	'Hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add', 				    'English',	'Add');
+INSERT INTO txt VALUES ('commit_changes', 		'German',	'&Auml;nderungen &uuml;bernehmen');
+INSERT INTO txt VALUES ('commit_changes', 	    'English',	'Commit changes');
 INSERT INTO txt VALUES ('autodiscover', 	    'German',	'Sync');
 INSERT INTO txt VALUES ('autodiscover', 	    'English',	'Sync');
 INSERT INTO txt VALUES ('assign', 				'German',	'Zuordnen');
@@ -1638,11 +1640,56 @@ INSERT INTO txt VALUES ('configuration',        'German', 	'Konfiguration');
 INSERT INTO txt VALUES ('configuration',        'English', 	'Configuration');
 INSERT INTO txt VALUES ('owner_import',         'German', 	'Eigent&uuml;mer-Import');
 INSERT INTO txt VALUES ('owner_import',         'English', 	'Owner Import');
+-- compliance
+INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
+INSERT INTO txt VALUES ('compliance',			'English', 	'Compliance');
+INSERT INTO txt VALUES ('network_zones',		'German', 	'Netzwerkzonen');
+INSERT INTO txt VALUES ('network_zones',		'English', 	'Network zones');
+INSERT INTO txt VALUES ('matrix',				'German', 	'Matrix');
+INSERT INTO txt VALUES ('matrix',				'English', 	'Matrix');
+INSERT INTO txt VALUES ('checks',				'German', 	'&Uuml;berpr&uuml;fung');
+INSERT INTO txt VALUES ('checks',				'English', 	'Checks');
+INSERT INTO txt VALUES ('check',				'German', 	'&Uuml;berpr&uuml;fen');
+INSERT INTO txt VALUES ('check',				'English', 	'Check');
+INSERT INTO txt VALUES ('zone_comm_matrix',		'German', 	'Netzwerkzonen-Kommunikationsmatrix');
+INSERT INTO txt VALUES ('zone_comm_matrix',		'English', 	'Network zone communication matrix');
+INSERT INTO txt VALUES ('network_zone_config',	'German', 	'Netzwerkzonen-Konfiguration');
+INSERT INTO txt VALUES ('network_zone_config',	'English', 	'Network zone configuration');
+INSERT INTO txt VALUES ('network_zone_check',	'German', 	'Netzwerkzonen-Compliancepr&uuml;fung');
+INSERT INTO txt VALUES ('network_zone_check',	'English', 	'Network zone compliance check');
+INSERT INTO txt VALUES ('allowed_communication','German', 	'Erlaubte Kommunikation');
+INSERT INTO txt VALUES ('allowed_communication','English', 	'Allowed communication');
+INSERT INTO txt VALUES ('subzones',				'German', 	'Subzonen');
+INSERT INTO txt VALUES ('subzones',				'English', 	'Subzones');
+INSERT INTO txt VALUES ('superzone',			'German', 	'Superzone');
+INSERT INTO txt VALUES ('superzone',			'English', 	'Superzone');
+INSERT INTO txt VALUES ('edit_zone_title',		'German', 	'Netzwerkzone editieren');
+INSERT INTO txt VALUES ('edit_zone_title',		'English', 	'Edit network zone');
+INSERT INTO txt VALUES ('add_ip_addresses',		'German', 	'IP Adresse(n) hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_ip_addresses',		'English', 	'Add IP Addresses');
+INSERT INTO txt VALUES ('delete_zone_title',	'German', 	'Netzwerkzone l&ouml;schen');
+INSERT INTO txt VALUES ('delete_zone_title',	'English', 	'Delete network zone');
+INSERT INTO txt VALUES ('delete_zone_text',		'German', 	'Sind Sie sich sicher, dass sie die Netzwerkzone % l&ouml;schen wollen?');
+INSERT INTO txt VALUES ('delete_zone_text',		'English', 	'Are you sure you want to delete the network zone %?');
+INSERT INTO txt VALUES ('to',					'German', 	'Nach');
+INSERT INTO txt VALUES ('to',					'English', 	'To');
+INSERT INTO txt VALUES ('allowed_comm_dests',   'German',   'Erlaubte Kommunikation (Nach)');
+INSERT INTO txt VALUES ('allowed_comm_dests',   'English',  'Allowed communication (to)');
+INSERT INTO txt VALUES ('allowed_comm_srcs',    'German',   'Erlaubte Kommunikation (Von)');
+INSERT INTO txt VALUES ('allowed_comm_srcs',    'English',  'Allowed communication (from)');
 INSERT INTO txt VALUES ('relogin',              'German', 	'Erneut anmelden');
 INSERT INTO txt VALUES ('relogin',              'English', 	'Re-Login');
 INSERT INTO txt VALUES ('relogin_error',        'German', 	'Fehler bei der erneuten Anmeldung');
 INSERT INTO txt VALUES ('relogin_error',        'English', 	'Re-Login error');
- 
+INSERT INTO txt VALUES ('internet_local_zone',  'German', 	'Internet / Lokal');
+INSERT INTO txt VALUES ('internet_local_zone',  'English', 	'Internet / Local');
+INSERT INTO txt VALUES ('rule_conform',         'German', 	'Regelkonform');
+INSERT INTO txt VALUES ('rule_conform',     	'English', 	'In accordance with the rules');
+INSERT INTO txt VALUES ('rule_violations',     	'German', 	'Regelverletzungen');
+INSERT INTO txt VALUES ('rule_violations',     	'English', 	'Rule violations');
+INSERT INTO txt VALUES ('no_network_zones',     'German', 	'Es existieren bisher keine Netzwerkzonen. Bitte legen Sie diese im Abschnitt "Konfiguration" an.');
+INSERT INTO txt VALUES ('no_network_zones',     'English', 	'No network zones exist yet. Please create them in the "Configuration" section.');
+
 
 -- text codes (roughly) categorized: 
 -- U: user texts (explanation or confirmation texts)
@@ -1665,6 +1712,22 @@ INSERT INTO txt VALUES ('relogin_error',        'English', 	'Re-Login error');
 -- 6000-6999: API
 -- 7000-7999: Monitoring
 -- 8000-8999: Workflow
+
+-- generic success messages
+INSERT INTO txt VALUES ('S_add_title',          'German',   'Erstellen erfolgreich');
+INSERT INTO txt VALUES ('S_add_title',          'English',  'Creation successful');
+INSERT INTO txt VALUES ('S_add_message',        'German',   'Das Erstellen des Elements wurde erfolgreich abgeschlossen.');
+INSERT INTO txt VALUES ('S_add_message',        'English',  'The creation of the element has been completed successfully.');
+
+INSERT INTO txt VALUES ('S_modify_title',       'German',   'Modifizieren erfolgreich');
+INSERT INTO txt VALUES ('S_modify_title',       'English',  'Modification successful');
+INSERT INTO txt VALUES ('S_modify_message',     'German',   'Das Modifizieren des Elements wurde erfolgreich abgeschlossen.');
+INSERT INTO txt VALUES ('S_modify_message',     'English',  'The modification of the element has been completed successfully.');
+
+INSERT INTO txt VALUES ('S_delete_title',       'German',   'L&ouml;schen erfolgreich');
+INSERT INTO txt VALUES ('S_delete_title',       'English',  'Deletion successful');
+INSERT INTO txt VALUES ('S_delete_message',     'German',   'Das L&ouml;schen des Elements wurde erfolgreich abgeschlossen.');
+INSERT INTO txt VALUES ('S_delete_message',     'English',  'The deletion of the element has been completed successfully.');
 
 -- user messages
 INSERT INTO txt VALUES ('U0001', 'German',  'Eingabetext wurde um nicht erlaubte Zeichen gek&uuml;rzt');
@@ -1824,12 +1887,34 @@ INSERT INTO txt VALUES ('U7401', 'English', 'View the past autodiscovery message
 INSERT INTO txt VALUES ('U7501', 'German',  'Archiv der Nachrichten der t&auml;glichen Checks');
 INSERT INTO txt VALUES ('U7501', 'English', 'View the past daily check messages');
 
-INSERT INTO txt VALUES ('U8001', 'German',  'Sind sie sicher, dass sie l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U8001', 'German',  'Sind sie sicher, dass sie Folgendes l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U8001', 'English', 'Are you sure you want to delete: ');
 INSERT INTO txt VALUES ('U8002', 'German',  'Neue Genehmigung zum Auftrag hinzugef&uuml;gt.');
 INSERT INTO txt VALUES ('U8002', 'English', 'New approval added to task.');
 INSERT INTO txt VALUES ('U8003', 'German',  'Sind sie sicher, dass sie abbrechen wollen? Bereits erzeugte Auftr&auml;ge gehen verloren.');
 INSERT INTO txt VALUES ('U8003', 'English', 'Are you sure you want to cancel? Already Created tasks will be lost.');
+
+
+-- generic error messages --
+INSERT INTO txt VALUES ('E_load_title',         'German',   'Fehler beim Laden');
+INSERT INTO txt VALUES ('E_load_title',         'English',  'Loading error');
+INSERT INTO txt VALUES ('E_load_message',       'German',   'Beim Laden der Elemente ist ein unerwarteter Fehler aufgetreten. Bitte melden Sie den Fehler, wenn er nicht erkl&auml;rbar ist.');
+INSERT INTO txt VALUES ('E_load_message',       'English',  'An unexpected error occurred while loading the items. Please report the error if it cannot be resolved.');
+
+INSERT INTO txt VALUES ('E_add_title',          'German',   'Fehler beim Erstellen');
+INSERT INTO txt VALUES ('E_add_title',          'English',  'Creation error');
+INSERT INTO txt VALUES ('E_add_message',        'German',   'Bei der Erstellung des Elements ist ein unerwarteter Fehler aufgetreten. Bitte melden Sie den Fehler, wenn er nicht erkl&auml;rbar ist.');
+INSERT INTO txt VALUES ('E_add_message',        'English',  'An unexpected error occurred while creating the item. Please report the error if it cannot be resolved.');
+
+INSERT INTO txt VALUES ('E_modify_title',       'German',   'Fehler beim Modifizieren');
+INSERT INTO txt VALUES ('E_modify_title',       'English',  'Modification error');
+INSERT INTO txt VALUES ('E_modify_message',     'German',   'Bei der Modifizierung des Elements ist ein unerwarteter Fehler aufgetreten. Bitte melden Sie den Fehler, wenn er nicht erkl&auml;rbar ist.');
+INSERT INTO txt VALUES ('E_modify_message',     'English',  'An unexpected error occurred while modifying the item. Please report the error if it cannot be resolved.');
+
+INSERT INTO txt VALUES ('E_delete_title',       'German',   'Fehler beim L&ouml;schen');
+INSERT INTO txt VALUES ('E_delete_title',       'English',  'Deletion error');
+INSERT INTO txt VALUES ('E_delete_message',     'German',   'Bei der L&ouml;schung des Elements ist ein unerwarteter Fehler aufgetreten. Bitte melden Sie den Fehler, wenn er nicht erkl&auml;rbar ist.');
+INSERT INTO txt VALUES ('E_delete_message',     'English',  'An unexpected error occurred while deleting the item. Please report the error if it cannot be resolved.');
 
 
 -- error messages
@@ -2092,6 +2177,7 @@ INSERT INTO txt VALUES ('E8014', 'English', 'The handling of this Task Type is n
 
 INSERT INTO txt VALUES ('E8101', 'German',  'Email-Versand kann nicht getestet werden, da der aktuell angemeldete Nutzer keine Email-Adresse hinterlegt hat.');
 INSERT INTO txt VALUES ('E8101', 'English', 'Sending of emails cannot be tested because the logged-in user does not have an email address.');
+
 
 
 

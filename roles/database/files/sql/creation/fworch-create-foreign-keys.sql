@@ -266,7 +266,16 @@ ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_object_foreign_key 
 ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_usergrp_foreign_key FOREIGN KEY (user_grp_id) REFERENCES usr(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_current_handler_foreign_key FOREIGN KEY (current_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_recent_handler_foreign_key FOREIGN KEY (recent_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-
 --- recertification ---
 ALTER TABLE recertification ADD CONSTRAINT recertification_rule_metadata_foreign_key FOREIGN KEY (rule_metadata_id) REFERENCES rule_metadata(rule_metadata_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE recertification ADD CONSTRAINT recertification_owner_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+--- compliance.ip_range ---
+ALTER TABLE compliance.ip_range ADD CONSTRAINT compliance_ip_range_network_zone_foreign_key FOREIGN KEY (network_zone_id) REFERENCES compliance.network_zone(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+--- compliance.network_zone ---
+ALTER TABLE compliance.network_zone ADD CONSTRAINT compliance_super_zone_foreign_key FOREIGN KEY (super_network_zone_id) REFERENCES compliance.network_zone(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+--- compliance.network_zone_communication ---
+ALTER TABLE compliance.network_zone_communication ADD CONSTRAINT compliance_from_network_zone_communication_foreign_key FOREIGN KEY (from_network_zone_id) REFERENCES compliance.network_zone(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE compliance.network_zone_communication ADD CONSTRAINT compliance_to_network_zone_communication_foreign_key FOREIGN KEY (to_network_zone_id) REFERENCES compliance.network_zone(id) ON UPDATE RESTRICT ON DELETE CASCADE;

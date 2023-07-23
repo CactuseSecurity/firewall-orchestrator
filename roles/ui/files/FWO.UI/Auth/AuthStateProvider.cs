@@ -12,53 +12,20 @@ using System.Net;
 using FWO.Logging;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using System.Security.Authentication;
+using System.Security.Principal;
 
 namespace FWO.Ui.Auth
 {
     public class AuthStateProvider : AuthenticationStateProvider
     {
-        private ClaimsPrincipal? authenticatedUser;
+        private ClaimsPrincipal user = new ClaimsPrincipal(new ClaimsIdentity());
 
         public override Task<AuthenticationState> GetAuthenticationStateAsync()
         {
-            var identity = new ClaimsIdentity();
-            var user = new ClaimsPrincipal(identity);
             return Task.FromResult(new AuthenticationState(user));
         }
 
-        public async Task AuthenticateUser(string jwtString, UserConfig userConfig, ApiConnection apiConnection, CircuitHandlerService circuitHandler)
-        {
-            JwtReader jwt = new JwtReader(jwtString);
-
-            if (jwt.Validate())
-            {
-                ClaimsIdentity identity = new ClaimsIdentity
-                (
-                    claims: jwt.GetClaims(),
-                    authenticationType: "ldap",
-                    nameType: JwtRegisteredClaimNames.UniqueName,
-                    roleType: "role"
-                );
-
-                authenticatedUser = new ClaimsPrincipal(identity);
-
-                await userConfig.SetUserInformation(authenticatedUser.FindFirstValue("x-hasura-uuid"), apiConnection);
-                circuitHandler.User = userConfig.User;
-                userConfig.User.Jwt = jwtString;
-
-                if(!userConfig.User.PasswordMustBeChanged)
-                {
-                    NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(authenticatedUser)));
-                }
-            }
-
-            else
-            {
-                Deauthenticate();
-            }           
-        }
-
-        public async Task<RestResponse<string>> Login(string username, string password, ApiConnection apiConnection, MiddlewareClient middlewareClient,
+        public async Task<RestResponse<string>> Authenticate(string username, string password, ApiConnection apiConnection, MiddlewareClient middlewareClient,
             UserConfig userConfig, ProtectedSessionStorage sessionStorage, CircuitHandlerService circuitHandler)
         {
             // There is no jwt in session storage. Get one from auth module.
@@ -67,53 +34,75 @@ namespace FWO.Ui.Auth
 
             if (apiAuthResponse.StatusCode == HttpStatusCode.OK)
             {
-                string jwt = apiAuthResponse.Data ?? throw new Exception("no response data");
-				JwtReader reader = new JwtReader(jwt);
-				reader.Validate();
+                string jwtString = apiAuthResponse.Data ?? throw new Exception("no response data");
+                await Authenticate(jwtString, apiConnection, middlewareClient, userConfig, circuitHandler, sessionStorage);
+                Log.WriteAudit("AuthenticateUser", $"user {username} successfully authenticated");
+            }
 
+            return apiAuthResponse;
+        }
+
+        public async Task Authenticate(string jwtString, ApiConnection apiConnection, MiddlewareClient middlewareClient,
+            UserConfig userConfig, CircuitHandlerService circuitHandler, ProtectedSessionStorage sessionStorage)
+        {
+            // Try to auth with jwt (validates it and creates user context on UI side).
+            JwtReader jwtReader = new JwtReader(jwtString);
+
+            if (jwtReader.Validate())
+            {
                 // importer is not allowed to login
-				if (reader.ContainsRole("importer"))
+                if (jwtReader.ContainsRole("importer"))
                 {
                     throw new AuthenticationException("login_importer_error");
                 }
 
-				Log.WriteAudit("AuthenticateUser", $"user {username} successfully authenticated");
+                // Save jwt in session storage.
+                await sessionStorage.SetAsync("jwt", jwtString);
 
-				// Save it in session storage.
-				await sessionStorage.SetAsync("jwt", jwt);
+                // Tell api connection to use jwt as authentication
+                apiConnection.SetAuthHeader(jwtString);
 
-                // Add all user relevant information to the current session. Also used when reloading page.
-                await CreateUserContext(jwt, apiConnection, middlewareClient, userConfig, circuitHandler);
+                // Tell middleware connection to use jwt as authentication
+                middlewareClient.SetAuthenticationToken(jwtString);
 
                 // Add jwt expiry timer
-                JwtEventService.AddJwtTimers(userConfig.User.Dn, (int)reader.TimeUntilExpiry().TotalMilliseconds, 1000 * 60 * userConfig.SessionTimeoutNoticePeriod);
+                JwtEventService.AddJwtTimers(userConfig.User.Dn, (int)jwtReader.TimeUntilExpiry().TotalMilliseconds, 1000 * 60 * userConfig.SessionTimeoutNoticePeriod);
+
+                // Set user claims based on the jwt claims
+                ClaimsIdentity identity = new ClaimsIdentity
+                (
+                    claims: jwtReader.GetClaims(),
+                    authenticationType: "ldap",
+                    nameType: JwtRegisteredClaimNames.UniqueName,
+                    roleType: "role"
+                );
+
+                user = new ClaimsPrincipal(identity);
+
+                await userConfig.SetUserInformation(user.FindFirstValue("x-hasura-uuid"), apiConnection);
+                circuitHandler.User = userConfig.User;
+                userConfig.User.Jwt = jwtString;
+
+                if (!userConfig.User.PasswordMustBeChanged)
+                {
+                    NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
+                }
             }
-            return apiAuthResponse;
+            else
+            {
+                Deauthenticate();
+            }
         }
 
         public void Deauthenticate()
-        {           
-            ClaimsIdentity identity = new ClaimsIdentity();
-            ClaimsPrincipal emptyUser = new ClaimsPrincipal(identity);
-
-            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(emptyUser)));
-        }
-
-        public async Task CreateUserContext(string jwt, ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig, CircuitHandlerService circuitHandler)
         {
-            // Tell api connection to use jwt as authentication
-            apiConnection.SetAuthHeader(jwt);
-
-            // Tell middleware connection to use jwt as authentication
-            middlewareClient.SetAuthenticationToken(jwt);
-
-            // Try to auth with jwt (validates it and creates user context on UI side).
-            await AuthenticateUser(jwt, userConfig, apiConnection, circuitHandler);
+            user = new ClaimsPrincipal(new ClaimsIdentity());
+            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
         }
 
         public void ConfirmPasswordChanged()
         {           
-            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(authenticatedUser ?? throw new Exception("Password cannot be changed because user was not authenticated"))));
+            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user ?? throw new Exception("Password cannot be changed because user was not authenticated"))));
         }
     }
 }

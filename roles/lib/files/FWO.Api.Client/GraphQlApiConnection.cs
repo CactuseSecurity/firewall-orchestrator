@@ -163,17 +163,25 @@ namespace FWO.Api.Client
             }
         }
 
-        public override ApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, ApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null)
+        public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null)
         {
             try
             {
                 GraphQLRequest request = new GraphQLRequest(subscription, variables, operationName);
-                return new ApiSubscription<SubscriptionResponseType>(this, graphQlClient, request, exceptionHandler, subscriptionUpdateHandler);
+                return new GraphQlApiSubscription<SubscriptionResponseType>(this, graphQlClient, request, exceptionHandler, subscriptionUpdateHandler);
             }
             catch (Exception exception)
             {
                 Log.WriteError("API Connection", "Error while creating subscription to GraphQL API.", exception);
                 throw;
+            }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                graphQlClient.Dispose();
             }
         }
     }

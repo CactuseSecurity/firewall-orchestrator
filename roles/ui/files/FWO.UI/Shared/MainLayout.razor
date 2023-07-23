@@ -61,7 +61,7 @@
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
-    private ApiSubscription<List<Alert>>? alertSubscription;
+    private GraphQlApiSubscription<List<Alert>>? alertSubscription;
     private bool showAlert = false;
     private bool messageDialogShow = false;
     private string dialogTitle = "";
@@ -140,8 +140,8 @@
         }
         try
         {
-            RestResponse<string> authResponse = await ((AuthStateProvider)authenticationProvider).Login(userConfig.User.Name,
-                password, apiConnection, middlewareClient, userConfig, sessionStorage, circuitHandler);
+            RestResponse<string> authResponse = await ((AuthStateProvider)authenticationProvider).Authenticate(userConfig.User.Name,
+            password, apiConnection, middlewareClient, userConfig, sessionStorage, circuitHandler);
             if (authResponse.StatusCode == System.Net.HttpStatusCode.OK) 
             { 
                 showReloginInput = false;

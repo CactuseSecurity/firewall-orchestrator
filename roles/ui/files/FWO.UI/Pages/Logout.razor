@@ -20,8 +20,8 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         // Dispose unmanaged ressources
-        // apiConnection.Dispose();
-        // middlewareClient.Dispose();
+        apiConnection.Dispose();
+        middlewareClient.Dispose();
 
         // Clear the jwt and deauthenticate
         await sessionStorage.DeleteAsync("jwt");
@@ -33,6 +33,6 @@
         circuitHandler.User = null;
 
         // Navigate to login page and force a reload to clear the current session
-        NavigationManager.NavigateTo("");//, forceLoad: true);
+        NavigationManager.NavigateTo("", forceLoad: true);
     }
 }

@@ -274,30 +274,30 @@
 				var addZoneCommunication = sourceZonesToAdd.ConvertAll(zone =>
 					new
 					{
-						from_network_zone_id = networkZoneInEdit.Id,
-						to_network_zone_id = zone.Id
+						from_network_zone_id = zone.Id,
+						to_network_zone_id = networkZoneInEdit.Id
 					}
 				);
 				addZoneCommunication.AddRange(destinationZonesToAdd.ConvertAll(zone =>
 					new
 					{
-						from_network_zone_id = zone.Id,
-						to_network_zone_id = networkZoneInEdit.Id
+						from_network_zone_id = networkZoneInEdit.Id,
+						to_network_zone_id = zone.Id
 					}
 				));
 
 				var deleteZoneCommunicationExp = sourceZonesToDelete.ConvertAll(zone =>
 					new
 					{
-						from_network_zone_id = new { _eq = networkZoneInEdit.Id },
-						to_network_zone_id = new { _eq = zone.Id }
+						from_network_zone_id = new { _eq = zone.Id },
+						to_network_zone_id = new { _eq = networkZoneInEdit.Id }
 					}
 				);
 				deleteZoneCommunicationExp.AddRange(destinationZonesToDelete.ConvertAll(zone =>
 					new
 					{
-						from_network_zone_id = new { _eq = zone.Id },
-						to_network_zone_id = new { _eq = networkZoneInEdit.Id }
+						from_network_zone_id = new { _eq = networkZoneInEdit.Id },
+						to_network_zone_id = new { _eq = zone.Id }
 					}
 				));
 

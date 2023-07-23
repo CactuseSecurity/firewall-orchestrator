@@ -1681,6 +1681,9 @@ INSERT INTO txt VALUES ('relogin',              'German', 	'Erneut anmelden');
 INSERT INTO txt VALUES ('relogin',              'English', 	'Re-Login');
 INSERT INTO txt VALUES ('relogin_error',        'German', 	'Fehler bei der erneuten Anmeldung');
 INSERT INTO txt VALUES ('relogin_error',        'English', 	'Re-Login error');
+INSERT INTO txt VALUES ('no_network_zones',     'German', 	'Es existieren bisher keine Netzwerkzonen. Bitte legen Sie diese im Abschnitt "Konfiguration" an.');
+INSERT INTO txt VALUES ('no_network_zones',     'English', 	'No network zones exist yet. Please create them in the "Configuration" section.');
+
 
 -- text codes (roughly) categorized: 
 -- U: user texts (explanation or confirmation texts)

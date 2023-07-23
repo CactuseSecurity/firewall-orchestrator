@@ -7,70 +7,79 @@
 
 <div class="ml-2 mb-3">
     <h3>@userConfig.GetText("zone_comm_matrix")</h3>
-    @if (editMode)
+    @if (zones.Length > 0)
     {
-        <div class="btn-group" role="group">
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ToggleEditMode(false)">@userConfig.GetText("cancel")</button>
-            <button type="button" class="btn btn-sm btn-primary" @onclick="CommitChanges">@userConfig.GetText("commit_changes")</button>
-        </div>
-    }
-    else
-    {
-        <button type="button" class="btn btn-sm btn-warning" @onclick="() => ToggleEditMode(true)">@userConfig.GetText("edit")</button>
+        @if (editMode)
+        {
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ToggleEditMode(false)">@userConfig.GetText("cancel")</button>
+                <button type="button" class="btn btn-sm btn-primary" @onclick="CommitChanges">@userConfig.GetText("commit_changes")</button>
+            </div>
+        }
+        else
+        {
+            <button type="button" class="btn btn-sm btn-warning" @onclick="() => ToggleEditMode(true)">@userConfig.GetText("edit")</button>
+        }
     }
 </div>
 
-<table>
-    <tr>
-        <td></td>
-        <td>
-            <div class="direction-info">@(userConfig.GetText("destination"))</div>
-        </td>
-    </tr>
-    <tr>
-        <td>
-            <div class="ml-3"></div> @*Hacky fix because of a firefox display bug
+@if (zones.Length > 0)
+{
+    <table>
+        <tr>
+            <td></td>
+            <td>
+                <div class="direction-info">@(userConfig.GetText("destination"))</div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <div class="ml-3"></div> @*Hacky fix because of a firefox display bug
             resulting in the text being diplayed inside of the table.*@
-            <div class="direction-info text-rotated">@(userConfig.GetText("source"))</div>
-        </td>
-        <td>
-            <table class="communication-matrix">
-                <thead>
-                    <tr>
-                        <th></th>
-                        @foreach (var destinationZone in zones)
-                        {
-                            <th @onclick="() => ExecuteZoneAction(destinationZone)" class="zone-header-rotated">
-                                <div class="zone-name text-rotated">@(destinationZone.Name)</div>
-                            </th>
-                        }
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var sourceZone in zones)
-                    {
+                <div class="direction-info text-rotated">@(userConfig.GetText("source"))</div>
+            </td>
+            <td>
+                <table class="communication-matrix">
+                    <thead>
                         <tr>
-                            <th @onclick="() => ExecuteZoneAction(sourceZone)" class="zone-header">
-                                <div class="zone-name">@(sourceZone.Name)</div>
-                            </th>
+                            <th></th>
                             @foreach (var destinationZone in zones)
                             {
-                                var allowed = sourceZone.CommunicationAllowedTo(destinationZone);
-                                var allowed_in_edit = addCommunication.Contains((sourceZone, destinationZone));
-                                var disallowed_in_edit = deleteCommunication.Contains((sourceZone, destinationZone));
-                                <td @onclick="() => ExecuteCommunicationAction(sourceZone, destinationZone)"
-                                    class="communication-cell @(allowed_in_edit ? "allowed-in-edit" : "")
-                                    @(disallowed_in_edit ? "disallowed-in-edit" : "") 
-                                    @(allowed && !allowed_in_edit && !disallowed_in_edit ? "allowed" : "disallowed")" />
+                                <th @onclick="() => ExecuteZoneAction(destinationZone)" class="zone-header-rotated">
+                                    <div class="zone-name text-rotated">@(destinationZone.Name)</div>
+                                </th>
                             }
                         </tr>
-                    }
-                </tbody>
-            </table>
-        </td>
-    </tr>
-</table>
-
+                    </thead>
+                    <tbody>
+                        @foreach (var sourceZone in zones)
+                        {
+                            <tr>
+                                <th @onclick="() => ExecuteZoneAction(sourceZone)" class="zone-header">
+                                    <div class="zone-name">@(sourceZone.Name)</div>
+                                </th>
+                                @foreach (var destinationZone in zones)
+                                {
+                                    var allowed = sourceZone.CommunicationAllowedTo(destinationZone);
+                                    var allowed_in_edit = addCommunication.Contains((sourceZone, destinationZone));
+                                    var disallowed_in_edit = deleteCommunication.Contains((sourceZone, destinationZone));
+                                    <td @onclick="() => ExecuteCommunicationAction(sourceZone, destinationZone)"
+                                        class="communication-cell @(allowed_in_edit ? "allowed-in-edit" : "")
+                                    @(disallowed_in_edit ? "disallowed-in-edit" : "")
+                                    @(allowed && !allowed_in_edit && !disallowed_in_edit ? "allowed" : "disallowed")" />
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </table>
+}
+else
+{
+    @(userConfig.GetText("no_network_zones"))
+}
 
 
 @code

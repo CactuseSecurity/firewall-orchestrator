@@ -45,19 +45,22 @@ namespace FWO.Api.Data
             return AllowedCommunicationDestinations.Contains(to);
         }
 
-        public bool OverlapExists(List<IPAddressRange> ranges)
+        public bool OverlapExists(List<IPAddressRange> ipRanges, List<List<IPAddressRange>> unseenIpRanges)
         {
-            foreach (IPAddressRange zoneIpRange in IPRanges)
+            bool result = false;
+
+            for (int i = 0; i < IPRanges.Length; i++)
             {
-                foreach (IPAddressRange ipRange in ranges)
+                for (int j = 0; j < ipRanges.Count; j++)
                 {
-                    if (OverlapExists(zoneIpRange, ipRange))
+                    if (OverlapExists(IPRanges[i], ipRanges[j]))
                     {
-                        return true;
+                        result = true;
+                        RemoveOverlap(unseenIpRanges[j], IPRanges[i]);
                     }
                 }
             }
-            return false;
+            return result;
         }
 
         /// <summary>
@@ -71,6 +74,42 @@ namespace FWO.Api.Data
             return IpToUint(a.Begin) <= IpToUint(b.End) && IpToUint(b.Begin) <= IpToUint(a.End);
         }
 
+        private void RemoveOverlap(List<IPAddressRange> ranges, IPAddressRange toRemove)
+        {
+            for (int i = 0; i < ranges.Count; i++)
+            {
+                if (OverlapExists(ranges[i], toRemove))
+                {
+                    if (IpToUint(toRemove.Begin) <= IpToUint(ranges[i].Begin) && IpToUint(toRemove.End) >= IpToUint(ranges[i].End))
+                    {
+                        // Complete overlap, remove the entire range
+                        ranges.RemoveAt(i);
+                        i--;
+                    }
+                    else if (IpToUint(toRemove.Begin) <= IpToUint(ranges[i].Begin))
+                    {
+                        // Overlap on the left side, update the start
+                        ranges[i].Begin = UintToIp(IpToUint(toRemove.End) + 1);
+                    }
+                    else if (IpToUint(toRemove.End) >= IpToUint(ranges[i].End))
+                    {
+                        // Overlap on the right side, update the end
+                        ranges[i].End = UintToIp(IpToUint(toRemove.Begin) - 1);
+                    }
+                    else
+                    {
+                        // Overlap in the middle, split the range
+                        // begin..remove.begin-1
+                        IPAddress end = ranges[i].End;
+                        ranges[i].End = UintToIp(IpToUint(toRemove.Begin) - 1);
+                        // remove.end+1..end
+                        ranges.Insert(i, new IPAddressRange(UintToIp(IpToUint(toRemove.End) + 1), end));
+                        i++;
+                    }
+                }
+            }
+        }
+
         private uint IpToUint(IPAddress ipAddress)
         {
             byte[] bytes = ipAddress.GetAddressBytes();
@@ -82,6 +121,19 @@ namespace FWO.Api.Data
             }
 
             return BitConverter.ToUInt32(bytes, 0);
+        }
+
+        private IPAddress UintToIp(uint ipAddress)
+        {
+            byte[] bytes = BitConverter.GetBytes(ipAddress);
+
+            // flip big-endian(network order) to little-endian
+            if (BitConverter.IsLittleEndian)
+            {
+                Array.Reverse(bytes);
+            }
+
+            return new IPAddress(bytes);
         }
 
         public object Clone()

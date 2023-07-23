@@ -69,7 +69,7 @@ Show="ShowDownloadReportFileDialog" ShowJson="true" OnClose="() => ShowDownloadR
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
-    private ApiSubscription<ReportFile[]>? archivedReportsSubscription;
+    private GraphQlApiSubscription<ReportFile[]>? archivedReportsSubscription;
     private List<ReportFile> archivedReports = new List<ReportFile>();
 
     private ReportFile reportFileContext = new ReportFile();

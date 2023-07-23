@@ -5,36 +5,7 @@ namespace FWO.Ui.Services
 {
 	public class NetworkZoneService
 	{
-		public ComplianceNetworkZone[] NetworkZones { get; set; } = new ComplianceNetworkZone[]
-		{
-			new ComplianceNetworkZone()
-			{
-				Id = 1,
-				Name = "A",
-				IPRanges = new IPAddressRange[]
-				{
-					IPAddressRange.Parse("1.1.1.1"),
-				},
-			},
-			new ComplianceNetworkZone()
-			{
-				Id = 2,
-				Name = "B",
-				IPRanges = new IPAddressRange[]
-				{
-					IPAddressRange.Parse("1.1.1.2"),
-				},
-			},
-			new ComplianceNetworkZone()
-			{
-				Id = 3,
-				Name = "C",
-				IPRanges = new IPAddressRange[]
-				{
-					IPAddressRange.Parse("1.1.1.3"),
-				},
-			},
-		};
+		public ComplianceNetworkZone[] NetworkZones { get; set; } = new ComplianceNetworkZone[0];
 
 		public delegate void ZoneAddEventArgs();
 		public delegate void ZoneModificationEventArgs(ComplianceNetworkZone networkZone);

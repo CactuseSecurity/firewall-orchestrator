@@ -163,12 +163,12 @@ namespace FWO.Api.Client
             }
         }
 
-        public override ApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, ApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null)
+        public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null)
         {
             try
             {
                 GraphQLRequest request = new GraphQLRequest(subscription, variables, operationName);
-                return new ApiSubscription<SubscriptionResponseType>(this, graphQlClient, request, exceptionHandler, subscriptionUpdateHandler);
+                return new GraphQlApiSubscription<SubscriptionResponseType>(this, graphQlClient, request, exceptionHandler, subscriptionUpdateHandler);
             }
             catch (Exception exception)
             {
@@ -177,9 +177,12 @@ namespace FWO.Api.Client
             }
         }
 
-        public override void Dispose()
+        protected override void Dispose(bool disposing)
         {
-            graphQlClient.Dispose();
+            if (disposing)
+            {
+                graphQlClient.Dispose();
+            }
         }
     }
 }

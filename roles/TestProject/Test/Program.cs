@@ -30,7 +30,8 @@ GraphQLHttpClient graphQlClient = new GraphQLHttpClient(new GraphQLHttpClientOpt
 //    Password = "cactus1"
 //});
 
-string jwt = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6InVzZXIxX2RlbW8iLCJ4LWhhc3VyYS11c2VyLWlkIjoiMzciLCJ4LWhhc3VyYS11dWlkIjoidWlkPXVzZXIxX2RlbW8sb3U9dGVuYW50MV9kZW1vLG91PW9wZXJhdG9yLG91PXVzZXIsZGM9ZndvcmNoLGRjPWludGVybmFsIiwieC1oYXN1cmEtdGVuYW50LWlkIjoiMiIsIngtaGFzdXJhLXZpc2libGUtbWFuYWdlbWVudHMiOiJ7IDEgfSIsIngtaGFzdXJhLXZpc2libGUtZGV2aWNlcyI6InsgMSB9Iiwicm9sZSI6WyJyZXBvcnRlciIsInJlY2VydGlmaWVyIl0sIngtaGFzdXJhLWFsbG93ZWQtcm9sZXMiOlsicmVwb3J0ZXIiLCJyZWNlcnRpZmllciJdLCJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiJyZXBvcnRlciIsIm5iZiI6MTY4OTk2NDE3NywiZXhwIjoxNjkwMDA3NDM3LCJpYXQiOjE2ODk5NjQxNzcsImlzcyI6IkZXTyBNaWRkbGV3YXJlIE1vZHVsZSIsImF1ZCI6IkZXTyJ9.qB7T3fDE_qN2iCcv7UWVDqa4aERw76LGGIQVVcw4eTgnISpnb5tuHZY-zAZFRZ2JiEJqgVpPouk8qhyZ1_aIIqsg5aY43Ghv0Wh6Cf1xqkz84nNqv5M_Uil7rGdywVnZI5NtQUDjYUL3su67MEYgMdi1t7UG6KzgE-52i3dcQJnzMJHu_k_A506MQ1UjLFBivxyIcWZLPSLhlYXs9x-hUPFeNRRRGO6rOder_2Z3N8cAJjpcCyPupS1cqB26fgr8gc_vtmSyZgUWRXKC-AnryvF3pFmsYcKNjCjKVwo1NSlA7kBj4AbAbM7xVZLwvM0sbWX3r-SS2bi1Jmm0vF_ynw";
+// admin jwt
+string jwt = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6ImFkbWluIiwieC1oYXN1cmEtdXNlci1pZCI6IjciLCJ4LWhhc3VyYS11dWlkIjoidWlkPWFkbWluLG91PXRlbmFudDAsb3U9b3BlcmF0b3Isb3U9dXNlcixkYz1md29yY2gsZGM9aW50ZXJuYWwiLCJ4LWhhc3VyYS10ZW5hbnQtaWQiOiIxIiwieC1oYXN1cmEtdmlzaWJsZS1tYW5hZ2VtZW50cyI6InsgMiwxLDU1IH0iLCJ4LWhhc3VyYS12aXNpYmxlLWRldmljZXMiOiJ7IDEsMiw1NiB9Iiwicm9sZSI6ImFkbWluIiwieC1oYXN1cmEtYWxsb3dlZC1yb2xlcyI6WyJhZG1pbiJdLCJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiJhZG1pbiIsIm5iZiI6MTY5MDEyMDMyOCwiZXhwIjoxNjkwMTYzNTg4LCJpYXQiOjE2OTAxMjAzMjgsImlzcyI6IkZXTyBNaWRkbGV3YXJlIE1vZHVsZSIsImF1ZCI6IkZXTyJ9.i98Ht5x4uU5mBJUKuz9_w9m6cAi3D2x7-6GiXTGbpQRJld529erAT1P1dURXpKHn1DmNDBy8fRnF863kUxesfENAVUxwNMnxtC4nSzmzc_kHkkbvZhON6L3lwDml5_xs3Ie189UH0AJTkFy91jpo5KEdDtv4ufHPDlLCRWyGFEPpWuGIIKQiFhWFGk2LwiDwphLdFNx8Hsnf_D-HGf13ipItvdgJkGayFkIUqgMK7PlLuPnJL-lQwUQTVtrCcBdeO8G3hwtCyJDy7TSL_g_rd_Kf1D1BKcEBHcNigmjLfOVyyyzqOLBL7baaPrPIfZ1u_PrHE_-PQucGtlRB8DQWwA";
 graphQlClient.HttpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt); // Change jwt in auth header
 graphQlClient.Options.ConfigureWebSocketConnectionInitPayload = httpClientOptions => new { headers = new { authorization = $"Bearer {jwt}" } };
 
@@ -81,10 +82,39 @@ IObservable<GraphQLResponse<dynamic>> stream = graphQlClient.CreateSubscriptionS
     }
 );
 
+var subscription = stream.Subscribe(x =>
+{
+    Console.WriteLine(JsonConvert.SerializeObject(x, Formatting.Indented));
+});
+
+
+await Task.Delay(10_000);
+
+subscription.Dispose();
+
+string jwt2 = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6InVzZXIxX2RlbW8iLCJ4LWhhc3VyYS11c2VyLWlkIjoiNTciLCJ4LWhhc3VyYS11dWlkIjoidWlkPXVzZXIxX2RlbW8sb3U9dGVuYW50MV9kZW1vLG91PW9wZXJhdG9yLG91PXVzZXIsZGM9ZndvcmNoLGRjPWludGVybmFsIiwieC1oYXN1cmEtdGVuYW50LWlkIjoiMiIsIngtaGFzdXJhLXZpc2libGUtbWFuYWdlbWVudHMiOiJ7IDEgfSIsIngtaGFzdXJhLXZpc2libGUtZGV2aWNlcyI6InsgMSB9Iiwicm9sZSI6InJlcG9ydGVyIiwieC1oYXN1cmEtYWxsb3dlZC1yb2xlcyI6WyJyZXBvcnRlciJdLCJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiJyZXBvcnRlciIsIm5iZiI6MTY5MDEyMDM3NCwiZXhwIjoxNjkwMTYzNjM0LCJpYXQiOjE2OTAxMjAzNzQsImlzcyI6IkZXTyBNaWRkbGV3YXJlIE1vZHVsZSIsImF1ZCI6IkZXTyJ9.G6wdq_mVrbdCit9Pg6fyLsTHAOQ1Hgnbq3Q2i746ELlYxsGGr3vHCJFteZe0Uli_BjIiY99pHeZSH7PR6wOJXzC6wIDaZgIAQZo3ZuArr_WhjMzKT0cGR8cp-nWg2N-6hzz0B2FHA090Cy33dy0e-3NcyOC9Q-0o2hRwE7tTcjcYHuMKa_Fok7LWbDrLZFweD1IKh2UWQU451oiBg5Kgr1Ow1DpUrxMLTdyRHx7jGwDYpE7QjLUabH_MSWpLyGCVyaacGLlf5Zid5KBsRglZ5EB7l9tyNOV9Rx8WZk_HTdE-ol6xAqATGoBCntpq84nziXDb-WWtTqKAfQfgSK72PA";
+graphQlClient.HttpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt2); // Change jwt in auth header
+graphQlClient.Options.ConfigureWebSocketConnectionInitPayload = httpClientOptions => new { headers = new { authorization = $"Bearer {jwt2}" } };
+
+Console.WriteLine("---- NEW JWT ----");
+Console.WriteLine("---- NEW JWT ----");
+Console.WriteLine("---- NEW JWT ----");
+
+response = await graphQlClient.SendQueryAsync<dynamic>(request);
+Console.WriteLine(JsonConvert.SerializeObject(response, Formatting.Indented));
+
+stream = graphQlClient.CreateSubscriptionStream<dynamic>(streamRequest,
+    ex =>
+    {
+        Console.WriteLine(ex.Message);
+    }
+);
+
 stream.Subscribe(x =>
 {
     Console.WriteLine(JsonConvert.SerializeObject(x, Formatting.Indented));
 });
+
 
 while (true)
 {

@@ -108,7 +108,7 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         //ApiConnection.Dispose();
-        ApiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri);
+        //ApiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri);
 
         if (firstRender)
         {      
@@ -132,7 +132,7 @@
             await focusInput();
         }
     }
-              
+
     private void OnUsernameInput(ChangeEventArgs e)
     {
         Username = e.Value?.ToString() ?? "";
@@ -206,15 +206,16 @@
                     StateHasChanged();
                 }
             }
-            // Authentication exception (raised by us)
+            // Authentication exception (raised by us) 
             catch (AuthenticationException e)
             {
                 errorMessage = userConfig.GetText(e.Message);
             }
             // Unknown exception
-            catch (Exception)
+            catch (Exception exception)
             {
                 errorMessage = userConfig.GetText("E0012");
+                Log.WriteError("Login error", $"An unexpected exception was thrown during the log in process for user: \"{Username}\".", exception);
             }
 
             loginInProgress = false;

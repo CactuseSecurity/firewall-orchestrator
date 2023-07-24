@@ -29,6 +29,9 @@
         - libpq-dev
       when: ansible_os_family == "Debian"
 
+    - name: install ansible collection community.postgresql
+      command: ansible-galaxy collection install community.postgresql
+
     - name: initdb as extra step for redhat
       shell: "LC_ALL=C.UTF-8 /usr/bin/postgresql-setup --initdb"
       become: true

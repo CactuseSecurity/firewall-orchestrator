@@ -20,3 +20,12 @@ Alter Table "zone" add Constraint "Alter_Key10" UNIQUE ("mgm_id","zone_name");
 
 create unique index if not exists only_one_future_recert_per_owner_per_rule on recertification(owner_id,rule_metadata_id,recert_date) 
 where recert_date IS NULL;
+
+--- compliance
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+ALTER TABLE compliance.ip_range ADD CONSTRAINT "exclude_overlapping_ip_ranges"
+EXCLUDE USING gist (
+    network_zone_id WITH =,
+    numrange(ip_range_start - '0.0.0.0'::inet, ip_range_end - '0.0.0.0'::inet, '[]') WITH &&
+);
+

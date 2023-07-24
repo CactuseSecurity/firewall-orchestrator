@@ -1,6 +1,6 @@
 /*
 Created			29.04.2005
-Last modified	13.12.2020
+Last modified	14.07.2023
 Project			Firewall Orchestrator
 Contact			https://cactus.de/fworch
 Database		PostgreSQL 9-13
@@ -1249,3 +1249,31 @@ create table request.impltask
 	target_begin_date Timestamp,
 	target_end_date Timestamp
 );
+
+
+--- Compliance ---
+create schema compliance;
+
+create table compliance.network_zone
+(
+    id BIGSERIAL PRIMARY KEY,
+	name VARCHAR NOT NULL,
+	description VARCHAR NOT NULL,
+	super_network_zone_id bigint,
+	owner_id bigint
+);
+
+create table compliance.network_zone_communication
+(
+    from_network_zone_id bigint NOT NULL,
+	to_network_zone_id bigint NOT NULL
+);
+
+create table compliance.ip_range
+(
+    network_zone_id bigint NOT NULL,
+	ip_range_start inet NOT NULL,
+	ip_range_end inet NOT NULL,
+	PRIMARY KEY(network_zone_id, ip_range_start, ip_range_end)
+);
+

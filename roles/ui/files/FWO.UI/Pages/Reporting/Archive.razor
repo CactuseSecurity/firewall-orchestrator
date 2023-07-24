@@ -1,6 +1,8 @@
 ﻿@using System.Text
 @using FWO.Config.Api
 
+@implements IDisposable
+
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
@@ -67,7 +69,7 @@ Show="ShowDownloadReportFileDialog" ShowJson="true" OnClose="() => ShowDownloadR
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
-    private ApiSubscription<ReportFile[]>? archivedReportsSubscription;
+    private GraphQlApiSubscription<ReportFile[]>? archivedReportsSubscription;
     private List<ReportFile> archivedReports = new List<ReportFile>();
 
     private ReportFile reportFileContext = new ReportFile();
@@ -140,5 +142,10 @@ Show="ShowDownloadReportFileDialog" ShowJson="true" OnClose="() => ShowDownloadR
             Log.WriteError("Delete generated report", "Unclassified error.", exception);
             DisplayMessageInUi(exception, userConfig.GetText("delete_report"), "", false);
         }
+    }
+
+    public void Dispose()
+    {
+        archivedReportsSubscription?.Dispose();
     }
 }

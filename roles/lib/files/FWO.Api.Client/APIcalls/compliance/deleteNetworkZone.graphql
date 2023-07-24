@@ -1,0 +1,7 @@
+mutation delete_compliance_network_zone ($id: bigint!) {
+  delete_compliance_network_zone_by_pk (
+    id: $id
+  ) {
+    id
+  }
+}

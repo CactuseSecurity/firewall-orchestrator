@@ -1,0 +1,57 @@
+﻿@typeparam ElementType
+
+<ul class="list-group mb-2">
+	@for (int i = 0; i < ElementsToAdd.Count; i++)
+	{
+		int j = i;
+		<li class="bg-success-subtle list-group-item pb-2 pt-2 d-flex justify-content-between">
+			<div>@(Display(ElementsToAdd[i]))</div>
+			<span @onclick="() => ElementsToAdd.Remove(ElementsToAdd[j])" class="badge bg-danger">
+				<i class="oi oi-x text-light"></i>
+			</span>
+		</li>
+	}
+	@for (int i = 0; i < Elements.Length; i++)
+	{
+		int j = i;
+		<li class="list-group-item pb-2 pt-2 d-flex justify-content-between">
+			<div style="opacity: @(ElementsToDelete.Contains(Elements[j]) ? "0.5;" : "1;")">@Display(Elements[j])</div>
+			<span @onclick="() => ToggleRemoval(j)" class="badge @(ElementsToDelete.Contains(Elements[j]) ? "bg-success" : "bg-danger")">
+				<i class="oi @(ElementsToDelete.Contains(Elements[j]) ? "oi-action-undo" : "oi-x") text-light"></i>
+			</span>
+		</li>
+	}
+</ul>
+
+@code
+{
+	[Parameter]
+	public List<ElementType> ElementsToDelete { get; set; } = new List<ElementType>();
+
+	[Parameter]
+	public List<ElementType> ElementsToAdd { get; set; } = new List<ElementType>();
+
+	[Parameter]
+	public ElementType[] Elements { get; set; } = new ElementType[0];
+
+	[Parameter]
+	public RenderFragment<ElementType> Display { get; set; } = (e) =>
+	{
+		return __builder =>
+		{
+			@(e.ToString())
+		};
+	};
+
+	private void ToggleRemoval(int index)
+	{
+		if (ElementsToDelete.Contains(Elements[index]))
+		{
+			ElementsToDelete.Remove(Elements[index]);
+		}
+		else
+		{
+			ElementsToDelete.Add(Elements[index]);
+		}
+	}
+}

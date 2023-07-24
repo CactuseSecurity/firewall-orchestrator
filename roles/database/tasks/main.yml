@@ -177,7 +177,7 @@
   when: installation_mode == "upgrade"
 
 - name: (re)defines functions and views (idempotent)
-  postgresql_script:
+  community.postgresql.postgresql_script:
     db: "{{ fworch_db_name }}"
     path: "{{ database_install_dir }}/sql/idempotent/{{ item }}"
   become: true

@@ -103,7 +103,7 @@
     {
         try
         {
-            importStati = await apiConnection.SendQueryAsync<List<ImportStatus>>(FWO.Api.Client.Queries.DeviceQueries.getImportStatus);
+            importStati = await apiConnection.SendQueryAsync<List<ImportStatus>>(FWO.Api.Client.Queries.MonitorQueries.getImportStatus);
             countErrors();
             setSortPrio();
             sortedImportStati = importStati.OrderByDescending(stat=>stat.SortPrio).ToList();

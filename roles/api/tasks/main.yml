@@ -84,3 +84,12 @@
   notify: "api handler"
   when: installation_mode == "upgrade"
   become: true
+
+- name: set grants for hasura schemas (after hasura install)
+  postgresql_query:
+    db: "{{ fworch_db_name }}"
+    query: "GRANT USAGE ON SCHEMA {{ item }} TO dbbackupusers; Grant select on ALL TABLES in SCHEMA {{ item }} to group dbbackupusers; ALTER DEFAULT PRIVILEGES IN SCHEMA {{ item }} GRANT SELECT ON TABLES TO group dbbackupusers;"
+  become: true
+  become_user: postgres
+  loop:
+    - hdb_catalog

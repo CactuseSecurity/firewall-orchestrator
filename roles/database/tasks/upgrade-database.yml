@@ -41,12 +41,11 @@
   loop: "{{ upgrade_files }}"
   become: true
 
-- name: install upgrades
-  community.postgresql.postgresql_script:
+- name: install upgrades normally
+  postgresql_query:
     db: "{{ fworch_db_name }}"
-    path: "{{ database_install_dir }}/upgrade/{{ item }}.sql"
+    path_to_script: "{{ database_install_dir }}/upgrade/{{ item }}.sql"
   loop: "{{ upgrade_files | sort }}"
   ignore_errors: false
-  become: true   
+  become: true
   become_user: postgres
- 

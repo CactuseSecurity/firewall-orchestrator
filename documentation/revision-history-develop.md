@@ -67,3 +67,11 @@ In 2020 we decided to re-launch a new
 ### 6.4.13 20.07.2023 DEVELOP
 - re-login now also with enter key
 - fixing help pages (email & importer settings, archive, scheduling) [#2162](https://github.com/CactuseSecurity/firewall-orchestrator/issues/2162)
+
+### 6.5.0 24.07.2023 DEVELOP
+- UI: adding compliance matrix module
+- UI: fix browser session persistence causing subscriptions to remain open after user logout; now api connection and web socket are disposed on logout
+- API: removing obsolete graphql query repos
+- API: upgrading hasura api to 2.30.0
+- installer: replacing deprecated path_to_script option in postgresql_query
+

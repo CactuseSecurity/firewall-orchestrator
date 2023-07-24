@@ -176,13 +176,13 @@
   import_tasks: upgrade-database.yml
   when: installation_mode == "upgrade"
 
-- name: (re)define functions and views
-  include_tasks: recreate-functions-and-views-ansible-pre2.10.yml
-  when: ansible_version.full is version('2.10', '<')
-
-- name: (re)define functions and views
-  include_tasks: recreate-functions-and-views-ansible-2.10.yml
-  when: ansible_version.full is version('2.10', '>=')
+- name: (re)defines functions and views (idempotent)
+  postgresql_script:
+    db: "{{ fworch_db_name }}"
+    path: "{{ database_install_dir }}/sql/idempotent/{{ item }}"
+  become: true
+  become_user: postgres
+  loop: "{{ database_idempotent_files }}"
 
 - name: install pg test packages
   package:

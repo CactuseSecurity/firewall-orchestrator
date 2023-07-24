@@ -268,7 +268,8 @@ def complete_import(current_import_id, error_string, start_time, mgm_details, ch
     logger = getFwoLogger()
     fwo_config = readConfig(fwo_config_filename)
 
-    fwo_api.log_import_attempt(fwo_config['fwo_api_base_url'], jwt, mgm_details['id'], successful=not error_count)
+    success = (error_count==0)
+    log_result = fwo_api.log_import_attempt(fwo_config['fwo_api_base_url'], jwt, mgm_details['id'], successful=success)
 
     try: # CLEANUP: delete configs of imports (without changes) (if no error occured)
         if fwo_api.delete_json_config_in_import_table(fwo_config['fwo_api_base_url'], jwt, {"importId": current_import_id})<0:

@@ -369,9 +369,12 @@
             await DoRecerts();
 
             // create delete tickets
-            foreach(var device in deleteList)
+            if(userConfig.RecAutoCreateDeleteTicket)
             {
-                await ticketCreator.CreateRuleDeleteTicket(device.Key, device.Value, actComment, DateTime.Now.AddDays(userConfig.RuleRemovalGracePeriod));
+                foreach(var device in deleteList)
+                {
+                    await ticketCreator.CreateDecertRuleDeleteTicket(device.Key, device.Value, actComment, DateTime.Now.AddDays(userConfig.RuleRemovalGracePeriod));
+                }
             }
 
             // reload updated report

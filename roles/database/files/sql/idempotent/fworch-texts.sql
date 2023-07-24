@@ -470,6 +470,14 @@ INSERT INTO txt VALUES ('generated_on',	        'German', 	'Erstellt am');
 INSERT INTO txt VALUES ('generated_on',	        'English', 	'Generated on');
 INSERT INTO txt VALUES ('date_of_config',	    'German', 	'Zeit der Konfiguration');
 INSERT INTO txt VALUES ('date_of_config',	    'English', 	'Time of configuration');
+INSERT INTO txt VALUES ('create_delete_ticket', 'German',	'L&ouml;schantrag stellen');
+INSERT INTO txt VALUES ('create_delete_ticket', 'English',	'Create Delete Ticket');
+INSERT INTO txt VALUES ('rules_to_delete',	    'German', 	'Zu l&ouml;schende Regeln');
+INSERT INTO txt VALUES ('rules_to_delete',	    'English', 	'Rules to delete');
+INSERT INTO txt VALUES ('delete_unused_rule',	'German', 	'Unbenutzte Regel l&ouml;schen');
+INSERT INTO txt VALUES ('delete_unused_rule',   'English', 	'Delete unused rule');
+INSERT INTO txt VALUES ('delete_unused_rules',	'German', 	'Unbenutzte Regeln l&ouml;schen');
+INSERT INTO txt VALUES ('delete_unused_rules',  'English', 	'Delete unused rules');
 
 -- schedule
 INSERT INTO txt VALUES ('schedule', 			'German',	'Terminplan');

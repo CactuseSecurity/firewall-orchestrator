@@ -25,10 +25,6 @@ namespace FWO.Api.Data
         [JsonProperty("isManagement"), JsonPropertyName("isManagement")]
         public bool IsManagement { get; set; }
 
-        // [JsonProperty("predefinedObjects"), JsonPropertyName("predefinedObjects")]
-        // public ??? PredefinedObjects { get; set; }
-
-
         private static List<int> LegacyDevTypeList = new List<int> 
         {
             2, // Netscreen 5.x-6.x
@@ -63,7 +59,6 @@ namespace FWO.Api.Data
         {  
             12   // FortiManager 5ff
         };
-
 
 
         public DeviceType()

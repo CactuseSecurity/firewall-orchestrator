@@ -83,10 +83,12 @@ namespace FWO.Api.Data
         [JsonProperty("matches"), JsonPropertyName("matches")]
         public string IpMatch {get; set;} = "";
 
+        [JsonProperty("dev_id"), JsonPropertyName("dev_id")]
+        public int DeviceId { get; set; }
+
 
         public int DisplayOrderNumber { get; set; }
         public bool Certified { get; set; }
-        public int DeviceId { get; set; }
         public string DeviceName { get; set; } = "";
     }
 

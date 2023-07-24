@@ -34,6 +34,11 @@ namespace FWO.Test
             throw new NotImplementedException();
         }
 
+        public override void SwitchBack()
+        {
+            throw new NotImplementedException();
+        }
+
         protected override void Dispose(bool disposing)
         {
             throw new NotImplementedException();

@@ -114,6 +114,10 @@
     }
     <ReportExport ReportToExport="currentReport"></ReportExport>
     <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(filterInput, deviceFilter, selectedReportType, savedTimeFilter); }">@(userConfig.GetText("save_as_template"))</button>
+    @if(currentReport != null && currentReport.ReportType == ReportType.UnusedRules && selectedItemsRuleReportTable.Count > 0 && (authenticationStateTask!.Result.User.IsInRole("admin")|| authenticationStateTask!.Result.User.IsInRole("requester")))
+    {
+        <button type="button" class="btn btn-sm btn-danger" @onclick="() => {ShowCreateTicketDialog = true;}">@(userConfig.GetText("create_delete_ticket"))</button>
+    }
 </div>
 
 <hr />
@@ -344,12 +348,15 @@
         <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ShowSelectTimeDialog = false">@(userConfig.GetText("cancel"))</button>
     </Footer>
 </PopUp>
-
+<ReportCreateTicket @bind-Display="ShowCreateTicketDialog" SelectedRules="selectedItemsRuleReportTable"/>
 
 @code
 {
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
     public double reportGenerationDuration;
     private bool processing = false;
@@ -383,6 +390,7 @@
     private bool recertShowAnyMatch = true;
     private int recertLookAheadDays = 0;
     private int unusedDays = 0;
+    private bool ShowCreateTicketDialog = false;
     private bool recertSingleLinePerRule = true;
 
     private int rulesPerPage = 0;   // todo: remove - no pagination implemented?

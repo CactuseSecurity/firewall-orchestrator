@@ -12,6 +12,12 @@ Grant select on ALL TABLES in SCHEMA request to group dbbackupusers;
 ALTER DEFAULT PRIVILEGES IN SCHEMA request GRANT SELECT ON SEQUENCES TO group "dbbackupusers";
 ALTER DEFAULT PRIVILEGES IN SCHEMA request GRANT SELECT ON TABLES TO group dbbackupusers;
 
+GRANT USAGE ON SCHEMA compliance TO dbbackupusers; 
+GRANT SELECT ON ALL SEQUENCES IN SCHEMA compliance TO group "dbbackupusers";
+Grant select on ALL TABLES in SCHEMA compliance to group dbbackupusers; 
+ALTER DEFAULT PRIVILEGES IN SCHEMA compliance GRANT SELECT ON SEQUENCES TO group "dbbackupusers";
+ALTER DEFAULT PRIVILEGES IN SCHEMA compliance GRANT SELECT ON TABLES TO group dbbackupusers;
+
 --  grants for all (implicit) sequences
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO group "secuadmins";
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO group "secuadmins";

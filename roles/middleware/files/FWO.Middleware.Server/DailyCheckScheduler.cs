@@ -214,7 +214,7 @@ namespace FWO.Middleware.Server
 
         private async Task CheckImports()
         {
-            List<ImportStatus> importStati = await apiConnection.SendQueryAsync<List<ImportStatus>>(FWO.Api.Client.Queries.DeviceQueries.getImportStatus);
+            List<ImportStatus> importStati = await apiConnection.SendQueryAsync<List<ImportStatus>>(FWO.Api.Client.Queries.MonitorQueries.getImportStatus);
             int importIssues = 0;
             object jsonData;
             foreach(ImportStatus imp in importStati.Where(x => !x.ImportDisabled))

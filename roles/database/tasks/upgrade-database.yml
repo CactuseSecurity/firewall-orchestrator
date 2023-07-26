@@ -41,11 +41,10 @@
   loop: "{{ upgrade_files }}"
   become: true
 
-- name: install upgrades normally
-  postgresql_query:
-    db: "{{ fworch_db_name }}"
-    path_to_script: "{{ database_install_dir }}/upgrade/{{ item }}.sql"
-  loop: "{{ upgrade_files | sort }}"
-  ignore_errors: false
-  become: true
-  become_user: postgres
+- name: include upgrades as postgresql_query is not available in all ansible versions
+  include_tasks: upgrade_database_new.yml
+  when: ansible_version.full is version('2.10', '>=')
+
+- name: include upgrades as postgresql_query is not available in all ansible versions
+  include_tasks: upgrade_database_old.yml
+  when: ansible_version.full is version('2.10', '<=')

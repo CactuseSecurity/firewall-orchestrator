@@ -78,19 +78,14 @@
     debug:
       msg: "test_query result: {{ test_query }}"
 
-  - name: creating {{ fworch_db_name }}-db-model
-    postgresql_query:
-      db: "{{ fworch_db_name }}"
-      path_to_script: "{{ database_install_dir }}/sql/creation/{{ item }}"
-    loop:
-      - fworch-create-tables.sql
-      - fworch-create-constraints.sql
-      - fworch-create-foreign-keys.sql
-      - fworch-create-indices.sql
-      - fworch-create-triggers.sql
-      - fworch-fill-stm.sql
-    when: installation_mode == "new"
+  - name: include table creation with ansible 2.10 and beyond
+    include_tasks: install-db-base-ansible-2.10.yml
+    when: ansible_version.full is version('2.10', '>=')
 
+  - name: include table creation pre ansible 2.10
+    include_tasks: install-db-base-ansible-pre2.10.yml
+    when: ansible_version.full is version('2.10', '<')
+    
   - name: create db users with group memberships
     import_tasks: create-users.yml
     when: installation_mode == "new"

@@ -68,6 +68,8 @@ insert into config (config_key, config_value, config_user) VALUES ('reqAutoCreat
 insert into config (config_key, config_value, config_user) VALUES ('reqAllowObjectSearch', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqAllowManualOwnerAdmin', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqActivatePathAnalysis', 'True', 0);
+insert into config (config_key, config_value, config_user) VALUES ('unusedTolerance', '400', 0);
+insert into config (config_key, config_value, config_user) VALUES ('creationTolerance', '90', 0);
 
 INSERT INTO "report_format" ("report_format_name") VALUES ('json');
 INSERT INTO "report_format" ("report_format_name") VALUES ('pdf');

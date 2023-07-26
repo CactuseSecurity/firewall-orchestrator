@@ -30,7 +30,7 @@
     @if (selectedReportType==ReportType.Recertification)
     {
         <div class="p-3">
-            <h6 class="text-left">@(userConfig.GetText("recert_parameter"))</h6>
+            <h5 class="text-left">@(userConfig.GetText("recert_parameter"))</h5>
             <h7 class="text-left">@(userConfig.GetText("due_within")):</h7>
             <input type="number" min="1" max="5000" step="1" class="form-control form-control-sm" @bind="recertLookAheadDays" />
             <h7 class="text-left">@(userConfig.GetText("owner"))</h7>
@@ -65,6 +65,13 @@
                         })" />
                 <label class="form-check-label" for="recertShowAnyMatch">@(userConfig.GetText("show_any_match"))</label>
             </div>
+        </div>
+    }
+    else if(selectedReportType==ReportType.UnusedRules)
+    {
+        <div class="p-3">
+            <h5 class="text-left">@(userConfig.GetText("unused_days"))</h5>
+            <input type="number" min="1" max="5000" step="1" class="form-control form-control-sm" @bind="unusedDays" />
         </div>
     }
     else
@@ -107,6 +114,11 @@
     }
     <ReportExport ReportToExport="currentReport"></ReportExport>
     <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(filterInput, deviceFilter, selectedReportType, savedTimeFilter); }">@(userConfig.GetText("save_as_template"))</button>
+    @if(currentReport != null && currentReport.ReportType == ReportType.UnusedRules && selectedItemsRuleReportTable.Count > 0 
+        && (authenticationStateTask!.Result.User.IsInRole("admin") || authenticationStateTask!.Result.User.IsInRole("requester") || authenticationStateTask!.Result.User.IsInRole("auditor")))
+    {
+        <button type="button" class="btn btn-sm btn-danger" @onclick="() => {ShowCreateTicketDialog = true;}">@(userConfig.GetText("create_delete_ticket"))</button>
+    }
 </div>
 
 <hr />
@@ -138,19 +150,12 @@
             {
                 @switch (currentReport.ReportType)
                 {
-                    case ReportType.Recertification:
-                        <RulesReport Managements="managementsReport" SelectedReportType="selectedReportType" RulesPerPage="rulesPerPage"
-                            ReportParams="reportParams" @bind-SelectedRules="selectedItemsRuleReportTable" />
-                        break;
-
-                    case ReportType.NatRules:
-                        <RulesReport NatRules="true" Managements="managementsReport" SelectedReportType="selectedReportType" 
-                            RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable" />
-                        break;
-
                     case ReportType.Rules:
                     case ReportType.ResolvedRules:
                     case ReportType.ResolvedRulesTech:
+                    case ReportType.Recertification:
+                    case ReportType.UnusedRules:
+                    case ReportType.NatRules:
                         <RulesReport Managements="managementsReport" SelectedReportType="selectedReportType" RulesPerPage="rulesPerPage" 
                             @bind-SelectedRules="selectedItemsRuleReportTable" />
                         break;
@@ -344,12 +349,15 @@
         <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ShowSelectTimeDialog = false">@(userConfig.GetText("cancel"))</button>
     </Footer>
 </PopUp>
-
+<ReportCreateTicket @bind-Display="ShowCreateTicketDialog" SelectedRules="selectedItemsRuleReportTable"/>
 
 @code
 {
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
     public double reportGenerationDuration;
     private bool processing = false;
@@ -367,6 +375,8 @@
 
     private DeviceFilter deviceFilter = new DeviceFilter();
     private bool selectAll = true;
+    private List<string> unsupportedList = new List<string>();
+    private DeviceFilter reducedDeviceFilter = new DeviceFilter();
 
     private DateTime actDate = DateTime.Now;
     private DateTime actTime = DateTime.Now;
@@ -380,6 +390,8 @@
     private bool ShowSelectTimeDialog = false;
     private bool recertShowAnyMatch = true;
     private int recertLookAheadDays = 0;
+    private int unusedDays = 0;
+    private bool ShowCreateTicketDialog = false;
     private bool recertSingleLinePerRule = true;
 
     private int rulesPerPage = 0;   // todo: remove - no pagination implemented?
@@ -410,6 +422,7 @@
             try
             {
                 displayedTimeSelection = userConfig.GetText("now");
+                unusedDays = userConfig.UnusedTolerance;
 
                 deviceFilter.Managements = await Connection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
                 ownerList = await Connection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
@@ -593,25 +606,7 @@
             }
             processing = true;
 
-            // collapse report templates
-            reportTemplateControl.Collapse();
-            List<int> ownerList = new List<int>();
-            if (selectedOwner != null)
-            {
-                ownerList.Add(selectedOwner.Id);
-            }
-
-            List<int> ownerIdList = ((selectedOwner!=null)? new List<int>() { selectedOwner.Id } : new List<int>());
-
-
-            RecertFilter recertFilter = new RecertFilter()
-            {
-                RecertOwnerList = ownerList,
-                RecertShowAnyMatch = recertShowAnyMatch,
-                RecertificationDisplayPeriod = recertLookAheadDays
-            };
-            reportParams = new ReportTemplate(filterInput, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter);
-            currentReport = ReportBase.ConstructReport(reportParams, userConfig);
+            await PrepareReportGeneration();
 
             // save selected managements before resetting
             List<int> relevantManagements = deviceFilter.getSelectedManagements();
@@ -621,49 +616,40 @@
 
             try
             {
-                switch (currentReport.ReportType)
+                if(currentReport!.ReportType == ReportType.Statistics)
                 {
-                    case ReportType.NatRules:
-                    case ReportType.Rules:
-                    case ReportType.Changes:
-                    case ReportType.ResolvedChanges:
-                    case ReportType.ResolvedChangesTech:
-                    case ReportType.ResolvedRules:
-                    case ReportType.ResolvedRulesTech:
-                    case ReportType.Recertification:
-                        await currentReport.Generate(userConfig.ElementsPerFetch, Connection,
+                    globalStats = new Management();
+                    await currentReport.Generate(0, Connection,
                         managementsReportIntermediate =>
                         {
                             managementsReport = managementsReportIntermediate;
                             setRelevantManagements(relevantManagements);
-                            return InvokeAsync(StateHasChanged);
-                        }, token);
-                        if (currentReport.ReportType == ReportType.Recertification)
-                        {
-                            PrepareMetadata(managementsReport);
-                        }
-                        break;
-
-                    case ReportType.Statistics:
-                        globalStats = new Management();
-                        await currentReport.Generate(0, Connection,
-                            managementsReportIntermediate =>
+                            return InvokeAsync(() =>
                             {
-                                managementsReport = managementsReportIntermediate;
-                                setRelevantManagements(relevantManagements);
-                                return InvokeAsync(() =>
+                                foreach (Management mgm in managementsReport.Where(mgt => !mgt.Ignore))
                                 {
-                                    foreach (Management mgm in managementsReport.Where(mgt => !mgt.Ignore))
-                                    {
-                                        globalStats.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
-                                        globalStats.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
-                                        globalStats.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
-                                        globalStats.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
-                                    }
-                                    StateHasChanged();
-                                });
-                            }, token);
-                        break;
+                                    globalStats.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
+                                    globalStats.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
+                                    globalStats.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
+                                    globalStats.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
+                                }
+                                StateHasChanged();
+                            });
+                        }, token);
+                }
+                else
+                {
+                    await currentReport.Generate(userConfig.ElementsPerFetch, Connection,
+                    managementsReportIntermediate =>
+                    {
+                        managementsReport = managementsReportIntermediate;
+                        setRelevantManagements(relevantManagements);
+                        return InvokeAsync(StateHasChanged);
+                    }, token);
+                    if (currentReport.ReportType == ReportType.Recertification)
+                    {
+                        PrepareMetadata(managementsReport);
+                    }
                 }
             }
             catch (OperationCanceledException e)
@@ -698,6 +684,71 @@
         }
         watch.Stop();
         reportGenerationDuration = watch.ElapsedMilliseconds/1000.0;
+    }
+
+    private async Task PrepareReportGeneration()
+    {
+        // collapse report templates
+        reportTemplateControl.Collapse();
+
+        // check for unsupported devices
+        if(selectedReportType == ReportType.UnusedRules)
+        {
+            await GetUnsupportedDevices();
+            if(unsupportedList.Count > 0)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4004") + string.Join(", ", unsupportedList), true);
+            }
+        }
+
+        // set filters
+        List<int> ownerList = new List<int>();
+        if (selectedOwner != null)
+        {
+            ownerList.Add(selectedOwner.Id);
+        }
+        RecertFilter recertFilter = new RecertFilter()
+        {
+            RecertOwnerList = ownerList,
+            RecertShowAnyMatch = recertShowAnyMatch,
+            RecertificationDisplayPeriod = recertLookAheadDays
+        };
+        UnusedFilter unusedFilter = new UnusedFilter() { UnusedForDays = unusedDays, CreationTolerance = userConfig.CreationTolerance };
+        reportParams = new ReportTemplate(filterInput, selectedReportType == ReportType.UnusedRules ? reducedDeviceFilter : deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter, unusedFilter);
+        currentReport = ReportBase.ConstructReport(reportParams, userConfig);
+    }
+
+    private async Task GetUnsupportedDevices()
+    {
+        unsupportedList.Clear();
+        reducedDeviceFilter = new DeviceFilter(deviceFilter);
+        foreach (ManagementSelect management in reducedDeviceFilter.Managements)
+        {
+            foreach (DeviceSelect device in management.Devices)
+            {
+                if (device.Selected && !(await UsageDataAvailable(device.Id)))
+                {
+                    unsupportedList.Add(device.Name ?? "?");
+                    device.Selected = false;
+                }
+            }
+            if(!DeviceFilter.IsSelectedManagement(management))
+            {
+                management.Selected = false;
+            }
+        }
+    }
+    
+    private async Task<bool> UsageDataAvailable(int devId)
+    {
+        try
+        {
+            return (await Connection.SendQueryAsync<AggregateCount>(FWO.Api.Client.Queries.ReportQueries.getUsageDataCount, new {devId = devId})).Aggregate.Count > 0;
+        }
+        catch(Exception)
+        {
+            return false;
+        }
     }
 
     private bool PrepareMetadata(Management[] Managements)
@@ -747,7 +798,8 @@
                 RecertShowAnyMatch = recertShowAnyMatch, 
                 RecertSingleLinePerRule = recertSingleLinePerRule
             };
-            reportParams = new ReportTemplate(input, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter);
+            UnusedFilter unusedFilter = new UnusedFilter() { UnusedForDays = unusedDays, CreationTolerance = userConfig.CreationTolerance };
+            reportParams = new ReportTemplate(input, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter, unusedFilter);
 
             DynGraphqlQuery query = Compiler.Compile(reportParams);
 
@@ -799,7 +851,7 @@
         List<ReportType> ListOut = new List<ReportType>();
         List<ReportType> orderedReportTypeList = new List<ReportType>()
         {
-            ReportType.Rules, ReportType.ResolvedRules, ReportType.ResolvedRulesTech, ReportType.NatRules, 
+            ReportType.Rules, ReportType.ResolvedRules, ReportType.ResolvedRulesTech, ReportType.UnusedRules, ReportType.NatRules,
             ReportType.Recertification,
             ReportType.Changes, ReportType.ResolvedChanges, ReportType.ResolvedChangesTech, 
             ReportType.Statistics

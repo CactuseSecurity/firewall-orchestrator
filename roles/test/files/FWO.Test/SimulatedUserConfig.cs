@@ -9,6 +9,7 @@ namespace FWO.Test
             {"Rules","Rules Report"},
             {"ResolvedRules","Rules Report (resolved)"},
             {"ResolvedRulesTech","Rules Report (technical)"},
+            {"UnusedRules","Unused Rules Report"},
             {"Recertification","Recertification Report"},
             {"NatRules","NAT Rules Report"},
             {"Changes","Changes Report"},

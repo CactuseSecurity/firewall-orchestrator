@@ -1,9 +1,4 @@
 ﻿using FWO.Report.Filter.Exceptions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace FWO.Report.Filter.Ast
 {
@@ -39,6 +34,9 @@ namespace FWO.Report.Filter.Ast
                 case TokenKind.Owner:
                     ExtractOwnerFilter(query);
                     break;
+                case TokenKind.Unused:
+                    ExtractUnusedFilter(query);
+                    break;
                 default:
                     break;
             }
@@ -65,6 +63,15 @@ namespace FWO.Report.Filter.Ast
             query.ruleWhereStatement += $"owner: {{  {ExtractOperator()}: ${QueryVarName} }}";
             return query;
         }
-        
+
+        private DynGraphqlQuery ExtractUnusedFilter(DynGraphqlQuery query)
+        {
+            string QueryVarName = AddVariable<DateTime>(query, "cut", Operator.Kind, DateTime.Now.AddDays(-semanticValue));
+            query.ruleWhereStatement += $@"rule_metadatum: {{_or: [
+                    {{_and: [{{rule_last_hit: {{_is_null: false}} }}, {{rule_last_hit: {{_lte: ${QueryVarName} }} }} ] }},
+                    {{ rule_last_hit: {{_is_null: true}} }} 
+                ]}}";
+            return query;
+        }
     }
 }

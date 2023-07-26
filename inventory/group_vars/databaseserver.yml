@@ -3,7 +3,7 @@ postgresql_package: postgresql
 postgresql_test_package: pgtap
 postgresql_c_client_library_header_files: libpq-dev
 postgresql_dev_package_prefix: postgresql-server-dev
-postgresql_query_as_single_query: no
+postgresql_query_as_single_query: false
 database_install_dir: "{{ fworch_home }}/database"
 
 # table_space variable can be used to create database in another place where there is enough space

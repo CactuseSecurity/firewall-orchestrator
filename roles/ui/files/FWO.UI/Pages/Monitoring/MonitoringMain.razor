@@ -8,7 +8,7 @@
 
 @page "/monitoring"
 @page "/monitoring/main"
-@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, recertifier, auditor, fw-admin")]
+@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, recertifier, requester, approver, planner, implementer, reviewer, auditor, fw-admin")]
 
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
@@ -31,31 +31,31 @@
                 <Template>
                     @if(alert.Source == GlobalConfig.kAutodiscovery && alert.AlertCode != AlertCode.AutoDiscoveryErrorUnspecific)
                     {
-                        <button class="btn btn-sm btn-primary" @onclick="() => ShowAutodiscDetails(alert)">@(userConfig.GetText("details"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowAutodiscDetails(alert)">@(userConfig.GetText("details"))</button>
                     }
                     else if(alert.AlertCode == AlertCode.NoImport || alert.AlertCode == AlertCode.SuccessfulImportOverdue)
                     {
-                        <button class="btn btn-sm btn-primary" @onclick="() => ShowImportDetails(alert)">@(userConfig.GetText("details"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowImportDetails(alert)">@(userConfig.GetText("details"))</button>
                     }
                     else if(alert.AlertCode == AlertCode.ImportRunningTooLong)
                     {
-                        <button class="btn btn-sm btn-primary" @onclick="() => ShowImportRollback(alert)">@(userConfig.GetText("details"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowImportRollback(alert)">@(userConfig.GetText("details"))</button>
                     }
                     else if(alert.AlertCode == AlertCode.SampleDataExisting)
                     {
-                        <button class="btn btn-sm btn-primary" @onclick="() => ShowRemoveSampleData(alert)">@(userConfig.GetText("details"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowRemoveSampleData(alert)">@(userConfig.GetText("details"))</button>
                     }
                     else
                     {
-                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("details"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("details"))</button>
                     }
                     
                     <AuthorizeView Roles="admin, fw-admin">
                         <Authorized Context="ctx">
-                            <button class="btn btn-sm btn-secondary" @onclick="() => Acknowledge(alert)">@(userConfig.GetText("acknowledge"))</button>
+                            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Acknowledge(alert)">@(userConfig.GetText("acknowledge"))</button>
                         </Authorized>
                         <NotAuthorized Context="ctx">
-                            <button class="btn btn-sm btn-secondary" disabled>@(userConfig.GetText("acknowledge"))</button>
+                            <button type="button" class="btn btn-sm btn-secondary" disabled>@(userConfig.GetText("acknowledge"))</button>
                         </NotAuthorized> 
                     </AuthorizeView>
                 </Template>
@@ -107,19 +107,23 @@
         {
             JwtReader jwt = new JwtReader(userConfig.User.Jwt);
             jwt.Validate();
-
-            if (jwt.ContainsAllowedRole("admin") || jwt.ContainsAllowedRole("fw-admin"))
-                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
-            else
-                managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
-
-            // managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+            if (jwt.ContainsAllowedRole("admin") || jwt.ContainsAllowedRole("fw-admin") || jwt.ContainsAllowedRole("auditor"))
+            {
+                if (jwt.ContainsAllowedRole("admin") || jwt.ContainsAllowedRole("fw-admin"))
+                {
+                    managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+                }
+                else
+                {
+                    managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
+                }
+                await Refresh();
+            }
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, "", "", true);
         }
-        await Refresh();
     }
 
     private async Task Refresh()
@@ -215,7 +219,6 @@
             else
                 managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
 
-            // List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
             int deletedSampleManagements = 0;
             foreach (var management in managements)
             {

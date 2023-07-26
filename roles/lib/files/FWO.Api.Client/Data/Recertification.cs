@@ -7,6 +7,8 @@ namespace FWO.Api.Data
     {
         [JsonProperty("owner"), JsonPropertyName("owner")]
         public FwoOwner? FwoOwner { get; set; } = new FwoOwner();
-    }
 
+        [JsonProperty("user_dn"), JsonPropertyName("user_dn")]
+        public string UserDn { get; set; }  = "";
+    }
 }

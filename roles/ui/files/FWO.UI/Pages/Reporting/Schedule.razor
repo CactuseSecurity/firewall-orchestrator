@@ -1,23 +1,26 @@
 ﻿@using FWO.Config.Api
 @using FWO.Report.Filter
 
+@implements IDisposable
+
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-@page "/schedule"
+@page "/report/schedule"
+@attribute [Authorize(Roles = "admin, fw-admin, reporter, reporter-viewall, auditor")]
 
-<h3>@(userConfig.GetText("schedule"))</h3>
+<ReportTabset></ReportTabset>
 
-<button class="btn btn-sm btn-success mb-1" @onclick="() => { scheduledReportInEdit = new ScheduledReport() { RepeatInterval = Interval.Never }; ShowSaveScheduledReportDialog = true; }">@(userConfig.GetText("add"))</button>
+<button type="button" class="btn btn-sm btn-success mb-1" @onclick="() => { scheduledReportInEdit = new ScheduledReport() { RepeatInterval = Interval.Never }; ShowSaveScheduledReportDialog = true; }">@(userConfig.GetText("add"))</button>
 
 <Table TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="ScheduledReport" Items="scheduledReports" PageSize="0">
     <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("actions"))">
         <Template>
-            @if (context.Owner.DbId == uiUserDbId || authenticationState!.User.IsInRole("admin"))
+            @if (context.Owner.DbId == uiUserDbId || authenticationState != null && authenticationState.User.IsInRole("admin"))
             {
                 <div class="btn-group">
-                    <button class="btn btn-sm btn-warning" @onclick="() => { scheduledReportInEdit = context; actDate = actTime = context.StartTime; ShowEditScheduledReportDialog = true; }">@(userConfig.GetText("edit"))</button>
-                    <button class="btn btn-sm btn-danger" @onclick="() => { scheduledReportInEdit = context; ShowDeleteScheduledReportDialog = true; }">@(userConfig.GetText("delete"))</button>
+                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => { scheduledReportInEdit = context; actDate = actTime = context.StartTime; ShowEditScheduledReportDialog = true; }">@(userConfig.GetText("edit"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => { scheduledReportInEdit = context; ShowDeleteScheduledReportDialog = true; }">@(userConfig.GetText("delete"))</button>
                 </div>
             }
         </Template>
@@ -142,8 +145,8 @@
         </div>
     </Body>
     <Footer>
-        <button class="btn btn-sm btn-primary" @onclick="async () => await (ShowSaveScheduledReportDialog ? SaveScheduledReport() : EditScheduledReport())">@(userConfig.GetText("save"))</button>
-        <button class="btn btn-sm btn-secondary" @onclick="() => ShowEditScheduledReportDialog = ShowSaveScheduledReportDialog = false">@(userConfig.GetText("cancel"))</button>
+        <button type="button" class="btn btn-sm btn-primary" @onclick="async () => await (ShowSaveScheduledReportDialog ? SaveScheduledReport() : EditScheduledReport())">@(userConfig.GetText("save"))</button>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ShowEditScheduledReportDialog = ShowSaveScheduledReportDialog = false">@(userConfig.GetText("cancel"))</button>
     </Footer>
 </PopUp>
 
@@ -152,22 +155,23 @@
         <p>@(userConfig.GetText("U2002")) "@scheduledReportInEdit.Name" ?</p>
     </Body>
     <Footer>
-        <button class="btn btn-sm btn-danger" @onclick="DeleteScheduledReport">@(userConfig.GetText("delete"))</button>
-        <button class="btn btn-sm btn-secondary" @onclick="() => ShowDeleteScheduledReportDialog = false">@(userConfig.GetText("cancel"))</button>
+        <button type="button" class="btn btn-sm btn-danger" @onclick="DeleteScheduledReport">@(userConfig.GetText("delete"))</button>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ShowDeleteScheduledReportDialog = false">@(userConfig.GetText("cancel"))</button>
     </Footer>
 </PopUp>
 
 @code
 {
-    List<ScheduledReport> scheduledReports = new List<ScheduledReport>();
-    ScheduledReport scheduledReportInEdit = new ScheduledReport();
+    private GraphQlApiSubscription<ScheduledReport[]>? scheduledReportsSubscription;
+    private List<ScheduledReport> scheduledReports = new List<ScheduledReport>();
+    private ScheduledReport scheduledReportInEdit = new ScheduledReport();
     private DateTime actDate = DateTime.Today;
     private DateTime actTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
     private bool ShowSaveScheduledReportDialog = false;
     private bool ShowEditScheduledReportDialog = false;
     private bool ShowDeleteScheduledReportDialog = false;
 
-    private int uiUserDbId = -1;
+    private int uiUserDbId;
 
     ReportTemplate[] reportTemplates = new ReportTemplate[0];
 
@@ -182,15 +186,29 @@
     {
         try
         {
+            // Initial fetch to speed up loading before subscription is established
             scheduledReports = (await apiConnection.SendQueryAsync<ScheduledReport[]>(ReportQueries.getReportSchedules)).ToList();
+            scheduledReportsSubscription = apiConnection.GetSubscription<ScheduledReport[]>(HandleSubscriptionError, OnReportScheduleUpdate, ReportQueries.subscribeReportScheduleChanges);
             reportTemplates = await apiConnection.SendQueryAsync<ReportTemplate[]>(ReportQueries.getReportTemplates);
             uiUserDbId = userConfig.User.DbId;
             authenticationState = await authenticationStateTask!;
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("schedule_fetch"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("schedule_fetch"), userConfig.GetText("schedule_upd_err_msg"), true);
         }
+    }
+
+    private async void HandleSubscriptionError(Exception exception)
+    {
+        await InvokeAsync(() => DisplayMessageInUi(exception, userConfig.GetText("schedule_tile"), userConfig.GetText("schedule_upd_err_msg"), true));
+    }
+
+    private async void OnReportScheduleUpdate(ScheduledReport[] newScheduledReports)
+    {
+        Log.WriteDebug("Report Scheduling", "Received report schedule update.");
+        scheduledReports = newScheduledReports.ToList();
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task SaveScheduledReport()
@@ -225,22 +243,6 @@
                     report_schedule_formats = new { data = scheduledReportInEdit.OutputFormat }
                 };
                 scheduledReportInEdit.Id = (await apiConnection.SendQueryAsync<NewReturning>(ReportQueries.addReportSchedule, queryVariablesReportSchedule)).ReturnIds[0].NewId;
-
-                //// Add report schedule output format to DB (needs to be seperated because of unknown report schedule id)
-                //var queryVariablesReportScheduleOutputFormat = new
-                //{
-                //    report_schedule_ids_formats = new
-                //    {
-                //        data = scheduledReportInEdit.OutputFormat.ConvertAll(format =>
-                //        new { report_schedule_format_name = format.Name, report_schedule_id = scheduledReportInEdit.Id }).ToArray()
-                //    }
-                //};
-
-                ////string test = JsonSerializer.Serialize(queryVariablesReportScheduleOutputFormat, new JsonSerializerOptions { WriteIndented = true });
-                //ReturnId test = await apiConnection.SendQueryAsync<ReturnId>(ReportQueries.addReportScheduleFileFormats, queryVariablesReportScheduleOutputFormat);
-
-                // Update scheduled reports
-                scheduledReports = (await apiConnection.SendQueryAsync<ScheduledReport[]>(ReportQueries.getReportSchedules)).ToList();
 
                 ShowSaveScheduledReportDialog = false;
             }
@@ -279,7 +281,6 @@
                 };
 
                 await apiConnection.SendQueryAsync<object>(ReportQueries.editReportSchedule, queryVariables);
-                scheduledReports = (await apiConnection.SendQueryAsync<ScheduledReport[]>(ReportQueries.getReportSchedules)).ToList();
 
                 ShowEditScheduledReportDialog = false;
             }
@@ -301,9 +302,6 @@
             };
 
             await apiConnection.SendQueryAsync<object>(ReportQueries.deleteReportSchedule, queryVariables);
-            ScheduledReport? reportToDelete = scheduledReports.Find(scheduledReport => scheduledReport.Id == scheduledReportInEdit.Id);
-            if (reportToDelete != null)
-                scheduledReports.Remove(reportToDelete);
 
             ShowDeleteScheduledReportDialog = false;
         }
@@ -314,13 +312,18 @@
         }
     }
 
-        private bool checkInput()
+    private bool checkInput()
+    {
+        if(scheduledReportInEdit.Template == null || scheduledReportInEdit.Template.Id == 0)
         {
-            if(scheduledReportInEdit.Template == null || scheduledReportInEdit.Template.Id == 0)
-            {
-                DisplayMessageInUi(null, userConfig.GetText("edit_scheduled_report"), userConfig.GetText("E2001"), true);
-                return false;
-            }
-            return true;
+            DisplayMessageInUi(null, userConfig.GetText("edit_scheduled_report"), userConfig.GetText("E2001"), true);
+            return false;
         }
+        return true;
+    }
+
+    public void Dispose()
+    {
+        scheduledReportsSubscription?.Dispose();
+    }
 }

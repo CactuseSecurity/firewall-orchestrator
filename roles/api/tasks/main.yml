@@ -85,10 +85,11 @@
   when: installation_mode == "upgrade"
   become: true
 
-- name: settings grants for hasura schema old ansible to allow dbbackupusers access to all database shemas
-  include_tasks: grants-ansible-pre2.10.yml
-  when: ansible_version.full is version('2.10', '<')
-
-- name: settings grants for hasura schema new ansible to allow dbbackupusers access to all database shemas
-  include_tasks: grants-ansible-2.10.yml
-  when: ansible_version.full is version('2.10', '>=')
+- name: set grants for hasura schemas (after hasura install)
+  postgresql_query:
+    db: "{{ fworch_db_name }}"
+    query: "GRANT USAGE ON SCHEMA {{ item }} TO dbbackupusers; Grant select on ALL TABLES in SCHEMA {{ item }} to group dbbackupusers; ALTER DEFAULT PRIVILEGES IN SCHEMA {{ item }} GRANT SELECT ON TABLES TO group dbbackupusers;"
+  become: true
+  become_user: postgres
+  loop:
+    - hdb_catalog

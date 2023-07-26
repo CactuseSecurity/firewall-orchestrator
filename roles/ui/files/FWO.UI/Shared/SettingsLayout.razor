@@ -7,7 +7,7 @@
 @inject UserConfig userConfig
 
 <Sidebar PositionLeft="true" Collapsible="false" Resizeable="false" SidebarCssClass="navbar-dark bg-dark" @bind-Width="sidebarWidth">
-    <div class="m-2 mt-4">
+    <div class="mr-2 ml-2 mt-4 mb-4">
         <ul class="navbar-nav flex-column">
             <AuthorizeView Roles="admin, importer, auditor, fw-admin">
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5011"))">
@@ -76,6 +76,11 @@
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/importer">
+                        <span class="oi oi-envelope-closed"></span> @(userConfig.GetText("importer_settings"))
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/defaults">
                         <span class="oi oi-cog"></span> @(userConfig.GetText("standards"))
                     </NavLink>
@@ -141,8 +146,6 @@
             </AuthorizeView>
         </ul>
     </div>
-    <hr />
-    <hr />
 </Sidebar>
 
     

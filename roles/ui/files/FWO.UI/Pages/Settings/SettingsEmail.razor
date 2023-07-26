@@ -69,12 +69,12 @@
 <div class="btn-group">
 <AuthorizeView Roles="admin">
     <Authorized>
-        <button class="btn btn-sm btn-dark" @onclick="TestConnection">@(userConfig.GetText("test_connection"))</button>
-        <button class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
+        <button type="button" class="btn btn-sm btn-dark" @onclick="TestConnection">@(userConfig.GetText("test_connection"))</button>
+        <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
     </Authorized>
     <NotAuthorized>
-        <button class="btn btn-sm btn-dark" disabled>@(userConfig.GetText("test_connection"))</button>
-        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+        <button type="button" class="btn btn-sm btn-dark" disabled>@(userConfig.GetText("test_connection"))</button>
+        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
     </NotAuthorized> 
 </AuthorizeView>
 </div>

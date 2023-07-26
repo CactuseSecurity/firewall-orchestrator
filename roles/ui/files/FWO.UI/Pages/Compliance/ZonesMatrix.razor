@@ -1,0 +1,194 @@
+﻿@page "/compliance/zones/matrix"
+
+@layout ComplianceLayout
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+<div class="ml-2 mb-3">
+    <h3>@userConfig.GetText("zone_comm_matrix")</h3>
+    @if (zones.Length > 0)
+    {
+        @if (editMode)
+        {
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ToggleEditMode(false)">@userConfig.GetText("cancel")</button>
+                <button type="button" class="btn btn-sm btn-primary" @onclick="CommitChanges">@userConfig.GetText("commit_changes")</button>
+            </div>
+        }
+        else
+        {
+            <AuthorizeView Roles="admin, fw-admin">
+                <Authorized>
+                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => ToggleEditMode(true)">@userConfig.GetText("edit")</button>
+                </Authorized>
+            </AuthorizeView>
+            <AuthorizeView Roles="auditor">
+                <NotAuthorized>
+                    <button type="button" disabled class="btn btn-sm btn-warning" @onclick="() => ToggleEditMode(true)">@userConfig.GetText("edit")</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+        }
+    }
+</div>
+
+@if (zones.Length > 0)
+{
+    <table>
+        <tr>
+            <td></td>
+            <td>
+                <div class="direction-info">@(userConfig.GetText("destination"))</div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <div class="ml-3"></div> @*Hacky fix because of a firefox display bug
+            resulting in the text being diplayed inside of the table.*@
+                <div class="direction-info text-rotated">@(userConfig.GetText("source"))</div>
+            </td>
+            <td>
+                <table class="communication-matrix">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            @foreach (var destinationZone in zones)
+                            {
+                                <th @onclick="() => ExecuteZoneAction(destinationZone)" class="zone-header-rotated">
+                                    <div class="zone-name text-rotated">@(destinationZone.Name)</div>
+                                </th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var sourceZone in zones)
+                        {
+                            <tr>
+                                <th @onclick="() => ExecuteZoneAction(sourceZone)" class="zone-header">
+                                    <div class="zone-name">@(sourceZone.Name)</div>
+                                </th>
+                                @foreach (var destinationZone in zones)
+                                {
+                                    var allowed = sourceZone.CommunicationAllowedTo(destinationZone);
+                                    var allowed_in_edit = addCommunication.Contains((sourceZone, destinationZone));
+                                    var disallowed_in_edit = deleteCommunication.Contains((sourceZone, destinationZone));
+                                    <td @onclick="() => ExecuteCommunicationAction(sourceZone, destinationZone)"
+                                        class="communication-cell @(allowed_in_edit ? "allowed-in-edit" : "")
+                                    @(disallowed_in_edit ? "disallowed-in-edit" : "")
+                                    @(allowed && !allowed_in_edit && !disallowed_in_edit ? "allowed" : "disallowed")" />
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </table>
+}
+else
+{
+    @(userConfig.GetText("no_network_zones"))
+}
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private bool editMode = false;
+
+    private ComplianceNetworkZone[] zones = new ComplianceNetworkZone[0];
+    private List<(ComplianceNetworkZone, ComplianceNetworkZone)> addCommunication = new List<(ComplianceNetworkZone, ComplianceNetworkZone)>();
+    private List<(ComplianceNetworkZone, ComplianceNetworkZone)> deleteCommunication = new List<(ComplianceNetworkZone, ComplianceNetworkZone)>();
+
+    protected async override Task OnInitializedAsync()
+    {
+        try
+        {
+            zones = await apiConnection.SendQueryAsync<ComplianceNetworkZone[]>(ComplianceQueries.getNetworkZones);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+        }
+    }
+
+    private void ToggleEditMode(bool editMode)
+    {
+        this.editMode = editMode;
+        addCommunication.Clear();
+        deleteCommunication.Clear();
+    }
+
+    private async Task CommitChanges()
+    {
+        try
+        {
+            var variables = new
+            {
+                add_zone_communication = addCommunication.ConvertAll(zones =>
+                    new
+                    {
+                        from_network_zone_id = zones.Item1.Id,
+                        to_network_zone_id = zones.Item2.Id
+                    }
+                ),
+                delete_zone_communication_exp = deleteCommunication.ConvertAll(zones =>
+                    new
+                    {
+                        from_network_zone_id = new { _eq = zones.Item1.Id },
+                        to_network_zone_id = new { _eq = zones.Item2.Id }
+                    }
+                )
+            };
+            await apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.modifyNetworkZoneCommunication, variables);
+            zones = await apiConnection.SendQueryAsync<ComplianceNetworkZone[]>(ComplianceQueries.getNetworkZones);
+            ToggleEditMode(false);
+            DisplayMessageInUi(null, userConfig.GetText("S_modify_title"), userConfig.GetText("S_modify_message"), false);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("E_modify_title"), userConfig.GetText("E_modify_message"), true);
+        }
+    }
+
+    private void ExecuteZoneAction(ComplianceNetworkZone zone)
+    {
+        if (editMode)
+        {
+
+        }
+        else
+        {
+            // Jump to zone
+        }
+    }
+
+    private void ExecuteCommunicationAction(ComplianceNetworkZone sourceZone, ComplianceNetworkZone destinationZone)
+    {
+        if (editMode)
+        {
+            if (addCommunication.Contains((sourceZone, destinationZone)))
+            {
+                addCommunication.Remove((sourceZone, destinationZone));
+            }
+            else if (deleteCommunication.Contains((sourceZone, destinationZone)))
+            {
+                deleteCommunication.Remove((sourceZone, destinationZone));
+            }
+            else if (sourceZone.CommunicationAllowedTo(destinationZone))
+            {
+                deleteCommunication.Add((sourceZone, destinationZone));
+            }
+            else
+            {
+                addCommunication.Add((sourceZone, destinationZone));
+            }
+        }
+        else
+        {
+            // Jump to communication
+        }
+    }
+}

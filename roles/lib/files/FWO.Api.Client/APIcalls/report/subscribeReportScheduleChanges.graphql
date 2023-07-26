@@ -1,5 +1,5 @@
 ﻿subscription subscribeReportScheduleChanges {
-  report_schedule {
+  report_schedule(order_by: {report_schedule_id: desc}) {
     report_schedule_id
     report_schedule_name
     report_schedule_every
@@ -8,7 +8,6 @@
     report_schedule_owner_user: uiuser {
       uiuser_id
       uiuser_username
-      uuid
       ldap_connection: ldap_connection {
         ldap_connection_id
       }
@@ -20,8 +19,9 @@
       report_filter
       report_parameters
     }
-    report_schedule_formats{
+    report_schedule_formats {
       report_schedule_format_name
     }
+    report_schedule_counter
   }
 }

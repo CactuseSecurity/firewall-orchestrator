@@ -331,7 +331,7 @@
         RsbTab targetTab = Tab == RsbTab.all ? RsbTab.all : RsbTab.report;
         string htmlObjRefPrefix = GetIDPrefix(objCategory, targetTab, true);
 
-        string page = Recert ? "certification" : "report";
+        string page = Recert ? "certification" : "report/generation";
         
         return @<a href="@(page)#goto-@(htmlObjRefPrefix + objId)" target="_top"><span class="@ReportBase.GetIconClass(objCategory, type)">&nbsp;</span>@(name)</a>;
     }

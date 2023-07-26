@@ -1,0 +1,16 @@
+subscription subscribeGeneratedReportsChanges {
+  report(order_by:{report_id:desc}) {
+    report_id
+    report_name
+    report_start_time
+    report_end_time
+    report_type
+    description
+    uiuser {
+      uiuser_username
+    }
+    report_template {
+      report_template_name
+    }
+  }
+}

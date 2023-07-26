@@ -7,6 +7,7 @@
 @inject UserConfig userConfig
 
 @page "/monitoring/alerts"
+@attribute [Authorize(Roles = "admin, fw-admin, auditor")]
 
 <h3>@(userConfig.GetText("all_alerts"))</h3>
 @(userConfig.GetText("U7101"))
@@ -58,8 +59,6 @@
                 managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
             else
                 managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementDetailsWithoutSecrets);
-
-            // managements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
         }
         catch (Exception exception)
         {

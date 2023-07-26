@@ -1,5 +1,6 @@
 ﻿using FWO.Logging;
 using NUnit.Framework;
+using System;
 using System.Reflection;
 
 namespace FWO.Test
@@ -9,80 +10,130 @@ namespace FWO.Test
     public class LockTest
     {
         private string lockFilePath = $"/var/fworch/lock/{Assembly.GetEntryAssembly()?.GetName().Name}_log.lock";
+        private static Random random = new Random();
 
         [SetUp]
-        public void SetUp()
+        public async Task SetUp()
         {
-            if (File.Exists(lockFilePath))
-            {
-                File.Delete(lockFilePath);
-            }
+			await ExecuteFileAction(() =>
+			{
+				if (File.Exists(lockFilePath))
+				{
+					File.Delete(lockFilePath);
+				}
+				return Task.CompletedTask;
+			});
 
             // Implicitly call static constructor so backround lock process is started
             Log.WriteInfo("Startup", "Starting Lock Tests...");
         }
 
         [TearDown]
-        public void TearDown()
+        public async Task TearDown()
         {
-            if (File.Exists(lockFilePath))
-            {
-                File.Delete(lockFilePath);
-            }
+			await ExecuteFileAction(() =>
+			{
+				if (File.Exists(lockFilePath))
+				{
+					File.Delete(lockFilePath);
+				}
+				return Task.CompletedTask;
+			});
         }
 
         [Test]
-        [Parallelizable]
-        public async Task LogLockUi()
+        public async Task LogLock()
         {
             // Request lock
-            using (var writer = new StreamWriter(lockFilePath))
+            await ExecuteFileAction(async () =>
             {
-                await writer.WriteLineAsync("REQUESTED");
-            }
-
-            await Task.Delay(1200);
-
-            // Assure lock is granted after request
-            using (var reader = new StreamReader(lockFilePath))
-            {
-                Assert.That((await reader.ReadToEndAsync()).Trim().EndsWith("GRANTED"));
-            }
-
-            // Assure write is NOT possible after lock was granted
-            Task logWriter = Task.Run(() =>
-            {
-                Log.WriteDebug("TEST_TILE", "TEST_TEXT");
+                using (var writer = new StreamWriter(lockFilePath))
+                {
+                    await writer.WriteLineAsync("REQUESTED");
+                }
             });
 
-            await Task.Delay(500);
+			await Task.Delay(2000);
 
-            Assert.That(logWriter.IsCompleted, Is.False);
+			// Assure lock is granted after request
+			await ExecuteFileAction(async () =>
+			{
+				using (var reader = new StreamReader(lockFilePath))
+				{
+					Assert.That((await reader.ReadToEndAsync()).Trim().EndsWith("GRANTED"));
+				}
+			});
 
-            // Release lock
-            using (var writer = new StreamWriter(lockFilePath))
-            {
-                await writer.WriteLineAsync("RELEASED");
-            }
+			// Assure write is NOT possible after lock was granted
+			Task logWriter = Task.Run(() =>
+			{
+				Log.WriteDebug("TEST_TITLE", "TEST_TEXT");
+			});
 
-            await Task.Delay(1200);
+			await Task.Delay(500);
 
-            // Assure write IS possible after lock was released
-            Assert.That(logWriter.IsCompleted, Is.True);
+			Assert.That(logWriter.IsCompleted, Is.False);
 
-            // Request lock
-            using (var writer = new StreamWriter(lockFilePath))
-            {
-                await writer.WriteLineAsync("REQUESTED");
-            }
+			// Release lock
+			await ExecuteFileAction(async () =>
+			{
+				using (var writer = new StreamWriter(lockFilePath))
+				{
+					await writer.WriteLineAsync("RELEASED");
+				}
+			});
 
-            await Task.Delay(11_200);
+			await Task.Delay(2000);
 
-            // If not release in time make sure that the lock will be forcefully released
-            using (var reader = new StreamReader(lockFilePath))
-            {
-                Assert.That((await reader.ReadToEndAsync()).Trim().EndsWith("FORCEFULLY RELEASED"));
-            }
-        }
-    }
+			// Assure write IS possible after lock was released
+			Assert.That(logWriter.IsCompletedSuccessfully, Is.True);
+
+			// Request lock
+			await ExecuteFileAction(async () =>
+			{
+				using (var writer = new StreamWriter(lockFilePath))
+				{
+					await writer.WriteLineAsync("REQUESTED");
+				}
+			});
+
+			await Task.Delay(12_000);
+
+			// If not release in time make sure that the lock will be forcefully released
+			await ExecuteFileAction(async () =>
+			{
+				using (var reader = new StreamReader(lockFilePath))
+				{
+					Assert.That((await reader.ReadToEndAsync()).Trim().EndsWith("FORCEFULLY RELEASED"));
+				}
+			});
+		}
+
+		private static async Task ExecuteFileAction(Func<Task> action)
+		{
+			bool success = false;
+			int maxRetryAttempts = 50;
+			int retryCount = 0;
+
+			// Handle IO Exception like file blocking from another process by retrying with a random delay
+			while (!success && retryCount < maxRetryAttempts)
+			{
+				try
+				{
+                    await action();
+					success = true;
+				}
+				catch (IOException)
+				{
+					retryCount++;
+				}
+				await Task.Delay(random.Next(50, 100));
+			}
+
+			if (!success)
+			{
+                Assert.Fail($"Lock file access failed after {maxRetryAttempts} retries.");
+			}
+		}
+	}
 }

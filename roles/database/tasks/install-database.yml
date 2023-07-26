@@ -85,7 +85,7 @@
   - name: include table creation pre ansible 2.10
     include_tasks: install-db-base-ansible-pre2.10.yml
     when: ansible_version.full is version('2.10', '<')
-
+    
   - name: create db users with group memberships
     import_tasks: create-users.yml
     when: installation_mode == "new"

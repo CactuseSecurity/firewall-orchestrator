@@ -23,13 +23,13 @@
         <div class="btn-group">
             <AuthorizeView Roles="admin, importer" Context="xxx">
                 <Authorized>
-                    <button class="btn btn-sm btn-danger" @onclick="async () => {await Rollback(); RollbackMode = false; await Closing.InvokeAsync(RollbackMode);}">@(userConfig.GetText("rollback"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="async () => {await Rollback(); RollbackMode = false; await Closing.InvokeAsync(RollbackMode);}">@(userConfig.GetText("rollback"))</button>
                 </Authorized>
                 <NotAuthorized>
-                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("rollback"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("rollback"))</button>
                 </NotAuthorized> 
             </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>

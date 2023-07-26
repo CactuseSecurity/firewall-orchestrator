@@ -38,8 +38,6 @@ namespace FWO.Api.Data
         [JsonProperty("ldap_connection"), JsonPropertyName("ldap_connection")]
         public UiLdapConnection LdapConnection { get; set;} = new UiLdapConnection();
 
-        public string DefaultRole { get; set; } = "";
-
         public List<string> Roles { get; set; } = new List<string>();
 
         public string Jwt { get; set; } = "";

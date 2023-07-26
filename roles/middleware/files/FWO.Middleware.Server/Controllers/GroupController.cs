@@ -33,7 +33,6 @@ namespace FWO.Middleware.Controllers
         [Authorize(Roles = "admin, auditor, recertifier")]
         public async Task<ActionResult<List<GroupGetReturnParameters>>> Get()
         {
-            bool admin = User.IsInRole("admin");
             try
             {
                 ConcurrentBag<GroupGetReturnParameters> allGroups = new ConcurrentBag<GroupGetReturnParameters>();

@@ -13,17 +13,17 @@
     <h3>@(userConfig.GetText("available_states"))</h3>
     @(userConfig.GetText("U5313"))
     <hr />
-    <button class="btn btn-sm btn-success" @onclick="AddState">@(userConfig.GetText("add_state"))</button>
+    <button type="button" class="btn btn-sm btn-success" @onclick="AddState">@(userConfig.GetText("add_state"))</button>
     <br><br>
     <div class="m-2">
         <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="RequestState" Items="states" PageSize="0" ColumnReorder="true">
             <Column TableItem="RequestState" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                 <Template>
                     <div class="btn-group">
-                        <button class="btn btn-sm btn-warning" @onclick="() => EditState(context)">@(userConfig.GetText("edit"))</button>
+                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditState(context)">@(userConfig.GetText("edit"))</button>
                         @if(!usedStateIds.Exists(x => x == context.Id))
                         {
-                            <button class="btn btn-sm btn-danger" @onclick="() => RequestDeleteState(context)">@(userConfig.GetText("delete"))</button>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteState(context)">@(userConfig.GetText("delete"))</button>
                         }
                     </div>
                 </Template>
@@ -58,14 +58,14 @@
                     </div>
                 </div>
                 <br><br>
-                <button class="btn btn-sm btn-success" @onclick="SelectAction">@(userConfig.GetText("add_action"))</button>
+                <button type="button" class="btn btn-sm btn-success" @onclick="SelectAction">@(userConfig.GetText("add_action"))</button>
                 <br><br>
                 <div class="m-2">
                     <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="RequestStateActionDataHelper" Items="actState.Actions" PageSize="0" ColumnReorder="true">
                         <Column TableItem="RequestStateActionDataHelper" Title="@(userConfig.GetText("actions"))" Field="(x => x.Action.Id)" Sortable="false" Filterable="false">
                             <Template>
                                 <div class="btn-group">
-                                    <button class="btn btn-sm btn-danger" @onclick="() => RemoveActionFromState(context)">@(userConfig.GetText("remove"))</button>
+                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoveActionFromState(context)">@(userConfig.GetText("remove"))</button>
                                 </div>
                             </Template>
                         </Column>
@@ -79,13 +79,13 @@
             <div class="btn-group">
                 <AuthorizeView Roles="admin">
                     <Authorized>
-                        <button class="btn btn-sm btn-primary" @onclick="SaveState">@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="SaveState">@(userConfig.GetText("save"))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
-                <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+                <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
             </div>
         </Footer>
     </PopUp>
@@ -111,18 +111,18 @@
                     <Authorized>
                         @if(selectedAction != null)
                         {
-                            <button class="btn btn-sm btn-primary" @onclick="AddActionToState">@(userConfig.GetText("add"))</button>
+                            <button type="button" class="btn btn-sm btn-primary" @onclick="AddActionToState">@(userConfig.GetText("add"))</button>
                         }
                         else
                         {
-                            <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("add"))</button>
+                            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("add"))</button>
                         }
                     </Authorized>
                     <NotAuthorized>
-                        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("add"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("add"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
-                <button class="btn btn-sm btn-secondary" @onclick="CancelSelect">@(userConfig.GetText("cancel"))</button>
+                <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelSelect">@(userConfig.GetText("cancel"))</button>
             </div>
         </Footer>
     </PopUp>

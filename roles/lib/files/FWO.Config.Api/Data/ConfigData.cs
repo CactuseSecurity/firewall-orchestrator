@@ -34,6 +34,12 @@ namespace FWO.Config.Api.Data
         [JsonProperty("autoFillRightSidebar"), JsonPropertyName("autoFillRightSidebar")]
         public bool AutoFillRightSidebar { get; set; } = false;
 
+        [JsonProperty("unusedTolerance"), JsonPropertyName("unusedTolerance")]
+        public int UnusedTolerance { get; set; } = 400;
+
+        [JsonProperty("creationTolerance"), JsonPropertyName("creationTolerance")]
+        public int CreationTolerance { get; set; } = 90;
+
         [JsonProperty("dataRetentionTime"), JsonPropertyName("dataRetentionTime")]
         public int DataRetentionTime { get; set; } = 731;
 
@@ -54,6 +60,19 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("fwApiElementsPerFetch"), JsonPropertyName("fwApiElementsPerFetch")]
         public int FwApiElementsPerFetch { get; set; } = 150;
+
+        [JsonProperty("impChangeNotifyRecipients"), JsonPropertyName("impChangeNotifyRecipients")]
+        public string ImpChangeNotifyRecipients { get; set; } = "";
+
+        [JsonProperty("impChangeNotifySubject"), JsonPropertyName("impChangeNotifySubject")]
+        public string ImpChangeNotifySubject { get; set; } = "";
+
+        [JsonProperty("impChangeNotifyBody"), JsonPropertyName("impChangeNotifyBody")]
+        public string ImpChangeNotifyBody { get; set; } = "";
+
+        [JsonProperty("impChangeNotifyActive"), JsonPropertyName("impChangeNotifyActive")]
+        public bool ImpChangeNotifyActive { get; set; } = false;
+
 
         [JsonProperty("recertificationPeriod"), JsonPropertyName("recertificationPeriod")]
         public int RecertificationPeriod { get; set; } = 365;
@@ -131,7 +150,7 @@ namespace FWO.Config.Api.Data
         public string EmailServerAddress { get; set; } = "";
 
         [JsonProperty("emailPort"), JsonPropertyName("emailPort")]
-        public int EmailPort { get; set; } = 25;
+        public int EmailPort { get; set; }
 
         [JsonProperty("emailTls"), JsonPropertyName("emailTls")]
         public EmailEncryptionMethod EmailTls { get; set; } = EmailEncryptionMethod.None;

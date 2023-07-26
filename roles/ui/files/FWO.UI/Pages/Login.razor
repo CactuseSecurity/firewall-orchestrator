@@ -1,3 +1,4 @@
+@using FWO.Config.File;
 @using FWO.Middleware.RequestParameters
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @using System.Net
@@ -28,15 +29,15 @@
             <div class="shadow-sm card p-3" style="width: 250px;">
                 <form class="d-flex flex-column">
                     <div class="form-group">
-                        <input type="text" class="form-control @InputClass" id="UsernameInput" placeholder="@(globalConfig.GetText("username"))" @bind="Username" @bind:event="oninput" @onkeypress="ClearInputClass" @ref="usernameInput">
+                        <input type="text" class="form-control @InputClass" id="UsernameInput" placeholder="@(globalConfig.GetText("username"))" value="@Username" @oninput="OnUsernameInput" @ref="usernameInput">
                     </div>
                     <div class="form-group">
-                        <input type="password" class="form-control @InputClass" id="PasswordInput" placeholder="@(globalConfig.GetText("password"))" @bind="Password" @bind:event="oninput" @onkeypress="ClearInputClass">
+                        <input type="password" class="form-control @InputClass" id="PasswordInput" placeholder="@(globalConfig.GetText("password"))" value="@Password" @oninput="OnPasswordInput">
                     </div>
                     @if (loginInProgress == false)
                     {
-                        <button class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit">@(globalConfig.GetText("login"))</button>
-                        @* <button class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit"><div class="oi oi-account-login"></div></button> *@
+                        <button type="submit" class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit">@(globalConfig.GetText("login"))</button>
+                        @* <button type="submit" class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit"><div class="oi oi-account-login"></div></button> *@
                     }
                     else
                     {
@@ -57,17 +58,17 @@
             <div class="shadow-sm card p-3" style="width: 250px;">
                 <form class="d-flex flex-column">
                     <div class="form-group">
-                        <input type="password" class="form-control @InputClass" id="OldPasswordInput" placeholder="@(userConfig.GetText("old_password"))" @bind="oldPassword" @bind:event="oninput" @onkeypress="ClearInputClass">
+                        <input type="password" class="form-control @InputClass" id="OldPasswordInput" placeholder="@(userConfig.GetText("old_password"))" value="@oldPassword" @oninput="OnOldPasswordInput">
                     </div>
                     <div class="form-group">
-                        <input type="password" class="form-control @InputClass" id="NewPasswordInput1" placeholder="@(userConfig.GetText("new_password"))" @bind="newPassword1" @bind:event="oninput" @onkeypress="ClearInputClass">
+                        <input type="password" class="form-control @InputClass" id="NewPasswordInput1" placeholder="@(userConfig.GetText("new_password"))" value="@newPassword1" @oninput="OnNewPassword1Input">
                     </div>
                     <div class="form-group">
-                        <input type="password" class="form-control @InputClass" id="NewPasswordInput2" placeholder="@(userConfig.GetText("new_password"))" @bind="newPassword2" @bind:event="oninput" @onkeypress="ClearInputClass">
+                        <input type="password" class="form-control @InputClass" id="NewPasswordInput2" placeholder="@(userConfig.GetText("new_password"))" value="@newPassword2" @oninput="OnNewPassword2Input">
                     </div>
                     @if (passwordChangeInProgress == false)
                     {
-                        <button class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="ChangePassword"><div class="oi oi-account-login"></div></button>
+                        <button type="button" class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="ChangePassword"><div class="oi oi-account-login"></div></button>
                     }
                     else
                     {
@@ -106,6 +107,9 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        //ApiConnection.Dispose();
+        //ApiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri);
+
         if (firstRender)
         {      
             // This might be a reconnect. Check if there is a jwt in session storage.
@@ -115,8 +119,8 @@
             {
                 try
                 {
-                    await ((AuthStateProvider)AuthService).CreateUserContext(jwtLoadRequest.Value ?? throw new AccessViolationException("Jwt from protected storage is null"),
-                    ApiConnection, middlewareClient, userConfig, circuitHandler);
+                    await ((AuthStateProvider)AuthService).Authenticate(jwtLoadRequest.Value ?? throw new AccessViolationException("Jwt from protected storage is null"),
+                    ApiConnection, middlewareClient, userConfig, circuitHandler, sessionStorage);
                     return;
                 }
                 catch (Exception ex) { Log.WriteError("Session Restore", "Session restore unsuccessful.", ex); }
@@ -129,10 +133,36 @@
         }
     }
 
-    private void ClearInputClass(KeyboardEventArgs e)
+    private void OnUsernameInput(ChangeEventArgs e)
     {
+        Username = e.Value?.ToString() ?? "";
         InputClass = "";
     }
+
+    private void OnPasswordInput(ChangeEventArgs e)
+    {
+        Password = e.Value?.ToString() ?? "";
+        InputClass = "";
+    }
+
+    private void OnOldPasswordInput(ChangeEventArgs e)
+    {
+        oldPassword = e.Value?.ToString() ?? "";
+        InputClass = "";
+    }
+
+    private void OnNewPassword1Input(ChangeEventArgs e)
+    {
+        newPassword1 = e.Value?.ToString() ?? "";
+        InputClass = "";
+    }
+
+    private void OnNewPassword2Input(ChangeEventArgs e)
+    {
+        newPassword2 = e.Value?.ToString() ?? "";
+        InputClass = "";
+    }
+
 
     private async Task LoginSubmit()
     {
@@ -143,7 +173,7 @@
             try
             {
                 RestResponse<string> authResponse = await ((AuthStateProvider)AuthService)
-                .Login(Username, Password, ApiConnection, middlewareClient, userConfig, sessionStorage, circuitHandler);
+                .Authenticate(Username, Password, ApiConnection, middlewareClient, userConfig, sessionStorage, circuitHandler);
 
                 if (authResponse.StatusCode == HttpStatusCode.OK)
                 {
@@ -176,15 +206,16 @@
                     StateHasChanged();
                 }
             }
-            // Authentication exception (raised by us)
+            // Authentication exception (raised by us) 
             catch (AuthenticationException e)
             {
                 errorMessage = userConfig.GetText(e.Message);
             }
             // Unknown exception
-            catch (Exception)
+            catch (Exception exception)
             {
                 errorMessage = userConfig.GetText("E0012");
+                Log.WriteError("Login error", $"An unexpected exception was thrown during the log in process for user: \"{Username}\".", exception);
             }
 
             loginInProgress = false;

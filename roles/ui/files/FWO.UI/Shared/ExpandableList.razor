@@ -1,0 +1,40 @@
+﻿@inject UserConfig userConfig
+
+@typeparam ElementType
+
+@if (Elements.Count() == 0)
+{
+	@(userConfig.GetText("None"))
+}
+else if (Elements.Count() == 1)
+{
+	@(ElementTemplate(Elements.First()))
+}
+else
+{
+	<div>
+		<details>
+			<summary class="mb-1 text-truncate">
+				@(ElementTemplate(Elements.First())) @* (+@(Elements.Count() - 1)) *@ ...
+			</summary>
+			<ul>
+				@foreach (ElementType element in Elements)
+				{
+					<li>@(ElementTemplate(element))</li>
+				}
+			</ul>
+		</details>
+	</div>
+}
+
+@code 
+{
+	[Parameter]
+	public IEnumerable<ElementType> Elements { get; set; } = Enumerable.Empty<ElementType>();
+
+	[Parameter]
+	public RenderFragment<ElementType> ElementTemplate { get; set; } = element => __builder =>
+	{
+		@element
+	};
+}

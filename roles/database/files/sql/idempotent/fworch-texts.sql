@@ -29,6 +29,8 @@ INSERT INTO txt VALUES ('set', 				    'German',	'Setzen');
 INSERT INTO txt VALUES ('set', 				    'English',	'Set');
 INSERT INTO txt VALUES ('add', 				    'German',	'Hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add', 				    'English',	'Add');
+INSERT INTO txt VALUES ('commit_changes', 		'German',	'&Auml;nderungen &uuml;bernehmen');
+INSERT INTO txt VALUES ('commit_changes', 	    'English',	'Commit changes');
 INSERT INTO txt VALUES ('autodiscover', 	    'German',	'Sync');
 INSERT INTO txt VALUES ('autodiscover', 	    'English',	'Sync');
 INSERT INTO txt VALUES ('assign', 				'German',	'Zuordnen');
@@ -145,24 +147,26 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
-    <li>Importer Modul Check Point R8x Unterst&uuml;tzung f&uuml;r Updatable Objects, Domain-Namen und Application Categories</li>
-    <li>Importer Modul f&uuml;r Stand-Alone FortiGate via REST API</li>
-    <li>Neues Firewall-Regel-Rezertifizierungsmodul - beseitigen Sie ihre Altlasten und erf&uuml;llen Sie aktuelle regulatorische Anforderungen.</li>
-    <li>Workflow-Modul zum Beantragen von &Auml;nderungen</li>
-    <li>Neue Importmodule f&uuml;r Cisco FirePower und Microsoft Azure Firewall</li>
-    <li>Beginn Routing/Interface Pfad Analyse (zun&auml;chst nur Fortinet)</li>
-    <li>Neue Report-Typen: Regeln (aufgel&ouml;st), Regeln technisch (alle Gruppe werden in Bestandteile aufgel&ouml;st; Report-Export als "Single Table")</li>
+    <li>Web-Oberfl&auml;che: Compliance Matrix Modul</li>
+    <li>Web-Oberfl&auml;che: Report f&uuml;r ungenutzte Regeln mit L&ouml;sch-Ticket-Integration</li>
+    <li>Importer: Email-Benachrichtigung bei sicherheitsrelevanten &Auml;nderungen</li>
+    <li>Importer Check Point: Grundlegender Inline-Layer-Support</li>
+    <li>Importer Modul f&uuml;r Stand-Alone FortiGate Import via REST API</li>
+    <li>Firewall-Regel-Rezertifizierungsmodul: beseitigen Sie ihre Altlasten und erf&uuml;llen Sie aktuelle regulatorische Anforderungen.</li>
+    <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/tree/main/documentation/revision-history-main.md">
+        https://github.com/CactuseSecurity/firewall-orchestrator/tree/main/documentation/revision-history-main.md</li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
-    <li>Importer support for Check Point R8x updatable objects, domain name objects and application categories</li>
-    <li>New importer module for stand-alone FortiGate via REST API</li>
-    <li>New Firewall rule recertification module - remove unnecessary rules and meet current regulatory requirements.</li>
-    <li>Workflow module for requesting firewall changes</li>
-    <li>New import modules for Cisco FirePower and Microsoft Azure Firewall</li>
-    <li>Start routing/interface (currently implemented for fortinet only) import and path analysis</li>
-    <li>New report types: resolved rules, technical rules (report without group objects, exporting into pure rule tables without additional object tables)</li>
+    <li>Web User Interface: Compliance Matrix Modul</li>
+    <li>Web User Interface: Report for unused rules directly integration delete rule workflow</li>
+    <li>Importer: Email notification on detecting security relevant changes during import</li>
+    <li>Importer Check Point: basic inline layer support</li>
+    <li>Importer: Module for stand-alone FortiGate import via REST API</li>
+    <li>Rule recertification module: remove unnecessary rules and meet current regulatory requirements.</li>
+    <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/tree/main/documentation/revision-history-main.md">
+        https://github.com/CactuseSecurity/firewall-orchestrator/tree/main/documentation/revision-history-main.md</li>
 </ul>
 ');
 
@@ -170,10 +174,12 @@ INSERT INTO txt VALUES ('getting_started',	    'German', 	'Einstiegshilfe');
 INSERT INTO txt VALUES ('getting_started',	    'English', 	'Quick start');
 INSERT INTO txt VALUES ('getting_started_facts',	    'German', 	'
 Die folgenden Hauptmen&uuml;punkte stehen (je nach Rollenzugeh&ouml;rigkeit) zur Verf&uuml;gung:<ul>
-    <li><a href="/report">Reporting</a>: Erlaubt das Generieren verschiedener Reports</li>
-    <li><a href="/schedule">Scheduling</a>: Zeitlich terminierte (wiederkehrende) Report-Generierung</li>
-    <li><a href="/archive">Archiv</a>: Zugriff auf (per Scheduling) generierte Reports</li>
+    <li><a href="/report/generation">Reporting</a>: Erlaubt das einmalige Generieren verschiedener Reports sowie eine regelm&auml;&szlig Generierung</li>
+    <li><a href="/request/ticketsoverview">Workflow</a>: Ticketsystem zur Beantragung von &Auml;nderungen</li>
     <li><a href="/certification">Rezertifizierung</a>: Workflow zur Bereinigung des Regelwerks um nicht mehr ben&ouml;tigte Regeln</li>
+    <li><a href="/network_analysis">Netzanalyse</a>: Pfadanalyse - welche Firewalls liegen zwischen zwei IP-Adressen?</li>
+    <li><a href="/compliance/zones/configuration">Compliance</a>: Definition von Zonenmatrix und Zugriffs-Compliance</li>
+    <li><a href="/monitoring">Monitoring</a>: Alarmierung, Log-Files, Import-Status, ...</li>
     <li><a href="/help" target="_blank">Hilfeseiten</a>: Benutzerhandbuch</li>
     <li><a href="/settings">Einstellungen</a>: Alle Einstellungen wie z.B. Sprache der Benutzeroberfl&auml;che oder
         das Einbinden <a href="/settings/managements">Ihrer eigenen Firewall-Systeme</a>.<br>
@@ -185,10 +191,12 @@ Die folgenden Hauptmen&uuml;punkte stehen (je nach Rollenzugeh&ouml;rigkeit) zur
 INSERT INTO txt VALUES ('getting_started_facts',	    'English', 	'
 The following top-level menu items are available (depending on role memberships):
 <ul>
-    <li><a href="/report">Reporting</a>: Ad-hoc generation of all available reports</li>
-    <li><a href="/schedule">Scheduling</a>: Setup (recurring) report generation</li>
-    <li><a href="/archive">Archive</a>: Access your (scheduled) reports</li>
-    <li><a href="/certification">Recertification</a>: Workflow for removing unnecessary rules from your rulebases</li>
+    <li><a href="/report/generation">Reporting</a>: Ad-hoc generation and scheduling of reports</li>
+    <li><a href="/request/ticketsoverview">Workflow</a>: Ticketing system for requesting and processing firewall changes</li>
+    <li><a href="/certification">Recertification</a>: Rulebase sanitization by continuously cleaning up existing rules</li>
+    <li><a href="/network_analysis">Network Analysis</a>: Path analysis - which firewall is crossed when routing between two IP addresses?</li>
+    <li><a href="/compliance/zones/configuration">Compliance</a>: Defining zone matrix and access compliance</li>
+    <li><a href="/monitoring">Monitoring</a>: Alarms, log files, import status, ...</li>
     <li><a href="/help" target="_blank">Help</a>: Manual pages</li>
     <li><a href="/settings">Settings</a>: All settings like e.g. language of the user interface or 
         integration of <a href="/settings/managements">your own firewalls</a>.<br>
@@ -238,6 +246,10 @@ INSERT INTO txt VALUES ('report_type',		    'German', 	'Report-Typ');
 INSERT INTO txt VALUES ('report_type',		    'English', 	'Report Type');
 INSERT INTO txt VALUES ('report_time',		    'German', 	'Report-Zeit');
 INSERT INTO txt VALUES ('report_time',		    'English', 	'Report Time');
+INSERT INTO txt VALUES ('unused_days',		    'German', 	'Unbenutzt seit (in Tagen)');
+INSERT INTO txt VALUES ('unused_days',		    'English', 	'Unused since (in days)');
+INSERT INTO txt VALUES ('generation',		    'German', 	'Generierung');
+INSERT INTO txt VALUES ('generation',		    'English', 	'Generation');
 INSERT INTO txt VALUES ('change',		        'German', 	'&Auml;ndern');
 INSERT INTO txt VALUES ('change',		        'English', 	'Change');
 INSERT INTO txt VALUES ('shortcut',		        'German', 	'Abk&uuml;rzung');
@@ -464,6 +476,14 @@ INSERT INTO txt VALUES ('generated_on',	        'German', 	'Erstellt am');
 INSERT INTO txt VALUES ('generated_on',	        'English', 	'Generated on');
 INSERT INTO txt VALUES ('date_of_config',	    'German', 	'Zeit der Konfiguration');
 INSERT INTO txt VALUES ('date_of_config',	    'English', 	'Time of configuration');
+INSERT INTO txt VALUES ('create_delete_ticket', 'German',	'L&ouml;schantrag stellen');
+INSERT INTO txt VALUES ('create_delete_ticket', 'English',	'Create Delete Ticket');
+INSERT INTO txt VALUES ('rules_to_delete',	    'German', 	'Zu l&ouml;schende Regeln');
+INSERT INTO txt VALUES ('rules_to_delete',	    'English', 	'Rules to delete');
+INSERT INTO txt VALUES ('delete_unused_rule',	'German', 	'Unbenutzte Regel l&ouml;schen');
+INSERT INTO txt VALUES ('delete_unused_rule',   'English', 	'Delete unused rule');
+INSERT INTO txt VALUES ('delete_unused_rules',	'German', 	'Unbenutzte Regeln l&ouml;schen');
+INSERT INTO txt VALUES ('delete_unused_rules',  'English', 	'Delete unused rules');
 
 -- schedule
 INSERT INTO txt VALUES ('schedule', 			'German',	'Terminplan');
@@ -496,7 +516,7 @@ INSERT INTO txt VALUES ('Months', 		        'German',	'Monat(e)');
 INSERT INTO txt VALUES ('Months', 		        'English',	'Month(s)');
 INSERT INTO txt VALUES ('Years', 		        'German',	'Jahr(e)');
 INSERT INTO txt VALUES ('Years', 		        'English',	'Year(s)');
-INSERT INTO txt VALUES ('schedule_fetch',       'German', 	'Abholen der Termine');
+INSERT INTO txt VALUES ('schedule_fetch',       'German', 	'Laden der Termine');
 INSERT INTO txt VALUES ('schedule_fetch',       'English', 	'Report Schedule Fetch');
 INSERT INTO txt VALUES ('save_scheduled_report','German',	'Termin speichern');
 INSERT INTO txt VALUES ('save_scheduled_report','English',	'Save scheduled report');
@@ -504,6 +524,10 @@ INSERT INTO txt VALUES ('edit_scheduled_report','German',	'Termin bearbeiten');
 INSERT INTO txt VALUES ('edit_scheduled_report','English',	'Edit scheduled report');
 INSERT INTO txt VALUES ('delete_scheduled_report','German',	'Termin l&ouml;schen');
 INSERT INTO txt VALUES ('delete_scheduled_report','English','Delete scheduled report');
+INSERT INTO txt VALUES ('schedule_tile',		'German',	'Terminplan');
+INSERT INTO txt VALUES ('schedule_tile',		'English',	'Report schedule');
+INSERT INTO txt VALUES ('schedule_upd_err_msg',	'German',	'Das Laden der terminierten Reports f&uuml;hrte zu einem Fehler.');
+INSERT INTO txt VALUES ('schedule_upd_err_msg',	'English',	'Loading the scheduled reports resulted in an error.');
 
 -- archive
 INSERT INTO txt VALUES ('download',				'German', 	'Herunterladen');
@@ -526,6 +550,10 @@ INSERT INTO txt VALUES ('fetch_report',		    'German', 	'Erstellten Report holen
 INSERT INTO txt VALUES ('fetch_report',		    'English', 	'Fetch downloads of generated report');
 INSERT INTO txt VALUES ('delete_report',		'German', 	'Erstellten Report l&ouml;schen');
 INSERT INTO txt VALUES ('delete_report',		'English', 	'Delete generated report');
+INSERT INTO txt VALUES ('archive_tile',			'German',	'Report Archivierung');
+INSERT INTO txt VALUES ('archive_tile',			'English',	'Report archiving');
+INSERT INTO txt VALUES ('archive_upd_err_msg',	'German',	'Das Laden der archivierten Reports f&uuml;hrte zu einem Fehler.');
+INSERT INTO txt VALUES ('archive_upd_err_msg',	'English',	'Loading the archived reports resulted in an error.');
 
 -- workflow
 INSERT INTO txt VALUES ('request',              'German', 	'Antrag');
@@ -822,6 +850,8 @@ INSERT INTO txt VALUES ('ResolvedChanges', 		'German', 	'Changes-Report (aufgel&
 INSERT INTO txt VALUES ('ResolvedChanges', 		'English', 	'Changes Report (resolved)');
 INSERT INTO txt VALUES ('ResolvedChangesTech', 	'German', 	'Changes-Report (technisch)');
 INSERT INTO txt VALUES ('ResolvedChangesTech', 	'English', 	'Changes Report (technical)');
+INSERT INTO txt VALUES ('UnusedRules', 	        'German', 	'Unbenutzte-Regel-Report');
+INSERT INTO txt VALUES ('UnusedRules', 	        'English', 	'Unused Rules Report');
 
 -- network analysis
 INSERT INTO txt VALUES ('network_analysis', 	'German',	'Netzanalyse');
@@ -870,6 +900,14 @@ INSERT INTO txt VALUES ('last_certify_date',    'German',   'Datum der letzten R
 INSERT INTO txt VALUES ('last_certify_date',    'English',  'Last recertification date');
 INSERT INTO txt VALUES ('marked_to_be_removed', 'German',   'Als zu l&ouml;schen markiert');
 INSERT INTO txt VALUES ('marked_to_be_removed', 'English',  'Marked to be removed');
+INSERT INTO txt VALUES ('recert_history',       'German',   'Rezertifizierungshistorie');
+INSERT INTO txt VALUES ('recert_history',       'English',  'Recertification history');
+INSERT INTO txt VALUES ('recertified_by',       'German',   'rezertifiziert von');
+INSERT INTO txt VALUES ('recertified_by',       'English',  'recertified by');
+INSERT INTO txt VALUES ('decertified_by',       'German',   'dezertifiziert von');
+INSERT INTO txt VALUES ('decertified_by',       'English',  'decertified by');
+INSERT INTO txt VALUES ('as_owner',             'German',   'als Eigent&uuml;mer');
+INSERT INTO txt VALUES ('as_owner',             'English',  'as Owner');
 INSERT INTO txt VALUES ('decert_date',          'German',   'Dezertifizierungsdatum');
 INSERT INTO txt VALUES ('decert_date',          'English',  'Decertification date');
 INSERT INTO txt VALUES ('recert_comment',       'German',   'Zertifizierungskommentar');
@@ -921,6 +959,8 @@ INSERT INTO txt VALUES ('password_policy',      'German', 	'Passworteinstellunge
 INSERT INTO txt VALUES ('password_policy',      'English', 	'Password Policy');
 INSERT INTO txt VALUES ('email_settings',       'German', 	'Email-Einstellungen');
 INSERT INTO txt VALUES ('email_settings',       'English', 	'Email settings');
+INSERT INTO txt VALUES ('importer_settings',    'German', 	'Importer-Einstellungen');
+INSERT INTO txt VALUES ('importer_settings',    'English', 	'Importer settings');
 INSERT INTO txt VALUES ('edit_email',           'German', 	'Email-Einstellungen editieren');
 INSERT INTO txt VALUES ('edit_email',           'English', 	'Edit email settings');
 INSERT INTO txt VALUES ('email_sender',         'German', 	'Email-Absendeadresse');
@@ -1169,6 +1209,10 @@ INSERT INTO txt VALUES ('maxMessages',          'German', 	'Max Anzahl Nachricht
 INSERT INTO txt VALUES ('maxMessages',          'English', 	'Max number of messages');
 INSERT INTO txt VALUES ('messageViewTime',      'German', 	'Nachrichten-Anzeigedauer (in Sekunden)');
 INSERT INTO txt VALUES ('messageViewTime',      'English', 	'Message view time (in seconds)');
+INSERT INTO txt VALUES ('unusedTolerance',      'German', 	'Als unbenutzt gewertet nach (in Tagen)');
+INSERT INTO txt VALUES ('unusedTolerance',      'English', 	'Regarded as unused from (in days)');
+INSERT INTO txt VALUES ('creationTolerance',    'German', 	'Toleranz ab Erzeugungsdatum (in Tagen)');
+INSERT INTO txt VALUES ('creationTolerance',    'English', 	'Tolerance from creation date (in days)');
 INSERT INTO txt VALUES ('dataRetentionTime',    'German', 	'Datenaufbewahrungszeit (in Tagen)');
 INSERT INTO txt VALUES ('dataRetentionTime',    'English', 	'Data retention time (in days)');
 INSERT INTO txt VALUES ('dailyCheckStartAt',    'German', 	'Startzeit t&auml;glicher Check');
@@ -1185,6 +1229,14 @@ INSERT INTO txt VALUES ('importSuppressCertificateWarnings',      'German', 	'Ze
 INSERT INTO txt VALUES ('importSuppressCertificateWarnings',      'English', 	'Suppress certificate warnings');
 INSERT INTO txt VALUES ('fwApiElementsPerFetch','German', 	'FW API - Pro Abruf geholte Elemente');
 INSERT INTO txt VALUES ('fwApiElementsPerFetch','English', 	'FW API - Elements per fetch');
+INSERT INTO txt VALUES ('impChangeNotifyRecipients','German', 	'Empf&auml;nger-Email-Adressen f&uuml;r &Auml;nderungen');
+INSERT INTO txt VALUES ('impChangeNotifyRecipients','English', 	'Recipient email addresses for change notifications');
+INSERT INTO txt VALUES ('impChangeNotifySubject',   'German', 	'Titel der &Auml;nderungsbenachrichtigung');
+INSERT INTO txt VALUES ('impChangeNotifySubject',   'English',  'Subject of change notification emails');
+INSERT INTO txt VALUES ('impChangeNotifyBody',      'German', 	'Text der &Auml;nderungsbenachrichtigung');
+INSERT INTO txt VALUES ('impChangeNotifyBody',      'English', 	'Body of change notification emails');
+INSERT INTO txt VALUES ('impChangeNotifyActive',    'German', 	'&Auml;nderungsbenachrichtigung aktiv?');
+INSERT INTO txt VALUES ('impChangeNotifyActive',    'English', 	'Change notification active?');
 INSERT INTO txt VALUES ('autoDiscoverSleepTime','German', 	'Autodiscover-Intervall (in Stunden)');
 INSERT INTO txt VALUES ('autoDiscoverSleepTime','English', 	'Auto-discovery sleep time (in hours)');
 INSERT INTO txt VALUES ('autoDiscoverStartAt',  'German', 	'Autodiscover-Start');
@@ -1610,7 +1662,56 @@ INSERT INTO txt VALUES ('configuration',        'German', 	'Konfiguration');
 INSERT INTO txt VALUES ('configuration',        'English', 	'Configuration');
 INSERT INTO txt VALUES ('owner_import',         'German', 	'Eigent&uuml;mer-Import');
 INSERT INTO txt VALUES ('owner_import',         'English', 	'Owner Import');
- 
+-- compliance
+INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
+INSERT INTO txt VALUES ('compliance',			'English', 	'Compliance');
+INSERT INTO txt VALUES ('network_zones',		'German', 	'Netzwerkzonen');
+INSERT INTO txt VALUES ('network_zones',		'English', 	'Network zones');
+INSERT INTO txt VALUES ('matrix',				'German', 	'Matrix');
+INSERT INTO txt VALUES ('matrix',				'English', 	'Matrix');
+INSERT INTO txt VALUES ('checks',				'German', 	'&Uuml;berpr&uuml;fung');
+INSERT INTO txt VALUES ('checks',				'English', 	'Checks');
+INSERT INTO txt VALUES ('check',				'German', 	'&Uuml;berpr&uuml;fen');
+INSERT INTO txt VALUES ('check',				'English', 	'Check');
+INSERT INTO txt VALUES ('zone_comm_matrix',		'German', 	'Netzwerkzonen-Kommunikationsmatrix');
+INSERT INTO txt VALUES ('zone_comm_matrix',		'English', 	'Network zone communication matrix');
+INSERT INTO txt VALUES ('network_zone_config',	'German', 	'Netzwerkzonen-Konfiguration');
+INSERT INTO txt VALUES ('network_zone_config',	'English', 	'Network zone configuration');
+INSERT INTO txt VALUES ('network_zone_check',	'German', 	'Netzwerkzonen-Compliancepr&uuml;fung');
+INSERT INTO txt VALUES ('network_zone_check',	'English', 	'Network zone compliance check');
+INSERT INTO txt VALUES ('allowed_communication','German', 	'Erlaubte Kommunikation');
+INSERT INTO txt VALUES ('allowed_communication','English', 	'Allowed communication');
+INSERT INTO txt VALUES ('subzones',				'German', 	'Subzonen');
+INSERT INTO txt VALUES ('subzones',				'English', 	'Subzones');
+INSERT INTO txt VALUES ('superzone',			'German', 	'Superzone');
+INSERT INTO txt VALUES ('superzone',			'English', 	'Superzone');
+INSERT INTO txt VALUES ('edit_zone_title',		'German', 	'Netzwerkzone editieren');
+INSERT INTO txt VALUES ('edit_zone_title',		'English', 	'Edit network zone');
+INSERT INTO txt VALUES ('add_ip_addresses',		'German', 	'IP Adresse(n) hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_ip_addresses',		'English', 	'Add IP Addresses');
+INSERT INTO txt VALUES ('delete_zone_title',	'German', 	'Netzwerkzone l&ouml;schen');
+INSERT INTO txt VALUES ('delete_zone_title',	'English', 	'Delete network zone');
+INSERT INTO txt VALUES ('delete_zone_text',		'German', 	'Sind Sie sich sicher, dass sie die Netzwerkzone % l&ouml;schen wollen?');
+INSERT INTO txt VALUES ('delete_zone_text',		'English', 	'Are you sure you want to delete the network zone %?');
+INSERT INTO txt VALUES ('to',					'German', 	'Nach');
+INSERT INTO txt VALUES ('to',					'English', 	'To');
+INSERT INTO txt VALUES ('allowed_comm_dests',   'German',   'Erlaubte Kommunikation (Nach)');
+INSERT INTO txt VALUES ('allowed_comm_dests',   'English',  'Allowed communication (to)');
+INSERT INTO txt VALUES ('allowed_comm_srcs',    'German',   'Erlaubte Kommunikation (Von)');
+INSERT INTO txt VALUES ('allowed_comm_srcs',    'English',  'Allowed communication (from)');
+INSERT INTO txt VALUES ('relogin',              'German', 	'Erneut anmelden');
+INSERT INTO txt VALUES ('relogin',              'English', 	'Re-Login');
+INSERT INTO txt VALUES ('relogin_error',        'German', 	'Fehler bei der erneuten Anmeldung');
+INSERT INTO txt VALUES ('relogin_error',        'English', 	'Re-Login error');
+INSERT INTO txt VALUES ('internet_local_zone',  'German', 	'Internet / Lokal');
+INSERT INTO txt VALUES ('internet_local_zone',  'English', 	'Internet / Local');
+INSERT INTO txt VALUES ('rule_conform',         'German', 	'Regelkonform');
+INSERT INTO txt VALUES ('rule_conform',     	'English', 	'In accordance with the rules');
+INSERT INTO txt VALUES ('rule_violations',     	'German', 	'Regelverletzungen');
+INSERT INTO txt VALUES ('rule_violations',     	'English', 	'Rule violations');
+INSERT INTO txt VALUES ('no_network_zones',     'German', 	'Es existieren bisher keine Netzwerkzonen. Bitte legen Sie diese im Abschnitt "Konfiguration" an.');
+INSERT INTO txt VALUES ('no_network_zones',     'English', 	'No network zones exist yet. Please create them in the "Configuration" section.');
+
 
 -- text codes (roughly) categorized: 
 -- U: user texts (explanation or confirmation texts)
@@ -1633,6 +1734,22 @@ INSERT INTO txt VALUES ('owner_import',         'English', 	'Owner Import');
 -- 6000-6999: API
 -- 7000-7999: Monitoring
 -- 8000-8999: Workflow
+
+-- generic success messages
+INSERT INTO txt VALUES ('S_add_title',          'German',   'Erstellen erfolgreich');
+INSERT INTO txt VALUES ('S_add_title',          'English',  'Creation successful');
+INSERT INTO txt VALUES ('S_add_message',        'German',   'Das Erstellen des Elements wurde erfolgreich abgeschlossen.');
+INSERT INTO txt VALUES ('S_add_message',        'English',  'The creation of the element has been completed successfully.');
+
+INSERT INTO txt VALUES ('S_modify_title',       'German',   'Modifizieren erfolgreich');
+INSERT INTO txt VALUES ('S_modify_title',       'English',  'Modification successful');
+INSERT INTO txt VALUES ('S_modify_message',     'German',   'Das Modifizieren des Elements wurde erfolgreich abgeschlossen.');
+INSERT INTO txt VALUES ('S_modify_message',     'English',  'The modification of the element has been completed successfully.');
+
+INSERT INTO txt VALUES ('S_delete_title',       'German',   'L&ouml;schen erfolgreich');
+INSERT INTO txt VALUES ('S_delete_title',       'English',  'Deletion successful');
+INSERT INTO txt VALUES ('S_delete_message',     'German',   'Das L&ouml;schen des Elements wurde erfolgreich abgeschlossen.');
+INSERT INTO txt VALUES ('S_delete_message',     'English',  'The deletion of the element has been completed successfully.');
 
 -- user messages
 INSERT INTO txt VALUES ('U0001', 'German',  'Eingabetext wurde um nicht erlaubte Zeichen gek&uuml;rzt');
@@ -1754,6 +1871,8 @@ INSERT INTO txt VALUES ('U5318', 'German',  'Sind sie sicher, dass sie die Einst
 INSERT INTO txt VALUES ('U5318', 'English', 'Are you sure you want to reset the settings? Changes on workflows get lost.');
 INSERT INTO txt VALUES ('U5319', 'German',  'Server f&uuml;r ausgehende Emails zur Benachrichtigung verwalten.');
 INSERT INTO txt VALUES ('U5319', 'English', 'Manage email server for outgoing user notifications.');
+INSERT INTO txt VALUES ('U5320', 'German',  'Mehrere Email-Adressen mit Komma trennen');
+INSERT INTO txt VALUES ('U5320', 'English', 'Multiple email addresses can be separated by using commas');
 
 INSERT INTO txt VALUES ('U5401', 'German',  'Passwort ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5401', 'English', 'Password changed.');
@@ -1790,12 +1909,34 @@ INSERT INTO txt VALUES ('U7401', 'English', 'View the past autodiscovery message
 INSERT INTO txt VALUES ('U7501', 'German',  'Archiv der Nachrichten der t&auml;glichen Checks');
 INSERT INTO txt VALUES ('U7501', 'English', 'View the past daily check messages');
 
-INSERT INTO txt VALUES ('U8001', 'German',  'Sind sie sicher, dass sie l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U8001', 'German',  'Sind sie sicher, dass sie Folgendes l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U8001', 'English', 'Are you sure you want to delete: ');
 INSERT INTO txt VALUES ('U8002', 'German',  'Neue Genehmigung zum Auftrag hinzugef&uuml;gt.');
 INSERT INTO txt VALUES ('U8002', 'English', 'New approval added to task.');
 INSERT INTO txt VALUES ('U8003', 'German',  'Sind sie sicher, dass sie abbrechen wollen? Bereits erzeugte Auftr&auml;ge gehen verloren.');
 INSERT INTO txt VALUES ('U8003', 'English', 'Are you sure you want to cancel? Already Created tasks will be lost.');
+
+
+-- generic error messages --
+INSERT INTO txt VALUES ('E_load_title',         'German',   'Fehler beim Laden');
+INSERT INTO txt VALUES ('E_load_title',         'English',  'Loading error');
+INSERT INTO txt VALUES ('E_load_message',       'German',   'Beim Laden der Elemente ist ein unerwarteter Fehler aufgetreten. Bitte melden Sie den Fehler, wenn er nicht erkl&auml;rbar ist.');
+INSERT INTO txt VALUES ('E_load_message',       'English',  'An unexpected error occurred while loading the items. Please report the error if it cannot be resolved.');
+
+INSERT INTO txt VALUES ('E_add_title',          'German',   'Fehler beim Erstellen');
+INSERT INTO txt VALUES ('E_add_title',          'English',  'Creation error');
+INSERT INTO txt VALUES ('E_add_message',        'German',   'Bei der Erstellung des Elements ist ein unerwarteter Fehler aufgetreten. Bitte melden Sie den Fehler, wenn er nicht erkl&auml;rbar ist.');
+INSERT INTO txt VALUES ('E_add_message',        'English',  'An unexpected error occurred while creating the item. Please report the error if it cannot be resolved.');
+
+INSERT INTO txt VALUES ('E_modify_title',       'German',   'Fehler beim Modifizieren');
+INSERT INTO txt VALUES ('E_modify_title',       'English',  'Modification error');
+INSERT INTO txt VALUES ('E_modify_message',     'German',   'Bei der Modifizierung des Elements ist ein unerwarteter Fehler aufgetreten. Bitte melden Sie den Fehler, wenn er nicht erkl&auml;rbar ist.');
+INSERT INTO txt VALUES ('E_modify_message',     'English',  'An unexpected error occurred while modifying the item. Please report the error if it cannot be resolved.');
+
+INSERT INTO txt VALUES ('E_delete_title',       'German',   'Fehler beim L&ouml;schen');
+INSERT INTO txt VALUES ('E_delete_title',       'English',  'Deletion error');
+INSERT INTO txt VALUES ('E_delete_message',     'German',   'Bei der L&ouml;schung des Elements ist ein unerwarteter Fehler aufgetreten. Bitte melden Sie den Fehler, wenn er nicht erkl&auml;rbar ist.');
+INSERT INTO txt VALUES ('E_delete_message',     'English',  'An unexpected error occurred while deleting the item. Please report the error if it cannot be resolved.');
 
 
 -- error messages
@@ -1838,6 +1979,8 @@ INSERT INTO txt VALUES ('E4002', 'German',  'Keine Regeln f&uuml;r die gew&auml;
 INSERT INTO txt VALUES ('E4002', 'English', 'No rules found for given criteria');
 INSERT INTO txt VALUES ('E4003', 'German',  'Keine &Auml;nderungen f&uuml;r die gew&auml;hlten Kriterien gefunden');
 INSERT INTO txt VALUES ('E4003', 'English', 'No changes found for given criteria');
+INSERT INTO txt VALUES ('E4004', 'German',  'Nutzungsdaten nicht unterst&uuml;tzt f&uuml;r: ');
+INSERT INTO txt VALUES ('E4004', 'English', 'Usage data not supported for: ');
 
 INSERT INTO txt VALUES ('E5101', 'German',  'L&ouml;schen des Managements nicht erlaubt, da noch Gateways zugeordnet sind. Diese zuerst l&ouml;schen wenn m&ouml;glich');
 INSERT INTO txt VALUES ('E5101', 'English', 'Deletion of management not allowed as there are related Gateways. Delete them first if possible');
@@ -2011,8 +2154,8 @@ INSERT INTO txt VALUES ('E5415', 'English', 'Password must contain at least one 
 INSERT INTO txt VALUES ('E5421', 'German',  'Schl&uuml;ssel nicht gefunden oder Wert nicht konvertierbar: Wert wird gesetzt auf: ');
 INSERT INTO txt VALUES ('E5421', 'English', 'Key not found or could not convert value to int: taking value: ');
 
-INSERT INTO txt VALUES ('E6001', 'German', 	'Der Relogin war nicht erfolgreich. Haben Sie ein falsches Passwort eingegeben? Schauen Sie f&uuml;r Details bitte in die Logs.');
-INSERT INTO txt VALUES ('E6001', 'English', 'Re-login unsuccessful. Did you enter a wrong password? See log for details!');
+INSERT INTO txt VALUES ('E6001', 'German', 	'Der Re-Login war nicht erfolgreich. Haben Sie ein falsches Passwort eingegeben? Schauen Sie f&uuml;r Details bitte in die Logs.');
+INSERT INTO txt VALUES ('E6001', 'English', 'Re-login failed. Did you enter a wrong password? See log for details.');
 
 INSERT INTO txt VALUES ('E7001', 'German',  'Aktion wurde bereits durchgef&uuml;hrt');
 INSERT INTO txt VALUES ('E7001', 'English', 'Action has already been processed');
@@ -2058,6 +2201,7 @@ INSERT INTO txt VALUES ('E8014', 'English', 'The handling of this Task Type is n
 
 INSERT INTO txt VALUES ('E8101', 'German',  'Email-Versand kann nicht getestet werden, da der aktuell angemeldete Nutzer keine Email-Adresse hinterlegt hat.');
 INSERT INTO txt VALUES ('E8101', 'English', 'Sending of emails cannot be tested because the logged-in user does not have an email address.');
+
 
 
 
@@ -2134,6 +2278,7 @@ INSERT INTO txt VALUES ('H1001', 'German',  'Die erste Eingabezeile ist die Filt
     Nach klicken der "Report erstellen" Schaltfl&auml;che werden die <a href="/help/reporting/output">Reportdaten</a> im unteren Teil des Fensters dargestellt.
     In der <a href="/help/reporting/rightside">Rechten Randleiste</a> werden Details zu den markierten Objekten gezeigt.<br>
     Der Report kann in verschiedenen Ausgabeformaten <a href="/help/reporting/export">exportiert</a> werden.
+    Mit Hilfe der Tabs am oberen Bildschirmrand kann zwischen der Report-Generierung, dem Report-Scheduling und dem Report-Archiv umgeschaltet werden.
 ');
 INSERT INTO txt VALUES ('H1001', 'English', 'The first input line is the filter line, where the parameters for the report creation are defined.
     It is subject to a special <a href="/help/reporting/filter">Filter Syntax</a>. 
@@ -2142,6 +2287,7 @@ INSERT INTO txt VALUES ('H1001', 'English', 'The first input line is the filter 
     After selecting the "Generate Report" button the <a href="/help/reporting/output">Report Data</a> is shown in the lower part of the window.
     In the <a href="/help/reporting/rightside">Right Sidebar</a> details about the selected objects are given.<br>
     The report can be <a href="/help/reporting/export">exported</a> to different output formats.
+    Using the tabs at the top of the screen you may switch between report generation, report scheduling and the report archive.
 ');
 INSERT INTO txt VALUES ('H1101', 'German',  '<li> Alle Filter sind schreibungsunabh&auml;ngig.</li>
     <li> Es gibt verschiedene Varianten f&uuml;r die meisten Schl&uuml;sselw&ouml;rter, z.B. k&ouml;nnen DestinationPort-Filter geschrieben werden als:
@@ -2171,8 +2317,13 @@ INSERT INTO txt VALUES ('H1102', 'German',  'Folgende Report-Typen stehen zur Au
     <li>Regeln (aufgel&ouml;st) - Anzeige von Zugriffsregeln, wobei s&auml;mtliche Gruppen in Quelle, Ziel und Dienst aufgel&ouml;st werden. 
      Dies erm&ouml;glicht einen Export in einer einzigen Tabelle ohne Hilfstabellen, in denen die Objekt-Definitionen stehen. Default-Report-Zeitpunkt: jetzt</li>
     <li>Regeln (technisch) - wie der aufgel&ouml;ste Regel-Report, nur dass Objektnamen nicht angezeigt werden. Default-Report-Zeitpunkt: jetzt</li>
+    <li>Unbenutzte Regeln - Anzeige aller Regeln die das letztemal vor einem vorgegebenen Zeitpunkt benutzt wurden. Ger&auml;te, die keine Nutzungsinformation liefern, werden ignoriert.
+    Falls der Reporter auch die Rolle "requester" hat, wird bei Selektion ausgegebener Regeln eine Schaltfl&auml;che zur Erzeugung eines L&ouml;schantrags angeboten.</li>
     <li>NAT-Regeln - Anzeige der NAT-Regeln und nicht der Zugriffsregeln. Default-Report-Zeitpunkt: jetzt</li>
+    <li>Rezertifizierung - Anzeige aller Regeln mit anstehenden Rezertifizierungen. Der Default-Report-Zeitraum kann in den Einstellungen gesetzt werden</li>
     <li>&Auml;nderungen - Anzeige von &Auml;nderungen in einem bestimmten Zeitraum. Default-Report-Zeitraum: dieses Jahr</li>
+    <li>&Auml;nderungen (aufgel&ouml;st) - Anzeige von &Auml;nderungen in einem bestimmten Zeitraum, wobei s&auml;mtliche Gruppen in Quelle, Ziel und Dienst aufgel&ouml;st werden. Default-Report-Zeitraum: dieses Jahr</li>
+    <li>&Auml;nderungen (technisch)- wie der aufgel&ouml;ste &Auml;nderungs-Report, nur dass Objektnamen nicht angezeigt werden. Default-Report-Zeitraum: dieses Jahr</li>
     <li>Statistik - Anzeige von Statistikdaten &uuml;ber Anzahl von Objekten und Regeln. Default-Report-Zeitpunkt: jetzt</li>
 </ul>
 ');
@@ -2181,8 +2332,13 @@ INSERT INTO txt VALUES ('H1102', 'English',  'Choose from the following report t
     <li>Rules - display access rules; default report time: now</li>
     <li>Rules (resolved) - display access rules but not showing any group structure but only resolved group content. Default report time: now</li>
     <li>Rules (technical) - display access rules, resolving groups and not showing object names. Default report time: now<</li>
+    <li>Unused Rules - display all rules where the rule last hit lies before a given time. Devices delivering no usage information are disregarded.
+    If the reporter has also a requester role, a button to create a delete rule request is offered after selecting reported rules.</li>
     <li>NAT Rules - display NAT rules instead of access rules. Default report time: now</li>
+    <li>Recertification - display all rules where recertifications are upcoming. Default report interval can be defined in settings</li>
     <li>Changes - display all changes in a defined time interval. Default report interval: this year</li>
+    <li>Changes (resolved) - display all changes in a defined time interval but not showing any group structure but only resolved group content. Default report interval: this year</li>
+    <li>Changes (technical) - display all changes in a defined time interval resolving groups and not showing object names. Default report interval: this year</li>
     <li>Statistics - display statistical data on the number of objects and rules. Default report time: now</li>
 </ul>
 ');
@@ -2199,6 +2355,7 @@ INSERT INTO txt VALUES ('H1111', 'German',  '<li>gateway (gw, firewall, fw, devi
     <li>remove: M&ouml;gliche Werte: true/false. Wenn "true", werden nur dezertifizierte Regeln gesucht</li>
     <li>recertdisplay (recertdisp): Definiert den Zeitraum f&uuml;r die Vorausschau (in Tagen) f&uuml;r die n&auml;chste Rezertifizierung. Nur Regeln in diesem Zeitfenster werden gesucht.</li>
     <li>lasthit (last-hit, last-used, last-usage, last-use): Filtern nach Regel-Nutzung - aktuell unterst&uuml;tzt f&uuml;r FortiManager und Check Point >=R80.</li>
+    <li>not-used-for-days (unused, unused-days, not-used): nicht genutzt seit der vorgegebenen Anzahl von Tagen oder gar nicht</li>
     <li>fulltext (full, fulltextsearch, fts, text, textsearch)</li>
 ');
 INSERT INTO txt VALUES ('H1111', 'English', '<li>gateway (gw, firewall, fw, device, dev): Additionally to the specific device selection in the <a href="/help/reporting/leftside">left sidebar</a>
@@ -2214,6 +2371,7 @@ INSERT INTO txt VALUES ('H1111', 'English', '<li>gateway (gw, firewall, fw, devi
     <li>remove: Possible Values: true/false. If "true", only decertified rules are searched</li>
     <li>recertdisplay (recertdisp): Defines the lookahead period (in days) for next recertification. Only rules in this time range are searched.</li>
     <li>lasthit (last-hit, last-used, last-usage, last-use): filter by rule usage - supported for FortiManager and Check Point >=R80 only.</li>
+    <li>not-used-for-days (unused, unused-days, not-used): not used for the given number of days or never</li>
     <li>fulltext (full, fulltextsearch, fts, text, textsearch)</li>
 ');
 INSERT INTO txt VALUES ('H1131', 'German',  '<li>and (&)</li><li>or (|)</li><li>not (!)</li><li>eq (=, :)</li><li>neq</li><li>(</li><li>)</li>');
@@ -2276,18 +2434,18 @@ INSERT INTO txt VALUES ('H1214', 'German',  'Regel&auml;nderungen des aktuellen 
 INSERT INTO txt VALUES ('H1214', 'English', 'This year&apos;s Rule Changes: All rule change performed in the current year in the selected devices.');
 INSERT INTO txt VALUES ('H1215', 'German',  'Aktuelle NAT Regeln: Aktuell aktive NAT-Regeln aller ausgew&auml;hlten Devices.');
 INSERT INTO txt VALUES ('H1215', 'English', 'Current NAT Rules: Currently active NAT rules of all selected devices.');
-INSERT INTO txt VALUES ('H1301', 'German',  'Direkt nach der Erzeugung oder vom <a href="/help/archive">Archiv</a> aus k&ouml;nnen Reports in verschiedenen Ausgabeformaten exportiert werden:');
-INSERT INTO txt VALUES ('H1301', 'English', 'Directly after creation or from the <a href="/help/archive">archive</a> reports can be exported to different output formats:');
+INSERT INTO txt VALUES ('H1301', 'German',  'Direkt nach der Erzeugung oder vom <a href="/help/reporting/archive">Archiv</a> aus k&ouml;nnen Reports in verschiedenen Ausgabeformaten exportiert werden:');
+INSERT INTO txt VALUES ('H1301', 'English', 'Directly after creation or from the <a href="/help/reporting/archive">archive</a> reports can be exported to different output formats:');
 INSERT INTO txt VALUES ('H1302', 'German',  '<li>pdf</li><li>html</li><li>csv (aktuell nur f&uuml;r die aufgel&ouml;sten und technischen Report-Typen unterst&uuml;tzt)</li><li>json</li>');
 INSERT INTO txt VALUES ('H1302', 'English', '<li>pdf</li><li>html</li><li>csv (currently only supported for resolved and technical report types)</li><li>json</li>');
 INSERT INTO txt VALUES ('H1303', 'German',  'Nach bet&auml;tigen des "Report exportieren"-Auswahlfeldes kann eines oder mehrere dieser Formate ausgew&auml;hlt werden.
     Bei Aktivierung der pdf-Ausgabe wird desweiteren das Seitenformat zur Auswahl angeboten.<br>
-    Auch kann der Report mit einem Namen versehen und <a href="/help/archive">archiviert</a> werden.
+    Auch kann der Report mit einem Namen versehen und <a href="/help/reporting/archive">archiviert</a> werden.
     Ein weiteres Ausgabefenster erlaubt dann das separate Abholen der ausgew&auml;hlten Ausgabedateien.
 ');
 INSERT INTO txt VALUES ('H1303', 'English', 'After clicking the "Export Report" button one or more of them can be selected.
     When selecting the pdf export, the page format is offered for selection.<br>
-    Also the possibility to name and save the report in the <a href="/help/archive">archive</a> is given.
+    Also the possibility to name and save the report in the <a href="/help/reporting/archive">archive</a> is given.
     Another Popup allows then to download the selected output files separately.    
 ');
 INSERT INTO txt VALUES ('H1401', 'German',  'Im unteren Teil der Hauptseite werden die Ausgabedaten des generierten Reports dargestellt.
@@ -2306,6 +2464,23 @@ INSERT INTO txt VALUES ('H1402', 'German',  '<li>Nummer</li><li>Name</li><li>Que
 INSERT INTO txt VALUES ('H1402', 'English', '<li>Number</li><li>Name</li><li>Source Zone</li><li>Source</li><li>Destination Zone</li>
     <li>Destination</li><li>Services</li><li>Action</li><li>Logging</li><li>Enabled</li><li>UID</li><li>Comment</li>
 ');
+INSERT INTO txt VALUES ('H1403', 'German',  'Zus&auml;tzlich werden in einzelnen Reporttypen weitere Spalten dargestellt:
+    <ul>
+        <li>Changes report: &Auml;nderungszeit, &Auml;nderungstyp (Regelnummerierung entf&auml;llt daf&uuml;r)</li>
+        <li>Unbenutzte-Regel-Report: Letzter Treffer</li>
+        <li>NAT-Regel-Report: Umgesetzte Quelle, Umgesetztes Ziel, Umgesetzte Dienste</li>
+        <li>Rezertifizierungs-Report: Datum n&auml;chste Rezertifizierung, Eigent&uuml;mer, IP-Adress-&Uuml;bereinstimmung, Letzter Treffer</li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H1403', 'English', 'Additionally in the different Report Types further columns are displayed:
+    <ul>
+        <li>Changes report: Change Time, Change Type (but no rule numbering)</li>
+        <li>Unused Rules Report: Last Hit</li>
+        <li>NAT Rules Report: Translated Source, Translated Destination, Translated Services</li>
+        <li>Recertification Report: Next Recertification Date, Owner, IP address match, Last Hit</li>
+    </ul>
+');
+
 INSERT INTO txt VALUES ('H1501', 'German',  'Hier werden die fixen Kriterien f&uuml;r die Auswahl zur Reporterstellung dargestellt.
     Weiteren Kriterien k&ouml;nnen &uuml;ber die <a href="/help/reporting/filter">Filterleiste</a> hinzugef&uuml;gt werden.
 ');
@@ -2318,11 +2493,13 @@ INSERT INTO txt VALUES ('H1503', 'German',  'Auflistung aller verf&uuml;gbaren D
     Die Ansicht kann f&uuml;r unterschiedliche Nutzer entsprechend der <a href="/help/settings/tenants">Mandantenzuordnung</a> variieren.
     F&uuml;r eine Reporterstellung muss hier eine Auswahl getroffen werden. Die dargestellten Devices k&ouml;nnen ein- oder ausgeklappt werden.
     Ab welcher Mindestanzahl die Darstellung zu Beginn eingeklappt ist, kann individuell in den <a href="/help/settings/report">Reporting-Einstellungen</a> definiert werden.
+    Im Unbenutzte-Regel-Report werden Devices, die keine Nutztungsinformationen liefern, bei Reporterstellung automatisch deselektiert.
 ');
 INSERT INTO txt VALUES ('H1503', 'English', 'Display of all available devices.
     This view may differ for the different users according to the <a href="/help/settings/tenants">tenant assignments</a>.
     For the creation of a report a selection out of them has to be done. The displayed devices can be collapsed or expanded.
     In the <a href="/help/settings/report">Report Settings</a> it is possible to define the minimum number, where the display starts collapsed.
+    In the Unused Rules Report devices not delivering usage information are deselected automatically during report creation.
 ');
 INSERT INTO txt VALUES ('H1504', 'German',  'Anzeige der gew&auml;hlten Reportzeit bzw. des gew&auml;hlten Reportzeitraums in Abh&auml;ngigkeit vom gew&auml;hlten Report-Typ.
     Vorgabewerte sind "jetzt" bzw. "dieses Jahr". &Uuml;ber die "&Auml;ndern"-Schaltfl&auml;che kann dies in einem entsprechenden Popup-Fenster angepasst werden:
@@ -2336,14 +2513,38 @@ INSERT INTO txt VALUES ('H1505', 'German',  'F&uuml;r Report-Typen, welche die A
 INSERT INTO txt VALUES ('H1505', 'English', 'For report types requiring a report time there are two options: 
     Selecting a particular time with the date/time picker or using the default value "now".
 ');
-INSERT INTO txt VALUES ('H1506', 'German',  'F&uuml;r Report-Typen, die Zeitintervalle ben&ouml;tigen, kann gew&auml;hlt werden zwischen:');
-INSERT INTO txt VALUES ('H1506', 'English', 'For report types requiring a time range a selection can be done between:');
+INSERT INTO txt VALUES ('H1506', 'German',  'F&uuml;r Report-Typen, die Zeitintervalle ben&ouml;tigen (nicht Unbenutzte-Regel- und Rezertifizierungs-Report), kann gew&auml;hlt werden zwischen:');
+INSERT INTO txt VALUES ('H1506', 'English', 'For report types requiring a time range (not Unused Rule or Recertification Report) a selection can be done between:');
 INSERT INTO txt VALUES ('H1507', 'German',  'Vordefinierte Abk&uuml;rzungen "dieses Jahr", "letztes Jahr", "dieser Monat", "letzter Monat", "diese Woche", "letzte Woche", "heute" oder "gestern"');
 INSERT INTO txt VALUES ('H1507', 'English', 'Predefined shortcuts "this year", "last year", "this month", "last month", "this week", "last week", "today" or "yesterday"');
 INSERT INTO txt VALUES ('H1508', 'German',  'Zeitintervalle in Tagen, Wochen, Monaten oder Jahren relativ zum aktuellen Zeitpunkt');
 INSERT INTO txt VALUES ('H1508', 'English', 'Time intervals in days, weeks, months or years in relation to the actual time');
 INSERT INTO txt VALUES ('H1509', 'German',  'Absolute Start- und Endezeiten. Beide Grenzen k&ouml;nnen durch setzen der "offen"-Markierung ausser Kraft gesetzt werden.');
 INSERT INTO txt VALUES ('H1509', 'English', 'Absolute start and end times. Both limits can be separately omitted by setting the "open" checkbox.');
+INSERT INTO txt VALUES ('H1510', 'German',  'Nur beim Unbenutzte-Regel-Report: Unbenutzt seit: Hier wird die Anzahl von Tagen eingegeben, seitdem die anzuzeigenden Regeln nicht mehr benutzt wurden.
+    Regeln, die noch keine letzte Nutzung protokolliert haben, werden ebenfalls dargestellt, falls sie &auml;lter als eine in den <a href="/help/settings/report">Reporting-Einstellungen</a> definierte Toleranzzeit sind.
+    Dort kann auch der Default-Wert f&uuml;r den Zeitraum der Nichtbenutzung gesetzt werden. 
+');
+INSERT INTO txt VALUES ('H1510', 'English', 'Only for Unused Rules Report: Unused since: Here the number of days is given, where the rules to be displayed have not be used.
+    Rules never used are also displayed if their creation date is older than a tolerance interval defined in the <a href="/help/settings/report">Report Settings</a>.
+    There also the default value for the unused interval can be defined.
+');
+INSERT INTO txt VALUES ('H1511', 'German',  'Nur beim Rezertifizierungs-Report: Rezertifizierungsparameter
+    <li>F&auml;llig in: Hier wird festgelegt, wie weit die Suche nach zu rezertifizierenden Regeln gehen soll (in Tagen).
+        Der Default-Wert kann sowohl vom Administrator in den <a href="/help/settings/recertificationgeneral">Allgemeinen</a>
+        als auch vom jeweiligen Nutzer in den <a href="/help/settings/recertificationpersonal">Pers&ouml;nlichen</a> Rezertifizierungseinstellungen festgelegt werden.</li>
+    <li>Eigent&uuml;mer: Hier kann aus den dem Nutzer zugeordneten Eigent&uuml;merschaften ausgew&auml;hlt werden.</li>
+    <li>Any-Regeln anzeigen: Wenn das H&auml;kchen gesetzt ist, werden auch Regeln mit Ip 0.0.0.0 in Quelle oder Ziel dargestellt.
+        Beim deselektieren wird ein exkludierender Ausdruck zur Filterzeile hinzugef&uuml;gt.</li>
+');
+INSERT INTO txt VALUES ('H1511', 'English', 'Only for Recertification Report: Recertification Parameters
+    <li>Due within: Select how far ahead should be searched for rules to be recertified (in days).
+        The default value can be set by the administrator in the <a href="/help/settings/recertificationgeneral">General</a>
+        as well as in the <a href="/help/settings/recertificationpersonal">Personal</a> Recertification Settings by the user</li>.
+    <li>Owner: Select the certifying owner out of the ownerships related to the user.</li>
+    <li>Show any rules: If flag is set, rules with Ip 0.0.0.0 in source or destination are shown.
+        When deselecting an excluding statement is added to the filter line.</li>
+');
 INSERT INTO txt VALUES ('H1601', 'German',  'Die rechte Randleiste hat zwei Reiter: Unter "Alle" werden alle aktuell abgeholten Objekte dargestellt,
     w&auml;hrend unter "Regel" nur die in der Reportausgabe ausgew&auml;hlten Regeln gezeigt werden.<br>
     Folgende Daten werden dargestellt, gruppiert nach den ausgew&auml;hlten Devices:
@@ -2361,8 +2562,8 @@ INSERT INTO txt VALUES ('H2001', 'German',  'Es k&ouml;nnen Reports f&uuml;r ein
 INSERT INTO txt VALUES ('H2001', 'English', 'Reports can be scheduled for a given time or as recurring tasks.
     Every user can administrate his own report schedules.
 ');
-INSERT INTO txt VALUES ('H2011', 'German',  'Name: Der Reportname, der im <a href="/help/archive">Archiv</a> wiederzufinden ist.');
-INSERT INTO txt VALUES ('H2011', 'English', 'Name: The report name to be found in the <a href="/help/archive">Archive</a>.');
+INSERT INTO txt VALUES ('H2011', 'German',  'Name: Der Reportname, der im <a href="/help/reporting/archive">Archiv</a> wiederzufinden ist.');
+INSERT INTO txt VALUES ('H2011', 'English', 'Name: The report name to be found in the <a href="/help/reporting/archive">Archive</a>.');
 INSERT INTO txt VALUES ('H2012', 'German',  'Startdatum und -zeit: Erste Ausf&uuml;hrung des Terminauftrags.
     Bitte einige Minuten im voraus w&auml;hlen, wenn die Ausf&uuml;hrung noch heute erfolgen soll, da es einen Zeitverzug von einigen Minuten durch den Timer geben kann. 
 ');
@@ -2397,13 +2598,13 @@ INSERT INTO txt VALUES ('H2018', 'English', 'Count: Counts how many reports have
 INSERT INTO txt VALUES ('H3001', 'German',  'Hier sind die archivierten Reports mit Name sowie Informationen zu Erzeugungsdatum, Typ, Vorlage (nur bei termingesteuerten Reports), 
     Eigent&uuml;mer sowie eine kurze Beschreibung des Inhalts zu finden.
     Sie k&ouml;nnen zum einen durch Export manuell erzeugter Reports durch Setzen des "Archiv"-Kennzeichens in <a href="/help/reporting/export">Export Report</a> erzeugt werden.
-    Zum anderen finden sich hier auch die durch das <a href="/help/scheduling">Scheduling</a> erzeugten Reports.
+    Zum anderen finden sich hier auch die durch das <a href="/help/reporting/scheduling">Scheduling</a> erzeugten Reports.
     Die archivierten Reports k&ouml;nnen von hier heruntergeladen oder gel&ouml;scht werden.
 ');
 INSERT INTO txt VALUES ('H3001', 'English', 'Here the archived reports can be found with name and information about creation date, type, template (only at scheduled reports),
     owner and a short description about the content. 
     They may be created on the one hand by exporting manually created reports with setting the flag "Archive" in <a href="/help/reporting/export">Export Report</a>.
-    On the other hand here also the reports created by the <a href="/help/scheduling">Scheduling</a> can be found.
+    On the other hand here also the reports created by the <a href="/help/reporting/scheduling">Scheduling</a> can be found.
     It is possible to download or delete these archived reports.
 ');
 
@@ -2846,10 +3047,11 @@ INSERT INTO txt VALUES ('H5012', 'English', 'The chapter "Authorization" offers 
     and <a href="/help/settings/roles">Roles</a>, additionally there is an overview of the <a href="/help/settings/owners">owners</a>.
 ');
 INSERT INTO txt VALUES ('H5013', 'German',  'Im Kapitel "Voreinstellungen" kann der Administrator <a href="/help/settings/defaults">Standardeinstellungen</a> vornehmen,
-    die f&uuml;r alle Nutzer gelten, sowie die <a href="/help/settings/passwordpolicy">Passworteinstellungen</a> definieren, welche f&uuml;r alle Passwort&auml;nderungen g&uuml;ltig sind.
+    die f&uuml;r alle Nutzer gelten, sowie die <a href="/help/settings/email">Email-</a>, <a href="/help/settings/importer">Importer-</a> und
+    <a href="/help/settings/passwordpolicy">Passworteinstellungen</a> definieren.
 ');
 INSERT INTO txt VALUES ('H5013', 'English', 'In the "Defaults" chapter the administrator can define <a href="/help/settings/defaults">Default Values</a> applicable to all users
-    and set a <a href="/help/settings/passwordpolicy">Password Policy</a> valid for all password changes.
+    and define <a href="/help/settings/email">email-</a>, <a href="/help/settings/importer">importer-</a> and  <a href="/help/settings/passwordpolicy">Password Policy</a> settings.
 ');
 INSERT INTO txt VALUES ('H5014', 'German',  'Das Kapitel "Pers&ouml;nlich" ist f&uuml;r alle Nutzer zug&auml;nglich. Hier k&ouml;nnen das individuelle <a href="/help/settings/password">Password</a>,
     die bevorzugte <a href="/help/settings/language">Sprache</a> und <a href="/help/settings/report">Reporting</a>-Einstellungen gesetzt werden.
@@ -3331,10 +3533,10 @@ INSERT INTO txt VALUES ('H5411', 'German',  'Standardsprache: Die Sprache, die n
 INSERT INTO txt VALUES ('H5411', 'English', 'Default Language: The language which every user gets at first login. 
     After login each user can define its own preferred <a href="/help/settings/language">language</a>.
 ');
-INSERT INTO txt VALUES ('H5412', 'German',  'Pro Abruf geholte Elemente: Definiert die (maximale) Anzahl der Objekte, die bei der Reporterzeugung und beim Aufbau der rechten Randleiste in einem Schritt geholt werden.
+INSERT INTO txt VALUES ('H5412', 'German',  'UI - Pro Abruf geholte Elemente: Definiert die (maximale) Anzahl der Objekte, die bei der Reporterzeugung und beim Aufbau der rechten Randleiste in einem Schritt geholt werden.
     Dies kann genutzt werden, um die Performanz zu optimieren, wenn n&ouml;tig.
 ');
-INSERT INTO txt VALUES ('H5412', 'English', 'Elements per fetch: Defines the (maximum) number of objects which are fetched in one step for the report creation and the build up of the right sidebar.
+INSERT INTO txt VALUES ('H5412', 'English', 'UI - Elements per fetch: Defines the (maximum) number of objects which are fetched in one step for the report creation and the build up of the right sidebar.
     This can be used to optimize performance if necessary.
 ');
 INSERT INTO txt VALUES ('H5413', 'German',  'Max initiale Abrufe rechte Randleiste: Definiert die (maximale) Anzahl an Abrufen w&auml;hrend der Initialisierung der rechten Randleiste.
@@ -3351,8 +3553,49 @@ INSERT INTO txt VALUES ('H5414', 'English', 'Completely auto-fill right sidebar:
 ');
 INSERT INTO txt VALUES ('H5415', 'German',  'Datenaufbewahrungszeit (in Tagen): Legt fest, wie lange die Daten in der Datenbank gehalten werden (wird noch nicht unterst&uuml;tzt).');
 INSERT INTO txt VALUES ('H5415', 'English', 'Data retention time (in days): Defines how long the data is kept in the database (currently not supported).');
-INSERT INTO txt VALUES ('H5416', 'German',  'Importintervall (in Sekunden): Zeitintervall zwischen zwei Imports (wird noch nicht unterst&uuml;tzt)');
-INSERT INTO txt VALUES ('H5416', 'English', 'Import sleep time (in seconds): Time between import loops (currently not supported).');
+INSERT INTO txt VALUES ('H5416', 'German',  '
+    <ul>
+        <li>Importintervall (in Sekunden): Zeitintervall zwischen zwei Import-L&auml;fen. Default-Wert = 40.</li>
+        <li>Zertifikate beim Import pr&uuml;fen: Sollen bei den API-Calls in Richtung der Firewalls nur g&uuml;ltige Zertifikate akzeptiert werden?. 
+            Sollte nur auf "aktiv" gesetzt werden, wenn alle Firewalls offiziell signierte Zertifikate besitzen, 
+            andernfalls ist ein Import nicht m&ouml;glich. Default-Wert = "inaktiv".</li>
+        <li>Zertifikatswarnungen unterdr&uuml;cken: Sollen im Log Warnungen bei selbstsignierten oder ung&uuml;ltigen Zertifkaten auf zu importierenden
+            Firewalls ausgegeben werden? Default-Wert = "inaktiv".</li>
+        <li>FW API - Pro Abruf geholte Elemente: Wie viele Objekte sollen beim Import per Firewall-API Call auf einmal geholt werden? Default-Wert = 150.</li>
+        <li>&Auml;nderungsbenachrichtigung via Email
+            <ul>
+                <li>&Auml;nderungsbenachrichtigung aktiv: Sollen Emails bei festgestellten &Auml;nderungen versendet werden, ist diese 
+                    Einstellung zu aktivieren. Default-Wert = "inaktiv".</li>
+                <li>Empf&auml;nger-Email-Adressen f&uuml;r &Auml;nderungen: Komma-separierte Liste von Email-Adressen, die bei festgestellter
+                    sicherheitsrelevanter &Auml;nderung auf einem importierten Management benachrichtigt werden. Default-Wert = "leer".</li>
+                <li>Titel der &Auml;nderungsbenachrichtigung: Betreffzeile der Benachrichtigungs-Email. Default-Wert = "leer".</li>
+                <li>Text der &Auml;nderungsbenachrichtigung: Start des Email-Textes. Die Email enth&auml;lt stets den Namen und die ID des 
+                    ge&auml;nderten Managements sowie die Anzahl der festgestellten &Auml;nderungen. Default-Wert = "leer".</li>
+            </ul>
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H5416', 'English', '
+    <ul>
+        <li>Import sleep time (in seconds): Time between import loops; default value=40.</li>
+        <li>Check certificates during import: During API calls towards Firewalls shall only valid certificates be accepted?. 
+            This should only be set to "active" if all firewall API certificates are valid, otherwise an import will not be possible.
+            Default value = "inactive".</li>
+        <li>Suppress certificate warnings: Shall warnings about invalid certificates be written to import log? Default value = "inactive".</li>
+        <li>FW API - Elements per fetch: How many objects/rules shall be fetched per API call from a firewall management? Default value = 150.</li>
+        <li>Change notification via email:
+            <ul>
+                <li>Change notification active?: When an import finds security relevant changes, should an email be sent out?
+                Default value = "inactive".</li>
+                <li>Recipient email addresses for change notifications: A comma-separated list of email addresses, which will get information in the case of 
+                    security relevant changes found during import of a firewall management. Default value = "empty".</li>
+                <li>Subject of change notification emails: Subject line for notification emails. Default value = "empty".</li>
+                <li>Body of change notification emails: Start of the email text. The email will always contain name and ID of the changed 
+                    firewall management as well as the number of changes. Default value = "empty".</li>
+            </ul>
+        </li>
+    </ul>
+');
 INSERT INTO txt VALUES ('H5417', 'German',  'Rezertifizierungsintervall (in Tagen): Maximale Zeit, nach der eine Regel rezertifiziert werden soll.');
 INSERT INTO txt VALUES ('H5417', 'English', 'Recertification Period (in days): Maximum time, after when a rule should be recertified.');
 INSERT INTO txt VALUES ('H5418', 'German',  'Rezertifizierungserinnerungsintervall (in Tagen): Zeit vor dem F&auml;lligkeitsdatum, ab der eine Regel als f&auml;llig hervorgehoben werden soll.');
@@ -3363,15 +3606,30 @@ INSERT INTO txt VALUES ('H5420', 'German',  'Frist zum L&ouml;schen der Regeln (
 INSERT INTO txt VALUES ('H5420', 'English', 'Rule Removal Grace Period (in days): Maximum time the fwadmin has to remove the decertified rules.');
 INSERT INTO txt VALUES ('H5421', 'German',  'Kommentar Pflichtfeld: Legt fest, dass das Kommentarfeld f&uuml;r Re- und Dezertifizierungen gef&uuml;llt sein muss.');
 INSERT INTO txt VALUES ('H5421', 'English', 'Comment Required: A non-empty comment for the re- or decertification is required.');
-
+INSERT INTO txt VALUES ('H5422', 'German',  'Devices zu Beginn eingeklappt ab: Legt fest, ab wievielen Devices (Managements + Gateways) diese in der linken Randleiste zun&auml;chst eingeklappt dargestellt werden.');
+INSERT INTO txt VALUES ('H5422', 'English', 'Devices collapsed at beginning from: defines from which number of devices (managements + gateways) they are displayed collapsed in the left sidebar at beginning.');
+INSERT INTO txt VALUES ('H5423', 'German',  'Nachrichten-Anzeigedauer (in Sekunden): legt fest, wie lange Erfolgs-Nachrichten dargestellt werden, bis sie automatisch ausgeblendet werden.
+    Fehler-Nachrichten erscheinen dreimal so lange. Beim Wert 0 werden die Nachrichten nicht automatisch ausgeblendet.
+    Die Nutzer-Meldungen k&ouml;nnen auch danach noch unter <a href="/help/monitoring/ui_messages">UI-Nachrichten</a> eingesehen werden.
+');
+INSERT INTO txt VALUES ('H5423', 'English', 'Message view time (in seconds): defines how long success messages are displayed, until they fade out automatically.
+    Error messages are displayed 3 times as long. Value 0 means that the messages do not fade out.
+    All user messages can still be reviewed at <a href="/help/monitoring/ui_messages">UI Messages</a>.
+');
+INSERT INTO txt VALUES ('H5424', 'German',  'Startzeit t&auml;glicher Check: legt die Zeit fest, wann der t&auml;gliche Check durchgef&uuml;hrt werden soll.');
+INSERT INTO txt VALUES ('H5424', 'English', 'Daily check start at: defines the time when the daily check should happen.');
+INSERT INTO txt VALUES ('H5426', 'German',  'Autodiscover-Intervall (in Stunden): legt das Intervall fest, in dem die Autodiscovery durchgef&uuml;hrt werden soll.');
+INSERT INTO txt VALUES ('H5426', 'English', 'Auto-discovery sleep time (in hours): defines the interval in which the autodiscovery should be performed.');
+INSERT INTO txt VALUES ('H5427', 'German',  'Autodiscover-Start: legt eine Bezugszeit fest, ab dem die Intervalle f&uuml;r die Autodiscovery gerechnet werden.');
+INSERT INTO txt VALUES ('H5427', 'English', 'Auto-discovery start at: defines a referential time from which the autodiscovery intervals are calculated.');
 INSERT INTO txt VALUES ('H5428', 'German',  'Rezert Check - aktiv: aktviere bzw. deaktiviere regelm&auml;&szlig;ige Pr&uuml;fungen zur Versendung von Benachrichtigungs- oder Eskalations-Emails an die Eigent&uuml;mer.');
 INSERT INTO txt VALUES ('H5428', 'English', 'Recert Check - active: enable or disable recurring recertification checks to send out notification or escalation emails to owners.');
 INSERT INTO txt VALUES ('H5429', 'German',  'Rezert Check alle: Abstand der Pr&uuml;fungen f&uuml;r den Versand von Benachrichtigungs- oder Eskalations-Emails an die Eigent&uuml;mer.');
 INSERT INTO txt VALUES ('H5429', 'English', 'Recert Check every: Interval between checks for recertification notifications.');
 INSERT INTO txt VALUES ('H5430', 'German',  'Rezert Check - Email Titel: Titel der Benachrichtigungs-Email.');
 INSERT INTO txt VALUES ('H5430', 'English', 'Recert Check - Email subject: Subject line of the notification email.');
-INSERT INTO txt VALUES ('H5446', 'German',  'Rezert Check - Text anstehend: Textinhalt der Benachrichtigungsmail bei demn&auml;chst anstehenden Rezertifizierungen.');
-INSERT INTO txt VALUES ('H5446', 'English', 'Recert Check - text upcoming: Email body of the notification email for upcoming recertifications.');
+INSERT INTO txt VALUES ('H5431', 'German',  'Der Administrator kann Vorgaben f&uuml;r Passw&ouml;rter definieren, gegen die alle neuen Passw&ouml;rter aller (internen) Nutzer gepr&uuml;ft werden.');
+INSERT INTO txt VALUES ('H5431', 'English', 'The admin user can define a password policy, against which all new passwords of all (internal) users are checked.');
 INSERT INTO txt VALUES ('H5432', 'German',  'Rezert Check - Text &uuml;berf&auml;llig: Textinhalt der Benachrichtigungsmail bei &uuml;berf&auml;lligen Rezertifizierungen (Eskalation).');
 INSERT INTO txt VALUES ('H5432', 'English', 'Recert Check - text overdue: Email body of the notification email for overdue recertifications (escalation).');
 
@@ -3392,30 +3650,6 @@ INSERT INTO txt VALUES ('H5439', 'English', 'Initial state for delete rule ticke
 INSERT INTO txt VALUES ('H5440', 'German',  'Neuberechnen offene Rezertifizierungen: Auswahl, wann die Neuberechnung durchgef&uuml;hrt werden soll - beim Hochfahren, t&auml;glich via Scheduler oder jetzt (kann mehrere Minuten dauern).');
 INSERT INTO txt VALUES ('H5440', 'English', 'Recalculate open recertifications: Choose, when to do this: at startup, daily via scheduler or now (this may take several minutes).');
 
-INSERT INTO txt VALUES ('H5422', 'German',  'Devices zu Beginn eingeklappt ab: Legt fest, ab wievielen Devices (Managements + Gateways) diese in der linken Randleiste zun&auml;chst eingeklappt dargestellt werden.');
-INSERT INTO txt VALUES ('H5422', 'English', 'Devices collapsed at beginning from: defines from which number of devices (managements + gateways) they are displayed collapsed in the left sidebar at beginning.');
-INSERT INTO txt VALUES ('H5423', 'German',  'Nachrichten-Anzeigedauer (in Sekunden): legt fest, wie lange Erfolgs-Nachrichten dargestellt werden, bis sie automatisch ausgeblendet werden.
-    Fehler-Nachrichten erscheinen dreimal so lange. Beim Wert 0 werden die Nachrichten nicht automatisch ausgeblendet.
-    Die Nutzer-Meldungen k&ouml;nnen auch danach noch unter <a href="/help/monitoring/ui_messages">UI-Nachrichten</a> eingesehen werden.
-');
-INSERT INTO txt VALUES ('H5423', 'English', 'Message view time (in seconds): defines how long success messages are displayed, until they fade out automatically.
-    Error messages are displayed 3 times as long. Value 0 means that the messages do not fade out.
-    All user messages can still be reviewed at <a href="/help/monitoring/ui_messages">UI Messages</a>.
-');
-INSERT INTO txt VALUES ('H5424', 'German',  'Startzeit t&auml;glicher Check: legt die Zeit fest, wann der t&auml;gliche Check durchgef&uuml;hrt werden soll.');
-INSERT INTO txt VALUES ('H5424', 'English', 'Daily check start at: defines the time when the daily check should happen.');
-INSERT INTO txt VALUES ('H5425', 'German',  'FW API - Pro Abruf geholte Elemente: Definiert die (maximale) Anzahl der Objekte, die beim Import &uuml;ber die FWO-API in einem Schritt geholt werden.
-    Dies kann genutzt werden, um die Performanz zu optimieren, wenn n&ouml;tig.
-');
-INSERT INTO txt VALUES ('H5425', 'English', 'FW API - Elements per fetch: Defines the (maximum) number of objects which are fetched in one step during import via the FWO-API.
-    This can be used to optimize performance if necessary.
-');
-INSERT INTO txt VALUES ('H5426', 'German',  'Autodiscover-Intervall (in Stunden): legt das Intervall fest, in dem die Autodiscovery durchgef&uuml;hrt werden soll.');
-INSERT INTO txt VALUES ('H5426', 'English', 'Auto-discovery sleep time (in hours): defines the interval in which the autodiscovery should be performed.');
-INSERT INTO txt VALUES ('H5427', 'German',  'Autodiscover-Start: legt eine Bezugszeit fest, ab dem die Intervalle f&uuml;r die Autodiscovery gerechnet werden.');
-INSERT INTO txt VALUES ('H5427', 'English', 'Auto-discovery start at: defines a referential time from which the autodiscovery intervals are calculated.');
-INSERT INTO txt VALUES ('H5431', 'German',  'Der Administrator kann Vorgaben f&uuml;r Passw&ouml;rter definieren, gegen die alle neuen Passw&ouml;rter aller (internen) Nutzer gepr&uuml;ft werden.');
-INSERT INTO txt VALUES ('H5431', 'English', 'The admin user can define a password policy, against which all new passwords of all (internal) users are checked.');
 INSERT INTO txt VALUES ('H5441', 'German',  'Mindestl&auml;nge: Minimale L&auml;nge des Passworts');
 INSERT INTO txt VALUES ('H5441', 'English', 'Min Length: Minimal length of the password.');
 INSERT INTO txt VALUES ('H5442', 'German',  'Grossbuchstaben enthalten: Das Passwort muss mindestens einen Grossbuchstaben enthalten.');
@@ -3426,6 +3660,16 @@ INSERT INTO txt VALUES ('H5444', 'German',  'Ziffern enthalten: Das Passwort mus
 INSERT INTO txt VALUES ('H5444', 'English', 'Number Required: There has to be at least one number in the password.');
 INSERT INTO txt VALUES ('H5445', 'German',  'Sonderzeichen enthalten: Das Passwort muss mindestens ein Sonderzeichen enthalten. M&ouml;gliche Werte: !?(){}=~$%&amp;#*-+.,_');
 INSERT INTO txt VALUES ('H5445', 'English', 'Special Characters Required: There has to be at least one special character in the password. Possible values are: !?(){}=~$%&amp;#*-+.,_');
+INSERT INTO txt VALUES ('H5446', 'German',  'Rezert Check - Text anstehend: Textinhalt der Benachrichtigungsmail bei demn&auml;chst anstehenden Rezertifizierungen.');
+INSERT INTO txt VALUES ('H5446', 'English', 'Recert Check - text upcoming: Email body of the notification email for upcoming recertifications.');
+INSERT INTO txt VALUES ('H5447', 'German',  'Als unbenutzt gewertet nach (in Tagen): Gibt den Zeitpunkt an, vor dem die letzte Nutzung der Regel f&uuml;r den Unbenutzte-Regel-Report in der Vergangenheit liegen muss.');
+INSERT INTO txt VALUES ('H5447', 'English', 'Regarded as unused from (in days): Defines the point in time, before which the last usage has to be in the past for the Unused Rules Report.');
+INSERT INTO txt VALUES ('H5448', 'German',  'Toleranz ab Erzeugungsdatum (in Tagen): Noch niemals benutzte Regeln werden im Unbenutzte-Regel-Report nur ber&uuml;cksichtigt, wenn sie vor dem durch den hier definierten Toleranzwert festgelegten Zeitpunkt erzeugt wurden.');
+INSERT INTO txt VALUES ('H5448', 'English', 'Tolerance from creation date (in days): Never used rules are only regarded in the Unused Rules Report, if they have been created before the point in time defined by this tolerance value.');
+INSERT INTO txt VALUES ('H5449', 'German',  'Sitzungs-Timeout (in Minuten): Zeit, nach der ein Nutzer automatisch aus der Sitzung ausgeloggt wird.');
+INSERT INTO txt VALUES ('H5449', 'English', 'Session timeout (in minutes): Time after which a user is logged out automatically.');
+INSERT INTO txt VALUES ('H5450', 'German',  'Benachrichtigung vor Sitzungs-Timeout (in Minuten): Intervall vor dem automatischen Logout, in dem eine Warnung ausgegeben wird.');
+INSERT INTO txt VALUES ('H5450', 'English', 'Warning before session timeout (in minutes): Interval before automatic logout when a warning message is displayed.');
 INSERT INTO txt VALUES ('H5451', 'German',  'Jeder Nutzer (ausser Demo-Nutzer) kann sein eigenes Passwort &auml;ndern.<br>
     Bitte das alte Passwort einmal und das neue Passwort zweimal eingeben, um Eingabefehler zu vermeiden.
     Das neue Passwort muss sich vom alten unterscheiden und wird gegen die <a href="/help/settings/passwordpolicy">Passworteinstellungen</a> gepr&uuml;ft.
@@ -3434,6 +3678,11 @@ INSERT INTO txt VALUES ('H5451', 'English', 'Every user (except demo user) can c
     Please insert the old password once and the new password twice to avoid input mistakes.
     The new password has to be different from the old one and is checked against the <a href="/help/settings/passwordpolicy">Password Policy</a>.
 ');
+INSERT INTO txt VALUES ('H5452', 'German',  'Max erlaubte Importdauer (in Stunden): Obergrenze, welche Importdauer im t&auml;glichen Check noch als akzeptabel gewertet wird.');
+INSERT INTO txt VALUES ('H5452', 'English', 'Max allowed import duration (in hours): Upper limit for the accepted import duration in the daily check.');
+INSERT INTO txt VALUES ('H5453', 'German',  'Max erlaubtes Importintervall (in Stunden): Obergrenze, welcher Abstand zwischen zwei Imports im t&auml;glichen Check noch akzeptiert wird.');
+INSERT INTO txt VALUES ('H5453', 'English', 'Max import interval (in hours): Upper limit for the accepted interval between two imports in the daily check.');
+
 INSERT INTO txt VALUES ('H5461', 'German',  'Jeder Nutzer kann seine eigene bevorzugte Sprache f&uuml;r die Anwendung einstellen.<br>
     Alle Texte werden in dieser Sprache dargestellt, soweit verf&uuml;gbar. Wenn nicht, wird die Standardsprache verwendet. Wenn der Text auch dort nicht verf&uuml;gbar ist, wird Englisch genutzt.
     Die Standardsprache beim ersten Anmelden kann vom Admin f&uuml;r alle Nutzer in den <a href="/help/settings/defaults">Standardeinstellungen</a> definiert werden.<br><br>
@@ -3456,7 +3705,27 @@ INSERT INTO txt VALUES ('H5481', 'German',  'Ein Rezertifizierer kann einige per
 INSERT INTO txt VALUES ('H5481', 'English', 'A recertifier can overwrite some personal settings for the recertification report. 
     The default value is set by the admin in the <a href="/help/settings/defaults">Default Settings</a>.
 ');
-
+INSERT INTO txt VALUES ('H5491', 'German',  'Firewall Orchestrator kann Benachrichtigungen versenden, z.B. f&uuml;r anstehende Rezertifizierungen oder wenn beim Import 
+    &Auml;nderungen festgestellt wurden.
+    <ul>
+        <li>Der Name oder die IP-Adresse des SMTP-Servers f&uuml;r ausgehende Emails wird im Feld "Adresse" eingetragen.</li>
+        <li>Der TCP-Port des SMTP-Servers (meist 25, 587 oder 465, abh&auml;ngig von der verwendeten Verschl&uumlsselung) wird im "Port"-Feld eingetragen.</li>
+        <li>Anschlie&szlig;end wird die gew&uuml;nschte Art der Verschl&uuml;sselung eingestellt (None=unverschl&uuml;sselt / StartTls / Tls)</li>
+        <li>Verlangt der SMTP-Server eine Authentisierung, so sind Email-Nutzer und Email-Nutzer-Passwort in den beiden folgenden Feldern einzutragen. Anderfalls k&ouml;nnen diese Felder leer gelassen werden.</li>
+        <li>Schlie&szlig;kann nach eine individuelle Absendeadresse im Feld "Email-Absendeadresse" konfiguriert werden.</li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H5491', 'English', 'Firewall Orchestrator is able to send out notifications, e.g. for upcoming recertifications or when an import found changes in the firewall configuration.<br>
+    <ul>
+        <li>Enter the name of IP address of your outgoing SMTP server in the field Feld "Adress".</li>
+        <li>The TCP port of the SMTP server (usually 25, 587 or 465, depending on the encryption method used) is entered in the "Port" field.</li>
+        <li>Choose the desired encryption type (None=clear-text / StartTls / Tls)</li>
+        <li>If the SMTP server requires authentication, enter Email User name and password in the following two fields. Otherwise leave empty.</li>
+        <li>Finally an individual sender address can be configured using the field "Email sender address".</li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H5495', 'German',  'Die folgenden Einstellungen wirken sich auf das Import-Modul (python) aus.');
+INSERT INTO txt VALUES ('H5495', 'English', 'The following settings apply to the Import Module (python)');
 INSERT INTO txt VALUES ('H5501', 'German',  'Aktionen m&uuml;ssen zuerst in den Einstellungen definiert werden und k&ouml;nnen dann den jeweiligen Stati zugeordnet werden.
     Die Aktion wird dann bei Eintreffen der hier definierten Bedingungen angeboten bzw. ausgef&uuml;hrt.
 ');

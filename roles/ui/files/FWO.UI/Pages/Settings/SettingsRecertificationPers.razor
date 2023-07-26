@@ -18,11 +18,11 @@
      <form class="form-inline" onsubmit="return false">
         <label for="recertificationDisplayPeriod" class="col-form-label mr-2">@(userConfig.GetText("recertificationDisplayPeriod")):</label>
         <div class="col-sm-2">
-            <input id="recertificationDisplayPeriod" type="number" class="form-control form-control-sm" @bind="configData!.RecertificationDisplayPeriod" />
+            <input id="recertificationDisplayPeriod" type="number" min="0" class="form-control form-control-sm" @bind="configData!.RecertificationDisplayPeriod" />
         </div>
     </form>
     <hr />
-    <button class="btn btn-sm btn-primary" @onclick="SaveRecertificationDisplayPeriod">@(userConfig.GetText("save"))</button>  
+    <button type="button" class="btn btn-sm btn-primary" @onclick="SaveRecertificationDisplayPeriod">@(userConfig.GetText("save"))</button>  
 }
 else
 {

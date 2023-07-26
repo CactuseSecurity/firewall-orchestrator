@@ -41,6 +41,11 @@ namespace FWO.Api.Data
         public DeviceFilter()
         {}
 
+        public DeviceFilter(DeviceFilter devFilter)
+        {
+            Managements = devFilter.Managements;
+        }
+
         public DeviceFilter(List<int> devIds)
         {
             ManagementSelect dummyManagement = new ManagementSelect();

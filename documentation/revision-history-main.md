@@ -291,3 +291,23 @@ adding report template format fk and permissions
 
 ### 6.4.3 05.06.2023 MAIN
 - Hotfix - global config subsription timout after 12h
+
+### 7.0 26.07.2023 MAIN
+- new features
+   - UI adding compliance matrix module
+   - UI Reporting - unused rules report including delete ticket integration
+   - importer new email notification on security relevant import changes
+   - importer CPR8x: basic support for importing inline layers
+
+- maintenance / bug-fixing
+   - API: upgrading hasura api to 2.30.1
+   - importer Fortigate API: hotfix NAT rules
+   - UI: cleanup around buttons and logout session handling
+   - UI Reporting: fixes links to objects, template name display, UI visibility for fw-admin role (multiple pages)
+   - UI (re-)login: allow enter as submit
+   - UI reporting: filter objects properly in rule report
+   - UI updating help pages: email & importer settings, archive, scheduling)
+   - installer: supress csharp test results on success
+   - demo data: fix sample group role path
+   - adding demo video in github README.MD
+   - splitting revision history into develop and main

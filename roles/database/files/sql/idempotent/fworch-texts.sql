@@ -153,7 +153,8 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Importer Check Point: Grundlegender Inline-Layer-Support</li>
     <li>Importer Modul f&uuml;r Stand-Alone FortiGate Import via REST API</li>
     <li>Firewall-Regel-Rezertifizierungsmodul: beseitigen Sie ihre Altlasten und erf&uuml;llen Sie aktuelle regulatorische Anforderungen.</li>
-    <li>Details: siehe https://github.com/CactuseSecurity/firewall-orchestrator/blob/main/documentation/revision-history-main.md</li>
+    <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/tree/main/documentation/revision-history-main.md">
+        https://github.com/CactuseSecurity/firewall-orchestrator/tree/main/documentation/revision-history-main.md</li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
@@ -164,7 +165,8 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>Importer Check Point: basic inline layer support</li>
     <li>Importer: Module for stand-alone FortiGate import via REST API</li>
     <li>Rule recertification module: remove unnecessary rules and meet current regulatory requirements.</li>
-    <li>Details: siehe https://github.com/CactuseSecurity/firewall-orchestrator/blob/main/documentation/revision-history-main.md</li>
+    <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/tree/main/documentation/revision-history-main.md">
+        https://github.com/CactuseSecurity/firewall-orchestrator/tree/main/documentation/revision-history-main.md</li>
 </ul>
 ');
 
@@ -172,8 +174,8 @@ INSERT INTO txt VALUES ('getting_started',	    'German', 	'Einstiegshilfe');
 INSERT INTO txt VALUES ('getting_started',	    'English', 	'Quick start');
 INSERT INTO txt VALUES ('getting_started_facts',	    'German', 	'
 Die folgenden Hauptmen&uuml;punkte stehen (je nach Rollenzugeh&ouml;rigkeit) zur Verf&uuml;gung:<ul>
-    <li><a href="/report">Reporting</a>: Erlaubt das einmalige Generieren verschiedener Reports sowie eine regelm&auml;&szlig Generierung</li>
-    <li><a href="/requests/ticketsoverview">Workflow</a>: Ticketsystem zur Beantragung von &Auml;nderungen</li>
+    <li><a href="/report/generation">Reporting</a>: Erlaubt das einmalige Generieren verschiedener Reports sowie eine regelm&auml;&szlig Generierung</li>
+    <li><a href="/request/ticketsoverview">Workflow</a>: Ticketsystem zur Beantragung von &Auml;nderungen</li>
     <li><a href="/certification">Rezertifizierung</a>: Workflow zur Bereinigung des Regelwerks um nicht mehr ben&ouml;tigte Regeln</li>
     <li><a href="/network_analysis">Netzanalyse</a>: Pfadanalyse - welche Firewalls liegen zwischen zwei IP-Adressen?</li>
     <li><a href="/compliance/zones/configuration">Compliance</a>: Definition von Zonenmatrix und Zugriffs-Compliance</li>
@@ -189,8 +191,8 @@ Die folgenden Hauptmen&uuml;punkte stehen (je nach Rollenzugeh&ouml;rigkeit) zur
 INSERT INTO txt VALUES ('getting_started_facts',	    'English', 	'
 The following top-level menu items are available (depending on role memberships):
 <ul>
-    <li><a href="/report">Reporting</a>: Ad-hoc generation and scheduling of reports</li>
-    <li><a href="/requests/ticketsoverview">Workflow</a>: Ticketing system for requesting and processing firewall changes</li>
+    <li><a href="/report/generation">Reporting</a>: Ad-hoc generation and scheduling of reports</li>
+    <li><a href="/request/ticketsoverview">Workflow</a>: Ticketing system for requesting and processing firewall changes</li>
     <li><a href="/certification">Recertification</a>: Rulebase sanitization by continuously cleaning up existing rules</li>
     <li><a href="/network_analysis">Network Analysis</a>: Path analysis - which firewall is crossed when routing between two IP addresses?</li>
     <li><a href="/compliance/zones/configuration">Compliance</a>: Defining zone matrix and access compliance</li>

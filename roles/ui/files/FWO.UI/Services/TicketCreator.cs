@@ -27,7 +27,7 @@ namespace FWO.Ui.Services
         public async Task CreateDecertRuleDeleteTicket(int deviceId, List<string> ruleUids, string comment = "", DateTime? deadline = null)
         {
             stateId = userConfig.RecDeleteRuleInitState;
-            ticketTitle = userConfig.RecDeleteRuleTicketTitle + " " + reqHandler.Devices.FirstOrDefault(x => x.Id == deviceId)?.Name ?? "";
+            ticketTitle = userConfig.RecDeleteRuleTicketTitle + " ";
             ticketReason = userConfig.RecDeleteRuleTicketReason + " " + comment;
             taskTitle = userConfig.RecDeleteRuleReqTaskTitle;
             taskReason = userConfig.RecDeleteRuleReqTaskReason;
@@ -38,7 +38,7 @@ namespace FWO.Ui.Services
         public async Task CreateUnusedRuleDeleteTicket(int deviceId, List<string> ruleUids, string comment = "", DateTime? deadline = null)
         {
             stateId = userConfig.RecDeleteRuleInitState;
-            ticketTitle = userConfig.GetText("delete_unused_rules") + ": " + reqHandler.Devices.FirstOrDefault(x => x.Id == deviceId)?.Name ?? "";
+            ticketTitle = userConfig.GetText("delete_unused_rules") + ": ";
             ticketReason = comment;
             taskTitle = userConfig.GetText("delete_unused_rule");
             taskReason = "";
@@ -52,7 +52,7 @@ namespace FWO.Ui.Services
             reqHandler.ActTicket = new RequestTicket()
             {
                 StateId = stateId,
-                Title = ticketTitle,
+                Title = ticketTitle + reqHandler.Devices.FirstOrDefault(x => x.Id == deviceId)?.Name ?? "",
                 Requester = userConfig.User,
                 Reason = ticketReason,
                 Priority = priority,

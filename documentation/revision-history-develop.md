@@ -75,3 +75,6 @@ In 2020 we decided to re-launch a new
 - API: upgrading hasura api to 2.30.0
 - installer: replacing deprecated path_to_script option in postgresql_query
 
+### 6.5.1 24.07.2023 DEVELOP
+- New report type Unused Rules
+

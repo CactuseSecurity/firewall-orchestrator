@@ -89,7 +89,7 @@
     </div>
     <hr />
     <RulesReport Recertification="true" ReadonlyMode="readonlyMode" Managements="managements" RulesPerPage="rulesPerPage" 
-        ReportParams="reportParams" @bind-SelectedRules="selectedRules" SelectedReportType="ReportType.Recertification"/>
+        @bind-SelectedRules="selectedRules" SelectedReportType="ReportType.Recertification"/>
 </div>
 
 <PopUp Title="@(userConfig.GetText("add_comment"))" Show="@AddCommentMode" Large="true" OnClose="() => AddCommentMode = false">
@@ -311,7 +311,7 @@
             RecertSingleLinePerRule = recertSingleLinePerRule,
             RecertificationDisplayPeriod = recertLookAheadDays
         };
-        reportParams = new ReportTemplate("", deviceFilter, (int) ReportType.Recertification, new TimeFilter(), recertFilter);
+        reportParams = new ReportTemplate("", deviceFilter, (int) ReportType.Recertification, new TimeFilter(), recertFilter, null);
         currentReport = ReportBase.ConstructReport(reportParams, userConfig);
     }
 
@@ -369,9 +369,12 @@
             await DoRecerts();
 
             // create delete tickets
-            foreach(var device in deleteList)
+            if(userConfig.RecAutoCreateDeleteTicket)
             {
-                await ticketCreator.CreateRuleDeleteTicket(device.Key, device.Value, actComment, DateTime.Now.AddDays(userConfig.RuleRemovalGracePeriod));
+                foreach(var device in deleteList)
+                {
+                    await ticketCreator.CreateDecertRuleDeleteTicket(device.Key, device.Value, actComment, DateTime.Now.AddDays(userConfig.RuleRemovalGracePeriod));
+                }
             }
 
             // reload updated report

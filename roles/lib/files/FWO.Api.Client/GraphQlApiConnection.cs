@@ -23,6 +23,7 @@ namespace FWO.Api.Client
         private GraphQLHttpClient graphQlClient;
 
         private string? jwt;
+        private string prevRole = "";
 
         private void Initialize(string ApiServerUri)
         {
@@ -74,6 +75,12 @@ namespace FWO.Api.Client
 
         public override void SetProperRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
         {
+            try
+            {
+                prevRole = graphQlClient.HttpClient.DefaultRequestHeaders.GetValues("x-hasura-role")?.First() ?? "";
+            }
+            catch(Exception){}
+
             // first look if user is already in one of the target roles 
             foreach(string role in targetRoleList)
             {
@@ -92,6 +99,11 @@ namespace FWO.Api.Client
                     return;
                 }
             }
+        }
+
+        public override void SwitchBack()
+        {
+            SetRole(prevRole);
         }
 
         /// <summary>

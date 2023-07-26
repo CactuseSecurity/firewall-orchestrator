@@ -168,7 +168,7 @@ namespace FWO.Middleware.Server
                     RecertOverdueOnly = overdueOnly,
                     RecertificationDisplayPeriod = globalConfig.RecertificationNoticePeriod
                 };
-                ReportTemplate reportParams = new ReportTemplate("", deviceFilter, (int) ReportType.Recertification, new TimeFilter(), recertFilter);
+                ReportTemplate reportParams = new ReportTemplate("", deviceFilter, (int) ReportType.Recertification, new TimeFilter(), recertFilter, null);
                 ReportBase? currentReport = ReportBase.ConstructReport(reportParams, userConfig);
 
                 Management[] managements = new Management[0];

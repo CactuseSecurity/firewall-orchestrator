@@ -43,12 +43,12 @@
                 </Column>
                 <Column Context="prio" TableItem="RequestPriority" Title="@(userConfig.GetText("ticket_deadline"))" Field="@(x => x.TicketDeadline)" Sortable="true" Filterable="true" >
                     <Template>
-                        <input type="number" @bind="prio.TicketDeadline">
+                        <input type="number" min="0" @bind="prio.TicketDeadline">
                     </Template>
                 </Column>
                 <Column Context="prio" TableItem="RequestPriority" Title="@(userConfig.GetText("approval_deadline_days"))" Field="@(x => x.ApprovalDeadline)" Sortable="true" Filterable="true" >
                     <Template>
-                        <input type="number" @bind="prio.ApprovalDeadline">
+                        <input type="number" min="0" @bind="prio.ApprovalDeadline">
                     </Template>
                 </Column>
             </Table>

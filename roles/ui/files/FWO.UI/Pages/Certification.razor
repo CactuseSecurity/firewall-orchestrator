@@ -159,8 +159,6 @@
     private Sidebar? deviceSelectionSidebar;
     private bool AddCommentMode = false;
     private string actComment = "";
-    private bool recertShowAnyMatch = true;
-    private bool recertSingleLinePerRule = false;
     private int recertLookAheadDays = 0;
 
     private List<Rule> Certifications = new List<Rule>();
@@ -304,15 +302,14 @@
             ownerList.Add(selectedOwner.Id);
         }
 
-        RecertFilter recertFilter = new RecertFilter()
+        ReportParams reportParams = new ReportParams((int) ReportType.Recertification, deviceFilter);
+        reportParams.RecertFilter = new RecertFilter()
         {
             RecertOwnerList = ownerList,
-            RecertShowAnyMatch = recertShowAnyMatch,
-            RecertSingleLinePerRule = recertSingleLinePerRule,
+            RecertShowAnyMatch = true,
             RecertificationDisplayPeriod = recertLookAheadDays
         };
-        reportParams = new ReportTemplate("", deviceFilter, (int) ReportType.Recertification, new TimeFilter(), recertFilter, null);
-        currentReport = ReportBase.ConstructReport(reportParams, userConfig);
+        currentReport = ReportBase.ConstructReport(new ReportTemplate("", reportParams), userConfig);
     }
 
     private void SyncFilterToDisplay()

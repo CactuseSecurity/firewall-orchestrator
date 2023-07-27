@@ -93,59 +93,42 @@
 <div style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px");">
 <ReportTabset></ReportTabset>
 
-@* ==== Filter line ==== *@
-<form class="m-1 position-relative" @onsubmit="GenerateReport">
-    <input style="position:relative; z-index:1; background-color:rgba(0,0,0,0);" translate="no" autocapitalize="off"
-            class="form-control" spellcheck="false" placeholder="Filter" @oninput="TryFilter" @bind="filterInput" />
-    <div style="left:0px; top:0px; color:rgba(0,0,0,0); user-select:none;" translate="no" autocapitalize="off"
-            class="form-control position-absolute whitespace-div" spellcheck="false">
-        <span>@filterFeedbackStart</span><span class="error-underline">@filterFeedbackError</span><span>@filterFeedbackEnd</span>
+    @* ==== Filter line ==== *@
+    <form class="m-1 position-relative" @onsubmit="GenerateReport">
+        <input style="position:relative; z-index:1; background-color:rgba(0,0,0,0);" translate="no" autocapitalize="off"
+                class="form-control" spellcheck="false" placeholder="Filter" @oninput="TryFilter" @bind="filterInput" />
+        <div style="left:0px; top:0px; color:rgba(0,0,0,0); user-select:none;" translate="no" autocapitalize="off"
+                class="form-control position-absolute whitespace-div" spellcheck="false">
+            <span>@filterFeedbackStart</span><span class="error-underline">@filterFeedbackError</span><span>@filterFeedbackEnd</span>
+        </div>
+    </form>
+
+    <div class="btn-group m-1 sticky-marker-60" style="z-index: 16;">
+        @if (processing == false)
+        {
+            <button type="button" class="btn btn-sm btn-primary" @onclick="GenerateReport">@(userConfig.GetText("generate_report"))</button>
+        }
+        else
+        {
+            <button type="button" class="btn btn-sm btn-danger" @onclick="() => CancelGeneration()">@(userConfig.GetText("stop_fetching"))</button>
+        }
+        <ReportExport ReportToExport="currentReport"></ReportExport>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(ConstructReportTemplate()); }">@(userConfig.GetText("save_as_template"))</button>
+        @if(currentReport != null && currentReport.ReportType == ReportType.UnusedRules && selectedItemsRuleReportTable.Count > 0 
+            && (authenticationStateTask!.Result.User.IsInRole("admin") || authenticationStateTask!.Result.User.IsInRole("requester") || authenticationStateTask!.Result.User.IsInRole("auditor")))
+        {
+            <button type="button" class="btn btn-sm btn-danger" @onclick="() => {ShowCreateTicketDialog = true;}">@(userConfig.GetText("create_delete_ticket"))</button>
+        }
     </div>
-</form>
 
-<div class="btn-group m-1 sticky-marker-60" style="z-index: 16;">
-    @if (processing == false)
-    {
-        <button type="button" class="btn btn-sm btn-primary" @onclick="GenerateReport">@(userConfig.GetText("generate_report"))</button>
-    }
-    else
-    {
-        <button type="button" class="btn btn-sm btn-danger" @onclick="() => CancelGeneration()">@(userConfig.GetText("stop_fetching"))</button>
-    }
-    <ReportExport ReportToExport="currentReport"></ReportExport>
-    <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(filterInput, deviceFilter, selectedReportType, savedTimeFilter); }">@(userConfig.GetText("save_as_template"))</button>
-    @if(currentReport != null && currentReport.ReportType == ReportType.UnusedRules && selectedItemsRuleReportTable.Count > 0 
-        && (authenticationStateTask!.Result.User.IsInRole("admin") || authenticationStateTask!.Result.User.IsInRole("requester") || authenticationStateTask!.Result.User.IsInRole("auditor")))
-    {
-        <button type="button" class="btn btn-sm btn-danger" @onclick="() => {ShowCreateTicketDialog = true;}">@(userConfig.GetText("create_delete_ticket"))</button>
-    }
-</div>
+    <hr />
 
-<hr />
+    @* ==== Templates ==== *@
+    <ReportTemplateComponent OnTemplateLoad="template => { SyncFilters(template); StateHasChanged(); }" @ref="reportTemplateControl" />
 
-@* ==== Templates ==== *@
-    <ReportTemplateComponent OnTemplateLoad="
-        template => {
-            filterInput = template.Filter;
-            if(template.ReportParams.ReportType != null)
-                selectedReportType = (ReportType)template.ReportParams.ReportType;
-            if(template.ReportParams.DeviceFilter != null && template.ReportParams.DeviceFilter.Managements.Count > 0)
-                deviceFilter.SynchronizeDevFilter(template.ReportParams.DeviceFilter);
-            if (deviceFilter.isAnyDeviceFilterSet())
-                selectAll = false;
-            else
-                selectAll = true;
-            if(template.ReportParams.TimeFilter != null)
-                InitTimes(template.ReportParams.TimeFilter);
-            DisplayTime();
-            StateHasChanged();
-        }"
-    @ref="reportTemplateControl" />
-
-@* ==== Report main div ==== *@
+    @* ==== Report main div ==== *@
     <div class="card mr-1 ml-1 mb-1 shadow">
         <div class="card-body">
-
             @if (currentReport != null)
             {
                 @switch (currentReport.ReportType)
@@ -224,6 +207,7 @@
 <RightSidebar @bind-Width="sidebarRightWidth" Tabset="rsbTabset" AnchorNavToRSB="anchorNavToRSB" CurrentReport="currentReport" @bind-SelectedRules="selectedItemsRuleReportTable" ManagementsReport="managementsReport"/>
 <AnchorNavToRSB @ref="anchorNavToRSB" TabSet="rsbTabset" />
 
+@* ==== POPUPS ==== *@
 <PopUp Large="true" Title="@(userConfig.GetText("report_time"))" Show="@ShowSelectTimeDialog">
     <Body>
         <div>
@@ -392,7 +376,6 @@
     private int recertLookAheadDays = 0;
     private int unusedDays = 0;
     private bool ShowCreateTicketDialog = false;
-    private bool recertSingleLinePerRule = true;
 
     private int rulesPerPage = 0;   // todo: remove - no pagination implemented?
 
@@ -400,7 +383,8 @@
     private int sidebarRightWidth = GlobalConfig.kSidebarRightWidth;
 
     private ReportTemplateComponent reportTemplateControl = new ReportTemplateComponent();
-    private ReportTemplate reportParams = new ReportTemplate();
+    private RecertFilter actRecertFilter = new RecertFilter();
+    private UnusedFilter actUnusedFilter = new UnusedFilter();
 
     private ReportBase? currentReport;
 
@@ -451,13 +435,32 @@
         managementsReport = new Management[] {};
         globalStats = null;
         selectedReportType = newReportType;
-        if (selectedReportType == ReportType.Recertification)
-        {
-            //filterInput = "remove=false and recertdisplay=0";
-        }
         DisplayTime();
         StateHasChanged();
         reportGenerationDuration = 0;
+    }
+
+    private void SyncFilters(ReportTemplate template)
+    {
+        filterInput = template.Filter;
+        selectedReportType = (ReportType)template.ReportParams.ReportType;
+        if(template.ReportParams.DeviceFilter != null && template.ReportParams.DeviceFilter.Managements.Count > 0)
+        {
+            deviceFilter.SynchronizeDevFilter(template.ReportParams.DeviceFilter);
+        }
+        selectAll = !deviceFilter.isAnyDeviceFilterSet();
+        if(template.ReportParams.TimeFilter != null)
+        {
+            InitTimes(template.ReportParams.TimeFilter);
+        }
+        DisplayTime();
+        if(template.ReportParams.RecertFilter.RecertOwnerList.Count > 0)
+        {
+            selectedOwner = ownerList.FirstOrDefault(o => o.Id == template.ReportParams.RecertFilter.RecertOwnerList.First());
+        }
+        recertShowAnyMatch = template.ReportParams.RecertFilter.RecertShowAnyMatch;
+        recertLookAheadDays = template.ReportParams.RecertFilter.RecertificationDisplayPeriod;
+        unusedDays = template.ReportParams.UnusedFilter.UnusedForDays;
     }
 
     private void InitTimes(TimeFilter timeFilter)
@@ -519,11 +522,6 @@
         DisplayTime();
         ShowSelectTimeDialog = false;
     }
-
-    @* private void SyncFilterToDisplay()
-    {
-        filterInput = Regex.Replace(filterInput, "recertdisplay=" + @"-?\d+", $"recertdisplay={(userConfig.RecertificationPeriod-userConfig.RecertificationDisplayPeriod).ToString()}");
-    } *@
 
     private bool checkTimeRange()
     {
@@ -700,22 +698,7 @@
                 DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4004") + string.Join(", ", unsupportedList), true);
             }
         }
-
-        // set filters
-        List<int> ownerList = new List<int>();
-        if (selectedOwner != null)
-        {
-            ownerList.Add(selectedOwner.Id);
-        }
-        RecertFilter recertFilter = new RecertFilter()
-        {
-            RecertOwnerList = ownerList,
-            RecertShowAnyMatch = recertShowAnyMatch,
-            RecertificationDisplayPeriod = recertLookAheadDays
-        };
-        UnusedFilter unusedFilter = new UnusedFilter() { UnusedForDays = unusedDays, CreationTolerance = userConfig.CreationTolerance };
-        reportParams = new ReportTemplate(filterInput, selectedReportType == ReportType.UnusedRules ? reducedDeviceFilter : deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter, unusedFilter);
-        currentReport = ReportBase.ConstructReport(reportParams, userConfig);
+        currentReport = ReportBase.ConstructReport(ConstructReportTemplate(), userConfig);
     }
 
     private async Task GetUnsupportedDevices()
@@ -780,28 +763,38 @@
             mgm.Ignore = !relevantManagements.Contains(mgm.Id);
         }
     }
-
-    private void TryFilter(ChangeEventArgs changeArgs)
+   
+    private ReportTemplate ConstructReportTemplate()
     {
-        string input = (changeArgs.Value ?? "").ToString() ?? "";
         List<int> ownerList = new List<int>();
         if (selectedOwner != null)
         {
             ownerList.Add(selectedOwner.Id);
         }
 
+        ReportParams reportParams = new ReportParams((int)selectedReportType, selectedReportType == ReportType.UnusedRules ? reducedDeviceFilter : deviceFilter);
+        reportParams.TimeFilter = savedTimeFilter;
+        reportParams.RecertFilter = new RecertFilter()
+        {
+            RecertOwnerList = ownerList,
+            RecertShowAnyMatch = recertShowAnyMatch,
+            RecertificationDisplayPeriod = recertLookAheadDays
+        };
+        reportParams.UnusedFilter = new UnusedFilter() 
+        {
+            UnusedForDays = unusedDays, 
+            CreationTolerance = userConfig.CreationTolerance
+        };
+
+        return new ReportTemplate(filterInput, reportParams);
+    }
+
+    private void TryFilter(ChangeEventArgs changeArgs)
+    {
+        string input = (changeArgs.Value ?? "").ToString() ?? "";
         try
         {
-            RecertFilter recertFilter = new RecertFilter()
-            {
-                RecertOwnerList = ownerList,
-                RecertShowAnyMatch = recertShowAnyMatch, 
-                RecertSingleLinePerRule = recertSingleLinePerRule
-            };
-            UnusedFilter unusedFilter = new UnusedFilter() { UnusedForDays = unusedDays, CreationTolerance = userConfig.CreationTolerance };
-            reportParams = new ReportTemplate(input, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter, unusedFilter);
-
-            DynGraphqlQuery query = Compiler.Compile(reportParams);
+            DynGraphqlQuery query = Compiler.Compile(ConstructReportTemplate());
 
             filterFeedbackStart = input;
             filterFeedbackError = "";

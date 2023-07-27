@@ -18,7 +18,7 @@
                                 @if (template.Owner == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole("admin"))
                                 {
                                     <button type="button" class="btn btn-sm btn-warning" @onclick="() => { reportTemplateInEdit = decodeComment(template); 
-                                                                                             reportTypeInEdit = (reportTemplateInEdit.ReportParams.ReportType != null ? (ReportType)reportTemplateInEdit.ReportParams.ReportType : ReportType.Rules);
+                                                                                             reportTypeInEdit = (ReportType)reportTemplateInEdit.ReportParams.ReportType;
                                                                                              ShowEditTemplateDialog = true; }">@(userConfig.GetText("edit"))</button>
                                     <button type="button" class="btn btn-sm btn-danger" @onclick="() => { reportTemplateInEdit = template; ShowDeleteTemplateDialog = true; }">@(userConfig.GetText("delete"))</button>
                                 }
@@ -87,7 +87,7 @@
         </form>
     </Body>
     <Footer>
-        <button type="button" class="btn btn-primary" @onclick="async () => {reportTemplateInEdit.ReportParams.ReportType = (int?)reportTypeInEdit; if (ShowSaveTemplateDialog) await SaveTemplate(); else await EditTemplate(); }">@(userConfig.GetText("save"))</button>
+        <button type="button" class="btn btn-primary" @onclick="async () => {reportTemplateInEdit.ReportParams.ReportType = (int)reportTypeInEdit; if (ShowSaveTemplateDialog) await SaveTemplate(); else await EditTemplate(); }">@(userConfig.GetText("save"))</button>
         <button type="button" class="btn btn-secondary" @onclick="() => ShowEditTemplateDialog = ShowSaveTemplateDialog = false">@(userConfig.GetText("cancel"))</button>
     </Footer>
 </PopUp>
@@ -155,10 +155,13 @@
         collapseControl.ToggleCollapse();
     }
 
-    public void NewTemplate(string filterInput, DeviceFilter deviceFilter, ReportType reportType, TimeFilter timeFilter)
+    public void NewTemplate(ReportTemplate reportTemplate)
     {
-        reportTemplateInEdit = new ReportTemplate (filterInput, deviceFilter, (int?)reportType, timeFilter, new RecertFilter(), null);
-        reportTypeInEdit = reportType;
+        reportTemplateInEdit = reportTemplate;
+        if(reportTemplate.ReportParams.ReportType != null)
+        {
+            reportTypeInEdit = (ReportType)reportTemplate.ReportParams.ReportType;
+        }
         ShowSaveTemplateDialog = true;
     }
 

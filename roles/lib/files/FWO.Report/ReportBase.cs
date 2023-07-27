@@ -216,7 +216,7 @@ namespace FWO.Report
         public static ReportBase ConstructReport(ReportTemplate reportFilter, UserConfig userConfig)
         {
             DynGraphqlQuery query = Compiler.Compile(reportFilter);
-            ReportType repType = (ReportType) (reportFilter.ReportParams.ReportType ?? throw new NotSupportedException("Report Type is not set."));
+            ReportType repType = (ReportType)reportFilter.ReportParams.ReportType;
             return repType switch
             {
                 ReportType.Statistics => new ReportStatistics(query, userConfig, repType),

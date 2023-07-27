@@ -208,131 +208,7 @@
 <AnchorNavToRSB @ref="anchorNavToRSB" TabSet="rsbTabset" />
 
 @* ==== POPUPS ==== *@
-<PopUp Large="true" Title="@(userConfig.GetText("report_time"))" Show="@ShowSelectTimeDialog">
-    <Body>
-        <div>
-            @if (selectedReportType.IsChangeReport())
-            {
-                <div class="row">
-                    <div class="col-sm-1">
-                        <div class="form-control-sm offset-sm-6">
-                            <input class="form-check-input" type="radio" checked="@(actTimeFilter.TimeRangeType == TimeRangeType.Shortcut)" name="shortcutRange" id="true" @onchange="() => {actTimeFilter.TimeRangeType = TimeRangeType.Shortcut;}" >
-                        </div>
-                    </div>
-                    <div class="col-sm-11">
-                        <div class="form-group row">
-                            <label for="rangeshortcut" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("shortcut")):</label>
-                            <div class="col-sm-3">
-                                <Dropdown @bind-SelectedElement="actTimeFilter.TimeRangeShortcut" ElementToString="@(s => userConfig.GetText(s))" Elements="TimeRangeShortcuts.Ranges" >
-                                    <ElementTemplate Context="shortcut">
-                                        @(userConfig.GetText(shortcut))
-                                    </ElementTemplate>
-                                </Dropdown>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-1">
-                        <div class="form-control-sm offset-sm-6">
-                            <input class="form-check-input" type="radio" checked="@(actTimeFilter.TimeRangeType == TimeRangeType.Interval)" name="shortcutRange" id="true" @onchange="() => {actTimeFilter.TimeRangeType = TimeRangeType.Interval;}" >
-                        </div>
-                    </div>
-                    <div class="col-sm-11">
-                        <div class="form-group row">
-                            <label for="lastInterval" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("last")):</label>
-                            <div class="col-sm-3">
-                                <input id="lastInterval" type="text" class="form-control form-control-sm" @bind="actTimeFilter.Offset" />
-                            </div>
-                            <div class="col-sm-3">
-                                <Dropdown @bind-SelectedElement="actTimeFilter.Interval" ElementToString="@(i => userConfig.GetText(i.ToString()))" Elements="Enum.GetValues(typeof(Interval)).Cast<Interval>().Where(x => (x != Interval.Never))" >
-                                    <ElementTemplate Context="interval">
-                                        @(userConfig.GetText(interval.ToString()))
-                                    </ElementTemplate>
-                                </Dropdown>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-1">
-                        <div class="form-control-sm offset-sm-6">
-                            <input class="form-check-input " type="radio" checked="@(actTimeFilter.TimeRangeType == TimeRangeType.Fixeddates)" name="shortcutRange" id="false" @onchange="() => {actTimeFilter.TimeRangeType = TimeRangeType.Fixeddates;}" >
-                        </div>
-                    </div>
-                    <div class="col-sm-11">
-                        <div class="form-group row">
-                            <label for="startTime" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("start_time")):</label>
-                            <div class="col-sm-3">
-                                <input id="startTimeDate" type="date" class="form-control form-control-sm" @bind="actStartDate" />
-                            </div>
-                            <div class="col-sm-3">
-                                <input id="startTime" type="time" step="60" class="form-control form-control-sm" @bind="actStartTime" />
-                            </div>
-                            <div class="col-sm-3">
-                                <input class="form-check-input" id="openStart" type="checkbox" @bind="actTimeFilter.OpenStart" >
-                                <label class="col-form-label col-form-label-sm" for="openStart">@(userConfig.GetText("open"))</label>
-                            </div>
-                        </div>
-                        <div class="form-group row">
-                            <label for="endTime" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("end_time")):</label>
-                            <div class="col-sm-3">
-                                <input id="endTimeDate" type="date" class="form-control form-control-sm" @bind="actEndDate" />
-                            </div>
-                            <div class="col-sm-3">
-                                <input id="endTime" type="time" step="60" class="form-control form-control-sm" @bind="actEndTime" />
-                            </div>
-                            <div class="col-sm-3">
-                                <input class="form-check-input" id="openEnd" type="checkbox" @bind="actTimeFilter.OpenEnd" >
-                                <label class="col-form-label col-form-label-sm" for="openEnd">@(userConfig.GetText("open"))</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            }
-            else
-            {
-                <div class="form-group row">
-                    <div class="col-sm-1">
-                        <div class="form-control-sm offset-sm-6">
-                            <input class="form-check-input" type="radio" checked="@(actTimeFilter.IsShortcut)" name="shortcut" id="true" @onchange="() => {actTimeFilter.IsShortcut = true;}" >
-                        </div>
-                    </div>
-                    <div class="col-sm-11">
-                        <div class="form-group row">
-                            <label for="shortcut" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("shortcut")):</label>
-                            <div class="col-sm-3">
-                                <label class="col-form-label col-form-label-sm">@userConfig.GetText(actTimeFilter.TimeShortcut)</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-1">
-                        <div class="form-control-sm offset-sm-6">
-                            <input class="form-check-input " type="radio" checked="@(!actTimeFilter.IsShortcut)" name="shortcut" id="false" @onchange="() => {actTimeFilter.IsShortcut = false;}" >
-                        </div>
-                    </div>
-                    <div class="col-sm-11">
-                        <div class="form-group row">
-                            <label for="reportTime" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("time")):</label>
-                            <div class="col-sm-4">
-                                <input id="reportTimeDate" type="date" class="form-control form-control-sm" @bind="actDate" />
-                            </div>
-                            <div class="col-sm-4">
-                                <input id="reportTime" type="time" step="60" class="form-control form-control-sm" @bind="actTime" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            }
-        </div>
-    </Body>
-    <Footer>
-        <button type="button" class="btn btn-sm btn-primary" @onclick="SetTimeSelection">@(userConfig.GetText("ok"))</button>
-        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ShowSelectTimeDialog = false">@(userConfig.GetText("cancel"))</button>
-    </Footer>
-</PopUp>
+<ReportSelectTime @bind-Display="ShowSelectTimeDialog" SelectedReportType="selectedReportType" @bind-ActTimeFilter="actTimeFilter" @bind-SavedTimeFilter="savedTimeFilter" DisplayTime="DisplayTime"/>
 <ReportCreateTicket @bind-Display="ShowCreateTicketDialog" SelectedRules="selectedItemsRuleReportTable"/>
 
 @code
@@ -362,12 +238,6 @@
     private List<string> unsupportedList = new List<string>();
     private DeviceFilter reducedDeviceFilter = new DeviceFilter();
 
-    private DateTime actDate = DateTime.Now;
-    private DateTime actTime = DateTime.Now;
-    private DateTime actStartDate = DateTime.Now;
-    private DateTime actStartTime = DateTime.Now;
-    private DateTime actEndDate = DateTime.Now;
-    private DateTime actEndTime = DateTime.Now;
     private TimeFilter actTimeFilter = new TimeFilter();
     private TimeFilter savedTimeFilter = new TimeFilter();
     private string displayedTimeSelection = "";
@@ -383,8 +253,6 @@
     private int sidebarRightWidth = GlobalConfig.kSidebarRightWidth;
 
     private ReportTemplateComponent reportTemplateControl = new ReportTemplateComponent();
-    private RecertFilter actRecertFilter = new RecertFilter();
-    private UnusedFilter actUnusedFilter = new UnusedFilter();
 
     private ReportBase? currentReport;
 
@@ -451,7 +319,7 @@
         selectAll = !deviceFilter.isAnyDeviceFilterSet();
         if(template.ReportParams.TimeFilter != null)
         {
-            InitTimes(template.ReportParams.TimeFilter);
+            actTimeFilter = template.ReportParams.TimeFilter;
         }
         DisplayTime();
         if(template.ReportParams.RecertFilter.RecertOwnerList.Count > 0)
@@ -463,77 +331,12 @@
         unusedDays = template.ReportParams.UnusedFilter.UnusedForDays;
     }
 
-    private void InitTimes(TimeFilter timeFilter)
-    {
-        actTimeFilter = timeFilter;
-        actDate = actTime = timeFilter.ReportTime;
-        actStartDate = actStartTime = timeFilter.StartTime;
-        actEndDate = actEndTime = timeFilter.EndTime;
-    }
-
     private void SelectTime()
     {
         ShowSelectTimeDialog = true;
     }
 
-    private void SetTimeSelection()
-    {
-        if (selectedReportType.IsChangeReport())
-        {
-            switch(actTimeFilter.TimeRangeType)
-            {
-                case TimeRangeType.Shortcut:
-                    savedTimeFilter.TimeRangeShortcut = actTimeFilter.TimeRangeShortcut;
-                    break;
-                case TimeRangeType.Interval:
-                    savedTimeFilter.Offset = actTimeFilter.Offset;
-                    savedTimeFilter.Interval = actTimeFilter.Interval;
-                    break;
-                case TimeRangeType.Fixeddates:
-                    actTimeFilter.StartTime = actStartDate.Date.Add(actStartTime.TimeOfDay);
-                    actTimeFilter.EndTime = actEndDate.Date.Add(actEndTime.TimeOfDay);
-                    if(checkTimeRange())
-                    {
-                        savedTimeFilter.StartTime = actTimeFilter.StartTime;
-                        savedTimeFilter.EndTime = actTimeFilter.EndTime;
-                        savedTimeFilter.OpenStart = actTimeFilter.OpenStart;
-                        savedTimeFilter.OpenEnd = actTimeFilter.OpenEnd;
-                    }
-                    else return;
-                    break;
-                default:
-                    throw new NotSupportedException($"Found unexpected TimeRangeType");
-            }
-            savedTimeFilter.TimeRangeType = actTimeFilter.TimeRangeType;
-        }
-        else
-        {
-            if (actTimeFilter.IsShortcut)
-            {
-                savedTimeFilter.TimeShortcut = actTimeFilter.TimeShortcut;
-            }
-            else
-            {
-                actTimeFilter.ReportTime = actDate.Date.Add(actTime.TimeOfDay);
-                savedTimeFilter.ReportTime = actTimeFilter.ReportTime;
-            }
-            savedTimeFilter.IsShortcut = actTimeFilter.IsShortcut;
-        }
-        DisplayTime();
-        ShowSelectTimeDialog = false;
-    }
-
-    private bool checkTimeRange()
-    {
-        if(actTimeFilter.TimeRangeType == TimeRangeType.Fixeddates && actTimeFilter.StartTime > actTimeFilter.EndTime)
-        {
-            DisplayMessageInUi(null, userConfig.GetText("check_times"), userConfig.GetText("E1011"), true);
-            return false;
-        }
-        return true;
-    }
-
-    private void DisplayTime()
+    private bool DisplayTime()
     {
         if (selectedReportType.IsChangeReport())
         {
@@ -580,6 +383,7 @@
                 displayedTimeSelection = actTimeFilter.ReportTime.ToString();
             }
         }
+        return true;
     }
 
     private async Task GenerateReport()

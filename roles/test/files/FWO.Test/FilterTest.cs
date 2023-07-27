@@ -136,5 +136,6 @@ namespace FWO.Test
             t.ReportParams.ReportType = (int) ReportType.Rules;
             var res = Compiler.Compile(t);
         }
+
     }
 }

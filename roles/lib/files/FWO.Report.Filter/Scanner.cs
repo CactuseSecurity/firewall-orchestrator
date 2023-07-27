@@ -145,14 +145,20 @@ namespace FWO.Report.Filter
 
                 if (noWhitespaceTokens.TryGetValue(tokenText, out TokenKind tokenKind))
                 {
-                    if (!IsWhitespaceOrEnd(beginPosition + text.Length) &&
-                        noWhitespaceTokens.TryGetValue(tokenText + input[beginPosition + text.Length], out TokenKind realTokenKind))
+                    Token realToken = validToken;
+
+                    if (!IsWhitespaceOrEnd(beginPosition + potentialTokenText.Length))
                     {
-                        tokenLength++;
-                        position++;
-                        tokenKind = realTokenKind;
-                        tokenText += input[beginPosition + text.Length];
-                        text += input[beginPosition + text.Length];                      
+                        foreach (Token longerToken in noWhitespaceTokens)
+                        {
+                            if (longerToken != validToken && (potentialTokenText + input[beginPosition + potentialTokenText.Length]).EndsWith(longerToken.Text))
+                            {
+                                position++;
+                                realToken = longerToken;
+                                potentialTokenText += input[beginPosition + potentialTokenText.Length];
+                                break;
+                            }
+                        }
                     }
 
                     if (text.Length - tokenLength > 0)

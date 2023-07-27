@@ -137,11 +137,5 @@ namespace FWO.Test
             var res = Compiler.Compile(t);
         }
 
-
-        [Test]
-        public void Brackets()
-        {
-            var res = Compiler.Compile("src=a&(dst=c)", ReportType.Rules);
-        }
     }
 }

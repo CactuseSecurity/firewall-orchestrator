@@ -22,11 +22,9 @@
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-warning" @onclick="() => ToggleEditMode(true)">@userConfig.GetText("edit")</button>
                 </Authorized>
-            </AuthorizeView>
-            <AuthorizeView Roles="auditor">
                 <NotAuthorized>
-                    <button type="button" disabled class="btn btn-sm btn-warning" @onclick="() => ToggleEditMode(true)">@userConfig.GetText("edit")</button>
-                </NotAuthorized> 
+                    <button type="button" disabled class="btn btn-sm btn-warning">@userConfig.GetText("edit")</button>
+                </NotAuthorized>
             </AuthorizeView>
         }
     }

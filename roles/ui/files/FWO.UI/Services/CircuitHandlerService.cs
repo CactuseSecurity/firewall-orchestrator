@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using FWO.Logging;
 using FWO.Api.Data;
+using System.Collections.Concurrent;
 
 namespace FWO.Ui.Services
 {
@@ -17,7 +18,7 @@ namespace FWO.Ui.Services
             {
                 Log.WriteAudit($"Session of \"{User.Name}\" closed", $"Session of user \"{User.Name}\" (last logged in) with DN: \"{User.Dn}\" was closed.");
             }
-            return Task.CompletedTask;
+            return base.OnCircuitClosedAsync(circuit, cancellationToken);
         }
-    }
+	}
 }

@@ -13,20 +13,20 @@
         {
             <div class="btn-group" role="group">
                 <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ToggleEditMode(false)">@userConfig.GetText("cancel")</button>
-                <button type="button" class="btn btn-sm btn-primary" @onclick="CommitChanges">@userConfig.GetText("commit_changes")</button>
+                <AuthorizeView Roles="admin, fw-admin">
+                    <Authorized>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="CommitChanges">@userConfig.GetText("commit_changes")</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button type="button" disabled class="btn btn-sm btn-primary">@userConfig.GetText("commit_changes")</button>
+                    </NotAuthorized>
+                </AuthorizeView>
             </div>
         }
         else
         {
-            <AuthorizeView Roles="admin, fw-admin">
-                <Authorized>
-                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => ToggleEditMode(true)">@userConfig.GetText("edit")</button>
-                </Authorized>
-            </AuthorizeView>
-            <AuthorizeView Roles="auditor">
-                <NotAuthorized>
-                    <button type="button" disabled class="btn btn-sm btn-warning" @onclick="() => ToggleEditMode(true)">@userConfig.GetText("edit")</button>
-                </NotAuthorized> 
+            <AuthorizeView Roles="admin, fw-admin, auditor">
+                <button type="button" class="btn btn-sm btn-warning" @onclick="() => ToggleEditMode(true)">@userConfig.GetText("edit")</button>
             </AuthorizeView>
         }
     }

@@ -61,28 +61,49 @@
     <Body>
         <form>
             <div class="form-group row">
-                <label for="saveTemplateName" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
-                <input id="saveTemplateName" type="text" class="col-sm-9" @bind="reportTemplateInEdit.Name">
+                <label for="saveTemplateName" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
+                <input id="saveTemplateName" type="text" class="col-sm-8" @bind="reportTemplateInEdit.Name">
             </div>
             <div class="form-group row">
-                <label for="saveTemplateComment" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
-                <textarea id="saveTemplateComment" class="col-sm-9" @bind="reportTemplateInEdit.Comment" />
+                <label for="saveTemplateComment" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
+                <textarea id="saveTemplateComment" class="col-sm-8" @bind="reportTemplateInEdit.Comment" />
             </div>
             <div class="form-group row">
-                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("report_type")):</label>
-                <label class="col-sm-9">@(userConfig.GetText(reportTypeInEdit.ToString()))</label>
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("report_type")):</label>
+                <label class="col-sm-8">@(userConfig.GetText(reportTypeInEdit.ToString()))</label>
+            </div>
+            @if(reportTypeInEdit == ReportType.Recertification)
+            {
+                <div class="form-group row">
+                    <label for="saveTemplateRecertDiplayPeriod" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("due_within")):</label>
+                    <input id="saveTemplateRecertDiplayPeriod" type="number" min="0" class="col-sm-8" @bind="reportTemplateInEdit.ReportParams.RecertFilter.RecertificationDisplayPeriod">
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("owner")):</label>
+                    <label class="col-sm-8">@(ownerList.FirstOrDefault(o => o.Id == reportTemplateInEdit.ReportParams.RecertFilter.RecertOwnerList.First())?.Name ?? reportTemplateInEdit.ReportParams.RecertFilter.RecertOwnerList.First().ToString())</label>
+                </div>
+            }
+            else if(reportTypeInEdit == ReportType.UnusedRules)
+            {
+                <div class="form-group row">
+                    <label for="saveTemplateUnused" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("unused_days")):</label>
+                    <input id="saveTemplateUnused" type="number" min="0" class="col-sm-8" @bind="reportTemplateInEdit.ReportParams.UnusedFilter.UnusedForDays">
+                </div>
+            }
+            else
+            {
+                <div class="form-group row">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("report_time")):</label>
+                    <label class="col-sm-8">@(DisplayTime())</label>
+                </div>
+            }
+            <div class="form-group row">
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("devices")):</label>
+                <label class="col-sm-8">@(reportTemplateInEdit.ReportParams.DeviceFilter.listAllSelectedDevices())</label>
             </div>
             <div class="form-group row">
-                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("report_time")):</label>
-                <label class="col-sm-9">@(DisplayTime())</label>
-            </div>
-            <div class="form-group row">
-                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("devices")):</label>
-                <label class="col-sm-9">@(reportTemplateInEdit.ReportParams.DeviceFilter.listAllSelectedDevices())</label>
-            </div>
-            <div class="form-group row">
-                <label for="saveTemplateFilterLineTextarea" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("filter")):</label>
-                <textarea id="saveTemplateFilterLineTextarea" class="col-sm-9" @bind="reportTemplateInEdit.Filter" />
+                <label for="saveTemplateFilterLineTextarea" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("filter")):</label>
+                <textarea id="saveTemplateFilterLineTextarea" class="col-sm-8" @bind="reportTemplateInEdit.Filter" />
             </div>
         </form>
     </Body>
@@ -116,6 +137,7 @@
     public List<ReportTemplate> reportTemplates { get; set; } = new List<ReportTemplate>();
     public ReportTemplate reportTemplateInEdit = new ReportTemplate();
     private ReportType reportTypeInEdit = ReportType.Rules;
+    private List<FwoOwner> ownerList = new List<FwoOwner>();
 
     private string tmpTemplateCommentKey = "";
     private string tmpTemplateComment = "";
@@ -128,7 +150,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await Refresh();    
+        await Refresh();
+        ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
     }
 
     public async Task Refresh()
@@ -158,10 +181,7 @@
     public void NewTemplate(ReportTemplate reportTemplate)
     {
         reportTemplateInEdit = reportTemplate;
-        if(reportTemplate.ReportParams.ReportType != null)
-        {
-            reportTypeInEdit = (ReportType)reportTemplate.ReportParams.ReportType;
-        }
+        reportTypeInEdit = (ReportType)reportTemplate.ReportParams.ReportType;
         ShowSaveTemplateDialog = true;
     }
 

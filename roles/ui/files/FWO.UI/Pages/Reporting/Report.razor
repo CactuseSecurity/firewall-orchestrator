@@ -124,7 +124,7 @@
     <hr />
 
     @* ==== Templates ==== *@
-    <ReportTemplateComponent OnTemplateLoad="template => { SyncFilters(template); StateHasChanged(); }" @ref="reportTemplateControl" />
+    <ReportTemplateComponent OnTemplateLoad="template => { SyncFiltersFromTemplate(template); StateHasChanged(); }" @ref="reportTemplateControl" />
 
     @* ==== Report main div ==== *@
     <div class="card mr-1 ml-1 mb-1 shadow">
@@ -208,7 +208,7 @@
 <AnchorNavToRSB @ref="anchorNavToRSB" TabSet="rsbTabset" />
 
 @* ==== POPUPS ==== *@
-<ReportSelectTime @bind-Display="ShowSelectTimeDialog" SelectedReportType="selectedReportType" @bind-ActTimeFilter="actTimeFilter" @bind-SavedTimeFilter="savedTimeFilter" DisplayTime="DisplayTime"/>
+<ReportSelectTime @bind-Display="ShowSelectTimeDialog" SelectedReportType="selectedReportType" @bind-ActTimeFilter="actTimeFilter" @bind-SavedTimeFilter="savedTimeFilter" DisplayTime="DisplaySelectedTime"/>
 <ReportCreateTicket @bind-Display="ShowCreateTicketDialog" SelectedRules="selectedItemsRuleReportTable"/>
 
 @code
@@ -303,12 +303,12 @@
         managementsReport = new Management[] {};
         globalStats = null;
         selectedReportType = newReportType;
-        DisplayTime();
+        DisplaySelectedTime();
         StateHasChanged();
         reportGenerationDuration = 0;
     }
 
-    private void SyncFilters(ReportTemplate template)
+    private void SyncFiltersFromTemplate(ReportTemplate template)
     {
         filterInput = template.Filter;
         selectedReportType = (ReportType)template.ReportParams.ReportType;
@@ -321,7 +321,7 @@
         {
             actTimeFilter = template.ReportParams.TimeFilter;
         }
-        DisplayTime();
+        DisplaySelectedTime();
         if(template.ReportParams.RecertFilter.RecertOwnerList.Count > 0)
         {
             selectedOwner = ownerList.FirstOrDefault(o => o.Id == template.ReportParams.RecertFilter.RecertOwnerList.First());
@@ -336,7 +336,7 @@
         ShowSelectTimeDialog = true;
     }
 
-    private bool DisplayTime()
+    private bool DisplaySelectedTime()
     {
         if (selectedReportType.IsChangeReport())
         {

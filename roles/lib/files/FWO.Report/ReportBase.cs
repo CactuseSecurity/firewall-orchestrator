@@ -268,5 +268,39 @@ namespace FWO.Report
                     return "";
             }
         }
+
+        public static async Task<(List<string> unsupportedList, DeviceFilter reducedDeviceFilter)> GetUsageDataUnsupportedDevices(ApiConnection apiConnection, DeviceFilter deviceFilter)
+        {
+            List<string> unsupportedList = new List<string>();
+            DeviceFilter reducedDeviceFilter = new DeviceFilter(deviceFilter);
+            foreach (ManagementSelect management in reducedDeviceFilter.Managements)
+            {
+                foreach (DeviceSelect device in management.Devices)
+                {
+                    if (device.Selected && !(await UsageDataAvailable(apiConnection, device.Id)))
+                    {
+                        unsupportedList.Add(device.Name ?? "?");
+                        device.Selected = false;
+                    }
+                }
+                if(!DeviceFilter.IsSelectedManagement(management))
+                {
+                    management.Selected = false;
+                }
+            }
+            return (unsupportedList, reducedDeviceFilter);
+        }
+        
+        private static async Task<bool> UsageDataAvailable(ApiConnection apiConnection, int devId)
+        {
+            try
+            {
+                return (await apiConnection.SendQueryAsync<AggregateCount>(FWO.Api.Client.Queries.ReportQueries.getUsageDataCount, new {devId = devId})).Aggregate.Count > 0;
+            }
+            catch(Exception)
+            {
+                return false;
+            }
+        }
     }
 }

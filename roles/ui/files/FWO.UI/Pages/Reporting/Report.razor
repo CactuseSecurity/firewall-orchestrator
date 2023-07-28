@@ -496,46 +496,15 @@
         // check for unsupported devices
         if(selectedReportType == ReportType.UnusedRules)
         {
-            await GetUnsupportedDevices();
+            var result = await ReportBase.GetUsageDataUnsupportedDevices(Connection, deviceFilter);
+            reducedDeviceFilter = result.reducedDeviceFilter;
+            unsupportedList = result.unsupportedList;
             if(unsupportedList.Count > 0)
             {
                 DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4004") + string.Join(", ", unsupportedList), true);
             }
         }
         currentReport = ReportBase.ConstructReport(ConstructReportTemplate(), userConfig);
-    }
-
-    private async Task GetUnsupportedDevices()
-    {
-        unsupportedList.Clear();
-        reducedDeviceFilter = new DeviceFilter(deviceFilter);
-        foreach (ManagementSelect management in reducedDeviceFilter.Managements)
-        {
-            foreach (DeviceSelect device in management.Devices)
-            {
-                if (device.Selected && !(await UsageDataAvailable(device.Id)))
-                {
-                    unsupportedList.Add(device.Name ?? "?");
-                    device.Selected = false;
-                }
-            }
-            if(!DeviceFilter.IsSelectedManagement(management))
-            {
-                management.Selected = false;
-            }
-        }
-    }
-    
-    private async Task<bool> UsageDataAvailable(int devId)
-    {
-        try
-        {
-            return (await Connection.SendQueryAsync<AggregateCount>(FWO.Api.Client.Queries.ReportQueries.getUsageDataCount, new {devId = devId})).Aggregate.Count > 0;
-        }
-        catch(Exception)
-        {
-            return false;
-        }
     }
 
     private bool PrepareMetadata(Management[] Managements)

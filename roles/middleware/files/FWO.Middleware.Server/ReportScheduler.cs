@@ -153,6 +153,10 @@ namespace FWO.Middleware.Server
                         report.Template.ReportParams.DeviceFilter.Managements = await apiConnectionUserContext.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
                         report.Template.ReportParams.DeviceFilter.applyFullDeviceSelection(true);
                     }
+                    if(report.Template.ReportParams.ReportType == (int)ReportType.UnusedRules)
+                    {
+                        report.Template.ReportParams.DeviceFilter = (await ReportBase.GetUsageDataUnsupportedDevices(apiConnection, report.Template.ReportParams.DeviceFilter)).reducedDeviceFilter;
+                    }
 
                     ReportBase reportRules = ReportBase.ConstructReport(report.Template, userConfig);
                     Management[] managementsReport = Array.Empty<Management>();

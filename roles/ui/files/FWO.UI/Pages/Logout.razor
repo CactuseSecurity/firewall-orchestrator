@@ -1,4 +1,5 @@
 ﻿@using FWO.Middleware.Client;
+@using Microsoft.AspNetCore.Components.Server.Circuits;
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @using FWO.Ui.Services
 @using FWO.Ui.Auth
@@ -7,7 +8,7 @@
 @inject AuthenticationStateProvider AuthService
 @inject NavigationManager NavigationManager
 @inject UserConfig userConfig
-@inject CircuitHandlerService circuitHandler
+@inject CircuitHandler circuitHandler
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
 
@@ -30,7 +31,7 @@
         // Write an audit log that the user logged out
         UiUser user = userConfig.User;
         Log.WriteAudit($"Logout", $"User \"{user.Name}\" with DN: \"{user.Dn}\" logged out.");
-        circuitHandler.User = null;
+        ((CircuitHandlerService)circuitHandler).User = null;
 
         // Navigate to login page and force a reload to clear the current session
         NavigationManager.NavigateTo("", forceLoad: true);

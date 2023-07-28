@@ -8,6 +8,7 @@
 @using FWO.Ui.Services
 @using System.Timers
 @using System.Security.Claims;
+@using Microsoft.AspNetCore.Components.Server.Circuits;
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @using RestSharp
 
@@ -17,7 +18,7 @@
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider authenticationProvider
 @inject ProtectedSessionStorage sessionStorage
-@inject CircuitHandlerService circuitHandler
+@inject CircuitHandler circuitHandler
 
 <div style="z-index:15; top:0px;" class="position-sticky">
     <NavigationMenu @bind-ShowAlert="showAlert"/>
@@ -141,7 +142,7 @@
         try
         {
             RestResponse<string> authResponse = await ((AuthStateProvider)authenticationProvider).Authenticate(userConfig.User.Name,
-            password, apiConnection, middlewareClient, userConfig, sessionStorage, circuitHandler);
+            password, apiConnection, middlewareClient, userConfig, sessionStorage, ((CircuitHandlerService)circuitHandler));
             if (authResponse.StatusCode == System.Net.HttpStatusCode.OK) 
             { 
                 showReloginInput = false;

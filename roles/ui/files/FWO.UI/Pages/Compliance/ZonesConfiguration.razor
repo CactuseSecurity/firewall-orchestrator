@@ -1,6 +1,8 @@
 ﻿@using NetTools;
 @using System.Diagnostics;
 
+@attribute [Authorize(Roles = "admin, fw-admin, auditor")]
+
 @page "/compliance/zones/configuration"
 
 @layout ComplianceLayout
@@ -12,11 +14,7 @@
 <h3>@userConfig.GetText("network_zone_config")</h3>
 
 
-<AuthorizeView Roles="admin, fw-admin, auditor">
-	<Authorized>
-		<button type="button" class="btn btn-sm btn-success mb-1" @onclick="OnAddZone">@(userConfig.GetText("add"))</button>
-	</Authorized>
-</AuthorizeView>
+<button type="button" class="btn btn-sm btn-success mb-1" @onclick="OnAddZone">@(userConfig.GetText("add"))</button>
 
 @*Show Top-Level Zones*@
 <ZoneTable Superzone="null" NetworkZones="networkZoneService.NetworkZones" />
@@ -154,7 +152,14 @@
 		</Body>
 		<Footer>
 			<div class="btn-group">
-				<button type="button" class="btn btn-sm btn-danger" @onclick="ExecuteNetworkZoneDeletion">@(userConfig.GetText("delete"))</button>
+				<AuthorizeView Roles="admin, fw-admin">
+					<Authorized>
+						<button type="button" class="btn btn-sm btn-danger" @onclick="ExecuteNetworkZoneDeletion">@(userConfig.GetText("delete"))</button>
+					</Authorized>
+					<NotAuthorized>
+						<button type="button" disabled class="btn btn-sm btn-danger">@(userConfig.GetText("delete"))</button>
+					</NotAuthorized>
+				</AuthorizeView>
 				<button type="button" class="btn btn-sm btn-secondary" @onclick="CancelModifications">@(userConfig.GetText("cancel"))</button>
 			</div>
 		</Footer>

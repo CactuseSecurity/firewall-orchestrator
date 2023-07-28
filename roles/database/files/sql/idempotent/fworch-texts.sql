@@ -147,24 +147,26 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
-    <li>Importer Modul Check Point R8x Unterst&uuml;tzung f&uuml;r Updatable Objects, Domain-Namen und Application Categories</li>
-    <li>Importer Modul f&uuml;r Stand-Alone FortiGate via REST API</li>
-    <li>Neues Firewall-Regel-Rezertifizierungsmodul - beseitigen Sie ihre Altlasten und erf&uuml;llen Sie aktuelle regulatorische Anforderungen.</li>
-    <li>Workflow-Modul zum Beantragen von &Auml;nderungen</li>
-    <li>Neue Importmodule f&uuml;r Cisco FirePower und Microsoft Azure Firewall</li>
-    <li>Beginn Routing/Interface Pfad Analyse (zun&auml;chst nur Fortinet)</li>
-    <li>Neue Report-Typen: Regeln (aufgel&ouml;st), Regeln technisch (alle Gruppe werden in Bestandteile aufgel&ouml;st; Report-Export als "Single Table")</li>
+    <li>Web-Oberfl&auml;che: Compliance Matrix Modul</li>
+    <li>Web-Oberfl&auml;che: Report f&uuml;r ungenutzte Regeln mit L&ouml;sch-Ticket-Integration</li>
+    <li>Importer: Email-Benachrichtigung bei sicherheitsrelevanten &Auml;nderungen</li>
+    <li>Importer Check Point: Grundlegender Inline-Layer-Support</li>
+    <li>Importer Modul f&uuml;r Stand-Alone FortiGate Import via REST API</li>
+    <li>Firewall-Regel-Rezertifizierungsmodul: beseitigen Sie ihre Altlasten und erf&uuml;llen Sie aktuelle regulatorische Anforderungen.</li>
+    <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/tree/main/documentation/revision-history-main.md">
+        https://github.com/CactuseSecurity/firewall-orchestrator/tree/main/documentation/revision-history-main.md</li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
-    <li>Importer support for Check Point R8x updatable objects, domain name objects and application categories</li>
-    <li>New importer module for stand-alone FortiGate via REST API</li>
-    <li>New Firewall rule recertification module - remove unnecessary rules and meet current regulatory requirements.</li>
-    <li>Workflow module for requesting firewall changes</li>
-    <li>New import modules for Cisco FirePower and Microsoft Azure Firewall</li>
-    <li>Start routing/interface (currently implemented for fortinet only) import and path analysis</li>
-    <li>New report types: resolved rules, technical rules (report without group objects, exporting into pure rule tables without additional object tables)</li>
+    <li>Web User Interface: Compliance Matrix Modul</li>
+    <li>Web User Interface: Report for unused rules directly integration delete rule workflow</li>
+    <li>Importer: Email notification on detecting security relevant changes during import</li>
+    <li>Importer Check Point: basic inline layer support</li>
+    <li>Importer: Module for stand-alone FortiGate import via REST API</li>
+    <li>Rule recertification module: remove unnecessary rules and meet current regulatory requirements.</li>
+    <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/tree/main/documentation/revision-history-main.md">
+        https://github.com/CactuseSecurity/firewall-orchestrator/tree/main/documentation/revision-history-main.md</li>
 </ul>
 ');
 
@@ -172,10 +174,12 @@ INSERT INTO txt VALUES ('getting_started',	    'German', 	'Einstiegshilfe');
 INSERT INTO txt VALUES ('getting_started',	    'English', 	'Quick start');
 INSERT INTO txt VALUES ('getting_started_facts',	    'German', 	'
 Die folgenden Hauptmen&uuml;punkte stehen (je nach Rollenzugeh&ouml;rigkeit) zur Verf&uuml;gung:<ul>
-    <li><a href="/report">Reporting</a>: Erlaubt das Generieren verschiedener Reports</li>
-    <li><a href="/schedule">Scheduling</a>: Zeitlich terminierte (wiederkehrende) Report-Generierung</li>
-    <li><a href="/archive">Archiv</a>: Zugriff auf (per Scheduling) generierte Reports</li>
+    <li><a href="/report/generation">Reporting</a>: Erlaubt das einmalige Generieren verschiedener Reports sowie eine regelm&auml;&szlig Generierung</li>
+    <li><a href="/request/ticketsoverview">Workflow</a>: Ticketsystem zur Beantragung von &Auml;nderungen</li>
     <li><a href="/certification">Rezertifizierung</a>: Workflow zur Bereinigung des Regelwerks um nicht mehr ben&ouml;tigte Regeln</li>
+    <li><a href="/network_analysis">Netzanalyse</a>: Pfadanalyse - welche Firewalls liegen zwischen zwei IP-Adressen?</li>
+    <li><a href="/compliance/zones/configuration">Compliance</a>: Definition von Zonenmatrix und Zugriffs-Compliance</li>
+    <li><a href="/monitoring">Monitoring</a>: Alarmierung, Log-Files, Import-Status, ...</li>
     <li><a href="/help" target="_blank">Hilfeseiten</a>: Benutzerhandbuch</li>
     <li><a href="/settings">Einstellungen</a>: Alle Einstellungen wie z.B. Sprache der Benutzeroberfl&auml;che oder
         das Einbinden <a href="/settings/managements">Ihrer eigenen Firewall-Systeme</a>.<br>
@@ -187,10 +191,12 @@ Die folgenden Hauptmen&uuml;punkte stehen (je nach Rollenzugeh&ouml;rigkeit) zur
 INSERT INTO txt VALUES ('getting_started_facts',	    'English', 	'
 The following top-level menu items are available (depending on role memberships):
 <ul>
-    <li><a href="/report">Reporting</a>: Ad-hoc generation of all available reports</li>
-    <li><a href="/schedule">Scheduling</a>: Setup (recurring) report generation</li>
-    <li><a href="/archive">Archive</a>: Access your (scheduled) reports</li>
-    <li><a href="/certification">Recertification</a>: Workflow for removing unnecessary rules from your rulebases</li>
+    <li><a href="/report/generation">Reporting</a>: Ad-hoc generation and scheduling of reports</li>
+    <li><a href="/request/ticketsoverview">Workflow</a>: Ticketing system for requesting and processing firewall changes</li>
+    <li><a href="/certification">Recertification</a>: Rulebase sanitization by continuously cleaning up existing rules</li>
+    <li><a href="/network_analysis">Network Analysis</a>: Path analysis - which firewall is crossed when routing between two IP addresses?</li>
+    <li><a href="/compliance/zones/configuration">Compliance</a>: Defining zone matrix and access compliance</li>
+    <li><a href="/monitoring">Monitoring</a>: Alarms, log files, import status, ...</li>
     <li><a href="/help" target="_blank">Help</a>: Manual pages</li>
     <li><a href="/settings">Settings</a>: All settings like e.g. language of the user interface or 
         integration of <a href="/settings/managements">your own firewalls</a>.<br>

@@ -78,6 +78,9 @@ In 2020 we decided to re-launch a new
 ### 6.5.1 24.07.2023 DEVELOP
 - New report type Unused Rules
 
+### 7.0.1 - 28.07.2023 DEVELOP
+- Compliance matrix edit fix
+- Logout audit logging fix
 
-### 7.0.1 28.07.2023 DEVELOP
+### 7.0.2 - 28.07.2023 DEVELOP
 - Default templates for new report types

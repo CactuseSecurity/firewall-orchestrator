@@ -32,14 +32,10 @@ namespace FWO.Api.Data
         public ReportTemplate()
         {}
 
-        public ReportTemplate(string filter, DeviceFilter deviceFilter, int? reportType, TimeFilter timeFilter, RecertFilter recertFilter, UnusedFilter? unusedFilter)
+        public ReportTemplate(string filter, ReportParams reportParams)
         {
             Filter = filter;
-            ReportParams.DeviceFilter = deviceFilter;
-            ReportParams.ReportType = reportType;
-            ReportParams.TimeFilter = timeFilter;
-            ReportParams.RecertFilter = recertFilter;
-            ReportParams.UnusedFilter = unusedFilter ?? new UnusedFilter();
+            ReportParams = reportParams;
             Detailed = false;
         }
 
@@ -55,7 +51,7 @@ namespace FWO.Api.Data
     public class ReportParams
     {
         [JsonProperty("report_type"), JsonPropertyName("report_type")]
-        public int? ReportType { get; set; } = 0;
+        public int ReportType { get; set; } = 0;
         
         [JsonProperty("device_filter"), JsonPropertyName("device_filter")]
         public DeviceFilter DeviceFilter { get; set; } = new DeviceFilter();
@@ -69,5 +65,13 @@ namespace FWO.Api.Data
         [JsonProperty("unused_filter"), JsonPropertyName("unused_filter")]
         public UnusedFilter UnusedFilter { get; set; } = new UnusedFilter();
 
+        public ReportParams()
+        {}
+        
+        public ReportParams(int reportType, DeviceFilter deviceFilter)
+        {
+            ReportType = reportType;
+            DeviceFilter = deviceFilter;
+        }
     }
 }

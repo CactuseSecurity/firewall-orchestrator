@@ -10119,6 +10119,16 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "dev_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -10589,9 +10599,11 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "dev_id"
+                      "dev_id",
+                      "rule_last_hit"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 },
                 {

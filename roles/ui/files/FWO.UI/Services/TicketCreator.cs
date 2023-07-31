@@ -75,7 +75,7 @@ namespace FWO.Ui.Services
                     DeviceId = deviceId,
                     RuleUid = ruleUid
                 });
-                await reqHandler.AddApproval(JsonSerializer.Serialize(new ApprovalParams(){StateId = stateId}));
+                await reqHandler.AddApproval(JsonSerializer.Serialize(new ApprovalParams(){StateId = reqHandler.MasterStateMatrix.LowestEndState}));
                 reqHandler.ActTicket.Tasks.Add(reqHandler.ActReqTask);
             }
             reqHandler.AddTicketMode = true;

@@ -93,59 +93,42 @@
 <div style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px");">
 <ReportTabset></ReportTabset>
 
-@* ==== Filter line ==== *@
-<form class="m-1 position-relative" @onsubmit="GenerateReport">
-    <input style="position:relative; z-index:1; background-color:rgba(0,0,0,0);" translate="no" autocapitalize="off"
-            class="form-control" spellcheck="false" placeholder="Filter" @oninput="TryFilter" @bind="filterInput" />
-    <div style="left:0px; top:0px; color:rgba(0,0,0,0); user-select:none;" translate="no" autocapitalize="off"
-            class="form-control position-absolute whitespace-div" spellcheck="false">
-        <span>@filterFeedbackStart</span><span class="error-underline">@filterFeedbackError</span><span>@filterFeedbackEnd</span>
+    @* ==== Filter line ==== *@
+    <form class="m-1 position-relative" @onsubmit="GenerateReport">
+        <input style="position:relative; z-index:1; background-color:rgba(0,0,0,0);" translate="no" autocapitalize="off"
+                class="form-control" spellcheck="false" placeholder="Filter" @oninput="TryFilter" @bind="filterInput" />
+        <div style="left:0px; top:0px; color:rgba(0,0,0,0); user-select:none;" translate="no" autocapitalize="off"
+                class="form-control position-absolute whitespace-div" spellcheck="false">
+            <span>@filterFeedbackStart</span><span class="error-underline">@filterFeedbackError</span><span>@filterFeedbackEnd</span>
+        </div>
+    </form>
+
+    <div class="btn-group m-1 sticky-marker-60" style="z-index: 16;">
+        @if (processing == false)
+        {
+            <button type="button" class="btn btn-sm btn-primary" @onclick="GenerateReport">@(userConfig.GetText("generate_report"))</button>
+        }
+        else
+        {
+            <button type="button" class="btn btn-sm btn-danger" @onclick="() => CancelGeneration()">@(userConfig.GetText("stop_fetching"))</button>
+        }
+        <ReportExport ReportToExport="currentReport"></ReportExport>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(ConstructReportTemplate()); }">@(userConfig.GetText("save_as_template"))</button>
+        @if(currentReport != null && currentReport.ReportType == ReportType.UnusedRules && selectedItemsRuleReportTable.Count > 0 
+            && (authenticationStateTask!.Result.User.IsInRole("admin") || authenticationStateTask!.Result.User.IsInRole("requester") || authenticationStateTask!.Result.User.IsInRole("auditor")))
+        {
+            <button type="button" class="btn btn-sm btn-danger" @onclick="() => {ShowCreateTicketDialog = true;}">@(userConfig.GetText("create_delete_ticket"))</button>
+        }
     </div>
-</form>
 
-<div class="btn-group m-1 sticky-marker-60" style="z-index: 16;">
-    @if (processing == false)
-    {
-        <button type="button" class="btn btn-sm btn-primary" @onclick="GenerateReport">@(userConfig.GetText("generate_report"))</button>
-    }
-    else
-    {
-        <button type="button" class="btn btn-sm btn-danger" @onclick="() => CancelGeneration()">@(userConfig.GetText("stop_fetching"))</button>
-    }
-    <ReportExport ReportToExport="currentReport"></ReportExport>
-    <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(filterInput, deviceFilter, selectedReportType, savedTimeFilter); }">@(userConfig.GetText("save_as_template"))</button>
-    @if(currentReport != null && currentReport.ReportType == ReportType.UnusedRules && selectedItemsRuleReportTable.Count > 0 
-        && (authenticationStateTask!.Result.User.IsInRole("admin") || authenticationStateTask!.Result.User.IsInRole("requester") || authenticationStateTask!.Result.User.IsInRole("auditor")))
-    {
-        <button type="button" class="btn btn-sm btn-danger" @onclick="() => {ShowCreateTicketDialog = true;}">@(userConfig.GetText("create_delete_ticket"))</button>
-    }
-</div>
+    <hr />
 
-<hr />
+    @* ==== Templates ==== *@
+    <ReportTemplateComponent OnTemplateLoad="template => { SyncFiltersFromTemplate(template); StateHasChanged(); }" @ref="reportTemplateControl" />
 
-@* ==== Templates ==== *@
-    <ReportTemplateComponent OnTemplateLoad="
-        template => {
-            filterInput = template.Filter;
-            if(template.ReportParams.ReportType != null)
-                selectedReportType = (ReportType)template.ReportParams.ReportType;
-            if(template.ReportParams.DeviceFilter != null && template.ReportParams.DeviceFilter.Managements.Count > 0)
-                deviceFilter.SynchronizeDevFilter(template.ReportParams.DeviceFilter);
-            if (deviceFilter.isAnyDeviceFilterSet())
-                selectAll = false;
-            else
-                selectAll = true;
-            if(template.ReportParams.TimeFilter != null)
-                InitTimes(template.ReportParams.TimeFilter);
-            DisplayTime();
-            StateHasChanged();
-        }"
-    @ref="reportTemplateControl" />
-
-@* ==== Report main div ==== *@
+    @* ==== Report main div ==== *@
     <div class="card mr-1 ml-1 mb-1 shadow">
         <div class="card-body">
-
             @if (currentReport != null)
             {
                 @switch (currentReport.ReportType)
@@ -224,131 +207,8 @@
 <RightSidebar @bind-Width="sidebarRightWidth" Tabset="rsbTabset" AnchorNavToRSB="anchorNavToRSB" CurrentReport="currentReport" @bind-SelectedRules="selectedItemsRuleReportTable" ManagementsReport="managementsReport"/>
 <AnchorNavToRSB @ref="anchorNavToRSB" TabSet="rsbTabset" />
 
-<PopUp Large="true" Title="@(userConfig.GetText("report_time"))" Show="@ShowSelectTimeDialog">
-    <Body>
-        <div>
-            @if (selectedReportType.IsChangeReport())
-            {
-                <div class="row">
-                    <div class="col-sm-1">
-                        <div class="form-control-sm offset-sm-6">
-                            <input class="form-check-input" type="radio" checked="@(actTimeFilter.TimeRangeType == TimeRangeType.Shortcut)" name="shortcutRange" id="true" @onchange="() => {actTimeFilter.TimeRangeType = TimeRangeType.Shortcut;}" >
-                        </div>
-                    </div>
-                    <div class="col-sm-11">
-                        <div class="form-group row">
-                            <label for="rangeshortcut" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("shortcut")):</label>
-                            <div class="col-sm-3">
-                                <Dropdown @bind-SelectedElement="actTimeFilter.TimeRangeShortcut" ElementToString="@(s => userConfig.GetText(s))" Elements="TimeRangeShortcuts.Ranges" >
-                                    <ElementTemplate Context="shortcut">
-                                        @(userConfig.GetText(shortcut))
-                                    </ElementTemplate>
-                                </Dropdown>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-1">
-                        <div class="form-control-sm offset-sm-6">
-                            <input class="form-check-input" type="radio" checked="@(actTimeFilter.TimeRangeType == TimeRangeType.Interval)" name="shortcutRange" id="true" @onchange="() => {actTimeFilter.TimeRangeType = TimeRangeType.Interval;}" >
-                        </div>
-                    </div>
-                    <div class="col-sm-11">
-                        <div class="form-group row">
-                            <label for="lastInterval" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("last")):</label>
-                            <div class="col-sm-3">
-                                <input id="lastInterval" type="text" class="form-control form-control-sm" @bind="actTimeFilter.Offset" />
-                            </div>
-                            <div class="col-sm-3">
-                                <Dropdown @bind-SelectedElement="actTimeFilter.Interval" ElementToString="@(i => userConfig.GetText(i.ToString()))" Elements="Enum.GetValues(typeof(Interval)).Cast<Interval>().Where(x => (x != Interval.Never))" >
-                                    <ElementTemplate Context="interval">
-                                        @(userConfig.GetText(interval.ToString()))
-                                    </ElementTemplate>
-                                </Dropdown>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-1">
-                        <div class="form-control-sm offset-sm-6">
-                            <input class="form-check-input " type="radio" checked="@(actTimeFilter.TimeRangeType == TimeRangeType.Fixeddates)" name="shortcutRange" id="false" @onchange="() => {actTimeFilter.TimeRangeType = TimeRangeType.Fixeddates;}" >
-                        </div>
-                    </div>
-                    <div class="col-sm-11">
-                        <div class="form-group row">
-                            <label for="startTime" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("start_time")):</label>
-                            <div class="col-sm-3">
-                                <input id="startTimeDate" type="date" class="form-control form-control-sm" @bind="actStartDate" />
-                            </div>
-                            <div class="col-sm-3">
-                                <input id="startTime" type="time" step="60" class="form-control form-control-sm" @bind="actStartTime" />
-                            </div>
-                            <div class="col-sm-3">
-                                <input class="form-check-input" id="openStart" type="checkbox" @bind="actTimeFilter.OpenStart" >
-                                <label class="col-form-label col-form-label-sm" for="openStart">@(userConfig.GetText("open"))</label>
-                            </div>
-                        </div>
-                        <div class="form-group row">
-                            <label for="endTime" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("end_time")):</label>
-                            <div class="col-sm-3">
-                                <input id="endTimeDate" type="date" class="form-control form-control-sm" @bind="actEndDate" />
-                            </div>
-                            <div class="col-sm-3">
-                                <input id="endTime" type="time" step="60" class="form-control form-control-sm" @bind="actEndTime" />
-                            </div>
-                            <div class="col-sm-3">
-                                <input class="form-check-input" id="openEnd" type="checkbox" @bind="actTimeFilter.OpenEnd" >
-                                <label class="col-form-label col-form-label-sm" for="openEnd">@(userConfig.GetText("open"))</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            }
-            else
-            {
-                <div class="form-group row">
-                    <div class="col-sm-1">
-                        <div class="form-control-sm offset-sm-6">
-                            <input class="form-check-input" type="radio" checked="@(actTimeFilter.IsShortcut)" name="shortcut" id="true" @onchange="() => {actTimeFilter.IsShortcut = true;}" >
-                        </div>
-                    </div>
-                    <div class="col-sm-11">
-                        <div class="form-group row">
-                            <label for="shortcut" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("shortcut")):</label>
-                            <div class="col-sm-3">
-                                <label class="col-form-label col-form-label-sm">@userConfig.GetText(actTimeFilter.TimeShortcut)</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-1">
-                        <div class="form-control-sm offset-sm-6">
-                            <input class="form-check-input " type="radio" checked="@(!actTimeFilter.IsShortcut)" name="shortcut" id="false" @onchange="() => {actTimeFilter.IsShortcut = false;}" >
-                        </div>
-                    </div>
-                    <div class="col-sm-11">
-                        <div class="form-group row">
-                            <label for="reportTime" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("time")):</label>
-                            <div class="col-sm-4">
-                                <input id="reportTimeDate" type="date" class="form-control form-control-sm" @bind="actDate" />
-                            </div>
-                            <div class="col-sm-4">
-                                <input id="reportTime" type="time" step="60" class="form-control form-control-sm" @bind="actTime" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            }
-        </div>
-    </Body>
-    <Footer>
-        <button type="button" class="btn btn-sm btn-primary" @onclick="SetTimeSelection">@(userConfig.GetText("ok"))</button>
-        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ShowSelectTimeDialog = false">@(userConfig.GetText("cancel"))</button>
-    </Footer>
-</PopUp>
+@* ==== POPUPS ==== *@
+<ReportSelectTime @bind-Display="ShowSelectTimeDialog" SelectedReportType="selectedReportType" @bind-ActTimeFilter="actTimeFilter" @bind-SavedTimeFilter="savedTimeFilter" DisplayTime="DisplaySelectedTime"/>
 <ReportCreateTicket @bind-Display="ShowCreateTicketDialog" SelectedRules="selectedItemsRuleReportTable"/>
 
 @code
@@ -378,12 +238,6 @@
     private List<string> unsupportedList = new List<string>();
     private DeviceFilter reducedDeviceFilter = new DeviceFilter();
 
-    private DateTime actDate = DateTime.Now;
-    private DateTime actTime = DateTime.Now;
-    private DateTime actStartDate = DateTime.Now;
-    private DateTime actStartTime = DateTime.Now;
-    private DateTime actEndDate = DateTime.Now;
-    private DateTime actEndTime = DateTime.Now;
     private TimeFilter actTimeFilter = new TimeFilter();
     private TimeFilter savedTimeFilter = new TimeFilter();
     private string displayedTimeSelection = "";
@@ -392,7 +246,6 @@
     private int recertLookAheadDays = 0;
     private int unusedDays = 0;
     private bool ShowCreateTicketDialog = false;
-    private bool recertSingleLinePerRule = true;
 
     private int rulesPerPage = 0;   // todo: remove - no pagination implemented?
 
@@ -400,7 +253,6 @@
     private int sidebarRightWidth = GlobalConfig.kSidebarRightWidth;
 
     private ReportTemplateComponent reportTemplateControl = new ReportTemplateComponent();
-    private ReportTemplate reportParams = new ReportTemplate();
 
     private ReportBase? currentReport;
 
@@ -451,21 +303,32 @@
         managementsReport = new Management[] {};
         globalStats = null;
         selectedReportType = newReportType;
-        if (selectedReportType == ReportType.Recertification)
-        {
-            //filterInput = "remove=false and recertdisplay=0";
-        }
-        DisplayTime();
+        DisplaySelectedTime();
         StateHasChanged();
         reportGenerationDuration = 0;
     }
 
-    private void InitTimes(TimeFilter timeFilter)
+    private void SyncFiltersFromTemplate(ReportTemplate template)
     {
-        actTimeFilter = timeFilter;
-        actDate = actTime = timeFilter.ReportTime;
-        actStartDate = actStartTime = timeFilter.StartTime;
-        actEndDate = actEndTime = timeFilter.EndTime;
+        filterInput = template.Filter;
+        selectedReportType = (ReportType)template.ReportParams.ReportType;
+        if(template.ReportParams.DeviceFilter != null && template.ReportParams.DeviceFilter.Managements.Count > 0)
+        {
+            deviceFilter.SynchronizeDevFilter(template.ReportParams.DeviceFilter);
+        }
+        selectAll = !deviceFilter.isAnyDeviceFilterSet();
+        if(template.ReportParams.TimeFilter != null)
+        {
+            actTimeFilter = template.ReportParams.TimeFilter;
+        }
+        DisplaySelectedTime();
+        if(template.ReportParams.RecertFilter.RecertOwnerList.Count > 0)
+        {
+            selectedOwner = ownerList.FirstOrDefault(o => o.Id == template.ReportParams.RecertFilter.RecertOwnerList.First());
+        }
+        recertShowAnyMatch = template.ReportParams.RecertFilter.RecertShowAnyMatch;
+        recertLookAheadDays = template.ReportParams.RecertFilter.RecertificationDisplayPeriod;
+        unusedDays = template.ReportParams.UnusedFilter.UnusedForDays;
     }
 
     private void SelectTime()
@@ -473,69 +336,7 @@
         ShowSelectTimeDialog = true;
     }
 
-    private void SetTimeSelection()
-    {
-        if (selectedReportType.IsChangeReport())
-        {
-            switch(actTimeFilter.TimeRangeType)
-            {
-                case TimeRangeType.Shortcut:
-                    savedTimeFilter.TimeRangeShortcut = actTimeFilter.TimeRangeShortcut;
-                    break;
-                case TimeRangeType.Interval:
-                    savedTimeFilter.Offset = actTimeFilter.Offset;
-                    savedTimeFilter.Interval = actTimeFilter.Interval;
-                    break;
-                case TimeRangeType.Fixeddates:
-                    actTimeFilter.StartTime = actStartDate.Date.Add(actStartTime.TimeOfDay);
-                    actTimeFilter.EndTime = actEndDate.Date.Add(actEndTime.TimeOfDay);
-                    if(checkTimeRange())
-                    {
-                        savedTimeFilter.StartTime = actTimeFilter.StartTime;
-                        savedTimeFilter.EndTime = actTimeFilter.EndTime;
-                        savedTimeFilter.OpenStart = actTimeFilter.OpenStart;
-                        savedTimeFilter.OpenEnd = actTimeFilter.OpenEnd;
-                    }
-                    else return;
-                    break;
-                default:
-                    throw new NotSupportedException($"Found unexpected TimeRangeType");
-            }
-            savedTimeFilter.TimeRangeType = actTimeFilter.TimeRangeType;
-        }
-        else
-        {
-            if (actTimeFilter.IsShortcut)
-            {
-                savedTimeFilter.TimeShortcut = actTimeFilter.TimeShortcut;
-            }
-            else
-            {
-                actTimeFilter.ReportTime = actDate.Date.Add(actTime.TimeOfDay);
-                savedTimeFilter.ReportTime = actTimeFilter.ReportTime;
-            }
-            savedTimeFilter.IsShortcut = actTimeFilter.IsShortcut;
-        }
-        DisplayTime();
-        ShowSelectTimeDialog = false;
-    }
-
-    @* private void SyncFilterToDisplay()
-    {
-        filterInput = Regex.Replace(filterInput, "recertdisplay=" + @"-?\d+", $"recertdisplay={(userConfig.RecertificationPeriod-userConfig.RecertificationDisplayPeriod).ToString()}");
-    } *@
-
-    private bool checkTimeRange()
-    {
-        if(actTimeFilter.TimeRangeType == TimeRangeType.Fixeddates && actTimeFilter.StartTime > actTimeFilter.EndTime)
-        {
-            DisplayMessageInUi(null, userConfig.GetText("check_times"), userConfig.GetText("E1011"), true);
-            return false;
-        }
-        return true;
-    }
-
-    private void DisplayTime()
+    private bool DisplaySelectedTime()
     {
         if (selectedReportType.IsChangeReport())
         {
@@ -582,6 +383,7 @@
                 displayedTimeSelection = actTimeFilter.ReportTime.ToString();
             }
         }
+        return true;
     }
 
     private async Task GenerateReport()
@@ -694,61 +496,15 @@
         // check for unsupported devices
         if(selectedReportType == ReportType.UnusedRules)
         {
-            await GetUnsupportedDevices();
+            var result = await ReportBase.GetUsageDataUnsupportedDevices(Connection, deviceFilter);
+            reducedDeviceFilter = result.reducedDeviceFilter;
+            unsupportedList = result.unsupportedList;
             if(unsupportedList.Count > 0)
             {
                 DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4004") + string.Join(", ", unsupportedList), true);
             }
         }
-
-        // set filters
-        List<int> ownerList = new List<int>();
-        if (selectedOwner != null)
-        {
-            ownerList.Add(selectedOwner.Id);
-        }
-        RecertFilter recertFilter = new RecertFilter()
-        {
-            RecertOwnerList = ownerList,
-            RecertShowAnyMatch = recertShowAnyMatch,
-            RecertificationDisplayPeriod = recertLookAheadDays
-        };
-        UnusedFilter unusedFilter = new UnusedFilter() { UnusedForDays = unusedDays, CreationTolerance = userConfig.CreationTolerance };
-        reportParams = new ReportTemplate(filterInput, selectedReportType == ReportType.UnusedRules ? reducedDeviceFilter : deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter, unusedFilter);
-        currentReport = ReportBase.ConstructReport(reportParams, userConfig);
-    }
-
-    private async Task GetUnsupportedDevices()
-    {
-        unsupportedList.Clear();
-        reducedDeviceFilter = new DeviceFilter(deviceFilter);
-        foreach (ManagementSelect management in reducedDeviceFilter.Managements)
-        {
-            foreach (DeviceSelect device in management.Devices)
-            {
-                if (device.Selected && !(await UsageDataAvailable(device.Id)))
-                {
-                    unsupportedList.Add(device.Name ?? "?");
-                    device.Selected = false;
-                }
-            }
-            if(!DeviceFilter.IsSelectedManagement(management))
-            {
-                management.Selected = false;
-            }
-        }
-    }
-    
-    private async Task<bool> UsageDataAvailable(int devId)
-    {
-        try
-        {
-            return (await Connection.SendQueryAsync<AggregateCount>(FWO.Api.Client.Queries.ReportQueries.getUsageDataCount, new {devId = devId})).Aggregate.Count > 0;
-        }
-        catch(Exception)
-        {
-            return false;
-        }
+        currentReport = ReportBase.ConstructReport(ConstructReportTemplate(), userConfig);
     }
 
     private bool PrepareMetadata(Management[] Managements)
@@ -780,28 +536,38 @@
             mgm.Ignore = !relevantManagements.Contains(mgm.Id);
         }
     }
-
-    private void TryFilter(ChangeEventArgs changeArgs)
+   
+    private ReportTemplate ConstructReportTemplate()
     {
-        string input = (changeArgs.Value ?? "").ToString() ?? "";
         List<int> ownerList = new List<int>();
         if (selectedOwner != null)
         {
             ownerList.Add(selectedOwner.Id);
         }
 
+        ReportParams reportParams = new ReportParams((int)selectedReportType, selectedReportType == ReportType.UnusedRules ? reducedDeviceFilter : deviceFilter);
+        reportParams.TimeFilter = savedTimeFilter;
+        reportParams.RecertFilter = new RecertFilter()
+        {
+            RecertOwnerList = ownerList,
+            RecertShowAnyMatch = recertShowAnyMatch,
+            RecertificationDisplayPeriod = recertLookAheadDays
+        };
+        reportParams.UnusedFilter = new UnusedFilter() 
+        {
+            UnusedForDays = unusedDays, 
+            CreationTolerance = userConfig.CreationTolerance
+        };
+
+        return new ReportTemplate(filterInput, reportParams);
+    }
+
+    private void TryFilter(ChangeEventArgs changeArgs)
+    {
+        string input = (changeArgs.Value ?? "").ToString() ?? "";
         try
         {
-            RecertFilter recertFilter = new RecertFilter()
-            {
-                RecertOwnerList = ownerList,
-                RecertShowAnyMatch = recertShowAnyMatch, 
-                RecertSingleLinePerRule = recertSingleLinePerRule
-            };
-            UnusedFilter unusedFilter = new UnusedFilter() { UnusedForDays = unusedDays, CreationTolerance = userConfig.CreationTolerance };
-            reportParams = new ReportTemplate(input, deviceFilter, (int) selectedReportType, savedTimeFilter, recertFilter, unusedFilter);
-
-            DynGraphqlQuery query = Compiler.Compile(reportParams);
+            DynGraphqlQuery query = Compiler.Compile(ConstructReportTemplate());
 
             filterFeedbackStart = input;
             filterFeedbackError = "";

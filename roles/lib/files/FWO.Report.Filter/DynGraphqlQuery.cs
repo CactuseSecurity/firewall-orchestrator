@@ -248,7 +248,7 @@ namespace FWO.Report.Filter
                 query.ruleWhereStatement += "{rule_head_text: {_is_null: true}}, ";
             }
             SetDeviceFilter(ref query, reportParams.ReportParams.DeviceFilter);
-            SetTimeFilter(ref query, reportParams.ReportParams.TimeFilter, (ReportType)(reportParams.ReportParams.ReportType ?? throw new Exception("No report type set")), reportParams.ReportParams.RecertFilter);
+            SetTimeFilter(ref query, reportParams.ReportParams.TimeFilter, (ReportType)reportParams.ReportParams.ReportType, reportParams.ReportParams.RecertFilter);
             if (reportParams.ReportParams.ReportType!= null && (ReportType)reportParams.ReportParams.ReportType==ReportType.Recertification)
             {
                 SetRecertFilter(ref query, reportParams.ReportParams.RecertFilter);
@@ -271,7 +271,7 @@ namespace FWO.Report.Filter
 
             // now we convert the ast into a graphql query:
             if (ast != null)
-                ast.Extract(ref query, (ReportType)(filter.ReportParams.ReportType ?? throw new Exception("No report type set")));
+                ast.Extract(ref query, (ReportType)filter.ReportParams.ReportType);
 
             query.ruleWhereStatement += "}] ";
 
@@ -286,10 +286,10 @@ namespace FWO.Report.Filter
                                     stm_dev_typ: {{is_pure_routing_device:{{_eq:false}} }}
                                     }} order_by: {{ dev_name: asc }}";
 
-            if (((ReportType)(filter.ReportParams.ReportType ?? throw new Exception("No report type set"))).IsResolvedReport())
+            if (((ReportType)filter.ReportParams.ReportType).IsResolvedReport())
                 filter.Detailed = true;
 
-            switch ((ReportType)(filter.ReportParams.ReportType ?? throw new Exception("No report type set")))
+            switch ((ReportType)filter.ReportParams.ReportType)
             {
                 case ReportType.Statistics:
                     query.FullQuery = Queries.compact($@"

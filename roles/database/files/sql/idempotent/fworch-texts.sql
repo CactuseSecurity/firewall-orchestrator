@@ -2258,6 +2258,10 @@ INSERT INTO txt VALUES ('T0104', 'German',  'Alle Regeln, die offene Quellen, Zi
 INSERT INTO txt VALUES ('T0104', 'English', 'All pass rules that contain any as source, destination or service');
 INSERT INTO txt VALUES ('T0105', 'German',  'Aktuell aktive NAT-Regeln aller Gateways');
 INSERT INTO txt VALUES ('T0105', 'English', 'Currently active NAT rules of all gateways');
+INSERT INTO txt VALUES ('T0106', 'German',  'Aktuell aktive unbenutzte Regeln aller Gateways');
+INSERT INTO txt VALUES ('T0106', 'English', 'Currently active unused rules of all gateways');
+INSERT INTO txt VALUES ('T0107', 'German',  'Aktuell aktive Regeln, die zur Rezertifizierung anstehen');
+INSERT INTO txt VALUES ('T0107', 'English', 'Currently active rules with upcoming recertification');
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.
@@ -2424,16 +2428,20 @@ INSERT INTO txt VALUES ('H1202', 'German',  'Um sie direkt in der UI zu nutzen, 
 INSERT INTO txt VALUES ('H1202', 'English', 'For using them directly on the UI, devices have to be selected additionally. Used in scheduling, all devices are regarded as selected.
     These templates can be used as basis for the creation of own self-defined templates.
 ');
-INSERT INTO txt VALUES ('H1211', 'German',  'Einfache Statistik: Etwas Statistik &uuml;ber Netzwerk-, Dienst- und Nutzerobjekte aller Devices.');
+INSERT INTO txt VALUES ('H1211', 'German',  'Basic Statistics: Etwas Statistik &uuml;ber Netzwerk-, Dienst- und Nutzerobjekte aller Devices.');
 INSERT INTO txt VALUES ('H1211', 'English', 'Basic Statistics: Some statistics about network, service and user objects and rules of all devices.');
-INSERT INTO txt VALUES ('H1212', 'German',  'Compliance: Durchlassregeln mit "any": Alle Durchlassregeln, die "any" als Quelle, Ziel oder Dienst enthalten.');
+INSERT INTO txt VALUES ('H1212', 'German',  'Compliance: Pass rules with "any": Alle Durchlassregeln, die "any" als Quelle, Ziel oder Dienst enthalten.');
 INSERT INTO txt VALUES ('H1212', 'English', 'Compliance: Pass rules with "any": All pass rules that contain "any" as source, destination or service.');
-INSERT INTO txt VALUES ('H1213', 'German',  'Aktuelle Regeln: Aktuell aktive Regeln aller ausgew&auml;hlten Devices.');
+INSERT INTO txt VALUES ('H1213', 'German',  'Current Rules: Aktuell aktive Regeln aller ausgew&auml;hlten Devices.');
 INSERT INTO txt VALUES ('H1213', 'English', 'Current Rules: Currently active rules of all selected devices.');
-INSERT INTO txt VALUES ('H1214', 'German',  'Regel&auml;nderungen des aktuellen Jahres: Alle im aktuellen Jahr ge&auml;nderten Regeln in den ausgew&auml;hlten Devices.');
+INSERT INTO txt VALUES ('H1214', 'German',  'This year&apos;s Rule Changes: Alle im aktuellen Jahr ge&auml;nderten Regeln in den ausgew&auml;hlten Devices.');
 INSERT INTO txt VALUES ('H1214', 'English', 'This year&apos;s Rule Changes: All rule change performed in the current year in the selected devices.');
-INSERT INTO txt VALUES ('H1215', 'German',  'Aktuelle NAT Regeln: Aktuell aktive NAT-Regeln aller ausgew&auml;hlten Devices.');
+INSERT INTO txt VALUES ('H1215', 'German',  'Current NAT Rules: Aktuell aktive NAT-Regeln aller ausgew&auml;hlten Devices.');
 INSERT INTO txt VALUES ('H1215', 'English', 'Current NAT Rules: Currently active NAT rules of all selected devices.');
+INSERT INTO txt VALUES ('H1216', 'German',  'Last year&apos;s Unused Rules: Aktuell aktive und seit mindestens einem Jahr unbenutzte Regeln aller Gateways.');
+INSERT INTO txt VALUES ('H1216', 'English', 'Last year&apos;s Unused Rules: Currently active and for at least one year unused rules of all gateways.');
+INSERT INTO txt VALUES ('H1217', 'German',  'Next Month&apos;s Recertifications: Aktuell aktive Regeln, die im n&auml;chsten Monat zur Rezertifizierung anstehen.');
+INSERT INTO txt VALUES ('H1217', 'English', 'Next Month&apos;s Recertifications: Currently active rules with upcoming recertification next month.');
 INSERT INTO txt VALUES ('H1301', 'German',  'Direkt nach der Erzeugung oder vom <a href="/help/reporting/archive">Archiv</a> aus k&ouml;nnen Reports in verschiedenen Ausgabeformaten exportiert werden:');
 INSERT INTO txt VALUES ('H1301', 'English', 'Directly after creation or from the <a href="/help/reporting/archive">archive</a> reports can be exported to different output formats:');
 INSERT INTO txt VALUES ('H1302', 'German',  '<li>pdf</li><li>html</li><li>csv (aktuell nur f&uuml;r die aufgel&ouml;sten und technischen Report-Typen unterst&uuml;tzt)</li><li>json</li>');
@@ -2530,20 +2538,20 @@ INSERT INTO txt VALUES ('H1510', 'English', 'Only for Unused Rules Report: Unuse
     There also the default value for the unused interval can be defined.
 ');
 INSERT INTO txt VALUES ('H1511', 'German',  'Nur beim Rezertifizierungs-Report: Rezertifizierungsparameter
-    <li>F&auml;llig in: Hier wird festgelegt, wie weit die Suche nach zu rezertifizierenden Regeln gehen soll (in Tagen).
+    <ul><li>F&auml;llig in: Hier wird festgelegt, wie weit die Suche nach zu rezertifizierenden Regeln gehen soll (in Tagen).
         Der Default-Wert kann sowohl vom Administrator in den <a href="/help/settings/recertificationgeneral">Allgemeinen</a>
         als auch vom jeweiligen Nutzer in den <a href="/help/settings/recertificationpersonal">Pers&ouml;nlichen</a> Rezertifizierungseinstellungen festgelegt werden.</li>
     <li>Eigent&uuml;mer: Hier kann aus den dem Nutzer zugeordneten Eigent&uuml;merschaften ausgew&auml;hlt werden.</li>
     <li>Any-Regeln anzeigen: Wenn das H&auml;kchen gesetzt ist, werden auch Regeln mit Ip 0.0.0.0 in Quelle oder Ziel dargestellt.
-        Beim deselektieren wird ein exkludierender Ausdruck zur Filterzeile hinzugef&uuml;gt.</li>
+        Beim deselektieren wird ein exkludierender Ausdruck zur Filterzeile hinzugef&uuml;gt.</li></ul>
 ');
 INSERT INTO txt VALUES ('H1511', 'English', 'Only for Recertification Report: Recertification Parameters
-    <li>Due within: Select how far ahead should be searched for rules to be recertified (in days).
+    <ul><li>Due within: Select how far ahead should be searched for rules to be recertified (in days).
         The default value can be set by the administrator in the <a href="/help/settings/recertificationgeneral">General</a>
-        as well as in the <a href="/help/settings/recertificationpersonal">Personal</a> Recertification Settings by the user</li>.
+        as well as in the <a href="/help/settings/recertificationpersonal">Personal</a> Recertification Settings by the user.</li>
     <li>Owner: Select the certifying owner out of the ownerships related to the user.</li>
     <li>Show any rules: If flag is set, rules with Ip 0.0.0.0 in source or destination are shown.
-        When deselecting an excluding statement is added to the filter line.</li>
+        When deselecting an excluding statement is added to the filter line.</li></ul>
 ');
 INSERT INTO txt VALUES ('H1601', 'German',  'Die rechte Randleiste hat zwei Reiter: Unter "Alle" werden alle aktuell abgeholten Objekte dargestellt,
     w&auml;hrend unter "Regel" nur die in der Reportausgabe ausgew&auml;hlten Regeln gezeigt werden.<br>

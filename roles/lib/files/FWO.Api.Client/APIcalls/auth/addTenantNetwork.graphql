@@ -1,0 +1,13 @@
+mutation addTenantNetwork(
+  $tenantId: Int!
+  $ip: cidr
+  ) {
+  insert_tenant_network(objects: {
+    tenant_id: $tenantId
+    tenant_net_ip: $ip
+  }) {
+    returning {
+      newId: tenant_net_id
+    }
+  }
+}

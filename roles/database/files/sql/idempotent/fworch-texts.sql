@@ -2553,16 +2553,26 @@ INSERT INTO txt VALUES ('H1511', 'English', 'Only for Recertification Report: Re
     <li>Show any rules: If flag is set, rules with Ip 0.0.0.0 in source or destination are shown.
         When deselecting an excluding statement is added to the filter line.</li></ul>
 ');
-INSERT INTO txt VALUES ('H1601', 'German',  'Die rechte Randleiste hat zwei Reiter: Unter "Alle" werden alle aktuell abgeholten Objekte dargestellt,
-    w&auml;hrend unter "Regel" nur die in der Reportausgabe ausgew&auml;hlten Regeln gezeigt werden.<br>
-    Folgende Daten werden dargestellt, gruppiert nach den ausgew&auml;hlten Devices:
+INSERT INTO txt VALUES ('H1601', 'German',  'Die rechte Randleiste hat drei Reiter: Unter "Alle" werden alle aktuell abgeholten Objekte dargestellt,
+    w&auml;hrend unter "Report" nur die Objekte der im Report vorkommenden Regeln gezeigt werden.
+    Im Reiter "Regel" sind dann nur die Objekte der in der Reportausgabe ausgew&auml;hlten Regeln dargestellt.<br>
+    ("Alle"- und "Regel"-Reiter werden mit derselben Funktionalit&auml;t auch im Rezertifizierungsdialog angeboten).<br>
+    Folgende Daten werden soweit verf&uuml;gbar dargestellt, gruppiert nach den ausgew&auml;hlten Devices:
 ');
-INSERT INTO txt VALUES ('H1601', 'English', 'There are two Tabs shown in the right sidebar: The "All" tab displays all currently fetched objects,
-    while in the "Rule" tab only the objects of rules selected in the report output are shown.<br>
-    The following data are displayed grouped by the selected devices:
+INSERT INTO txt VALUES ('H1601', 'English', 'There are three Tabs shown in the right sidebar: The "All" tab displays all currently fetched objects,
+    whereas in the "Report" tab only the objects of the rules of the report are shown.
+    In the "Rule" tab only objects of rules selected in the report output are dispalyed.<br>
+    ("All" and "Rule" tab are also offered in the Recertification dialogue with the same functionality).<br>
+    The following data are displayed if available, grouped by the selected devices:
 ');
-INSERT INTO txt VALUES ('H1602', 'German',  '<li>Netzwerkobjekte</li><li>Dienste</li><li>Nutzer</li>');
-INSERT INTO txt VALUES ('H1602', 'English', '<li>Network objects</li><li>Services</li><li>Users</li>');
+INSERT INTO txt VALUES ('H1602', 'German',  '<li>Netzwerkobjekte: Name, Typ, IP, Zone, ggf. Gruppenmitglieder, zuletzt ge&auml;ndert, Kommentar</li>
+    <li>Dienste: Name, Typ, UID, Quellport, Zielport, Protokoll, Timeout, ggf. Gruppenmitglieder, zuletzt ge&auml;ndert, Kommentar</li>
+    <li>Nutzer: Name, Typ, UID, realer Name, ggf. Gruppenmitglieder, zuletzt ge&auml;ndert, Kommentar</li>
+');
+INSERT INTO txt VALUES ('H1602', 'English', '<li>Network objects: Name, type, IP, zone, group members if applicable, last changed, comment</li>
+    <li>Services: Name, type, UID, source port, destination port, protocol, timeout, group members if applicable, last changed, comment</li>
+    <li>Users: Name, type, UID, real name, group members if applicable, last changed, comment</li>
+');
 
 INSERT INTO txt VALUES ('H2001', 'German',  'Es k&ouml;nnen Reports f&uuml;r einen bestimmten Termin oder als wiederkehrende Auftr&auml;ge festgelegt werden.
     Jeder Nutzer kann seine eigenen Terminpl&auml;ne verwalten.
@@ -3429,6 +3439,8 @@ INSERT INTO txt VALUES ('H5247', 'German',  'Superadmin: Zeigt an, dass es sich 
 INSERT INTO txt VALUES ('H5247', 'English', 'Superadmin: Flag indicating the superadmin.');
 INSERT INTO txt VALUES ('H5248', 'German',  'Gateways: Alle mit diesem Mandanten verkn&uuml;pften Gateways.');
 INSERT INTO txt VALUES ('H5248', 'English', 'Gateways: All gateways related to this tenant.');
+INSERT INTO txt VALUES ('H5249', 'German',  'IP-Adressen: Im Editiermodus k&ouml;nnen einem Mandanten (ausser dem Globalen Mandanten) zwecks Filterung IP-Adressen zugeordnet werden.');
+INSERT INTO txt VALUES ('H5249', 'English', 'IP Addresses: In the edit mode IP addresses can be assigned to the tenant (except global tenant) for the purpose of filtering.');
 INSERT INTO txt VALUES ('H5261', 'German',  'Hier werden alle dem System bekannten Nutzer dargestellt.
     Das sind alle im internen Ldap angelegten Nutzer, sowie Nutzer von externen Ldaps, die sich schon mindestens einmal angemeldet haben.<br>
     Der Administrator kann Nutzer anlegen, &auml;ndern oder l&ouml;schen. Beim Anlegen besteht auch die M&ouml;glichkeit, sofort Gruppen- und Rollenzugeh&ouml;rigkeiten festzulegen.

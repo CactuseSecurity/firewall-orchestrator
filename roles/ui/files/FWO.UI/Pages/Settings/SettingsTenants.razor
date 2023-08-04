@@ -85,24 +85,24 @@
                     <label for="tenantName" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
                     @if (AddTenantMode)
                     {                
-                        <div class="col-sm-8">
+                        <div class="col-sm-9">
                             <input id="tenantName" type="text" class="form-control form-control-sm" @bind="actTenant.Name" />
                         </div>
                     }
                     else
                     {
-                        <label class="col-sm-8">@actTenant.Name</label>
+                        <label class="col-sm-9">@actTenant.Name</label>
                     }
                 </div>
                 <div class="form-group row">
                     <label for="tenantComment" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
-                    <div class="col-sm-8">
+                    <div class="col-sm-9">
                         <input id="tenantComment" type="text" class="form-control form-control-sm" @bind="actTenant.Comment" />
                     </div>
                 </div>
                 <div class="form-group row">
                     <label for="tenantProject" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("project")):</label>
-                    <div class="col-sm-8">
+                    <div class="col-sm-9">
                         <input id="tenantProject" type="text" class="form-control form-control-sm" @bind="actTenant.Project" />
                     </div>
                 </div>
@@ -112,6 +112,7 @@
                         <input class="form-check-input" id="tenantViewAllDevices" type="checkbox" @bind="actTenant.ViewAllDevices">
                         <label class="form-check-label" for="tenantViewAllDevices"><small>@(userConfig.GetText("view_all_devices"))</small></label>
                     </div>
+                    <IpSelector @bind-IpAddresses="actIpAddresses" IpAltered="setIpChanged"/>
                 }
             </form>
         }
@@ -228,6 +229,10 @@
     private string sampleRemoveMessage = "";
     private bool workInProgress = false;
 
+    private List<NwObjectElement> actIpAddresses = new List<NwObjectElement>();
+    private bool ipChanged = false;
+
+
     protected override async Task OnInitializedAsync()
     {
         try
@@ -270,17 +275,45 @@
         showCleanupButton = (sampleTenants.Count > 0);
     }
 
-    private void EditTenant(Tenant tenant)
+    private async Task NewTenant()
+    {
+        await EditTenant(new Tenant());
+        AddTenantMode = true;
+    }
+
+    private async Task EditTenant(Tenant tenant)
     {
         actTenant = tenant;
         isTenant0 = tenant.Id == 1;
+        if(AddTenantMode)
+        {
+            actIpAddresses.Clear();
+        }
+        else
+        {
+            actIpAddresses = await apiConnection.SendQueryAsync<List<NwObjectElement>>(FWO.Api.Client.Queries.AuthQueries.getTenantNetworks, new { tenantId = actTenant.Id });
+        }
+        ipChanged = false;
         EditTenantMode = true;
     }
 
-    private void NewTenant()
+    public bool setIpChanged()
     {
-        EditTenant(new Tenant());
-        AddTenantMode = true;
+        ipChanged = true;
+        return true;
+    }
+
+    private async Task addTenantNetworks()
+    {
+        foreach(var ipAdd in actIpAddresses)
+        {
+            var Variables = new
+            {
+                tenantId = actTenant.Id,
+                ip = (ipAdd.Cidr != null && ipAdd.Cidr.Valid ? ipAdd.Cidr.CidrString : null)
+            };
+            await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.AuthQueries.addTenantNetwork, Variables);
+        }
     }
 
     private async Task SaveTenant()
@@ -311,6 +344,7 @@
                     }
                     else
                     {
+                        await addTenantNetworks();
                         actTenant.Id = middlewareServerResponse.Data;
                         tenants.Add(actTenant);
                         AddTenantMode = false;
@@ -328,6 +362,11 @@
                 }
                 else
                 {
+                    if(ipChanged)
+                    {
+                        await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.AuthQueries.deleteTenantNetworks, new { tenantId = actTenant.Id });
+                        await addTenantNetworks();
+                    }
                     EditTenantMode = false;
                 }
             }

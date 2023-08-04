@@ -310,7 +310,10 @@
             var Variables = new
             {
                 tenantId = actTenant.Id,
-                ip = (ipAdd.Cidr != null && ipAdd.Cidr.Valid ? ipAdd.Cidr.CidrString : null)
+                ip = (ipAdd.Cidr != null && ipAdd.Cidr.Valid ? ipAdd.Cidr.CidrString : null),
+                ipEnd = (ipAdd.CidrEnd != null && ipAdd.CidrEnd.Valid ? ipAdd.CidrEnd.CidrString : null),
+                name = ipAdd.Name,
+                comment = ipAdd.Comment
             };
             await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.AuthQueries.addTenantNetwork, Variables);
         }

@@ -17,6 +17,20 @@ namespace FWO.Api.Data
         }
         public Cidr Cidr { get; set; } = new Cidr();
 
+        [JsonProperty("ip_end"), JsonPropertyName("ip_end")]
+        public string IpEndString
+        {
+            get { return CidrEnd.CidrString; }
+            set { CidrEnd = new Cidr(value); }
+        }
+        public Cidr CidrEnd { get; set; } = new Cidr();
+
+        [JsonProperty("name"), JsonPropertyName("name")]
+        public string Name { get; set; }
+
+        [JsonProperty("comment"), JsonPropertyName("comment")]
+        public string Comment { get; set; }
+
         public long TaskId { get; set; }
 
         public long? NetworkId { get; set; }

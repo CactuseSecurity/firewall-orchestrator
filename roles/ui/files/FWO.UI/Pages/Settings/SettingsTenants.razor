@@ -108,9 +108,11 @@
                 </div>
                 @if (!isTenant0)
                 {
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" id="tenantViewAllDevices" type="checkbox" @bind="actTenant.ViewAllDevices">
-                        <label class="form-check-label" for="tenantViewAllDevices"><small>@(userConfig.GetText("view_all_devices"))</small></label>
+                    <div class="form-group row">
+                        <label class="col-sm-3 col-form-label col-form-label-sm" for="tenantViewAllDevices">@(userConfig.GetText("view_all_devices"))</label>
+                        <div class="col-sm-2">
+                            <input class="form-check-input w-50" id="tenantViewAllDevices" type="checkbox" @bind="actTenant.ViewAllDevices">
+                        </div>
                     </div>
                     <IpSelector @bind-IpAddresses="actIpAddresses" IpAltered="setIpChanged"/>
                 }

@@ -9,7 +9,7 @@
 @using RestSharp
 
 @page "/settings/tenants"
-@attribute [Authorize(Roles = "admin, auditor")]
+@attribute [Authorize(Roles = "admin, auditor, fw-admin")]
 
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
@@ -19,27 +19,32 @@
 @(userConfig.GetText("U5212"))
 <hr />
 
-<div class="form-group row m-0">
-    <button type="button" class="btn btn-sm btn-success mr-2 mb-2 mt-2" @onclick="NewTenant">@(userConfig.GetText("add_tenant"))</button>
-    @if (showCleanupButton)
-    {
-        <button type="button" class="btn btn-sm btn-danger m-2" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
-    }
-</div>
-
+@if(addDeleteAllowed)
+{
+    <div class="form-group row m-0">
+        <button type="button" class="btn btn-sm btn-success mr-2 mb-2 mt-2" @onclick="NewTenant">@(userConfig.GetText("add_tenant"))</button>
+        @if (showCleanupButton)
+        {
+            <button type="button" class="btn btn-sm btn-danger m-2" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
+        }
+    </div>
+}
 <div class="mt-2">
     <Table class="table table-sm table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="Tenant" Items="tenants" PageSize="0" ColumnReorder="true">
         <Column TableItem="Tenant" Title="@(userConfig.GetText("tenant_action"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
                     <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditTenant(context)">@(userConfig.GetText("edit_tenant"))</button>
-                    @if (context.Id != 1)
+                    @if(addDeleteAllowed)
                     {
-                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteTenant(context)">@(userConfig.GetText("delete_tenant"))</button>
-                    }
-                    else
-                    {
-                        <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("U5207"))</button>
+                        @if (context.Id != 1)
+                        {
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteTenant(context)">@(userConfig.GetText("delete_tenant"))</button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("U5207"))</button>
+                        }
                     }
                 </div>
             </Template>
@@ -121,7 +126,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin">
+            <AuthorizeView Roles="admin, fw-admin">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-primary" @onclick="SaveTenant">@(userConfig.GetText("save"))</button>
                 </Authorized>
@@ -208,6 +213,9 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
     private List<Tenant> tenants = new List<Tenant>();
     private List<Tenant> sampleTenants = new List<Tenant>();
     private List<Device> devices = new List<Device>();
@@ -233,12 +241,14 @@
 
     private List<NwObjectElement> actIpAddresses = new List<NwObjectElement>();
     private bool ipChanged = false;
+    private bool addDeleteAllowed = false;
 
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
+            addDeleteAllowed = authenticationStateTask!.Result.User.IsInRole("admin") || authenticationStateTask!.Result.User.IsInRole("auditor");
             RestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
             {

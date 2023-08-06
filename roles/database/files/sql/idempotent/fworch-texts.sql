@@ -2669,44 +2669,41 @@ INSERT INTO txt VALUES ('H4021', 'German',  'Dieses Rezertifizierungsszenario is
 INSERT INTO txt VALUES ('H4021', 'English', 'This recertification scenario is intended to be a base for further customized workflows.');
 
 INSERT INTO txt VALUES ('H4031', 'German',  'In diesem Modul k&ouml;nnen Nutzer Firewall-Regeln re- oder dezertifizieren.
-Daf&uuml;r wird die Rolle "recertifier" ben&ouml;tigt. Auditor- und Admin-Nutzer k&ouml;nnen hier nur lesend auf die anstehenden Rezertifizierungen zugreifen.
-<br>
-Aktuell gibt es zwei verschiedene Optionen:
-<ol>
-    <li> In der einfachen Variante kann ein Nutzer mit recertifier Rolle jede beliebige Regel rezertifizieren. 
-        Diese Option eignet sich &uuml;blicherweise nur f&uuml;r kleine Installationen mit wenigen Firewall-Regeln.
-    </li>
-    <li> In gr&ouml;&szlig;eren Umgebungen ist es sinnvoll, die Rezertifizierung dezentral zu organisieren. 
-        Daf&uuml;r wird eine Eigent&uuml;merstruktur unterst&uuml;tzt, die einer Liste von Eigent&uuml;mern die Verantwortlichkeit f&uuml;r jeweils einen Teil des Netzwerks in Form von IP-Adressen bzw. IP-Subnetzen zuweist. 
-        Dies kann z.B. eine Aufteilung auf Applikationsbasis sein, es ist aber genauso auch eine Unterteilung nach Subnetzen auf Basis von Betriebseinheiten denkbar.
-        Je nach Quelle und Ziel sind alle Eigent&uuml;mer, die f&uuml;r einen Teil der Regel in Form von IP-Adressen verantwortlich sind, auch f&uuml;r die Rezertifizierung der Regel verantwortlich.
-        Es ist also im Allgemeinen eine Gruppe von Eigent&uuml;mern f&uuml;r die Rezertifizierung einer Regel verantwortlich.
-    </li>
-</ol>
-Eine Regel gilt erst dann als vollst&auml;ndig rezertifiziert, wenn alle Eigent&uuml;mer die Regel rezertifiziert haben.
-<br>
-Im Reporting-Modul steht au&szlig;erdem ein Rezertifizierungs-Report zur Verf&uuml;gung.
+    Daf&uuml;r wird die Rolle "recertifier" ben&ouml;tigt. Auditor- und Admin-Nutzer k&ouml;nnen hier nur lesend auf die anstehenden Rezertifizierungen zugreifen.<br>
+    Aktuell gibt es zwei verschiedene Optionen:
+    <ol>
+        <li> In der einfachen Variante kann ein Nutzer mit recertifier Rolle jede beliebige Regel rezertifizieren. 
+            Diese Option eignet sich &uuml;blicherweise nur f&uuml;r kleine Installationen mit wenigen Firewall-Regeln.
+        </li>
+        <li> In gr&ouml;&szlig;eren Umgebungen ist es sinnvoll, die Rezertifizierung dezentral zu organisieren. 
+            Daf&uuml;r wird eine Eigent&uuml;merstruktur unterst&uuml;tzt, die einer Liste von Eigent&uuml;mern die Verantwortlichkeit f&uuml;r jeweils einen Teil des Netzwerks in Form von IP-Adressen bzw. IP-Subnetzen zuweist. 
+            Dies kann z.B. eine Aufteilung auf Applikationsbasis sein, es ist aber genauso auch eine Unterteilung nach Subnetzen auf Basis von Betriebseinheiten denkbar.
+            Je nach Quelle und Ziel sind alle Eigent&uuml;mer, die f&uuml;r einen Teil der Regel in Form von IP-Adressen verantwortlich sind, auch f&uuml;r die Rezertifizierung der Regel verantwortlich.
+            Es ist also im Allgemeinen eine Gruppe von Eigent&uuml;mern f&uuml;r die Rezertifizierung einer Regel verantwortlich.
+        </li>
+    </ol>
+    Eine Regel gilt erst dann als vollst&auml;ndig rezertifiziert, wenn alle Eigent&uuml;mer die Regel rezertifiziert haben.<br>
+    Im Reporting-Modul steht au&szlig;erdem ein Rezertifizierungs-Report zur Verf&uuml;gung.
+    Desweiteren kann in den <a href="/help/settings/recertificationgeneral">Einstellungen</a> konfiguriert werden, dass bei Dezertifizierung durch alle Eigent&uuml;mer automatisch ein L&ouml;schauftrag erzeugt wird.
 ');
 INSERT INTO txt VALUES ('H4031', 'English', '
-In this module, users can recertify or decertify firewall rules.
-
-The "recertifier" role is required for this. Auditor and admin users have read-only access to the pending recertifications here.
-<br>
-Currently there are two different options:
-<ol>
-    <li> In the simple variant, a user with recertifier role can recertify any rule. 
-        This option is usually suitable only for small installations with few firewall rules.
-    </li>
-    <li> In larger environments, it makes sense to organize recertification in a decentralized manner. 
-        For this purpose, an ownership structure is supported that assigns responsibility for a part of the network in the form of IP addresses or IP subnets to a list of owners. 
-        This can, for example, be a division on an application basis, but a subdivision by subnets based on operating units is just as conceivable.
-        Depending on the source and destination, all owners who are responsible for a part of the rule in the form of IP addresses are also responsible for recertifying the rule.
-        Thus, in general, a group of owners is responsible for the recertification of a rule.
-    </li>
-</ol>
-A rule is not considered fully recertified until all owners have recertified the rule.
-<br>
-A recertification report is also available in the reporting module.
+    In this module, users can recertify or decertify firewall rules.
+    The "recertifier" role is required for this. Auditor and admin users have read-only access to the pending recertifications here.<br>
+    Currently there are two different options:
+    <ol>
+        <li> In the simple variant, a user with recertifier role can recertify any rule. 
+            This option is usually suitable only for small installations with few firewall rules.
+        </li>
+        <li> In larger environments, it makes sense to organize recertification in a decentralized manner. 
+            For this purpose, an ownership structure is supported that assigns responsibility for a part of the network in the form of IP addresses or IP subnets to a list of owners. 
+            This can, for example, be a division on an application basis, but a subdivision by subnets based on operating units is just as conceivable.
+            Depending on the source and destination, all owners who are responsible for a part of the rule in the form of IP addresses are also responsible for recertifying the rule.
+            Thus, in general, a group of owners is responsible for the recertification of a rule.
+        </li>
+    </ol>
+    A rule is not considered fully recertified until all owners have recertified the rule.<br>
+    A recertification report is also available in the reporting module.
+    Furtheron it can be configured in the <a href="/help/settings/recertificationgeneral">settings</a> that after decertification by all owners a delete request is created automatically.
 ');
 
 INSERT INTO txt VALUES ('H4032', 'German',  '
@@ -4328,6 +4325,14 @@ INSERT INTO txt VALUES ('H8212', 'English', 'Access: Several fields are offered,
 ');
 INSERT INTO txt VALUES ('H8213', 'German',  'Die weiteren vorgesehenen Tasktypen "Gruppe anlegen", "Gruppe &auml;ndern" und "Gruppe l&ouml;schen" k&ouml;nnen zwar aktiviert und genutzt werden, sind aber noch nicht mit spezifischen Feldern versehen.');
 INSERT INTO txt VALUES ('H8213', 'English', 'Further task types "create group", "modify group" and "delete group" can be activated and used, but are not equipped with specific fields yet.');
+INSERT INTO txt VALUES ('H8214', 'German',  'Regel l&ouml;schen: Hier muss zwingend das Gateway und die Uid der zu l&ouml;schenden Regel eingegeben werden.
+    Diese wird gegen die tats&auml;chlich auf dem Gateway vorhandenen Uids gepr&uuml;ft.<br>
+    Dieser Auftragstyp wird auch bei der automatischen Erzeugung aus dem Unbenutzte-Regel-Report bzw. bei der Dezertifizierung verwendet.
+');
+INSERT INTO txt VALUES ('H8214', 'English', 'Delete Rule: Mandatory input fields are the gateway and the Uid of the rule to be deleted.
+    The Uid is checked against the rules actually existing on the gateway.<br>
+    This Task Type is also used for the automatic creation of delete requests in the Unused Rules Report resp. in the decertification workflow. 
+');
 INSERT INTO txt VALUES ('H8301', 'German',  'Jeder Verarbeitungsschritt kann nur von Nutzern mit entsprechenden <a href="/help/settings/roles">Rollen</a> get&auml;tigt werden.
     Dabei k&ouml;nnen einzelnen Nutzern auch mehrere Rollen zufallen. Die Rollen k&ouml;nnen individuell oder &uuml;ber <a href="/help/settings/groups">Gruppenzugeh&ouml;rigkeit</a> zugewiesen werden.
     Hinzu kommt die Rolle des admin, welche einen Komplettzugriff erlaubt. Je nach Rolle des Bearbeiters sind nur die f&uuml;r ihn relevanten Teile der folgenden Rubriken sichtbar.

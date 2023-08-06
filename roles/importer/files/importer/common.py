@@ -16,6 +16,8 @@ import jsonpickle
 from fwo_exception import FwoApiLoginFailed, FwoApiFailedLockImport, ConfigFileNotFound, FwLoginFailed, ImportRecursionLimitReached
 from fwo_base import split_config
 from fwo_mail import send_change_notification_mail
+import re
+
 
 #  import_management: import a single management (if no import for it is running)
 #     lock mgmt for import via FWORCH API call, generating new import_id y
@@ -103,6 +105,14 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0,
         if clearManagementData:
             logger.info('this import run will reset the configuration of this management to "empty"')
         else:
+            # if the management name given is an URI, we will not connect to an API but simply read
+            # the native config from the URI
+            mgmNameMatchingUri = \
+                re.match('http://.+', mgm_details['hostname']) or \
+                re.match('https://.+', mgm_details['hostname']) or \
+                re.match('file://.+', mgm_details['hostname'])
+            if in_file is None and mgmNameMatchingUri:
+                in_file = mgm_details['hostname']
             if in_file is not None:    # read native config from file
                 full_config_json, error_count, change_count = \
                     read_fw_json_config_file(filename=in_file, error_string=error_string, error_count=error_count, \
@@ -338,6 +348,8 @@ def read_fw_json_config_file(filename=None, config={}, error_string='', error_co
                 r.raise_for_status()
                 config = json.loads(r.content)
             else:   # reading from local file
+                if 'file://' in filename:   # remove file uri identifier
+                    filename = filename[7:]
                 with open(filename, 'r') as json_file:
                     config = json.load(json_file)
     except requests.exceptions.RequestException:

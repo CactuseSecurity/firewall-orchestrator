@@ -71,6 +71,50 @@
           END IF; END $do$ 
       when: sample_role_purpose is not match('test')
 
+    - name: insert demo check point R81 management
+      postgresql_query:
+        db: "{{ fworch_db_name }}"
+        query: >
+          DO $do$ BEGIN 
+          IF NOT EXISTS (SELECT * FROM management WHERE mgm_name='{{ demo_cpr8x_name }}') THEN 
+          insert into management (dev_typ_id,mgm_name,import_credential_id,ssh_hostname,do_not_import,importer_hostname) 
+          VALUES (9,'{{ demo_cpr8x_name }}',-1,'{{ demo_cpr8x_uri }}',false,'{{ importer_hostname }}'); 
+          END IF; END $do$ 
+      when: sample_role_purpose is not match('test')
+
+    - name: insert demo check point R81 gateway
+      postgresql_query:
+        db: "{{ fworch_db_name }}"
+        query: >
+          DO $do$ BEGIN 
+          IF NOT EXISTS (SELECT * FROM device WHERE dev_name='{{ demo_cpr8x_name }}') THEN
+          insert into device (mgm_id,dev_name,local_rulebase_name,dev_typ_id,package_name)
+          VALUES ((select mgm_id from management where mgm_name='{{ demo_cpr8x_name }}'),'gw_{{ demo_cpr8x_name }}','AnonAAAB_Security_neu',9,'AnonAAAA_New'); 
+          END IF; END $do$ 
+      when: sample_role_purpose is not match('test')
+
+    - name: insert demo fortiOS management
+      postgresql_query:
+        db: "{{ fworch_db_name }}"
+        query: >
+          DO $do$ BEGIN 
+          IF NOT EXISTS (SELECT * FROM management WHERE mgm_name='{{ demo_fos_name }}') THEN 
+          insert into management (dev_typ_id,mgm_name,import_credential_id,ssh_hostname,do_not_import,importer_hostname) 
+          VALUES (24,'{{ demo_fos_name }}',-1,'{{ demo_fos_uri }}',false,'{{ importer_hostname }}'); 
+          END IF; END $do$ 
+      when: sample_role_purpose is not match('test')
+
+    - name: insert demo fortiOS gateway
+      postgresql_query:
+        db: "{{ fworch_db_name }}"
+        query: >
+          DO $do$ BEGIN 
+          IF NOT EXISTS (SELECT * FROM device WHERE dev_name='{{ demo_fos_name }}') THEN
+          insert into device (mgm_id,dev_name,local_rulebase_name,dev_typ_id)
+          VALUES ((select mgm_id from management where mgm_name='{{ demo_fos_name }}'),'gw_{{ demo_fos_name }}','access_rules',25); 
+          END IF; END $do$ 
+      when: sample_role_purpose is not match('test')
+
     - name: insert dummy test import credentials
       postgresql_query:
         db: "{{ fworch_db_name }}"

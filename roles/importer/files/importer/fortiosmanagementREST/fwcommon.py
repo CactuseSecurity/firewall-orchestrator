@@ -1,4 +1,5 @@
 import sys
+import json
 from common import importer_base_dir
 sys.path.append(importer_base_dir + '/fortiosmanagementREST')
 import fOS_user

@@ -301,7 +301,7 @@ RETURNS boolean AS $$
                 SELECT o.obj_id FROM object o
                     LEFT JOIN tenant_network ON
                         (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip)
-                WHERE obj_id = o.obj_id AND tenant_id = t_id
+                WHERE obj_id = object.obj_id AND tenant_id = t_id
             ) THEN
                 show := true;
             END IF;

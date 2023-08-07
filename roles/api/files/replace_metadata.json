@@ -9663,9 +9663,6 @@
                       "active",
                       "negated"
                     ],
-                    "computed_fields": [
-                      "rule_from_relevant_for_tenant"
-                    ],
                     "filter": {
                       "_and": [
                         {
@@ -9705,7 +9702,29 @@
                       "active",
                       "negated"
                     ],
-                    "filter": {},
+                    "filter": {
+                      "_and": [
+                        {
+                          "rule": {
+                            "mgm_id": {
+                              "_in": "x-hasura-visible-managements"
+                            }
+                          }
+                        },
+                        {
+                          "rule": {
+                            "dev_id": {
+                              "_in": "x-hasura-visible-devices"
+                            }
+                          }
+                        },
+                        {
+                          "rule_from_relevant_for_tenant": {
+                            "_eq": "true"
+                          }
+                        }
+                      ]
+                    },
                     "allow_aggregations": true
                   }
                 },
@@ -10502,9 +10521,6 @@
                       "rule_to_id",
                       "user_id"
                     ],
-                    "computed_fields": [
-                      "rule_to_relevant_for_tenant"
-                    ],
                     "filter": {
                       "_and": [
                         {
@@ -10543,9 +10559,6 @@
                       "rule_id",
                       "rule_to_id",
                       "user_id"
-                    ],
-                    "computed_fields": [
-                      "rule_to_relevant_for_tenant"
                     ],
                     "filter": {
                       "_and": [
@@ -19234,5 +19247,6 @@
         }
       ]
     }
+  }
   }
 }

@@ -296,16 +296,26 @@ RETURNS boolean AS $$
             RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
         ELSIF t_id = 1 THEN
             show := true;
-        ELSE
-            IF EXISTS (
-                SELECT o.obj_id FROM object o
-                    LEFT JOIN tenant_network ON
-                        (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip)
-                WHERE obj_id = object.obj_id AND tenant_id = t_id
-            ) THEN
-                show := true;
-            END IF;
-
+        ELSIF EXISTS ( -- ip of object is in tenant_network of tenant
+            SELECT o.obj_id FROM object o
+                LEFT JOIN tenant_network ON
+                    (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip)
+            WHERE obj_id = object.obj_id AND tenant_id = t_id
+        ) THEN
+            show := true;
+        ELSIF EXISTS ( -- object is in rule_from or rule_to of a rule that is visible to tenant
+            SELECT r.rule_id from rule r
+                LEFT JOIN rule_from ON (r.rule_id=rule_from.rule_id)
+                LEFT JOIN rule_to ON (r.rule_id=rule_to.rule_id)
+                LEFT JOIN objgrp_flat rf_of ON (rule_from.obj_id=rf_of.objgrp_flat_id)
+                LEFT JOIN objgrp_flat rt_of ON (rule_to.obj_id=rt_of.objgrp_flat_id)
+                LEFT JOIN object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
+                LEFT JOIN object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
+                LEFT JOIN tenant_network ON
+                    (rf_o.obj_ip>>=tenant_net_ip OR rf_o.obj_ip<<=tenant_net_ip OR rt_o.obj_ip>>=tenant_net_ip OR rt_o.obj_ip<<=tenant_net_ip)
+            WHERE (rf_o.obj_id = object.obj_id OR rt_o.obj_id = object.obj_id) AND tenant_id = t_id
+        ) THEN
+            show := true;
         END IF;
 
         RETURN show;

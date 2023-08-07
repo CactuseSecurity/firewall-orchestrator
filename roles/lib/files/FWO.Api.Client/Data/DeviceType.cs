@@ -106,8 +106,13 @@ namespace FWO.Api.Data
 
         public bool CanBeAutodiscovered(Management mgmt)
         {
-            return SupermanagerMap.Values.Contains(Id) || (CheckPointManagers.Contains(Id) && mgmt.SuperManagerId==null);
+            return !IsUri(mgmt.Hostname) && (SupermanagerMap.Values.Contains(Id) || (CheckPointManagers.Contains(Id) && mgmt.SuperManagerId==null));
         }
+        private static bool IsUri(string hostname)
+        {
+            return hostname.StartsWith("https://") || hostname.StartsWith("http://") || hostname.StartsWith("file://");
+        }
+
 
         public int GetSupermanagerId()
         {

@@ -321,3 +321,45 @@ RETURNS boolean AS $$
         RETURN show;
     END;
 $$ LANGUAGE 'plpgsql' STABLE;
+
+
+CREATE OR REPLACE FUNCTION get_objects_for_tenant(management_row management, tenant integer, hasura_session json)
+RETURNS SETOF object AS $$
+    DECLARE t_id integer;
+    
+    BEGIN
+        t_id := (hasura_session ->> 'x-hasura-tenant-id')::integer;
+
+        IF t_id IS NULL THEN
+            RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
+        ELSIF t_id != 1 THEN
+            RAISE EXCEPTION 'Tenant id in hasura session is not 1 (admin). Tenant simulation not allowed.';
+        ELSIF tenant = 1 THEN
+            RAISE EXCEPTION 'Tenant 1 (admin) cannot be simulated.';
+        ELSE
+            RETURN QUERY
+                SELECT o.* FROM (
+                    SELECT o.* FROM object o
+                        LEFT JOIN rule_from ON (o.obj_id=rule_from.obj_id)
+                        LEFT JOIN rule r ON (rule_from.rule_id=r.rule_id)
+                        LEFT JOIN rule_to ON (r.rule_id=rule_to.rule_id)
+                        LEFT JOIN objgrp_flat rt_of ON (rule_to.obj_id=rt_of.objgrp_flat_id)
+                        LEFT JOIN object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
+                        LEFT JOIN tenant_network ON
+                            (o.obj_ip>>=tenant_net_ip OR o.obj_ip<<=tenant_net_ip OR rt_o.obj_ip>>=tenant_net_ip OR rt_o.obj_ip<<=tenant_net_ip)
+                    WHERE r.mgm_id = management_row.mgm_id AND tenant_id = tenant
+                    UNION
+                    SELECT o.* FROM object o
+                        LEFT JOIN rule_to ON (o.obj_id=rule_to.obj_id)
+                        LEFT JOIN rule r ON (rule_to.rule_id=r.rule_id)
+                        LEFT JOIN rule_from ON (r.rule_id=rule_from.rule_id)
+                        LEFT JOIN objgrp_flat rf_of ON (rule_from.obj_id=rf_of.objgrp_flat_id)
+                        LEFT JOIN object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
+                        LEFT JOIN tenant_network ON
+                            (o.obj_ip>>=tenant_net_ip OR o.obj_ip<<=tenant_net_ip OR rf_o.obj_ip>>=tenant_net_ip OR rf_o.obj_ip<<=tenant_net_ip)
+                    WHERE r.mgm_id = management_row.mgm_id AND tenant_id = tenant
+                ) AS o
+                ORDER BY obj_name;
+        END IF;
+    END;
+$$ LANGUAGE 'plpgsql' STABLE;

@@ -1,13 +1,16 @@
 
 sample_config_user: fworchsample
-sample_config_user_home: "/home/{{ sample_config_user }}"
+# sample_config_user_home: "/home/{{ sample_config_user }}"
 sample_data_rate: medium
 sample_role_purpose: demo
 sample_fortigate_name: fortigate_demo
-sample_checkpoint_name: "dummy only relevant for testing"
-demo_cpr8x_name: "CPR81_demo"
+sample_checkpoint_name: "checkpoint_demo"
+sample_checkpoint_uri: "https://fwodemodata.cactus.de/demo04_cpr8x.json"
+demo_cpr8x_name_without_demo: "CPR81"
+demo_cpr8x_name: "{{ demo_cpr8x_name_without_demo}}_demo"
 demo_cpr8x_uri: "https://fwodemodata.cactus.de/demo09_cpr81.json"
-demo_fos_name: "FortiOS_demo"
+demo_fos_name_without_demo: "FortiOS"
+demo_fos_name: "{{ demo_fos_name_without_demo }}_demo"
 demo_fos_uri: "https://fwodemodata.cactus.de/demo10_fOS.json"
 sample_postfix: _demo
 

@@ -6,7 +6,6 @@
     state: present
   loop:
     - postgresql-client
-    # - cron
   become: true
 
 - name: create demo credentials
@@ -20,7 +19,6 @@
 - name: create sample devices in database
   include_tasks: create-devices.yml
   when: installation_mode=='new' or sample_role_purpose is match('test')
-
 
 - name: add second ldap database
   include_tasks: add_second_ldap_db.yml

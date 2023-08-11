@@ -85,7 +85,9 @@ In 2020 we decided to re-launch a new
 ### 7.0.2 - 28.07.2023 DEVELOP
 - Default templates for new report types
 
-### 7.1 - 07.08.2023 DEVELOP
+### 7.1 - 11.08.2023 DEVELOP
 - adding tenant network UI
 - adding test import via URI in hostname field
-- replacing legacy demo data import with standard imported data
+- replacing legacy demo data import with standard imported data, closing #2197 (note: only for new installations, an upgrade will not touch the demo data)
+- test imports can now be made from file (integrated in UI)
+- improve debugging of imports (no errors for missing object parts)

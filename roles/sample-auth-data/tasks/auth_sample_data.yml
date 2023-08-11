@@ -11,14 +11,14 @@
           END IF; 
         END $do$
 
-  - name: add devices for tenant tenant1{{ sample_postfix }}
+  - name: add device mapping for tenant tenant1{{ sample_postfix }}
     postgresql_query:
       db: "{{ fworch_db_name }}"
       query: >
-        DO $do$ BEGIN 
+        DO $do$ BEGIN
           IF NOT EXISTS (SELECT * FROM tenant_to_device LEFT JOIN tenant USING (tenant_id) WHERE tenant_name='tenant1{{ sample_postfix }}') THEN 
             INSERT INTO tenant_to_device (tenant_id, device_id)
-            SELECT tenant_id, (select dev_id FROM device where device.dev_name='fortigate{{ sample_postfix }}') from tenant WHERE tenant.tenant_name='tenant1{{ sample_postfix }}'; 
+            SELECT tenant_id, (select dev_id FROM device where device.dev_name='{{ sample_fortigate_name }}') from tenant WHERE tenant.tenant_name='tenant1{{ sample_postfix }}'; 
           END IF; 
         END $do$
 
@@ -33,7 +33,7 @@
           END IF; 
         END $do$
 
-  - name: add devices for tenant tenant2{{ sample_postfix }}
+  - name: add device mapping for tenant tenant2{{ sample_postfix }}
     postgresql_query:
       db: "{{ fworch_db_name }}"
       query: >
@@ -41,7 +41,7 @@
           IF NOT EXISTS 
             (SELECT * FROM tenant_to_device LEFT JOIN tenant USING (tenant_id) WHERE tenant_name='tenant2{{ sample_postfix }}') THEN 
             INSERT INTO tenant_to_device (tenant_id, device_id) 
-          SELECT tenant_id, (select dev_id FROM device where device.dev_name='checkpoint{{ sample_postfix }}') from tenant WHERE tenant.tenant_name='tenant2{{ sample_postfix }}'; 
+          SELECT tenant_id, (select dev_id FROM device where device.dev_name='{{ demo_cpr8x_name }}') from tenant WHERE tenant.tenant_name='tenant2{{ sample_postfix }}'; 
           END IF; 
         END $do$
     when: sample_role_purpose is not match('test')
@@ -54,7 +54,7 @@
             IF EXISTS (SELECT tenant_id FROM tenant WHERE tenant_name='tenant1_demo') THEN
                 IF NOT EXISTS (SELECT * FROM tenant_network LEFT JOIN tenant USING (tenant_id) WHERE tenant_name='tenant1_demo' and tenant_net_ip='10.222.0.32/27') THEN
                     insert into tenant_network (tenant_id, tenant_net_ip, tenant_net_comment) 
-                    VALUES ((SELECT tenant_id FROM tenant WHERE tenant_name='tenant1_demo'), '10.222.0.32/27', 'demo network for tenant 1') ON CONFLICT DO NOTHING;
+                    VALUES ((SELECT tenant_id FROM tenant WHERE tenant_name='tenant1_demo'), '10.10.0.0/16', 'demo network for tenant 1') ON CONFLICT DO NOTHING;
                 END IF;
             END IF;
             IF EXISTS (SELECT tenant_id FROM tenant WHERE tenant_name='tenant2_demo') THEN

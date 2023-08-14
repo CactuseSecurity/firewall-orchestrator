@@ -3169,11 +3169,14 @@ INSERT INTO txt VALUES ('H5112', 'German',  'Kommentar: Optionale Beschreibung d
 INSERT INTO txt VALUES ('H5112', 'English', 'Comment: Optional description of this management.');
 INSERT INTO txt VALUES ('H5113', 'German',  'Ger&auml;tetyp*: bitte das korrekte Produkt von der Liste ausw&auml;hlen (siehe oben)');
 INSERT INTO txt VALUES ('H5113', 'English', 'Device Type*: Select correct product from a list of available types, see above.');
-INSERT INTO txt VALUES ('H5114', 'German',  'Hostname*: Adresse des Hosts (entweder IP-Addresse oder aufl&ouml;sbarer Name). 
+INSERT INTO txt VALUES ('H5114', 'German',  'Hostname*: Adresse des Hosts (entweder IP-Addresse oder aufl&ouml;sbarer Name).<br>
+    Wenn die native Konfiguration eines Firewall-Systems als JSON-Datei zu Testzwecken eingelesen werden soll, ist hier die URI in einem der folgenden Formate anzugeben:<br>
+    https://..., http://..., file://...<br>
     F&uuml;r Check Point R8x MDS Installationen die Addresse des MDS-Servers f&uuml;r alle Domains benutzen.<br>
     F&uuml;r alle Firewall-Plattformen, die kein separates Management-System besitzen, muss die IP oder der aufl&ouml;sbare Name des Firewallgateways spezifiziert werden.
 ');
-INSERT INTO txt VALUES ('H5114', 'English', 'Hostname*: Address of the host (either IP address or resolvable name). 
+INSERT INTO txt VALUES ('H5114', 'English', 'Hostname*: Address of the host (either IP address or resolvable name).<br>
+    For reading the native firewall config from a JSON file (for testing purposes), enter the URI of the file (https://..., http://..., file://...)<br>
     For Check Point R8x MDS installations use the address of the MDS server for all domains.<br>
     For all firewall platforms which do not possess a separate management, use the IP address or the resolvable name of the firewall gateway.
 ');

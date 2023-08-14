@@ -8,88 +8,89 @@ def normalize_svcobjects(full_config, config2import, import_id, scope):
     svc_objects = []
     full_config['svc_obj_lookup_dict'] = {}
     for s in scope:
-        for obj_orig in full_config[s]:
-            member_names = ''
-            if 'member' in obj_orig:
-                type = 'group'
-                for member in obj_orig['member']:
-                    member_names += member['name'] + list_delimiter
-                member_names = member_names[:-1]
-            else:
-                type = 'simple'
-
-            name = None
-            if 'name' in obj_orig:
-                name = str(obj_orig['name'])
-
-            color = None
-            if 'color' in obj_orig and str(obj_orig['color']) != 0:
-                color = str(obj_orig['color'])
-
-            session_timeout = None   # todo: find the right timer
-    #        if 'udp-idle-timer' in obj_orig and str(obj_orig['udp-idle-timer']) != 0:
-    #            session_timeout = str(obj_orig['udp-idle-timer'])
-
-            proto = 0
-            range_names = ''
-            if 'protocol' in obj_orig:
-                added_svc_obj = 0
-                # if obj_orig['protocol'] == 1:
-                #     addObject(svc_objects, type, name, color, 1, None, None, session_timeout, import_id, full_config=full_config)
-                #     added_svc_obj += 1
-                # if obj_orig['protocol'] == 2:
-                #     if 'protocol-number' in obj_orig:
-                #         proto = obj_orig['protocol-number']
-                #     addObject(svc_objects, type, name, color, proto, None, None, session_timeout, import_id)
-                #     added_svc_obj += 1
-                # if  obj_orig['protocol'] == 5 or obj_orig['protocol'] == 11 or obj_orig['protocol'] == 'TCP/UDP/SCTP':
-                if  obj_orig['protocol'] == 'TCP/UDP/SCTP':
-                    split = check_split(obj_orig)
-                    if "tcp-portrange" in obj_orig and len(obj_orig['tcp-portrange']) > 0:
-                        tcpname = name
-                        if split:
-                            tcpname += "_tcp"
-                            range_names += tcpname + list_delimiter
-                        addObject(svc_objects, type, tcpname, color, 6, obj_orig['tcp-portrange'], None, session_timeout, import_id, full_config=full_config)
-                        added_svc_obj += 1
-                    if "udp-portrange" in obj_orig and len(obj_orig['udp-portrange']) > 0:
-                        udpname = name
-                        if split:
-                            udpname += "_udp"
-                            range_names += udpname + list_delimiter
-                        addObject(svc_objects, type, udpname, color, 17, obj_orig['udp-portrange'], None, session_timeout, import_id, full_config=full_config)
-                        added_svc_obj += 1
-                    if "sctp-portrange" in obj_orig and len(obj_orig['sctp-portrange']) > 0:
-                        sctpname = name
-                        if split:
-                            sctpname += "_sctp"
-                            range_names += sctpname + list_delimiter
-                        addObject(svc_objects, type, sctpname, color, 132, obj_orig['sctp-portrange'], None, session_timeout, import_id, full_config=full_config)
-                        added_svc_obj += 1
-                    if split:
-                        range_names = range_names[:-1]
-                        # TODO: collect group members
-                        addObject(svc_objects, 'group', name, color, 0, None, range_names, session_timeout, import_id, full_config=full_config)
-                        added_svc_obj += 1
-                    if added_svc_obj==0: # assuming RPC service which here has no properties at all
-                        addObject(svc_objects, 'rpc', name, color, 0, None, None, None, import_id, full_config=full_config)
-                        added_svc_obj += 1
-                elif obj_orig['protocol'] == 'IP':
-                    addObject(svc_objects, 'simple', name, color, obj_orig['protocol-number'], None, None, None, import_id, full_config=full_config)
-                    added_svc_obj += 1
-                elif obj_orig['protocol'] == 'ICMP':
-                    addObject(svc_objects, 'simple', name, color, 1, None, None, None, import_id, full_config=full_config)
-                    added_svc_obj += 1
-                elif obj_orig['protocol'] == 'ICMP6':
-                    addObject(svc_objects, 'simple', name, color, 1, None, None, None, import_id, full_config=full_config)
-                    added_svc_obj += 1
+        if s in full_config:
+            for obj_orig in full_config[s]:
+                member_names = ''
+                if 'member' in obj_orig:
+                    type = 'group'
+                    for member in obj_orig['member']:
+                        member_names += member['name'] + list_delimiter
+                    member_names = member_names[:-1]
                 else:
-                    logger.warning("Unknown service protocol found: " + obj_orig['name'] +', proto: ' + obj_orig['protocol'])
-            elif type == 'group':
-                addObject(svc_objects, type, name, color, 0, None, member_names, session_timeout, import_id, full_config=full_config)
-            else:
-                # application/list
-                addObject(svc_objects, type, name, color, 0, None, None, session_timeout, import_id, full_config=full_config)
+                    type = 'simple'
+
+                name = None
+                if 'name' in obj_orig:
+                    name = str(obj_orig['name'])
+
+                color = None
+                if 'color' in obj_orig and str(obj_orig['color']) != 0:
+                    color = str(obj_orig['color'])
+
+                session_timeout = None   # todo: find the right timer
+        #        if 'udp-idle-timer' in obj_orig and str(obj_orig['udp-idle-timer']) != 0:
+        #            session_timeout = str(obj_orig['udp-idle-timer'])
+
+                proto = 0
+                range_names = ''
+                if 'protocol' in obj_orig:
+                    added_svc_obj = 0
+                    # if obj_orig['protocol'] == 1:
+                    #     addObject(svc_objects, type, name, color, 1, None, None, session_timeout, import_id, full_config=full_config)
+                    #     added_svc_obj += 1
+                    # if obj_orig['protocol'] == 2:
+                    #     if 'protocol-number' in obj_orig:
+                    #         proto = obj_orig['protocol-number']
+                    #     addObject(svc_objects, type, name, color, proto, None, None, session_timeout, import_id)
+                    #     added_svc_obj += 1
+                    # if  obj_orig['protocol'] == 5 or obj_orig['protocol'] == 11 or obj_orig['protocol'] == 'TCP/UDP/SCTP':
+                    if  obj_orig['protocol'] == 'TCP/UDP/SCTP':
+                        split = check_split(obj_orig)
+                        if "tcp-portrange" in obj_orig and len(obj_orig['tcp-portrange']) > 0:
+                            tcpname = name
+                            if split:
+                                tcpname += "_tcp"
+                                range_names += tcpname + list_delimiter
+                            addObject(svc_objects, type, tcpname, color, 6, obj_orig['tcp-portrange'], None, session_timeout, import_id, full_config=full_config)
+                            added_svc_obj += 1
+                        if "udp-portrange" in obj_orig and len(obj_orig['udp-portrange']) > 0:
+                            udpname = name
+                            if split:
+                                udpname += "_udp"
+                                range_names += udpname + list_delimiter
+                            addObject(svc_objects, type, udpname, color, 17, obj_orig['udp-portrange'], None, session_timeout, import_id, full_config=full_config)
+                            added_svc_obj += 1
+                        if "sctp-portrange" in obj_orig and len(obj_orig['sctp-portrange']) > 0:
+                            sctpname = name
+                            if split:
+                                sctpname += "_sctp"
+                                range_names += sctpname + list_delimiter
+                            addObject(svc_objects, type, sctpname, color, 132, obj_orig['sctp-portrange'], None, session_timeout, import_id, full_config=full_config)
+                            added_svc_obj += 1
+                        if split:
+                            range_names = range_names[:-1]
+                            # TODO: collect group members
+                            addObject(svc_objects, 'group', name, color, 0, None, range_names, session_timeout, import_id, full_config=full_config)
+                            added_svc_obj += 1
+                        if added_svc_obj==0: # assuming RPC service which here has no properties at all
+                            addObject(svc_objects, 'rpc', name, color, 0, None, None, None, import_id, full_config=full_config)
+                            added_svc_obj += 1
+                    elif obj_orig['protocol'] == 'IP':
+                        addObject(svc_objects, 'simple', name, color, obj_orig['protocol-number'], None, None, None, import_id, full_config=full_config)
+                        added_svc_obj += 1
+                    elif obj_orig['protocol'] == 'ICMP':
+                        addObject(svc_objects, 'simple', name, color, 1, None, None, None, import_id, full_config=full_config)
+                        added_svc_obj += 1
+                    elif obj_orig['protocol'] == 'ICMP6':
+                        addObject(svc_objects, 'simple', name, color, 1, None, None, None, import_id, full_config=full_config)
+                        added_svc_obj += 1
+                    else:
+                        logger.warning("Unknown service protocol found: " + obj_orig['name'] +', proto: ' + obj_orig['protocol'])
+                elif type == 'group':
+                    addObject(svc_objects, type, name, color, 0, None, member_names, session_timeout, import_id, full_config=full_config)
+                else:
+                    # application/list
+                    addObject(svc_objects, type, name, color, 0, None, None, session_timeout, import_id, full_config=full_config)
 
     # finally add "Original" service object for natting
     original_obj_name = 'Original'

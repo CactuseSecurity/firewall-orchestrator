@@ -91,3 +91,6 @@ In 2020 we decided to re-launch a new
 - replacing legacy demo data import with standard imported data, closing #2197 (note: only for new installations, an upgrade will not touch the demo data)
 - test imports can now be made from file (integrated in UI)
 - improve debugging of imports (no errors for missing object parts)
+
+### 7.1.1 - 15.08.2023 DEVELOP
+- fixes upgrade bug on systems without demo data

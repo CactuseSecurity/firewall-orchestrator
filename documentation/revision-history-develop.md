@@ -94,3 +94,6 @@ In 2020 we decided to re-launch a new
 
 ### 7.1.1 - 15.08.2023 DEVELOP
 - fixes upgrade bug on systems without demo data
+
+### 7.1.2 - 16.08.2023 DEVELOP
+- adding Check Point R8x Inform action

@@ -40,23 +40,7 @@ else
     {
         try
         {
-            if(authenticationStateTask!.Result.User.IsInRole("admin"))
-            {
-                apiConnection.SetRole("admin");
-            }
-            else if(authenticationStateTask!.Result.User.IsInRole("fw-admin"))
-            {
-                apiConnection.SetRole("fw-admin");
-            }
-            else if(authenticationStateTask!.Result.User.IsInRole("requester"))
-            {
-                apiConnection.SetRole("requester");
-            }
-            else
-            {
-                apiConnection.SetRole("auditor");
-            }
-
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { "admin", "fw-admin", "requester", "auditor"});
             await states.Init(apiConnection);
 
             reqHandler = new RequestHandler(DisplayMessageInUi, userConfig, apiConnection, WorkflowPhases.request){};

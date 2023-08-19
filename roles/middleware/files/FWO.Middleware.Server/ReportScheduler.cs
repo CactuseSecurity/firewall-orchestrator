@@ -23,7 +23,7 @@ namespace FWO.Middleware.Server
 
         private readonly string apiServerUri;
         private readonly ApiConnection apiConnection;
-        private readonly ApiSubscription<ScheduledReport[]> scheduledReportsSubscription;
+        private readonly GraphQlApiSubscription<ScheduledReport[]> scheduledReportsSubscription;
         private readonly JwtWriter jwtWriter;
 
         private readonly object ldapLock = new object();
@@ -32,7 +32,7 @@ namespace FWO.Middleware.Server
 		/// <summary>
 		/// Constructor needing connection, jwtWriter and subscription to connected ldaps
 		/// </summary>
-        public ReportScheduler(ApiConnection apiConnection, JwtWriter jwtWriter, ApiSubscription<List<Ldap>> connectedLdapsSubscription)
+        public ReportScheduler(ApiConnection apiConnection, JwtWriter jwtWriter, GraphQlApiSubscription<List<Ldap>> connectedLdapsSubscription)
         {
             this.jwtWriter = jwtWriter;            
             this.apiConnection = apiConnection;
@@ -152,6 +152,10 @@ namespace FWO.Middleware.Server
                         // for scheduling no device selection means "all"
                         report.Template.ReportParams.DeviceFilter.Managements = await apiConnectionUserContext.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
                         report.Template.ReportParams.DeviceFilter.applyFullDeviceSelection(true);
+                    }
+                    if(report.Template.ReportParams.ReportType == (int)ReportType.UnusedRules)
+                    {
+                        report.Template.ReportParams.DeviceFilter = (await ReportBase.GetUsageDataUnsupportedDevices(apiConnection, report.Template.ReportParams.DeviceFilter)).reducedDeviceFilter;
                     }
 
                     ReportBase reportRules = ReportBase.ConstructReport(report.Template, userConfig);

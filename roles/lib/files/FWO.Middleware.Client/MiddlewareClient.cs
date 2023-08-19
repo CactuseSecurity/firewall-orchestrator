@@ -10,8 +10,9 @@ using System.Runtime.CompilerServices;
 
 namespace FWO.Middleware.Client
 {
-    public class MiddlewareClient
+    public class MiddlewareClient : IDisposable
     {
+        private bool disposed = false;
         private RestClient restClient;
         readonly string middlewareServerUri;
 
@@ -240,6 +241,27 @@ namespace FWO.Middleware.Client
             RestRequest request = new RestRequest("Tenant", Method.Delete);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<bool>(request);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposed) return;
+            if (disposing)
+            {
+                restClient.Dispose();
+                disposed = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        ~ MiddlewareClient()
+        {
+            Dispose(false);
         }
     }
 }

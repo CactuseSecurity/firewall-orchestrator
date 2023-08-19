@@ -8,6 +8,7 @@ using FWO.Logging;
 using FWO.Ui.Services;
 using BlazorTable;
 using RestSharp;
+using Microsoft.AspNetCore.Components.Server.Circuits;
 
 namespace FWO.Ui
 {
@@ -28,7 +29,7 @@ namespace FWO.Ui
             services.AddServerSideBlazor();
 
             services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
-            services.AddScoped<CircuitHandlerService, CircuitHandlerService>();
+            services.AddScoped<CircuitHandler, CircuitHandlerService>();
 
             string ApiUri = ConfigFile.ApiServerUri;
             string MiddlewareUri = ConfigFile.MiddlewareServerUri;
@@ -36,7 +37,7 @@ namespace FWO.Ui
 
             services.AddScoped<ApiConnection>(_ => new GraphQlApiConnection(ApiUri));
             services.AddScoped<MiddlewareClient>(_ => new MiddlewareClient(MiddlewareUri));
-            
+
             // create "anonymous" (empty) jwt
             MiddlewareClient middlewareClient = new MiddlewareClient(MiddlewareUri);
             ApiConnection apiConn = new GraphQlApiConnection(ApiUri);
@@ -44,7 +45,7 @@ namespace FWO.Ui
             RestResponse<string> createJWTResponse = middlewareClient.CreateInitialJWT().Result;
             bool connectionEstablished = createJWTResponse.IsSuccessful;
             int connectionAttemptsCount = 1;
-            while (!connectionEstablished) 
+            while (!connectionEstablished)
             {
                 Log.WriteError("Middleware Server Connection",
                 $"Error while authenticating as anonymous user from UI (Attempt {connectionAttemptsCount}), "
@@ -60,10 +61,11 @@ namespace FWO.Ui
             apiConn.SetAuthHeader(jwt);
 
             // get all non-confidential configuration settings and add to a global service (for all users)
-            GlobalConfig globalConfig = Task.Run(async() => await GlobalConfig.ConstructAsync(jwt)).Result;
-            services.AddSingleton<GlobalConfig>(_ => globalConfig);    
+            GlobalConfig globalConfig = Task.Run(async () => await GlobalConfig.ConstructAsync(jwt)).Result;
+            services.AddSingleton<GlobalConfig>(_ => globalConfig);
             services.AddScoped<UserConfig>(_ => new UserConfig(globalConfig));
 
+            services.AddScoped(_ => new NetworkZoneService());
             services.AddScoped(_ => new DomEventService());
 
             services.AddBlazorTable();

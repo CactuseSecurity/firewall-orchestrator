@@ -27,7 +27,8 @@ namespace FWO.Ui
             return Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
-                    webBuilder.UseStartup<Startup>();
+					webBuilder.UseStaticWebAssets();
+					webBuilder.UseStartup<Startup>();
                 });
         }
     }

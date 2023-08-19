@@ -89,7 +89,7 @@
     </div>
     <hr />
     <RulesReport Recertification="true" ReadonlyMode="readonlyMode" Managements="managements" RulesPerPage="rulesPerPage" 
-        ReportParams="reportParams" @bind-SelectedRules="selectedRules" SelectedReportType="ReportType.Recertification"/>
+        @bind-SelectedRules="selectedRules" SelectedReportType="ReportType.Recertification"/>
 </div>
 
 <PopUp Title="@(userConfig.GetText("add_comment"))" Show="@AddCommentMode" Large="true" OnClose="() => AddCommentMode = false">
@@ -159,8 +159,6 @@
     private Sidebar? deviceSelectionSidebar;
     private bool AddCommentMode = false;
     private string actComment = "";
-    private bool recertShowAnyMatch = true;
-    private bool recertSingleLinePerRule = false;
     private int recertLookAheadDays = 0;
 
     private List<Rule> Certifications = new List<Rule>();
@@ -173,19 +171,7 @@
 
         try
         {
-            if(authenticationStateTask!.Result.User.IsInRole("recertifier"))
-            {
-                apiConnection.SetRole("recertifier");
-            }
-            else if(authenticationStateTask!.Result.User.IsInRole("admin"))
-            {
-                apiConnection.SetRole("admin");
-            }
-            else
-            {
-                apiConnection.SetRole("auditor");
-            }
-
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { "recertifier", "admin", "auditor"});
             rulesFound = false;
             ticketCreator = new TicketCreator(apiConnection, userConfig);
 
@@ -316,15 +302,14 @@
             ownerList.Add(selectedOwner.Id);
         }
 
-        RecertFilter recertFilter = new RecertFilter()
+        ReportParams reportParams = new ReportParams((int) ReportType.Recertification, deviceFilter);
+        reportParams.RecertFilter = new RecertFilter()
         {
             RecertOwnerList = ownerList,
-            RecertShowAnyMatch = recertShowAnyMatch,
-            RecertSingleLinePerRule = recertSingleLinePerRule,
+            RecertShowAnyMatch = true,
             RecertificationDisplayPeriod = recertLookAheadDays
         };
-        reportParams = new ReportTemplate("", deviceFilter, (int) ReportType.Recertification, new TimeFilter(), recertFilter);
-        currentReport = ReportBase.ConstructReport(reportParams, userConfig);
+        currentReport = ReportBase.ConstructReport(new ReportTemplate("", reportParams), userConfig);
     }
 
     private void SyncFilterToDisplay()
@@ -381,9 +366,12 @@
             await DoRecerts();
 
             // create delete tickets
-            foreach(var device in deleteList)
+            if(userConfig.RecAutoCreateDeleteTicket)
             {
-                await ticketCreator.CreateRuleDeleteTicket(device.Key, device.Value, actComment, DateTime.Now.AddDays(userConfig.RuleRemovalGracePeriod));
+                foreach(var device in deleteList)
+                {
+                    await ticketCreator.CreateDecertRuleDeleteTicket(device.Key, device.Value, actComment, DateTime.Now.AddDays(userConfig.RuleRemovalGracePeriod));
+                }
             }
 
             // reload updated report
@@ -408,7 +396,6 @@
                 {
                     foreach (Rule rule in device.Rules)
                     {
-                        // await InitRecert(rule); // just for test
                         if(rule.Metadata.Recert || rule.Metadata.ToBeRemoved)
                         {
                             rule.DeviceId = device.Id;

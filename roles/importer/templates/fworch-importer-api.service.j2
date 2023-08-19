@@ -15,7 +15,6 @@ After=network.target remote-fs.target nss-lookup.target
 WorkingDirectory={{ importer_home }}
 ExecStartPre=/bin/sleep 10
 ExecStart={{ importer_home }}/import-main-loop.py
-# ExecStop={{ importer_home }}/import-api-stop-helper
 TimeoutStopSec=300min
 StandardOutput=journal
 StandardError=journal

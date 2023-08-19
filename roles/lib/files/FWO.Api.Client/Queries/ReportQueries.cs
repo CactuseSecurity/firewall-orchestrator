@@ -34,6 +34,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string deleteGeneratedReport;
         public static readonly string addGeneratedReport;
 
+        public static readonly string getUsageDataCount;
+
         static ReportQueries() 
         {
             try
@@ -59,6 +61,7 @@ namespace FWO.Api.Client.Queries
                 getGeneratedReport = File.ReadAllText(QueryPath + "report/getGeneratedReport.graphql");
                 deleteGeneratedReport = File.ReadAllText(QueryPath + "report/deleteGeneratedReport.graphql");
                 addGeneratedReport = File.ReadAllText(QueryPath + "report/addGeneratedReport.graphql");
+                getUsageDataCount = File.ReadAllText(QueryPath + "report/getUsageDataCount.graphql");
             }
             catch (Exception exception)
             {

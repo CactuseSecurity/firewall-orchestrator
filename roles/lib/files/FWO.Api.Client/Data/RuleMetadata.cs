@@ -38,6 +38,9 @@ namespace FWO.Api.Data
         [JsonProperty("recertification"), JsonPropertyName("recertification")]
         public List<Recertification> RuleRecertification { get; set; } = new List<Recertification>();
 
+        [JsonProperty("recert_history"), JsonPropertyName("recert_history")]
+        public List<Recertification> RecertHistory { get; set; } = new List<Recertification>();
+
         public DateTime NextRecert { get; set; }
 
         public string LastCertifierName { get; set; } = "";

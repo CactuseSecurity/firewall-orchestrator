@@ -63,3 +63,37 @@ In 2020 we decided to re-launch a new
 - UI settings: hotfix email port (default 25) was not written to config before
 - splitting revision history into develop and main
 - installer: supress csharp test results on success
+
+### 6.4.13 20.07.2023 DEVELOP
+- re-login now also with enter key
+- fixing help pages (email & importer settings, archive, scheduling) [#2162](https://github.com/CactuseSecurity/firewall-orchestrator/issues/2162)
+
+### 6.5.0 24.07.2023 DEVELOP
+- UI: adding compliance matrix module
+- UI: fix browser session persistence causing subscriptions to remain open after user logout; now api connection and web socket are disposed on logout
+- API: removing obsolete graphql query repos
+- API: upgrading hasura api to 2.30.0
+- installer: replacing deprecated path_to_script option in postgresql_query
+
+### 6.5.1 24.07.2023 DEVELOP
+- New report type Unused Rules
+
+### 7.0.1 - 28.07.2023 DEVELOP
+- Compliance matrix edit fix
+- Logout audit logging fix
+
+### 7.0.2 - 28.07.2023 DEVELOP
+- Default templates for new report types
+
+### 7.1 - 11.08.2023 DEVELOP
+- adding tenant network UI
+- adding test import via URI in hostname field
+- replacing legacy demo data import with standard imported data, closing #2197 (note: only for new installations, an upgrade will not touch the demo data)
+- test imports can now be made from file (integrated in UI)
+- improve debugging of imports (no errors for missing object parts)
+
+### 7.1.1 - 15.08.2023 DEVELOP
+- fixes upgrade bug on systems without demo data
+
+### 7.1.2 - 16.08.2023 DEVELOP
+- adding Check Point R8x Inform action

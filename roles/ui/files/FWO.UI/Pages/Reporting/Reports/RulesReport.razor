@@ -31,7 +31,14 @@
                                     </Template>
                                 </Column>
                             }
-
+                            @if(SelectedReportType == ReportType.UnusedRules)
+                            {
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("last_hit"))" Field="@(rule => rule.Metadata.LastHit)" Sortable="false" Filterable="false">
+                                    <Template>
+                                        @((MarkupString)ruleDisplay.DisplayLastHit(rule))
+                                    </Template>
+                                </Column>
+                            }
                             @if(SelectedReportType == ReportType.Recertification)
                             {
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("next_recert"))" Field="@(rule => rule.Metadata.RuleRecertification)" Sortable="false" Filterable="false">
@@ -140,7 +147,7 @@
                                     </Template>
                                 </Column>
                             }
-                            @if(NatRules)
+                            @if(SelectedReportType == ReportType.NatRules)
                             {
                                     <Column Class="table-active" TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_source"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                         <Template>
@@ -158,11 +165,11 @@
                                         </Template>
                                     </Column>
                             }
-                            @if (EmptyColumns[7] == false && !NatRules)
+                            @if (EmptyColumns[7] == false && SelectedReportType != ReportType.NatRules)
                             {
                                 <Column TableItem="Rule" Title="@(userConfig.GetText("action"))" Field="@(rChange => rChange.Action)" Sortable="true" Filterable="false" Hideable="true" />
                             }
-                            @if (EmptyColumns[8] == false && !NatRules)
+                            @if (EmptyColumns[8] == false && SelectedReportType != ReportType.NatRules)
                             {
                                 <Column TableItem="Rule" Title="@(userConfig.GetText("track"))" Field="@(rChange => rChange.Track)" Sortable="true" Filterable="false" Hideable="true" />
                             }
@@ -194,6 +201,11 @@
                                     // TODO: not able to get this syntactically working, but implicit info is there: ToBeRemoved == NOT DecertificationDate IS NULL *@
                                 <Detail Title="@(userConfig.GetText("decert_date"))" Data="@context.Metadata?.DecertificationDate?.ToString()" />
                                 <Detail Title="@(userConfig.GetText("recert_comment"))" Data="@context.Metadata?.Comment?.ToString()" />
+                                <Detail Title="@(userConfig.GetText("recert_history"))" Data="@(context.Metadata?.RecertHistory.Count > 0 ? ":" : "")" />
+                                @foreach(var recert in context.Metadata?.RecertHistory)
+                                {
+                                    <Detail Title="@(recert.RecertDate.ToString())" Data="@(getHistoryString(recert))" />
+                                }
                             </DetailTemplate>
 
                             <CustomRow TableItem="Rule" IsActiveForItem="(rule => !String.IsNullOrEmpty(rule.SectionHeader))">
@@ -224,9 +236,6 @@
     public ReportType SelectedReportType { get; set; }
 
     [Parameter]
-    public bool NatRules { get; set; }
-
-    [Parameter]
     public EventCallback<List<Rule>> SelectedRulesChanged { get; set; }
 
     [Parameter]
@@ -243,9 +252,6 @@
 
     [Parameter]
     public Management[] Managements { get; set; } = new Management[]{};
-
-    [Parameter]
-    public ReportTemplate ReportParams { get; set; } = new ReportTemplate();
 
     private bool RecertificationHistory { get; set; } = false;
     private ITable<Rule>? reportTable;
@@ -276,5 +282,12 @@
     private OutputLocation getActLocation()
     {
         return Recertification ? OutputLocation.certification : OutputLocation.report;
+    }
+
+    private string getHistoryString(Recertification recert)
+    {
+        string username = new DistName(recert.UserDn).UserName;
+        return $"{userConfig.GetText(recert.Recertified ? "recertified_by" : "decertified_by")} {username} " +
+            $"{userConfig.GetText("as_owner")} {recert.FwoOwner?.Name} {userConfig.GetText("comment")}: {recert.Comment}";
     }
 }

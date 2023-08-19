@@ -121,7 +121,7 @@
                 try
                 {
                     await ((AuthStateProvider)AuthService).Authenticate(jwtLoadRequest.Value ?? throw new AccessViolationException("Jwt from protected storage is null"),
-                    ApiConnection, middlewareClient, userConfig, ((CircuitHandlerService)circuitHandler), sessionStorage);
+                    ApiConnection, middlewareClient, globalConfig, userConfig, ((CircuitHandlerService)circuitHandler), sessionStorage);
                     return;
                 }
                 catch (Exception ex) { Log.WriteError("Session Restore", "Session restore unsuccessful.", ex); }
@@ -174,7 +174,7 @@
             try
             {
                 RestResponse<string> authResponse = await ((AuthStateProvider)AuthService)
-                .Authenticate(Username, Password, ApiConnection, middlewareClient, userConfig, sessionStorage, ((CircuitHandlerService)circuitHandler));
+                .Authenticate(Username, Password, ApiConnection, middlewareClient, globalConfig, userConfig, sessionStorage, ((CircuitHandlerService)circuitHandler));
 
                 if (authResponse.StatusCode == HttpStatusCode.OK)
                 {

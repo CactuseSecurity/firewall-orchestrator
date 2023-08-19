@@ -26,7 +26,7 @@ namespace FWO.Ui.Auth
         }
 
         public async Task<RestResponse<string>> Authenticate(string username, string password, ApiConnection apiConnection, MiddlewareClient middlewareClient,
-            UserConfig userConfig, ProtectedSessionStorage sessionStorage, CircuitHandlerService circuitHandler)
+            GlobalConfig globalConfig, UserConfig userConfig, ProtectedSessionStorage sessionStorage, CircuitHandlerService circuitHandler)
         {
             // There is no jwt in session storage. Get one from auth module.
             AuthenticationTokenGetParameters authenticationParameters = new AuthenticationTokenGetParameters { Username = username, Password = password };
@@ -35,7 +35,7 @@ namespace FWO.Ui.Auth
             if (apiAuthResponse.StatusCode == HttpStatusCode.OK)
             {
                 string jwtString = apiAuthResponse.Data ?? throw new Exception("no response data");
-                await Authenticate(jwtString, apiConnection, middlewareClient, userConfig, circuitHandler, sessionStorage);
+                await Authenticate(jwtString, apiConnection, middlewareClient, globalConfig, userConfig, circuitHandler, sessionStorage);
                 Log.WriteAudit("AuthenticateUser", $"user {username} successfully authenticated");
             }
 
@@ -43,7 +43,7 @@ namespace FWO.Ui.Auth
         }
 
         public async Task Authenticate(string jwtString, ApiConnection apiConnection, MiddlewareClient middlewareClient,
-            UserConfig userConfig, CircuitHandlerService circuitHandler, ProtectedSessionStorage sessionStorage)
+            GlobalConfig globalConfig, UserConfig userConfig, CircuitHandlerService circuitHandler, ProtectedSessionStorage sessionStorage)
         {
             // Try to auth with jwt (validates it and creates user context on UI side).
             JwtReader jwtReader = new JwtReader(jwtString);
@@ -65,9 +65,6 @@ namespace FWO.Ui.Auth
                 // Tell middleware connection to use jwt as authentication
                 middlewareClient.SetAuthenticationToken(jwtString);
 
-                // Add jwt expiry timer
-                JwtEventService.AddJwtTimers(userConfig.User.Dn, (int)jwtReader.TimeUntilExpiry().TotalMilliseconds, 1000 * 60 * userConfig.SessionTimeoutNoticePeriod);
-
                 // Set user claims based on the jwt claims
                 ClaimsIdentity identity = new ClaimsIdentity
                 (
@@ -77,11 +74,15 @@ namespace FWO.Ui.Auth
                     roleType: "role"
                 );
 
+                // Set user information
                 user = new ClaimsPrincipal(identity);
-
-                await userConfig.SetUserInformation(user.FindFirstValue("x-hasura-uuid"), apiConnection);
-                circuitHandler.User = userConfig.User;
+                string userDn = user.FindFirstValue("x-hasura-uuid");
+                await userConfig.SetUserInformation(userDn, apiConnection);
                 userConfig.User.Jwt = jwtString;
+                circuitHandler.User = userConfig.User;
+
+                // Add jwt expiry timer
+                JwtEventService.AddJwtTimers(userDn, (int)jwtReader.TimeUntilExpiry().TotalMilliseconds, 1000 * 60 * globalConfig.SessionTimeoutNoticePeriod);
 
                 if (!userConfig.User.PasswordMustBeChanged)
                 {

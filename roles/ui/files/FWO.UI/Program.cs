@@ -78,12 +78,10 @@ Log.WriteInfo("Environment", $"{app.Environment.ApplicationName} runs in {app.En
 
 if (app.Environment.IsDevelopment())
 {
-	Debug.WriteLine("TEST");
 	app.UseDeveloperExceptionPage();
 }
 else
 {
-	Debug.WriteLine("TEST2");
 	app.UseExceptionHandler("/Error");
 	// The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
 	// app.UseHsts();

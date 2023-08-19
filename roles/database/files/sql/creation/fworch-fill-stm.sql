@@ -153,6 +153,43 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
                 "end_time": "2022-01-01T00:00:00.0000000+01:00",
                 "open_start": false,
                 "open_end": false}}');
+INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters") 
+    VALUES ('','Last year''s Unused Rules','T0106', 0,
+        '{"report_type":10,"device_filter":{"management":[]},
+            "time_filter": {
+                "is_shortcut": true,
+                "shortcut": "now",
+                "report_time": "2022-01-01T00:00:00.0000000+01:00",
+                "timerange_type": "SHORTCUT",
+                "shortcut_range": "this year",
+                "offset": 0,
+                "interval": "DAYS",
+                "start_time": "2022-01-01T00:00:00.0000000+01:00",
+                "end_time": "2022-01-01T00:00:00.0000000+01:00",
+                "open_start": false,
+                "open_end": false},
+            "unused_filter": {
+                "creationTolerance": 0,
+                "unusedForDays": 365}}');
+INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters") 
+    VALUES ('','Next Month''s Recertifications','T0107', 0,
+        '{"report_type":7,"device_filter":{"management":[]},
+            "time_filter": {
+                "is_shortcut": true,
+                "shortcut": "now",
+                "report_time": "2022-01-01T00:00:00.0000000+01:00",
+                "timerange_type": "SHORTCUT",
+                "shortcut_range": "this year",
+                "offset": 0,
+                "interval": "DAYS",
+                "start_time": "2022-01-01T00:00:00.0000000+01:00",
+                "end_time": "2022-01-01T00:00:00.0000000+01:00",
+                "open_start": false,
+                "open_end": false},
+            "recert_filter": {
+                "recertOwnerList": [],
+                "recertShowAnyMatch": true,
+                "recertificationDisplayPeriod": 30}}');
 
 insert into parent_rule_type (id, name) VALUES (1, 'section');          -- do not restart numbering
 insert into parent_rule_type (id, name) VALUES (2, 'guarded-layer');    -- restart numbering, rule restrictions are ANDed to all rules below it, layer is not entered if guard does not apply
@@ -217,6 +254,7 @@ insert into stm_action (action_id,action_name) VALUES (25,'NAT dst, svc') ON CON
 insert into stm_action (action_id,action_name) VALUES (26,'NAT svc') ON CONFLICT DO NOTHING; -- port nat
 insert into stm_action (action_id,action_name) VALUES (27,'NAT src, svc') ON CONFLICT DO NOTHING; -- source ip nat plus port nat
 insert into stm_action (action_id,action_name) VALUES (28,'NAT') ON CONFLICT DO NOTHING; -- generic NAT
+insert into stm_action (action_id,action_name) VALUES (29,'inform'); -- cp
 
 insert into stm_track (track_id,track_name) VALUES (1,'log');
 insert into stm_track (track_id,track_name) VALUES (2,'none');

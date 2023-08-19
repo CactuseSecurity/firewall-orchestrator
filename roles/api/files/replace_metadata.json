@@ -5133,7 +5133,11 @@
                   "permission": {
                     "columns": [
                       "ldap_connection_id",
-                      "ldap_tenant_level"
+                      "ldap_name",
+                      "ldap_port",
+                      "ldap_server",
+                      "ldap_tenant_level",
+                      "tenant_id"
                     ],
                     "filter": {}
                   }
@@ -10119,6 +10123,16 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "dev_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -10589,9 +10603,11 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "dev_id"
+                      "dev_id",
+                      "rule_last_hit"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 },
                 {
@@ -13405,6 +13421,22 @@
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "tenant_can_view_all_devices",
+                      "tenant_is_superadmin",
+                      "tenant_report",
+                      "tenant_name",
+                      "tenant_projekt",
+                      "tenant_id",
+                      "tenant_comment",
+                      "tenant_create"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
@@ -13423,6 +13455,23 @@
                 }
               ],
               "update_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "tenant_can_view_all_devices",
+                      "tenant_is_superadmin",
+                      "tenant_report",
+                      "tenant_name",
+                      "tenant_projekt",
+                      "tenant_id",
+                      "tenant_comment",
+                      "tenant_create"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  }
+                },
                 {
                   "role": "middleware-server",
                   "permission": {

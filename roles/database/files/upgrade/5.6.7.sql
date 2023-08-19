@@ -130,10 +130,10 @@ BEGIN
 		LOOP
 			SELECT INTO b_do_not_import do_not_import FROM device WHERE dev_id=r_dev.dev_id;
 			IF NOT b_do_not_import THEN		--	RAISE NOTICE 'importing %', r_dev.dev_name;
-				v_err_pos := 'import_rules of device ' || r_dev.dev_name || ' (Management: ' || CAST (i_mgm_id AS VARCHAR) || ')';
+				v_err_pos := 'import_rules of device ' || r_dev.dev_name || ' (Management: ' || CAST (i_mgm_id AS VARCHAR) || ') ';
 				IF (import_rules(r_dev.dev_id, i_current_import_id)) THEN  				-- returns true if rule order needs to be changed
 																						-- currently always returns true as each import needs a rule reordering
-					v_err_pos := 'import_rules_set_rule_num_numeric of device ' || r_dev.dev_name || ' (Management: ' || CAST (i_mgm_id AS VARCHAR) || ')';
+					v_err_pos := 'import_rules_set_rule_num_numeric of device ' || r_dev.dev_name || ' (Management: ' || CAST (i_mgm_id AS VARCHAR) || ') ';
 					-- in case of any changes - adjust rule_num values in rulebase
 					PERFORM import_rules_set_rule_num_numeric (i_current_import_id,r_dev.dev_id);
 				END IF;

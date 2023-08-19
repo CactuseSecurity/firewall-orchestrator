@@ -23,16 +23,6 @@
                     </a>
                 </li>
                 <li class="nav-item px-2">
-                    <a class="nav-link" href="/help/scheduling/?lang=@($"{userConfig.GetUserLanguage()}")">
-                        <span class="oi oi-calendar"></span> @userConfig.GetText("scheduling")
-                    </a>
-                </li>
-                <li class="nav-item px-2">
-                    <a class="nav-link" href="/help/archive/?lang=@($"{userConfig.GetUserLanguage()}")">
-                        <span class="oi oi-box"></span> @userConfig.GetText("archive")
-                    </a>
-                </li>
-                <li class="nav-item px-2">
                     <a class="nav-link" href="/help/workflow/?lang=@($"{userConfig.GetUserLanguage()}")">
                         <span class="oi oi-comment-square"></span> @userConfig.GetText("workflow")
                     </a>
@@ -61,7 +51,7 @@
         </div>
     </nav>
     @RenderSection("sidebar", false)
-    <div style="margin-left: 300px">
+    <div style="margin-left: 350px">
         @RenderBody()
     </div>
 </body>

@@ -1,0 +1,62 @@
+﻿@using NetTools;
+@using FWO.Api.Data
+
+@inject UserConfig userConfig
+
+<div class="form-group row">
+    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ip_addresses")):</label>
+    <div class="col-sm-9">
+        @foreach(var ipAdd in IpAddresses)
+        {
+            <div class="col-sm-12">
+                <div class="row">
+                    <label class="col-sm-11 border form-control form-control-sm bg-secondary">@ipAdd.DisplayIp()</label>
+                    <button type="button" class="col-sm-1 btn btn-sm form-control form-control-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteIp(ipAdd)">x</button>
+                </div>
+            </div>
+        }
+        <div class="col-sm-12">
+            <div class="form-group row">
+                <div class="col-sm-10">
+                    <IpAddressInput @bind-IpRange="ipRangeToAdd" />
+                </div>
+                <button @onclick="AddIpRange" type="button" class="col-sm-2 btn-sm btn-success" id="addIpAddress">@userConfig.GetText("add")</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code
+{
+    [Parameter]
+    public List<NwObjectElement> IpAddresses { get; set; } = new List<NwObjectElement>();
+
+    [Parameter]
+    public EventCallback<List<NwObjectElement>> IpAddressesChanged { get; set; }
+    
+    [Parameter]
+    public Func<bool> IpAltered { get; set; } = DefaultInit.DoNothingSync;
+
+
+    private IPAddressRange? ipRangeToAdd;
+
+    private void AddIpRange()
+	{
+		if (ipRangeToAdd != null)
+		{
+			NwObjectElement obj = new NwObjectElement(ipRangeToAdd, 0);
+            if (obj.Cidr.Valid)
+            {
+                IpAddresses.Add(obj);
+                IpAltered();
+            }
+			ipRangeToAdd = null;
+		}
+	}    
+
+    private void DeleteIp(NwObjectElement obj)
+    {
+        IpAddresses.Remove(obj);
+        IpAltered();
+    }
+}

@@ -1,6 +1,8 @@
 ﻿@using FWO.Config.Api
 @using FWO.Report.Filter
 
+@implements IDisposable
+
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
@@ -160,7 +162,7 @@
 
 @code
 {
-    private ApiSubscription<ScheduledReport[]>? scheduledReportsSubscription;
+    private GraphQlApiSubscription<ScheduledReport[]>? scheduledReportsSubscription;
     private List<ScheduledReport> scheduledReports = new List<ScheduledReport>();
     private ScheduledReport scheduledReportInEdit = new ScheduledReport();
     private DateTime actDate = DateTime.Today;
@@ -318,5 +320,10 @@
             return false;
         }
         return true;
+    }
+
+    public void Dispose()
+    {
+        scheduledReportsSubscription?.Dispose();
     }
 }

@@ -136,7 +136,7 @@ namespace FWO.Config.Api
             }
         }
 
-        public string Convert(string rawText)
+        private string Convert(string rawText)
         {
             string plainText = System.Web.HttpUtility.HtmlDecode(rawText);
 

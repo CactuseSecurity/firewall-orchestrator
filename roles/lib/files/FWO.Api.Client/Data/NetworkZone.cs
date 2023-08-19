@@ -1,4 +1,6 @@
-using System.Text.Json.Serialization; 
+using System.Net;
+using System.Text.Json.Serialization;
+using NetTools;
 using Newtonsoft.Json;
 
 namespace FWO.Api.Data
@@ -10,5 +12,6 @@ namespace FWO.Api.Data
 
         [JsonProperty("zone_name"), JsonPropertyName("zone_name")]
         public string Name { get; set; } = "";
+
     }
 }

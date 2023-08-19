@@ -34,6 +34,12 @@ namespace FWO.Config.Api.Data
         [JsonProperty("autoFillRightSidebar"), JsonPropertyName("autoFillRightSidebar")]
         public bool AutoFillRightSidebar { get; set; } = false;
 
+        [JsonProperty("unusedTolerance"), JsonPropertyName("unusedTolerance")]
+        public int UnusedTolerance { get; set; } = 400;
+
+        [JsonProperty("creationTolerance"), JsonPropertyName("creationTolerance")]
+        public int CreationTolerance { get; set; } = 90;
+
         [JsonProperty("dataRetentionTime"), JsonPropertyName("dataRetentionTime")]
         public int DataRetentionTime { get; set; } = 731;
 
@@ -144,7 +150,7 @@ namespace FWO.Config.Api.Data
         public string EmailServerAddress { get; set; } = "";
 
         [JsonProperty("emailPort"), JsonPropertyName("emailPort")]
-        public int EmailPort { get; set; } = 25;
+        public int EmailPort { get; set; }
 
         [JsonProperty("emailTls"), JsonPropertyName("emailTls")]
         public EmailEncryptionMethod EmailTls { get; set; } = EmailEncryptionMethod.None;

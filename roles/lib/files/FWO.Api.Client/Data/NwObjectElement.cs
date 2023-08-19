@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
+using NetTools;
 
 namespace FWO.Api.Data
 {
@@ -17,6 +18,20 @@ namespace FWO.Api.Data
         }
         public Cidr Cidr { get; set; } = new Cidr();
 
+        [JsonProperty("ip_end"), JsonPropertyName("ip_end")]
+        public string IpEndString
+        {
+            get { return CidrEnd?.CidrString ?? ""; }
+            set { CidrEnd = new Cidr(value); }
+        }
+        public Cidr? CidrEnd { get; set; } = new Cidr();
+
+        [JsonProperty("name"), JsonPropertyName("name")]
+        public string? Name { get; set; }
+
+        [JsonProperty("comment"), JsonPropertyName("comment")]
+        public string? Comment { get; set; }
+
         public long TaskId { get; set; }
 
         public long? NetworkId { get; set; }
@@ -28,6 +43,21 @@ namespace FWO.Api.Data
         {
             Cidr = new Cidr(cidrString);
             TaskId = taskId;
+        }
+
+        public NwObjectElement(IPAddressRange ipAddressRange, long taskId)
+        {
+            Cidr = new Cidr(ipAddressRange.Begin.ToString());
+            if(ipAddressRange.End != null && ipAddressRange.End != ipAddressRange.Begin)
+            {
+                CidrEnd = new Cidr(ipAddressRange.End.ToString());
+            }
+            TaskId = taskId;
+        }
+
+        public string DisplayIp()
+        {
+            return (Cidr.CidrString + (CidrEnd != null && CidrEnd.CidrString != "" ? " - " + CidrEnd.CidrString : ""));
         }
 
         public RequestReqElement ToReqElement(ElemFieldType field)

@@ -97,3 +97,17 @@ In 2020 we decided to re-launch a new
 
 ### 7.1.2 - 16.08.2023 DEVELOP
 - adding Check Point R8x Inform action
+
+### 7.2 - 21.08.2023 DEVELOP
+mostly version update summarizing latest PRs
+- UI/API: adding tenant ip filtering beta version (clean-up and optiomazation necessary)
+- API: updating hasura to 2.32.0
+- UI: now not showing super managers in RSB all tab
+- UI: bug fixes blazor environment settings
+  - Use production / development based on the build type instead of always using development.
+  - Do not show detailed errors in production mode.
+  - Use the custom error page in the production environment.
+  - Spelling mistake fix
+- UI: bug fix jwt expiry
+  - jwt expiry timer now works as intended
+  - after the jwt expired no exception can be triggered anymore

@@ -1,0 +1,29 @@
+query getNetworkObjectDetails(
+  $management_id: [Int!]
+  $nwObjTyp: [String!]
+  $nwObjUid: [String!]
+  $time: String
+  $obj_name: [String!]
+  $obj_ip: [cidr!]
+  $limit: Int
+  $offset: Int
+) {
+  management(where: { mgm_id: { _in: $management_id }, stm_dev_typ:{dev_typ_is_multi_mgmt:{_eq:false}} }) {
+    id: mgm_id
+    name: mgm_name
+    networkObjects: get_objects_for_tenant(
+      limit: $limit
+      offset: $offset
+      where: {
+        stm_obj_typ: { obj_typ_name: { _in: $nwObjTyp } }
+        active: { _eq: true }
+        obj_name: { _in: $obj_name }
+        obj_ip: { _in: $obj_ip }
+        obj_uid: { _in: $nwObjUid }
+      }
+      order_by: { obj_name: asc }
+    ) {
+      ...networkObjectDetails
+    }
+  }
+}

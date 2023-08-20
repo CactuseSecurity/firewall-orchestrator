@@ -13,6 +13,7 @@
 @using RestSharp
 
 @inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 @inject MiddlewareClient middlewareClient
 @inject NavigationManager NavigationManager
@@ -39,21 +40,37 @@
             <div>@dialogTitle - @dialogMessage</div>
             <div class="oi oi-x" @onclick="@(() => { messageDialogShow = false; StateHasChanged();})"></div>
         </div>
-        @if (showReloginInput)
-        {
-            <div class="input-group">
-              <input type="password" class="form-control form-control-sm @reloginCssClass" @bind="password" placeholder="@(userConfig.GetText("password"))" @bind:event="oninput" @onkeypress="@KeyHandler">
-              <div class="input-group-append">
-                <button type="button" class="btn btn-sm btn-primary" @onclick="Relogin">@(userConfig.GetText("relogin"))</button> 
-              </div>
-            </div>
-            @if (!string.IsNullOrEmpty(reloginErrorMessage))
-            {
-                <label class="mt-1 mb-1 text-danger">@reloginErrorMessage</label>                
-            }
-        }
     </div>
 }
+
+<PopUp Title="@(reloginDialogTitle)" Show="@(showReloginDialog)">
+    <Body>
+        <p>@(reloginDialogText)</p>
+        <div class="input-group">
+            <div class="input-group-prepend">
+                <span class="input-group-text"><span class="oi oi-lock-locked"></span></span>               
+            </div>
+            <input type="password" class="form-control @reloginCssClass" @bind="password" placeholder="@(userConfig.GetText("password"))" @bind:event="oninput" @onkeypress="@KeyHandler">
+        </div>
+        @if (!string.IsNullOrEmpty(reloginErrorMessage))
+        {
+            <label class="mt-1 mb-1 text-danger">@reloginErrorMessage</label>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            @if (reloginAbortable)
+            {
+                <button type="button" class="btn btn-secondary" @onclick="@(() => showReloginDialog = false)">@(userConfig.GetText("cancel"))</button>
+            }
+            else
+            {
+                <a class="btn btn-danger" href="/logout">@(userConfig.GetText("logout"))</a>                
+            }
+            <button type="button" class="btn btn-primary" @onclick="Relogin">@(userConfig.GetText("relogin"))</button>
+        </div>
+    </Footer>
+</PopUp>
 
 @code
 {
@@ -72,7 +89,10 @@
 
     private string reloginErrorMessage = "";
     private string reloginCssClass = "";
-    private bool showReloginInput;
+    private string reloginDialogTitle = "";
+    private string reloginDialogText = "";
+    private bool showReloginDialog;
+    private bool reloginAbortable;
     private string? password;
     private ClaimsPrincipal? user;
 
@@ -109,8 +129,7 @@
     {
         if (userDn == userConfig.User.Dn)
         {
-            showReloginInput = true;
-            ShowMessage(userConfig.GetText("permissions_title"), userConfig.GetText("permissions_text"), MessageType.Info, showtime: -1);
+            ShowReloginDialog(userConfig.GetText("permissions_title"), userConfig.GetText("permissions_text"), reloginAbortable: true);
         }
     }
 
@@ -118,8 +137,7 @@
     {
         if (userDn == userConfig.User.Dn)
         {
-            showReloginInput = true;
-            ShowMessage(userConfig.GetText("jwt_expiry_title"), userConfig.GetText("jwt_expiry_text"), MessageType.Info, showtime: -1);
+            ShowReloginDialog(userConfig.GetText("jwt_expiry_title"), userConfig.GetText("jwt_expiry_text"), reloginAbortable: true);
         }
     }
 
@@ -127,9 +145,19 @@
     {
         if (userDn == userConfig.User.Dn)
         {
-            showReloginInput = true;
-            ShowMessage(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), MessageType.Info, showtime: -1);
+            ShowReloginDialog(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), reloginAbortable: false);
         }
+    }
+
+    private void ShowReloginDialog(string title, string text, bool reloginAbortable)
+    {
+        reloginErrorMessage = "";
+        password = "";
+        this.reloginAbortable = reloginAbortable;
+        reloginDialogTitle = title;
+        reloginDialogText = text;
+        showReloginDialog = true;
+        InvokeAsync(StateHasChanged);
     }
 
     private async Task Relogin()
@@ -142,11 +170,10 @@
         try
         {
             RestResponse<string> authResponse = await ((AuthStateProvider)authenticationProvider).Authenticate(userConfig.User.Name,
-            password, apiConnection, middlewareClient, userConfig, sessionStorage, ((CircuitHandlerService)circuitHandler));
+            password, apiConnection, middlewareClient, globalConfig, userConfig, sessionStorage, ((CircuitHandlerService)circuitHandler));
             if (authResponse.StatusCode == System.Net.HttpStatusCode.OK) 
             { 
-                showReloginInput = false;
-                messageDialogShow = false;
+                showReloginDialog = false;
                 reloginErrorMessage = "";
                 password = "";
                 return;
@@ -154,7 +181,7 @@
             else
             {
                 // There was an error trying to authenticate the user. Probably invalid credentials
-                errorMessage = (authResponse.Data != null ? userConfig.GetApiText(authResponse.Data) : "Middleware Api Error: " + authResponse.Content);            
+                errorMessage = (authResponse.Data != null ? userConfig.GetApiText(authResponse.Data) : "Middleware Api Error: " + authResponse.Content);
             }
         }
         catch (Exception ex)
@@ -256,9 +283,9 @@
             {
                 Log.WriteError("Auth Token Error", "JWT expired in session.", exception);
                 // TODO: Improve error handling for jwt expiry / api unreachable, so that no action leads to unhandled exception
-                if (!showReloginInput)
+                if (!showReloginDialog)
                 {
-                    showReloginInput = true;
+                    showReloginDialog = true;
                     ShowMessage(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), MessageType.Info, showtime: -1);
                 }
                 return;

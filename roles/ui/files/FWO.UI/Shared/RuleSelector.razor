@@ -1,0 +1,114 @@
+﻿@using FWO.Api.Data
+@using FWO.Api.Client
+@using FWO.Api.Client.Queries
+
+@inject UserConfig userConfig
+@inject ApiConnection apiConnection
+
+<div class="form-group row">
+    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("rules")):</label>
+    <div class="col-sm-9">
+        <EditList ElementType="Rule" Elements="SelectedRules.OrderBy(r => r.DeviceId).ToArray()" ElementsToAdd="RulesToAdd" ElementsToDelete="RulesToDelete" StdLayout="false">
+            <Display>
+                    <div class="row">
+                        <div class="col-sm-2 border form-control form-control-sm bg-secondary">@Devices.FirstOrDefault(d => d.Id == context.Metadata.DeviceId)?.Name</div>
+                        <div class="col-sm-10 border form-control form-control-sm bg-secondary">@context.Metadata.Uid</div>
+                    </div>
+            </Display>
+        </EditList>
+        <div class="col-sm-12">
+            <div class="form-group row">
+                <div class="col-sm-3">
+                    <Dropdown ElementType="Device" ElementToString="@(d => d.Name)"
+                        SelectedElement="actDevice" SelectedElementChanged="DeviceChanged" Elements="Devices">
+                        <ElementTemplate Context="dev">
+                            @dev.Name
+                        </ElementTemplate>
+                    </Dropdown>
+                </div>
+                <div class="col-sm-7">
+                    <Dropdown ElementType="Rule" ElementToString="@(r => r.Uid)" @bind-SelectedElement="actRule" Elements="allRulesOfDevice">
+                        <ElementTemplate Context="rule">
+                            @rule.Uid
+                        </ElementTemplate>
+                    </Dropdown>
+                </div>
+                <button @onclick="AddRule" type="button" class="col-sm-2 btn-sm btn-success" id="addRule">@userConfig.GetText("add")</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public List<Rule> SelectedRules { get; set; } = new List<Rule>();
+
+    [Parameter]
+    public List<Rule> RulesToAdd { get; set; } = new List<Rule>();
+
+    [Parameter]
+    public EventCallback<List<Rule>> RulesToAddChanged { get; set; }
+
+    [Parameter]
+    public List<Rule> RulesToDelete { get; set; } = new List<Rule>();
+
+    [Parameter]
+    public EventCallback<List<Rule>> RulesToDeleteChanged { get; set; }
+
+    private List<Device> Devices = new List<Device>();
+    private Device actDevice = new Device();
+    private List<Rule> allRulesOfDevice = new List<Rule>();
+    private Rule actRule = new Rule();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
+            // Devices = await apiConnection.SendQueryAsync<List<Device>>(AuthQueries.getVisibleDeviceIdsPerTenant, new { tenantId = userConfig.User.Tenant?.Id }, "getVisibleDeviceIdsPerTenant");
+            actDevice = Devices.First();
+            await DeviceChanged(actDevice);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private async Task DeviceChanged(Device newDevice)
+    {
+        try
+        {
+            actDevice = newDevice;
+            var Variables = new
+            {
+                time = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                mgmIds = Devices.FirstOrDefault(d => d.Id == newDevice.Id)?.Management.Id
+            };
+            List<Management> managementsWithRelevantImportId =
+                await apiConnection.SendQueryAsync<List<Management>>(ReportQueries.getRelevantImportIdsAtTime, Variables);
+            
+            var RuleVariables = new
+            {
+                devId = newDevice.Id,
+                relevantImportId = managementsWithRelevantImportId.First().Import.ImportAggregate.ImportAggregateMax.RelevantImportId
+            };
+            allRulesOfDevice = await apiConnection.SendQueryAsync<List<Rule>>(FWO.Api.Client.Queries.RuleQueries.getRuleUidsOfDevice, RuleVariables);
+            actRule = allRulesOfDevice.FirstOrDefault() ?? new Rule();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private void AddRule()
+	{
+        RulesToAdd.Add(actRule);
+	}    
+}

@@ -196,7 +196,7 @@ Create table "rule_metadata"
 	"rule_last_certified" Timestamp,
 	"rule_last_certifier" Integer,
 	"rule_last_certifier_dn" VARCHAR,
-	"rule_owner" Integer,
+	"rule_owner" Integer, -- points to a uiuser (not an owner)
 	"rule_owner_dn" Varchar, -- distinguished name pointing to ldap group, path or user
 	"rule_to_be_removed" Boolean NOT NULL Default FALSE,
 	"last_change_admin" Integer,

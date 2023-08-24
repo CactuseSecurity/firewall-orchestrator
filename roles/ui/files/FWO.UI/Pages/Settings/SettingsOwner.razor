@@ -192,7 +192,7 @@
                     @if (!actOwner.IsDefault)
                     {
                         <RuleSelector SelectedRules="actRules" @bind-RulesToAdd="rulesToAdd" @bind-RulesToDelete="rulesToDelete"/>
-                        <IpSelector @bind-IpAddresses="actIpAddresses" IpAltered="setIpChanged"/>
+                        <IpSelector IpAddresses="actIpAddresses" @bind-IpsToAdd="ipsToAdd" @bind-IpsToDelete="ipsToDelete"/>
                     }
                 </div>
             }
@@ -398,7 +398,8 @@ else
     private bool recertCalcInProgress = false;
 
     private List<NwObjectElement> actIpAddresses = new List<NwObjectElement>();
-    private bool ipChanged = false;
+    private List<NwObjectElement> ipsToAdd = new List<NwObjectElement>();
+    private List<NwObjectElement> ipsToDelete = new List<NwObjectElement>();
     private List<Rule> actRules = new List<Rule>();
     private List<Rule> rulesToAdd = new List<Rule>();
     private List<Rule> rulesToDelete = new List<Rule>();
@@ -479,7 +480,8 @@ else
                 actIpAddresses = await apiConnection.SendQueryAsync<List<NwObjectElement>>(FWO.Api.Client.Queries.OwnerQueries.getNetworkOwnerships, new { ownerId = actOwner.Id });
                 actRules= await apiConnection.SendQueryAsync<List<Rule>>(FWO.Api.Client.Queries.OwnerQueries.getRuleOwnerships, new { ownerId = actOwner.Id });
             }
-            ipChanged = false;
+            ipsToAdd.Clear();
+            ipsToDelete.Clear();
             rulesToAdd.Clear();
             rulesToDelete.Clear();
             EditOwnerMode = true;
@@ -488,12 +490,6 @@ else
         {
             DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
-    }
-
-    public bool setIpChanged()
-    {
-        ipChanged = true;
-        return true;
     }
 
     private async Task SaveOwner()
@@ -584,13 +580,8 @@ else
         {
             await deleteRuleOwners();
             await addRuleOwners();
-            // TODO: block editing single ip addresses - either delete them or add new ones.
-            if(ipChanged)
-            {
-                await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.OwnerQueries.deleteNetworkOwnerships, new { ownerId = actOwner.Id });
-                // actOwner.NwObjElements.Clear();
-                await addNetworkOwners();
-            }
+            await deleteNetworkOwners();
+            await addNetworkOwners();
             owners[owners.FindIndex(x => x.Id == actOwner.Id)] = actOwner;
         }
     }
@@ -625,7 +616,7 @@ else
 
     private async Task addNetworkOwners()
     {
-        foreach(var ipAdd in actIpAddresses)
+        foreach(var ipAdd in ipsToAdd)
         {
             var Variables = new
             {
@@ -633,7 +624,21 @@ else
                 ip = (ipAdd.Cidr != null && ipAdd.Cidr.Valid ? ipAdd.Cidr.CidrString : null)
             };
             await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.OwnerQueries.newNetworkOwnership, Variables);
-            // actOwner.NwObjElements.Add(ipAdd);
+            actIpAddresses.Add(ipAdd);
+        }
+    }
+
+    private async Task deleteNetworkOwners()
+    {
+        foreach(var ipDel in ipsToDelete)
+        {
+            var Variables = new
+            {
+                ownerId = actOwner.Id,
+                id = ipDel.ElemId
+            };
+            await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.OwnerQueries.deleteNetworkOwnership, Variables);
+            actIpAddresses.Remove(ipDel);
         }
     }
 

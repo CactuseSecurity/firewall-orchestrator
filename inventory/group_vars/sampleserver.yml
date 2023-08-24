@@ -3,8 +3,10 @@ sample_config_user: fworchsample
 # sample_config_user_home: "/home/{{ sample_config_user }}"
 sample_data_rate: medium
 sample_role_purpose: demo
-sample_fortigate_name: fortigate_demo
-sample_checkpoint_name: "checkpoint_demo"
+sample_fortigate_basename: fortigate
+sample_fortigate_name: "{{ sample_fortigate_basename }}_demo"
+sample_checkpoint_basename: "checkpoint"
+sample_checkpoint_name: "{{ sample_checkpoint_basename }}_demo"
 sample_checkpoint_uri: "https://fwodemodata.cactus.de/demo04_cpr8x.json"
 demo_cpr8x_name_without_demo: "CPR81"
 demo_cpr8x_name: "{{ demo_cpr8x_name_without_demo}}_demo"

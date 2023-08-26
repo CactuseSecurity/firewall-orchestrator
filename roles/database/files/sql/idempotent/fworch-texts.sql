@@ -3898,12 +3898,42 @@ INSERT INTO txt VALUES ('H5574', 'English', 'Enter device in request: Default va
 ');
 INSERT INTO txt VALUES ('H5575', 'German',  'Nach Pfadanalyse: F&uuml;r jedes bei der automatischen Pfadanalyse gefundene Ger&auml;t wird ein eigener Implementierungs-Auftrag angelegt.');
 INSERT INTO txt VALUES ('H5575', 'English', 'After path analysis: For each device found in the automatic path analysis an own implementation task is created.');
-INSERT INTO txt VALUES ('H5581', 'German',  'In diesem Abschnitt k&ouml;nnen die vorhandenen Eigent&uuml;mer eingesehen und administriert (falls in den <a href="/help/settings/workflowcustomizing">Einstellungen</a> aktiviert) werden. 
+INSERT INTO txt VALUES ('H5581', 'German',  'In diesem Abschnitt k&ouml;nnen die vorhandenen Eigent&uuml;mer eingesehen und administriert (falls in den <a href="/help/settings/workflowcustomizing">Einstellungen</a> aktiviert) werden.
+    Die Eigent&uuml;merschaft muss Nutzern entweder direkt oder &uuml;ber Eigent&uuml;mergruppen zugeordnet werden.
     Es ist geplant, die Eigent&uuml;merschaft mit der Zust&auml;ndigkeit bei der Antragsstellung zu verkn&uuml;pfen.
 ');
 INSERT INTO txt VALUES ('H5581', 'English', 'In this chapter the existing owners can be displayed and administrated (if activated in the <a href="/help/settings/workflowcustomizing">Customizing Settings</a>).
+    Ownership has to be assigned to users directly or via owner groups.
     It is planned to connect the ownership with responsiblity on request creation.
 ');
+INSERT INTO txt VALUES ('H5582', 'German',  'Name: Name der Eigent&uuml;mers');
+INSERT INTO txt VALUES ('H5582', 'English', 'Name: Owner name');
+INSERT INTO txt VALUES ('H5583', 'German',  'Vollst&auml;ndiger Name: Name und Ldap-Pfad des zugeordneten Nutzers.
+    Mindestens eines der Felder "Vollst&auml;ndiger Name" oder "Gruppe" muss gef&uuml;llt sein.
+');
+INSERT INTO txt VALUES ('H5583', 'English', 'Distinguished Name: Name and Ldap path of the associated user.
+    At least one of the fields "Distinguished Name" or "Group" has to be filled.
+');
+INSERT INTO txt VALUES ('H5584', 'German',  'Gruppe: Name und Ldap-Pfad der zugeordneten Nutzergruppe.
+    Die referenzierte Gruppe muss in den <a href="/help/settings/groups">Gruppen-Einstellungen</a> als Eigent&uuml;mergruppe markiert sein.
+    Mindestens eines der Felder "Vollst&auml;ndiger Name" oder "Gruppe" muss gef&uuml;llt sein.
+');
+INSERT INTO txt VALUES ('H5584', 'English', 'Group: Name and Ldap path of the associated user group.
+    The referenced group has to be marked as owner group in the <a href="/help/settings/groups">Group settings</a>.
+    At least one of the fields "Distinguished Name" or "Group" has to be filled.
+');
+INSERT INTO txt VALUES ('H5585', 'German',  'Mandant: Der Mandant, dem der Eigent&uuml;mer zugeordnet ist.');
+INSERT INTO txt VALUES ('H5585', 'English', 'Tenant: Tenant to which the owner is assigned to.');
+INSERT INTO txt VALUES ('H5586', 'German',  'Externe Anwendungs-Id: Id eines externen Eigent&uuml;mers, vorgesehen f&uuml;r importierte Eigent&uuml;merschaften.');
+INSERT INTO txt VALUES ('H5586', 'English', 'External Application Id: Id of an external owner, which may be used for imported ownerships.');
+INSERT INTO txt VALUES ('H5587', 'German',  'Rezertintervall (in Tagen): Hier kann das in den <a href="/help/settings/recertificationgeneral">Allgemeinen Rezertifizierungseinstellungen</a> gesetzte Rezertifizierungsintervall f&uuml;r den aktuellen Eigent&uuml;mer &uuml;berschrieben werden.');
+INSERT INTO txt VALUES ('H5587', 'English', 'Recert Interval (in days): Here the recert interval set in the <a href="/help/settings/recertificationgeneral">global recertification settings</a> can be overwritten for the specific owner.');
+INSERT INTO txt VALUES ('H5588', 'German',  'Rezert Check alle: Hier kann das in den <a href="/help/settings/recertificationgeneral">Allgemeinen Rezertifizierungseinstellungen</a> gesetzte Rezert-Check-Intervall f&uuml;r den aktuellen Eigent&uuml;mer &uuml;berschrieben werden.');
+INSERT INTO txt VALUES ('H5588', 'English', 'Recert Check every: Here the recert check interval set in the <a href="/help/settings/recertificationgeneral">global recertification settings</a> can be overwritten for the specific owner.');
+INSERT INTO txt VALUES ('H5589', 'German',  'Regeln: Dem Eigent&uuml;mer k&ouml;nnen hier einzelne Regeln, definiert durch Gateway und Regel-Uid, zugeordnet werden.');
+INSERT INTO txt VALUES ('H5589', 'English', 'Rules: specific rules, defined by gateway and rule Uid, can be assigned to the owner.');
+INSERT INTO txt VALUES ('H5590', 'German',  'IP-Adressen: Dem Eigent&uuml;mer k&ouml;nnen hier einzelne IP-Adressen zugeordnet werden.');
+INSERT INTO txt VALUES ('H5590', 'English', 'IP Addresses: IP addresses can be assigned to the owner.');
 
 INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator verf&uuml;gt &uuml;ber zwei APIs:
     <ul>

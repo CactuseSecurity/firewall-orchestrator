@@ -45,11 +45,9 @@
                     <div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div>
                 }
             </Authorized>
-        </AuthorizeView>
-        <AuthorizeView Roles="auditor" Context="ctx">
-            <Authorized>
+            <NotAuthorized>
                 <button type="button" disabled class="btn btn-sm btn-info m-2">@(userConfig.GetText("recalc_recerts"))</button>
-            </Authorized>
+            </NotAuthorized> 
         </AuthorizeView>
 
         @if (showCleanupButton)
@@ -74,6 +72,9 @@
                                         <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteOwner(context)">@(userConfig.GetText("delete"))</button>
                                     </Authorized>
                                 </AuthorizeView>
+                                <NotAuthorized>
+                                    <button type="button" disabled class="btn btn-sm btn-danger">@(userConfig.GetText("delete"))</button>
+                                </NotAuthorized> 
                             }
                         </div>
                     </Template>

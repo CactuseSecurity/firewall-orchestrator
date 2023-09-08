@@ -3,9 +3,7 @@
 CREATE OR REPLACE FUNCTION public.get_visible_devices_per_tenant(integer)
     RETURNS SETOF device_type 
     LANGUAGE 'plpgsql'
-    COST 100
     STABLE 
-    ROWS 1000
 AS $BODY$
 DECLARE
 	i_tenant_id ALIAS FOR $1;
@@ -32,9 +30,7 @@ $BODY$;
 CREATE OR REPLACE FUNCTION public.get_visible_managements_per_tenant(integer)
     RETURNS SETOF device_type 
     LANGUAGE 'plpgsql'
-    COST 100
     STABLE 
-    ROWS 1000
 AS $BODY$
 DECLARE
 	i_tenant_id ALIAS FOR $1;
@@ -166,7 +162,10 @@ RETURNS boolean AS $$
                     LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                     LEFT JOIN tenant_network ON
                         (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip)
-                WHERE rule_from.rule_id = rule.rule_id AND tenant_id = t_id
+
+                    --             a.Begin <= b.End && b.Begin <= a.End
+
+                WHERE rule_from.rule_id = rule.rule_id AND tenant_id = t_id AND rule.rule_head_text is NULL
             ) THEN
                 show := true;
             END IF;
@@ -177,7 +176,7 @@ RETURNS boolean AS $$
                     LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                     LEFT JOIN tenant_network ON
                         (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip)
-                WHERE rule_to.rule_id = rule.rule_id AND tenant_id = t_id
+                WHERE rule_to.rule_id = rule.rule_id AND tenant_id = t_id AND rule.rule_head_text is NULL
             ) THEN
                 show := true;
             END IF;
@@ -210,7 +209,8 @@ RETURNS boolean AS $$
                     LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                     LEFT JOIN tenant_network ON
                         (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip)
-                WHERE rule_from_id = rule_from.rule_from_id AND tenant_id = t_id --> this better be efficient (rule_from_id checked before join) (!TODO: check this)
+                WHERE rule_from_id = rule_from.rule_from_id AND tenant_id = t_id
+                 --> this better be efficient (rule_from_id checked before join) (!TODO: check this)
             ) THEN
                 show := true;
             ELSE -- check if all rule_from objects visible since relevant rule_to exists
@@ -257,7 +257,8 @@ RETURNS boolean AS $$
                     LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                     LEFT JOIN tenant_network ON
                         (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip)
-                WHERE rule_to_id = rule_to.rule_to_id AND tenant_id = t_id --> this better be efficient (rule_to_id checked before join) (!TODO: check this)
+                WHERE rule_to_id = rule_to.rule_to_id AND tenant_id = t_id
+                --> this better be efficient (rule_to_id checked before join) (!TODO: check this)
             ) THEN
                 show := true;
             ELSE -- check if all rule_to objects visible since relevant rule_from exists
@@ -313,7 +314,7 @@ RETURNS boolean AS $$
                 LEFT JOIN object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
                 LEFT JOIN tenant_network ON
                     (rf_o.obj_ip>>=tenant_net_ip OR rf_o.obj_ip<<=tenant_net_ip OR rt_o.obj_ip>>=tenant_net_ip OR rt_o.obj_ip<<=tenant_net_ip)
-            WHERE (rf_o.obj_id = object.obj_id OR rt_o.obj_id = object.obj_id) AND tenant_id = t_id
+            WHERE (rf_o.obj_id = object.obj_id OR rt_o.obj_id = object.obj_id) AND tenant_id = t_id AND r.rule_head_text is NULL
         ) THEN
             show := true;
         END IF;
@@ -347,7 +348,7 @@ RETURNS SETOF object AS $$
                         LEFT JOIN object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
                         LEFT JOIN tenant_network ON
                             (o.obj_ip>>=tenant_net_ip OR o.obj_ip<<=tenant_net_ip OR rt_o.obj_ip>>=tenant_net_ip OR rt_o.obj_ip<<=tenant_net_ip)
-                    WHERE r.mgm_id = management_row.mgm_id AND tenant_id = tenant
+                    WHERE r.mgm_id = management_row.mgm_id AND tenant_id = tenant AND r.rule_head_text is NULL
                     UNION
                     SELECT o.* FROM object o
                         LEFT JOIN rule_to ON (o.obj_id=rule_to.obj_id)
@@ -357,7 +358,7 @@ RETURNS SETOF object AS $$
                         LEFT JOIN object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
                         LEFT JOIN tenant_network ON
                             (o.obj_ip>>=tenant_net_ip OR o.obj_ip<<=tenant_net_ip OR rf_o.obj_ip>>=tenant_net_ip OR rf_o.obj_ip<<=tenant_net_ip)
-                    WHERE r.mgm_id = management_row.mgm_id AND tenant_id = tenant
+                    WHERE r.mgm_id = management_row.mgm_id AND tenant_id = tenant AND r.rule_head_text is NULL
                 ) AS o
                 ORDER BY obj_name;
         END IF;

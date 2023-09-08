@@ -948,9 +948,7 @@ $$ LANGUAGE plpgsql;
 -- 	RETURN;
 -- END;
 -- $BODY$
---   LANGUAGE 'plpgsql' VOLATILE
---   COST 100
---   ROWS 1000;
+--   LANGUAGE 'plpgsql';
 
 ----------------------------------------------------
 -- FUNCTION:	get_rule_dst_flat
@@ -966,7 +964,9 @@ $$ LANGUAGE plpgsql;
 -- DROP FUNCTION get_rule_src(BIGINT, integer, timestamp without time zone);
 
 -- CREATE OR REPLACE FUNCTION get_rule_dst_flat (BIGINT, integer, timestamp without time zone)
---   RETURNS SETOF BIGINT AS
+--   RETURNS SETOF BIGINT 
+--   LANGUAGE 'plpgsql'
+-- AS
 -- $BODY$
 -- DECLARE
 --     i_rule_id		ALIAS FOR $1;
@@ -1012,10 +1012,7 @@ $$ LANGUAGE plpgsql;
 -- 	END IF;
 -- 	RETURN;
 -- END;
--- $BODY$
---   LANGUAGE 'plpgsql' VOLATILE
---   COST 100
---   ROWS 1000;
+-- $BODY$;
 
 -- Function: get_changed_newrules(refcursor, _int4)
 

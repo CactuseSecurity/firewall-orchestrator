@@ -2,8 +2,7 @@ DROP FUNCTION IF EXISTS devices_in_path (cidr, cidr);
 
 CREATE OR REPLACE FUNCTION public.routing_interface (c_network_object cidr, i_dev_id integer, i_ip_version integer)
     RETURNS integer
-    LANGUAGE 'plpgsql'
-    COST 100 STABLE
+    LANGUAGE 'plpgsql' STABLE
     AS $BODY$
 BEGIN
     RETURN (
@@ -24,8 +23,7 @@ $BODY$;
 
 CREATE OR REPLACE FUNCTION public.devices_in_path (c_source cidr, c_destination cidr)
     RETURNS SETOF device
-    LANGUAGE 'plpgsql'
-    COST 100 STABLE ROWS 1000
+    LANGUAGE 'plpgsql' STABLE ROWS 20
     AS $BODY$
 DECLARE
     dev device;

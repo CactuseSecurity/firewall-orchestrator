@@ -71,10 +71,10 @@
                                     <Authorized>
                                         <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteOwner(context)">@(userConfig.GetText("delete"))</button>
                                     </Authorized>
+                                    <NotAuthorized>
+                                        <button type="button" disabled class="btn btn-sm btn-danger">@(userConfig.GetText("delete"))</button>
+                                    </NotAuthorized> 
                                 </AuthorizeView>
-                                <NotAuthorized>
-                                    <button type="button" disabled class="btn btn-sm btn-danger">@(userConfig.GetText("delete"))</button>
-                                </NotAuthorized> 
                             }
                         </div>
                     </Template>

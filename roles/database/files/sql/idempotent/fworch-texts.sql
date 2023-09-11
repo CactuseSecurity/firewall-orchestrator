@@ -852,6 +852,10 @@ INSERT INTO txt VALUES ('ResolvedChangesTech', 	'German', 	'Changes-Report (tech
 INSERT INTO txt VALUES ('ResolvedChangesTech', 	'English', 	'Changes Report (technical)');
 INSERT INTO txt VALUES ('UnusedRules', 	        'German', 	'Unbenutzte-Regel-Report');
 INSERT INTO txt VALUES ('UnusedRules', 	        'English', 	'Unused Rules Report');
+INSERT INTO txt VALUES ('mixed', 	            'German', 	'Gemischt');
+INSERT INTO txt VALUES ('mixed', 	            'English', 	'Mixed');
+INSERT INTO txt VALUES ('exclusive', 	        'German', 	'Exklusiv');
+INSERT INTO txt VALUES ('exclusive', 	        'English', 	'Exclusive');
 
 -- network analysis
 INSERT INTO txt VALUES ('network_analysis', 	'German',	'Netzanalyse');
@@ -1285,6 +1289,8 @@ INSERT INTO txt VALUES ('reqAllowObjectSearch', 'German', 	'Objektsuche erlauben
 INSERT INTO txt VALUES ('reqAllowObjectSearch', 'English', 	'Allow object search');
 INSERT INTO txt VALUES ('reqAllowManualOwnerAdmin','German', 'Manuelle Eigent&uuml;merverwaltung erlauben');
 INSERT INTO txt VALUES ('reqAllowManualOwnerAdmin','English','Allow manual owner administration');
+INSERT INTO txt VALUES ('ruleOwnershipMode',    'German',   'Regel-Eigent&uuml;merschaftsmodus');
+INSERT INTO txt VALUES ('ruleOwnershipMode',    'English',  'Rule Ownership Mode');
 INSERT INTO txt VALUES ('reqPriorities',        'German', 	'Priorit&auml;ten');
 INSERT INTO txt VALUES ('reqPriorities',        'English', 	'Priorities');
 INSERT INTO txt VALUES ('reqAutoCreateImplTasks','German', 	'Autom. Erzeugen von Implementierungs-Auftr&auml;gen');

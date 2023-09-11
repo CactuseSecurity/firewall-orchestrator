@@ -140,6 +140,16 @@
             <input type="checkbox" class="w-100" @bind="configData!.AllowManualOwnerAdmin">
         </div>
     </form>
+    <form class="form-inline" onsubmit="return false">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("ruleOwnershipMode")):</label>
+        <div class="col-sm-2">
+            <Dropdown @bind-SelectedElement="configData!.RuleOwnershipMode" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues(typeof(RuleOwnershipMode)).Cast<RuleOwnershipMode>()" >
+                <ElementTemplate Context="opt">
+                    @(userConfig.GetText(opt.ToString()))
+                </ElementTemplate>
+            </Dropdown>
+        </div>
+    </form>
     <hr />
     <AuthorizeView Roles="admin">
         <Authorized>

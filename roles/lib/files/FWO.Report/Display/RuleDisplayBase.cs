@@ -61,12 +61,7 @@ namespace FWO.Ui.Display
         public StringBuilder DisplayNetworkLocation(NetworkLocation userNetworkObject, ReportType reportType, string? userName = null, string? objName = null)
         {
             StringBuilder result = new StringBuilder();
-            bool showIpinBrackets = !reportType.IsTechReport();
-            NwObjDisplay nwObj = new NwObjDisplay(
-                    userNetworkObject.Object.Name,
-                    userNetworkObject.Object.IP, userNetworkObject.Object.IpEnd, userNetworkObject.Object.Type.Name,
-                    userNetworkObject.Object.Uid, userNetworkObject.Object.Comment);
-
+            
             if (userNetworkObject.User != null &&  userNetworkObject.User.Id > 0)
             {
                 result.Append($"{userName ?? userNetworkObject.User.Name}@");
@@ -74,11 +69,16 @@ namespace FWO.Ui.Display
 
             if (!reportType.IsTechReport())
             {
-                result.Append(nwObj.DisplayName());
+                result.Append($"{objName ?? userNetworkObject.Object.Name}");
             }
-            if (nwObj.GetNwObjType() != "group")
+            if (userNetworkObject.Object.Type.Name != "group")
             {
-                result.Append(nwObj.DisplayIp(showIpinBrackets));
+                bool showIpinBrackets = !reportType.IsTechReport();
+                result.Append(NwObjDisplay.DisplayIp(
+                    userNetworkObject.Object.IP,
+                    userNetworkObject.Object.IpEnd,
+                    userNetworkObject.Object.Type.Name,
+                    showIpinBrackets));
             }
             return result;
         }

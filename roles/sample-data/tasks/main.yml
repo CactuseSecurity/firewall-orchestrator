@@ -1,13 +1,5 @@
 # this playbook sets up some sample devices with configs to play around with
 
-- name: install package postgresql-client for adding sample devices to db
-  package:
-    name: "{{ item }}"
-    state: present
-  loop:
-    - postgresql-client
-  become: true
-
 - name: create demo credentials
   include_tasks: create-demo-credentials.yml
   when: add_demo_data|bool and (installation_mode=='new' or sample_role_purpose is match('test'))

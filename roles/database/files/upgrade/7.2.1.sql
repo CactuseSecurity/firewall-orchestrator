@@ -50,7 +50,7 @@ BEGIN
 -- handling table object
     FOR r_obj IN SELECT obj_id, obj_ip, obj_ip_end FROM object
     LOOP
-        IF NOT is_single_ip(r_obj.obj_ip) OR r_obj.obj_ip IS NULL THEN
+        IF NOT is_single_ip(r_obj.obj_ip) OR r_obj.obj_ip_end IS NULL THEN
 
             UPDATE object SET obj_ip_end = get_last_ip_of_cidr(r_obj.obj_ip) WHERE obj_id=r_obj.obj_id;
             UPDATE object SET obj_ip = get_first_ip_of_cidr(r_obj.obj_ip) WHERE obj_id=r_obj.obj_id;

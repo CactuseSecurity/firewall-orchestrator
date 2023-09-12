@@ -38,107 +38,6 @@ namespace FWO.Ui.Display
             return (rule.DestinationZone != null ? rule.DestinationZone.Name : "");
         }
 
-        public string DisplayIpRange(string? Ip, string? IpEnd, string ObjType)
-        {
-            if (ObjType != null && ObjType == "network" && Ip != null && Ip != "" && IpEnd != null && IpEnd != "")
-            {
-               return IpRangeToNetwork(Ip, IpEnd);
-            }
-            else
-            {
-                return (Ip != null && Ip != "" ? $"{Ip}{(IpEnd != null && IpEnd != "" && IpEnd != Ip ? $"-{IpEnd}" : "")}" : "");
-            }
-        }
-
-        static BigInteger IpToInt(IPAddress addr)
-        {
-            System.Numerics.BigInteger ipnum;
-
-            byte[] addrBytes = addr.GetAddressBytes();
-
-            if (System.BitConverter.IsLittleEndian)
-            {
-                List<byte> byteList = new List<byte>(addrBytes);
-                byteList.Reverse();
-                addrBytes = byteList.ToArray();
-            }
-
-            if (addrBytes.Length > 8)
-            {
-                //IPv6
-                ipnum = System.BitConverter.ToUInt64(addrBytes, 8);
-                ipnum <<= 64;
-                ipnum += System.BitConverter.ToUInt64(addrBytes, 0);
-            }
-            else
-            {
-                //IPv4
-                ipnum = System.BitConverter.ToUInt32(addrBytes, 0);
-            }
-            return ipnum;
-        }
-
-
-        static int CalculateNetmaskLength(BigInteger numberOfHosts, int ipVersion)
-        {
-            // Calculate the netmask length using the formula
-            double bitsRequired = BigInteger.Log(numberOfHosts, 2);
-            int netmaskLength = (int)Math.Ceiling(bitsRequired);
-            if (ipVersion == 6)
-            {
-                return 128 - netmaskLength;
-            }
-            else if (ipVersion == 4)
-            {
-                return 32 - netmaskLength;
-            }
-            else
-            {
-                Log.WriteWarning("DisplayIP", $"Network Protocol not supported: {ipVersion}; see https://learn.microsoft.com/en-us/dotnet/api/system.net.sockets.addressfamily" );
-                return 0;
-            }
-        }
-
-        static private bool isV6Address(IPAddress ip)
-        {
-            // from https://learn.microsoft.com/en-us/dotnet/api/system.net.sockets.addressfamily?view=net-7.0
-            // InterNetwork 	2 	 --> Address for IP version 4.
-            // InterNetworkV6 	23 	 --> Address for IP version 6.
-            return (int)ip.AddressFamily == 23;
-        }
-        static private bool isV4Address(IPAddress ip)
-        {
-            // from https://learn.microsoft.com/en-us/dotnet/api/system.net.sockets.addressfamily?view=net-7.0
-            // InterNetwork 	2 	 --> Address for IP version 4.
-            // InterNetworkV6 	23 	 --> Address for IP version 6.
-            return (int)ip.AddressFamily == 2;
-        }
-        private string IpRangeToNetwork(string? Ip, string? IpEnd)
-        {
-            string resultStr = "";
-            try 
-            {
-                string[] ipParts = Ip.Split('/');
-                string firstIP = ipParts[0];
-                ipParts = IpEnd.Split('/');
-                string lastIP = ipParts[0];
-                IPAddress network = IPAddress.Parse(firstIP);
-                IPAddress broadcast = IPAddress.Parse(lastIP);
-                int ipVersion = (isV6Address(network)) ? 6 : ((isV4Address(network)) ? 4 : 0);
-
-                // Define the number of hosts required to calculate netwmask
-                BigInteger numberOfHosts = IpToInt(broadcast) - IpToInt(network) + 1;
-                int netmaskLength = CalculateNetmaskLength(numberOfHosts, ipVersion);
-                resultStr = $"{network}/{netmaskLength}";
-            }
-            catch (Exception exception)
-            {
-                Log.WriteError("IPConversion", $"Error while converting IP range to network. IP start={Ip}, IP end={IpEnd}", exception);
-                throw;
-            }
-            return resultStr;
-        }
-
         public string DisplayAction(Rule rule)
         {
             return rule.Action;
@@ -162,6 +61,11 @@ namespace FWO.Ui.Display
         public StringBuilder DisplayNetworkLocation(NetworkLocation userNetworkObject, ReportType reportType, string? userName = null, string? objName = null)
         {
             StringBuilder result = new StringBuilder();
+            bool showIpinBrackets = !reportType.IsTechReport();
+            NwObjDisplay nwObj = new NwObjDisplay(
+                    userNetworkObject.Object.Name,
+                    userNetworkObject.Object.IP, userNetworkObject.Object.IpEnd, userNetworkObject.Object.Type.Name,
+                    userNetworkObject.Object.Uid, userNetworkObject.Object.Comment);
 
             if (userNetworkObject.User != null &&  userNetworkObject.User.Id > 0)
             {
@@ -170,16 +74,11 @@ namespace FWO.Ui.Display
 
             if (!reportType.IsTechReport())
             {
-                result.Append($"{objName ?? userNetworkObject.Object.Name}");
-                if(userNetworkObject.Object.Type.Name != "group")
-                {
-                    result.Append(" (");
-                }
+                result.Append(nwObj.DisplayName());
             }
-            result.Append(DisplayIpRange(userNetworkObject.Object.IP, userNetworkObject.Object.IpEnd, userNetworkObject.Object.Type.Name));
-            if (!reportType.IsTechReport() && userNetworkObject.Object.Type.Name != "group")
+            if (nwObj.GetNwObjType() != "group")
             {
-                result.Append(")");
+                result.Append(nwObj.DisplayIp(showIpinBrackets));
             }
             return result;
         }

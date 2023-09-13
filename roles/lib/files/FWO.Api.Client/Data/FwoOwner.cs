@@ -14,16 +14,13 @@ namespace FWO.Api.Data
         [JsonProperty("recert_check_params"), JsonPropertyName("recert_check_params")]
         public string? RecertCheckParamString { get; set; }
 
-        public List<NwObjectElement> NwObjElements { get; set; } = new List<NwObjectElement>();
-
-
+ 
         public FwoOwner()
         { }
 
         public FwoOwner(FwoOwner owner) : base(owner)
         {
             Id = owner.Id;
-            NwObjElements = owner.NwObjElements;
             LastRecertCheck = owner.LastRecertCheck;
             RecertCheckParamString = owner.RecertCheckParamString;
         }

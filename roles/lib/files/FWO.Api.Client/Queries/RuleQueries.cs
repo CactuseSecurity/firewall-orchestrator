@@ -13,6 +13,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getRuleByUid;
         public static readonly string getRuleNetworkObjectDetails;
         public static readonly string getRuleIdsOfImport;
+        public static readonly string getRuleUidsOfDevice;
 
         public static readonly string natRuleOverviewFragments;
         public static readonly string natRuleDetailsFragments;
@@ -59,8 +60,9 @@ namespace FWO.Api.Client.Queries
                 getRuleNetworkObjectDetails =
                     ObjectQueries.networkObjectDetailsFragment;
 
-                getRuleIdsOfImport =
-                    File.ReadAllText(QueryPath + "report/getRuleIdsOfImport.graphql");
+                getRuleIdsOfImport = File.ReadAllText(QueryPath + "report/getRuleIdsOfImport.graphql");
+                
+                getRuleUidsOfDevice = File.ReadAllText(QueryPath + "report/getRuleUidsOfDevice.graphql");
 
                 natRuleOverviewFragments = ruleOverviewFragments +
                     File.ReadAllText(QueryPath + "rule/fragments/natRuleOverview.graphql");

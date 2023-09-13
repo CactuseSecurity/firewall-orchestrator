@@ -3,6 +3,12 @@ using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
+    public enum RuleOwnershipMode
+    {
+        mixed, 
+        exclusive
+    }
+
     public class FwoOwnerBase
     {
         [JsonProperty("name"), JsonPropertyName("name")]

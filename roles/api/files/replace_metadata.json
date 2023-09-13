@@ -11035,6 +11035,18 @@
                     "foreign_key_constraint_on": "rule_metadata_id"
                   }
                 }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "rule_metadata_id",
+                      "owner_id"
+                    ],
+                    "filter": {}
+                  }
+                }
               ]
             },
             {

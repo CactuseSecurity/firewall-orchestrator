@@ -111,3 +111,6 @@ mostly version update summarizing latest PRs
 - UI: bug fix jwt expiry
   - jwt expiry timer now works as intended
   - after the jwt expired no exception can be triggered anymore
+
+### 7.2.1 - 11.09.2023 DEVELOP
+- new settings option for rule ownership mode

@@ -6600,87 +6600,6 @@
             },
             {
               "table": {
-                "name": "nw_object_limits",
-                "schema": "public"
-              },
-              "select_permissions": [
-                {
-                  "role": "auditor",
-                  "permission": {
-                    "columns": [
-                      "obj_id",
-                      "first_ip",
-                      "last_ip",
-                      "mgm_id"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
-                  }
-                },
-                {
-                  "role": "fw-admin",
-                  "permission": {
-                    "columns": [
-                      "obj_id",
-                      "first_ip",
-                      "last_ip",
-                      "mgm_id"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
-                  }
-                },
-                {
-                  "role": "recertifier",
-                  "permission": {
-                    "columns": [
-                      "obj_id",
-                      "first_ip",
-                      "last_ip",
-                      "mgm_id"
-                    ],
-                    "filter": {
-                      "mgm_id": {
-                        "_in": "x-hasura-visible-managements"
-                      }
-                    },
-                    "allow_aggregations": true
-                  }
-                },
-                {
-                  "role": "reporter",
-                  "permission": {
-                    "columns": [
-                      "obj_id",
-                      "first_ip",
-                      "last_ip",
-                      "mgm_id"
-                    ],
-                    "filter": {
-                      "mgm_id": {
-                        "_in": "x-hasura-visible-managements"
-                      }
-                    },
-                    "allow_aggregations": true
-                  }
-                },
-                {
-                  "role": "reporter-viewall",
-                  "permission": {
-                    "columns": [
-                      "obj_id",
-                      "first_ip",
-                      "last_ip",
-                      "mgm_id"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
                 "name": "object",
                 "schema": "public"
               },
@@ -6779,21 +6698,6 @@
                       "table": {
                         "name": "impltask",
                         "schema": "request"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "network_object_limits",
-                  "using": {
-                    "manual_configuration": {
-                      "column_mapping": {
-                        "obj_id": "obj_id"
-                      },
-                      "insertion_order": null,
-                      "remote_table": {
-                        "name": "nw_object_limits",
-                        "schema": "public"
                       }
                     }
                   }
@@ -15678,30 +15582,6 @@
             {
               "table": {
                 "name": "view_documented_change_counter",
-                "schema": "public"
-              }
-            },
-            {
-              "table": {
-                "name": "view_import_status_errors",
-                "schema": "public"
-              }
-            },
-            {
-              "table": {
-                "name": "view_import_status_successful",
-                "schema": "public"
-              }
-            },
-            {
-              "table": {
-                "name": "view_import_status_table",
-                "schema": "public"
-              }
-            },
-            {
-              "table": {
-                "name": "view_import_status_table_unsorted",
                 "schema": "public"
               }
             },

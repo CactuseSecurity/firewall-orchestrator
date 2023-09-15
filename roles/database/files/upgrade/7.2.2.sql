@@ -56,11 +56,11 @@ BEGIN
         END IF;
     END LOOP;
 
-    -- due to groups and other obj types we cannot enforce NOT NULL constraints on object IPs
-    -- ALTER TABLE object DROP CONSTRAINT IF EXISTS object_obj_ip_is_not_null;
-    -- ALTER TABLE object DROP CONSTRAINT IF EXISTS object_obj_ip_end_is_not_null;
-    -- ALTER TABLE object ADD CONSTRAINT object_obj_ip_not_null CHECK (obj_ip IS NOT NULL);
-    -- ALTER TABLE object ADD CONSTRAINT object_obj_ip_end_is_not_null CHECK (obj_ip_end IS NOT NULL);
+    -- all network objects but groups must have ip addresses:
+    ALTER TABLE object DROP CONSTRAINT IF EXISTS object_obj_ip_not_null;
+    ALTER TABLE object DROP CONSTRAINT IF EXISTS object_obj_ip_end_not_null;
+    ALTER TABLE object ADD CONSTRAINT object_obj_ip_not_null CHECK (obj_ip IS NOT NULL OR obj_typ_id=2);
+    ALTER TABLE object ADD CONSTRAINT object_obj_ip_end_not_null CHECK (obj_ip_end IS NOT NULL OR obj_typ_id=2);
 
     ALTER TABLE object DROP CONSTRAINT IF EXISTS object_obj_ip_is_host;
     ALTER TABLE object DROP CONSTRAINT IF EXISTS object_obj_ip_end_is_host;
@@ -102,3 +102,11 @@ $$ LANGUAGE plpgsql;
 
 SELECT * FROM turn_all_cidr_objects_into_ranges();
 DROP FUNCTION turn_all_cidr_objects_into_ranges();
+
+-- removing unused import_status views:
+DROP VIEW IF EXISTS view_import_status_table_unsorted CASCADE;
+DROP VIEW IF EXISTS view_import_status_table CASCADE;
+DROP VIEW IF EXISTS view_import_status_errors CASCADE;
+DROP VIEW IF EXISTS view_import_status_successful CASCADE;
+
+

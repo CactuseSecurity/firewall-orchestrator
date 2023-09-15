@@ -118,4 +118,3 @@ GRANT SELECT ON TABLE view_tenant_rules TO GROUP secuadmins, reporters;
 ---------------------------------------------------------------------------------------------
 
 GRANT SELECT ON TABLE view_device_names TO GROUP secuadmins, reporters;
-GRANT SELECT ON TABLE view_rule_source_or_destination TO GROUP secuadmins, reporters;

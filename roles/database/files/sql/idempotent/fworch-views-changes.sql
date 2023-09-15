@@ -374,3 +374,4 @@ GRANT SELECT ON TABLE view_reportable_changes TO GROUP secuadmins, reporters;
 GRANT SELECT ON TABLE view_changes TO GROUP secuadmins, reporters;
 -- GRANT SELECT ON TABLE view_tenant_rules TO GROUP secuadmins, reporters;
 GRANT SELECT ON TABLE view_changes_by_changed_element_id TO GROUP secuadmins, reporters;
+GRANT SELECT ON TABLE view_rule_source_or_destination TO GROUP secuadmins, reporters;

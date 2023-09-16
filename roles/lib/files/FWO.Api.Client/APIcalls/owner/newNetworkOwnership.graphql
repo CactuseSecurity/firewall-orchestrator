@@ -1,10 +1,12 @@
 mutation newNetworkOwnership(
   $ownerId: Int!
   $ip: cidr
+  $ip_end: cidr
   ) {
   insert_owner_network(objects: {
     owner_id: $ownerId
     ip: $ip
+    ip_end: $ip_end
   }) {
     returning {
       newId: id

@@ -16,7 +16,9 @@
 CREATE OR REPLACE FUNCTION public.import_svc_main(
     BIGINT,
     boolean)
-  RETURNS void AS
+  RETURNS void 
+  LANGUAGE plpgsql
+  AS
 $BODY$
 DECLARE
 	i_current_import_id ALIAS FOR $1; -- ID des aktiven Imports
@@ -70,9 +72,7 @@ BEGIN
 	END IF;
 	RETURN;
 END; 
-$BODY$
-  LANGUAGE plpgsql VOLATILE
-  COST 100;
+$BODY$;
 ALTER FUNCTION public.import_svc_main(BIGINT, boolean) OWNER TO fworch;
 
 ----------------------------------------------------
@@ -132,7 +132,9 @@ CREATE OR REPLACE FUNCTION public.import_svc_single(
     BIGINT,
     integer,
     boolean)
-  RETURNS void AS
+  RETURNS void 
+  LANGUAGE plpgsql
+  AS
 $BODY$
 DECLARE
     i_control_id	ALIAS FOR $1;
@@ -341,8 +343,6 @@ BEGIN
 	END IF;
     RETURN;
 END;
-$BODY$
-  LANGUAGE plpgsql VOLATILE
-  COST 100;
+$BODY$;
 ALTER FUNCTION public.import_svc_single(BIGINT, integer, BIGINT, integer, boolean) OWNER TO fworch;
 

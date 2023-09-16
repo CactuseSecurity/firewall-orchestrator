@@ -114,3 +114,5 @@ mostly version update summarizing latest PRs
 
 ### 7.2.1 - 11.09.2023 DEVELOP
 - new settings option for rule ownership mode
+### 7.2.2 - 15.09.2023 DEVELOP
+- complete re-work: all ip addresses are now internally represented as ranges, including all networks

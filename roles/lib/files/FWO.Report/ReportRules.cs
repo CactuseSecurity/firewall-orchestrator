@@ -453,7 +453,7 @@ namespace FWO.Report
                     report.AppendLine($"<td>{objNumber++}</td>");
                     report.AppendLine($"<td><a name=nwobj{nwobj.Id}>{nwobj.Name}</a></td>");
                     report.AppendLine($"<td>{nwobj.Type.Name}</td>");
-                    report.AppendLine($"<td>{nwobj.IP}{(nwobj.IpEnd != null && nwobj.IpEnd != "" && nwobj.IpEnd != nwobj.IP ? $"-{nwobj.IpEnd}" : "")}</td>");
+                    report.AppendLine($"<td>{NwObjDisplay.DisplayIp(nwobj.IP, nwobj.IpEnd, nwobj.Type.Name)}</td>");
                     if (nwobj.MemberNames != null && nwobj.MemberNames.Contains('|'))
                         report.AppendLine($"<td>{string.Join("<br>", nwobj.MemberNames.Split('|'))}</td>");
                     else

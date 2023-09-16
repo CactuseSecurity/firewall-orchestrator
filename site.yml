@@ -122,6 +122,7 @@
     - { role: test, when: "not installation_mode == 'uninstall'" }
   tags:
     - test
+    - quicktest
 
 - hosts: all
   roles:

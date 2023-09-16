@@ -197,8 +197,7 @@ BEGIN
 	RETURN '';
 END;
 $BODY$
-  LANGUAGE plpgsql VOLATILE
-  COST 100;
+  LANGUAGE plpgsql VOLATILE;
 ALTER FUNCTION public.import_all_main(BIGINT, BOOLEAN) OWNER TO fworch;
 
 
@@ -209,15 +208,12 @@ DECLARE
 	v_event ALIAS FOR $1; -- description of the processed time
 	t_import_start ALIAS FOR $2; -- start time of the import
 BEGIN
-
     RAISE NOTICE '% duration: %s', v_event, CAST(now()- t_import_start AS VARCHAR);
---    RAISE NOTICE 'duration of last step: %s', CAST(now()- t_import_start AS VARCHAR);
     RETURN now();
 END;
 $BODY$
 LANGUAGE plpgsql
-VOLATILE
-COST 100;
+STABLE;
 
 ----------------------------------------------------
 -- FUNCTION:  import_global_refhandler_main

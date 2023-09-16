@@ -11,6 +11,7 @@ ALTER TABLE import_config ADD COLUMN IF NOT EXISTS "debug_mode" Boolean Default 
 
 CREATE OR REPLACE FUNCTION import_config_from_json ()
     RETURNS TRIGGER
+    LANGUAGE plpgsql
     AS $BODY$
 DECLARE
     import_id BIGINT;
@@ -52,14 +53,12 @@ BEGIN
     END IF;
     RETURN NEW;
 END;
-$BODY$
-LANGUAGE plpgsql
-VOLATILE
-COST 100;
+$BODY$;
 
 
 CREATE OR REPLACE FUNCTION debug_show_time (VARCHAR, TIMESTAMP)
     RETURNS TIMESTAMP
+    LANGUAGE plpgsql
     AS $BODY$
 DECLARE
 	v_event ALIAS FOR $1; -- description of the processed time
@@ -67,19 +66,15 @@ DECLARE
 BEGIN
 
     RAISE NOTICE '% duration: %s', v_event, now()- t_import_start;
---    RAISE NOTICE '% duration: %s', v_event, CAST((now()- t_import_start) AS VARCHAR);
---    RAISE NOTICE 'duration of last step: %s', CAST(now()- t_import_start AS VARCHAR);
     RETURN now();
 END;
-$BODY$
-LANGUAGE plpgsql
-VOLATILE
-COST 100;
+$BODY$;
 
 DROP FUNCTION IF EXISTS public.import_all_main(BIGINT);
 DROP FUNCTION IF EXISTS public.import_all_main(BIGINT, BOOLEAN);
 CREATE OR REPLACE FUNCTION public.import_all_main(BIGINT, BOOLEAN)
-  RETURNS VARCHAR AS
+    LANGUAGE plpgsql  
+    RETURNS VARCHAR AS
 $BODY$
 DECLARE
 	i_current_import_id ALIAS FOR $1; -- ID of the current import
@@ -183,9 +178,7 @@ BEGIN
 	END;
 	RETURN '';
 END;
-$BODY$
-  LANGUAGE plpgsql VOLATILE
-  COST 100;
+$BODY$;
 ALTER FUNCTION public.import_all_main(BIGINT, BOOLEAN) OWNER TO fworch;
 
 DO $$

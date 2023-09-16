@@ -69,7 +69,7 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS view_tenant_rules AS
                 LEFT JOIN objgrp_flat ON (rule_to.obj_id=objgrp_flat_id)
                 LEFT JOIN object ON (objgrp_flat_member_id=object.obj_id)
                 LEFT JOIN tenant_network ON
-                    ( NOT rule_dst_neg AND (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip))
+                    ( NOT rule_dst_neg AND (obj_ip_end >= tenant_net_ip AND obj_ip <= tenant_net_ip_end))
                 WHERE rule_head_text IS NULL
             UNION
         SELECT rule.*, tenant_network.tenant_id
@@ -78,7 +78,7 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS view_tenant_rules AS
                 LEFT JOIN objgrp_flat ON (rule_from.obj_id=objgrp_flat.objgrp_flat_id)
                 LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                 LEFT JOIN tenant_network ON
-                    ( NOT rule_src_neg AND (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip) )
+                    ( NOT rule_src_neg AND (obj_ip_end >= tenant_net_ip AND obj_ip <= tenant_net_ip_end) )
                 WHERE rule_head_text IS NULL
     ) AS tenant_rules;
 

@@ -7,27 +7,6 @@
 -- examples for tenant filtering:	
 -- select rule_id from view_tenant_rules where tenant_network.tenant_id=1 and rule.mgm_id=4
 -- select rule_id,rule_create from view_tenant_rules where mgm_id=4 group by rule_id,rule_create
-*/
-
-
-CREATE OR REPLACE VIEW view_device_names AS
-	SELECT 'Management: ' || mgm_name || ', Device: ' || dev_name AS dev_string, dev_id, mgm_id, dev_name, mgm_name FROM device LEFT JOIN management USING (mgm_id);
-
--- view for ip address filtering
-DROP MATERIALIZED VIEW IF EXISTS nw_object_limits;
--- CREATE MATERIALIZED VIEW nw_object_limits AS
--- 	select obj_id, mgm_id,
--- 		host ( object.obj_ip )::cidr as first_ip,
--- 		CASE 
--- 			WHEN object.obj_ip_end IS NULL
--- 			THEN host(broadcast(object.obj_ip))::cidr 
--- 			ELSE host(broadcast(object.obj_ip_end))::cidr 
--- 		END last_ip
--- 	from object;
-
--- -- adding indexes for view
--- Create index IF NOT EXISTS idx_nw_object_limits_obj_id on nw_object_limits (obj_id);
--- Create index IF NOT EXISTS idx_nw_object_limits_mgm_id on nw_object_limits (mgm_id);
 
 DROP MATERIALIZED VIEW IF EXISTS view_tenant_rules;
 CREATE MATERIALIZED VIEW IF NOT EXISTS view_tenant_rules AS
@@ -57,20 +36,6 @@ Create index IF NOT EXISTS idx_view_tenant_rules_mgm_id on view_tenant_rules(mgm
 
 REFRESH MATERIALIZED VIEW view_tenant_rules;
 GRANT SELECT ON TABLE view_tenant_rules TO GROUP secuadmins, reporters;
-/*
-
-	query filterRulesByTenant($importId: bigint) {
-	view_tenant_rules(where: {access_rule: {_eq: true}, rule_last_seen: {_gte: $importId},  rule_create: {_lte: $importId}}) {
-		rule_id
-		rule_src
-		rule_dst
-		rule_create
-		rule_last_seen
-		tenant_id
-	}
-	}
-
-*/
 
 -- example tenant_network data:
 -- insert into tenant_network (tenant_id, tenant_net_ip, tenant_net_ip_end) values (123, '10.9.8.0/32', '10.9.8.255/32');
@@ -80,10 +45,3 @@ GRANT SELECT ON TABLE view_tenant_rules TO GROUP secuadmins, reporters;
 -- from view_tenant_rules 
 -- where access_rule, tenant_id=123 and mgm_id=8 and rule_last_seen>=28520 
 -- order by dev_id asc, rule_num_numeric asc
-
-
----------------------------------------------------------------------------------------------
--- GRANTS on exportable Views
----------------------------------------------------------------------------------------------
-
-GRANT SELECT ON TABLE view_device_names TO GROUP secuadmins, reporters;

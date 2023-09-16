@@ -38,7 +38,7 @@ database_idempotent_files:
   - fworch-report.sql
   - fworch-qa.sql
   - fworch-report-basics.sql
-  - fworch-views-div.sql
+  - fworch-views-tenant.sql
   - fworch-views-changes.sql
   - fworch-views-recert.sql
   - fworch-api-funcs.sql

@@ -15575,12 +15575,6 @@
             },
             {
               "table": {
-                "name": "view_device_names",
-                "schema": "public"
-              }
-            },
-            {
-              "table": {
                 "name": "view_documented_change_counter",
                 "schema": "public"
               }

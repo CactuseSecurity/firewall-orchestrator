@@ -347,7 +347,7 @@ RETURNS SETOF object AS $$
                         LEFT JOIN object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
                         LEFT JOIN tenant_network ON
                             (o.obj_ip_end >= tenant_net_ip AND o.obj_ip <= tenant_net_ip_end
-                             OR rt_o.obj_ip_end >= tenant_net_ip AND rt_o.obj_ip<<=tenant_net_ip_end)
+                             OR rt_o.obj_ip_end >= tenant_net_ip AND rt_o.obj_ip <= tenant_net_ip_end)
                     WHERE r.mgm_id = management_row.mgm_id AND tenant_id = tenant AND r.rule_head_text is NULL
                     UNION
                     SELECT o.* FROM object o

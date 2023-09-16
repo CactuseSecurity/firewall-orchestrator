@@ -4,37 +4,6 @@
 -- tenant views
 ---------------------------------------------------------------------------------------------
 
-/*
--- get all rules of a tenant
-CREATE OR REPLACE VIEW view_tenant_rules AS 
-	select x.rule_id, x.rule_create, x.rule_last_seen, x.tenant_id, x.mgm_id from (
-		SELECT rule.rule_id, rule.rule_create, rule.rule_last_seen, tenant_network.tenant_id, rule.mgm_id, rule_order.dev_id
-			FROM rule
-				LEFT JOIN rule_order ON (rule.rule_id=rule_order.rule_id)
-				LEFT JOIN rule_to ON (rule.rule_id=rule_to.rule_id)
-				LEFT JOIN objgrp_flat ON (rule_to.obj_id=objgrp_flat_id)
-				LEFT JOIN object ON (objgrp_flat_member_id=object.obj_id)
-				LEFT JOIN tenant_network ON
-					(
-						(NOT rule_dst_neg AND (obj_ip<<tenant_net_ip OR obj_ip>>tenant_net_ip OR obj_ip=tenant_net_ip))
-						 OR (rule_dst_neg AND (NOT obj_ip<<tenant_net_ip AND NOT obj_ip>>tenant_net_ip AND NOT obj_ip=tenant_net_ip))
-					)
-				WHERE rule_head_text IS NULL
-			UNION
-		SELECT rule.rule_id, rule.rule_create, rule.rule_last_seen, tenant_network.tenant_id, rule.mgm_id, rule_order.dev_id
-			FROM rule
-				LEFT JOIN rule_order ON (rule.rule_id=rule_order.rule_id)
-				LEFT JOIN rule_from ON (rule.rule_id=rule_from.rule_id)
-				LEFT JOIN objgrp_flat ON (rule_from.obj_id=objgrp_flat.objgrp_flat_id)
-				LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
-				LEFT JOIN tenant_network ON
-					(
-						(NOT rule_src_neg AND (obj_ip<<tenant_net_ip OR obj_ip>>tenant_net_ip OR obj_ip=tenant_net_ip))
-						 OR (rule_src_neg AND (NOT obj_ip<<tenant_net_ip AND NOT obj_ip>>tenant_net_ip AND NOT obj_ip=tenant_net_ip))
-					)
-				WHERE rule_head_text IS NULL
-	) AS x; 	-- GROUP BY rule_id,tenant_id,mgm_id,rule_create, rule_last_seen
-	
 -- examples for tenant filtering:	
 -- select rule_id from view_tenant_rules where tenant_network.tenant_id=1 and rule.mgm_id=4
 -- select rule_id,rule_create from view_tenant_rules where mgm_id=4 group by rule_id,rule_create
@@ -104,7 +73,7 @@ GRANT SELECT ON TABLE view_tenant_rules TO GROUP secuadmins, reporters;
 */
 
 -- example tenant_network data:
--- insert into tenant_network (tenant_id, tenant_net_ip) values (123, '10.9.8.0/24');
+-- insert into tenant_network (tenant_id, tenant_net_ip, tenant_net_ip_end) values (123, '10.9.8.0/32', '10.9.8.255/32');
 
 -- test query: 
 -- select dev_id, rule_num_numeric, view_tenant_rules.rule_id, rule_src,rule_dst

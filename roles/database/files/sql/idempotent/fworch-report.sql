@@ -165,11 +165,12 @@ BEGIN
 	ELSE 
 		v_filter := '(';
 		FOR r_tenant_net IN
-			SELECT tenant_net_ip FROM tenant_network WHERE tenant_id=i_tenant_id
+			SELECT tenant_net_ip, tenant_net_ip_end FROM tenant_network WHERE tenant_id=i_tenant_id
 		LOOP
-			v_filter := v_filter || ' obj_ip<<=' || E'\'' ||
-				CAST (r_tenant_net.tenant_net_ip AS VARCHAR) || E'\'' || ' OR ' || E'\'' ||
-				CAST (r_tenant_net.tenant_net_ip AS VARCHAR) || E'\'' || '<<=obj_ip OR';
+			v_filter := v_filter || ' obj_ip_end <= ' || E'\'' ||
+				CAST (r_tenant_net.tenant_net_ip AS VARCHAR) || E'\'' || ' AND ' ||
+				' obj_ip <= ' || E'\'' || CAST (r_tenant_net.tenant_net_ip_end AS VARCHAR) || E'\''
+				|| ' OR ';
 		END LOOP;
 		v_filter := v_filter || ' FALSE)';
 --		RAISE INFO 'tenant-filter: %', v_filter;

@@ -1,0 +1,8 @@
+mutation deleteTenantNetwork(
+  $tenantId: Int!
+  $tenNetId: bigint!
+  ) {
+  delete_tenant_network(where: {tenant_id: {_eq: $tenantId}, tenant_net_id: {_eq: $tenNetId}}) {
+    affected_rows
+  }
+}

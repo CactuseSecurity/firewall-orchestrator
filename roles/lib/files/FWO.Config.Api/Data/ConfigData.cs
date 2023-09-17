@@ -14,7 +14,7 @@ namespace FWO.Config.Api.Data
         public readonly bool Editable;
 
         [JsonProperty("DefaultLanguage"), JsonPropertyName("DefaultLanguage")]
-        public virtual string DefaultLanguage { get; set; } = "English";
+        public virtual string DefaultLanguage { get; set; } = GlobalConfig.kEnglish;
 
         [JsonProperty("sessionTimeout"), JsonPropertyName("sessionTimeout")]
         public int SessionTimeout { get; set; } = 720;
@@ -196,6 +196,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("reqActivatePathAnalysis"), JsonPropertyName("reqActivatePathAnalysis")]
         public bool ReqActivatePathAnalysis { get; set; } = true;
+
+        [JsonProperty("ruleOwnershipMode"), JsonPropertyName("ruleOwnershipMode")]
+        public RuleOwnershipMode RuleOwnershipMode { get; set; } = RuleOwnershipMode.mixed;
 
 
         public ConfigData(bool editable = false)

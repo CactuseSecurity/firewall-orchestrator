@@ -2,7 +2,6 @@
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
-using FWO.Logging;
 using GraphQL;
 using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.SystemTextJson;
@@ -12,6 +11,7 @@ using System.Linq;
 using System.Net.WebSockets;
 using System.Net.Security;
 using Newtonsoft.Json.Linq;
+using FWO.Logging;
 
 namespace FWO.Api.Client
 {

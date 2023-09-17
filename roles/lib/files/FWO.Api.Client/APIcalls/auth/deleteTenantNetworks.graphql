@@ -1,5 +1,0 @@
-mutation deleteTenantNetworks($tenantId: Int!) {
-  delete_tenant_network(where: {tenant_id: {_eq: $tenantId}}) {
-    affected_rows
-  }
-}

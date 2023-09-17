@@ -119,7 +119,7 @@
                             <input class="form-check-input w-50" id="tenantViewAllDevices" type="checkbox" @bind="actTenant.ViewAllDevices">
                         </div>
                     </div>
-                    <IpSelector @bind-IpAddresses="actIpAddresses" IpAltered="setIpChanged"/>
+                    <IpSelector IpAddresses="actIpAddresses" @bind-IpsToAdd="ipsToAdd" @bind-IpsToDelete="ipsToDelete"/>
                 }
             </form>
         }
@@ -240,7 +240,9 @@
     private bool workInProgress = false;
 
     private List<NwObjectElement> actIpAddresses = new List<NwObjectElement>();
-    private bool ipChanged = false;
+    private List<NwObjectElement> ipsToAdd = new List<NwObjectElement>();
+    private List<NwObjectElement> ipsToDelete = new List<NwObjectElement>();
+
     private bool addDeleteAllowed = false;
 
 
@@ -305,19 +307,14 @@
         {
             actIpAddresses = await apiConnection.SendQueryAsync<List<NwObjectElement>>(FWO.Api.Client.Queries.AuthQueries.getTenantNetworks, new { tenantId = actTenant.Id });
         }
-        ipChanged = false;
+        ipsToAdd.Clear();
+        ipsToDelete.Clear();
         EditTenantMode = true;
-    }
-
-    public bool setIpChanged()
-    {
-        ipChanged = true;
-        return true;
     }
 
     private async Task addTenantNetworks()
     {
-        foreach(var ipAdd in actIpAddresses)
+        foreach(var ipAdd in ipsToAdd)
         {
             var Variables = new
             {
@@ -328,6 +325,19 @@
                 comment = ipAdd.Comment
             };
             await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.AuthQueries.addTenantNetwork, Variables);
+        }
+    }
+
+    private async Task deleteTenantNetworks()
+    {
+        foreach(var ipDel in ipsToDelete)
+        {
+            var Variables = new
+            {
+                tenantId = actTenant.Id,
+                tenNetId = ipDel.ElemId
+            };
+            await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.AuthQueries.deleteTenantNetwork, Variables);
         }
     }
 
@@ -377,11 +387,8 @@
                 }
                 else
                 {
-                    if(ipChanged)
-                    {
-                        await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.AuthQueries.deleteTenantNetworks, new { tenantId = actTenant.Id });
-                        await addTenantNetworks();
-                    }
+                    await deleteTenantNetworks();
+                    await addTenantNetworks();
                     EditTenantMode = false;
                 }
             }

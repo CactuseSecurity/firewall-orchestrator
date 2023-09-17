@@ -27,6 +27,7 @@
         - postgresql
         - python3-psycopg2
         - libpq-dev
+        - postgresql-client
       when: ansible_os_family == "Debian"
 
     - name: initdb as extra step for redhat

@@ -196,7 +196,7 @@ Create table "rule_metadata"
 	"rule_last_certified" Timestamp,
 	"rule_last_certifier" Integer,
 	"rule_last_certifier_dn" VARCHAR,
-	"rule_owner" Integer,
+	"rule_owner" Integer, -- points to a uiuser (not an owner)
 	"rule_owner_dn" Varchar, -- distinguished name pointing to ldap group, path or user
 	"rule_to_be_removed" Boolean NOT NULL Default FALSE,
 	"last_change_admin" Integer,
@@ -451,7 +451,7 @@ Create table "error"
 Create table "tenant"
 (
 	"tenant_id" SERIAL,
-	"tenant_name" Varchar NOT NULL,
+	"tenant_name" Varchar NOT NULL UNIQUE,
 	"tenant_projekt" Varchar,
 	"tenant_comment" Text,
 	"tenant_report" Boolean Default true,
@@ -474,8 +474,8 @@ Create table "tenant_network"
 	"tenant_id" Integer NOT NULL,
 	"tenant_net_name" Varchar,
 	"tenant_net_comment" Text,
-	"tenant_net_ip" Cidr,
-	"tenant_net_ip_end" Cidr,
+	"tenant_net_ip" Cidr NOT NULL,
+	"tenant_net_ip_end" Cidr NOT NULL,
 	"tenant_net_create" Timestamp NOT NULL Default now(),
  primary key ("tenant_net_id")
 );
@@ -1029,6 +1029,7 @@ create table owner_network
     id SERIAL PRIMARY KEY,
     owner_id int,
     ip cidr NOT NULL,
+    ip_end cidr NOT NULL,
     port int,
     ip_proto_id int
 );

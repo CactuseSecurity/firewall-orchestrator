@@ -15,9 +15,9 @@
     - name: Add remote_addresses property if not present
       set_fact:
         json_data: "{{ json_data | combine({'remote_addresses': []}) }}"
-      when: 'remote_addresses' not in json_data
+      when: "'remote_addresses' not in json_data"
 
     - name: Save updated config to file
       copy:
-        content: "{{ json_data | to_json }}"
+        content: "{{ json_data | to_nice_json }}"
         dest: /etc/fworch/fworch.json

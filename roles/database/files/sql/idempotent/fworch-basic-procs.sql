@@ -570,3 +570,27 @@ LANGUAGE plpgsql;
 --     RAISE INFO '%', v_log_string; -- send the log to syslog as well
 -- END;
 -- $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION cidr_within_other(cidr1 cidr, cidr2 cidr, inverted boolean DEFAULT FALSE)
+    RETURNS boolean AS $$
+    BEGIN
+        IF cidr1 IS NULL OR cidr2 IS NULL THEN
+            RETURN FALSE;
+        END IF;
+
+        IF inverted THEN                                                                    -- []: cidr1 {invert} (): cidr2
+            IF cidr1 = cidr2
+            OR (host(cidr1) << cidr2) AND (host(broadcast(cidr1)) << cidr2) THEN            --[(---)]-- ~> --](---)[--
+                RETURN FALSE;
+            ELSIF (host(cidr1) << cidr2) != (host(broadcast(cidr1)) << cidr2) THEN          ------[----(---]------)---
+                RETURN TRUE;
+            ELSIF (NOT host(cidr1) << cidr2) AND (NOT host(broadcast(cidr1)) << cidr2) THEN ----[---]---(---)--- OR ---[---(--)---]---
+                RETURN NOT cidr1 && cidr2;
+            ELSE
+                RETURN TRUE;                                                                ----(-----[-----]----)----
+            END IF;
+        END IF;
+
+        RETURN cidr1 && cidr2;
+    END;
+$$ LANGUAGE 'plpgsql' STABLE;

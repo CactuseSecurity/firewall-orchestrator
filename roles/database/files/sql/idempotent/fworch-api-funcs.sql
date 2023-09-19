@@ -111,30 +111,30 @@ RETURNS boolean AS $$
             show := true;
         ELSE
             IF EXISTS (
-                SELECT diff.obj_id FROM ( -- set of difference between rule_from of old and new rule
-                    SELECT obj_id FROM rule_from WHERE rule_id = cl_rule.old_rule_id EXCEPT SELECT obj_id FROM rule_from WHERE rule_id = cl_rule.new_rule_id
+                SELECT diff.obj_id, diff.negated FROM ( -- set of difference between rule_from of old and new rule
+                    SELECT obj_id, negated FROM rule_from WHERE rule_id = cl_rule.old_rule_id EXCEPT SELECT obj_id FROM rule_from WHERE rule_id = cl_rule.new_rule_id
                     UNION
-                    (SELECT obj_id FROM rule_from WHERE rule_id = cl_rule.new_rule_id EXCEPT SELECT obj_id FROM rule_from WHERE rule_id = cl_rule.old_rule_id)
+                    (SELECT obj_id, negated FROM rule_from WHERE rule_id = cl_rule.new_rule_id EXCEPT SELECT obj_id FROM rule_from WHERE rule_id = cl_rule.old_rule_id)
                 ) AS diff
                 JOIN objgrp_flat ON (obj_id=objgrp_flat_id)
                 JOIN object ON (objgrp_flat_member_id=object.obj_id)
                 JOIN tenant_network ON
-                    (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip)
+                    (cidr_within_other(obj_ip, tenant_net_ip, diff.negated))
                 WHERE tenant_id = t_id
             ) THEN
                 show := true;
             END IF;
 
             IF EXISTS (
-                SELECT diff.obj_id FROM ( -- set of difference between rule_to of old and new rule
-                    SELECT obj_id FROM rule_to WHERE rule_id = cl_rule.old_rule_id EXCEPT SELECT obj_id FROM rule_to WHERE rule_id = cl_rule.new_rule_id
+                SELECT diff.obj_id, diff.negated FROM ( -- set of difference between rule_to of old and new rule
+                    SELECT obj_id, negated FROM rule_to WHERE rule_id = cl_rule.old_rule_id EXCEPT SELECT obj_id FROM rule_to WHERE rule_id = cl_rule.new_rule_id
                     UNION
-                    (SELECT obj_id FROM rule_to WHERE rule_id = cl_rule.new_rule_id EXCEPT SELECT obj_id FROM rule_to WHERE rule_id = cl_rule.old_rule_id)
+                    (SELECT obj_id, negated FROM rule_to WHERE rule_id = cl_rule.new_rule_id EXCEPT SELECT obj_id FROM rule_to WHERE rule_id = cl_rule.old_rule_id)
                 ) AS diff
                 JOIN objgrp_flat ON (obj_id=objgrp_flat_id)
                 JOIN object ON (objgrp_flat_member_id=object.obj_id)
                 JOIN tenant_network ON
-                    (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip)
+                    (cidr_within_other(obj_ip, tenant_net_ip, diff.negated))
                 WHERE tenant_id = t_id
             ) THEN
                 show := true;
@@ -161,23 +161,21 @@ RETURNS boolean AS $$
             show := true;
         ELSE
             IF EXISTS (
-                SELECT rule_from.obj_id FROM rule_from
-                    LEFT JOIN objgrp_flat ON (rule_from.obj_id=objgrp_flat.objgrp_flat_id)
+                SELECT rf.obj_id FROM rule_from rf
+                    LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat.objgrp_flat_id)
                     LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                     LEFT JOIN tenant_network ON
-                        (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip)
-                WHERE rule_from.rule_id = rule.rule_id AND tenant_id = t_id
+                        (cidr_within_other(obj_ip, tenant_net_ip, rf.negated))
+                WHERE rf.rule_id = rule.rule_id AND tenant_id = t_id
             ) THEN
                 show := true;
-            END IF;
-
-            IF EXISTS (
-                SELECT rule_to.obj_id FROM rule_to
-                    LEFT JOIN objgrp_flat ON (rule_to.obj_id=objgrp_flat.objgrp_flat_id)
+            ELSIF EXISTS (
+                SELECT rt.obj_id FROM rule_to rt
+                    LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat.objgrp_flat_id)
                     LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                     LEFT JOIN tenant_network ON
-                        (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip)
-                WHERE rule_to.rule_id = rule.rule_id AND tenant_id = t_id
+                        (cidr_within_other(obj_ip, tenant_net_ip, rt.negated))
+                WHERE rt.rule_id = rule.rule_id AND tenant_id = t_id
             ) THEN
                 show := true;
             END IF;
@@ -209,7 +207,7 @@ RETURNS boolean AS $$
                     LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat.objgrp_flat_id)
                     LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                     LEFT JOIN tenant_network ON
-                        (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip)
+                        (cidr_within_other(obj_ip, tenant_net_ip, rf.negated))
                 WHERE rule_from_id = rule_from.rule_from_id AND tenant_id = t_id --> this better be efficient (rule_from_id checked before join) (!TODO: check this)
             ) THEN
                 show := true;
@@ -220,7 +218,7 @@ RETURNS boolean AS $$
                         LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat_id)
                         LEFT JOIN object ON (objgrp_flat_member_id=object.obj_id)
                         LEFT JOIN tenant_network ON
-                            (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip)
+                            (cidr_within_other(obj_ip, tenant_net_ip, rt.negated))
                     WHERE rule_id = rule_from.rule_id
                 LOOP
                     IF rule_to_obj.tenant_id = t_id THEN
@@ -256,7 +254,7 @@ RETURNS boolean AS $$
                     LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat.objgrp_flat_id)
                     LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                     LEFT JOIN tenant_network ON
-                        (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip)
+                        (cidr_within_other(obj_ip, tenant_net_ip, rt.negated))
                 WHERE rule_to_id = rule_to.rule_to_id AND tenant_id = t_id --> this better be efficient (rule_to_id checked before join) (!TODO: check this)
             ) THEN
                 show := true;
@@ -267,7 +265,7 @@ RETURNS boolean AS $$
                         LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat_id)
                         LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                         LEFT JOIN tenant_network ON
-                            (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip)
+                            (cidr_within_other(obj_ip, tenant_net_ip, rf.negated))
                     WHERE rule_id = rule_to.rule_id
                 LOOP
                     IF rule_from_obj.tenant_id = t_id THEN
@@ -299,20 +297,20 @@ RETURNS boolean AS $$
         ELSIF EXISTS ( -- ip of object is in tenant_network of tenant
             SELECT o.obj_id FROM object o
                 LEFT JOIN tenant_network ON
-                    (obj_ip>>=tenant_net_ip OR obj_ip<<=tenant_net_ip)
+                    (cidr_within_other(obj_ip, tenant_net_ip)
             WHERE obj_id = object.obj_id AND tenant_id = t_id
         ) THEN
             show := true;
         ELSIF EXISTS ( -- object is in rule_from or rule_to of a rule that is visible to tenant
             SELECT r.rule_id from rule r
-                LEFT JOIN rule_from ON (r.rule_id=rule_from.rule_id)
-                LEFT JOIN rule_to ON (r.rule_id=rule_to.rule_id)
-                LEFT JOIN objgrp_flat rf_of ON (rule_from.obj_id=rf_of.objgrp_flat_id)
-                LEFT JOIN objgrp_flat rt_of ON (rule_to.obj_id=rt_of.objgrp_flat_id)
+                LEFT JOIN rule_from rf ON (r.rule_id=rf.rule_id)
+                LEFT JOIN rule_to rt ON (r.rule_id=rt.rule_id)
+                LEFT JOIN objgrp_flat rf_of ON (rf.obj_id=rf_of.objgrp_flat_id)
+                LEFT JOIN objgrp_flat rt_of ON (rt.obj_id=rt_of.objgrp_flat_id)
                 LEFT JOIN object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
                 LEFT JOIN object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
                 LEFT JOIN tenant_network ON
-                    (rf_o.obj_ip>>=tenant_net_ip OR rf_o.obj_ip<<=tenant_net_ip OR rt_o.obj_ip>>=tenant_net_ip OR rt_o.obj_ip<<=tenant_net_ip)
+                    (cidr_within_other(rf_o.obj_ip, tenant_net_ip, rf.negated) OR cidr_within_other(rt_o.obj_ip, tenant_net_ip, rt.negated))
             WHERE (rf_o.obj_id = object.obj_id OR rt_o.obj_id = object.obj_id) AND tenant_id = t_id
         ) THEN
             show := true;
@@ -340,26 +338,35 @@ RETURNS SETOF object AS $$
             RETURN QUERY
                 SELECT o.* FROM (
                     SELECT o.* FROM object o
-                        LEFT JOIN rule_from ON (o.obj_id=rule_from.obj_id)
-                        LEFT JOIN rule r ON (rule_from.rule_id=r.rule_id)
-                        LEFT JOIN rule_to ON (r.rule_id=rule_to.rule_id)
-                        LEFT JOIN objgrp_flat rt_of ON (rule_to.obj_id=rt_of.objgrp_flat_id)
+                        LEFT JOIN rule_from rf ON (o.obj_id=rf.obj_id)
+                        LEFT JOIN rule r ON (rf.rule_id=r.rule_id)
+                        LEFT JOIN rule_to rt ON (r.rule_id=rt.rule_id)
+                        LEFT JOIN objgrp_flat rt_of ON (rt.obj_id=rt_of.objgrp_flat_id)
                         LEFT JOIN object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
                         LEFT JOIN tenant_network ON
-                            (o.obj_ip>>=tenant_net_ip OR o.obj_ip<<=tenant_net_ip OR rt_o.obj_ip>>=tenant_net_ip OR rt_o.obj_ip<<=tenant_net_ip)
-                    WHERE r.mgm_id = management_row.mgm_id AND tenant_id = tenant
+                            (cidr_within_other(o.obj_ip, tenant_net_ip, rf.negated) OR cidr_within_other(rt_o.obj_ip, tenant_net_ip, rt.negated))
+                    WHERE o.mgm_id = management_row.mgm_id AND tenant_id = tenant
                     UNION
                     SELECT o.* FROM object o
-                        LEFT JOIN rule_to ON (o.obj_id=rule_to.obj_id)
-                        LEFT JOIN rule r ON (rule_to.rule_id=r.rule_id)
-                        LEFT JOIN rule_from ON (r.rule_id=rule_from.rule_id)
-                        LEFT JOIN objgrp_flat rf_of ON (rule_from.obj_id=rf_of.objgrp_flat_id)
+                        LEFT JOIN rule_to rt ON (o.obj_id=rt.obj_id)
+                        LEFT JOIN rule r ON (rt.rule_id=r.rule_id)
+                        LEFT JOIN rule_from rf ON (r.rule_id=rf.rule_id)
+                        LEFT JOIN objgrp_flat rf_of ON (rf.obj_id=rf_of.objgrp_flat_id)
                         LEFT JOIN object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
                         LEFT JOIN tenant_network ON
-                            (o.obj_ip>>=tenant_net_ip OR o.obj_ip<<=tenant_net_ip OR rf_o.obj_ip>>=tenant_net_ip OR rf_o.obj_ip<<=tenant_net_ip)
-                    WHERE r.mgm_id = management_row.mgm_id AND tenant_id = tenant
+                            (cidr_within_other(o.obj_ip, tenant_net_ip, rt.negated) cidr_within_other(rf_o.obj_ip, tenant_net_ip, rf.negated))
+                    WHERE o.mgm_id = management_row.mgm_id AND tenant_id = tenant
                 ) AS o
                 ORDER BY obj_name;
         END IF;
     END;
 $$ LANGUAGE 'plpgsql' STABLE;
+
+------------------------------------------------------------------------------------------------------------------------
+-- rule_relevant complexity: O(rf + rt)
+-- rule_from_relevant complexity: O(rt)
+-- rule_to_relevant complexity: O(rf)
+-- total for single rule: O(rf + rt + 2*rf*rt)
+--  theoretical min needed complexity: O(2(rf+rt))
+-- obj_relevant complexity: O(r * rf * rt)
+-- with material view: all O(1) but additional O(ten * r * (rf + rt)) for each import / tenant change

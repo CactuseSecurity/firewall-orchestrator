@@ -297,7 +297,7 @@ RETURNS boolean AS $$
         ELSIF EXISTS ( -- ip of object is in tenant_network of tenant
             SELECT o.obj_id FROM object o
                 LEFT JOIN tenant_network ON
-                    (cidr_within_other(obj_ip, tenant_net_ip)
+                    (cidr_within_other(obj_ip, tenant_net_ip))
             WHERE obj_id = object.obj_id AND tenant_id = t_id
         ) THEN
             show := true;

@@ -2766,6 +2766,18 @@
                   }
                 }
               ],
+              "computed_fields": [
+                {
+                  "name": "get_rules_for_tenant",
+                  "definition": {
+                    "function": {
+                      "name": "get_rules_for_tenant",
+                      "schema": "public"
+                    },
+                    "session_argument": "hasura_session"
+                  }
+                }
+              ],
               "insert_permissions": [
                 {
                   "role": "fw-admin",
@@ -6207,16 +6219,6 @@
                   "definition": {
                     "function": {
                       "name": "get_objects_for_tenant",
-                      "schema": "public"
-                    },
-                    "session_argument": "hasura_session"
-                  }
-                },
-                {
-                  "name": "get_rules_for_tenant",
-                  "definition": {
-                    "function": {
-                      "name": "get_rules_for_tenant",
                       "schema": "public"
                     },
                     "session_argument": "hasura_session"

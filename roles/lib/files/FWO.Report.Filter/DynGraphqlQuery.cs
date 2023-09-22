@@ -454,6 +454,16 @@ namespace FWO.Report.Filter
                     break;
             }
 
+            if (filter.ReportParams.TenantFilter.IsActive)
+            {
+                int tenant_id = filter.ReportParams.TenantFilter.TenantId;
+                query.FullQuery = Regex.Replace(query.FullQuery, @"rules\s*\(", $"rules: get_rules_for_tenant(args: {{tenant: {tenant_id}}}, ");
+                query.FullQuery = Regex.Replace(query.FullQuery, @"rule_froms\s*\(", $"rule_froms: get_rule_froms_for_tenant(args: {{tenant: {tenant_id}}}");
+                query.FullQuery = Regex.Replace(query.FullQuery, @"rule_froms\s*{", $"rule_froms: get_rule_froms_for_tenant(args: {{tenant: {tenant_id}}}) {{");
+                query.FullQuery = Regex.Replace(query.FullQuery, @"rule_tos\s*\(", $"rule_tos: get_rule_tos_for_tenant(args: {{tenant: {tenant_id}}}");
+                query.FullQuery = Regex.Replace(query.FullQuery, @"rule_tos\s*{", $"rule_tos: get_rule_tos_for_tenant(args: {{tenant: {tenant_id}}}) {{");
+            }
+
             string pattern = "";
 
             // remove comment lines (#) before joining lines!

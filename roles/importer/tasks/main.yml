@@ -44,12 +44,13 @@
       - python3-netaddr
 
   - name: copy importer files
-    copy:
+    synchronize:
       src: "importer"
       dest: "{{ fworch_home }}"
-      owner: "{{ fworch_user }}"
-      group: "{{ fworch_group }}"
-      mode: "0755"
+      rsync_opts:
+        - "--perms=0755"
+        - "--owner={{ fworch_user }}"
+        - "--group={{ fworch_group }}"
     tags: [ 'test' ]
 
   - name: set x-flag for importer executables (top level only)

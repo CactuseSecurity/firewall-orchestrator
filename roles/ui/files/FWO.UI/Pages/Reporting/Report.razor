@@ -85,8 +85,8 @@
                 </div>
             </div>
         </div>
-        @if (authenticationStateTask!.Result.User.IsInRole("reporter-viewall") || authenticationStateTask!.Result.User.IsInRole("admin")
-             || authenticationStateTask!.Result.User.IsInRole("fw-admin") || authenticationStateTask!.Result.User.IsInRole("auditor"))
+        @if (selectedReportType != ReportType.Statistics && (authenticationStateTask!.Result.User.IsInRole("reporter-viewall") || authenticationStateTask!.Result.User.IsInRole("admin")
+             || authenticationStateTask!.Result.User.IsInRole("fw-admin") || authenticationStateTask!.Result.User.IsInRole("auditor")))
         {
             <div class="p-3">
                 <h5 class="text-left">@(userConfig.GetText("tenant_view"))</h5>
@@ -563,7 +563,10 @@
 
         ReportParams reportParams = new ReportParams((int)selectedReportType, selectedReportType == ReportType.UnusedRules ? reducedDeviceFilter : deviceFilter);
         reportParams.TimeFilter = savedTimeFilter;
-        reportParams.TenantFilter = new TenantFilter(selectedTenantView);
+        if (selectedReportType != ReportType.Statistics && selectedReportType != ReportType.UnusedRules)
+        {
+            reportParams.TenantFilter = new TenantFilter(selectedTenantView);
+        }
         reportParams.RecertFilter = new RecertFilter()
         {
             RecertOwnerList = ownerList,

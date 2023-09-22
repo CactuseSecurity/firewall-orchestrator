@@ -1629,10 +1629,10 @@
               ],
               "computed_fields": [
                 {
-                  "name": "has_relevant_change",
+                  "name": "cl_rule_relevant_for_tenant",
                   "definition": {
                     "function": {
-                      "name": "has_relevant_change",
+                      "name": "cl_rule_relevant_for_tenant",
                       "schema": "public"
                     },
                     "session_argument": "hasura_session"
@@ -1748,7 +1748,7 @@
                       "unique_name"
                     ],
                     "computed_fields": [
-                      "has_relevant_change"
+                      "cl_rule_relevant_for_tenant"
                     ],
                     "filter": {
                       "_and": [
@@ -1763,7 +1763,7 @@
                           }
                         },
                         {
-                          "has_relevant_change": {
+                          "cl_rule_relevant_for_tenant": {
                             "_eq": "true"
                           }
                         }
@@ -1797,7 +1797,7 @@
                       "unique_name"
                     ],
                     "computed_fields": [
-                      "has_relevant_change"
+                      "cl_rule_relevant_for_tenant"
                     ],
                     "filter": {
                       "_and": [
@@ -1812,7 +1812,7 @@
                           }
                         },
                         {
-                          "has_relevant_change": {
+                          "cl_rule_relevant_for_tenant": {
                             "_eq": "true"
                           }
                         }
@@ -2767,6 +2767,16 @@
                 }
               ],
               "computed_fields": [
+                {
+                  "name": "get_changelog_rules_for_tenant",
+                  "definition": {
+                    "function": {
+                      "name": "get_changelog_rules_for_tenant",
+                      "schema": "public"
+                    },
+                    "session_argument": "hasura_session"
+                  }
+                },
                 {
                   "name": "get_rules_for_tenant",
                   "definition": {

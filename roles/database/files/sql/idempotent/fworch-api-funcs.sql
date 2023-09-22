@@ -93,27 +93,22 @@ AS $function$
 $function$;
 
 
-CREATE OR REPLACE FUNCTION cidr_within_other(cidr1 cidr, cidr2 cidr, inverted boolean DEFAULT FALSE)
+CREATE OR REPLACE FUNCTION ip_ranges_overlap(ip1_start cidr, ip1_end cidr, ip2_start cidr, ip2_end cidr, inverted boolean DEFAULT FALSE)
     RETURNS boolean AS $$
     BEGIN
-        IF cidr1 IS NULL OR cidr2 IS NULL THEN
+        IF ip1_start IS NULL OR ip1_end IS NULL OR ip2_start IS NULL OR ip2_end IS NULL THEN
             RETURN FALSE;
         END IF;
 
-        IF inverted THEN                                                                    -- []: cidr1 {invert} (): cidr2
-            IF cidr1 = cidr2
-            OR (host(cidr1) << cidr2) AND (host(broadcast(cidr1)) << cidr2) THEN            --[(---)]-- ~> --](---)[--
+        IF inverted THEN                                            -- []: cidr1 ~> invert (): cidr2
+            IF ip1_start <= ip2_start AND ip2_end <= ip1_end THEN   --[-*(--)-*]--  ~>  --]-*(--)-*[--
                 RETURN FALSE;
-            ELSIF (host(cidr1) << cidr2) != (host(broadcast(cidr1)) << cidr2) THEN          ------[----(---]------)---
-                RETURN TRUE;
-            ELSIF (NOT host(cidr1) << cidr2) AND (NOT host(broadcast(cidr1)) << cidr2) THEN ----[---]---(---)--- OR ---[---(--)---]---
-                RETURN NOT cidr1 && cidr2;
             ELSE
-                RETURN TRUE;                                                                ----(-----[-----]----)----
+                RETURN TRUE;
             END IF;
         END IF;
 
-        RETURN cidr1 && cidr2;
+        RETURN ip1_start <= ip2_end AND ip2_start <= ip1_end;
     END;
 $$ LANGUAGE 'plpgsql' STABLE;
 
@@ -140,7 +135,7 @@ RETURNS boolean AS $$
                 JOIN objgrp_flat ON (obj_id=objgrp_flat_id)
                 JOIN object ON (objgrp_flat_member_id=object.obj_id)
                 JOIN tenant_network ON
-                    (cidr_within_other(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, diff.negated))
+                    (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, diff.negated))
                 WHERE tenant_id = t_id
             ) THEN
                 show := true;
@@ -155,7 +150,7 @@ RETURNS boolean AS $$
                 JOIN objgrp_flat ON (obj_id=objgrp_flat_id)
                 JOIN object ON (objgrp_flat_member_id=object.obj_id)
                 JOIN tenant_network ON
-                    (cidr_within_other(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, diff.negated))
+                    (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, diff.negated))
                 WHERE tenant_id = t_id
             ) THEN
                 show := true;
@@ -186,7 +181,7 @@ RETURNS boolean AS $$
                     LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat.objgrp_flat_id)
                     LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                     LEFT JOIN tenant_network ON
-                        (cidr_within_other(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated))
+                        (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated))
                 WHERE rf.rule_id = rule.rule_id AND tenant_id = t_id
             ) THEN
                 show := true;
@@ -195,7 +190,7 @@ RETURNS boolean AS $$
                     LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat.objgrp_flat_id)
                     LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                     LEFT JOIN tenant_network ON
-                        (cidr_within_other(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated))
+                        (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated))
                 WHERE rt.rule_id = rule.rule_id AND tenant_id = t_id
             ) THEN
                 show := true;
@@ -206,7 +201,6 @@ RETURNS boolean AS $$
         RETURN show;
     END;
 $$ LANGUAGE 'plpgsql' STABLE;
-
 
 
 CREATE OR REPLACE FUNCTION rule_from_relevant_for_tenant(rule_from rule_from, hasura_session json)
@@ -228,7 +222,7 @@ RETURNS boolean AS $$
                     LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat.objgrp_flat_id)
                     LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                     LEFT JOIN tenant_network ON
-                        (cidr_within_other(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated))
+                        (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated))
                 WHERE rule_from_id = rule_from.rule_from_id AND tenant_id = t_id --> this better be efficient (rule_from_id checked before join) (!TODO: check this)
             ) THEN
                 show := true;
@@ -239,7 +233,7 @@ RETURNS boolean AS $$
                         LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat_id)
                         LEFT JOIN object ON (objgrp_flat_member_id=object.obj_id)
                         LEFT JOIN tenant_network ON
-                            (cidr_within_other(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated))
+                            (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated))
                     WHERE rule_id = rule_from.rule_id
                 LOOP
                     IF rule_to_obj.tenant_id = t_id THEN
@@ -275,7 +269,7 @@ RETURNS boolean AS $$
                     LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat.objgrp_flat_id)
                     LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                     LEFT JOIN tenant_network ON
-                        (cidr_within_other(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated))
+                        (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated))
                 WHERE rule_to_id = rule_to.rule_to_id AND tenant_id = t_id --> this better be efficient (rule_to_id checked before join) (!TODO: check this)
             ) THEN
                 show := true;
@@ -286,7 +280,7 @@ RETURNS boolean AS $$
                         LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat_id)
                         LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                         LEFT JOIN tenant_network ON
-                            (cidr_within_other(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated))
+                            (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated))
                     WHERE rule_id = rule_to.rule_id
                 LOOP
                     IF rule_from_obj.tenant_id = t_id THEN
@@ -318,7 +312,7 @@ RETURNS boolean AS $$
         ELSIF EXISTS ( -- ip of object is in tenant_network of tenant
             SELECT o.obj_id FROM object o
                 LEFT JOIN tenant_network ON
-                    (cidr_within_other(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end))
+                    (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end))
             WHERE obj_id = object.obj_id AND tenant_id = t_id
         ) THEN
             show := true;
@@ -331,8 +325,8 @@ RETURNS boolean AS $$
                 LEFT JOIN object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
                 LEFT JOIN object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
                 LEFT JOIN tenant_network ON
-                    (cidr_within_other(rf_o.obj_ip, rf_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated)
-                     OR cidr_within_other(rt_o.obj_ip, rt_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated))
+                    (ip_ranges_overlap(rf_o.obj_ip, rf_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated)
+                     OR ip_ranges_overlap(rt_o.obj_ip, rt_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated))
             WHERE (rf_o.obj_id = object.obj_id OR rt_o.obj_id = object.obj_id) AND tenant_id = t_id AND r.rule_head_text is NULL
         ) THEN
             show := true;
@@ -341,6 +335,7 @@ RETURNS boolean AS $$
         RETURN show;
     END;
 $$ LANGUAGE 'plpgsql' STABLE;
+
 
 
 CREATE OR REPLACE FUNCTION get_objects_for_tenant(management_row management, tenant integer, hasura_session json)
@@ -366,8 +361,8 @@ RETURNS SETOF object AS $$
                         LEFT JOIN objgrp_flat rt_of ON (rt.obj_id=rt_of.objgrp_flat_id)
                         LEFT JOIN object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
                         LEFT JOIN tenant_network ON
-                            (cidr_within_other(o.obj_ip, o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated)
-                             OR cidr_within_other(rt_o.obj_ip, rt_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated))
+                            (ip_ranges_overlap(o.obj_ip, o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated)
+                             OR ip_ranges_overlap(rt_o.obj_ip, rt_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated))
                     WHERE o.mgm_id = management_row.mgm_id AND tenant_id = tenant AND r.rule_head_text is NULL
                     UNION
                     SELECT o.* FROM object o
@@ -377,8 +372,8 @@ RETURNS SETOF object AS $$
                         LEFT JOIN objgrp_flat rf_of ON (rf.obj_id=rf_of.objgrp_flat_id)
                         LEFT JOIN object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
                         LEFT JOIN tenant_network ON
-                            (cidr_within_other(o.obj_ip, o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated)
-                             OR cidr_within_other(rf_o.obj_ip, rf_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated))
+                            (ip_ranges_overlap(o.obj_ip, o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated)
+                             OR ip_ranges_overlap(rf_o.obj_ip, rf_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated))
                     WHERE o.mgm_id = management_row.mgm_id AND tenant_id = tenant AND r.rule_head_text is NULL
                 ) AS o
                 ORDER BY obj_name;

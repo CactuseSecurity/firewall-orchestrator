@@ -85,19 +85,20 @@
                 </div>
             </div>
         </div>
-        @if (selectedReportType != ReportType.Statistics && (authenticationStateTask!.Result.User.IsInRole("reporter-viewall") || authenticationStateTask!.Result.User.IsInRole("admin")
+    }
+    @if (selectedReportType != ReportType.Statistics && selectedReportType != ReportType.Recertification
+         && (authenticationStateTask!.Result.User.IsInRole("reporter-viewall") || authenticationStateTask!.Result.User.IsInRole("admin")
              || authenticationStateTask!.Result.User.IsInRole("fw-admin") || authenticationStateTask!.Result.User.IsInRole("auditor")))
-        {
-            <div class="p-3">
-                <h5 class="text-left">@(userConfig.GetText("tenant_view"))</h5>
-                <Dropdown ElementType="Tenant" ElementToString="@(t => t.Name)" Nullable="true"
-                    @bind-SelectedElement="selectedTenantView" Elements="tenantList">
-                    <ElementTemplate Context="tenant">
-                        @tenant.Name
-                    </ElementTemplate>
-                </Dropdown>
-            </div>
-        }
+    {
+        <div class="p-3">
+            <h5 class="text-left">@(userConfig.GetText("tenant_view"))</h5>
+            <Dropdown ElementType="Tenant" ElementToString="@(t => t.Name)" Nullable="true"
+                @bind-SelectedElement="selectedTenantView" Elements="tenantList">
+                <ElementTemplate Context="tenant">
+                    @tenant.Name
+                </ElementTemplate>
+            </Dropdown>
+        </div>
     }
     <DeviceSelection @bind-DeviceFilter="deviceFilter" @bind-CollapseAll="collapseDevices" @bind-SelectAll="selectAll"></DeviceSelection>
 </Sidebar>
@@ -563,7 +564,7 @@
 
         ReportParams reportParams = new ReportParams((int)selectedReportType, selectedReportType == ReportType.UnusedRules ? reducedDeviceFilter : deviceFilter);
         reportParams.TimeFilter = savedTimeFilter;
-        if (selectedReportType != ReportType.Statistics && selectedReportType != ReportType.UnusedRules)
+        if (selectedReportType != ReportType.Statistics && selectedReportType != ReportType.Recertification)
         {
             reportParams.TenantFilter = new TenantFilter(selectedTenantView);
         }

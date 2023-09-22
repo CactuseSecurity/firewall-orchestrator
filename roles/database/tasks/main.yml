@@ -145,8 +145,8 @@
 
     - name: copy database files to backend target
       synchronize: 
-        src="./"
-        dest="{{ database_install_dir }}"
+        src: "./"
+        dest: "{{ database_install_dir }}"
         rsync_opts:
           - "--owner={{ fworch_user }}"
           - "--group={{ fworch_group }}"        

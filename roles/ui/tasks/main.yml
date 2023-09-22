@@ -38,8 +38,7 @@
         src: "FWO.UI"
         dest: "{{ ui_dir }}"
         rsync_opts:
-          - "--owner={{ fworch_user }}"
-          - "--group={{ fworch_group }}"
+        - "--chown={{ fworch_user }}:{{ fworch_group }}"
       tags: [ 'test' ]
 
   become: true

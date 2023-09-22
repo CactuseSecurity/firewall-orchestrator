@@ -48,9 +48,8 @@
       src: "importer"
       dest: "{{ fworch_home }}"
       rsync_opts:
-        - "--perms=0755"
-        - "--owner={{ fworch_user }}"
-        - "--group={{ fworch_group }}"
+        - "--chmod=0755"
+        - "--chown={{ fworch_user }}:{{ fworch_group }}"
     tags: [ 'test' ]
 
   - name: set x-flag for importer executables (top level only)

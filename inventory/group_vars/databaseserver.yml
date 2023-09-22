@@ -42,5 +42,7 @@ database_idempotent_files:
   - fworch-texts.sql
   - fworch-usr-import.sql
   - fworch-usr-refs.sql
-  - fworch-views.sql
+  - fworch-views-changes.sql
+  - fworch-views-recert.sql
+  - fworch-views-tenant.sql
   - fworch-zone-import.sql

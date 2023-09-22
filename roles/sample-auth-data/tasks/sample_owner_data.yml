@@ -11,20 +11,20 @@
             VALUES    ('ownerD_demo', 'uid=user2_demo,ou=tenant2_demo,ou=operator,ou=user,dc=fworch,dc=internal', 'cn=ownergroup_D_demo,ou=group,dc=fworch,dc=internal', false, 3, 30, '234')
             ON CONFLICT DO NOTHING; 
 
-        INSERT INTO owner_network (owner_id, ip) 
-            VALUES    ((SELECT id FROM owner WHERE name='ownerF_demo'), '10.222.0.0/27')
+        INSERT INTO owner_network (owner_id, ip, ip_end) 
+            VALUES    ((SELECT id FROM owner WHERE name='ownerF_demo'), '10.222.0.0', '10.222.0.31')
             ON CONFLICT DO NOTHING; 
 
-        INSERT INTO owner_network (owner_id, ip) 
-            VALUES    ((SELECT id FROM owner WHERE name='ownerD_demo'), '10.222.0.32/27')
+        INSERT INTO owner_network (owner_id, ip, ip_end)
+            VALUES    ((SELECT id FROM owner WHERE name='ownerD_demo'), '10.222.0.32', '10.222.0.63')
             ON CONFLICT DO NOTHING; 
 
-        INSERT INTO owner_network (owner_id, ip) 
-            VALUES    ((SELECT id FROM owner WHERE name='ownerF_demo'), '10.0.0.0/27')
+        INSERT INTO owner_network (owner_id, ip, ip_end)
+            VALUES    ((SELECT id FROM owner WHERE name='ownerF_demo'), '10.0.0.0', '10.0.0.31')
             ON CONFLICT DO NOTHING; 
 
-        INSERT INTO owner_network (owner_id, ip) 
-            VALUES    ((SELECT id FROM owner WHERE name='ownerD_demo'), '10.0.0.32/27')
+        INSERT INTO owner_network (owner_id, ip, ip_end)
+            VALUES    ((SELECT id FROM owner WHERE name='ownerD_demo'), '10.0.0.32', '10.0.0.63')
             ON CONFLICT DO NOTHING; 
       END $do$
 

@@ -1,5 +1,5 @@
 ### general settings
-product_version: "7.2.1"
+product_version: "7.2.2"
 ansible_user: "{{ lookup('env', 'USER') }}"
 ansible_become_method: sudo
 ansible_python_interpreter: /usr/bin/python3

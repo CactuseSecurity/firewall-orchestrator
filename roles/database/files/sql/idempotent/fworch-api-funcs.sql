@@ -3,9 +3,7 @@
 CREATE OR REPLACE FUNCTION public.get_visible_devices_per_tenant(integer)
     RETURNS SETOF device_type 
     LANGUAGE 'plpgsql'
-    COST 100
     STABLE 
-    ROWS 1000
 AS $BODY$
 DECLARE
 	i_tenant_id ALIAS FOR $1;
@@ -32,9 +30,7 @@ $BODY$;
 CREATE OR REPLACE FUNCTION public.get_visible_managements_per_tenant(integer)
     RETURNS SETOF device_type 
     LANGUAGE 'plpgsql'
-    COST 100
     STABLE 
-    ROWS 1000
 AS $BODY$
 DECLARE
 	i_tenant_id ALIAS FOR $1;
@@ -144,7 +140,7 @@ RETURNS boolean AS $$
                 JOIN objgrp_flat ON (obj_id=objgrp_flat_id)
                 JOIN object ON (objgrp_flat_member_id=object.obj_id)
                 JOIN tenant_network ON
-                    (cidr_within_other(obj_ip, tenant_net_ip, diff.negated))
+                    (cidr_within_other(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, diff.negated))
                 WHERE tenant_id = t_id
             ) THEN
                 show := true;
@@ -159,7 +155,7 @@ RETURNS boolean AS $$
                 JOIN objgrp_flat ON (obj_id=objgrp_flat_id)
                 JOIN object ON (objgrp_flat_member_id=object.obj_id)
                 JOIN tenant_network ON
-                    (cidr_within_other(obj_ip, tenant_net_ip, diff.negated))
+                    (cidr_within_other(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, diff.negated))
                 WHERE tenant_id = t_id
             ) THEN
                 show := true;
@@ -190,7 +186,7 @@ RETURNS boolean AS $$
                     LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat.objgrp_flat_id)
                     LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                     LEFT JOIN tenant_network ON
-                        (cidr_within_other(obj_ip, tenant_net_ip, rf.negated))
+                        (cidr_within_other(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated))
                 WHERE rf.rule_id = rule.rule_id AND tenant_id = t_id
             ) THEN
                 show := true;
@@ -199,7 +195,7 @@ RETURNS boolean AS $$
                     LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat.objgrp_flat_id)
                     LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                     LEFT JOIN tenant_network ON
-                        (cidr_within_other(obj_ip, tenant_net_ip, rt.negated))
+                        (cidr_within_other(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated))
                 WHERE rt.rule_id = rule.rule_id AND tenant_id = t_id
             ) THEN
                 show := true;
@@ -232,7 +228,7 @@ RETURNS boolean AS $$
                     LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat.objgrp_flat_id)
                     LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                     LEFT JOIN tenant_network ON
-                        (cidr_within_other(obj_ip, tenant_net_ip, rf.negated))
+                        (cidr_within_other(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated))
                 WHERE rule_from_id = rule_from.rule_from_id AND tenant_id = t_id --> this better be efficient (rule_from_id checked before join) (!TODO: check this)
             ) THEN
                 show := true;
@@ -243,7 +239,7 @@ RETURNS boolean AS $$
                         LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat_id)
                         LEFT JOIN object ON (objgrp_flat_member_id=object.obj_id)
                         LEFT JOIN tenant_network ON
-                            (cidr_within_other(obj_ip, tenant_net_ip, rt.negated))
+                            (cidr_within_other(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated))
                     WHERE rule_id = rule_from.rule_id
                 LOOP
                     IF rule_to_obj.tenant_id = t_id THEN
@@ -279,7 +275,7 @@ RETURNS boolean AS $$
                     LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat.objgrp_flat_id)
                     LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                     LEFT JOIN tenant_network ON
-                        (cidr_within_other(obj_ip, tenant_net_ip, rt.negated))
+                        (cidr_within_other(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated))
                 WHERE rule_to_id = rule_to.rule_to_id AND tenant_id = t_id --> this better be efficient (rule_to_id checked before join) (!TODO: check this)
             ) THEN
                 show := true;
@@ -290,7 +286,7 @@ RETURNS boolean AS $$
                         LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat_id)
                         LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                         LEFT JOIN tenant_network ON
-                            (cidr_within_other(obj_ip, tenant_net_ip, rf.negated))
+                            (cidr_within_other(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated))
                     WHERE rule_id = rule_to.rule_id
                 LOOP
                     IF rule_from_obj.tenant_id = t_id THEN
@@ -322,7 +318,7 @@ RETURNS boolean AS $$
         ELSIF EXISTS ( -- ip of object is in tenant_network of tenant
             SELECT o.obj_id FROM object o
                 LEFT JOIN tenant_network ON
-                    (cidr_within_other(obj_ip, tenant_net_ip))
+                    (cidr_within_other(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end))
             WHERE obj_id = object.obj_id AND tenant_id = t_id
         ) THEN
             show := true;
@@ -335,8 +331,9 @@ RETURNS boolean AS $$
                 LEFT JOIN object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
                 LEFT JOIN object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
                 LEFT JOIN tenant_network ON
-                    (cidr_within_other(rf_o.obj_ip, tenant_net_ip, rf.negated) OR cidr_within_other(rt_o.obj_ip, tenant_net_ip, rt.negated))
-            WHERE (rf_o.obj_id = object.obj_id OR rt_o.obj_id = object.obj_id) AND tenant_id = t_id
+                    (cidr_within_other(rf_o.obj_ip, rf_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated)
+                     OR cidr_within_other(rt_o.obj_ip, rt_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated))
+            WHERE (rf_o.obj_id = object.obj_id OR rt_o.obj_id = object.obj_id) AND tenant_id = t_id AND r.rule_head_text is NULL
         ) THEN
             show := true;
         END IF;
@@ -369,8 +366,9 @@ RETURNS SETOF object AS $$
                         LEFT JOIN objgrp_flat rt_of ON (rt.obj_id=rt_of.objgrp_flat_id)
                         LEFT JOIN object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
                         LEFT JOIN tenant_network ON
-                            (cidr_within_other(o.obj_ip, tenant_net_ip, rf.negated) OR cidr_within_other(rt_o.obj_ip, tenant_net_ip, rt.negated))
-                    WHERE o.mgm_id = management_row.mgm_id AND tenant_id = tenant
+                            (cidr_within_other(o.obj_ip, o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated)
+                             OR cidr_within_other(rt_o.obj_ip, rt_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated))
+                    WHERE o.mgm_id = management_row.mgm_id AND tenant_id = tenant AND r.rule_head_text is NULL
                     UNION
                     SELECT o.* FROM object o
                         LEFT JOIN rule_to rt ON (o.obj_id=rt.obj_id)
@@ -379,8 +377,9 @@ RETURNS SETOF object AS $$
                         LEFT JOIN objgrp_flat rf_of ON (rf.obj_id=rf_of.objgrp_flat_id)
                         LEFT JOIN object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
                         LEFT JOIN tenant_network ON
-                            (cidr_within_other(o.obj_ip, tenant_net_ip, rt.negated) cidr_within_other(rf_o.obj_ip, tenant_net_ip, rf.negated))
-                    WHERE o.mgm_id = management_row.mgm_id AND tenant_id = tenant
+                            (cidr_within_other(o.obj_ip, o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated)
+                             OR cidr_within_other(rf_o.obj_ip, rf_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated))
+                    WHERE o.mgm_id = management_row.mgm_id AND tenant_id = tenant AND r.rule_head_text is NULL
                 ) AS o
                 ORDER BY obj_name;
         END IF;

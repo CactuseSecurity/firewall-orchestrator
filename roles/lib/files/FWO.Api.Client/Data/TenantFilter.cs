@@ -25,7 +25,7 @@ namespace FWO.Api.Data
         public TenantFilter(Tenant tenant)
         {
             IsActive = tenant?.Id > 1;
-            TenantId = tenant.Id;
+            TenantId = tenant?.Id ?? 0;
         }
     }
 }

@@ -381,6 +381,114 @@ RETURNS SETOF object AS $$
     END;
 $$ LANGUAGE 'plpgsql' STABLE;
 
+
+CREATE OR REPLACE FUNCTION get_rules_for_tenant(management_row management, tenant integer, hasura_session json)
+RETURNS SETOF rule AS $$
+    DECLARE t_id integer;
+    
+    BEGIN
+        t_id := (hasura_session ->> 'x-hasura-tenant-id')::integer;
+
+        IF t_id IS NULL THEN
+            RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
+        ELSIF t_id != 1 THEN
+            RAISE EXCEPTION 'Tenant id in hasura session is not 1 (admin). Tenant simulation not allowed.';
+        ELSIF tenant = 1 THEN
+            RAISE EXCEPTION 'Tenant 1 (admin) cannot be simulated.';
+        ELSE
+            RETURN QUERY
+                SELECT r.* FROM rule r
+                    LEFT JOIN rule_from rf ON (r.rule_id=rf.rule_id)
+                    LEFT JOIN objgrp_flat rf_of ON (rf.obj_id=rf_of.objgrp_flat_id)
+                    LEFT JOIN object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
+                    LEFT JOIN tenant_network ON
+                        (ip_ranges_overlap(rf_o.obj_ip, rf_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated))
+                WHERE r.mgm_id = management_row.mgm_id AND tenant_id = tenant
+                UNION
+                SELECT r.* FROM rule r
+                    LEFT JOIN rule_to rt ON (r.rule_id=rt.rule_id)
+                    LEFT JOIN objgrp_flat rt_of ON (rt.obj_id=rt_of.objgrp_flat_id)
+                    LEFT JOIN object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
+                    LEFT JOIN tenant_network ON
+                        (ip_ranges_overlap(rt_o.obj_ip, rt_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated))
+                WHERE r.mgm_id = management_row.mgm_id AND tenant_id = tenant
+                ORDER BY rule_name;
+        END IF;
+    END;
+$$ LANGUAGE 'plpgsql' STABLE;
+
+
+CREATE OR REPLACE FUNCTION get_rule_froms_for_tenant(rule rule, tenant integer, hasura_session json)
+RETURNS SETOF rule_from AS $$
+    DECLARE t_id integer;
+    
+    BEGIN
+        t_id := (hasura_session ->> 'x-hasura-tenant-id')::integer;
+
+        IF t_id IS NULL THEN
+            RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
+        ELSIF t_id != 1 THEN
+            RAISE EXCEPTION 'Tenant id in hasura session is not 1 (admin). Tenant simulation not allowed.';
+        ELSIF tenant = 1 THEN
+            RAISE EXCEPTION 'Tenant 1 (admin) cannot be simulated.';
+        ELSIF EXISTS (
+            SELECT rt.obj_id FROM rule_to rt
+                LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat.objgrp_flat_id)
+                LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
+                LEFT JOIN tenant_network ON
+                    (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated))
+            WHERE rt.rule_id = rule.rule_id AND tenant_id = tenant
+        ) THEN
+            RETURN QUERY
+                SELECT rf.* FROM rule_from rf WHERE rule_id = rule.rule_id;
+        ELSE
+            RETURN QUERY
+                SELECT rf.* FROM rule_from rf
+                    LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat.objgrp_flat_id)
+                    LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
+                    LEFT JOIN tenant_network ON
+                        (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated))
+                WHERE rule_id = rule.rule_id AND tenant_id = tenant;
+        END IF;
+    END;
+$$ LANGUAGE 'plpgsql' STABLE;
+
+
+CREATE OR REPLACE FUNCTION get_rule_tos_for_tenant(rule rule, tenant integer, hasura_session json)
+RETURNS SETOF rule_to AS $$
+    DECLARE t_id integer;
+
+    BEGIN
+        t_id := (hasura_session ->> 'x-hasura-tenant-id')::integer;
+
+        IF t_id IS NULL THEN
+            RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
+        ELSIF t_id != 1 THEN
+            RAISE EXCEPTION 'Tenant id in hasura session is not 1 (admin). Tenant simulation not allowed.';
+        ELSIF tenant = 1 THEN
+            RAISE EXCEPTION 'Tenant 1 (admin) cannot be simulated.';
+        ELSIF EXISTS (
+            SELECT rf.obj_id FROM rule_from rf
+                LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat.objgrp_flat_id)
+                LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
+                LEFT JOIN tenant_network ON
+                    (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated))
+            WHERE rf.rule_id = rule.rule_id AND tenant_id = tenant
+        ) THEN
+            RETURN QUERY
+                SELECT rt.* FROM rule_to rt WHERE rule_id = rule.rule_id;
+        ELSE
+            RETURN QUERY
+                SELECT rt.* FROM rule_to rt
+                    LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat.objgrp_flat_id)
+                    LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
+                    LEFT JOIN tenant_network ON
+                        (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated))
+                WHERE rule_id = rule.rule_id AND tenant_id = tenant;
+        END IF;
+    END;
+$$ LANGUAGE 'plpgsql' STABLE;
+
 ------------------------------------------------------------------------------------------------------------------------
 -- rule_relevant complexity: O(rf + rt)
 -- rule_from_relevant complexity: O(rt)

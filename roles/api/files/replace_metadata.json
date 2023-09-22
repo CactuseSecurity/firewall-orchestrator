@@ -6201,6 +6201,26 @@
                       "schema": "public"
                     }
                   }
+                },
+                {
+                  "name": "get_objects_for_tenant",
+                  "definition": {
+                    "function": {
+                      "name": "get_objects_for_tenant",
+                      "schema": "public"
+                    },
+                    "session_argument": "hasura_session"
+                  }
+                },
+                {
+                  "name": "get_rules_for_tenant",
+                  "definition": {
+                    "function": {
+                      "name": "get_rules_for_tenant",
+                      "schema": "public"
+                    },
+                    "session_argument": "hasura_session"
+                  }
                 }
               ],
               "insert_permissions": [
@@ -10008,6 +10028,26 @@
                 }
               ],
               "computed_fields": [
+                {
+                  "name": "get_rule_froms_for_tenant",
+                  "definition": {
+                    "function": {
+                      "name": "get_rule_froms_for_tenant",
+                      "schema": "public"
+                    },
+                    "session_argument": "hasura_session"
+                  }
+                },
+                {
+                  "name": "get_rule_tos_for_tenant",
+                  "definition": {
+                    "function": {
+                      "name": "get_rule_tos_for_tenant",
+                      "schema": "public"
+                    },
+                    "session_argument": "hasura_session"
+                  }
+                },
                 {
                   "name": "rule_relevant_for_tenant",
                   "definition": {

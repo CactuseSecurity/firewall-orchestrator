@@ -21,15 +21,25 @@
     msg: "Could not find existing installation but running with installation_mode set to {{ installation_mode }}. Try running with installation_mode=new"
   when: not already_installed and installation_mode == "upgrade"
 
-- name: edit central conf file - set new version
-  lineinfile:
-    path: "{{ fworch_conf_file }}"
-    create: true
-    regexp: "product_version"
-    line: "    \"product_version\": \"{{ product_version }}\""
+- name: Modify the product version in the config file
+  block:      
+     - name: Read config file
+      slurp:
+        path: "{{ fworch_conf_file }}"
+      register: config_file
+    
+    - name: Modify product_version
+      set_fact:
+        json_data: "{{ config_file.content | b64decode | from_json | combine({'product_version': '{{ product_version }}'}) }}"        
+        
+    - name: Save updated config to file
+        copy:
+          content: "{{ json_data | to_nice_json }}"
+          dest: "{{ fworch_conf_file }}"
+          owner: "{{ fworch_user }}"
+          group: "{{ fworch_group }}"     
   when: installation_mode == "upgrade"
-  become: true
-
+  
 - name: include upgrade script
   import_tasks: run-upgrades.yml
   when: "installation_mode == 'upgrade'"

@@ -33,11 +33,11 @@
         json_data: "{{ config_file.content | b64decode | from_json | combine({'product_version': '{{ product_version }}'}) }}"        
         
     - name: Save updated config to file
-        copy:
-          content: "{{ json_data | to_nice_json }}"
-          dest: "{{ fworch_conf_file }}"
-          owner: "{{ fworch_user }}"
-          group: "{{ fworch_group }}"     
+      copy:
+        content: "{{ json_data | to_nice_json }}"
+        dest: "{{ fworch_conf_file }}"
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"     
   when: installation_mode == "upgrade"
   
 - name: include upgrade script

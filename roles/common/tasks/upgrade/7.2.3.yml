@@ -3,8 +3,9 @@
     path: "{{ fworch_conf_file }}"
   register: json_data
 
-- block:     
-  - name: Add remote_addresses property if not present
+- name: Modify config file if remote_addresses property is not present
+  block:     
+  - name: Add remote_addresses property
     set_fact:
       json_data: "{{ json_data.content | b64decode | from_json | combine({'remote_addresses': []}) }}"        
         
@@ -12,6 +13,8 @@
     copy:
       content: "{{ json_data | to_nice_json }}"
       dest: "{{ fworch_conf_file }}"
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
         
   when: "'remote_addresses' not in json_data"
-        
+  

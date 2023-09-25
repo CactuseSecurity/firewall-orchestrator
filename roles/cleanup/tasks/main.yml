@@ -23,7 +23,7 @@
 
 - name: Modify the product version in the config file
   block:      
-     - name: Read config file
+    - name: Read config file
       slurp:
         path: "{{ fworch_conf_file }}"
       register: config_file

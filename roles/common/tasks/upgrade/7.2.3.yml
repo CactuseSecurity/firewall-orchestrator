@@ -1,18 +1,17 @@
-- name: Read existing config file
+- name: Read JSON content from config file
   slurp:
-    src: /etc/fworch/fworch.json
-  register: config_file
+    path: "{{ fworch_conf_file }}"
+  register: json_data
 
-- name: Parse JSON content
-  set_fact:
-    json_data: "{{ config_file['content'] | b64decode | from_json | default({}) }}"
-
-- name: Add remote_addresses property if not present
-  set_fact:
-    json_data: "{{ json_data | combine({'remote_addresses': []}) }}"
+- block:     
+  - name: Add remote_addresses property if not present
+    set_fact:
+      json_data: "{{ json_data.content | b64decode | from_json | combine({'remote_addresses': []}) }}"        
+        
+  - name: Save updated config to file
+    copy:
+      content: "{{ json_data | to_nice_json }}"
+      dest: "{{ fworch_conf_file }}"
+        
   when: "'remote_addresses' not in json_data"
-
-- name: Save updated config to file
-  copy:
-    content: "{{ json_data | to_nice_json }}"
-    dest: /etc/fworch/fworch.json
+        

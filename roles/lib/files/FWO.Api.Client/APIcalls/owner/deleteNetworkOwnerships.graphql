@@ -1,5 +1,0 @@
-mutation deleteNetworkOwnerships($ownerId: Int!) {
-  delete_owner_network(where: {owner_id: {_eq: $ownerId}}) {
-    affected_rows
-  }
-}

@@ -165,11 +165,12 @@ BEGIN
 	ELSE 
 		v_filter := '(';
 		FOR r_tenant_net IN
-			SELECT tenant_net_ip FROM tenant_network WHERE tenant_id=i_tenant_id
+			SELECT tenant_net_ip, tenant_net_ip_end FROM tenant_network WHERE tenant_id=i_tenant_id
 		LOOP
-			v_filter := v_filter || ' obj_ip<<=' || E'\'' ||
-				CAST (r_tenant_net.tenant_net_ip AS VARCHAR) || E'\'' || ' OR ' || E'\'' ||
-				CAST (r_tenant_net.tenant_net_ip AS VARCHAR) || E'\'' || '<<=obj_ip OR';
+			v_filter := v_filter || ' obj_ip_end <= ' || E'\'' ||
+				CAST (r_tenant_net.tenant_net_ip AS VARCHAR) || E'\'' || ' AND ' ||
+				' obj_ip <= ' || E'\'' || CAST (r_tenant_net.tenant_net_ip_end AS VARCHAR) || E'\''
+				|| ' OR ';
 		END LOOP;
 		v_filter := v_filter || ' FALSE)';
 --		RAISE INFO 'tenant-filter: %', v_filter;
@@ -348,257 +349,6 @@ BEGIN
 	RETURN;
 END;
 $$ LANGUAGE plpgsql;
-
-
--- CREATE OR REPLACE FUNCTION get_rule_ids_no_tenant_filter(int4, "timestamp", cidr, cidr, cidr, int4, int4, VARCHAR)
---   RETURNS SETOF int4 AS
--- $BODY$
--- DECLARE
---     i_device_id ALIAS FOR $1;
---     t_in_report_time ALIAS FOR $2;
--- --    i_tenant_id ALIAS FOR $3;
---     c_ip_src ALIAS FOR $3;
---     c_ip_dst ALIAS FOR $4;
---     c_ip_anywhere ALIAS FOR $5;
---     i_proto ALIAS FOR $6;
---     i_port ALIAS FOR $7;
---     v_admin_view_filter ALIAS FOR $8;
---     i_relevant_import_id BIGINT;					-- ID des Imports, direkt vor dem Report-Zeitpunkt
---     v_tenant_filter_ip_list VARCHAR;				-- Filter-Liste mit allen IP-Bereichen des tenants
---     v_tenant_filter_ip_list_negated VARCHAR;		-- Filter-Liste mit allen IP-Bereichen des tenants fuer negierte Faelle
---     r_rule RECORD;									-- temp. Variable fuer Rule-ID
---     t_report_time TIMESTAMP;						-- Zeitpunkt des Reports (jetzt, wenn t_in_report_time IS NULL)
---     v_sql_get_rules_with_tenant_src_ips VARCHAR;	-- SQL-Code zum Holen der Rule-IDs mit Quellen im tenant-Bereich
---     v_sql_get_rules_with_tenant_dst_ips VARCHAR;	-- SQL-Code zum Holen der Rule-IDs mit Zielen im tenant-Bereich
--- 	v_error_str VARCHAR;
--- 	v_dev_filter VARCHAR; 							-- filter for devices (true for all devices)
--- 	v_import_filter VARCHAR;						-- filter for imports
--- 	v_select_statement VARCHAR;
--- 	v_order_statement VARCHAR;
---     v_src_ip_filter VARCHAR;						-- Filter fuer source ip match
---     v_dst_ip_filter VARCHAR;						-- Filter fuer destination ip match
--- BEGIN
--- 	v_order_statement := '';
--- 	IF t_in_report_time IS NULL THEN t_report_time := now(); --	no report time given, assuming now()
--- 	ELSE t_report_time := t_in_report_time; END IF;
--- 	-- set filter: a) import filter, b) device filter
--- 	IF i_device_id IS NULL THEN   -- ueber alle Devices
--- 		v_import_filter := get_previous_import_ids(t_report_time);
--- 		IF v_import_filter = ' () ' THEN v_import_filter := ' FALSE ';
--- 		ELSE v_import_filter := 'rule_order.control_id IN ' || get_previous_import_ids(t_report_time); END IF;
--- 		v_dev_filter := ' TRUE ';
--- 	ELSE 
--- 		i_relevant_import_id := get_previous_import_id(i_device_id, t_report_time);
--- 	    IF i_relevant_import_id IS NULL THEN
--- 			v_error_str := 'device_id: ' || CAST(i_device_id AS VARCHAR) || ', time: ' || CAST(t_report_time AS VARCHAR);
---     	    PERFORM error_handling('WARN_NO_IMP_ID_FOUND', v_error_str);
--- 			v_import_filter := ' FALSE ';
--- 		ELSE    	    
--- 			v_import_filter := 'rule_order.control_id = ' || CAST(i_relevant_import_id AS VARCHAR);
--- 		END IF;
--- 		v_dev_filter := 'rule_order.dev_id = ' || CAST(i_device_id AS VARCHAR);
--- 	END IF;
--- 	IF c_ip_src IS NULL THEN v_src_ip_filter := ' TRUE ';
--- 	ELSE v_src_ip_filter := ' (object.obj_ip <<= ' || E'\'' || CAST(c_ip_src AS VARCHAR) || E'\'' || ' OR object.obj_ip >>= ' || E'\'' || CAST(c_ip_src AS VARCHAR) || E'\'' || ') '; END IF;
--- 	IF c_ip_dst IS NULL THEN v_dst_ip_filter := ' TRUE ';
--- 	ELSE v_dst_ip_filter := ' (object.obj_ip <<= ' || E'\'' || CAST(c_ip_dst AS VARCHAR) || E'\'' || ' OR object.obj_ip >>= ' || E'\'' || CAST(c_ip_dst AS VARCHAR) || E'\'' || ') '; END IF;
--- 	v_select_statement :=
--- 		' (SELECT rule_id FROM rule_order LEFT JOIN rule USING (rule_id) LEFT JOIN rule_from USING (rule_id) LEFT JOIN objgrp_flat ON (rule_from.obj_id=objgrp_flat_member_id) ' ||
--- 		' LEFT JOIN object ON (objgrp_flat_member_id=object.obj_id) WHERE ' || v_import_filter || ' AND ' || v_dev_filter ||
--- 		' AND ' || v_src_ip_filter || ' AND ' || v_admin_view_filter || ' AND rule.rule_head_text IS NULL AND NOT rule_disabled AND rule_action<>' ||
--- 		E'\'' || 'drop' || E'\'' || ' AND rule_action<>' ||
--- 		E'\'' || 'reject' || E'\'' || ' AND rule_action<>' || E'\'' || 'deny' || E'\'' || ')' ||
--- 		' INTERSECT ' ||
--- 		' (SELECT rule_id FROM rule_order LEFT JOIN rule USING (rule_id) LEFT JOIN rule_to USING (rule_id) LEFT JOIN objgrp_flat ON (rule_to.obj_id=objgrp_flat_member_id) ' ||
--- 		' LEFT JOIN object ON (objgrp_flat_member_id=object.obj_id) WHERE ' || v_import_filter || ' AND ' || v_dev_filter ||
--- 		' AND ' || v_dst_ip_filter || ' AND ' || v_admin_view_filter  || ' AND rule.rule_head_text IS NULL AND NOT rule_disabled AND rule_action<>' ||
--- 		E'\'' || 'drop' || E'\'' || ' AND rule_action<>' ||
--- 		E'\'' || 'reject' || E'\'' || ' AND rule_action<>' || E'\'' || 'deny' || E'\'' 
--- 		-- || ' GROUP BY rule_id' 
--- 		|| ')';
--- 	FOR r_rule IN EXECUTE v_select_statement	
--- 	LOOP
--- 		RETURN NEXT r_rule.rule_id;
--- 	END LOOP;
--- 	RETURN;
--- END;
--- $BODY$ LANGUAGE plpgsql;
-----------------------------------------------------
--- FUNCTION:	get_rule_ids
--- Zweck:		liefert Tabelle mit Regel-IDs zurueck, die den Filterkriterien entsprechen
--- Used for:	Account (Usage) Report
--- Parameter1:	Device-ID dessen Regelsatz untersucht wird (erforderlich)
--- Parameter2:	Zeitpunkt zu dem das Regelwerk angezeigt werden soll
--- Parameter2:	wenn NULL: Zeitpunkt = jetzt (also hoechste vorhandene Import-ID, des Devices)
--- Parameter3:	tenant-ID des Kunden, fuer den der Report generiert werden soll
--- Parameter3:	wenn NULL: keine Kunden-Filterung: liefere alle Regeln
--- Parameter4:	Filter resultierend aus Einschraenkungen des angemeldeten Benutzers (SQL as Text)
--- RETURNS:		Tabelle mit einer Spalte (rule_id)
-
--- CREATE OR REPLACE FUNCTION get_rule_ids(int4, "timestamp", int4, VARCHAR) RETURNS SETOF BIGINT AS
--- $BODY$
--- DECLARE
---     i_device_id ALIAS FOR $1;
---     t_in_report_time ALIAS FOR $2;
---     i_tenant_id ALIAS FOR $3;
---     v_admin_view_filter ALIAS FOR $4;
---     i_relevant_import_id BIGINT;					-- ID des Imports, direkt vor dem Report-Zeitpunkt
---     v_tenant_filter_ip_list VARCHAR;				-- Filter-Liste mit allen IP-Bereichen des tenants
---     v_tenant_filter_ip_list_negated VARCHAR;		-- Filter-Liste mit allen IP-Bereichen des tenants fuer negierte Faelle
---     r_rule RECORD;									-- temp. Variable fuer Rule-ID
---     t_report_time TIMESTAMP;						-- Zeitpunkt des Reports (jetzt, wenn t_in_report_time IS NULL)
---     v_sql_get_rules_with_tenant_src_ips VARCHAR;	-- SQL-Code zum Holen der Rule-IDs mit Quellen im tenant-Bereich
---     v_sql_get_rules_with_tenant_dst_ips VARCHAR;	-- SQL-Code zum Holen der Rule-IDs mit Zielen im tenant-Bereich
--- 	v_error_str VARCHAR;
--- 	v_dev_filter VARCHAR; 							-- filter for devices (true for all devices)
--- 	v_import_filter VARCHAR;						-- filter for imports
--- 	v_select_statement VARCHAR;
--- 	v_order_statement VARCHAR;
--- BEGIN
--- --	RAISE NOTICE 'get_rule_ids parameter device_id: %', i_device_id;
--- --	RAISE NOTICE 'get_rule_ids parameter in_report_time: %', t_in_report_time;
--- --	v_order_statement := ' ORDER BY dev_id, rule_number ';
--- 	v_order_statement := '';
--- 	IF t_in_report_time IS NULL THEN --	no report time given, assuming now()
--- 		t_report_time := now();
--- 	ELSE
--- 		t_report_time := t_in_report_time;
--- 	END IF;
--- 	-- set filter: a) import filter, b) device filter
--- 	IF i_device_id IS NULL THEN   -- ueber alle Devices
--- 		v_import_filter := get_previous_import_ids(t_report_time);
--- 		IF v_import_filter = ' () ' THEN
--- 			v_import_filter := ' FALSE ';
--- 		ELSE
--- 			v_import_filter := 'rule_order.control_id IN ' ||  get_previous_import_ids(t_report_time);
--- 		END IF;
--- 		v_dev_filter := ' TRUE ';
--- 	ELSE 
--- 		i_relevant_import_id := get_previous_import_id(i_device_id, t_report_time);
--- 	    IF i_relevant_import_id IS NULL THEN
--- 			v_error_str := 'device_id: ' || CAST(i_device_id AS VARCHAR) || ', time: ' || CAST(t_report_time AS VARCHAR);
---     	    PERFORM error_handling('WARN_NO_IMP_ID_FOUND', v_error_str);
--- 			v_import_filter := ' FALSE ';
--- 		ELSE    	    
--- 			v_import_filter := 'rule_order.control_id = ' || CAST(i_relevant_import_id AS VARCHAR);
--- 		END IF;
--- 		v_dev_filter := 'rule_order.dev_id = ' || CAST(i_device_id AS VARCHAR);
--- 	END IF;
--- 	IF i_tenant_id IS NULL THEN -- einfacher Fall ohne tenant-Filter
--- 		v_select_statement := 'SELECT rule_id FROM rule_order INNER JOIN device USING (dev_id) INNER JOIN management USING (mgm_id) WHERE ' || v_import_filter
--- 			|| ' AND ' || v_dev_filter || ' AND ' || v_admin_view_filter || v_order_statement;
--- 	ELSE -- tenant-Filter
--- 		v_tenant_filter_ip_list := get_tenant_ip_filter(i_tenant_id);
--- 		v_tenant_filter_ip_list_negated := get_negated_tenant_ip_filter(i_tenant_id);	
--- 		v_sql_get_rules_with_tenant_src_ips :=
--- 			'(SELECT rule.rule_id FROM rule, rule_order, object,rule_from
--- 			WHERE rule.rule_id = rule_from.rule_id
--- 				AND ' || v_import_filter || ' AND ' || v_dev_filter ||
--- 				 ' AND rule_order.rule_id=rule.rule_id
--- 				AND (((' || v_tenant_filter_ip_list || ') AND NOT rule.rule_src_neg) OR ((' ||
--- 				v_tenant_filter_ip_list_negated || ') AND rule.rule_src_neg))' ||
--- 				' AND (rule.rule_id,object.obj_id) IN
--- 				(
--- 					SELECT rule.rule_id,object.obj_id FROM rule_order,rule,rule_from,object
--- 					LEFT JOIN objgrp_flat ON objgrp_flat_id=object.obj_id
--- 					WHERE rule.rule_id = rule_from.rule_id
--- 					AND ' || v_import_filter || ' AND  ' || v_dev_filter || 
--- 					' AND rule_order.rule_id=rule.rule_id AND object.obj_id=rule_from.obj_id
--- 				UNION
--- 					SELECT rule.rule_id,objgrp_flat.objgrp_flat_member_id FROM rule_order,rule,rule_from,object
--- 					LEFT JOIN objgrp_flat ON objgrp_flat_id=object.obj_id
--- 					WHERE rule.rule_id = rule_from.rule_id
--- 					AND ' || v_import_filter || ' AND  ' || v_dev_filter || 
--- 					' AND rule_order.rule_id=rule.rule_id AND object.obj_id=rule_from.obj_id
--- 				)
--- 			)';
--- 		v_sql_get_rules_with_tenant_dst_ips :=
--- 			'(SELECT rule.rule_id FROM rule,rule_order,object,rule_to WHERE rule.rule_id = rule_to.rule_id
--- 				AND ' || v_import_filter || ' AND  ' || v_dev_filter || ' AND rule_order.rule_id=rule.rule_id
--- 	            AND (((' || v_tenant_filter_ip_list || ') AND NOT rule.rule_dst_neg) OR ((' ||
---     	        v_tenant_filter_ip_list_negated || ') AND rule.rule_dst_neg))' ||
--- 				' AND (rule.rule_id,object.obj_id) in
--- 				(
--- 					SELECT rule.rule_id,object.obj_id FROM rule_order,rule,rule_to,object
--- 					LEFT JOIN objgrp_flat ON objgrp_flat_id=object.obj_id
--- 					WHERE rule.rule_id = rule_to.rule_id
--- 					AND ' || v_import_filter || ' AND  ' || v_dev_filter || 
--- 					' AND rule_order.rule_id=rule.rule_id AND object.obj_id=rule_to.obj_id
--- 					UNION
--- 					SELECT rule.rule_id,objgrp_flat.objgrp_flat_member_id FROM rule_order,rule,rule_to,object
--- 					LEFT JOIN objgrp_flat ON objgrp_flat_id=object.obj_id
--- 					WHERE rule.rule_id = rule_to.rule_id
--- 					AND ' || v_import_filter || ' AND  ' || v_dev_filter ||
--- 					' AND rule_order.rule_id=rule.rule_id AND object.obj_id=rule_to.obj_id
--- 				)	
--- 			)';
--- 		v_select_statement := 'SELECT rule_id FROM rule_order LEFT JOIN device USING (dev_id) LEFT JOIN management USING (mgm_id) WHERE rule_id IN (' || v_sql_get_rules_with_tenant_src_ips 
--- 			|| ' UNION ' ||	v_sql_get_rules_with_tenant_dst_ips || ')' || ' AND ' || v_admin_view_filter || v_order_statement
--- 			|| ' GROUP BY rule_order.rule_id ';
--- 	END IF; -- tenant_filter set
-
--- --	RAISE NOTICE 'get_rule_ids select: %', v_select_statement;
--- 	FOR r_rule IN EXECUTE v_select_statement	
--- 	LOOP
--- 		RETURN NEXT r_rule.rule_id;
--- 	END LOOP;
--- 	RETURN;
--- END;
--- $BODY$
---   LANGUAGE 'plpgsql' VOLATILE;
-
-  
--- CREATE OR REPLACE FUNCTION get_rule_ids_no_tenant_filter(int4, "timestamp", VARCHAR) RETURNS SETOF BIGINT AS
--- $BODY$
--- DECLARE
---     i_device_id ALIAS FOR $1;
---     t_in_report_time ALIAS FOR $2;
---     v_admin_view_filter ALIAS FOR $3;
---     i_relevant_import_id BIGINT;					-- ID des Imports, direkt vor dem Report-Zeitpunkt
---     r_rule RECORD;									-- temp. Variable fuer Rule-ID
---     t_report_time TIMESTAMP;						-- Zeitpunkt des Reports (jetzt, wenn t_in_report_time IS NULL)
---  	v_error_str VARCHAR;
--- 	v_dev_filter VARCHAR; 							-- filter for devices (true for all devices)
--- 	v_import_filter VARCHAR;						-- filter for imports
--- 	v_select_statement VARCHAR;
--- 	v_order_statement VARCHAR;
--- BEGIN
--- 	v_order_statement := '';
--- 	IF t_in_report_time IS NULL THEN --	no report time given, assuming now()
--- 		t_report_time := now();
--- 	ELSE
--- 		t_report_time := t_in_report_time;
--- 	END IF;
--- 	-- set filter: a) import filter, b) device filter
--- 	IF i_device_id IS NULL THEN   -- ueber alle Devices
--- 		v_import_filter := get_previous_import_ids(t_report_time);
--- 		IF v_import_filter = ' () ' THEN
--- 			v_import_filter := ' FALSE ';
--- 		ELSE
--- 			v_import_filter := 'rule_order.control_id IN ' ||  get_previous_import_ids(t_report_time);
--- 		END IF;
--- 		v_dev_filter := ' TRUE ';
--- 	ELSE 
--- 		i_relevant_import_id := get_previous_import_id(i_device_id, t_report_time);
--- 		IF i_relevant_import_id IS NULL THEN
--- 			v_error_str := 'device_id: ' || CAST(i_device_id AS VARCHAR) || ', time: ' || CAST(t_report_time AS VARCHAR);
--- 			PERFORM error_handling('WARN_NO_IMP_ID_FOUND', v_error_str);
--- 			v_import_filter := ' FALSE ';
--- 		ELSE    	    
--- 			v_import_filter := 'rule_order.control_id = ' || CAST(i_relevant_import_id AS VARCHAR);
--- 		END IF;
--- 		v_dev_filter := 'rule_order.dev_id = ' || CAST(i_device_id AS VARCHAR);
--- 	END IF;
--- 	v_select_statement := 'SELECT rule_id FROM rule_order INNER JOIN device USING (dev_id) INNER JOIN management USING (mgm_id) WHERE ' || v_import_filter
--- 		|| ' AND ' || v_dev_filter || ' AND ' || v_admin_view_filter || v_order_statement;
--- 	FOR r_rule IN EXECUTE v_select_statement	
--- 	LOOP
--- 		RETURN NEXT r_rule.rule_id;
--- 	END LOOP;
--- 	RETURN;
--- END;
--- $BODY$
---   LANGUAGE 'plpgsql' VOLATILE;
 
 CREATE OR REPLACE FUNCTION get_import_ids_for_time (TIMESTAMP) RETURNS SETOF BIGINT AS $$
 DECLARE
@@ -948,9 +698,7 @@ $$ LANGUAGE plpgsql;
 -- 	RETURN;
 -- END;
 -- $BODY$
---   LANGUAGE 'plpgsql' VOLATILE
---   COST 100
---   ROWS 1000;
+--   LANGUAGE 'plpgsql';
 
 ----------------------------------------------------
 -- FUNCTION:	get_rule_dst_flat
@@ -966,7 +714,9 @@ $$ LANGUAGE plpgsql;
 -- DROP FUNCTION get_rule_src(BIGINT, integer, timestamp without time zone);
 
 -- CREATE OR REPLACE FUNCTION get_rule_dst_flat (BIGINT, integer, timestamp without time zone)
---   RETURNS SETOF BIGINT AS
+--   RETURNS SETOF BIGINT 
+--   LANGUAGE 'plpgsql'
+-- AS
 -- $BODY$
 -- DECLARE
 --     i_rule_id		ALIAS FOR $1;
@@ -1012,10 +762,7 @@ $$ LANGUAGE plpgsql;
 -- 	END IF;
 -- 	RETURN;
 -- END;
--- $BODY$
---   LANGUAGE 'plpgsql' VOLATILE
---   COST 100
---   ROWS 1000;
+-- $BODY$;
 
 -- Function: get_changed_newrules(refcursor, _int4)
 

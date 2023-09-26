@@ -38,9 +38,9 @@
     #     path: /etc/apt/preferences
     #     create: true
     #     block: |
-    #       Package: *net*
+    #       Package: dotnet-* aspnetcore-* netstandard-*
     #       Pin: origin packages.microsoft.com
-    #       Pin-Priority: 1001
+    #       Pin-Priority: 999
     #   when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_major_version'] is version('22', '>=')
 
     # - name: make sure to use the ubuntu version of dotnet sdk on ubuntu >=22

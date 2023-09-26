@@ -17,7 +17,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getVisibleManagementIdsPerTenant;
         public static readonly string getTenantNetworks;
         public static readonly string addTenantNetwork;
-        public static readonly string deleteTenantNetworks;
+        public static readonly string deleteTenantNetwork;
 
         public static readonly string getUsers;
         public static readonly string getUserByDn;
@@ -52,7 +52,7 @@ namespace FWO.Api.Client.Queries
                 getVisibleManagementIdsPerTenant = File.ReadAllText(QueryPath + "auth/getVisibleManagementIdsPerTenant.graphql");
                 getTenantNetworks = File.ReadAllText(QueryPath + "auth/getTenantNetworks.graphql");
                 addTenantNetwork = File.ReadAllText(QueryPath + "auth/addTenantNetwork.graphql");
-                deleteTenantNetworks = File.ReadAllText(QueryPath + "auth/deleteTenantNetworks.graphql");
+                deleteTenantNetwork = File.ReadAllText(QueryPath + "auth/deleteTenantNetwork.graphql");
 
                 getUsers = File.ReadAllText(QueryPath + "auth/getUsers.graphql");
                 getUserByDn = File.ReadAllText(QueryPath + "auth/getUserByDn.graphql");

@@ -1,7 +1,11 @@
-﻿using FWO.Api.Data;
-using FWO.Config.Api;
+﻿using NetTools;
+using System.Net;
+using System.Numerics;
 using System.Text;
+using FWO.Api.Data;
+using FWO.Config.Api;
 using FWO.Report.Filter;
+using FWO.Logging;
 
 namespace FWO.Ui.Display
 {
@@ -34,11 +38,6 @@ namespace FWO.Ui.Display
             return (rule.DestinationZone != null ? rule.DestinationZone.Name : "");
         }
 
-        public string DisplayIpRange(string? Ip, string? IpEnd)
-        {
-            return (Ip != null && Ip != "" ? $"{Ip}{(IpEnd != null && IpEnd != "" && IpEnd != Ip ? $"-{IpEnd}" : "")}" : "");
-        }
-
         public string DisplayAction(Rule rule)
         {
             return rule.Action;
@@ -62,7 +61,7 @@ namespace FWO.Ui.Display
         public StringBuilder DisplayNetworkLocation(NetworkLocation userNetworkObject, ReportType reportType, string? userName = null, string? objName = null)
         {
             StringBuilder result = new StringBuilder();
-
+            
             if (userNetworkObject.User != null &&  userNetworkObject.User.Id > 0)
             {
                 result.Append($"{userName ?? userNetworkObject.User.Name}@");
@@ -71,15 +70,15 @@ namespace FWO.Ui.Display
             if (!reportType.IsTechReport())
             {
                 result.Append($"{objName ?? userNetworkObject.Object.Name}");
-                if(userNetworkObject.Object.Type.Name != "group")
-                {
-                    result.Append(" (");
-                }
             }
-            result.Append(DisplayIpRange(userNetworkObject.Object.IP, userNetworkObject.Object.IpEnd));
-            if (!reportType.IsTechReport() && userNetworkObject.Object.Type.Name != "group")
+            if (userNetworkObject.Object.Type.Name != "group")
             {
-                result.Append(")");
+                bool showIpinBrackets = !reportType.IsTechReport();
+                result.Append(NwObjDisplay.DisplayIp(
+                    userNetworkObject.Object.IP,
+                    userNetworkObject.Object.IpEnd,
+                    userNetworkObject.Object.Type.Name,
+                    showIpinBrackets));
             }
             return result;
         }

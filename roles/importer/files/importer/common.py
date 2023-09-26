@@ -73,7 +73,7 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0,
         logger.error("import_management - error while getting fw management details for mgm=" + str(mgm_id) )
         raise
     
-    if mgm_details['importDisabled']:
+    if mgm_details['importDisabled'] and not force:
         logger.info("import_management - import disabled for mgm " + str(mgm_id))
     else:
         Path(import_tmp_path).mkdir(parents=True, exist_ok=True)  # make sure tmp path exists

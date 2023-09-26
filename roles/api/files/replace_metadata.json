@@ -1627,6 +1627,18 @@
                   }
                 }
               ],
+              "computed_fields": [
+                {
+                  "name": "has_relevant_change",
+                  "definition": {
+                    "function": {
+                      "name": "has_relevant_change",
+                      "schema": "public"
+                    },
+                    "session_argument": "hasura_session"
+                  }
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "auditor",
@@ -1735,10 +1747,27 @@
                       "change_time",
                       "unique_name"
                     ],
+                    "computed_fields": [
+                      "has_relevant_change"
+                    ],
                     "filter": {
-                      "dev_id": {
-                        "_in": "x-hasura-visible-devices"
-                      }
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "dev_id": {
+                            "_in": "x-hasura-visible-devices"
+                          }
+                        },
+                        {
+                          "has_relevant_change": {
+                            "_eq": "true"
+                          }
+                        }
+                      ]
                     },
                     "allow_aggregations": true
                   }
@@ -1767,10 +1796,27 @@
                       "change_time",
                       "unique_name"
                     ],
+                    "computed_fields": [
+                      "has_relevant_change"
+                    ],
                     "filter": {
-                      "dev_id": {
-                        "_in": "x-hasura-visible-devices"
-                      }
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "dev_id": {
+                            "_in": "x-hasura-visible-devices"
+                          }
+                        },
+                        {
+                          "has_relevant_change": {
+                            "_eq": "true"
+                          }
+                        }
+                      ]
                     },
                     "allow_aggregations": true
                   }
@@ -6554,87 +6600,6 @@
             },
             {
               "table": {
-                "name": "nw_object_limits",
-                "schema": "public"
-              },
-              "select_permissions": [
-                {
-                  "role": "auditor",
-                  "permission": {
-                    "columns": [
-                      "obj_id",
-                      "first_ip",
-                      "last_ip",
-                      "mgm_id"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
-                  }
-                },
-                {
-                  "role": "fw-admin",
-                  "permission": {
-                    "columns": [
-                      "obj_id",
-                      "first_ip",
-                      "last_ip",
-                      "mgm_id"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
-                  }
-                },
-                {
-                  "role": "recertifier",
-                  "permission": {
-                    "columns": [
-                      "obj_id",
-                      "first_ip",
-                      "last_ip",
-                      "mgm_id"
-                    ],
-                    "filter": {
-                      "mgm_id": {
-                        "_in": "x-hasura-visible-managements"
-                      }
-                    },
-                    "allow_aggregations": true
-                  }
-                },
-                {
-                  "role": "reporter",
-                  "permission": {
-                    "columns": [
-                      "obj_id",
-                      "first_ip",
-                      "last_ip",
-                      "mgm_id"
-                    ],
-                    "filter": {
-                      "mgm_id": {
-                        "_in": "x-hasura-visible-managements"
-                      }
-                    },
-                    "allow_aggregations": true
-                  }
-                },
-                {
-                  "role": "reporter-viewall",
-                  "permission": {
-                    "columns": [
-                      "obj_id",
-                      "first_ip",
-                      "last_ip",
-                      "mgm_id"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
                 "name": "object",
                 "schema": "public"
               },
@@ -6733,21 +6698,6 @@
                       "table": {
                         "name": "impltask",
                         "schema": "request"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "network_object_limits",
-                  "using": {
-                    "manual_configuration": {
-                      "column_mapping": {
-                        "obj_id": "obj_id"
-                      },
-                      "insertion_order": null,
-                      "remote_table": {
-                        "name": "nw_object_limits",
-                        "schema": "public"
                       }
                     }
                   }
@@ -6858,6 +6808,18 @@
                         "schema": "public"
                       }
                     }
+                  }
+                }
+              ],
+              "computed_fields": [
+                {
+                  "name": "object_relevant_for_tenant",
+                  "definition": {
+                    "function": {
+                      "name": "object_relevant_for_tenant",
+                      "schema": "public"
+                    },
+                    "session_argument": "hasura_session"
                   }
                 }
               ],
@@ -6976,9 +6938,18 @@
                       "obj_last_seen"
                     ],
                     "filter": {
-                      "mgm_id": {
-                        "_in": "x-hasura-visible-managements"
-                      }
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "object_relevant_for_tenant": {
+                            "_eq": "true"
+                          }
+                        }
+                      ]
                     },
                     "allow_aggregations": true
                   }
@@ -7019,9 +6990,18 @@
                       "obj_last_seen"
                     ],
                     "filter": {
-                      "mgm_id": {
-                        "_in": "x-hasura-visible-managements"
-                      }
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "object_relevant_for_tenant": {
+                            "_eq": "true"
+                          }
+                        }
+                      ]
                     },
                     "allow_aggregations": true
                   }
@@ -10027,6 +10007,18 @@
                   }
                 }
               ],
+              "computed_fields": [
+                {
+                  "name": "rule_relevant_for_tenant",
+                  "definition": {
+                    "function": {
+                      "name": "rule_relevant_for_tenant",
+                      "schema": "public"
+                    },
+                    "session_argument": "hasura_session"
+                  }
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "auditor",
@@ -10186,6 +10178,11 @@
                           "dev_id": {
                             "_in": "x-hasura-visible-devices"
                           }
+                        },
+                        {
+                          "rule_relevant_for_tenant": {
+                            "_eq": "true"
+                          }
                         }
                       ]
                     },
@@ -10245,6 +10242,11 @@
                         {
                           "dev_id": {
                             "_in": "x-hasura-visible-devices"
+                          }
+                        },
+                        {
+                          "rule_relevant_for_tenant": {
+                            "_eq": "true"
                           }
                         }
                       ]
@@ -10338,6 +10340,18 @@
                   }
                 }
               ],
+              "computed_fields": [
+                {
+                  "name": "rule_from_relevant_for_tenant",
+                  "definition": {
+                    "function": {
+                      "name": "rule_from_relevant_for_tenant",
+                      "schema": "public"
+                    },
+                    "session_argument": "hasura_session"
+                  }
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "auditor",
@@ -10386,7 +10400,29 @@
                       "active",
                       "negated"
                     ],
-                    "filter": {},
+                    "filter": {
+                      "_and": [
+                        {
+                          "rule": {
+                            "mgm_id": {
+                              "_in": "x-hasura-visible-managements"
+                            }
+                          }
+                        },
+                        {
+                          "rule": {
+                            "dev_id": {
+                              "_in": "x-hasura-visible-devices"
+                            }
+                          }
+                        },
+                        {
+                          "rule_from_relevant_for_tenant": {
+                            "_eq": "true"
+                          }
+                        }
+                      ]
+                    },
                     "allow_aggregations": true
                   }
                 },
@@ -10403,7 +10439,29 @@
                       "active",
                       "negated"
                     ],
-                    "filter": {},
+                    "filter": {
+                      "_and": [
+                        {
+                          "rule": {
+                            "mgm_id": {
+                              "_in": "x-hasura-visible-managements"
+                            }
+                          }
+                        },
+                        {
+                          "rule": {
+                            "dev_id": {
+                              "_in": "x-hasura-visible-devices"
+                            }
+                          }
+                        },
+                        {
+                          "rule_from_relevant_for_tenant": {
+                            "_eq": "true"
+                          }
+                        }
+                      ]
+                    },
                     "allow_aggregations": true
                   }
                 },
@@ -10881,6 +10939,18 @@
                     "foreign_key_constraint_on": "rule_metadata_id"
                   }
                 }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "rule_metadata_id",
+                      "owner_id"
+                    ],
+                    "filter": {}
+                  }
+                }
               ]
             },
             {
@@ -11144,6 +11214,18 @@
                   }
                 }
               ],
+              "computed_fields": [
+                {
+                  "name": "rule_to_relevant_for_tenant",
+                  "definition": {
+                    "function": {
+                      "name": "rule_to_relevant_for_tenant",
+                      "schema": "public"
+                    },
+                    "session_argument": "hasura_session"
+                  }
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "auditor",
@@ -11190,7 +11272,29 @@
                       "rule_to_id",
                       "user_id"
                     ],
-                    "filter": {},
+                    "filter": {
+                      "_and": [
+                        {
+                          "rule": {
+                            "mgm_id": {
+                              "_in": "x-hasura-visible-managements"
+                            }
+                          }
+                        },
+                        {
+                          "rule": {
+                            "dev_id": {
+                              "_in": "x-hasura-visible-devices"
+                            }
+                          }
+                        },
+                        {
+                          "rule_to_relevant_for_tenant": {
+                            "_eq": "true"
+                          }
+                        }
+                      ]
+                    },
                     "allow_aggregations": true
                   }
                 },
@@ -11207,7 +11311,29 @@
                       "rule_to_id",
                       "user_id"
                     ],
-                    "filter": {},
+                    "filter": {
+                      "_and": [
+                        {
+                          "rule": {
+                            "mgm_id": {
+                              "_in": "x-hasura-visible-managements"
+                            }
+                          }
+                        },
+                        {
+                          "rule": {
+                            "dev_id": {
+                              "_in": "x-hasura-visible-devices"
+                            }
+                          }
+                        },
+                        {
+                          "rule_to_relevant_for_tenant": {
+                            "_eq": "true"
+                          }
+                        }
+                      ]
+                    },
                     "allow_aggregations": true
                   }
                 },
@@ -15449,37 +15575,7 @@
             },
             {
               "table": {
-                "name": "view_device_names",
-                "schema": "public"
-              }
-            },
-            {
-              "table": {
                 "name": "view_documented_change_counter",
-                "schema": "public"
-              }
-            },
-            {
-              "table": {
-                "name": "view_import_status_errors",
-                "schema": "public"
-              }
-            },
-            {
-              "table": {
-                "name": "view_import_status_successful",
-                "schema": "public"
-              }
-            },
-            {
-              "table": {
-                "name": "view_import_status_table",
-                "schema": "public"
-              }
-            },
-            {
-              "table": {
-                "name": "view_import_status_table_unsorted",
                 "schema": "public"
               }
             },

@@ -86,9 +86,7 @@
             </div>
         </div>
     }
-    @if (selectedReportType != ReportType.Statistics && selectedReportType != ReportType.Recertification
-         && (authenticationStateTask!.Result.User.IsInRole("reporter-viewall") || authenticationStateTask!.Result.User.IsInRole("admin")
-             || authenticationStateTask!.Result.User.IsInRole("fw-admin") || authenticationStateTask!.Result.User.IsInRole("auditor")))
+    @if (tenantFilteringAllowed && selectedReportType != ReportType.Statistics)
     {
         <div class="p-3">
             <h5 class="text-left">@(userConfig.GetText("tenant_view"))</h5>
@@ -283,6 +281,9 @@
 
     private bool collapseDevices = false;
 
+    private bool tenantFilteringAllowed => authenticationStateTask!.Result.User.IsInRole("reporter-viewall") || authenticationStateTask!.Result.User.IsInRole("admin")
+        || authenticationStateTask!.Result.User.IsInRole("fw-admin") || authenticationStateTask!.Result.User.IsInRole("auditor");
+
     protected override void OnInitialized()
     {
         Task.Run(async () =>
@@ -294,7 +295,10 @@
 
                 deviceFilter.Managements = await Connection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
                 ownerList = await Connection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
-                tenantList = await Connection.SendQueryAsync<List<Tenant>>(FWO.Api.Client.Queries.AuthQueries.getTenants);
+                if (tenantFilteringAllowed)
+                {
+                    tenantList = await Connection.SendQueryAsync<List<Tenant>>(FWO.Api.Client.Queries.AuthQueries.getTenants);
+                }
 
                 await InvokeAsync(StateHasChanged);
                 if (deviceFilter.NumberMgmtDev() > userConfig.MinCollapseAllDevices)

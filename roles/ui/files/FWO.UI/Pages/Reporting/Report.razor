@@ -568,7 +568,7 @@
 
         ReportParams reportParams = new ReportParams((int)selectedReportType, selectedReportType == ReportType.UnusedRules ? reducedDeviceFilter : deviceFilter);
         reportParams.TimeFilter = savedTimeFilter;
-        if (selectedReportType != ReportType.Statistics && selectedReportType != ReportType.Recertification)
+        if (selectedReportType != ReportType.Statistics)
         {
             reportParams.TenantFilter = new TenantFilter(selectedTenantView);
         }

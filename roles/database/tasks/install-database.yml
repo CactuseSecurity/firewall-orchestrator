@@ -67,6 +67,7 @@
       login_user: postgres
       db: postgres
       query: "ALTER DATABASE template1 REFRESH COLLATION VERSION"
+    when: pg_version|int >= 15
 
   - name: create database {{ fworch_db_name }}
     postgresql_db:

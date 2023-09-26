@@ -1,8 +1,8 @@
-@using BlazorTable
+﻿@using BlazorTable
 @using FWO.Config.Api
 @using FWO.Api.Data
 @using FWO.Report
-
+@using FWO.Ui.Display
 
 @inject UserConfig userConfig
 @inject IJSRuntime jsRuntime
@@ -52,7 +52,7 @@
                         <DetailTemplate TableItem="NetworkObject">
                             <Detail Title="@(userConfig.GetText("type"))" Data=@context.Type.Name />
                             <Detail Title="@(userConfig.GetText("uid"))" Data=@context.Uid />
-                            <Detail Title="@(userConfig.GetText("ip"))" Data=@(context.IP + (context.IpEnd != null && context.IpEnd != "" && context.IpEnd != context.IP ? "-" + context.IpEnd : "")) />
+                            <Detail Title="@(userConfig.GetText("ip"))" Data=@NwObjDisplay.DisplayIp(context.IP, context.IpEnd, context.Type.Name) />
                             <Detail Title="@(userConfig.GetText("zone"))" Data=@context.Zone?.Name />
                             @if (context.Type.Name == "group" && context.ObjectGroups != null && context.ObjectGroupFlats != null)
                             {

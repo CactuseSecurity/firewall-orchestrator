@@ -196,19 +196,21 @@ RETURNS boolean AS $$
         ELSE
             IF EXISTS (
                 SELECT rf.obj_id FROM rule_from rf
+                    LEFT JOIN rule r ON (rf.rule_id=r.rule_id)
                     LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat.objgrp_flat_id)
                     LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                     LEFT JOIN tenant_network ON
-                        (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != rule.rule_src_neg))
+                        (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != r.rule_src_neg))
                 WHERE rf.rule_id = rule.rule_id AND tenant_id = t_id
             ) THEN
                 show := true;
             ELSIF EXISTS (
                 SELECT rt.obj_id FROM rule_to rt
+                    LEFT JOIN rule r ON (rt.rule_id=r.rule_id)
                     LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat.objgrp_flat_id)
                     LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                     LEFT JOIN tenant_network ON
-                        (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != rule.rule_dst_neg))
+                        (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != r.rule_dst_neg))
                 WHERE rt.rule_id = rule.rule_id AND tenant_id = t_id
             ) THEN
                 show := true;
@@ -242,7 +244,7 @@ RETURNS boolean AS $$
                     LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                     LEFT JOIN tenant_network ON
                         (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != r.rule_src_neg))
-                WHERE rule_from_id = rule_from.rule_from_id AND tenant_id = t_id --> this better be efficient (rule_from_id checked before join) (!TODO: check this)
+                WHERE rule_from_id = rule_from.rule_from_id AND tenant_id = t_id
             ) THEN
                 show := true;
             ELSE -- check if all rule_from objects visible since relevant rule_to exists
@@ -254,7 +256,7 @@ RETURNS boolean AS $$
                         LEFT JOIN object ON (objgrp_flat_member_id=object.obj_id)
                         LEFT JOIN tenant_network ON
                             (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != r.rule_dst_neg))
-                    WHERE rule_id = rule_from.rule_id
+                    WHERE rt.rule_id = rule_from.rule_id
                 LOOP
                     IF rule_to_obj.tenant_id = t_id THEN
                         show := true;
@@ -291,7 +293,7 @@ RETURNS boolean AS $$
                     LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                     LEFT JOIN tenant_network ON
                         (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != r.rule_dst_neg))
-                WHERE rule_to_id = rule_to.rule_to_id AND tenant_id = t_id --> this better be efficient (rule_to_id checked before join) (!TODO: check this)
+                WHERE rule_to_id = rule_to.rule_to_id AND tenant_id = t_id
             ) THEN
                 show := true;
             ELSE -- check if all rule_to objects visible since relevant rule_from exists
@@ -303,7 +305,7 @@ RETURNS boolean AS $$
                         LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                         LEFT JOIN tenant_network ON
                             (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != r.rule_src_neg))
-                    WHERE rule_id = rule_to.rule_id
+                    WHERE rf.rule_id = rule_to.rule_id
                 LOOP
                     IF rule_from_obj.tenant_id = t_id THEN
                         show := true;
@@ -327,15 +329,18 @@ RETURNS boolean AS $$
     BEGIN
         t_id := (hasura_session ->> 'x-hasura-tenant-id')::integer;
 
+
         IF t_id IS NULL THEN
             RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
         ELSIF t_id = 1 THEN
             show := true;
-        ELSIF EXISTS ( -- ip of object is in tenant_network of tenant
+        ELSIF EXISTS ( -- ip of object (or any objgrp member) is in tenant_network of tenant
             SELECT o.obj_id FROM object o
+                LEFT JOIN objgrp_flat of ON (o.obj_id=of.objgrp_flat_id)
+                LEFT JOIN object of_o ON (of.objgrp_flat_member_id=of_o.obj_id)
                 LEFT JOIN tenant_network ON
-                    (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end))
-            WHERE obj_id = object.obj_id AND tenant_id = t_id
+                    (ip_ranges_overlap(of_o.obj_ip, of_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end))
+            WHERE o.obj_id = object.obj_id AND tenant_id = t_id
         ) THEN
             show := true;
         ELSIF EXISTS ( -- object is in rule_from or rule_to of a rule that is visible to tenant
@@ -346,10 +351,11 @@ RETURNS boolean AS $$
                 LEFT JOIN objgrp_flat rt_of ON (rt.obj_id=rt_of.objgrp_flat_id)
                 LEFT JOIN object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
                 LEFT JOIN object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
-                LEFT JOIN tenant_network ON
-                    (ip_ranges_overlap(rf_o.obj_ip, rf_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != r.rule_src_neg)
-                     OR ip_ranges_overlap(rt_o.obj_ip, rt_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != r.rule_dst_neg))
-            WHERE (rf_o.obj_id = object.obj_id OR rt_o.obj_id = object.obj_id) AND tenant_id = t_id AND r.rule_head_text is NULL
+                LEFT JOIN tenant_network tn_rf ON
+                    (ip_ranges_overlap(rf_o.obj_ip, rf_o.obj_ip_end, tn_rf.tenant_net_ip, tn_rf.tenant_net_ip_end, rf.negated != r.rule_src_neg))
+                LEFT JOIN tenant_network tn_rt ON
+                    (ip_ranges_overlap(rt_o.obj_ip, rt_o.obj_ip_end, tn_rt.tenant_net_ip, tn_rt.tenant_net_ip_end, rt.negated != r.rule_dst_neg))
+            WHERE (rf_o.obj_id = object.obj_id AND tn_rt.tenant_id = t_id) OR (rt_o.obj_id = object.obj_id AND tn_rf.tenant_id = t_id) AND r.rule_head_text is NULL
         ) THEN
             show := true;
         END IF;
@@ -465,7 +471,7 @@ RETURNS SETOF rule_from AS $$
                 SELECT rf.* FROM rule_from rf WHERE rule_id = rule.rule_id;
         ELSE
             RETURN QUERY
-                SELECT rf.* FROM rule_from rf
+                SELECT DISTINCT rf.* FROM rule_from rf
                     LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat.objgrp_flat_id)
                     LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                     LEFT JOIN tenant_network ON
@@ -501,7 +507,7 @@ RETURNS SETOF rule_to AS $$
                 SELECT rt.* FROM rule_to rt WHERE rule_id = rule.rule_id;
         ELSE
             RETURN QUERY
-                SELECT rt.* FROM rule_to rt
+                SELECT DISTINCT rt.* FROM rule_to rt
                     LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat.objgrp_flat_id)
                     LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                     LEFT JOIN tenant_network ON

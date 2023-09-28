@@ -30,14 +30,15 @@
     
     - name: Modify product_version
       set_fact:
-        json_data: "{{ config_file.content | b64decode | from_json | combine({'product_version': '{{ product_version }}'}) }}"        
+         json_data: "{{ config_file.content | b64decode | from_json | combine({'product_version': product_version }) }}"       
         
     - name: Save updated config to file
       copy:
         content: "{{ json_data | to_nice_json }}"
         dest: "{{ fworch_conf_file }}"
         owner: "{{ fworch_user }}"
-        group: "{{ fworch_group }}"     
+        group: "{{ fworch_group }}"
+      become: true     
   when: installation_mode == "upgrade"
   
 - name: include upgrade script

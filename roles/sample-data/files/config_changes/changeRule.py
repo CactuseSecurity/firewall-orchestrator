@@ -113,10 +113,10 @@ elif actionChosen == 'reverseAction':
     else:
         rule['action'] = "accept"
 elif actionChosen == 'reverseLogging':
-    if rule['logtraffic-start'] == "enable":
-        rule['logtraffic-start'] = "disable"
+    if rule['logtraffic'] == "all" or rule['logtraffic'] == "utm":
+        rule['logtraffic'] = "disable"
     else:
-        rule['logtraffic-start'] = "enable"
+        rule['logtraffic'] = "all"
 else:
     print ("unknown action chosen: " + actionChosen )
 with open(tempConfigFile, 'w', encoding='utf-8') as f:

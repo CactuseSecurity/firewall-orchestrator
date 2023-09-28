@@ -1,12 +1,57 @@
 ﻿using NetTools;
-using System.Net;
 using System.Text;
 using FWO.Logging;
+using System.Net;
+using System.Text.RegularExpressions;
 
 namespace FWO.Ui.Display
 {
     public static class NwObjDisplay
     {
+        public static string StripOffNetmask(string ip)
+        {
+            Match match = Regex.Match(ip, @"^([\d\.\:]+)\/");
+            if (match.Success)
+            {
+                string matchedString = match.Value;
+                return matchedString.Remove( matchedString.Length - 1 );
+            }
+            return ip;
+        }
+
+        public static bool SpanSingleNetwork(string ipInStart, string ipInEnd)
+        {
+            // IPAddressRange range = IPAddressRange.Parse(IPAddress.Parse(ipInStart), IPAddress.Parse(ipInEnd));
+
+            IPAddressRange range = IPAddressRange.Parse(StripOffNetmask(ipInStart) + "-" + StripOffNetmask(ipInEnd));
+            try
+            {
+                range.ToCidrString();
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        public static string AutoDetectType(string ip1, string ip2)
+        {
+            if (ip1 == ip2)
+            {
+                return "host";
+            }
+            if (SpanSingleNetwork(ip1, ip2))
+            {
+                return "network";
+            }
+            return "iprange";
+        }
+        public static string DisplayIp(string ip1, string ip2, bool inBrackets = false)
+        {
+            string nwObjType = AutoDetectType(ip1, ip2);
+            return DisplayIp(ip1, ip2, nwObjType, inBrackets);
+        }
 
         public static string DisplayIp(string ip1, string ip2, string nwObjType, bool inBrackets = false)
         {

@@ -110,3 +110,11 @@ DROP VIEW IF EXISTS view_import_status_errors CASCADE;
 DROP VIEW IF EXISTS view_import_status_successful CASCADE;
 
 
+Create table if not exists "customtxt"
+(
+	"id" Varchar NOT NULL,
+    "language" Varchar NOT NULL,
+	"txt" Varchar NOT NULL,
+    primary key ("id", "language")
+);
+

@@ -438,6 +438,14 @@ Create table "txt"
  primary key ("id", "language")
 );
 
+Create table "customtxt"
+(
+	"id" Varchar NOT NULL,
+	"language" Varchar NOT NULL,
+	"txt" Varchar NOT NULL,
+ 	primary key ("id", "language")
+);
+
 Create table "error"
 (
 	"error_id" Varchar NOT NULL UNIQUE,

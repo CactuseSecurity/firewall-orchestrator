@@ -1469,6 +1469,16 @@ INSERT INTO txt VALUES ('reset_to_default',     'German',   'auf Vorgabewerte zu
 INSERT INTO txt VALUES ('reset_to_default',     'English',  'Reset to Default');
 INSERT INTO txt VALUES ('option',		        'German', 	'Option');
 INSERT INTO txt VALUES ('option',		        'English', 	'Option');
+INSERT INTO txt VALUES ('customize_texts',		'German', 	'Texte anpassen');
+INSERT INTO txt VALUES ('customize_texts',		'English', 	'Customize Texts');
+INSERT INTO txt VALUES ('ignore_helptexts',		'German', 	'Hilfetexte ignorieren');
+INSERT INTO txt VALUES ('ignore_helptexts',		'English', 	'Ignore help texts');
+INSERT INTO txt VALUES ('key',                  'German', 	'Schl&uuml;ssel');
+INSERT INTO txt VALUES ('key',                  'English', 	'Key');
+INSERT INTO txt VALUES ('text',                 'German', 	'Text');
+INSERT INTO txt VALUES ('text',                 'English', 	'Text');
+INSERT INTO txt VALUES ('custom_text',          'German', 	'Angepasster Text');
+INSERT INTO txt VALUES ('custom_text',          'English', 	'Custom Text');
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
@@ -1879,6 +1889,8 @@ INSERT INTO txt VALUES ('U5319', 'German',  'Server f&uuml;r ausgehende Emails z
 INSERT INTO txt VALUES ('U5319', 'English', 'Manage email server for outgoing user notifications.');
 INSERT INTO txt VALUES ('U5320', 'German',  'Mehrere Email-Adressen mit Komma trennen');
 INSERT INTO txt VALUES ('U5320', 'English', 'Multiple email addresses can be separated by using commas');
+INSERT INTO txt VALUES ('U5321', 'German',  'Anzeige und &Uuml;berschreiben aller dargestellten Texte');
+INSERT INTO txt VALUES ('U5321', 'English', 'Show and overwrite all shown texts');
 
 INSERT INTO txt VALUES ('U5401', 'German',  'Passwort ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5401', 'English', 'Password changed.');

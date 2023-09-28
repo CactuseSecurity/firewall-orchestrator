@@ -2264,6 +2264,8 @@ INSERT INTO txt VALUES ('T0016', 'German',  'Nutzer mit Berechtigung zum Impleme
 INSERT INTO txt VALUES ('T0016', 'English', 'users that have the right to implement requests');
 INSERT INTO txt VALUES ('T0017', 'German',  'Nutzer mit Berechtigung zum Review von Auftr&auml;gen');
 INSERT INTO txt VALUES ('T0017', 'English', 'users that have the right to review requests');
+INSERT INTO txt VALUES ('T0018', 'German',  'Nutzer mit Berechtigung zum Modellieren von Applikationen');
+INSERT INTO txt VALUES ('T0018', 'English', 'users that have the right to model applications');
 
 -- template comments
 INSERT INTO txt VALUES ('T0101', 'German',  'Aktuell aktive Regeln aller Gateways');
@@ -3551,8 +3553,8 @@ INSERT INTO txt VALUES ('H5352', 'German',  'Auswahl aus der Liste der bekannten
 INSERT INTO txt VALUES ('H5352', 'English', 'Select from the list of known users also displayed in the <a href="/help/settings/users">users settings</a>.');
 INSERT INTO txt VALUES ('H5353', 'German',  'Auswahl aus der Liste der internen Gruppen, wie sie in den <a href="/help/settings/groups">Gruppeneinstellungen</a> dargestellt wird.');
 INSERT INTO txt VALUES ('H5353', 'English', 'Select from the list of internal groups also displayed in the <a href="/help/settings/groups">groups settings</a>.');
-INSERT INTO txt VALUES ('H5361', 'German',  'Reporting und Rezertifizierung (regelbasiert): reporter, reporter-viewall, recertifier');
-INSERT INTO txt VALUES ('H5361', 'English', 'Reporting and recertification (rule based): reporter, reporter-viewall, recertifier');
+INSERT INTO txt VALUES ('H5361', 'German',  'Reporting, Modellierung und Rezertifizierung (regelbasiert): reporter, reporter-viewall, modeller, recertifier');
+INSERT INTO txt VALUES ('H5361', 'English', 'Reporting, modelling and recertification (rule based): reporter, reporter-viewall, modeller, recertifier');
 INSERT INTO txt VALUES ('H5362', 'German',  'Workflow: requester, approver, planner, implementer, reviewer');
 INSERT INTO txt VALUES ('H5362', 'English', 'Workflow: requester, approver, planner, implementer, reviewer');
 INSERT INTO txt VALUES ('H5363', 'German',  '&Uuml;bergeordnete Rollen: admin, fw-admin, auditor, (anonymous)');

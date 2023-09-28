@@ -116,3 +116,13 @@ mostly version update summarizing latest PRs
 - new settings option for rule ownership mode
 ### 7.2.2 - 15.09.2023 DEVELOP
 - complete re-work: all ip addresses are now internally represented as ranges, including all networks
+### 7.2.3 - 29.09.2023 DEVELOP
+bugfix release:
+- api - upgrade hasura to 2.33.4
+- installer - fix client/server db sort order mismatch (collate)
+- adding simulated changes to fwodemodata (fortiate)
+- importer - fix in fortiOS importer action field
+- UI
+  - fix settings owner networks editing and displaying
+  - recert report (and recert page) IP addresses now also simplified like an other reports
+  - fix broken links in recert page

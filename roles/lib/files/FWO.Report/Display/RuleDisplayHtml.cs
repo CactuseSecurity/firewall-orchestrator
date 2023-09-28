@@ -95,10 +95,6 @@ namespace FWO.Ui.Display
         protected string constructLink(string type, string symbol, long id, string name, OutputLocation location, int mgmtId, string style, ReportType reportType = ReportType.Rules)
         {
             string genPath = "/generation";
-            if (reportType == ReportType.Recertification)
-            {
-                genPath = "";
-            }
             string link = location == OutputLocation.export ? $"#" : $"{location.ToString()}{genPath}#goto-report-m{mgmtId}-";
             return $"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{link}{type}{id}\" target=\"_top\" style=\"{style}\">{name}</a>";
         }

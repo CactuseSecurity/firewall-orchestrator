@@ -49,5 +49,15 @@ namespace FWO.Api.Data
                 Valid = false;
             }
         }
+
+        public bool IsV6()
+        {
+            return CidrString.Contains(':');
+        }
+        public bool IsV4()
+        {
+            return !IsV6();
+        }
+        
     }
 }

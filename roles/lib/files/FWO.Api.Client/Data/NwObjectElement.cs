@@ -21,7 +21,8 @@ namespace FWO.Api.Data
         [JsonProperty("ip_end"), JsonPropertyName("ip_end")]
         public string IpEndString
         {
-            get { return CidrEnd?.CidrString ?? ""; }
+            // get { return CidrEnd?.CidrString ?? ""; }
+            get { return CidrEnd?.CidrString ?? Cidr.CidrString; }
             set { CidrEnd = new Cidr(value); }
         }
         public Cidr? CidrEnd { get; set; } = new Cidr();

@@ -16,6 +16,11 @@
 
 */
 
+
+DROP VIEW IF EXISTS v_rule_with_src_owner CASCADE;
+DROP VIEW IF EXISTS v_rule_with_dst_owner CASCADE;
+DROP VIEW IF EXISTS v_rule_with_ip_owner CASCADE;
+
 CREATE OR REPLACE VIEW v_active_access_allow_rules AS 
 	SELECT * FROM rule r
 	WHERE r.active AND 					-- only show current (not historical) rules 
@@ -54,8 +59,30 @@ CREATE OR REPLACE VIEW v_excluded_dst_ips AS
 	LEFT JOIN object o ON (of.objgrp_flat_member_id=o.obj_id)
 	WHERE NOT o.obj_ip='0.0.0.0/0';
 
+    -- if start_ip1 <= end_ip2 and start_ip2 <= end_ip1:
+    --     overlap_start = max(start_ip1, start_ip2)
+    --     overlap_end = min(end_ip1, end_ip2)
+    --     return (overlap_start, overlap_end)
+    -- else:
+    --     return None  # No overlap
+
 CREATE OR REPLACE VIEW v_rule_with_src_owner AS 
-	SELECT r.rule_id, ow.id as owner_id, ow.name as owner_name, onw.ip as matching_ip, 'source' AS match_in,
+	SELECT
+		r.rule_id, ow.id as owner_id, ow.name as owner_name, 
+		CASE
+			WHEN onw.ip = onw.ip_end
+			THEN SPLIT_PART(CAST(onw.ip AS VARCHAR), '/', 1) -- Single IP overlap, removing netmask
+			ELSE
+				CASE WHEN	-- range is a single network
+					host(broadcast(inet_merge(onw.ip, onw.ip_end))) = host (onw.ip_end) AND
+					host(inet_merge(onw.ip, onw.ip_end)) = host (onw.ip)
+				THEN
+					text(inet_merge(onw.ip, onw.ip_end))
+				ELSE
+					CONCAT(SPLIT_PART(onw.ip::VARCHAR,'/', 1), '-', SPLIT_PART(onw.ip_end::VARCHAR, '/', 1))
+				END
+		END AS matching_ip,
+		'source' AS match_in,
 		ow.recert_interval, met.rule_last_certified, met.rule_last_certifier
 	FROM v_active_access_allow_rules r
 	LEFT JOIN rule_from ON (r.rule_id=rule_from.rule_id)
@@ -69,10 +96,25 @@ CREATE OR REPLACE VIEW v_rule_with_src_owner AS
 		when (select mode from v_rule_ownership_mode) = 'exclusive' then (NOT o.obj_ip IS NULL) AND o.obj_ip NOT IN (select * from v_excluded_src_ips)
 		else NOT o.obj_ip IS NULL
 	END
-	GROUP BY r.rule_id, onw.ip, ow.id, ow.name, met.rule_last_certified, met.rule_last_certifier;
-	
+	GROUP BY r.rule_id, o.obj_ip, o.obj_ip_end, onw.ip, onw.ip_end, ow.id, ow.name, met.rule_last_certified, met.rule_last_certifier;
+
 CREATE OR REPLACE VIEW v_rule_with_dst_owner AS 
-	SELECT r.rule_id, ow.id as owner_id, ow.name as owner_name, onw.ip as matching_ip, 'destination' AS match_in,
+	SELECT 
+		r.rule_id, ow.id as owner_id, ow.name as owner_name, 
+		CASE
+			WHEN onw.ip = onw.ip_end
+			THEN SPLIT_PART(CAST(onw.ip AS VARCHAR), '/', 1) -- Single IP overlap, removing netmask
+			ELSE
+				CASE WHEN	-- range is a single network
+					host(broadcast(inet_merge(onw.ip, onw.ip_end))) = host (onw.ip_end) AND
+					host(inet_merge(onw.ip, onw.ip_end)) = host (onw.ip)
+				THEN
+					text(inet_merge(onw.ip, onw.ip_end))
+				ELSE
+					CONCAT(SPLIT_PART(onw.ip::VARCHAR,'/', 1), '-', SPLIT_PART(onw.ip_end::VARCHAR, '/', 1))
+				END
+		END AS matching_ip,
+		'destination' AS match_in,
 		ow.recert_interval, met.rule_last_certified, met.rule_last_certifier
 	FROM v_active_access_allow_rules r
 	LEFT JOIN rule_to rt ON (r.rule_id=rt.rule_id)
@@ -86,7 +128,7 @@ CREATE OR REPLACE VIEW v_rule_with_dst_owner AS
 		when (select mode from v_rule_ownership_mode) = 'exclusive' then (NOT o.obj_ip IS NULL) AND o.obj_ip NOT IN (select * from v_excluded_dst_ips)
 		else NOT o.obj_ip IS NULL
 	END
-	GROUP BY r.rule_id, onw.ip, ow.id, ow.name, met.rule_last_certified, met.rule_last_certifier;
+	GROUP BY r.rule_id, o.obj_ip, o.obj_ip_end, onw.ip, onw.ip_end, ow.id, ow.name, met.rule_last_certified, met.rule_last_certifier;
 
 CREATE OR REPLACE VIEW v_rule_with_ip_owner AS
 	SELECT DISTINCT	uno.rule_id, uno.owner_id, uno.owner_name,

@@ -622,7 +622,8 @@ else
             var Variables = new
             {
                 ownerId = actOwner.Id,
-                ip = (ipAdd.Cidr != null && ipAdd.Cidr.Valid ? ipAdd.Cidr.CidrString : null)
+                ip = (ipAdd.Cidr != null && ipAdd.Cidr.Valid ? ipAdd.IpString : null), 
+                ip_end = (ipAdd.IpEndString != null && ipAdd.Cidr != null && ipAdd.Cidr.Valid  && ipAdd.IpEndString != "" ? ipAdd.IpEndString : null)
             };
             await apiConnection.SendQueryAsync<NewReturning>(FWO.Api.Client.Queries.OwnerQueries.newNetworkOwnership, Variables);
             actIpAddresses.Add(ipAdd);

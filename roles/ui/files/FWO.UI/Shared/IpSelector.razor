@@ -1,5 +1,6 @@
 ﻿@using NetTools;
-@using FWO.Api.Data
+@using FWO.Api.Data;
+@using FWO.Ui.Display;
 
 @inject UserConfig userConfig
 
@@ -9,7 +10,7 @@
         <EditList ElementType="NwObjectElement" Elements="IpAddresses.ToArray()" ElementsToAdd="IpsToAdd" ElementsToDelete="IpsToDelete" StdLayout="false">
             <Display>
                 <div class="row">
-                    <div class="col-sm-12 border form-control form-control-sm bg-transparent">@context.DisplayIp()</div>
+                    <div class="col-sm-12 border form-control form-control-sm bg-transparent">@NwObjDisplay.DisplayIp(context.IpString, context.IpEndString)</div>
                 </div>
             </Display>
         </EditList>
@@ -28,7 +29,7 @@
 {
     [Parameter]
     public List<NwObjectElement> IpAddresses { get; set; } = new List<NwObjectElement>();
-    
+
     [Parameter]
     public List<NwObjectElement> IpsToAdd { get; set; } = new List<NwObjectElement>();
 
@@ -45,11 +46,15 @@
     private IPAddressRange? ipRangeToAdd;
 
     private void AddIpRange()
-	{
-		if (ipRangeToAdd != null)
-		{
-			NwObjectElement obj = new NwObjectElement(ipRangeToAdd, 0);
-            if (obj.Cidr.Valid)
+    {
+        if (ipRangeToAdd != null)
+        {
+            NwObjectElement obj = new NwObjectElement(ipRangeToAdd, 0);
+            if (!obj.CidrEnd.Valid)
+            {
+                obj.CidrEnd = obj.Cidr;
+            }
+            if (obj.Cidr.Valid && obj.CidrEnd.Valid)
             {
                 IpsToAdd.Add(obj);
             }

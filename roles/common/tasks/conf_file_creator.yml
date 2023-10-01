@@ -39,7 +39,7 @@
         api_hasura_jwt_alg: "{{ api_hasura_jwt_alg }}"
         middleware_native_uri: "http://{{ middleware_hostname }}:{{ middleware_internal_port }}/"
         middleware_uri: "{{ middleware_uri }}"
-        remote_addresses: "[]"
+        remote_addresses: []
 
   - name: create central conf file by dumping varibale as json file
     copy: 

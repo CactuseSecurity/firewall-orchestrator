@@ -28,14 +28,11 @@ possibly followed by a reboot.
 git clone https://github.com/CactuseSecurity/firewall-orchestrator.git
 ```
 
-3) Ansible Installation
-  - Ubuntu 18.04, Debian 10 only: install latest ansible before firewall orchestrator installation
+3) Ansible Installation (only for legacy Ubuntu 18.04, Debian 10)
+
+Install latest ansible (>= 2.9) before firewall orchestrator installation
 
         cd firewall-orchestrator; ansible-playbook scripts/install-latest-ansible.yml -K
-
-  - All platforms: install galaxy collections
-
-        ansible-galaxy collection install community.postgresql
 
 4) install (on localhost)
 

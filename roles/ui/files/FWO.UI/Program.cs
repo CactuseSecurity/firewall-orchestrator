@@ -12,15 +12,24 @@ using RestSharp;
 using System.Diagnostics;
 using FWO.Ui;
 
-// Implicitly call static constructor so backround lock process is started
+// Implicitly call static constructor so background lock process is started
 // (static constructor is only called after class is used in any way)
 Log.WriteInfo("Startup", "Starting FWO UI Server...");
 
 var builder = WebApplication.CreateBuilder(args);
-builder.WebHost.UseStaticWebAssets();
+builder.WebHost.UseWebRoot("wwwroot").UseStaticWebAssets();
 
 /// Add services to the container.
 #region Services
+
+// CORS configuration (allows acccess from a client to an address which is not the own address - proxies etc.)
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowRemoteOrigins", builder =>
+    {
+        builder.WithOrigins(ConfigFile.RemoteAddresses);
+    });
+});
 
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();

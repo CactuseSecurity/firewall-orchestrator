@@ -75,7 +75,7 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
                 rule.update({ 'rule_comment': rule_orig['comments']})
             else:
                 rule.update({ 'rule_comment': None })
-            if rule_orig['action']==0:
+            if rule_orig['action']=='deny':
                 rule.update({ 'rule_action': 'Drop' })
             else:
                 rule.update({ 'rule_action': 'Accept' })

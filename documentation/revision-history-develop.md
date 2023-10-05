@@ -126,7 +126,9 @@ bugfix release:
   - fix settings owner networks editing and displaying
   - recert report (and recert page) IP addresses now also simplified like an other reports
   - fix broken links in recert page
-
+### 7.2.4 - 04.10.2023 DEVELOP
+- new role modeller
+- new mechanism for overwriting texts 
 # 7.2.5 - 05.10.2023 DEVELOP
 - adding more error debugging in CPR8x importer 
 - add check for successful publishing dotnet

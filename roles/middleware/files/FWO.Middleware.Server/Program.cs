@@ -8,7 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
 
-// Implicitly call static constructor so backround lock process is started
+// Implicitly call static constructor so background lock process is started
 // (static constructor is only called after class is used in any way)
 Log.WriteInfo("Startup", "Starting FWO Middleware Server...");
 

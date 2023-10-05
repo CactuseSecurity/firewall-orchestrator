@@ -155,6 +155,8 @@ namespace FWO.Middleware.Server
                     defaultRole = "reporter";
                 else if (hasuraRolesList.Contains("recertifier"))
                     defaultRole = "recertifier";
+                else if (hasuraRolesList.Contains("modeller"))
+                    defaultRole = "modeller";
                 else
                     defaultRole = user.Roles[0]; // pick first role at random (todo: might need to be changed)
             }

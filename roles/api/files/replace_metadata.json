@@ -991,6 +991,28 @@
                   }
                 },
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "ack_by",
+                      "ack_timestamp",
+                      "alert_code",
+                      "alert_dev_id",
+                      "alert_id",
+                      "alert_mgm_id",
+                      "alert_timestamp",
+                      "description",
+                      "json_data",
+                      "ref_alert_id",
+                      "ref_log_id",
+                      "source",
+                      "title",
+                      "user_id"
+                    ]
+                  }
+                },
+                {
                   "role": "planner",
                   "permission": {
                     "check": {},
@@ -1258,6 +1280,28 @@
                   }
                 },
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "alert_id",
+                      "ref_alert_id",
+                      "ref_log_id",
+                      "description",
+                      "source",
+                      "title",
+                      "ack_by",
+                      "alert_code",
+                      "alert_dev_id",
+                      "alert_mgm_id",
+                      "user_id",
+                      "json_data",
+                      "ack_timestamp",
+                      "alert_timestamp"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "planner",
                   "permission": {
                     "columns": [
@@ -1424,6 +1468,17 @@
                     ],
                     "filter": {},
                     "check": {}
+                  }
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "ack_by",
+                      "ack_timestamp"
+                    ],
+                    "filter": {},
+                    "check": null
                   }
                 },
                 {
@@ -2082,6 +2137,30 @@
                   }
                 },
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {
+                      "_or": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user": {
+                            "_eq": 0
+                          }
+                        }
+                      ]
+                    },
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "config_user"
+                    ]
+                  }
+                },
+                {
                   "role": "planner",
                   "permission": {
                     "check": {
@@ -2304,6 +2383,30 @@
                   }
                 },
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "config_user"
+                    ],
+                    "filter": {
+                      "_or": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user": {
+                            "_eq": 0
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
                   "role": "planner",
                   "permission": {
                     "columns": [
@@ -2508,6 +2611,31 @@
                   }
                 },
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "config_user"
+                    ],
+                    "filter": {
+                      "_or": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user": {
+                            "_eq": 0
+                          }
+                        }
+                      ]
+                    },
+                    "check": null
+                  }
+                },
+                {
                   "role": "planner",
                   "permission": {
                     "columns": [
@@ -2601,6 +2729,158 @@
                     },
                     "check": null
                   }
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "customtxt",
+                "schema": "public"
+              },
+              "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "language",
+                      "txt"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "language",
+                      "txt"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "language",
+                      "txt"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "language",
+                      "txt"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "language",
+                      "txt"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "language",
+                      "txt"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "language",
+                      "txt"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "language",
+                      "txt"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "language",
+                      "txt"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "language",
+                      "txt"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "language",
+                      "txt"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "language",
+                      "txt"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ]
             },
@@ -2987,6 +3267,47 @@
                       "hide_in_gui"
                     ],
                     "filter": {}
+                  }
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "clearing_import_ran",
+                      "dev_active",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "dev_name",
+                      "global_rulebase_name",
+                      "global_rulebase_uid",
+                      "local_rulebase_name",
+                      "local_rulebase_uid",
+                      "package_name",
+                      "package_uid",
+                      "dev_id",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "tenant_id",
+                      "dev_comment",
+                      "dev_create",
+                      "dev_update"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "dev_id": {
+                            "_in": "x-hasura-visible-devices"
+                          }
+                        }
+                      ]
+                    },
+                    "allow_aggregations": true
                   }
                 },
                 {
@@ -5021,6 +5342,17 @@
                   }
                 },
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "culture_info",
+                      "name"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "planner",
                   "permission": {
                     "columns": [
@@ -5220,6 +5552,16 @@
                       "ldap_write_user",
                       "ldap_write_user_pwd",
                       "tenant_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "ldap_connection_id",
+                      "ldap_tenant_level"
                     ],
                     "filter": {}
                   }
@@ -5496,6 +5838,30 @@
                   }
                 },
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "data_issue_id",
+                      "import_id",
+                      "rule_id",
+                      "description",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_uid",
+                      "source",
+                      "suspected_cause",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "severity",
+                      "user_id",
+                      "issue_timestamp"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "planner",
                   "permission": {
                     "check": {},
@@ -5778,6 +6144,30 @@
                     "filter": {},
                     "allow_aggregations": true
                   }
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "data_issue_id",
+                      "import_id",
+                      "rule_id",
+                      "description",
+                      "object_name",
+                      "object_type",
+                      "object_uid",
+                      "rule_uid",
+                      "source",
+                      "suspected_cause",
+                      "issue_dev_id",
+                      "issue_mgm_id",
+                      "severity",
+                      "user_id",
+                      "issue_timestamp"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "planner",
@@ -6409,6 +6799,28 @@
                       "mgm_update"
                     ],
                     "filter": {}
+                  }
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "config_path",
+                      "dev_typ_id",
+                      "do_not_import",
+                      "domain_uid",
+                      "hide_in_gui",
+                      "mgm_id",
+                      "mgm_name",
+                      "multi_device_manager_id",
+                      "tenant_id"
+                    ],
+                    "filter": {
+                      "mgm_id": {
+                        "_in": "x-hasura-visible-managements"
+                      }
+                    },
+                    "allow_aggregations": true
                   }
                 },
                 {
@@ -7413,6 +7825,38 @@
                       "recert_check_params"
                     ],
                     "filter": {}
+                  }
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "is_default",
+                      "app_id_external",
+                      "dn",
+                      "group_dn",
+                      "name",
+                      "recert_check_params",
+                      "id",
+                      "recert_interval",
+                      "tenant_id",
+                      "last_recert_check"
+                    ],
+                    "filter": {
+                      "_or": [
+                        {
+                          "tenant_id": {
+                            "_is_null": true
+                          }
+                        },
+                        {
+                          "tenant_id": {
+                            "_eq": "x-hasura-tenant-id"
+                          }
+                        }
+                      ]
+                    },
+                    "allow_aggregations": true
                   }
                 },
                 {
@@ -11983,6 +12427,17 @@
                   }
                 },
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "action_name",
+                      "action_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "planner",
                   "permission": {
                     "columns": [
@@ -12436,6 +12891,28 @@
                   }
                 },
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "dev_typ_is_mgmt",
+                      "dev_typ_is_multi_mgmt",
+                      "is_pure_routing_device",
+                      "dev_typ_config_file_basic_objects",
+                      "dev_typ_config_file_rules",
+                      "dev_typ_config_file_users",
+                      "dev_typ_manufacturer",
+                      "dev_typ_name",
+                      "dev_typ_version",
+                      "dev_typ_id",
+                      "dev_typ_comment",
+                      "dev_typ_predef_obj",
+                      "dev_typ_predef_svc"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "planner",
                   "permission": {
                     "columns": [
@@ -12674,6 +13151,18 @@
                     "filter": {},
                     "allow_aggregations": true
                   }
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "ip_proto_name",
+                      "ip_proto_id",
+                      "ip_proto_comment"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "planner",
@@ -13012,6 +13501,17 @@
                     "filter": {},
                     "allow_aggregations": true
                   }
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "track_name",
+                      "track_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "planner",
@@ -13931,6 +14431,18 @@
                   }
                 },
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "language",
+                      "txt"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "planner",
                   "permission": {
                     "columns": [
@@ -14551,6 +15063,33 @@
                   }
                 },
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "ldap_connection_id",
+                      "tenant_id",
+                      "uiuser_email",
+                      "uiuser_end_date",
+                      "uiuser_first_name",
+                      "uiuser_id",
+                      "uiuser_language",
+                      "uiuser_last_login",
+                      "uiuser_last_name",
+                      "uiuser_last_password_change",
+                      "uiuser_password_must_be_changed",
+                      "uiuser_pwd_history",
+                      "uiuser_start_date",
+                      "uiuser_username",
+                      "uuid"
+                    ],
+                    "filter": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    }
+                  }
+                },
+                {
                   "role": "planner",
                   "permission": {
                     "columns": [
@@ -14793,6 +15332,20 @@
                       "uuid"
                     ],
                     "filter": {},
+                    "check": null
+                  }
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "uiuser_language"
+                    ],
+                    "filter": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    },
                     "check": null
                   }
                 },

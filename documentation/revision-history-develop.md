@@ -126,3 +126,9 @@ bugfix release:
   - fix settings owner networks editing and displaying
   - recert report (and recert page) IP addresses now also simplified like an other reports
   - fix broken links in recert page
+
+# 7.2.5 - 05.10.2023 DEVELOP
+- adding more error debugging in CPR8x importer 
+- add check for successful publishing dotnet
+- fix postgresql_query module ref
+- adding new network object type 'external-gateway'

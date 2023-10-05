@@ -14,6 +14,8 @@ def normalize_network_objects(full_config, config2import, import_id, mgm_id=0, d
                            debug_level=debug_level, mgm_id=mgm_id)
     for nw_obj in nw_objects:
         nw_obj.update({'control_id': import_id})
+        if nw_obj['obj_typ'] == 'interoperable-device':
+            nw_obj.update({'obj_typ': 'external-gateway'})
     for idx in range(0, len(nw_objects)-1):
         if nw_objects[idx]['obj_typ'] == 'group':
             add_member_names_for_nw_group(idx, nw_objects)

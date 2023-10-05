@@ -109,4 +109,3 @@ DROP VIEW IF EXISTS view_import_status_table CASCADE;
 DROP VIEW IF EXISTS view_import_status_errors CASCADE;
 DROP VIEW IF EXISTS view_import_status_successful CASCADE;
 
-

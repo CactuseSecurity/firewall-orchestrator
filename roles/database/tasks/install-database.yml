@@ -63,7 +63,7 @@
   # include add-tablespace.yml here
 
   - name: make sure sorting order of psql client and postgresql server match for databases to be created
-    community.postgresql.postgresql_query:
+    postgresql_query:
       login_user: postgres
       db: postgres
       query: "ALTER DATABASE template1 REFRESH COLLATION VERSION"

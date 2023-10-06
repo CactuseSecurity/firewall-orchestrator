@@ -137,3 +137,6 @@ bugfix release:
 - middleware & ui: add check for successful publishing dotnet
 - middlware: fix upgrade become issue in middleware ldif files
 - database: fix postgresql_query module reference
+
+# 7.2.6 - 06.10.2023 DEVELOP
+- importer Checkpoint: adding network object type support for 'CpmiVsClusterNetobj' (for VSX virtual switches)

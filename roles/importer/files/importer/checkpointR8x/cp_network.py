@@ -19,7 +19,7 @@ def normalize_network_objects(full_config, config2import, import_id, mgm_id=0, d
             nw_obj.update({'obj_typ': 'external-gateway'})
         # set a dummy IP address for objects without IP addreses
         if nw_obj['obj_typ']!='group' and (nw_obj['obj_ip'] is None or nw_obj['obj_ip'] == ''):
-            logger.warning("found object without IP :" + nw_obj['name'] + " (type=" + nw_obj['obj_typ'] + ") - setting dummy IP")
+            logger.warning("found object without IP :" + nw_obj['obj_name'] + " (type=" + nw_obj['obj_typ'] + ") - setting dummy IP")
             nw_obj.update({'obj_ip': '0.0.0.0/32'})
 
     for idx in range(0, len(nw_objects)-1):

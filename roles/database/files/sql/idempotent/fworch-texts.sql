@@ -1471,6 +1471,16 @@ INSERT INTO txt VALUES ('reset_to_default',     'German',   'auf Vorgabewerte zu
 INSERT INTO txt VALUES ('reset_to_default',     'English',  'Reset to Default');
 INSERT INTO txt VALUES ('option',		        'German', 	'Option');
 INSERT INTO txt VALUES ('option',		        'English', 	'Option');
+INSERT INTO txt VALUES ('customize_texts',		'German', 	'Texte anpassen');
+INSERT INTO txt VALUES ('customize_texts',		'English', 	'Customize Texts');
+INSERT INTO txt VALUES ('ignore_helptexts',		'German', 	'Hilfetexte ignorieren');
+INSERT INTO txt VALUES ('ignore_helptexts',		'English', 	'Ignore help texts');
+INSERT INTO txt VALUES ('key',                  'German', 	'Schl&uuml;ssel');
+INSERT INTO txt VALUES ('key',                  'English', 	'Key');
+INSERT INTO txt VALUES ('text',                 'German', 	'Text');
+INSERT INTO txt VALUES ('text',                 'English', 	'Text');
+INSERT INTO txt VALUES ('custom_text',          'German', 	'Angepasster Text');
+INSERT INTO txt VALUES ('custom_text',          'English', 	'Custom Text');
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
@@ -1881,6 +1891,8 @@ INSERT INTO txt VALUES ('U5319', 'German',  'Server f&uuml;r ausgehende Emails z
 INSERT INTO txt VALUES ('U5319', 'English', 'Manage email server for outgoing user notifications.');
 INSERT INTO txt VALUES ('U5320', 'German',  'Mehrere Email-Adressen mit Komma trennen');
 INSERT INTO txt VALUES ('U5320', 'English', 'Multiple email addresses can be separated by using commas');
+INSERT INTO txt VALUES ('U5321', 'German',  'Anzeige und &Uuml;berschreiben aller dargestellten Texte');
+INSERT INTO txt VALUES ('U5321', 'English', 'Show and overwrite all shown texts');
 
 INSERT INTO txt VALUES ('U5401', 'German',  'Passwort ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5401', 'English', 'Password changed.');
@@ -2254,6 +2266,8 @@ INSERT INTO txt VALUES ('T0016', 'German',  'Nutzer mit Berechtigung zum Impleme
 INSERT INTO txt VALUES ('T0016', 'English', 'users that have the right to implement requests');
 INSERT INTO txt VALUES ('T0017', 'German',  'Nutzer mit Berechtigung zum Review von Auftr&auml;gen');
 INSERT INTO txt VALUES ('T0017', 'English', 'users that have the right to review requests');
+INSERT INTO txt VALUES ('T0018', 'German',  'Nutzer mit Berechtigung zum Modellieren von Applikationen');
+INSERT INTO txt VALUES ('T0018', 'English', 'users that have the right to model applications');
 
 -- template comments
 INSERT INTO txt VALUES ('T0101', 'German',  'Aktuell aktive Regeln aller Gateways');
@@ -3541,8 +3555,8 @@ INSERT INTO txt VALUES ('H5352', 'German',  'Auswahl aus der Liste der bekannten
 INSERT INTO txt VALUES ('H5352', 'English', 'Select from the list of known users also displayed in the <a href="/help/settings/users">users settings</a>.');
 INSERT INTO txt VALUES ('H5353', 'German',  'Auswahl aus der Liste der internen Gruppen, wie sie in den <a href="/help/settings/groups">Gruppeneinstellungen</a> dargestellt wird.');
 INSERT INTO txt VALUES ('H5353', 'English', 'Select from the list of internal groups also displayed in the <a href="/help/settings/groups">groups settings</a>.');
-INSERT INTO txt VALUES ('H5361', 'German',  'Reporting und Rezertifizierung (regelbasiert): reporter, reporter-viewall, recertifier');
-INSERT INTO txt VALUES ('H5361', 'English', 'Reporting and recertification (rule based): reporter, reporter-viewall, recertifier');
+INSERT INTO txt VALUES ('H5361', 'German',  'Reporting, Modellierung und Rezertifizierung (regelbasiert): reporter, reporter-viewall, modeller, recertifier');
+INSERT INTO txt VALUES ('H5361', 'English', 'Reporting, modelling and recertification (rule based): reporter, reporter-viewall, modeller, recertifier');
 INSERT INTO txt VALUES ('H5362', 'German',  'Workflow: requester, approver, planner, implementer, reviewer');
 INSERT INTO txt VALUES ('H5362', 'English', 'Workflow: requester, approver, planner, implementer, reviewer');
 INSERT INTO txt VALUES ('H5363', 'German',  '&Uuml;bergeordnete Rollen: admin, fw-admin, auditor, (anonymous)');

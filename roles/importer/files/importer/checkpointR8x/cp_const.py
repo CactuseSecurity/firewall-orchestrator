@@ -14,7 +14,8 @@ original_obj_uid = "85c0f50f-6d8a-4528-88ab-5fb11d8fe16c"
 nw_obj_table_names = [
     'hosts', 'networks', 'groups', 'address-ranges', 'multicast-address-ranges', 'groups-with-exclusion', 
     'gateways-and-servers', 'simple-gateways', 
-    'dns-domains', 'updatable-objects-repository-content'
+    'dns-domains', 'updatable-objects-repository-content',
+    'interoperable-devices'
 ]
 
 # simple as in: no groups

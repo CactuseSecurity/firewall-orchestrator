@@ -34,11 +34,11 @@
       group: "{{ fworch_group }}"
 
   - name: copy middleware module files to middlewareserver
-    copy:
+    synchronize:
       src: "{{ middleware_path_rel }}"
       dest: "{{ middleware_server_base_dir }}"
-      owner: "{{ fworch_user }}"
-      group: "{{ fworch_group }}"
+      rsync_opts:
+        - "--chown={{ fworch_user }}:{{ fworch_group }}"
     tags: [ 'test' ]
 
   - name: install python3-openssl for openssl key generation and unprivileged user

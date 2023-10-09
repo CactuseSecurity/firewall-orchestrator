@@ -88,3 +88,9 @@ objectClass: top
 objectClass: groupofuniquenames
 cn: reviewer
 description: T0017
+
+dn: cn=modeller,ou=role,dc=fworch,dc=internal
+objectClass: top
+objectClass: groupofuniquenames
+cn: modeller
+description: T0018

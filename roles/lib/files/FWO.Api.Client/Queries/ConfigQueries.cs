@@ -7,6 +7,9 @@ namespace FWO.Api.Client.Queries
         public static readonly string getLanguages;
         public static readonly string getAllTexts;
         public static readonly string getTextsPerLanguage;
+        public static readonly string getCustomTextsPerLanguage;
+        public static readonly string upsertCustomText;
+        public static readonly string deleteCustomText;
         public static readonly string getConfigSubscription;
         public static readonly string addConfigItem;
         public static readonly string updateConfigItem;
@@ -23,6 +26,9 @@ namespace FWO.Api.Client.Queries
                 getLanguages = File.ReadAllText(QueryPath + "config/getLanguages.graphql");
                 getAllTexts = File.ReadAllText(QueryPath + "config/getTexts.graphql");
                 getTextsPerLanguage = File.ReadAllText(QueryPath + "config/getTextsPerLanguage.graphql");
+                getCustomTextsPerLanguage = File.ReadAllText(QueryPath + "config/getCustomTextsPerLanguage.graphql");
+                upsertCustomText = File.ReadAllText(QueryPath + "config/upsertCustomText.graphql");
+                deleteCustomText = File.ReadAllText(QueryPath + "config/deleteCustomText.graphql");
                 addConfigItem = File.ReadAllText(QueryPath + "config/addConfigItem.graphql");
                 updateConfigItem = File.ReadAllText(QueryPath + "config/updateConfigItem.graphql");
                 getConfigItemsByUser = File.ReadAllText(QueryPath + "config/getConfigItemsByUser.graphql");

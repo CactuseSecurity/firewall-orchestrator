@@ -93,7 +93,74 @@ AS $function$
 $function$;
 
 
-CREATE OR REPLACE FUNCTION has_relevant_change(cl_rule changelog_rule, hasura_session json)
+CREATE OR REPLACE FUNCTION ip_ranges_overlap(ip1_start cidr, ip1_end cidr, ip2_start cidr, ip2_end cidr, inverted boolean DEFAULT FALSE)
+    RETURNS boolean AS $$
+    BEGIN
+        IF ip1_start IS NULL OR ip1_end IS NULL OR ip2_start IS NULL OR ip2_end IS NULL THEN
+            RETURN FALSE;
+        END IF;
+
+        IF inverted THEN                                            -- []: cidr1 ~> invert (): cidr2
+            IF ip1_start <= ip2_start AND ip2_end <= ip1_end THEN   --[-*(--)-*]--  ~>  --]-*(--)-*[--
+                RETURN FALSE;
+            ELSE
+                RETURN TRUE;
+            END IF;
+        END IF;
+
+        RETURN ip1_start <= ip2_end AND ip2_start <= ip1_end;
+    END;
+$$ LANGUAGE 'plpgsql' STABLE;
+
+
+CREATE OR REPLACE FUNCTION has_relevant_change(cl_rule changelog_rule, tenant integer)
+RETURNS boolean AS $$
+    DECLARE show boolean DEFAULT false;
+    
+    BEGIN
+        IF tenant IS NULL THEN
+            RAISE EXCEPTION 'Given tenant is NULL';
+        ELSIF tenant = 1 THEN
+            show := true;
+        ELSE
+            IF EXISTS (
+                SELECT diff.obj_id, diff.negated FROM ( -- set of difference between rule_from of old and new rule
+                    SELECT obj_id, negated FROM rule_from WHERE rule_id = cl_rule.old_rule_id EXCEPT SELECT obj_id, negated FROM rule_from WHERE rule_id = cl_rule.new_rule_id
+                    UNION
+                    (SELECT obj_id, negated FROM rule_from WHERE rule_id = cl_rule.new_rule_id EXCEPT SELECT obj_id, negated FROM rule_from WHERE rule_id = cl_rule.old_rule_id)
+                ) AS diff
+                JOIN objgrp_flat ON (obj_id=objgrp_flat_id)
+                JOIN object ON (objgrp_flat_member_id=object.obj_id)
+                JOIN tenant_network ON
+                    (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, diff.negated))
+                WHERE tenant_id = tenant
+            ) THEN
+                show := true;
+            END IF;
+
+            IF EXISTS (
+                SELECT diff.obj_id, diff.negated FROM ( -- set of difference between rule_to of old and new rule
+                    SELECT obj_id, negated FROM rule_to WHERE rule_id = cl_rule.old_rule_id EXCEPT SELECT obj_id, negated FROM rule_to WHERE rule_id = cl_rule.new_rule_id
+                    UNION
+                    (SELECT obj_id, negated FROM rule_to WHERE rule_id = cl_rule.new_rule_id EXCEPT SELECT obj_id, negated FROM rule_to WHERE rule_id = cl_rule.old_rule_id)
+                ) AS diff
+                JOIN objgrp_flat ON (obj_id=objgrp_flat_id)
+                JOIN object ON (objgrp_flat_member_id=object.obj_id)
+                JOIN tenant_network ON
+                    (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, diff.negated))
+                WHERE tenant_id = tenant
+            ) THEN
+                show := true;
+            END IF;
+
+        END IF;
+
+        RETURN show;
+    END;
+$$ LANGUAGE 'plpgsql' STABLE;
+
+
+CREATE OR REPLACE FUNCTION cl_rule_relevant_for_tenant(cl_rule changelog_rule, hasura_session json)
 RETURNS boolean AS $$
     DECLARE t_id integer;
     show boolean DEFAULT false;
@@ -106,36 +173,7 @@ RETURNS boolean AS $$
         ELSIF t_id = 1 THEN
             show := true;
         ELSE
-            IF EXISTS (
-                SELECT diff.obj_id FROM ( -- set of difference between rule_from of old and new rule
-                    SELECT obj_id FROM rule_from WHERE rule_id = cl_rule.old_rule_id EXCEPT SELECT obj_id FROM rule_from WHERE rule_id = cl_rule.new_rule_id
-                    UNION
-                    (SELECT obj_id FROM rule_from WHERE rule_id = cl_rule.new_rule_id EXCEPT SELECT obj_id FROM rule_from WHERE rule_id = cl_rule.old_rule_id)
-                ) AS diff
-                JOIN objgrp_flat ON (obj_id=objgrp_flat_id)
-                JOIN object ON (objgrp_flat_member_id=object.obj_id)
-                JOIN tenant_network ON
-                    (obj_ip_end >= tenant_net_ip AND obj_ip <= tenant_net_ip_end)
-                WHERE tenant_id = t_id
-            ) THEN
-                show := true;
-            END IF;
-
-            IF EXISTS (
-                SELECT diff.obj_id FROM ( -- set of difference between rule_to of old and new rule
-                    SELECT obj_id FROM rule_to WHERE rule_id = cl_rule.old_rule_id EXCEPT SELECT obj_id FROM rule_to WHERE rule_id = cl_rule.new_rule_id
-                    UNION
-                    (SELECT obj_id FROM rule_to WHERE rule_id = cl_rule.new_rule_id EXCEPT SELECT obj_id FROM rule_to WHERE rule_id = cl_rule.old_rule_id)
-                ) AS diff
-                JOIN objgrp_flat ON (obj_id=objgrp_flat_id)
-                JOIN object ON (objgrp_flat_member_id=object.obj_id)
-                JOIN tenant_network ON
-                    (obj_ip_end >= tenant_net_ip AND obj_ip <= tenant_net_ip_end)
-                WHERE tenant_id = t_id
-            ) THEN
-                show := true;
-            END IF;
-
+            show := has_relevant_change(cl_rule, t_id);
         END IF;
 
         RETURN show;
@@ -157,23 +195,23 @@ RETURNS boolean AS $$
             show := true;
         ELSE
             IF EXISTS (
-                SELECT rule_from.obj_id FROM rule_from
-                    LEFT JOIN objgrp_flat ON (rule_from.obj_id=objgrp_flat.objgrp_flat_id)
+                SELECT rf.obj_id FROM rule_from rf
+                    LEFT JOIN rule r ON (rf.rule_id=r.rule_id)
+                    LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat.objgrp_flat_id)
                     LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                     LEFT JOIN tenant_network ON
-                        (obj_ip_end >= tenant_net_ip AND obj_ip <= tenant_net_ip_end)
-                WHERE rule_from.rule_id = rule.rule_id AND tenant_id = t_id AND rule.rule_head_text is NULL
+                        (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != r.rule_src_neg))
+                WHERE rf.rule_id = rule.rule_id AND tenant_id = t_id
             ) THEN
                 show := true;
-            END IF;
-
-            IF EXISTS (
-                SELECT rule_to.obj_id FROM rule_to
-                    LEFT JOIN objgrp_flat ON (rule_to.obj_id=objgrp_flat.objgrp_flat_id)
+            ELSIF EXISTS (
+                SELECT rt.obj_id FROM rule_to rt
+                    LEFT JOIN rule r ON (rt.rule_id=r.rule_id)
+                    LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat.objgrp_flat_id)
                     LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                     LEFT JOIN tenant_network ON
-                        (obj_ip_end >= tenant_net_ip AND obj_ip <= tenant_net_ip_end)
-                WHERE rule_to.rule_id = rule.rule_id AND tenant_id = t_id AND rule.rule_head_text is NULL
+                        (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != r.rule_dst_neg))
+                WHERE rt.rule_id = rule.rule_id AND tenant_id = t_id
             ) THEN
                 show := true;
             END IF;
@@ -183,7 +221,6 @@ RETURNS boolean AS $$
         RETURN show;
     END;
 $$ LANGUAGE 'plpgsql' STABLE;
-
 
 
 CREATE OR REPLACE FUNCTION rule_from_relevant_for_tenant(rule_from rule_from, hasura_session json)
@@ -202,23 +239,24 @@ RETURNS boolean AS $$
         ELSE
             IF EXISTS ( -- ip of rule_from object is in tenant_network of tenant
                 SELECT rf.obj_id FROM rule_from rf
+                    LEFT JOIN rule r ON (rf.rule_id=r.rule_id)
                     LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat.objgrp_flat_id)
                     LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                     LEFT JOIN tenant_network ON
-                        (obj_ip_end >= tenant_net_ip AND obj_ip <= tenant_net_ip_end)
+                        (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != r.rule_src_neg))
                 WHERE rule_from_id = rule_from.rule_from_id AND tenant_id = t_id
-                 --> this better be efficient (rule_from_id checked before join) (!TODO: check this)
             ) THEN
                 show := true;
             ELSE -- check if all rule_from objects visible since relevant rule_to exists
                 FOR rule_to_obj IN
                     SELECT rt.*, tenant_network.tenant_id
                     FROM rule_to rt
+                        LEFT JOIN rule r ON (rt.rule_id=r.rule_id)
                         LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat_id)
                         LEFT JOIN object ON (objgrp_flat_member_id=object.obj_id)
                         LEFT JOIN tenant_network ON
-                            (obj_ip_end >= tenant_net_ip AND obj_ip <= tenant_net_ip_end)
-                    WHERE rule_id = rule_from.rule_id
+                            (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != r.rule_dst_neg))
+                    WHERE rt.rule_id = rule_from.rule_id
                 LOOP
                     IF rule_to_obj.tenant_id = t_id THEN
                         show := true;
@@ -250,23 +288,24 @@ RETURNS boolean AS $$
         ELSE
             IF EXISTS ( -- ip of rule_to object is in tenant_network of tenant
                 SELECT rt.obj_id FROM rule_to rt
+                    LEFT JOIN rule r ON (rt.rule_id=r.rule_id)
                     LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat.objgrp_flat_id)
                     LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                     LEFT JOIN tenant_network ON
-                        (obj_ip_end >= tenant_net_ip AND obj_ip <= tenant_net_ip_end)
+                        (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != r.rule_dst_neg))
                 WHERE rule_to_id = rule_to.rule_to_id AND tenant_id = t_id
-                --> this better be efficient (rule_to_id checked before join) (!TODO: check this)
             ) THEN
                 show := true;
             ELSE -- check if all rule_to objects visible since relevant rule_from exists
                 FOR rule_from_obj IN
                     SELECT rf.*, tenant_network.tenant_id
                     FROM rule_from rf
+                        LEFT JOIN rule r ON (rf.rule_id=r.rule_id)
                         LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat_id)
                         LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                         LEFT JOIN tenant_network ON
-                            (obj_ip_end >= tenant_net_ip AND obj_ip <= tenant_net_ip_end)
-                    WHERE rule_id = rule_to.rule_id
+                            (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != r.rule_src_neg))
+                    WHERE rf.rule_id = rule_to.rule_id
                 LOOP
                     IF rule_from_obj.tenant_id = t_id THEN
                         show := true;
@@ -282,7 +321,7 @@ RETURNS boolean AS $$
 $$ LANGUAGE 'plpgsql' STABLE;
 
 
-CREATE OR REPLACE FUNCTION object_relevant_for_tenant(object object, hasura_session json) -- todo: try over all objects in rule_from and rule_to
+CREATE OR REPLACE FUNCTION object_relevant_for_tenant(object object, hasura_session json)
 RETURNS boolean AS $$
     DECLARE t_id integer;
     show boolean DEFAULT false;
@@ -290,30 +329,33 @@ RETURNS boolean AS $$
     BEGIN
         t_id := (hasura_session ->> 'x-hasura-tenant-id')::integer;
 
+
         IF t_id IS NULL THEN
             RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
         ELSIF t_id = 1 THEN
             show := true;
-        ELSIF EXISTS ( -- ip of object is in tenant_network of tenant
+        ELSIF EXISTS ( -- ip of object (or any objgrp member) is in tenant_network of tenant
             SELECT o.obj_id FROM object o
+                LEFT JOIN objgrp_flat of ON (o.obj_id=of.objgrp_flat_id)
+                LEFT JOIN object of_o ON (of.objgrp_flat_member_id=of_o.obj_id)
                 LEFT JOIN tenant_network ON
-                    (obj_ip_end >= tenant_net_ip AND obj_ip <= tenant_net_ip_end)
-            WHERE obj_id = object.obj_id AND tenant_id = t_id
+                    (ip_ranges_overlap(of_o.obj_ip, of_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end))
+            WHERE o.obj_id = object.obj_id AND tenant_id = t_id
         ) THEN
             show := true;
         ELSIF EXISTS ( -- object is in rule_from or rule_to of a rule that is visible to tenant
             SELECT r.rule_id from rule r
-                LEFT JOIN rule_from ON (r.rule_id=rule_from.rule_id)
-                LEFT JOIN rule_to ON (r.rule_id=rule_to.rule_id)
-                LEFT JOIN objgrp_flat rf_of ON (rule_from.obj_id=rf_of.objgrp_flat_id)
-                LEFT JOIN objgrp_flat rt_of ON (rule_to.obj_id=rt_of.objgrp_flat_id)
+                LEFT JOIN rule_from rf ON (r.rule_id=rf.rule_id)
+                LEFT JOIN rule_to rt ON (r.rule_id=rt.rule_id)
+                LEFT JOIN objgrp_flat rf_of ON (rf.obj_id=rf_of.objgrp_flat_id)
+                LEFT JOIN objgrp_flat rt_of ON (rt.obj_id=rt_of.objgrp_flat_id)
                 LEFT JOIN object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
                 LEFT JOIN object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
-                LEFT JOIN tenant_network ON
-                    (rf_o.obj_ip_end >= tenant_net_ip AND rf_o.obj_ip <= tenant_net_ip_end
-                        OR 
-                     rt_o.obj_ip_end >= tenant_net_ip AND rt_o.obj_ip <= tenant_net_ip_end)
-            WHERE (rf_o.obj_id = object.obj_id OR rt_o.obj_id = object.obj_id) AND tenant_id = t_id AND r.rule_head_text is NULL
+                LEFT JOIN tenant_network tn_rf ON
+                    (ip_ranges_overlap(rf_o.obj_ip, rf_o.obj_ip_end, tn_rf.tenant_net_ip, tn_rf.tenant_net_ip_end, rf.negated != r.rule_src_neg))
+                LEFT JOIN tenant_network tn_rt ON
+                    (ip_ranges_overlap(rt_o.obj_ip, rt_o.obj_ip_end, tn_rt.tenant_net_ip, tn_rt.tenant_net_ip_end, rt.negated != r.rule_dst_neg))
+            WHERE (rf_o.obj_id = object.obj_id AND tn_rt.tenant_id = t_id) OR (rt_o.obj_id = object.obj_id AND tn_rf.tenant_id = t_id) AND r.rule_head_text is NULL
         ) THEN
             show := true;
         END IF;
@@ -321,6 +363,7 @@ RETURNS boolean AS $$
         RETURN show;
     END;
 $$ LANGUAGE 'plpgsql' STABLE;
+
 
 
 CREATE OR REPLACE FUNCTION get_objects_for_tenant(management_row management, tenant integer, hasura_session json)
@@ -340,28 +383,167 @@ RETURNS SETOF object AS $$
             RETURN QUERY
                 SELECT o.* FROM (
                     SELECT o.* FROM object o
-                        LEFT JOIN rule_from ON (o.obj_id=rule_from.obj_id)
-                        LEFT JOIN rule r ON (rule_from.rule_id=r.rule_id)
-                        LEFT JOIN rule_to ON (r.rule_id=rule_to.rule_id)
-                        LEFT JOIN objgrp_flat rt_of ON (rule_to.obj_id=rt_of.objgrp_flat_id)
+                        LEFT JOIN rule_from rf ON (o.obj_id=rf.obj_id)
+                        LEFT JOIN rule r ON (rf.rule_id=r.rule_id)
+                        LEFT JOIN rule_to rt ON (r.rule_id=rt.rule_id)
+                        LEFT JOIN objgrp_flat rt_of ON (rt.obj_id=rt_of.objgrp_flat_id)
                         LEFT JOIN object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
                         LEFT JOIN tenant_network ON
-                            (o.obj_ip_end >= tenant_net_ip AND o.obj_ip <= tenant_net_ip_end
-                             OR rt_o.obj_ip_end >= tenant_net_ip AND rt_o.obj_ip <= tenant_net_ip_end)
-                    WHERE r.mgm_id = management_row.mgm_id AND tenant_id = tenant AND r.rule_head_text is NULL
+                            (ip_ranges_overlap(o.obj_ip, o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != r.rule_src_neg)
+                             OR ip_ranges_overlap(rt_o.obj_ip, rt_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != r.rule_dst_neg))
+                    WHERE o.mgm_id = management_row.mgm_id AND tenant_id = tenant AND r.rule_head_text is NULL
                     UNION
                     SELECT o.* FROM object o
-                        LEFT JOIN rule_to ON (o.obj_id=rule_to.obj_id)
-                        LEFT JOIN rule r ON (rule_to.rule_id=r.rule_id)
-                        LEFT JOIN rule_from ON (r.rule_id=rule_from.rule_id)
-                        LEFT JOIN objgrp_flat rf_of ON (rule_from.obj_id=rf_of.objgrp_flat_id)
+                        LEFT JOIN rule_to rt ON (o.obj_id=rt.obj_id)
+                        LEFT JOIN rule r ON (rt.rule_id=r.rule_id)
+                        LEFT JOIN rule_from rf ON (r.rule_id=rf.rule_id)
+                        LEFT JOIN objgrp_flat rf_of ON (rf.obj_id=rf_of.objgrp_flat_id)
                         LEFT JOIN object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
                         LEFT JOIN tenant_network ON
-                            (o.obj_ip_end >= tenant_net_ip AND o.obj_ip <= tenant_net_ip_end OR
-                             rf_o.obj_ip_end >= tenant_net_ip AND rf_o.obj_ip <= tenant_net_ip_end)
-                    WHERE r.mgm_id = management_row.mgm_id AND tenant_id = tenant AND r.rule_head_text is NULL
+                            (ip_ranges_overlap(o.obj_ip, o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != r.rule_dst_neg)
+                             OR ip_ranges_overlap(rf_o.obj_ip, rf_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != r.rule_src_neg))
+                    WHERE o.mgm_id = management_row.mgm_id AND tenant_id = tenant AND r.rule_head_text is NULL
                 ) AS o
                 ORDER BY obj_name;
         END IF;
     END;
 $$ LANGUAGE 'plpgsql' STABLE;
+
+
+CREATE OR REPLACE FUNCTION get_rules_for_tenant(device_row device, tenant integer, hasura_session json)
+RETURNS SETOF rule AS $$
+    DECLARE t_id integer;
+    
+    BEGIN
+        t_id := (hasura_session ->> 'x-hasura-tenant-id')::integer;
+
+        IF t_id IS NULL THEN
+            RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
+        ELSIF t_id != 1 THEN
+            RAISE EXCEPTION 'Tenant id in hasura session is not 1 (admin). Tenant simulation not allowed.';
+        ELSIF tenant = 1 THEN
+            RAISE EXCEPTION 'Tenant 1 (admin) cannot be simulated.';
+        ELSE
+            RETURN QUERY
+                SELECT r.* FROM rule r
+                    LEFT JOIN rule_from rf ON (r.rule_id=rf.rule_id)
+                    LEFT JOIN objgrp_flat rf_of ON (rf.obj_id=rf_of.objgrp_flat_id)
+                    LEFT JOIN object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
+                    LEFT JOIN tenant_network ON
+                        (ip_ranges_overlap(rf_o.obj_ip, rf_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != r.rule_src_neg))
+                WHERE r.dev_id = device_row.dev_id AND tenant_id = tenant
+                UNION
+                SELECT r.* FROM rule r
+                    LEFT JOIN rule_to rt ON (r.rule_id=rt.rule_id)
+                    LEFT JOIN objgrp_flat rt_of ON (rt.obj_id=rt_of.objgrp_flat_id)
+                    LEFT JOIN object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
+                    LEFT JOIN tenant_network ON
+                        (ip_ranges_overlap(rt_o.obj_ip, rt_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != r.rule_dst_neg))
+                WHERE r.dev_id = device_row.dev_id AND tenant_id = tenant
+                ORDER BY rule_name;
+        END IF;
+    END;
+$$ LANGUAGE 'plpgsql' STABLE;
+
+
+CREATE OR REPLACE FUNCTION get_rule_froms_for_tenant(rule rule, tenant integer, hasura_session json)
+RETURNS SETOF rule_from AS $$
+    DECLARE t_id integer;
+    
+    BEGIN
+        t_id := (hasura_session ->> 'x-hasura-tenant-id')::integer;
+
+        IF t_id IS NULL THEN
+            RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
+        ELSIF t_id != 1 THEN
+            RAISE EXCEPTION 'Tenant id in hasura session is not 1 (admin). Tenant simulation not allowed.';
+        ELSIF tenant = 1 THEN
+            RAISE EXCEPTION 'Tenant 1 (admin) cannot be simulated.';
+        ELSIF EXISTS (
+            SELECT rt.obj_id FROM rule_to rt
+                LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat.objgrp_flat_id)
+                LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
+                LEFT JOIN tenant_network ON
+                    (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != rule.rule_dst_neg))
+            WHERE rt.rule_id = rule.rule_id AND tenant_id = tenant
+        ) THEN
+            RETURN QUERY
+                SELECT rf.* FROM rule_from rf WHERE rule_id = rule.rule_id;
+        ELSE
+            RETURN QUERY
+                SELECT DISTINCT rf.* FROM rule_from rf
+                    LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat.objgrp_flat_id)
+                    LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
+                    LEFT JOIN tenant_network ON
+                        (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != rule.rule_src_neg))
+                WHERE rule_id = rule.rule_id AND tenant_id = tenant;
+        END IF;
+    END;
+$$ LANGUAGE 'plpgsql' STABLE;
+
+
+CREATE OR REPLACE FUNCTION get_rule_tos_for_tenant(rule rule, tenant integer, hasura_session json)
+RETURNS SETOF rule_to AS $$
+    DECLARE t_id integer;
+
+    BEGIN
+        t_id := (hasura_session ->> 'x-hasura-tenant-id')::integer;
+
+        IF t_id IS NULL THEN
+            RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
+        ELSIF t_id != 1 THEN
+            RAISE EXCEPTION 'Tenant id in hasura session is not 1 (admin). Tenant simulation not allowed.';
+        ELSIF tenant = 1 THEN
+            RAISE EXCEPTION 'Tenant 1 (admin) cannot be simulated.';
+        ELSIF EXISTS (
+            SELECT rf.obj_id FROM rule_from rf
+                LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat.objgrp_flat_id)
+                LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
+                LEFT JOIN tenant_network ON
+                    (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != rule.rule_src_neg))
+            WHERE rf.rule_id = rule.rule_id AND tenant_id = tenant
+        ) THEN
+            RETURN QUERY
+                SELECT rt.* FROM rule_to rt WHERE rule_id = rule.rule_id;
+        ELSE
+            RETURN QUERY
+                SELECT DISTINCT rt.* FROM rule_to rt
+                    LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat.objgrp_flat_id)
+                    LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
+                    LEFT JOIN tenant_network ON
+                        (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != rule.rule_dst_neg))
+                WHERE rule_id = rule.rule_id AND tenant_id = tenant;
+        END IF;
+    END;
+$$ LANGUAGE 'plpgsql' STABLE;
+
+
+CREATE OR REPLACE FUNCTION get_changelog_rules_for_tenant(device_row device, tenant integer, hasura_session json)
+RETURNS SETOF changelog_rule AS $$
+    DECLARE t_id integer;
+    
+    BEGIN
+        t_id := (hasura_session ->> 'x-hasura-tenant-id')::integer;
+
+        IF t_id IS NULL THEN
+            RAISE EXCEPTION 'No tenant id found in hasura session';
+        ELSIF t_id != 1 THEN
+            RAISE EXCEPTION 'Tenant id in hasura session is not 1 (admin). Tenant simulation not allowed.';
+        ELSIF tenant = 1 THEN
+            RAISE EXCEPTION 'Tenant 1 (admin) cannot be simulated.';
+        ELSE
+            RETURN QUERY
+                SELECT cl_rule.* FROM changelog_rule cl_rule
+                WHERE cl_rule.dev_id = device_row.dev_id AND has_relevant_change(cl_rule, tenant) = true;
+        END IF;
+    END;
+$$ LANGUAGE 'plpgsql' STABLE;
+
+------------------------------------------------------------------------------------------------------------------------
+-- rule_relevant complexity: O(rf + rt)
+-- rule_from_relevant complexity: O(rt)
+-- rule_to_relevant complexity: O(rf)
+-- total for single rule: O(rf + rt + 2*rf*rt)
+--  theoretical min needed complexity: O(2(rf+rt))
+-- obj_relevant complexity: O(r * rf * rt)
+-- with material view: all O(1) but additional O(ten * r * (rf + rt)) for each import / tenant change

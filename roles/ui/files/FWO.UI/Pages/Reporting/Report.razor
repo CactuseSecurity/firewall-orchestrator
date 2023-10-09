@@ -86,6 +86,18 @@
             </div>
         </div>
     }
+    @if (tenantFilteringAllowed && selectedReportType != ReportType.Statistics)
+    {
+        <div class="p-3">
+            <h5 class="text-left">@(userConfig.GetText("tenant_view"))</h5>
+            <Dropdown ElementType="Tenant" ElementToString="@(t => t.Name)" Nullable="true"
+                @bind-SelectedElement="selectedTenantView" Elements="tenantList">
+                <ElementTemplate Context="tenant">
+                    @tenant.Name
+                </ElementTemplate>
+            </Dropdown>
+        </div>
+    }
     <DeviceSelection @bind-DeviceFilter="deviceFilter" @bind-CollapseAll="collapseDevices" @bind-SelectAll="selectAll"></DeviceSelection>
 </Sidebar>
 
@@ -232,6 +244,8 @@
     private ReportType selectedReportType = ReportType.Rules;
     private FwoOwner? selectedOwner = null;
     private List<FwoOwner> ownerList = new List<FwoOwner>();
+    private Tenant? selectedTenantView = null;
+    private List<Tenant> tenantList = new List<Tenant>();
 
     private DeviceFilter deviceFilter = new DeviceFilter();
     private bool selectAll = true;
@@ -267,6 +281,9 @@
 
     private bool collapseDevices = false;
 
+    private bool tenantFilteringAllowed => authenticationStateTask!.Result.User.IsInRole("reporter-viewall") || authenticationStateTask!.Result.User.IsInRole("admin")
+        || authenticationStateTask!.Result.User.IsInRole("fw-admin") || authenticationStateTask!.Result.User.IsInRole("auditor");
+
     protected override void OnInitialized()
     {
         Task.Run(async () =>
@@ -278,6 +295,10 @@
 
                 deviceFilter.Managements = await Connection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
                 ownerList = await Connection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+                if (tenantFilteringAllowed)
+                {
+                    tenantList = await Connection.SendQueryAsync<List<Tenant>>(FWO.Api.Client.Queries.AuthQueries.getTenants);
+                }
 
                 await InvokeAsync(StateHasChanged);
                 if (deviceFilter.NumberMgmtDev() > userConfig.MinCollapseAllDevices)
@@ -547,6 +568,10 @@
 
         ReportParams reportParams = new ReportParams((int)selectedReportType, selectedReportType == ReportType.UnusedRules ? reducedDeviceFilter : deviceFilter);
         reportParams.TimeFilter = savedTimeFilter;
+        if (selectedReportType != ReportType.Statistics)
+        {
+            reportParams.TenantFilter = new TenantFilter(selectedTenantView);
+        }
         reportParams.RecertFilter = new RecertFilter()
         {
             RecertOwnerList = ownerList,

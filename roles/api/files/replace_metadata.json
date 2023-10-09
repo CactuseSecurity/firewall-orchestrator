@@ -1684,10 +1684,10 @@
               ],
               "computed_fields": [
                 {
-                  "name": "has_relevant_change",
+                  "name": "cl_rule_relevant_for_tenant",
                   "definition": {
                     "function": {
-                      "name": "has_relevant_change",
+                      "name": "cl_rule_relevant_for_tenant",
                       "schema": "public"
                     },
                     "session_argument": "hasura_session"
@@ -1803,7 +1803,7 @@
                       "unique_name"
                     ],
                     "computed_fields": [
-                      "has_relevant_change"
+                      "cl_rule_relevant_for_tenant"
                     ],
                     "filter": {
                       "_and": [
@@ -1818,7 +1818,7 @@
                           }
                         },
                         {
-                          "has_relevant_change": {
+                          "cl_rule_relevant_for_tenant": {
                             "_eq": "true"
                           }
                         }
@@ -1852,7 +1852,7 @@
                       "unique_name"
                     ],
                     "computed_fields": [
-                      "has_relevant_change"
+                      "cl_rule_relevant_for_tenant"
                     ],
                     "filter": {
                       "_and": [
@@ -1867,7 +1867,7 @@
                           }
                         },
                         {
-                          "has_relevant_change": {
+                          "cl_rule_relevant_for_tenant": {
                             "_eq": "true"
                           }
                         }
@@ -3043,6 +3043,28 @@
                         "schema": "public"
                       }
                     }
+                  }
+                }
+              ],
+              "computed_fields": [
+                {
+                  "name": "get_changelog_rules_for_tenant",
+                  "definition": {
+                    "function": {
+                      "name": "get_changelog_rules_for_tenant",
+                      "schema": "public"
+                    },
+                    "session_argument": "hasura_session"
+                  }
+                },
+                {
+                  "name": "get_rules_for_tenant",
+                  "definition": {
+                    "function": {
+                      "name": "get_rules_for_tenant",
+                      "schema": "public"
+                    },
+                    "session_argument": "hasura_session"
                   }
                 }
               ],
@@ -6590,6 +6612,16 @@
                       "name": "filter_rule_user_resolveds",
                       "schema": "public"
                     }
+                  }
+                },
+                {
+                  "name": "get_objects_for_tenant",
+                  "definition": {
+                    "function": {
+                      "name": "get_objects_for_tenant",
+                      "schema": "public"
+                    },
+                    "session_argument": "hasura_session"
                   }
                 }
               ],
@@ -10452,6 +10484,26 @@
                 }
               ],
               "computed_fields": [
+                {
+                  "name": "get_rule_froms_for_tenant",
+                  "definition": {
+                    "function": {
+                      "name": "get_rule_froms_for_tenant",
+                      "schema": "public"
+                    },
+                    "session_argument": "hasura_session"
+                  }
+                },
+                {
+                  "name": "get_rule_tos_for_tenant",
+                  "definition": {
+                    "function": {
+                      "name": "get_rule_tos_for_tenant",
+                      "schema": "public"
+                    },
+                    "session_argument": "hasura_session"
+                  }
+                },
                 {
                   "name": "rule_relevant_for_tenant",
                   "definition": {

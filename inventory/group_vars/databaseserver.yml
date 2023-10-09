@@ -22,27 +22,27 @@ database_groups:
   - fworchadmins
 
 database_idempotent_files:
+  - fworch-api-funcs.sql
   - fworch-basic-procs.sql
+  - fworch-grants.sql
   - fworch-import.sql
   - fworch-import-main.sql
   - fworch-obj-import.sql
   - fworch-obj-refs.sql
-  - fworch-svc-import.sql
-  - fworch-svc-refs.sql
-  - fworch-usr-import.sql
-  - fworch-usr-refs.sql
+  - fworch-path-analysis.sql
+  - fworch-qa.sql
+  - fworch-report.sql
+  - fworch-report-basics.sql
   - fworch-rule-import.sql
+  - fworch-rule-recert.sql
   - fworch-rule-refs.sql
   - fworch-rule-resolved.sql
-  - fworch-zone-import.sql
-  - fworch-report.sql
-  - fworch-qa.sql
-  - fworch-report-basics.sql
-  - fworch-views-tenant.sql
+  - fworch-svc-import.sql
+  - fworch-svc-refs.sql
+  - fworch-texts.sql
+  - fworch-usr-import.sql
+  - fworch-usr-refs.sql
   - fworch-views-changes.sql
   - fworch-views-recert.sql
-  - fworch-api-funcs.sql
-  - fworch-grants.sql
-  - fworch-texts.sql
-  - fworch-path-analysis.sql
-  - fworch-rule-recert.sql
+  - fworch-views-tenant.sql
+  - fworch-zone-import.sql

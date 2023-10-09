@@ -246,6 +246,8 @@ INSERT INTO txt VALUES ('report_type',		    'German', 	'Report-Typ');
 INSERT INTO txt VALUES ('report_type',		    'English', 	'Report Type');
 INSERT INTO txt VALUES ('report_time',		    'German', 	'Report-Zeit');
 INSERT INTO txt VALUES ('report_time',		    'English', 	'Report Time');
+INSERT INTO txt VALUES ('tenant_view',		    'German', 	'Mandantenansicht');
+INSERT INTO txt VALUES ('tenant_view',		    'English', 	'Tenant View');
 INSERT INTO txt VALUES ('unused_days',		    'German', 	'Unbenutzt seit (in Tagen)');
 INSERT INTO txt VALUES ('unused_days',		    'English', 	'Unused since (in days)');
 INSERT INTO txt VALUES ('generation',		    'German', 	'Generierung');

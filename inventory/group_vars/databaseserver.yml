@@ -44,5 +44,4 @@ database_idempotent_files:
   - fworch-usr-refs.sql
   - fworch-views-changes.sql
   - fworch-views-recert.sql
-  - fworch-views-tenant.sql
   - fworch-zone-import.sql

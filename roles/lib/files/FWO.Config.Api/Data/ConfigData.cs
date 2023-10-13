@@ -200,6 +200,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("ruleOwnershipMode"), JsonPropertyName("ruleOwnershipMode")]
         public RuleOwnershipMode RuleOwnershipMode { get; set; } = RuleOwnershipMode.mixed;
 
+        [JsonProperty("allowServerInConn"), JsonPropertyName("allowServerInConn")]
+        public bool AllowServerInConn { get; set; } = true;
+
 
         public ConfigData(bool editable = false)
         {

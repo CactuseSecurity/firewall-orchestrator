@@ -1,0 +1,208 @@
+@using FWO.Config.Api
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+@if (Display)
+{
+    <PopUp Title="@(AddMode ? userConfig.GetText("def_app_role") : userConfig.GetText("edit_app_role"))" XLarge="true" Show="@Display" OnClose="Close">
+        <Body>
+            <div class="row">
+                <div class="col-sm-6">
+                    <EditAppRoleLeftSide @bind-Container="Container" @bind-Width="sidebarLeftWidth" IpAddresses="IpAddresses" ToAppRole="AddServer"/>
+                </div>
+                <div class="col-sm-6">
+                    <h3>@(userConfig.GetText("app_role"))</h3>
+                    <div class="col-sm-11 border rounded m-2 p-2">
+                        <div class="form-group row">
+                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("area"))*:</label>
+                            <div class="col-sm-9">
+                                <Dropdown ElementType="NetworkArea" SelectedElement="AppRole.Area" ElementToString="@(a => a.Name)" 
+                                        SelectedElementChanged="SelectedAreaChanged" Elements="areas" Nullable="true">
+                                    <ElementTemplate Context="area">
+                                        @area.Name
+                                    </ElementTemplate>
+                                </Dropdown>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                            <input type="text" class=" col-sm-9 form-control form-control-sm" @bind="AppRole.Name" />
+                        </div>
+                        <div class="col-sm-12">
+                            <h6>@(userConfig.GetText("app_server"))</h6>
+                            <div class="minheight-dropzone bg-secondary dropzone" 
+                                ondragover="event.preventDefault();"
+                                ondragstart="event.dataTransfer.setData('', event.target.id);"
+                                @ondrop="HandleServerDrop">
+                                <EditList ElementType="NetworkObject" Elements="AppRole.NetworkObjects.ToArray()" ElementsToAdd="IpsToAdd" ElementsToDelete="IpsToDelete" StdLayout="false">
+                                    <Display>
+                                        <div class="row">
+                                            <div class="col-sm-12 border form-control form-control-sm bg-transparent">@DisplayIp(context)</div>
+                                        </div>
+                                    </Display>
+                                </EditList>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Body>
+        <Footer>
+            <div class="btn-group">
+                <AuthorizeView Roles="admin, modeller">
+                    <Authorized>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    </NotAuthorized> 
+                </AuthorizeView>
+                <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+            </div>
+        </Footer>
+    </PopUp>
+}
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+        
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public AppRole AppRole { get; set; } = new AppRole();
+
+    [Parameter]
+    public Func<AppRole, Task> NewAppRole { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public Func<AppRole, Task> UpdateAppRole { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool AddMode { get; set; } = false;
+
+
+    private DnDContainer Container { get; set; } = new DnDContainer();
+    int sidebarLeftWidth = GlobalConfig.kSidebarLeftWidth + 300;
+
+    public List<NetworkObject> IpsToAdd { get; set; } = new List<NetworkObject>();
+    public List<NetworkObject> IpsToDelete { get; set; } = new List<NetworkObject>();
+
+    private List<NetworkArea> areas = new List<NetworkArea>();
+    private List<NetworkObject> IpAddresses = new List<NetworkObject>(){};
+
+    // Test data
+    static NetworkArea TestArea1 = new NetworkArea(){ Id = 1, Name = "NA50"};
+    static NetworkArea TestArea2 = new NetworkArea(){ Id = 2, Name = "NA91"};
+    static NetworkObject TestIp3 = new NetworkObject(){ Id = 3, IP = "1.2.3.4", IpEnd = "1.2.3.4"};
+    static NetworkObject TestIp4 = new NetworkObject(){ Id = 4, IP = "111.222.1.0", IpEnd = "111.222.1.7"};
+    static NetworkObject TestIp5 = new NetworkObject(){ Id = 5, IP = "10.0.1.1", IpEnd = "10.0.1.1"};
+    static NetworkObject TestIp6 = new NetworkObject(){ Id = 6, IP = "123.1.1.0", IpEnd = "123.1.1.1"};
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // todo: get areas
+            areas = new List<NetworkArea>(){TestArea1, TestArea2};
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if(Display)
+        {
+            SelectedAreaChanged(AddMode ? areas.First() : AppRole.Area);
+        }
+    }
+
+    private async Task HandleServerDrop()
+    {
+        if(Container.IpElements.Count > 0)
+        {
+            AddServer(Container.IpElements);
+        }
+        Container.Clear();
+    }
+
+    private async Task Save()
+    {
+        foreach(var ip in IpsToDelete)
+        {
+            AppRole.NetworkObjects.Remove(ip);
+        }
+        foreach(var ip in IpsToAdd)
+        {
+            AppRole.NetworkObjects.Add(ip);
+        }
+        if(AddMode)
+        {
+            await NewAppRole(AppRole);
+        }
+        else
+        {
+            await UpdateAppRole(AppRole);
+        }
+        Close();
+    }
+
+    private void Close()
+    {
+        IpsToAdd = new List<NetworkObject>();
+        IpsToDelete = new List<NetworkObject>();
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+
+    private string DisplayIp(NetworkObject elem)
+    {
+        return FWO.Ui.Display.NwObjDisplay.DisplayIp(elem.IP, elem.IpEnd);
+    }
+
+    private bool AddServer(List<NetworkObject> nwObjects)
+    {
+        foreach(var nwobj in nwObjects)
+        {
+            if(!AppRole.NetworkObjects.Contains(nwobj) && !IpsToAdd.Contains(nwobj))
+            {
+                IpsToAdd.Add(nwobj);
+            }
+        }
+        StateHasChanged();
+        return true;
+    }
+
+    private void SelectedAreaChanged(NetworkArea newArea)
+    {
+        AppRole.Area = newArea;
+        if(newArea != null && newArea.Name.Length == 4 && AddMode)
+        {
+            AppRole.Name = newArea.Name.Remove(1, 1).Insert(1, "Z");
+        }
+        IpAddresses = SelectIpsFromArea(newArea);
+    }
+
+    private List<NetworkObject> SelectIpsFromArea(NetworkArea area)
+    {
+        // todo: logic
+        if(area.Id == 1)
+        {
+            return new List<NetworkObject>(){TestIp3, TestIp4};
+        }
+        else
+        {
+            return new List<NetworkObject>(){TestIp5, TestIp6};
+        }
+    }
+}

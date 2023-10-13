@@ -1,9 +1,17 @@
 using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
+using System.Net;
 
 namespace FWO.Api.Data
 {
-    public class NetworkProtocol
+    public class NetworkSubnet
+    {
+        public IPAddress Address { get; set; }
+
+        public IPAddress Mask { get; set; }
+    }
+
+    public class NetworkArea
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
@@ -11,14 +19,6 @@ namespace FWO.Api.Data
         [JsonProperty("name"), JsonPropertyName("name")]
         public string Name { get; set; } = "";
 
-
-        public NetworkProtocol()
-        {}
-
-        public NetworkProtocol(IpProtocol i)
-        {
-            Id = i.Id;
-            Name = i.Name;
-        }
+        public List<NetworkSubnet> Subnets { get; set; }
     }
 }

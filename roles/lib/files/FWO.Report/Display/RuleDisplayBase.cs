@@ -83,9 +83,11 @@ namespace FWO.Ui.Display
             return result;
         }
 
-        public StringBuilder DisplayService(NetworkService service, ReportType reportType, string? serviceName = null)
+        public static StringBuilder DisplayService(NetworkService service, ReportType reportType, string? serviceName = null)
         {
             StringBuilder result = new StringBuilder();
+            string ports = service.DestinationPortEnd == null || service.DestinationPortEnd == 0 || service.DestinationPort == service.DestinationPortEnd ?
+                $"{service.DestinationPort}" : $"{service.DestinationPort}-{service.DestinationPortEnd}";
             if (reportType.IsTechReport())
             {
                 if (service.DestinationPort == null)
@@ -94,8 +96,7 @@ namespace FWO.Ui.Display
                 }
                 else
                 {
-                    result.Append(service.DestinationPort == service.DestinationPortEnd ? $"{service.DestinationPort}/{service.Protocol?.Name}"
-                        : $"{service.DestinationPort}-{service.DestinationPortEnd}/{service.Protocol?.Name}");
+                    result.Append($"{ports}/{service.Protocol?.Name}");
                 }
             }
             else
@@ -103,8 +104,7 @@ namespace FWO.Ui.Display
                 result.Append($"{serviceName ?? service.Name}");
                 if (service.DestinationPort != null)
                 {
-                    result.Append(service.DestinationPort == service.DestinationPortEnd ? $" ({service.DestinationPort}/{service.Protocol?.Name})"
-                        : $" ({service.DestinationPort}-{service.DestinationPortEnd}/{service.Protocol?.Name})");
+                    result.Append($" ({ports}/{service.Protocol?.Name})");
                 }
             }
             return result;

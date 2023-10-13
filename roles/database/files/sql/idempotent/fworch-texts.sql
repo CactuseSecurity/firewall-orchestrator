@@ -936,6 +936,63 @@ INSERT INTO txt VALUES ('at_startup',           'German',   'Beim Hochfahren');
 INSERT INTO txt VALUES ('at_startup',           'English',  'At startup');
 INSERT INTO txt VALUES ('daily',                'German',   'T&auml;glich');
 INSERT INTO txt VALUES ('daily',                'English',  'Daily');
+
+-- network modelling
+INSERT INTO txt VALUES ('network_modelling', 	'German',	'Netzwerkmodellierung');
+INSERT INTO txt VALUES ('network_modelling', 	'English',	'Network Modelling');
+INSERT INTO txt VALUES ('modelling', 	        'German',	'Modellierung');
+INSERT INTO txt VALUES ('modelling', 	        'English',	'Modelling');
+INSERT INTO txt VALUES ('application', 	        'German',	'Applikation');
+INSERT INTO txt VALUES ('application', 	        'English',	'Application');
+INSERT INTO txt VALUES ('library', 	            'German',	'Bibliothek');
+INSERT INTO txt VALUES ('library', 	            'English',	'Library');
+INSERT INTO txt VALUES ('app_server', 	        'German',	'App Server');
+INSERT INTO txt VALUES ('app_server', 	        'English',	'App Server');
+INSERT INTO txt VALUES ('app_role', 	        'German',	'App Rolle');
+INSERT INTO txt VALUES ('app_role', 	        'English',	'App Role');
+INSERT INTO txt VALUES ('app_roles', 	        'German',	'App Rollen');
+INSERT INTO txt VALUES ('app_roles', 	        'English',	'App Roles');
+INSERT INTO txt VALUES ('preview', 	            'German',	'Vorschau');
+INSERT INTO txt VALUES ('preview', 	            'English',	'Preview');
+INSERT INTO txt VALUES ('comm_profile', 	    'German',	'Kommunikationsprofil');
+INSERT INTO txt VALUES ('comm_profile', 	    'English',	'Communication Profile');
+INSERT INTO txt VALUES ('connection', 	        'German',	'Verbindung');
+INSERT INTO txt VALUES ('connection', 	        'English',	'Connection');
+INSERT INTO txt VALUES ('add_connection', 	    'German',	'Verbindung hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_connection', 	    'English',	'Add Connection');
+INSERT INTO txt VALUES ('edit_connection', 	    'German',	'Verbindung editieren');
+INSERT INTO txt VALUES ('edit_connection', 	    'English',	'Edit Connection');
+INSERT INTO txt VALUES ('delete_connection', 	'German',	'Verbindung l&ouml;schen');
+INSERT INTO txt VALUES ('delete_connection', 	'English',	'Delete Connection');
+INSERT INTO txt VALUES ('func_reason', 	        'German',	'Fachliche Begr&uuml;ndung');
+INSERT INTO txt VALUES ('func_reason', 	        'English',	'Functional Reason');
+INSERT INTO txt VALUES ('to_source', 	        'German',	'Zu Quelle');
+INSERT INTO txt VALUES ('to_source', 	        'English',	'To Source');
+INSERT INTO txt VALUES ('to_dest', 	            'German',	'Zu Ziel');
+INSERT INTO txt VALUES ('to_dest', 	            'English',	'To Destination');
+INSERT INTO txt VALUES ('to_service', 	        'German',	'Zu Dienst');
+INSERT INTO txt VALUES ('to_service', 	        'English',	'To Service');
+INSERT INTO txt VALUES ('add_service', 	        'German',	'Dienst hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_service', 	        'English',	'Add Service');
+INSERT INTO txt VALUES ('data_inconsistent',    'German', 	'Daten inkonsistent');
+INSERT INTO txt VALUES ('data_inconsistent',    'English', 	'Data inconsistent');
+INSERT INTO txt VALUES ('def_app_role', 	    'German',	'Neue App Rolle definieren');
+INSERT INTO txt VALUES ('def_app_role', 	    'English',	'Define new App Role');
+INSERT INTO txt VALUES ('edit_app_role', 	    'German',	'App Rolle bearbeiten');
+INSERT INTO txt VALUES ('edit_app_role', 	    'English',	'Edit App Role');
+INSERT INTO txt VALUES ('delete_app_role', 	    'German',	'App Rolle l&ouml;schen');
+INSERT INTO txt VALUES ('delete_app_role', 	    'English',	'Delete App Role');
+INSERT INTO txt VALUES ('to_app_role', 	        'German',	'Zu App Rolle');
+INSERT INTO txt VALUES ('to_app_role', 	        'English',	'To App Role');
+INSERT INTO txt VALUES ('edit_service', 	    'German',	'Dienst bearbeiten');
+INSERT INTO txt VALUES ('edit_service', 	    'English',	'Edit Service');
+INSERT INTO txt VALUES ('delete_service', 	    'German',	'Dienst l&ouml;schen');
+INSERT INTO txt VALUES ('delete_service', 	    'English',	'Delete Service');
+INSERT INTO txt VALUES ('ext_request', 	        'German',	'Externer Antrag');
+INSERT INTO txt VALUES ('ext_request', 	        'English',	'External Request');
+INSERT INTO txt VALUES ('area', 	            'German',	'Area');
+INSERT INTO txt VALUES ('area', 	            'English',	'Area');
+
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');
 INSERT INTO txt VALUES ('devices',				'English', 	'Devices');
@@ -1479,6 +1536,8 @@ INSERT INTO txt VALUES ('text',                 'German', 	'Text');
 INSERT INTO txt VALUES ('text',                 'English', 	'Text');
 INSERT INTO txt VALUES ('custom_text',          'German', 	'Angepasster Text');
 INSERT INTO txt VALUES ('custom_text',          'English', 	'Custom Text');
+INSERT INTO txt VALUES ('allowServerInConn',    'German', 	'Server in Verbindung erlauben');
+INSERT INTO txt VALUES ('allowServerInConn',    'English', 	'Allow Servers in Connection');
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
@@ -1750,6 +1809,7 @@ INSERT INTO txt VALUES ('no_network_zones',     'English', 	'No network zones ex
 -- 6000-6999: API
 -- 7000-7999: Monitoring
 -- 8000-8999: Workflow
+-- 9000-9999: Modelling
 
 -- generic success messages
 INSERT INTO txt VALUES ('S_add_title',          'German',   'Erstellen erfolgreich');
@@ -1891,6 +1951,8 @@ INSERT INTO txt VALUES ('U5320', 'German',  'Mehrere Email-Adressen mit Komma tr
 INSERT INTO txt VALUES ('U5320', 'English', 'Multiple email addresses can be separated by using commas');
 INSERT INTO txt VALUES ('U5321', 'German',  'Anzeige und &Uuml;berschreiben aller dargestellten Texte');
 INSERT INTO txt VALUES ('U5321', 'English', 'Show and overwrite all shown texts');
+INSERT INTO txt VALUES ('U5322', 'German',  'Verwaltung der Voreinstellungen f&uuml;r die Netzwerk-Modellierung');
+INSERT INTO txt VALUES ('U5322', 'English', 'Administration of default settings for network modelling');
 
 INSERT INTO txt VALUES ('U5401', 'German',  'Passwort ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5401', 'English', 'Password changed.');
@@ -1934,6 +1996,12 @@ INSERT INTO txt VALUES ('U8002', 'English', 'New approval added to task.');
 INSERT INTO txt VALUES ('U8003', 'German',  'Sind sie sicher, dass sie abbrechen wollen? Bereits erzeugte Auftr&auml;ge gehen verloren.');
 INSERT INTO txt VALUES ('U8003', 'English', 'Are you sure you want to cancel? Already Created tasks will be lost.');
 
+INSERT INTO txt VALUES ('U9001', 'German',  'Sind sie sicher, dass sie folgende Verbindung l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U9001', 'English', 'Are you sure you want to delete connection: ');
+INSERT INTO txt VALUES ('U9002', 'German',  'Sind sie sicher, dass sie folgende App Rolle l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U9002', 'English', 'Are you sure you want to delete App Role: ');
+INSERT INTO txt VALUES ('U9003', 'German',  'Sind sie sicher, dass sie folgenden Dienst l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U9003', 'English', 'Are you sure you want to delete service: ');
 
 -- generic error messages --
 INSERT INTO txt VALUES ('E_load_title',         'German',   'Fehler beim Laden');
@@ -1955,7 +2023,6 @@ INSERT INTO txt VALUES ('E_delete_title',       'German',   'Fehler beim L&ouml;
 INSERT INTO txt VALUES ('E_delete_title',       'English',  'Deletion error');
 INSERT INTO txt VALUES ('E_delete_message',     'German',   'Bei der L&ouml;schung des Elements ist ein unerwarteter Fehler aufgetreten. Bitte melden Sie den Fehler, wenn er nicht erkl&auml;rbar ist.');
 INSERT INTO txt VALUES ('E_delete_message',     'English',  'An unexpected error occurred while deleting the item. Please report the error if it cannot be resolved.');
-
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -2220,8 +2287,8 @@ INSERT INTO txt VALUES ('E8014', 'English', 'The handling of this Task Type is n
 INSERT INTO txt VALUES ('E8101', 'German',  'Email-Versand kann nicht getestet werden, da der aktuell angemeldete Nutzer keine Email-Adresse hinterlegt hat.');
 INSERT INTO txt VALUES ('E8101', 'English', 'Sending of emails cannot be tested because the logged-in user does not have an email address.');
 
-
-
+INSERT INTO txt VALUES ('E9001', 'German',  'Sie haben Modellier-Rechte für keine Applikation.');
+INSERT INTO txt VALUES ('E9001', 'English', 'You have no modeller rights for any application.');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');

@@ -1,0 +1,235 @@
+@using FWO.Config.Api
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+<Sidebar Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth" >
+    <div class="mt-3 ml-2">
+        <h3>@(userConfig.GetText("library"))</h3>
+    </div>
+    <div class="col-sm-11 border rounded m-2 p-2">
+        @if(userConfig.AllowServerInConn)
+        {
+            <h5>@(userConfig.GetText("app_server"))</h5>
+            <div class="form-group row">
+                <div class="col-sm-9">
+                    <select class="form-control form-control-sm" @bind="selectedIpAddresses" multiple>
+                        @foreach (var appserver in IpAddresses)
+                        {
+                            <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveElem(selectedIpAddresses)))" value="@appserver.Id">@DisplayIp(appserver)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-sm-2">
+                    <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => ObjToSource(ResolveElem(selectedIpAddresses))">@(userConfig.GetText("to_source"))</button>
+                    <button type="button" class="btn btn-sm btn-primary w-100 mt-2" @onclick="() => ObjToDest(ResolveElem(selectedIpAddresses))">@(userConfig.GetText("to_dest"))</button>
+                </div>
+            </div>
+            <button type="button" class="btn btn-sm btn-danger" @onclick="DataInconsistent">@(userConfig.GetText("data_inconsistent"))</button>
+            <br><br>
+        }
+        <h5>@(userConfig.GetText("app_roles"))</h5>
+        <div class="form-group row">
+            <div class="col-sm-9">
+                <select class="form-control form-control-sm" @bind="selectedGroups" multiple>
+                    @foreach (var group in Groups)
+                    {
+                        <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveGrp(selectedGroups)))" value="@group.Id">
+                            <div class="col-sm-12 dropzone" 
+                                ondragover="event.preventDefault();"
+                                ondragstart="event.dataTransfer.setData('', event.target.id);"
+                                @ondrop="() => HandleSrcDropToGrp(group)">
+                                @group.Name
+                            </div>
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="col-sm-2">
+                <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => GrpToSource(ResolveGrp(selectedGroups))">@(userConfig.GetText("to_source"))</button>
+                <button type="button" class="btn btn-sm btn-primary w-100 mt-2" @onclick="() => GrpToDest(ResolveGrp(selectedGroups))">@(userConfig.GetText("to_dest"))</button>
+            </div>
+        </div>
+        <div class="form-group row">
+            <div class="col-sm-12">
+                <button type="button" class="btn btn-sm btn-success" @onclick="() => CreateGroup()">@(userConfig.GetText("def_app_role"))</button>
+                @if(selectedGroups.Length == 1)
+                {
+                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditGroup(ResolveGrp(selectedGroups).First())">@(userConfig.GetText("edit_app_role"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => {RequestDeleteGroup(ResolveGrp(selectedGroups).First());selectedGroups = new long[]{};}">@(userConfig.GetText("delete"))</button>
+                }
+            </div>
+        </div>
+        <br><br>
+        <h5>@(userConfig.GetText("services"))</h5>
+        <div class="form-group row">
+            <div class="col-sm-9">
+                <select class="form-control form-control-sm" @bind="selectedServices" multiple>
+                    @foreach (var service in Services)
+                    {
+                        <option class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(ResolveSvc(selectedServices)))" value="@service.Id">@FWO.Ui.Display.RuleDisplayBase.DisplayService(service, FWO.Report.Filter.ReportType.Rules)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-sm-2">
+                <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => ToService(ResolveSvc(selectedServices))">@(userConfig.GetText("to_service"))</button>
+            </div>
+        </div>
+        <button type="button" class="btn btn-sm btn-success" @onclick="() => CreateService()">@(userConfig.GetText("add_service"))</button>
+        @if(selectedServices.Length == 1)
+        {
+            <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditService(ResolveSvc(selectedServices).First())">@(userConfig.GetText("edit_service"))</button>
+            <button type="button" class="btn btn-sm btn-danger" @onclick="() => {RequestDeleteService(ResolveSvc(selectedServices).First());selectedServices = new long[]{};}">@(userConfig.GetText("delete"))</button>
+        }
+    </div>
+</Sidebar>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter] 
+    public DnDContainer Container { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<DnDContainer> ContainerChanged { get; set; }
+
+    [Parameter]
+    public int Width { get; set; }
+
+    [Parameter]
+    public EventCallback<int> WidthChanged { get; set; }
+
+    [Parameter] 
+    public List<AppRole> Groups { get; set; } = new();
+
+    [Parameter] 
+    public List<NetworkService> Services { get; set; } = new();
+
+    [Parameter]
+    public Func<List<NetworkObject>, bool> ObjToSource { get; set; }
+
+    [Parameter]
+    public Func<List<NetworkObject>, bool> ObjToDest { get; set; }
+
+    [Parameter]
+    public Func<List<AppRole>, bool> GrpToSource { get; set; }
+
+    [Parameter]
+    public Func<List<AppRole>, bool> GrpToDest { get; set; }
+
+    [Parameter]
+    public Func<List<NetworkService>, bool> ToService { get; set; }
+
+    [Parameter]
+    public Func<bool> CreateGroup { get; set; } = DefaultInit.DoNothingSync;
+
+    [Parameter]
+    public Func<AppRole, bool> EditGroup { get; set; } = DefaultInit.DoNothingSync;
+
+    [Parameter]
+    public Func<AppRole, bool> RequestDeleteGroup { get; set; } = DefaultInit.DoNothingSync;
+
+    [Parameter]
+    public Func<bool> CreateService { get; set; } = DefaultInit.DoNothingSync;
+
+    [Parameter]
+    public Func<NetworkService, bool> EditService { get; set; } = DefaultInit.DoNothingSync;
+
+    [Parameter]
+    public Func<NetworkService, bool> RequestDeleteService { get; set; } = DefaultInit.DoNothingSync;
+
+    private List<NetworkObject> IpAddresses = new List<NetworkObject>(){};
+    private long[] selectedIpAddresses = new long[]{};
+    private long[] selectedGroups = new long[]{};
+    private long[] selectedServices = new long[]{};
+    private int sidebarLeftWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width);}}
+
+    // Test data
+    static NetworkObject TestIp3 = new NetworkObject(){ Id = 3, IP = "1.2.3.4", IpEnd = "1.2.3.4"};
+    static NetworkObject TestIp4 = new NetworkObject(){ Id = 4, IP = "111.222.1.0", IpEnd = "111.222.1.7"};
+    static NetworkObject TestIp5 = new NetworkObject(){ Id = 5, IP = "10.0.1.1", IpEnd = "10.0.1.1"};
+    static NetworkObject TestIp6 = new NetworkObject(){ Id = 6, IP = "123.1.1.0", IpEnd = "123.1.1.1"};
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // IpAddresses = await apiConnection.SendQueryAsync<List<NetworkObject>>(FWO.Api.Client.Queries.OwnerQueries.getNetworkOwnerships, new { ownerId = 1 });
+            IpAddresses = new List<NetworkObject>(){TestIp3, TestIp4, TestIp5, TestIp6};
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private void HandleDragStart(List<NetworkObject> selectedIps)
+    {
+        Container.Clear();
+        Container.IpElements = selectedIps;
+    }
+
+    private void HandleDragStart(List<AppRole> selectedGroups)
+    {
+        Container.Clear();
+        Container.GrpElements = selectedGroups;
+    }
+
+    private void HandleDragStart(List<NetworkService> selectedSvcs)
+    {
+        Container.Clear();
+        Container.SvcElements = selectedSvcs;
+    }
+
+    private async Task HandleSrcDropToGrp(AppRole group)
+    {
+        if(Container.IpElements.Count > 0)
+        {
+            group.NetworkObjects.AddRange(Container.IpElements);
+        }
+        Container.Clear();
+    }
+
+    private List<NetworkObject> ResolveElem(long[] selectedIds)
+    {
+        List<NetworkObject> addedIps = new();
+        foreach(var id in selectedIds)
+        {
+            addedIps.Add(IpAddresses.FirstOrDefault(x => x.Id == id));
+        }
+        return addedIps;
+    }
+
+    private List<AppRole> ResolveGrp(long[] selectedIds)
+    {
+        List<AppRole> addedGrps = new();
+        foreach(var id in selectedIds)
+        {
+            addedGrps.Add(Groups.FirstOrDefault(x => x.Id == id));
+        }
+        return addedGrps;
+    }
+
+    private List<NetworkService> ResolveSvc(long[] selectedIds)
+    {
+        List<NetworkService> addedSvcs = new();
+        foreach(var id in selectedIds)
+        {
+            addedSvcs.Add(Services.FirstOrDefault(x => x.Id == id));
+        }
+        return addedSvcs;
+    }
+
+    private async Task DataInconsistent()
+    {
+
+    }
+
+    private string DisplayIp(NetworkObject elem)
+    {
+        return FWO.Ui.Display.NwObjDisplay.DisplayIp(elem.IP, elem.IpEnd);
+    }
+
+}

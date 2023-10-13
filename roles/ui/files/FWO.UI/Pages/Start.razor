@@ -1,5 +1,6 @@
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
+@inject NavigationManager NavigationManager
 
 @page "/"
 
@@ -38,6 +39,11 @@
     {
         uiUserDbId = userConfig.User.DbId;
         authenticationState = await authenticationStateTask!;
+
+        if(authenticationState.User.IsInRole("modeller"))
+        {
+            NavigationManager.NavigateTo("/networkmodelling");
+        }
     }
 
 }

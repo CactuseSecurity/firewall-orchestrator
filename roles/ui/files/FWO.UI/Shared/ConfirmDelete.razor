@@ -1,6 +1,6 @@
 ﻿@using FWO.Config.Api
 
-@attribute [Authorize(Roles = "admin, auditor")]
+@attribute [Authorize(Roles = "admin, auditor, modeller")]
 
 @inject UserConfig userConfig
 
@@ -16,7 +16,7 @@
         <div class="btn-group">
             @if (DeleteAllowed)
             {
-                <AuthorizeView Roles="admin">
+                <AuthorizeView Roles="admin, modeller">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-danger" @onclick="() => {PerformAction(); Display = false;}">@(userConfig.GetText("delete"))</button>
                     </Authorized>

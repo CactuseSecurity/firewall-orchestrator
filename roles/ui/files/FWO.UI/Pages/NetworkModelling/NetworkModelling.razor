@@ -1,0 +1,251 @@
+@using FWO.Config.Api
+
+@page "/networkmodelling"
+@attribute [Authorize(Roles = "admin, modeller, auditor")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+@if(!EditConnMode)
+{
+    <h3>@(userConfig.GetText("network_modelling"))</h3>
+    <hr />
+
+    <div class="form-group row col-sm-12">
+        <label class="col-form-label">@(userConfig.GetText("application")):</label>
+        @if(singleApp)
+        {
+            <label class="col-form-label text-primary ml-2">@selectedApp.Name</label>
+        }
+        else
+        {
+            <div class="col-sm-2">
+                <Dropdown ElementType="FwoOwner" ElementToString="@(a => a.Name)" @bind-SelectedElement="selectedApp" Elements="apps">
+                    <ElementTemplate Context="app">
+                        @app.Name
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="InitApp">@(userConfig.GetText("select"))</button>
+        }
+        <button type="button" class="ml-5 btn btn-sm btn-primary" @onclick="Report">@(userConfig.GetText("generate_report"))</button>
+        @* <button type="button" class="btn btn-sm btn-dark ml-5" @onclick="ExtRequest">@(userConfig.GetText("ext_request"))</button> *@
+    </div>
+    <hr />
+    @if(singleApp || appSelected)
+    {
+        <div class="form-group row m-2">
+            <h5>@(userConfig.GetText("comm_profile"))</h5>
+            <button type="button" class="btn btn-sm btn-success ml-5" @onclick="AddConn">@(userConfig.GetText("add_connection"))</button>
+        </div>
+        <div class="m-2">
+            <Table class="table table-bordered table-responsive vheight75 overflow-auto sticky-header" TableItem="Connection" Items="coproOfApp" PageSize="0" ColumnReorder="true">
+                @if(userConfig.AllowManualOwnerAdmin)
+                {
+                    <Column TableItem="Connection" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                        <Template>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowDetails(context)">@(userConfig.GetText("details"))</button>
+                                <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditConn(context)">@(userConfig.GetText("edit"))</button>
+                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteConn(context)">@(userConfig.GetText("delete"))</button>
+                            </div>
+                        </Template>
+                    </Column>
+                }
+                <Column TableItem="Connection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+                <Column TableItem="Connection" Title="@(userConfig.GetText("func_reason"))" Field="@(x => x.Comment)" Sortable="true" Filterable="true" />
+                <Column TableItem="Connection" Title="@(userConfig.GetText("preview"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
+                    <Template>
+                        <div class="col-sm-12">@DisplayPreview(context)</div>
+                    </Template>
+                </Column>
+            </Table>
+        </div>
+    }
+}
+<EditConn @bind-Display="EditConnMode" Conn="actConn" NewConn="NewConn" UpdateConn="UpdateConn" ReadOnly="readOnly" AddMode="AddConnMode"/>
+<ConfirmDelete @bind-Display="DeleteConnMode" PerformAction="DeleteConn" Title="@userConfig.GetText("delete_connection")" DeleteMessage="@deleteMessage"/>
+
+@code
+{
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private List<FwoOwner> apps = new List<FwoOwner>();
+    private FwoOwner selectedApp = new FwoOwner();
+    private bool singleApp = false;
+    private bool appSelected = false;
+
+    private List<Connection> coproOfApp = new List<Connection>();
+    private Connection actConn = new Connection();
+    private bool AddConnMode = false;
+    private bool EditConnMode = false;
+    private bool DeleteConnMode = false;
+    private bool readOnly = false;
+    private string deleteMessage = "";
+
+     // Test data
+    static NetworkService TestService1 = new NetworkService(){  Id = 1, DestinationPort = 443, DestinationPortEnd = 443, Name = "TestService1", Protocol = new NetworkProtocol { Name = "TCP" }};
+    static NetworkObject TestIp1 = new NetworkObject(){ Id = 1, IP = "123.0.0.0/32", IpEnd = "123.0.0.0/32"};
+    static NetworkObject TestIp2 = new NetworkObject(){ Id = 2, IP = "12.1.1.0", IpEnd = "12.1.1.1"};
+    static AppRole TestAppRole1 = new AppRole() { Id = 1, Name = "AppRole1", NetworkObjects = new List<NetworkObject>(){ TestIp1 }};
+    static Connection TestConn1 = new Connection() { Id = 1, Name="TestConn1", Comment="Begrünung", Sources = new List<NetworkObject>(){ TestIp1 }, 
+        Destinations = new List<NetworkObject>(){ TestIp2 }, Services = new List<NetworkService>(){ TestService1 },
+        SrcAppRoles = new List<AppRole>(){ TestAppRole1 }};
+    static FwoOwner TestApp1 = new FwoOwner(){ Id = 1, Name = "TestApp1"};
+    static FwoOwner TestApp2 = new FwoOwner(){ Id = 2, Name = "TestApp2"};
+    private int ConnIdCounter = 2;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+            SetAppTestData();
+            if (apps.Count == 0)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("fetch_data"), userConfig.GetText("E9001"), true);
+            }
+            else
+            {
+                selectedApp = apps.First();
+            }
+            if (apps.Count == 1)
+            {
+                singleApp = true;
+                await InitApp();
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private async Task InitApp()
+    {
+        try
+        {
+            // await getAppData(selectedApp);
+            SetConnectionTestData();
+
+            actConn = coproOfApp.FirstOrDefault() ?? new Connection();
+            appSelected = true;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private string DisplayPreview(Connection conn)
+    {
+        return userConfig.GetText("source") + ": " + string.Join(", ", conn.SrcAppRoles.ConvertAll(s => s.Name)) 
+            + (conn.SrcAppRoles.Count > 0 && conn.Sources.Count > 0 ? ", " : "")
+            + string.Join(", ", conn.Sources.ConvertAll(s => s.IP)) + ", "
+            + userConfig.GetText("destination") + ": " + string.Join(", ", conn.DstAppRoles.ConvertAll(s => s.Name))
+            + (conn.DstAppRoles.Count > 0 && conn.Destinations.Count > 0 ? ", " : "")
+            + string.Join(", ", conn.Destinations.ConvertAll(d => d.IP)) + ", "
+            + userConfig.GetText("service") + ": " + string.Join(", ", conn.Services.ConvertAll(s => s.Name));
+    }
+
+    private void AddConn()
+    {
+        AddConnMode = true;
+        EditConn(new Connection());
+    }
+
+    private void ShowDetails(Connection conn)
+    {
+        readOnly = true;
+        actConn = conn;
+        EditConnMode = true;
+        AddConnMode = false;
+    }
+
+    private void EditConn(Connection conn)
+    {
+        readOnly = false;
+        actConn = conn;
+        EditConnMode = true;
+    }
+
+    private void RequestDeleteConn(Connection conn)
+    {
+        actConn = conn;
+        deleteMessage = userConfig.GetText("U9001") + actConn.Name + "?";
+        DeleteConnMode = true;
+    }
+
+    private async Task DeleteConn()
+    {
+        try
+        {
+            coproOfApp.Remove(actConn);
+            DeleteConnMode = false;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("delete_connection"), "", true);
+        }
+        StateHasChanged();
+    }
+
+    private async Task NewConn(Connection conn)
+    {
+        conn.Id = ++ConnIdCounter; // just for test
+        coproOfApp.Add(conn);
+        AddConnMode = false;
+    }
+
+    private async Task UpdateConn(Connection conn)
+    {
+        coproOfApp[coproOfApp.FindIndex(c => c.Id == conn.Id)] = conn;
+    }
+
+    private async Task Report()
+    {
+
+    }
+
+    private async Task ExtRequest()
+    {
+
+    }
+
+    private void SetAppTestData()
+    {
+        apps = new List<FwoOwner>();
+        apps.Add(TestApp1);
+        if(authenticationStateTask!.Result.User.IsInRole("admin") || 
+            authenticationStateTask!.Result.User.IsInRole("auditor"))
+        {
+            apps.Add(TestApp2);
+        }
+    }
+
+    private void SetConnectionTestData()
+    {
+        if (coproOfApp.FirstOrDefault(x => x.Id == TestConn1.Id) == null)
+            coproOfApp.Add(TestConn1);
+
+            @* var Variables = new
+            {
+                time = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                mgmIds = 1 // modellingMgt.Id
+            };
+            List<Management> managementsWithRelevantImportId =
+                await apiConnection.SendQueryAsync<List<Management>>(ReportQueries.getRelevantImportIdsAtTime, Variables);
+
+            var RuleVariables = new
+            {
+                devId = 1, // modellingDev.Id,
+                relevantImportId = managementsWithRelevantImportId.First().Import.ImportAggregate.ImportAggregateMax.RelevantImportId,
+                // owner = selectedApp.Id
+            };
+            coproOfApp = await apiConnection.SendQueryAsync<List<Connection>>(FWO.Api.Client.Queries.RuleQueries.getVirtRulesForOwner, RuleVariables); *@
+    }
+}

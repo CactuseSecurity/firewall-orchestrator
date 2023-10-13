@@ -128,8 +128,8 @@ def import_management(mgm_id=None, ssl_verification=None, debug_level_in=0,
                 # also contains the conversion from native to config2import (parsing)
                 ### geting config from firewall manager ######################
                 config_changed_since_last_import, error_string, error_count, change_count = get_config_from_api(mgm_details, full_config_json, config2import, jwt, current_import_id, start_time,
-                in_file=in_file, import_tmp_path=import_tmp_path, error_string=error_string, error_count=error_count, change_count=change_count, 
-                limit=limit, force=force)
+                    in_file=in_file, import_tmp_path=import_tmp_path, error_string=error_string, error_count=error_count, change_count=change_count, 
+                    limit=limit, force=force)
                 if (debug_level>7):  # dump full native config read from fw API
                     logger.info(json.dumps(full_config_json, indent=2))
 

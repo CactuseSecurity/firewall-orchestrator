@@ -1,0 +1,91 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
+    "handler": "Microsoft.Azure.CreateUIDef",
+    "version": "0.1.2-preview",
+    "parameters": {
+      "basics": [
+        {}
+      ],
+      "steps": [
+        {
+          "name": "webAppSettings",
+          "label": "Web App settings",
+          "subLabel": {
+            "preValidation": "Configure the web app settings",
+            "postValidation": "Completed"
+          },
+          "elements": [
+            {
+              "name": "appServicePlanName",
+              "type": "Microsoft.Common.TextBox",
+              "label": "App Service plan name",
+              "placeholder": "App Service plan name",
+              "defaultValue": "",
+              "toolTip": "Use alphanumeric characters or hyphens with a maximum of 40 characters.",
+              "constraints": {
+                "required": true,
+                "regex": "^[a-z0-9A-Z-]{1,40}$",
+                "validationMessage": "Only alphanumeric characters or hyphens are allowed, with a maximum of 40 characters."
+              },
+              "visible": true
+            },
+            {
+              "name": "appServiceName",
+              "type": "Microsoft.Common.TextBox",
+              "label": "App Service name prefix",
+              "placeholder": "App Service name prefix",
+              "defaultValue": "",
+              "toolTip": "Use alphanumeric characters or hyphens with minimum of 2 characters and maximum of 47 characters.",
+              "constraints": {
+                "required": true,
+                "regex": "^[a-z0-9A-Z-]{2,47}$",
+                "validationMessage": "Only alphanumeric characters or hyphens are allowed, with a minimum of 2 characters and maximum of 47 characters."
+              },
+              "visible": true
+            }
+          ]
+        },
+        {
+          "name": "storageConfig",
+          "label": "Storage settings",
+          "subLabel": {
+            "preValidation": "Configure the storage settings",
+            "postValidation": "Completed"
+          },
+          "elements": [
+            {
+              "name": "storageAccounts",
+              "type": "Microsoft.Storage.MultiStorageAccountCombo",
+              "label": {
+                "prefix": "Storage account name prefix",
+                "type": "Storage account type"
+              },
+              "toolTip": {
+                "prefix": "Enter maximum of 11 lowercase letters or numbers.",
+                "type": "Available choices are Standard_LRS, Standard_GRS, and Premium_LRS."
+              },
+              "defaultValue": {
+                "type": "Standard_LRS"
+              },
+              "constraints": {
+                "allowedTypes": [
+                  "Premium_LRS",
+                  "Standard_LRS",
+                  "Standard_GRS"
+                ]
+              },
+              "visible": true
+            }
+          ]
+        }
+      ],
+      "outputs": {
+        "location": "[location()]",
+        "appServicePlanName": "[steps('webAppSettings').appServicePlanName]",
+        "appServiceNamePrefix": "[steps('webAppSettings').appServiceName]",
+        "storageAccountNamePrefix": "[steps('storageConfig').storageAccounts.prefix]",
+        "storageAccountType": "[steps('storageConfig').storageAccounts.type]"
+      }
+    }
+  }
+  

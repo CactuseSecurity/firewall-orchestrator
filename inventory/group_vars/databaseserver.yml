@@ -31,8 +31,6 @@ database_idempotent_files:
   - fworch-obj-refs.sql
   - fworch-path-analysis.sql
   - fworch-qa.sql
-  - fworch-report.sql
-  - fworch-report-basics.sql
   - fworch-rule-import.sql
   - fworch-rule-recert.sql
   - fworch-rule-refs.sql

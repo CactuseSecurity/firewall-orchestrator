@@ -482,6 +482,16 @@ namespace FWO.Report.Filter
             query.FullQuery = Regex.Replace(query.FullQuery, pattern, "");
             pattern = @"\s+";
             query.FullQuery = Regex.Replace(query.FullQuery, pattern, " ");
+
+            // // query debugging
+            // Log.WriteDebug("Filter", $"FullQuery = {query.FullQuery}");
+            // string queryVars = "";
+            // foreach ((string k, object o) in query.QueryVariables)
+            // {
+            //     queryVars += $"\"{k}\": {o.ToString()}, ";
+            // }
+            // Log.WriteDebug("Filter", $"Variables = {queryVars}");
+            
             return query;
         }
     }

@@ -329,7 +329,6 @@ RETURNS boolean AS $$
     BEGIN
         t_id := (hasura_session ->> 'x-hasura-tenant-id')::integer;
 
-
         IF t_id IS NULL THEN
             RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
         ELSIF t_id = 1 THEN
@@ -365,7 +364,6 @@ RETURNS boolean AS $$
 $$ LANGUAGE 'plpgsql' STABLE;
 
 
-
 CREATE OR REPLACE FUNCTION get_objects_for_tenant(management_row management, tenant integer, hasura_session json)
 RETURNS SETOF object AS $$
     DECLARE t_id integer;
@@ -375,8 +373,8 @@ RETURNS SETOF object AS $$
 
         IF t_id IS NULL THEN
             RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
-        ELSIF t_id != 1 THEN
-            RAISE EXCEPTION 'Tenant id in hasura session is not 1 (admin). Tenant simulation not allowed.';
+        -- ELSIF t_id != 1 THEN
+        --     RAISE EXCEPTION 'Tenant id in hasura session is not 1 (admin). Tenant simulation not allowed.';
         ELSIF tenant = 1 THEN
             RAISE EXCEPTION 'Tenant 1 (admin) cannot be simulated.';
         ELSE
@@ -419,8 +417,8 @@ RETURNS SETOF rule AS $$
 
         IF t_id IS NULL THEN
             RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
-        ELSIF t_id != 1 THEN
-            RAISE EXCEPTION 'Tenant id in hasura session is not 1 (admin). Tenant simulation not allowed.';
+        -- ELSIF t_id != 1 THEN
+        --     RAISE EXCEPTION 'Tenant id in hasura session is not 1 (admin). Tenant simulation not allowed.';
         ELSIF tenant = 1 THEN
             RAISE EXCEPTION 'Tenant 1 (admin) cannot be simulated.';
         ELSE
@@ -455,8 +453,8 @@ RETURNS SETOF rule_from AS $$
 
         IF t_id IS NULL THEN
             RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
-        ELSIF t_id != 1 THEN
-            RAISE EXCEPTION 'Tenant id in hasura session is not 1 (admin). Tenant simulation not allowed.';
+        -- ELSIF t_id != 1 THEN
+        --     RAISE EXCEPTION 'Tenant id in hasura session is not 1 (admin). Tenant simulation not allowed.';
         ELSIF tenant = 1 THEN
             RAISE EXCEPTION 'Tenant 1 (admin) cannot be simulated.';
         ELSIF EXISTS (
@@ -491,8 +489,8 @@ RETURNS SETOF rule_to AS $$
 
         IF t_id IS NULL THEN
             RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
-        ELSIF t_id != 1 THEN
-            RAISE EXCEPTION 'Tenant id in hasura session is not 1 (admin). Tenant simulation not allowed.';
+        -- ELSIF t_id != 1 THEN
+        --     RAISE EXCEPTION 'Tenant id in hasura session is not 1 (admin). Tenant simulation not allowed.';
         ELSIF tenant = 1 THEN
             RAISE EXCEPTION 'Tenant 1 (admin) cannot be simulated.';
         ELSIF EXISTS (
@@ -527,8 +525,8 @@ RETURNS SETOF changelog_rule AS $$
 
         IF t_id IS NULL THEN
             RAISE EXCEPTION 'No tenant id found in hasura session';
-        ELSIF t_id != 1 THEN
-            RAISE EXCEPTION 'Tenant id in hasura session is not 1 (admin). Tenant simulation not allowed.';
+        -- ELSIF t_id != 1 THEN
+        --     RAISE EXCEPTION 'Tenant id in hasura session is not 1 (admin). Tenant simulation not allowed.';
         ELSIF tenant = 1 THEN
             RAISE EXCEPTION 'Tenant 1 (admin) cannot be simulated.';
         ELSE

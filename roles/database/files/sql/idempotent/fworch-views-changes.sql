@@ -6,7 +6,7 @@ CREATE OR REPLACE VIEW view_obj_changes AS
 	SELECT
 		abs_change_id,
 		log_obj_id AS local_change_id,
-		get_request_str(CAST('object' as VARCHAR), changelog_object.log_obj_id) as change_request_info,
+		''::VARCHAR as change_request_info,
 		CAST('object' AS VARCHAR) as change_element,
 		CAST('basic_element' AS VARCHAR) as change_element_order,
 		changelog_object.old_obj_id AS old_id,	
@@ -42,7 +42,7 @@ CREATE OR REPLACE VIEW view_obj_changes AS
 	SELECT
 		abs_change_id,
 		log_obj_id AS local_change_id,
-		get_request_str('object', changelog_object.log_obj_id) as change_request_info,
+		''::VARCHAR as change_request_info,
 		CAST('object' AS VARCHAR) as change_element,
 		CAST('basic_element' AS VARCHAR) as change_element_order,
 		changelog_object.old_obj_id AS old_id,	
@@ -312,41 +312,10 @@ CREATE OR REPLACE VIEW view_changes AS
  	(SELECT * FROM view_user_changes)
  	ORDER BY change_time,mgm_name,change_admin,change_element_order;
 
-CREATE OR REPLACE VIEW view_undocumented_changes AS
- 	SELECT * FROM view_changes
-	WHERE
---	 change_type_id = 3 AND security_relevant  AND
-	 NOT change_documented 
- 	ORDER BY change_time,mgm_name,change_admin,change_element_order;
-
 CREATE OR REPLACE VIEW view_reportable_changes AS
  	SELECT * FROM view_changes
 --	WHERE change_type_id = 3 AND security_relevant
  	ORDER BY change_time,mgm_name,change_admin,change_element_order;
-
--- Zusammenfassung aller geaenderten Element-IDs (erzeugt #(change_type='C') mehr Eintr�ge)
--- erzeugt keine Dubletten unter der Praemisse, dass stets old_id<>new_id
-CREATE OR REPLACE VIEW view_changes_by_changed_element_id AS
-	SELECT old_id as element_id, * FROM view_reportable_changes WHERE NOT old_id IS NULL 
-	UNION
-	SELECT new_id as element_id, * FROM view_reportable_changes WHERE NOT new_id IS NULL;
-
--- slim view for counting number of changes
-
-CREATE OR REPLACE VIEW 	view_change_counter AS
-	(SELECT mgm_id,CAST(NULL AS INTEGER) as dev_id,import_admin,abs_change_id,documented FROM changelog_user WHERE change_type_id=3 AND security_relevant)
-		UNION
-	(SELECT mgm_id,CAST(NULL AS INTEGER) as dev_id,import_admin,abs_change_id,documented FROM changelog_object WHERE change_type_id=3 AND security_relevant)
-		UNION
-	(SELECT mgm_id,CAST(NULL AS INTEGER) as dev_id,import_admin,abs_change_id,documented FROM changelog_service WHERE change_type_id=3 AND security_relevant)
-		UNION
-	(SELECT mgm_id,dev_id,import_admin,abs_change_id,documented FROM changelog_rule WHERE change_type_id=3 AND security_relevant);
-
-CREATE OR REPLACE VIEW 	view_undocumented_change_counter AS
-	SELECT * FROM view_change_counter WHERE NOT documented;
-
-CREATE OR REPLACE VIEW 	view_documented_change_counter AS
-	SELECT * FROM view_change_counter WHERE documented;
 
 -- einheitliche View auf source und destination aller regeln - Verwendung in ChangeList bei tenant-Filterung
 CREATE OR REPLACE VIEW view_rule_source_or_destination AS
@@ -362,16 +331,7 @@ UNION
    LEFT JOIN objgrp_flat ON rule_from.obj_id = objgrp_flat.objgrp_flat_id
    LEFT JOIN object ON objgrp_flat.objgrp_flat_member_id = object.obj_id;
 
-
-   -- views for secuadmins
-GRANT SELECT ON TABLE view_change_counter TO GROUP secuadmins;
-GRANT SELECT ON TABLE view_undocumented_change_counter TO GROUP secuadmins;
-GRANT SELECT ON TABLE view_documented_change_counter TO GROUP secuadmins;
-GRANT SELECT ON TABLE view_undocumented_changes TO GROUP secuadmins;
-
 -- views used for reporters, too
 GRANT SELECT ON TABLE view_reportable_changes TO GROUP secuadmins, reporters;
 GRANT SELECT ON TABLE view_changes TO GROUP secuadmins, reporters;
--- GRANT SELECT ON TABLE view_tenant_rules TO GROUP secuadmins, reporters;
-GRANT SELECT ON TABLE view_changes_by_changed_element_id TO GROUP secuadmins, reporters;
 GRANT SELECT ON TABLE view_rule_source_or_destination TO GROUP secuadmins, reporters;

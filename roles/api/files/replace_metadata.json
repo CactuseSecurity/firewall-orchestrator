@@ -16162,25 +16162,7 @@
             },
             {
               "table": {
-                "name": "view_change_counter",
-                "schema": "public"
-              }
-            },
-            {
-              "table": {
                 "name": "view_changes",
-                "schema": "public"
-              }
-            },
-            {
-              "table": {
-                "name": "view_changes_by_changed_element_id",
-                "schema": "public"
-              }
-            },
-            {
-              "table": {
-                "name": "view_documented_change_counter",
                 "schema": "public"
               }
             },
@@ -16503,18 +16485,6 @@
             {
               "table": {
                 "name": "view_svc_changes",
-                "schema": "public"
-              }
-            },
-            {
-              "table": {
-                "name": "view_undocumented_change_counter",
-                "schema": "public"
-              }
-            },
-            {
-              "table": {
-                "name": "view_undocumented_changes",
                 "schema": "public"
               }
             },
